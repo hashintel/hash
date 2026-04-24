@@ -86,6 +86,29 @@ export const hospitalNetwork: { title: string; petriNetDefinition: SDCPN } = {
         defaultValue: "1",
       },
     ],
+    componentInstances: [
+      {
+        id: "instance__er_triage",
+        name: "ER Triage Unit",
+        subnetId: "subnet__er_triage",
+        parameterValues: {
+          param__triage_rate: "5",
+          param__treatment_rate: "3",
+        },
+        wiring: [
+          {
+            externalPlaceId: "place__er",
+            internalPlaceId: "place__waiting",
+          },
+          {
+            externalPlaceId: "place__ward",
+            internalPlaceId: "place__treated",
+          },
+        ],
+        x: -10 * SNAP_GRID_SIZE,
+        y: 20 * SNAP_GRID_SIZE,
+      },
+    ],
     scenarios: [
       {
         id: "scenario__normal_day",
@@ -114,6 +137,7 @@ export const hospitalNetwork: { title: string; petriNetDefinition: SDCPN } = {
             colorId: null,
             dynamicsEnabled: false,
             differentialEquationId: null,
+            isPort: true,
             showAsInitialState: true,
             x: -15 * SNAP_GRID_SIZE,
             y: 5 * SNAP_GRID_SIZE,
@@ -133,6 +157,7 @@ export const hospitalNetwork: { title: string; petriNetDefinition: SDCPN } = {
             colorId: null,
             dynamicsEnabled: false,
             differentialEquationId: null,
+            isPort: true,
             x: 15 * SNAP_GRID_SIZE,
             y: 5 * SNAP_GRID_SIZE,
           },

@@ -3,6 +3,7 @@ import { createContext } from "react";
 import type {
   Color,
   DifferentialEquation,
+  ComponentInstance,
   Parameter,
   Place,
   Transition,
@@ -18,6 +19,7 @@ export type ActiveNetDefinition = {
   types: Color[];
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
+  componentInstances: ComponentInstance[];
 };
 
 export type ActiveNetContextValue = {
@@ -35,6 +37,7 @@ const DEFAULT_ACTIVE_NET: ActiveNetDefinition = {
   types: [],
   differentialEquations: [],
   parameters: [],
+  componentInstances: [],
 };
 
 const DEFAULT_CONTEXT_VALUE: ActiveNetContextValue = {

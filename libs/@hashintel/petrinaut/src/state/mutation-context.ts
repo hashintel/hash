@@ -2,6 +2,7 @@ import { createContext } from "react";
 
 import type {
   Color,
+  ComponentInstance,
   DifferentialEquation,
   Parameter,
   Place,
@@ -72,6 +73,12 @@ export type MutationHelperFunctions = {
     updateFn: (scenario: Scenario) => void,
   ) => void;
   removeScenario: (scenarioId: string) => void;
+  addComponentInstance: (instance: ComponentInstance) => void;
+  updateComponentInstance: (
+    instanceId: string,
+    updateFn: (instance: ComponentInstance) => void,
+  ) => void;
+  removeComponentInstance: (instanceId: string) => void;
   addSubnet: (subnet: Subnet) => void;
   removeSubnet: (subnetId: string) => void;
   deleteItemsByIds: (items: SelectionMap) => void;
@@ -80,7 +87,7 @@ export type MutationHelperFunctions = {
   commitNodePositions: (
     commits: Array<{
       id: string;
-      itemType: "place" | "transition";
+      itemType: "place" | "transition" | "componentInstance";
       position: { x: number; y: number };
     }>,
   ) => void;
@@ -113,6 +120,9 @@ const DEFAULT_CONTEXT_VALUE: MutationContextValue = {
   addScenario: () => {},
   updateScenario: () => {},
   removeScenario: () => {},
+  addComponentInstance: () => {},
+  updateComponentInstance: () => {},
+  removeComponentInstance: () => {},
   addSubnet: () => {},
   removeSubnet: () => {},
   deleteItemsByIds: () => {},

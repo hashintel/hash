@@ -30,6 +30,8 @@ export type Place = {
   colorId: null | ID;
   dynamicsEnabled: boolean;
   differentialEquationId: null | ID;
+  /** When true, this place is exposed as a port on component instances of this subnet. */
+  isPort?: boolean;
   visualizerCode?: string;
   showAsInitialState?: boolean;
   // UI positioning
@@ -112,6 +114,38 @@ export type Scenario = {
       };
 };
 
+/**
+ * An instance of a subnet placed inside a net.
+ * It references a subnet definition and provides concrete parameter values.
+ */
+/**
+ * A wire connects a place in the parent net to a place inside the subnet.
+ */
+export type Wire = {
+  /** ID of a place in the parent net (external to the subnet). */
+  externalPlaceId: ID;
+  /** ID of a place inside the referenced subnet. */
+  internalPlaceId: ID;
+};
+
+export type ComponentInstance = {
+  id: ID;
+  /** Display name for this instance. */
+  name: string;
+  /** ID of the subnet this instance instantiates. */
+  subnetId: ID;
+  /**
+   * Concrete values for the subnet's parameters.
+   * Keys are parameter IDs from the referenced subnet; values are expressions.
+   */
+  parameterValues: Record<ID, string>;
+  /** Connections between places in the parent net and places inside the subnet. */
+  wiring: Wire[];
+  // UI positioning
+  x: number;
+  y: number;
+};
+
 export type Subnet = {
   id: ID;
   name: string;
@@ -120,6 +154,7 @@ export type Subnet = {
   types: Color[];
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
+  componentInstances?: ComponentInstance[];
 };
 
 export type SDCPN = {
@@ -130,6 +165,7 @@ export type SDCPN = {
   parameters: Parameter[];
   scenarios?: Scenario[];
   subnets?: Subnet[];
+  componentInstances?: ComponentInstance[];
 };
 
 export type MinimalNetMetadata = {

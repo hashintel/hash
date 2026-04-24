@@ -19,7 +19,16 @@ export type ArcData = {
 
 export type ArcEdgeType = Edge<ArcData>;
 
-export type ArcType = Omit<ArcEdgeType, "style">;
+export type ArcType = ArcEdgeType;
+
+export type WireData = {
+  externalPlaceId: string;
+  internalPlaceId: string;
+};
+
+export type WireEdgeType = Edge<WireData>;
+
+export type WireType = WireEdgeType;
 
 export type PlaceNodeData = {
   label: string;
@@ -48,15 +57,40 @@ export type TransitionNodeData = {
 
 export type TransitionNodeType = Node<TransitionNodeData, "transition">;
 
-export type NodeData = PlaceNodeData | TransitionNodeData;
+export type ComponentInstancePort = {
+  id: string;
+  name: string;
+};
 
-export type NodeType = TransitionNodeType | PlaceNodeType;
+export type ComponentInstanceNodeData = {
+  label: string;
+  type: "componentInstance";
+  subnetName: string;
+  ports: ComponentInstancePort[];
+};
+
+export type ComponentInstanceNodeType = Node<
+  ComponentInstanceNodeData,
+  "componentInstance"
+>;
+
+export type NodeData =
+  | PlaceNodeData
+  | TransitionNodeData
+  | ComponentInstanceNodeData;
+
+export type NodeType =
+  | TransitionNodeType
+  | PlaceNodeType
+  | ComponentInstanceNodeType;
+
+export type EdgeType = ArcType | WireType;
 
 /**
- * Object containing the nodes and arcs for the ReactFlow instance.
+ * Object containing the nodes and edges for the ReactFlow instance.
  */
 export type PetrinautReactFlowDefinitionObject = {
-  arcs: ArcType[];
+  edges: EdgeType[];
   nodes: NodeType[];
 };
 
@@ -65,5 +99,5 @@ export type PetrinautReactFlowDefinitionObject = {
  */
 export type PetrinautReactFlowInstance = ReactFlowInstance<
   NodeType,
-  ArcEdgeType
+  ArcEdgeType | WireEdgeType
 >;

@@ -123,13 +123,17 @@ export function useApplyNodeChanges() {
     if (positionCommits.length > 0) {
       const commits: Array<{
         id: string;
-        itemType: "place" | "transition";
+        itemType: "place" | "transition" | "componentInstance";
         position: { x: number; y: number };
       }> = [];
 
       for (const { id, position } of positionCommits) {
         const type = getItemType(id);
-        if (type === "place" || type === "transition") {
+        if (
+          type === "place" ||
+          type === "transition" ||
+          type === "componentInstance"
+        ) {
           commits.push({
             id,
             itemType: type,

@@ -1,11 +1,13 @@
 export const compactNodeDimensions = {
   place: { width: 180, height: 48 },
   transition: { width: 180, height: 48 },
+  componentInstance: { width: 200, height: 80 },
 };
 
 export const classicNodeDimensions = {
   place: { width: 130, height: 130 },
   transition: { width: 160, height: 80 },
+  componentInstance: { width: 200, height: 120 },
 };
 
 /** @deprecated Use compactNodeDimensions or classicNodeDimensions */

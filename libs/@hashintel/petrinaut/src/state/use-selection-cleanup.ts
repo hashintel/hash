@@ -48,6 +48,9 @@ export function useSelectionCleanup() {
     for (const param of petriNetDefinition.parameters) {
       validIds.add(param.id);
     }
+    for (const instance of petriNetDefinition.componentInstances) {
+      validIds.add(instance.id);
+    }
 
     // Check if any selected ID is stale
     let hasStale = false;

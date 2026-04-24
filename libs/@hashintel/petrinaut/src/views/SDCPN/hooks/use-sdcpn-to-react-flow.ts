@@ -5,9 +5,10 @@ import { hexToHsl } from "../../../lib/hsl-color";
 import { PlaybackContext } from "../../../playback/context";
 import { ActiveNetContext } from "../../../state/active-net-context";
 import { EditorContext } from "../../../state/editor-context";
-import { generateArcId } from "../../../state/sdcpn-context";
+import { generateArcId, SDCPNContext } from "../../../state/sdcpn-context";
 import { UserSettingsContext } from "../../../state/user-settings-context";
 import type {
+  EdgeType,
   NodeType,
   PetrinautReactFlowDefinitionObject,
 } from "../reactflow-types";
@@ -28,6 +29,7 @@ import {
  */
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { activeNet: petriNetDefinition } = use(ActiveNetContext);
+  const { petriNetDefinition: fullSdcpn } = use(SDCPNContext);
   const { draggingStateByNodeId, isSelected } = use(EditorContext);
   const { currentViewedFrame } = use(PlaybackContext);
   const { compactNodes } = use(UserSettingsContext);
@@ -99,8 +101,48 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     });
   }
 
-  // Create arcs from input and output arcs
-  const arcs = [];
+  // Create component instance nodes
+  for (const instance of petriNetDefinition.componentInstances) {
+    const draggingState = draggingStateByNodeId[instance.id];
+
+    // Resolve the subnet to find its port places
+    const subnet = (fullSdcpn.subnets ?? []).find(
+      (s) => s.id === instance.subnetId,
+    );
+    const subnetName = subnet?.name ?? "Unknown";
+    const ports = (subnet?.places ?? [])
+      .filter((place) => place.isPort)
+      .map((place) => ({ id: place.id, name: place.name }));
+
+    // Dynamically size based on port count
+    const minHeight = dimensions.componentInstance.height;
+    const portBasedHeight = Math.max(minHeight, ports.length * 28 + 24);
+
+    nodes.push({
+      id: instance.id,
+      type: "componentInstance",
+      position: draggingState?.dragging
+        ? draggingState.position
+        : { x: instance.x, y: instance.y },
+      width: dimensions.componentInstance.width,
+      height: portBasedHeight,
+      measured: {
+        width: dimensions.componentInstance.width,
+        height: portBasedHeight,
+      },
+      dragging: draggingState?.dragging ?? false,
+      selected: isSelected(instance.id),
+      data: {
+        label: instance.name,
+        type: "componentInstance",
+        subnetName,
+        ports,
+      },
+    });
+  }
+
+  // Create edges (arcs + wires)
+  const edges: EdgeType[] = [];
 
   for (const transition of petriNetDefinition.transitions) {
     // Input arcs (from places to transition)
@@ -121,7 +163,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
 
-      arcs.push({
+      edges.push({
         id: arcId,
         source: inputArc.placeId,
         target: transition.id,
@@ -163,7 +205,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
 
-      arcs.push({
+      edges.push({
         id: arcId,
         source: transition.id,
         target: outputArc.placeId,
@@ -188,8 +230,34 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     }
   }
 
+  // Create wire edges from component instance wiring (external place ↔ instance port)
+  for (const instance of petriNetDefinition.componentInstances) {
+    for (const wire of instance.wiring) {
+      const wireId = `wire__${instance.id}__${wire.externalPlaceId}__${wire.internalPlaceId}`;
+
+      edges.push({
+        id: wireId,
+        source: wire.externalPlaceId,
+        target: instance.id,
+        targetHandle: `port-in-${wire.internalPlaceId}`,
+        type: "wire" as const,
+        selected: isSelected(wireId),
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: "#999",
+          width: 20,
+          height: 20,
+        },
+        data: {
+          externalPlaceId: wire.externalPlaceId,
+          internalPlaceId: wire.internalPlaceId,
+        },
+      });
+    }
+  }
+
   return {
     nodes,
-    arcs,
+    edges,
   };
 }

@@ -345,6 +345,39 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
       });
     },
+    addComponentInstance(instance) {
+      guardedMutate((sdcpn) => {
+        const net = resolveNet(sdcpn);
+        const componentInstances = net.componentInstances ?? [];
+        componentInstances.push(instance);
+        net.componentInstances = componentInstances;
+      });
+    },
+    updateComponentInstance(instanceId, updateFn) {
+      guardedMutate((sdcpn) => {
+        for (const instance of resolveNet(sdcpn).componentInstances ?? []) {
+          if (instance.id === instanceId) {
+            updateFn(instance);
+            break;
+          }
+        }
+      });
+    },
+    removeComponentInstance(instanceId) {
+      guardedMutate((sdcpn) => {
+        const net = resolveNet(sdcpn);
+        const componentInstances = net.componentInstances;
+        if (!componentInstances) {
+          return;
+        }
+        for (const [index, instance] of componentInstances.entries()) {
+          if (instance.id === instanceId) {
+            componentInstances.splice(index, 1);
+            break;
+          }
+        }
+      });
+    },
     addSubnet(subnet) {
       guardedMutate((sdcpn) => {
         const subnets = sdcpn.subnets ?? [];
@@ -378,6 +411,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         const typeIds = new Set<string>();
         const equationIds = new Set<string>();
         const parameterIds = new Set<string>();
+        const componentInstanceIds = new Set<string>();
 
         for (const [id, item] of items) {
           switch (item.type) {
@@ -398,6 +432,9 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
               break;
             case "parameter":
               parameterIds.add(id);
+              break;
+            case "componentInstance":
+              componentInstanceIds.add(id);
               break;
           }
         }
@@ -499,6 +536,17 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
             }
           }
         }
+
+        if (componentInstanceIds.size > 0) {
+          const instances = net.componentInstances;
+          if (instances) {
+            for (let i = instances.length - 1; i >= 0; i--) {
+              if (componentInstanceIds.has(instances[i]!.id)) {
+                instances.splice(i, 1);
+              }
+            }
+          }
+        }
       });
     },
     async layoutGraph() {
@@ -559,11 +607,19 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
                 break;
               }
             }
-          } else {
+          } else if (itemType === "transition") {
             for (const transition of net.transitions) {
               if (transition.id === id) {
                 transition.x = position.x;
                 transition.y = position.y;
+                break;
+              }
+            }
+          } else {
+            for (const instance of net.componentInstances ?? []) {
+              if (instance.id === id) {
+                instance.x = position.x;
+                instance.y = position.y;
                 break;
               }
             }

@@ -41,6 +41,13 @@ export const SDCPNProvider: React.FC<
         if (net.transitions.some((transition) => transition.id === id)) {
           return "transition";
         }
+
+        if (
+          "componentInstances" in net &&
+          net.componentInstances?.some((instance) => instance.id === id)
+        ) {
+          return "componentInstance";
+        }
       }
 
       return null;

@@ -27,13 +27,23 @@ export const ActiveNetProvider: React.FC<React.PropsWithChildren> = ({
   // Fall back to root if the subnet was deleted
   const resolvedSubnetId = subnet ? activeSubnetId : null;
 
-  const activeNet = subnet ?? {
-    places: petriNetDefinition.places,
-    transitions: petriNetDefinition.transitions,
-    types: petriNetDefinition.types,
-    differentialEquations: petriNetDefinition.differentialEquations,
-    parameters: petriNetDefinition.parameters,
-  };
+  const activeNet = subnet
+    ? {
+        places: subnet.places,
+        transitions: subnet.transitions,
+        types: subnet.types,
+        differentialEquations: subnet.differentialEquations,
+        parameters: subnet.parameters,
+        componentInstances: subnet.componentInstances ?? [],
+      }
+    : {
+        places: petriNetDefinition.places,
+        transitions: petriNetDefinition.transitions,
+        types: petriNetDefinition.types,
+        differentialEquations: petriNetDefinition.differentialEquations,
+        parameters: petriNetDefinition.parameters,
+        componentInstances: petriNetDefinition.componentInstances ?? [],
+      };
 
   const value: ActiveNetContextValue = {
     activeNet,

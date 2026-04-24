@@ -20,18 +20,28 @@ export type ImportResult =
 const hasMissingPositions = (sdcpn: {
   places: { x?: number; y?: number }[];
   transitions: { x?: number; y?: number }[];
+  componentInstances?: { x?: number; y?: number }[];
   subnets?: {
     places: { x?: number; y?: number }[];
     transitions: { x?: number; y?: number }[];
+    componentInstances?: { x?: number; y?: number }[];
   }[];
 }): boolean => {
-  for (const node of [...sdcpn.places, ...sdcpn.transitions]) {
+  for (const node of [
+    ...sdcpn.places,
+    ...sdcpn.transitions,
+    ...(sdcpn.componentInstances ?? []),
+  ]) {
     if (node.x === undefined || node.y === undefined) {
       return true;
     }
   }
   for (const subnet of sdcpn.subnets ?? []) {
-    for (const node of [...subnet.places, ...subnet.transitions]) {
+    for (const node of [
+      ...subnet.places,
+      ...subnet.transitions,
+      ...(subnet.componentInstances ?? []),
+    ]) {
       if (node.x === undefined || node.y === undefined) {
         return true;
       }
@@ -45,51 +55,49 @@ const hasMissingPositions = (sdcpn: {
  * - Places/transitions at (0, 0) will be laid out by ELK after import.
  * - Colors get default iconSlug and displayColor when missing (e.g. exported without visual info).
  */
-const fillMissingVisualInfo = (sdcpn: {
-  title: string;
+type VisualInfoInput = {
   places: Array<{ x?: number; y?: number }>;
   transitions: Array<{ x?: number; y?: number }>;
   types: Array<{ iconSlug?: string; displayColor?: string }>;
-  subnets?: Array<{
-    places: Array<{ x?: number; y?: number }>;
-    transitions: Array<{ x?: number; y?: number }>;
-    types: Array<{ iconSlug?: string; displayColor?: string }>;
-  }>;
-}): SDCPNWithTitle =>
+  componentInstances?: Array<{ x?: number; y?: number }>;
+};
+
+const fillNetVisualInfo = <T extends VisualInfoInput>(net: T) => ({
+  ...net,
+  places: net.places.map((place) => ({
+    ...place,
+    x: place.x ?? 0,
+    y: place.y ?? 0,
+  })),
+  transitions: net.transitions.map((transition) => ({
+    ...transition,
+    x: transition.x ?? 0,
+    y: transition.y ?? 0,
+  })),
+  types: net.types.map((type) => ({
+    ...type,
+    iconSlug: type.iconSlug ?? "circle",
+    displayColor: type.displayColor ?? "#808080",
+  })),
+  componentInstances: (net.componentInstances ?? []).map((instance) => ({
+    ...instance,
+    x: instance.x ?? 0,
+    y: instance.y ?? 0,
+  })),
+});
+
+const fillMissingVisualInfo = (
+  sdcpn: VisualInfoInput & {
+    title: string;
+    subnets?: VisualInfoInput[];
+  },
+): SDCPNWithTitle =>
   ({
     ...sdcpn,
-    places: sdcpn.places.map((place) => ({
-      ...place,
-      x: place.x ?? 0,
-      y: place.y ?? 0,
-    })),
-    transitions: sdcpn.transitions.map((transition) => ({
-      ...transition,
-      x: transition.x ?? 0,
-      y: transition.y ?? 0,
-    })),
-    types: sdcpn.types.map((type) => ({
-      ...type,
-      iconSlug: type.iconSlug ?? "circle",
-      displayColor: type.displayColor ?? "#808080",
-    })),
+    ...fillNetVisualInfo(sdcpn),
     subnets: (sdcpn.subnets ?? []).map((subnet) => ({
       ...subnet,
-      places: subnet.places.map((place) => ({
-        ...place,
-        x: place.x ?? 0,
-        y: place.y ?? 0,
-      })),
-      transitions: subnet.transitions.map((transition) => ({
-        ...transition,
-        x: transition.x ?? 0,
-        y: transition.y ?? 0,
-      })),
-      types: subnet.types.map((type) => ({
-        ...type,
-        iconSlug: type.iconSlug ?? "circle",
-        displayColor: type.displayColor ?? "#808080",
-      })),
+      ...fillNetVisualInfo(subnet),
     })),
   }) as SDCPNWithTitle;
 

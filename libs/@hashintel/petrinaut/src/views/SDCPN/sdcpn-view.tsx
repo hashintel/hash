@@ -21,6 +21,7 @@ import { useIsReadOnly } from "../../state/use-is-read-only";
 import { UserSettingsContext } from "../../state/user-settings-context";
 import type { ViewportAction } from "../../types/viewport-action";
 import { Arc } from "./components/arc";
+import { ComponentInstanceNode } from "./components/component-instance-node";
 import { CursorTooltip } from "./components/cursor-tooltip";
 import { ClassicPlaceNode } from "./components/classic-place-node";
 import { ClassicTransitionNode } from "./components/classic-transition-node";
@@ -28,6 +29,7 @@ import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
 import { ViewportControls } from "./components/viewport-controls";
+import { WireEdge } from "./components/wire-edge";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useRecenterOnPanelOpen } from "./hooks/use-recenter-on-panel-open";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
@@ -36,15 +38,18 @@ import type { PetrinautReactFlowInstance } from "./reactflow-types";
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,
   transition: TransitionNode,
+  componentInstance: ComponentInstanceNode,
 };
 
 const CLASSIC_NODE_TYPES = {
   place: ClassicPlaceNode,
   transition: ClassicTransitionNode,
+  componentInstance: ComponentInstanceNode,
 };
 
 const REACTFLOW_EDGE_TYPES = {
   default: Arc,
+  wire: WireEdge,
 };
 
 const ZOOM_PADDING = 0.4;
@@ -80,12 +85,14 @@ export const SDCPNView: React.FC<{
   const [minZoom, setMinZoom] = useState(0);
 
   // SDCPN store
-  const { petriNetId } = use(SDCPNContext);
-  const { addPlace, addTransition, addArc } = use(MutationContext);
+  const { petriNetId, petriNetDefinition } = use(SDCPNContext);
+  const { addPlace, addTransition, addArc, addComponentInstance } =
+    use(MutationContext);
 
   const {
     editionMode,
     setEditionMode,
+    componentSubnetId,
     cursorMode,
     selectItem,
     clearSelection,
@@ -95,7 +102,7 @@ export const SDCPNView: React.FC<{
   const applyNodeChanges = useApplyNodeChanges();
 
   // Convert SDCPN to ReactFlow format with dragging state
-  const { nodes, arcs } = useSdcpnToReactFlow();
+  const { nodes, edges } = useSdcpnToReactFlow();
 
   // When a panel opens, recenter the viewport to keep selected nodes visible
   useRecenterOnPanelOpen(canvasContainer, reactFlowInstance, nodes);
@@ -253,6 +260,33 @@ export const SDCPNView: React.FC<{
       return;
     }
 
+    if (editionMode === "add-component" && componentSubnetId) {
+      const rawPosition = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      const position = snapToGrid
+        ? snapPositionToGrid(rawPosition)
+        : rawPosition;
+
+      const subnet = (petriNetDefinition.subnets ?? []).find(
+        (s) => s.id === componentSubnetId,
+      );
+      const id = `componentInstance__${generateUuid()}`;
+      addComponentInstance({
+        id,
+        name: subnet?.name ?? "Instance",
+        subnetId: componentSubnetId,
+        parameterValues: {},
+        wiring: [],
+        x: position.x,
+        y: position.y,
+      });
+      selectItem({ type: "componentInstance", id });
+      setEditionMode("cursor");
+      return;
+    }
+
     // Only create nodes in add-place / add-transition modes
     if (editionMode !== "add-place" && editionMode !== "add-transition") {
       return;
@@ -361,7 +395,7 @@ export const SDCPNView: React.FC<{
     >
       <ReactFlow
         nodes={nodes}
-        edges={arcs}
+        edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={REACTFLOW_EDGE_TYPES}
         onNodesChange={(n) => {

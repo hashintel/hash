@@ -19,6 +19,7 @@ const placeSchema = z.object({
   colorId: z.string().nullable(),
   dynamicsEnabled: z.boolean(),
   differentialEquationId: z.string().nullable(),
+  isPort: z.boolean().optional(),
   visualizerCode: z.string().optional(),
   showAsInitialState: z.boolean().optional(),
   x: z.number().optional(),
@@ -95,6 +96,21 @@ const scenarioSchema = z.object({
   initialState: initialStateSchema.default({ type: "per_place", content: {} }),
 });
 
+const wireSchema = z.object({
+  externalPlaceId: z.string(),
+  internalPlaceId: z.string(),
+});
+
+const componentInstanceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  subnetId: z.string(),
+  parameterValues: z.record(z.string(), z.string()).default({}),
+  wiring: z.array(wireSchema).default([]),
+  x: z.number().optional(),
+  y: z.number().optional(),
+});
+
 const subnetSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -103,6 +119,7 @@ const subnetSchema = z.object({
   types: z.array(colorSchema).default([]),
   differentialEquations: z.array(differentialEquationSchema).default([]),
   parameters: z.array(parameterSchema).default([]),
+  componentInstances: z.array(componentInstanceSchema).default([]),
 });
 
 const sdcpnSchema = z.object({
@@ -113,6 +130,7 @@ const sdcpnSchema = z.object({
   parameters: z.array(parameterSchema).default([]),
   scenarios: z.array(scenarioSchema).default([]),
   subnets: z.array(subnetSchema).default([]),
+  componentInstances: z.array(componentInstanceSchema).default([]),
 });
 
 const fileMetaSchema = z.object({
