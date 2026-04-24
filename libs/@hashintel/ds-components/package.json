@@ -49,7 +49,7 @@
     "build:ladle": "ladle build",
     "build:lib": "tsdown",
     "build:storybook": "storybook build",
-    "codegen": "yarn run codegen:colors && yarn run codegen:tokens && panda codegen --clean && panda cssgen",
+    "codegen": "yarn run codegen:colors && yarn run codegen:tokens && panda codegen --clean",
     "codegen:colors": "tsx scripts/generate-colors-radix.ts",
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "yarn dev:ladle",

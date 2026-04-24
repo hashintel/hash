@@ -61,8 +61,8 @@ yarn build:storybook
 
 `yarn dev` is the primary Ladle-based review loop. Use `yarn dev:storybook` for component-story review and `yarn dev:lib` when you only need the library watcher.
 `yarn prepare`/`yarn codegen` generates the shared `../ds-helpers/styled-system`
-runtime, and the demo loops rely on Vite/PostCSS for CSS extraction while the
-server is running.
+authoring runtime, and the demo loops rely on Vite/PostCSS for CSS extraction
+while the server is running.
 
 ## Contributor Docs
 

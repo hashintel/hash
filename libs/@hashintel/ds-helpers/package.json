@@ -17,9 +17,7 @@
     "styled-system"
   ],
   "type": "module",
-  "sideEffects": [
-    "./styled-system/styles.css"
-  ],
+  "sideEffects": false,
   "exports": {
     "./css": {
       "types": "./styled-system/css/index.d.ts",
@@ -45,8 +43,7 @@
       "types": "./styled-system/jsx/index.d.ts",
       "require": "./styled-system/jsx/index.mjs",
       "import": "./styled-system/jsx/index.mjs"
-    },
-    "./styles.css": "./styled-system/styles.css"
+    }
   },
   "publishConfig": {
     "access": "public"

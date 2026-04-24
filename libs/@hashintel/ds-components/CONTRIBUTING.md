@@ -145,9 +145,10 @@ yarn codegen:tokens
 yarn codegen
 ```
 
-The `prepare` lifecycle runs the same `codegen` script. Ladle and Storybook use
-Panda's Vite/PostCSS integration through `postcss.config.cjs`; they do not need
-a separate local Panda runtime generation script.
+The `prepare` lifecycle runs the same `codegen` script. It generates Panda's
+authoring modules and types, not a standalone CSS file. Ladle and Storybook use
+Panda's Vite/PostCSS integration through `postcss.config.cjs` for CSS
+extraction.
 
 ### Token Naming In Strict Mode
 
