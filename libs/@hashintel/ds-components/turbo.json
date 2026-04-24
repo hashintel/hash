@@ -33,6 +33,14 @@
       "dependsOn": ["codegen", "@hashintel/refractive#build"],
       "persistent": true
     },
+    "lint:eslint": {
+      "dependsOn": [
+        "codegen",
+        "@local/eslint#build",
+        "@hashintel/refractive#build"
+      ],
+      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"]
+    },
     "lint:tsc": {
       "dependsOn": ["codegen", "@hashintel/refractive#build"]
     },
@@ -48,6 +56,10 @@
     },
     "preview:ladle": {
       "dependsOn": ["build:ladle"]
+    },
+    "test:unit": {
+      "dependsOn": ["build:buildinfo"],
+      "env": ["TEST_COVERAGE"]
     },
     "test:snapshots": {
       "dependsOn": ["build:ladle"]
