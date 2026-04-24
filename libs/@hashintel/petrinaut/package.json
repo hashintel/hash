@@ -60,7 +60,6 @@
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "workspace:*",
-    "@hashintel/ds-theme": "workspace:*",
     "@pandacss/dev": "1.4.3",
     "@rolldown/plugin-babel": "0.2.1",
     "@storybook/react-vite": "10.2.19",

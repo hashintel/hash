@@ -176,5 +176,8 @@ out/
 **/_scratch/
 **/_holding/
 
+# brunch
+**/.brunch/
+
 # Jujutsu
 .jj/

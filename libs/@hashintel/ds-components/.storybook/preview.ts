@@ -1,3 +1,7 @@
+import "@fontsource-variable/geist-mono";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/inter-tight";
+
 import "./index.css";
 
 import type { Preview } from "@storybook/react-vite";

@@ -5,17 +5,67 @@
     "build": {
       "outputs": ["dist/**"]
     },
-    "codegen": {
-      "outputs": ["styled-system/**"]
+    "build:buildinfo": {
+      "dependsOn": ["codegen"],
+      "outputs": ["dist/panda.buildinfo.json"]
     },
-    "storybook": {
+    "build:ladle": {
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "outputs": [".build/ladle/**"]
+    },
+    "build:lib": {
+      "dependsOn": ["codegen"],
+      "outputs": ["dist/**"]
+    },
+    "build:storybook": {
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "outputs": ["storybook-static/**"]
+    },
+    "codegen": {
+      "dependsOn": [],
+      "outputs": [
+        "src/preset/theme/**/*.gen.ts",
+        "../ds-helpers/styled-system/**"
+      ]
+    },
+    "dev": {
       "cache": false,
-      "dependsOn": ["^build"],
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
       "persistent": true
     },
-    "storybook:build": {
-      "dependsOn": ["^build"],
-      "outputs": ["storybook-static/**"]
+    "lint:eslint": {
+      "dependsOn": [
+        "codegen",
+        "@local/eslint#build",
+        "@hashintel/refractive#build"
+      ],
+      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["codegen", "@hashintel/refractive#build"]
+    },
+    "dev:ladle": {
+      "cache": false,
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "persistent": true
+    },
+    "dev:storybook": {
+      "cache": false,
+      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "persistent": true
+    },
+    "preview:ladle": {
+      "dependsOn": ["build:ladle"]
+    },
+    "test:unit": {
+      "dependsOn": ["build:buildinfo"],
+      "env": ["TEST_COVERAGE"]
+    },
+    "test:snapshots": {
+      "dependsOn": ["build:ladle"]
+    },
+    "test:snapshots:update": {
+      "dependsOn": ["build:ladle"]
     }
   }
 }

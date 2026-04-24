@@ -10,16 +10,21 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "target": "esnext",
-    "types": [],
+    "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.*",
-    "**/*.spec.*",
-    ".storybook/**/*"
-  ],
+  "exclude": ["node_modules", "dist", "**/*.test.*", "**/*.spec.*"],
   "extends": "@tsconfig/strictest/tsconfig.json",
-  "include": ["src", "tsdown.config.ts"]
+  "include": [
+    "src/**/*",
+    ".storybook/**/*",
+    ".ladle/**/*",
+    "tests/**/*",
+    "scripts/**/*",
+    "panda.config.ts",
+    "panda.local.config.ts",
+    "playwright.config.ts",
+    "tsdown.config.ts",
+    "vite.config.ts"
+  ]
 }

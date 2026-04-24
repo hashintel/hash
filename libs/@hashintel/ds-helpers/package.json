@@ -43,52 +43,9 @@
       "types": "./styled-system/jsx/index.d.ts",
       "require": "./styled-system/jsx/index.mjs",
       "import": "./styled-system/jsx/index.mjs"
-    },
-    "./styles.css": "./styled-system/styles.css"
+    }
   },
   "publishConfig": {
     "access": "public"
-  },
-  "scripts": {
-    "build": "panda codegen --clean",
-    "build:ladle": "ladle build",
-    "dev": "npm-run-all --parallel dev:panda dev:ladle",
-    "dev:ladle": "ladle serve",
-    "dev:panda": "panda codegen --watch",
-    "fix": "npm-run-all --continue-on-error \"fix:*\"",
-    "fix:format": "biome format --write",
-    "lint": "npm-run-all --continue-on-error \"lint:*\"",
-    "lint:tsc": "tsc --noEmit",
-    "preflight:ladle": "ladle build && ladle preview",
-    "prepublishOnly": "turbo run build",
-    "test:snapshots": "ladle build && playwright test",
-    "test:update": "ladle build && playwright test --update-snapshots"
-  },
-  "devDependencies": {
-    "@csstools/postcss-oklab-function": "5.0.1",
-    "@fontsource-variable/geist-mono": "5.2.7",
-    "@fontsource-variable/inter": "5.2.8",
-    "@fontsource-variable/inter-tight": "5.2.7",
-    "@hashintel/ds-theme": "workspace:*",
-    "@ladle/react": "5.1.1",
-    "@mantine/hooks": "8.3.5",
-    "@pandacss/dev": "1.4.3",
-    "@playwright/test": "1.58.2",
-    "@radix-ui/colors": "3.0.0",
-    "@tool-belt/type-predicates": "1.4.1",
-    "@tsconfig/strictest": "^2.0.8",
-    "@types/node": "22.18.13",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "5.0.4",
-    "color2k": "2.0.3",
-    "npm-run-all": "4.1.5",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "sync-fetch": "0.5.2",
-    "tsdown": "^0.21.4",
-    "typescript": "5.9.3",
-    "vite": "7.3.2",
-    "vitest": "^4.0.16"
   }
 }

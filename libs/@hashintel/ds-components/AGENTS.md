@@ -2,23 +2,41 @@
 
 ## Purpose
 
-React component library built with **Panda CSS** and **Ark UI**. Components consume styling utilities from `@hashintel/ds-helpers` and export accessible, styled UI primitives.
+`@hashintel/ds-components` is now the source-owning design-system package.
+
+It owns:
+
+- the Panda preset source in `src/preset/**`
+- token/codegen scripts in `scripts/**`
+- the component library in `src/components/**`
+- the token/demo surface in `src/stories/**`, `.ladle/`, and `tests/**`
+
+It still consumes the generated runtime styling utilities from `@hashintel/ds-helpers`.
 
 ## Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   ds-theme      │────▶│   ds-helpers    │────▶│  ds-components  │
-│  (Panda Preset) │     │ (Styled System) │     │ (React + Ark UI)│
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │                    ▲ YOU ARE HERE
-   Design tokens          css(), cva(),           Button, Checkbox,
-   from Figma             tokens, jsx             Avatar, etc.
+┌─────────────────────────────────────┐
+│           ds-components             │
+│  preset source + scripts + demos    │
+└──────────────────────┬──────────────┘
+                       │
+                       │ panda codegen
+                       ▼
+              ┌─────────────────┐
+              │   ds-helpers    │
+              │ generated only  │
+              │ styled-system   │
+              └────────┬────────┘
+                       ▼
+              css(), cva(), jsx runtime
 ```
 
-- **ds-theme**: Panda CSS preset containing design tokens (colors, spacing, etc.)
-- **ds-helpers**: Generates and exports styled-system utilities (`css()`, `cva()`, `token()`, JSX components)
-- **ds-components**: Imports from ds-helpers, wraps Ark UI primitives with styled components
+Boundary rules:
+
+- `ds-components` generates `../ds-helpers/styled-system` via Panda `outdir`.
+- `ds-helpers` must not depend on `ds-components`.
+- `@hashintel/ds-components/preset` and `@hashintel/ds-components/theme` are the canonical public preset/theme entrypoints.
 
 ## Panda CSS Configuration
 
@@ -27,21 +45,31 @@ React component library built with **Panda CSS** and **Ark UI**. Components cons
 ```ts
 import { defineConfig } from "@pandacss/dev";
 
+import { preset } from "./src/preset";
+
 export default defineConfig({
-  strictTokens: true,  // Enforces valid token references at compile time
-  preflight: true,
-  include: ["./src/**/*.{js,jsx,ts,tsx}"],
-  exclude: [],
-  theme: { extend: {} },
-  presets: ["@hashintel/ds-theme"],
+  importMap: "@hashintel/ds-helpers",
+  outdir: "../ds-helpers/styled-system",
+  include: [
+    "./src/components/**/*.{ts,tsx}",
+    "./src/playground/**/*.{ts,tsx}",
+  ],
   jsxFramework: "react",
+  outExtension: "mjs",
+  preflight: false,
+  presets: [preset],
+  strictPropertyValues: true,
+  strictTokens: true,
+  validation: "error",
 });
 ```
 
 Key points:
-- `strictTokens: true` - TypeScript will error on invalid token names
-- Preset from `@hashintel/ds-theme` provides all tokens
-- `jsxFramework: "react"` enables JSX components
+
+- `src/preset.ts` is the local source of truth for the preset.
+- publish codegen writes to `../ds-helpers/styled-system`
+- `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
+- `panda.local.config.ts` exists separately for local demo surfaces such as Ladle and Storybook
 
 ### Token Naming Patterns (Strict Mode)
 
@@ -55,16 +83,21 @@ With `strictTokens: true`, you must use the exact token names:
 | LineHeight       | `leading.none.textsm` | `none.text-sm`, `normal.text-base`               |
 | Arbitrary values | `64px`                | `[64px]`                                         |
 
-The token types are defined in `@hashintel/ds-helpers/types`.
+Token types for stories and public token access should come from `@hashintel/ds-helpers/tokens`.
 
 ### Import Patterns
 
-Components import styling utilities from `@hashintel/ds-helpers`:
+Component implementation continues to use the generated styling runtime from `@hashintel/ds-helpers`:
 
 ```tsx
 import { css, cva, cx } from '@hashintel/ds-helpers/css';
-import { token } from '@hashintel/ds-helpers/tokens';
 import { Box, Flex, Stack } from '@hashintel/ds-helpers/jsx';
+```
+
+When you need token lookup helpers or token types, use:
+
+```ts
+import { token, type Token } from '@hashintel/ds-helpers/tokens';
 ```
 
 ## Color Token Naming
@@ -190,52 +223,57 @@ export const Checkbox = (props) => (
 
 ## Scripts
 
-| Script                       | Description                          |
-| ---------------------------- | ------------------------------------ |
-| `yarn storybook`             | Start Storybook dev server           |
-| `yarn storybook:build`       | Build static Storybook               |
-| `yarn build`                 | Build component library with Vite    |
-| `yarn lint:tsc`              | TypeScript type checking             |
-| `yarn panda codegen --clean` | Regenerate styled-system from preset |
+| Script | Description |
+| --- | --- |
+| `yarn dev` | Start the primary Ladle-based demo loop |
+| `yarn dev:lib` | Watch the publishable component library build |
+| `yarn dev:storybook` | Start Storybook for component stories |
+| `yarn codegen` | Generate token source files and `../ds-helpers/styled-system` |
+| `yarn build` | Build the component library entrypoints |
+| `yarn build:ladle` | Build the Ladle demo surface |
+| `yarn build:storybook` | Build static Storybook |
+| `yarn lint:eslint` | Lint the publishable package surface |
+| `yarn lint:tsc` | TypeScript type checking |
+| `yarn test:unit` | Run the Vitest unit suites without the Playwright snapshot harness |
+| `yarn test:snapshots` | Build Ladle and run the Playwright snapshot suite |
 
 ## File Structure
 
 ```
 libs/@hashintel/ds-components/
+├── .ladle/                 # Ladle/demo harness
 ├── src/
 │   ├── components/
-│   │   ├── Avatar/
-│   │   ├── Badge/
-│   │   ├── Button/
-│   │   ├── Checkbox/
-│   │   └── ...
+│   ├── preset/             # Panda preset source of truth
 │   ├── playground/
-│   └── stories/
+│   ├── stories/
+│   ├── theme.ts            # Public `./theme` facade
+├── scripts/                # Token/codegen scripts
+├── tests/                  # Snapshot/demo tests
 ├── .storybook/             # Storybook configuration
 ├── panda.config.ts
+├── panda.local.config.ts
 ├── package.json
 └── tsconfig.json
 ```
 
 ## Regenerating Tokens
 
-When tokens change in `@hashintel/ds-theme`:
+When tokens or preset inputs change:
 
 ```bash
-# 1. In ds-theme: regenerate token files
-cd libs/@hashintel/ds-theme
-yarn codegen
-
-# 2. In ds-helpers: regenerate styled-system
-cd libs/@hashintel/ds-helpers
-yarn codegen
-
-# 3. In ds-components: verify types still compile
+# 1. Regenerate token source files inside ds-components
 cd libs/@hashintel/ds-components
+yarn codegen:colors
+yarn codegen:tokens
+
+# 2. Regenerate the styled-system artifact in ds-helpers
+yarn codegen
+
+# 3. Verify the package surface still compiles
 yarn lint:tsc
 ```
 
 ## Related Packages
 
-- **ds-theme**: Design tokens from Figma (`libs/@hashintel/ds-theme`)
-- **ds-helpers**: Styled-system utilities (`libs/@hashintel/ds-helpers`)
+- **ds-helpers**: generated Panda styled-system artifact (`libs/@hashintel/ds-helpers`)

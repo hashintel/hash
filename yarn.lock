@@ -5408,52 +5408,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@csstools/color-helpers@npm:^6.0.1":
-  version: 6.0.1
-  resolution: "@csstools/color-helpers@npm:6.0.1"
-  checksum: 10c0/866844267d5aa5a02fe9d54f6db6fc18f6306595edb03664cc8ef15c99d3e6f3b42eb1a413c98bafa5b2dc0d8e0193da9b3bcc9d6a04f5de74cbd44935e74b3c
-  languageName: node
-  linkType: hard
-
-"@csstools/css-calc@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "@csstools/css-calc@npm:3.0.0"
-  peerDependencies:
-    "@csstools/css-parser-algorithms": ^4.0.0
-    "@csstools/css-tokenizer": ^4.0.0
-  checksum: 10c0/2f062db206dcdcb561a802d791aaf8b410f0e4d91ded89eb4075f75f1eafe8f5392c431a8d602d6ae660fca6299e02fcc555efdb235f3403ffc56ac6f14a1c2b
-  languageName: node
-  linkType: hard
-
-"@csstools/css-color-parser@npm:^4.0.1":
-  version: 4.0.1
-  resolution: "@csstools/css-color-parser@npm:4.0.1"
-  dependencies:
-    "@csstools/color-helpers": "npm:^6.0.1"
-    "@csstools/css-calc": "npm:^3.0.0"
-  peerDependencies:
-    "@csstools/css-parser-algorithms": ^4.0.0
-    "@csstools/css-tokenizer": ^4.0.0
-  checksum: 10c0/c46be5b9f5c0ef3cd25b47a71bd2a4d1c4856b123ecba4abe8eaa0688d3fc47f58fa67ea281d6b9efca4b9fdfa88fb045c51d0f9b8c612a56bd546d38260b138
-  languageName: node
-  linkType: hard
-
-"@csstools/css-parser-algorithms@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "@csstools/css-parser-algorithms@npm:4.0.0"
-  peerDependencies:
-    "@csstools/css-tokenizer": ^4.0.0
-  checksum: 10c0/94558c2428d6ef0ddef542e86e0a8376aa1263a12a59770abb13ba50d7b83086822c75433f32aa2e7fef00555e1cc88292f9ca5bce79aed232bb3fed73b1528d
-  languageName: node
-  linkType: hard
-
-"@csstools/css-tokenizer@npm:^4.0.0":
-  version: 4.0.0
-  resolution: "@csstools/css-tokenizer@npm:4.0.0"
-  checksum: 10c0/669cf3d0f9c8e1ffdf8c9955ad8beba0c8cfe03197fe29a4fcbd9ee6f7a18856cfa42c62670021a75183d9ab37f5d14a866e6a9df753a6c07f59e36797a9ea9f
-  languageName: node
-  linkType: hard
-
 "@csstools/postcss-cascade-layers@npm:5.0.2":
   version: 5.0.2
   resolution: "@csstools/postcss-cascade-layers@npm:5.0.2"
@@ -5466,47 +5420,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@csstools/postcss-oklab-function@npm:5.0.1":
-  version: 5.0.1
-  resolution: "@csstools/postcss-oklab-function@npm:5.0.1"
-  dependencies:
-    "@csstools/css-color-parser": "npm:^4.0.1"
-    "@csstools/css-parser-algorithms": "npm:^4.0.0"
-    "@csstools/css-tokenizer": "npm:^4.0.0"
-    "@csstools/postcss-progressive-custom-properties": "npm:^5.0.0"
-    "@csstools/utilities": "npm:^3.0.0"
-  peerDependencies:
-    postcss: ^8.4
-  checksum: 10c0/ef5298c499fda9854f93d8ab1416cdb2bdb9120bca14ac7f97ea867821777aa67219c7784ffd70c793b02ba3ca3988a1c5f4fbd8be43f5d97cae822556847fe2
-  languageName: node
-  linkType: hard
-
-"@csstools/postcss-progressive-custom-properties@npm:^5.0.0":
-  version: 5.0.0
-  resolution: "@csstools/postcss-progressive-custom-properties@npm:5.0.0"
-  dependencies:
-    postcss-value-parser: "npm:^4.2.0"
-  peerDependencies:
-    postcss: ^8.4
-  checksum: 10c0/8476a58b777e7015f40fea53829d31429c8bab114b884b87c1706b5df095102232fb46b275a76c719f73399d3dbdfec2c172fb68c2fb362dbe68569446366a1a
-  languageName: node
-  linkType: hard
-
 "@csstools/selector-specificity@npm:^5.0.0":
   version: 5.0.0
   resolution: "@csstools/selector-specificity@npm:5.0.0"
   peerDependencies:
     postcss-selector-parser: ^7.0.0
   checksum: 10c0/186b444cabcdcdeb553bfe021f80c58bfe9ef38dcc444f2b1f34a5aab9be063ab4e753022b2d5792049c041c28cfbb78e4b707ec398459300e402030d35c07eb
-  languageName: node
-  linkType: hard
-
-"@csstools/utilities@npm:^3.0.0":
-  version: 3.0.0
-  resolution: "@csstools/utilities@npm:3.0.0"
-  peerDependencies:
-    postcss: ^8.4
-  checksum: 10c0/65b6f6aa4ea899777bea710aab5f17028aa5e1aa41f7fe892c2e916b188da2b929c76be643d4a5d8d9ca5a7853df94f05c0247dd6b63540b360055d36db3104f
   languageName: node
   linkType: hard
 
@@ -7696,12 +7615,19 @@ __metadata:
   dependencies:
     "@ark-ui/react": "npm:5.26.2"
     "@figma/code-connect": "npm:1.4.3"
+    "@fontsource-variable/geist-mono": "npm:5.2.7"
+    "@fontsource-variable/inter": "npm:5.2.8"
+    "@fontsource-variable/inter-tight": "npm:5.2.7"
     "@hashintel/ds-helpers": "workspace:^"
-    "@hashintel/ds-theme": "workspace:*"
     "@hashintel/refractive": "workspace:^"
+    "@ladle/react": "npm:5.1.1"
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@mantine/hooks": "npm:8.3.5"
     "@pandacss/dev": "npm:1.4.3"
+    "@pandacss/preset-panda": "npm:1.4.3"
+    "@playwright/test": "npm:1.58.2"
+    "@radix-ui/colors": "npm:3.0.0"
     "@storybook/addon-docs": "npm:9.1.13"
     "@storybook/global": "npm:5.0.0"
     "@storybook/react": "npm:9.1.13"
@@ -7714,18 +7640,24 @@ __metadata:
     "@vitest/browser-playwright": "npm:^4.0.16"
     bumpp: "npm:^10.3.2"
     canvas: "npm:3.2.0"
+    case-anything: "npm:3.1.0"
+    colorjs.io: "npm:0.6.1"
     eslint: "npm:9.39.4"
     eslint-plugin-storybook: "npm:10.3.1"
     lucide-react: "npm:0.544.0"
     motion: "npm:12.23.24"
     npm-run-all: "npm:4.1.5"
+    react: "npm:19.2.3"
+    react-dom: "npm:19.2.3"
     storybook: "npm:9.1.19"
     tsdown: "npm:^0.21.4"
+    tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
     vite: "npm:7.3.2"
     vite-plugin-dts: "npm:4.5.4"
     vitest: "npm:^4.0.16"
     vitest-browser-react: "npm:^2.0.2"
+    zod: "npm:4.1.12"
   peerDependencies:
     "@ark-ui/react": ^5.26.2
     "@hashintel/ds-helpers": "workspace:^"
@@ -7738,51 +7670,6 @@ __metadata:
 "@hashintel/ds-helpers@workspace:*, @hashintel/ds-helpers@workspace:^, @hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers":
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers"
-  dependencies:
-    "@csstools/postcss-oklab-function": "npm:5.0.1"
-    "@fontsource-variable/geist-mono": "npm:5.2.7"
-    "@fontsource-variable/inter": "npm:5.2.8"
-    "@fontsource-variable/inter-tight": "npm:5.2.7"
-    "@hashintel/ds-theme": "workspace:*"
-    "@ladle/react": "npm:5.1.1"
-    "@mantine/hooks": "npm:8.3.5"
-    "@pandacss/dev": "npm:1.4.3"
-    "@playwright/test": "npm:1.58.2"
-    "@radix-ui/colors": "npm:3.0.0"
-    "@tool-belt/type-predicates": "npm:1.4.1"
-    "@tsconfig/strictest": "npm:^2.0.8"
-    "@types/node": "npm:22.18.13"
-    "@types/react": "npm:19.2.7"
-    "@types/react-dom": "npm:19.2.3"
-    "@vitejs/plugin-react": "npm:5.0.4"
-    color2k: "npm:2.0.3"
-    npm-run-all: "npm:4.1.5"
-    react: "npm:19.2.3"
-    react-dom: "npm:19.2.3"
-    sync-fetch: "npm:0.5.2"
-    tsdown: "npm:^0.21.4"
-    typescript: "npm:5.9.3"
-    vite: "npm:7.3.2"
-    vitest: "npm:^4.0.16"
-  languageName: unknown
-  linkType: soft
-
-"@hashintel/ds-theme@workspace:*, @hashintel/ds-theme@workspace:libs/@hashintel/ds-theme":
-  version: 0.0.0-use.local
-  resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
-  dependencies:
-    "@pandacss/dev": "npm:1.4.3"
-    "@radix-ui/colors": "npm:3.0.0"
-    "@tsconfig/strictest": "npm:^2.0.8"
-    "@types/node": "npm:22.18.13"
-    case-anything: "npm:3.1.0"
-    colorjs.io: "npm:0.6.1"
-    npm-run-all: "npm:4.1.5"
-    tsdown: "npm:^0.21.4"
-    tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
-    vitest: "npm:^4.0.16"
-    zod: "npm:4.1.12"
   languageName: unknown
   linkType: soft
 
@@ -7797,7 +7684,6 @@ __metadata:
     "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:*"
-    "@hashintel/ds-theme": "workspace:*"
     "@hashintel/refractive": "workspace:^"
     "@monaco-editor/react": "npm:4.8.0-rc.3"
     "@pandacss/dev": "npm:1.4.3"
@@ -18364,13 +18250,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tool-belt/type-predicates@npm:1.4.1":
-  version: 1.4.1
-  resolution: "@tool-belt/type-predicates@npm:1.4.1"
-  checksum: 10c0/9490155bfea98d977174f127b9443492448e7f07d459fd43cbf3ebae913fa70ab2c129f1aff14366f199a628947ad2e6f29d101d4423b78aef65ab700c678372
-  languageName: node
-  linkType: hard
-
 "@tootallnate/once@npm:2":
   version: 2.0.0
   resolution: "@tootallnate/once@npm:2.0.0"
@@ -24850,13 +24729,6 @@ __metadata:
   dependencies:
     color-name: "npm:^2.0.0"
   checksum: 10c0/d1d3e8123b2a6a6715e539b347ce000925305946092d566697bb872b1b8951a8699a842b4e5e6324733bef7e4cd3517c50aeecf2a6aae12efc7ca5697ac95178
-  languageName: node
-  linkType: hard
-
-"color2k@npm:2.0.3":
-  version: 2.0.3
-  resolution: "color2k@npm:2.0.3"
-  checksum: 10c0/e7c13d212c9d1abb1690e378bbc0a6fb1751e4b02e9a73ba3b2ade9d54da673834597d342791d577d1ce400ec486c7f92c5098f9fa85cd113bcfde57420a2bb9
   languageName: node
   linkType: hard
 
@@ -43434,15 +43306,6 @@ __metadata:
   version: 3.2.4
   resolution: "symbol-tree@npm:3.2.4"
   checksum: 10c0/dfbe201ae09ac6053d163578778c53aa860a784147ecf95705de0cd23f42c851e1be7889241495e95c37cabb058edb1052f141387bef68f705afc8f9dd358509
-  languageName: node
-  linkType: hard
-
-"sync-fetch@npm:0.5.2":
-  version: 0.5.2
-  resolution: "sync-fetch@npm:0.5.2"
-  dependencies:
-    node-fetch: "npm:^2.6.1"
-  checksum: 10c0/2dd3e081171ddbee7f60f48b8ce44015367ea2a67f94521b301633bb0edc90a320415660e3e1ef6df75c2c1374de20a5006a7d8abdf7eb762d3a2687b56c928f
   languageName: node
   linkType: hard
 

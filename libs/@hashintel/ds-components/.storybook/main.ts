@@ -11,7 +11,11 @@ function getAbsolutePath(value: string) {
 }
 
 export default {
-  stories: ["../src/**/*.mdx", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
+  stories: [
+    "../src/**/*.mdx",
+    "../src/components/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+    "../src/playground/**/*.stories.@(js|jsx|mjs|ts|tsx)",
+  ],
   staticDirs: ["./static"],
   addons: [getAbsolutePath("@storybook/addon-docs")],
   framework: {
