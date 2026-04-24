@@ -24,11 +24,7 @@
     "single-title": false
   },
   "gitignore": true,
-  "globs": [
-    "*.md",
-    "**/*.md",
-    "**/*.mdc"
-  ],
+  "globs": ["*.md", "**/*.md", "**/*.mdc"],
   "ignores": [
     "**/LICENSE*.md",
     "**/AGENTS*.md",

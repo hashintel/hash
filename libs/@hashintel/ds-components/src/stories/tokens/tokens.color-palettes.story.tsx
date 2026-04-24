@@ -230,7 +230,7 @@ export const ColorPalettes: Story = () => (
         transparency for overlays and blending. Half-steps are OKLCH
         interpolations. Palettes marked with a status alias on the right can
         also be referenced as{" "}
-        <code className={css({ font: "mono", textStyle: "xs" })}>
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
           status.*.s30
         </code>{" "}
         etc.

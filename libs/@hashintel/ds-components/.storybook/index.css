@@ -1,5 +1,16 @@
 @layer reset, base, tokens, recipes, utilities;
 
+:root {
+  /* fonts - Fontsource variable fonts imported from .storybook/preview.ts */
+  --font-inter: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-inter-tight: "Inter Tight Variable", "Inter Tight", ui-sans-serif,
+    system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono Variable", "Geist Mono", ui-monospace,
+    SFMono-Regular, monospace;
+  --global-font-body: var(--fonts-body);
+  --global-font-mono: var(--fonts-mono);
+}
+
 /* panda's preflight (reset) styles, since we set preflight:false */
 @layer reset {
   html,
