@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   SegmentedControl,
   type SegmentedControlProps,
-} from "../segmented-control";
+} from "./segmented-control";
 
 export default {
   title: "Components/SegmentedControl",

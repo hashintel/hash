@@ -1,7 +1,7 @@
 import type { Story, StoryDefault } from "@ladle/react";
 import { useState } from "react";
 
-import { Checkbox, type CheckboxProps } from "../checkbox";
+import { Checkbox, type CheckboxProps } from "./checkbox";
 
 export default {
   title: "Components/Checkbox",

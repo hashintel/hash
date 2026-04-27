@@ -1,7 +1,7 @@
 import type { Story, StoryDefault } from "@ladle/react";
 import { useState } from "react";
 
-import { RadioGroup, type RadioGroupProps } from "../radio-group";
+import { RadioGroup, type RadioGroupProps } from "./radio-group";
 
 export default {
   title: "Components/RadioGroup",

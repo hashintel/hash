@@ -1,6 +1,6 @@
 import type { Story, StoryDefault } from "@ladle/react";
 
-import { Slider, type SliderProps } from "../slider";
+import { Slider, type SliderProps } from "./slider";
 
 export default {
   title: "Components/Slider",
