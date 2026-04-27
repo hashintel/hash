@@ -272,7 +272,9 @@ const TimelineViewPicker: React.FC = () => {
         onClose={() => setIsCreateOpen(false)}
       />
       <ViewMetricDrawer
-        open={isViewOpen}
+        // Gate on the metric existing — the picker can swap to a non-metric
+        // view while the drawer is open, and we don't want an empty overlay.
+        open={isViewOpen && !!selectedMetric}
         onClose={() => setIsViewOpen(false)}
         metric={selectedMetric}
       />

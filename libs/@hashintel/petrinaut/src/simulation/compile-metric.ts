@@ -1,4 +1,5 @@
 import type { Metric } from "../core/types/sdcpn";
+import { runSandboxed, SHADOWED_GLOBALS } from "./sandbox";
 
 // -- Public types -------------------------------------------------------------
 
@@ -35,7 +36,7 @@ export type CompileMetricOutcome =
 /**
  * Wrap a plain object in a prototype-less, frozen copy.
  * Severs the prototype chain so `obj.constructor.constructor("return globalThis")()`
- * cannot escape to globals. Mirrors the helper in `compile-scenario.ts`.
+ * cannot escape to globals on the user-facing arguments.
  */
 function createSafeState(state: MetricState): MetricState {
   const places = Object.create(null) as Record<string, MetricPlaceState>;
@@ -49,36 +50,15 @@ function createSafeState(state: MetricState): MetricState {
   ) as MetricState;
 }
 
-/**
- * Globals shadowed inside the metric function body — declared as `var` so they
- * become `undefined` in scope, preventing the expression from accessing
- * browser/environment APIs. Mirrors the list in `compile-scenario.ts`.
- */
-const SHADOWED_GLOBALS = [
-  "window",
-  "document",
-  "globalThis",
-  "self",
-  "fetch",
-  "XMLHttpRequest",
-  "importScripts",
-  // `eval` cannot be shadowed via `var` in strict mode (SyntaxError).
-  // Mitigated by shadowing `Function` (blocks eval construction) and
-  // `globalThis` (blocks globalThis.eval).
-  "Function",
-  "setTimeout",
-  "setInterval",
-  "queueMicrotask",
-].join(",");
-
 // -- Compiler -----------------------------------------------------------------
 
 /**
  * Compile a metric's user code into an executable `(state) => number` function.
  *
  * The supplied code is treated as a function body that must `return` a number.
- * It runs in strict mode with dangerous globals shadowed and the `state`
- * argument frozen with no prototype chain.
+ * It runs in strict mode with dangerous globals shadowed, the `state` argument
+ * frozen with no prototype chain, and the `.constructor` chain blocked on
+ * built-in prototypes for the duration of the call (see `runSandboxed`).
  *
  * On invalid output (non-number / NaN / non-finite), the returned function
  * throws — callers should catch and decide how to render the failed frame.
@@ -104,7 +84,7 @@ export function compileMetric(metric: Metric): CompileMetricOutcome {
   }
 
   const fn: CompiledMetric = (state) => {
-    const result = rawFn(createSafeState(state));
+    const result = runSandboxed(() => rawFn(createSafeState(state)));
     if (typeof result !== "number" || !Number.isFinite(result)) {
       throw new Error(
         `Metric "${metric.name}" returned ${String(result)}, expected a finite number.`,

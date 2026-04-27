@@ -87,6 +87,17 @@ function validateMetricName(
   return undefined;
 }
 
+/**
+ * Reject empty/whitespace-only metric code so the form can't save a metric
+ * that `compileMetric` would reject at runtime.
+ */
+function validateMetricCode(code: string): string | undefined {
+  if (code.trim() === "") {
+    return "Metric code is required.";
+  }
+  return undefined;
+}
+
 // -- TanStack Form integration -----------------------------------------------
 
 export interface UseMetricFormOptions {
@@ -116,8 +127,12 @@ export function useMetricForm(
         reset: () => formApi.reset(),
       }),
     validators: {
-      onChange: ({ value }) => validateMetricName(value.name, existingNames),
-      onSubmit: ({ value }) => validateMetricName(value.name, existingNames),
+      onChange: ({ value }) =>
+        validateMetricName(value.name, existingNames) ??
+        validateMetricCode(value.code),
+      onSubmit: ({ value }) =>
+        validateMetricName(value.name, existingNames) ??
+        validateMetricCode(value.code),
     },
   });
 }

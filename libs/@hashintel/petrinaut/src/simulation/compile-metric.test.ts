@@ -87,6 +87,18 @@ describe("compileMetric", () => {
     }
   });
 
+  it("blocks the .constructor escape route on literals", () => {
+    // `({}).constructor.constructor("return globalThis")()` would otherwise
+    // walk back to the host realm even with `Function` shadowed as a var.
+    const outcome = compileMetric(
+      metric({ code: "return ({}).constructor.constructor('return 1')();" }),
+    );
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(() => outcome.fn(state())).toThrow(/\.constructor/);
+    }
+  });
+
   it("freezes the state argument so metrics cannot mutate it", () => {
     const outcome = compileMetric(
       metric({
