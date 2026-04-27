@@ -70,9 +70,8 @@ const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
   <div
     className={css({
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax([80px], 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))",
       gap: "[16px]",
-      maxWidth: "[720px]",
       ...styles,
     })}
   >
