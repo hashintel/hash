@@ -1,3 +1,4 @@
+/* eslint simple-import-sort/imports: "off", sort-imports: ["error", { ignoreDeclarationSort: false, ignoreMemberSort: true, ignoreCase: false }] */
 import AngleDown from "./svgs/solid/angle-down.svg";
 import AngleRight from "./svgs/regular/angle-right.svg";
 import ArrowDown from "./svgs/regular/arrow-down.svg";
@@ -6,9 +7,9 @@ import ArrowLeft from "./svgs/regular/arrow-left.svg";
 import ArrowRight from "./svgs/regular/arrow-right.svg";
 import ArrowRotateLeft from "./svgs/regular/arrow-rotate-left.svg";
 import ArrowUp from "./svgs/regular/arrow-up.svg";
+import ArrowUpRight from "./svgs/regular/arrow-up-right.svg";
 import ArrowUpRightAndArrowDownLeftFromCenter from "./svgs/solid/arrow-up-right-and-arrow-down-left-from-center.svg";
 import ArrowUpRightFromSquare from "./svgs/regular/arrow-up-right-from-square.svg";
-import ArrowUpRight from "./svgs/regular/arrow-up-right.svg";
 import ArrowUpWideShort from "./svgs/light/arrow-up-wide-short.svg";
 import ArrowsRotate from "./svgs/regular/arrows-rotate.svg";
 import Asterisk from "./svgs/regular/asterisk.svg";
@@ -53,9 +54,9 @@ import InputPipe from "./svgs/regular/input-pipe.svg";
 import LightbulbOn from "./svgs/regular/lightbulb-on.svg";
 import List from "./svgs/regular/list.svg";
 import ListTree from "./svgs/regular/list-tree.svg";
+import MagnifyingGlass from "./svgs/regular/magnifying-glass.svg";
 import MagnifyingGlassMinus from "./svgs/light/magnifying-glass-minus.svg";
 import MagnifyingGlassPlus from "./svgs/light/magnifying-glass-plus.svg";
-import MagnifyingGlass from "./svgs/regular/magnifying-glass.svg";
 import MemoCircleCheck from "./svgs/regular/memo-circle-check.svg";
 import Microscope from "./svgs/regular/microscope.svg";
 import Minus from "./svgs/solid/minus.svg";

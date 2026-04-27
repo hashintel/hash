@@ -1,71 +1,72 @@
 import { css, type Styles } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Story, StoryDefault } from "@ladle/react";
 
 import { Icon, iconNames, sizes } from "./Icon";
 
-const meta: Meta<typeof Icon> = {
+export default {
   title: "Components/Icon",
-  component: Icon,
   parameters: {
     layout: "centered",
   },
   argTypes: {
     name: {
-      control: "select",
-      options: iconNames,
+      control: {
+        type: "select",
+        options: iconNames,
+      },
     },
     size: {
-      control: "select",
-      options: sizes,
+      control: {
+        type: "select",
+        options: sizes,
+      },
     },
     alt: {
-      control: "text",
+      control: { type: "text" },
     },
   },
   args: {
     name: "star",
     size: "md",
   },
+} satisfies StoryDefault<React.ComponentProps<typeof Icon>>;
+
+export const Default: Story<React.ComponentProps<typeof Icon>> = (args) => (
+  <Icon {...args} />
+);
+
+export const Sizes: Story<React.ComponentProps<typeof Icon>> = (args) => (
+  <div
+    className={css({
+      display: "flex",
+      gap: "[24px]",
+      alignItems: "center",
+    })}
+  >
+    {sizes.map((size) => (
+      <div
+        key={size}
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "[8px]",
+        })}
+      >
+        <Icon {...args} size={size} />
+        <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+          {size}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
+Sizes.parameters = {
+  controls: { exclude: ["size"] },
 };
 
-export default meta;
-type Story = StoryObj<typeof Icon>;
-
-export const Default: Story = {};
-
-export const Sizes: Story = {
-  parameters: {
-    controls: { exclude: ["size"] },
-  },
-  render: (args) => (
-    <div
-      className={css({
-        display: "flex",
-        gap: "[24px]",
-        alignItems: "center",
-      })}
-    >
-      {sizes.map((size) => (
-        <div
-          key={size}
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "[8px]",
-          })}
-        >
-          <Icon {...args} size={size} />
-          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-            {size}
-          </span>
-        </div>
-      ))}
-    </div>
-  ),
-};
-
-const iconGrid = (styles?: Styles) => (
+const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
   <div
     className={css({
       display: "grid",
@@ -90,7 +91,7 @@ const iconGrid = (styles?: Styles) => (
           },
         })}
       >
-        <Icon name={name} size="md" />
+        <Icon {...args} name={name} />
         <span
           className={css({
             fontSize: "[10px]",
@@ -106,16 +107,14 @@ const iconGrid = (styles?: Styles) => (
   </div>
 );
 
-export const AllIcons: Story = {
-  parameters: {
-    controls: { exclude: ["name"], disabled: true },
-  },
-  render: () => iconGrid(),
+export const AllIcons: Story<React.ComponentProps<typeof Icon>> = (args) =>
+  iconGrid(args);
+AllIcons.parameters = {
+  controls: { exclude: ["name"], disabled: true },
 };
 
-export const ColoredIcons: Story = {
-  parameters: {
-    controls: { exclude: ["name"], disabled: true },
-  },
-  render: () => iconGrid({ color: "red.s80" }),
+export const ColoredIcons: Story<React.ComponentProps<typeof Icon>> = (args) =>
+  iconGrid(args, { color: "red.s80" });
+ColoredIcons.parameters = {
+  controls: { exclude: ["name"], disabled: true },
 };
