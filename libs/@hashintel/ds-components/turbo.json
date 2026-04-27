@@ -17,10 +17,6 @@
       "dependsOn": ["codegen"],
       "outputs": ["dist/**"]
     },
-    "build:storybook": {
-      "dependsOn": ["codegen", "@hashintel/refractive#build"],
-      "outputs": ["storybook-static/**"]
-    },
     "codegen": {
       "dependsOn": [],
       "outputs": [
@@ -45,11 +41,6 @@
       "dependsOn": ["codegen", "@hashintel/refractive#build"]
     },
     "dev:ladle": {
-      "cache": false,
-      "dependsOn": ["codegen", "@hashintel/refractive#build"],
-      "persistent": true
-    },
-    "dev:storybook": {
       "cache": false,
       "dependsOn": ["codegen", "@hashintel/refractive#build"],
       "persistent": true

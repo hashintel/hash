@@ -23,7 +23,7 @@ For new internal work, treat `ds-components` as the only source of truth.
 | Package-owned theme facade | `src/theme.ts` | Re-exports from `src/preset/theme`. |
 | Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
 | Token demo stories | `src/stories/tokens/**` | Token reference and migration/demo stories live here now. |
-| Local demo config | `panda.local.config.ts` | Shared Panda config for local demo surfaces such as Storybook and Ladle. |
+| Local demo config | `panda.local.config.ts` | Shared Panda config for local demo surfaces such as Ladle. |
 | Ladle harness | `.ladle/**` | Used for the token/demo surface and Playwright snapshots. |
 | Snapshot tests | `tests/**` | Snapshot harness for the Ladle surface. |
 
@@ -101,11 +101,9 @@ export const Example = () => (
 );
 ```
 
-### 4. Add Stories And Figma Mappings
+### 4. Add Stories
 
-- Add or update Storybook stories beside the component-specific story folder.
-- Add or update the `.figma.tsx` Code Connect file when the Figma mapping exists.
-- Use Storybook for component review and Ladle for token/demo coverage.
+- Add or update Ladle stories beside the component-specific story folder or for tokens.
 
 ### 5. Verify The Surface
 
@@ -114,7 +112,7 @@ Run the smallest relevant checks first, then broaden as needed:
 ```bash
 yarn lint:eslint
 yarn lint:tsc
-yarn dev:storybook
+yarn dev:ladle
 ```
 
 When the change affects tokens, preset behavior, Ladle stories, or the snapshot harness, also run:
@@ -146,7 +144,7 @@ yarn codegen
 ```
 
 The `prepare` lifecycle runs the same `codegen` script. It generates Panda's
-authoring modules and types, not a standalone CSS file. Ladle and Storybook use
+authoring modules and types, not a standalone CSS file. Ladle use
 Panda's Vite/PostCSS integration through `postcss.config.cjs` for CSS
 extraction.
 
@@ -171,10 +169,9 @@ Color tokens should come from the semantic palette already defined in the preset
 - Use `@hashintel/ds-helpers/tokens` in stories or small probes when you need to inspect the resolved token values.
 - Search existing components and token stories before creating a new naming pattern.
 
-## Storybook, Ladle, And Snapshots
+## Ladle, And Snapshots
 
 - `yarn dev` is the primary Ladle-based loop and the best default when changing token stories or the demo harness. It uses the shared Vite/PostCSS config for Panda style extraction while Ladle is running.
-- `yarn dev:storybook` is the main human review surface for component stories.
 - `yarn dev:lib` is the lightest loop when you only need the publishable package build watcher.
 - `src/stories/tokens/**` owns the token reference stories that used to live under `ds-helpers`.
 - `tests/snapshots.spec.ts` exercises the Ladle surface and stores the images in `tests/__snapshots__/`.

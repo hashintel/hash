@@ -7,7 +7,6 @@ export default defineConfig({
   outdir: "../ds-helpers/styled-system",
   include: [
     "./src/components/**/*.{ts,tsx}",
-    "./src/playground/**/*.{ts,tsx}",
     "./src/stories/**/*.{ts,tsx}",
     "./.ladle/**/*.{ts,tsx}",
   ],
