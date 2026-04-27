@@ -6,5 +6,5 @@ export default defineConfig({
   css: {
     postcss: "./postcss.config.cjs",
   },
-  plugins: [svgr()],
+  plugins: [svgr({ include: "**/*.svg" })],
 });

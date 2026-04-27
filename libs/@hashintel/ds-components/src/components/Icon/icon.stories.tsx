@@ -1,7 +1,7 @@
 import { css, type Styles } from "@hashintel/ds-helpers/css";
 import type { Story, StoryDefault } from "@ladle/react";
 
-import { Icon, iconNames, sizes } from "./Icon";
+import { Icon, iconNames, sizes } from "./icon";
 
 export default {
   title: "Components/Icon",
@@ -70,7 +70,7 @@ const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
   <div
     className={css({
       display: "grid",
-      gridTemplateColumns: "repeat(8, 1fr)",
+      gridTemplateColumns: "repeat(auto-fill, minmax([80px], 1fr))",
       gap: "[16px]",
       maxWidth: "[720px]",
       ...styles,

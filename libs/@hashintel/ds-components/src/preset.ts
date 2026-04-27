@@ -1,6 +1,7 @@
 import { defineGlobalStyles, definePreset } from "@pandacss/dev";
 import pandaPreset from "@pandacss/preset-panda";
 
+import { iconRecipe } from "./components/Icon/icon.recipe";
 import {
   documentSurfaceStyles,
   fontPipelineCssVars,
@@ -283,6 +284,9 @@ export function createPreset(options?: PresetOptions) {
               letterSpacing: "-0.025em",
             },
           },
+        },
+        recipes: {
+          icon: iconRecipe,
         },
         // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
         // @ts-expect-error -- `colorPalette` not in PartialTheme types but works at runtime

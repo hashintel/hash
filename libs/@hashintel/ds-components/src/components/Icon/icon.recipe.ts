@@ -1,0 +1,23 @@
+import { defineRecipe } from "@pandacss/dev";
+
+export const iconRecipe = defineRecipe({
+  className: "icon",
+  base: {
+    display: "inline-block",
+    verticalAlign: "middle",
+    width: "var(--icon-size)",
+    minWidth: "var(--icon-size)",
+    height: "var(--icon-size)",
+  },
+  variants: {
+    size: {
+      xs: { "--icon-size": "12px" },
+      sm: { "--icon-size": "16px" },
+      md: { "--icon-size": "24px" },
+      lg: { "--icon-size": "48px" },
+    },
+  },
+  defaultVariants: {
+    size: "md",
+  },
+});

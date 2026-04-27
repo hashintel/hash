@@ -1,4 +1,6 @@
-/* eslint simple-import-sort/imports: "off", sort-imports: ["error", { ignoreDeclarationSort: false, ignoreMemberSort: true, ignoreCase: false }] */
+/* eslint simple-import-sort/imports: "off", sort-imports: ["error", { ignoreDeclarationSort: true, ignoreMemberSort: true, ignoreCase: false }] */
+import { cx } from "@hashintel/ds-helpers/css";
+import { icon } from "@hashintel/ds-helpers/recipes";
 import AngleDown from "./svgs/solid/angle-down.svg";
 import AngleRight from "./svgs/regular/angle-right.svg";
 import ArrowDown from "./svgs/regular/arrow-down.svg";
@@ -194,7 +196,7 @@ export const Icon = ({
 
   return (
     <IconSvg
-      className={className}
+      className={cx(icon({ size }), className)}
       aria-label={alt}
       title={alt}
       viewBox="0 0 640 640"
