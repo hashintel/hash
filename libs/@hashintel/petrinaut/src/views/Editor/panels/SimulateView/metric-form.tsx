@@ -256,12 +256,19 @@ export interface MetricFormBodyProps {
   form: MetricFormInstance;
   /** Unique prefix for element IDs */
   idPrefix?: string;
+  /**
+   * LSP session ID for the metric body. Owned by the drawer parent so the
+   * footer can scope its diagnostics summary to the same session.
+   */
+  metricSessionId: string;
 }
 
-export const MetricFormBody = ({ form, idPrefix }: MetricFormBodyProps) => {
+export const MetricFormBody = ({
+  form,
+  idPrefix,
+  metricSessionId,
+}: MetricFormBodyProps) => {
   const values = useStore(form.store, (state) => state.values);
-
-  const metricSessionId = useMetricLspSession(values.code);
 
   return (
     <MetricFormSections

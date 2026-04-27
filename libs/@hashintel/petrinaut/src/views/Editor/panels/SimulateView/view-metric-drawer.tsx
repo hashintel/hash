@@ -15,6 +15,7 @@ import {
   type MetricFormInstance,
   type MetricFormState,
   useMetricForm,
+  useMetricLspSession,
 } from "./metric-form";
 import { summarizeMetricLspErrors } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
@@ -39,11 +40,13 @@ function buildDefaultsFromMetric(metric: Metric): MetricFormState {
 const ViewMetricFooter = ({
   form,
   compileError,
+  metricSessionId,
   onDelete,
   onClose,
 }: {
   form: MetricFormInstance;
   compileError: string | null;
+  metricSessionId: string;
   onDelete: () => void;
   onClose: () => void;
 }) => {
@@ -54,7 +57,7 @@ const ViewMetricFooter = ({
 
   const { diagnosticsByUri } = use(LanguageClientContext);
   const { count: lspErrorCount, firstMessage: firstLspMessage } =
-    summarizeMetricLspErrors(diagnosticsByUri);
+    summarizeMetricLspErrors(diagnosticsByUri, metricSessionId);
   const hasLspErrors = lspErrorCount > 0;
 
   const formError = formErrors.find((e) => typeof e === "string") as
@@ -160,6 +163,10 @@ const ViewMetricContent = ({
   const compileError =
     compileOutcome && !compileOutcome.ok ? compileOutcome.error : null;
 
+  // Owned here (not in MetricFormBody) so the footer can scope its LSP
+  // diagnostics summary to the same session.
+  const metricSessionId = useMetricLspSession(values.code);
+
   const handleDelete = () => {
     removeMetric(metric.id);
     onClose();
@@ -170,12 +177,17 @@ const ViewMetricContent = ({
       <Drawer.Card onClose={onClose}>
         <Drawer.Header>{metric.name}</Drawer.Header>
         <Drawer.Body className={bodyStyle}>
-          <MetricFormBody form={form} idPrefix="view-" />
+          <MetricFormBody
+            form={form}
+            idPrefix="view-"
+            metricSessionId={metricSessionId}
+          />
         </Drawer.Body>
       </Drawer.Card>
       <ViewMetricFooter
         form={form}
         compileError={compileError}
+        metricSessionId={metricSessionId}
         onDelete={handleDelete}
         onClose={onClose}
       />

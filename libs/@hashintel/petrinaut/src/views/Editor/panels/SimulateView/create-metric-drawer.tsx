@@ -13,6 +13,7 @@ import {
   MetricFormBody,
   type MetricFormInstance,
   useMetricForm,
+  useMetricLspSession,
 } from "./metric-form";
 import { EMPTY_METRIC_FORM_STATE } from "./metric-form-defaults";
 import { summarizeMetricLspErrors } from "./metric-lsp";
@@ -31,10 +32,12 @@ const bodyStyle = css({
 const CreateMetricFooter = ({
   form,
   compileError,
+  metricSessionId,
   onClose,
 }: {
   form: MetricFormInstance;
   compileError: string | null;
+  metricSessionId: string;
   onClose: () => void;
 }) => {
   const canSubmit = useStore(form.store, (state) => state.canSubmit);
@@ -44,7 +47,7 @@ const CreateMetricFooter = ({
 
   const { diagnosticsByUri } = use(LanguageClientContext);
   const { count: lspErrorCount, firstMessage: firstLspMessage } =
-    summarizeMetricLspErrors(diagnosticsByUri);
+    summarizeMetricLspErrors(diagnosticsByUri, metricSessionId);
   const hasLspErrors = lspErrorCount > 0;
 
   const formError = formErrors.find((e) => typeof e === "string") as
@@ -139,6 +142,10 @@ export const CreateMetricDrawer = ({
   const compileError =
     compileOutcome && !compileOutcome.ok ? compileOutcome.error : null;
 
+  // Owned here (not in MetricFormBody) so the footer can scope its LSP
+  // diagnostics summary to the same session.
+  const metricSessionId = useMetricLspSession(values.code);
+
   return (
     <Drawer.Root open={open} onClose={onClose}>
       <Drawer.Card onClose={onClose}>
@@ -146,12 +153,17 @@ export const CreateMetricDrawer = ({
           Create a metric
         </Drawer.Header>
         <Drawer.Body className={bodyStyle}>
-          <MetricFormBody form={form} idPrefix="create-" />
+          <MetricFormBody
+            form={form}
+            idPrefix="create-"
+            metricSessionId={metricSessionId}
+          />
         </Drawer.Body>
       </Drawer.Card>
       <CreateMetricFooter
         form={form}
         compileError={compileError}
+        metricSessionId={metricSessionId}
         onClose={onClose}
       />
     </Drawer.Root>
