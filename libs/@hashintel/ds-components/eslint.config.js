@@ -40,6 +40,7 @@ export default [
     files: ["src/**/*.stories.ts{x,}"],
     rules: {
       "import/no-default-export": "off",
+      "react/destructuring-assignment": "off",
     },
   },
   {
