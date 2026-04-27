@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, type Styles } from "@hashintel/ds-helpers/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Icon, iconNames, sizes } from "./Icon";
@@ -65,47 +65,57 @@ export const Sizes: Story = {
   ),
 };
 
+const iconGrid = (styles?: Styles) => (
+  <div
+    className={css({
+      display: "grid",
+      gridTemplateColumns: "repeat(8, 1fr)",
+      gap: "[16px]",
+      maxWidth: "[720px]",
+      ...styles,
+    })}
+  >
+    {iconNames.map((name) => (
+      <div
+        key={name}
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "[8px]",
+          padding: "[12px]",
+          borderRadius: "[8px]",
+          _hover: {
+            backgroundColor: "neutral.s30",
+          },
+        })}
+      >
+        <Icon name={name} size="md" />
+        <span
+          className={css({
+            fontSize: "[10px]",
+            color: "neutral.s80",
+            textAlign: "center",
+            wordBreak: "break-all",
+          })}
+        >
+          {name}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
 export const AllIcons: Story = {
   parameters: {
     controls: { exclude: ["name"], disabled: true },
   },
-  render: () => (
-    <div
-      className={css({
-        display: "grid",
-        gridTemplateColumns: "repeat(8, 1fr)",
-        gap: "[16px]",
-        maxWidth: "[720px]",
-      })}
-    >
-      {iconNames.map((name) => (
-        <div
-          key={name}
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "[8px]",
-            padding: "[12px]",
-            borderRadius: "[8px]",
-            _hover: {
-              backgroundColor: "neutral.s30",
-            },
-          })}
-        >
-          <Icon name={name} size="md" />
-          <span
-            className={css({
-              fontSize: "[10px]",
-              color: "neutral.s80",
-              textAlign: "center",
-              wordBreak: "break-all",
-            })}
-          >
-            {name}
-          </span>
-        </div>
-      ))}
-    </div>
-  ),
+  render: () => iconGrid(),
+};
+
+export const ColoredIcons: Story = {
+  parameters: {
+    controls: { exclude: ["name"], disabled: true },
+  },
+  render: () => iconGrid({ color: "red.s80" }),
 };
