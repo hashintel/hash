@@ -1,3 +1,4 @@
+import svgr from "vite-plugin-svgr";
 import { defineConfig } from "vite";
 
 export default defineConfig({
@@ -5,4 +6,11 @@ export default defineConfig({
   css: {
     postcss: "./postcss.config.cjs",
   },
+  plugins: [
+    svgr({
+      svgrOptions: {
+        exportType: "default",
+      },
+    }),
+  ],
 });

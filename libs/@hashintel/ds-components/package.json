@@ -109,6 +109,7 @@
     "typescript": "5.9.3",
     "vite": "7.3.2",
     "vite-plugin-dts": "4.5.4",
+    "vite-plugin-svgr": "5.2.0",
     "vitest": "^4.0.16",
     "vitest-browser-react": "^2.0.2",
     "zod": "4.1.12"
