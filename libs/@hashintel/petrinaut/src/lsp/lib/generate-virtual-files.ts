@@ -396,3 +396,92 @@ export function generateScenarioSessionFiles(
 
   return files;
 }
+
+/**
+ * Data required to generate virtual files for a metric editing session.
+ */
+export type MetricSessionData = {
+  sessionId: string;
+  /** Metric function body (must `return` a finite number). */
+  code: string;
+};
+
+/**
+ * Generates virtual files for a metric editing session.
+ *
+ * The user code is a function body whose `state` parameter exposes
+ * `state.places.<PlaceName>` with `count` and (for colored places) `tokens`.
+ * The expression is wrapped so the body is type-checked as `(state) => number`.
+ */
+export function generateMetricSessionFiles(
+  sdcpn: SDCPN,
+  session: MetricSessionData,
+): Map<string, VirtualFile> {
+  const files = new Map<string, VirtualFile>();
+  const { sessionId } = session;
+
+  // Build per-place state types. Colored places expose typed `tokens` arrays;
+  // uncolored places fall back to `Record<string, number>[]`.
+  const colorById = new Map(sdcpn.types.map((c) => [c.id, c]));
+  const placeStateImports: string[] = [];
+  const placeStateProperties: string[] = [];
+
+  for (const place of sdcpn.places) {
+    let tokensType: string;
+    if (place.colorId) {
+      const color = colorById.get(place.colorId);
+      if (color) {
+        const sanitized = sanitizeColorId(color.id);
+        const colorDefsPath = getItemFilePath("color-defs", {
+          colorId: color.id,
+        });
+        const importStatement = `import type { Color_${sanitized} } from "${colorDefsPath}";`;
+        if (!placeStateImports.includes(importStatement)) {
+          placeStateImports.push(importStatement);
+        }
+        tokensType = `Color_${sanitized}[]`;
+      } else {
+        tokensType = "Record<string, number>[]";
+      }
+    } else {
+      tokensType = "Record<string, number>[]";
+    }
+    placeStateProperties.push(
+      `  "${place.name}": { count: number; tokens: ${tokensType} };`,
+    );
+  }
+
+  const placesType =
+    placeStateProperties.length > 0
+      ? `{\n${placeStateProperties.join("\n")}\n}`
+      : "Record<string, { count: number; tokens: Record<string, number>[] }>";
+
+  // defs file (kept separate so updates only invalidate code on real changes)
+  const defsPath = getItemFilePath("metric-session-defs", { sessionId });
+  files.set(defsPath, {
+    content: [
+      ...placeStateImports,
+      `export type MetricState = {`,
+      `  places: ${placesType};`,
+      `};`,
+    ].join("\n"),
+  });
+
+  // Skip wrapping when the body is empty — there's nothing meaningful to lint.
+  if (session.code.trim() === "") {
+    return files;
+  }
+
+  const codePath = getItemFilePath("metric-code", { sessionId });
+  files.set(codePath, {
+    prefix: [
+      `import type { MetricState } from "${defsPath}";`,
+      `function __metric(state: MetricState): number {`,
+      "",
+    ].join("\n"),
+    content: session.code,
+    suffix: `\n}`,
+  });
+
+  return files;
+}

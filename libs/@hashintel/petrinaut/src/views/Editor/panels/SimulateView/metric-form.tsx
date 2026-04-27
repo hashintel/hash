@@ -1,9 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { useForm, useStore } from "@tanstack/react-form";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Input } from "../../../../components/input";
 import { Section, SectionList } from "../../../../components/section";
+import { LanguageClientContext } from "../../../../lsp/context";
 import { CodeEditor } from "../../../../monaco/code-editor";
+import { getMetricDocumentUri } from "../../../../monaco/editor-paths";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -121,6 +124,41 @@ export function useMetricForm(
 
 export type MetricFormInstance = ReturnType<typeof useMetricForm>;
 
+// -- LSP session hook ---------------------------------------------------------
+
+/**
+ * Manages a temporary LSP session for metric body type-checking.
+ * Generates a unique session ID, initializes on mount, updates on code changes,
+ * and kills on unmount.
+ */
+export function useMetricLspSession(code: string): string {
+  const { initializeMetricSession, updateMetricSession, killMetricSession } =
+    use(LanguageClientContext);
+  // useState (not useRef/useMemo) — needed for a stable per-mount value.
+  // React Compiler doesn't replace useState; it only memoizes derived values.
+  const [sessionId] = useState(() => crypto.randomUUID());
+  const initializedRef = useRef(false);
+
+  const sessionData = { sessionId, code };
+
+  useEffect(() => {
+    if (!initializedRef.current) {
+      initializeMetricSession(sessionData);
+      initializedRef.current = true;
+    } else {
+      updateMetricSession(sessionData);
+    }
+  }, [sessionData, initializeMetricSession, updateMetricSession]);
+
+  useEffect(() => {
+    return () => {
+      killMetricSession(sessionId);
+    };
+  }, [sessionId, killMetricSession]);
+
+  return sessionId;
+}
+
 // -- Form sections ------------------------------------------------------------
 
 interface MetricFormSectionsProps {
@@ -128,14 +166,21 @@ interface MetricFormSectionsProps {
   callbacks: MetricFormCallbacks;
   /** Unique prefix for element IDs to avoid collisions when multiple forms exist */
   idPrefix?: string;
+  /** LSP session ID for metric body type-checking */
+  metricSessionId?: string;
 }
 
 export const MetricFormSections = ({
   state,
   callbacks,
   idPrefix = "",
+  metricSessionId,
 }: MetricFormSectionsProps) => {
   const nameHasError = state.name.trim() === "";
+
+  const codeUri = metricSessionId
+    ? getMetricDocumentUri(metricSessionId)
+    : undefined;
 
   return (
     <SectionList>
@@ -179,7 +224,8 @@ export const MetricFormSections = ({
           <code>return</code> a finite number.
         </span>
         <CodeEditor
-          language="javascript"
+          language="typescript"
+          path={codeUri}
           value={state.code}
           onChange={(v) => callbacks.onCodeChange(v ?? "")}
           height="300px"
@@ -200,6 +246,8 @@ export interface MetricFormBodyProps {
 export const MetricFormBody = ({ form, idPrefix }: MetricFormBodyProps) => {
   const values = useStore(form.store, (state) => state.values);
 
+  const metricSessionId = useMetricLspSession(values.code);
+
   return (
     <MetricFormSections
       state={values}
@@ -210,6 +258,7 @@ export const MetricFormBody = ({ form, idPrefix }: MetricFormBodyProps) => {
         onCodeChange: (value) => form.setFieldValue("code", value),
       }}
       idPrefix={idPrefix}
+      metricSessionId={metricSessionId}
     />
   );
 };

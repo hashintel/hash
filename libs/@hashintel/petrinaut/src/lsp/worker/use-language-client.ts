@@ -6,6 +6,7 @@ import type {
   CompletionList,
   DocumentUri,
   Hover,
+  MetricSessionParams,
   Position,
   PublishDiagnosticsParams,
   ScenarioSessionParams,
@@ -53,6 +54,12 @@ export type LanguageClientApi = {
   updateScenarioSession: (params: ScenarioSessionParams) => void;
   /** Kill a scenario editing session (removes virtual files). */
   killScenarioSession: (sessionId: string) => void;
+  /** Initialize a temporary metric editing session (creates virtual files for the metric body). */
+  initializeMetricSession: (params: MetricSessionParams) => void;
+  /** Update a metric editing session (re-syncs virtual files for type-checking). */
+  updateMetricSession: (params: MetricSessionParams) => void;
+  /** Kill a metric editing session (removes virtual files). */
+  killMetricSession: (sessionId: string) => void;
   /** Register a callback for diagnostics pushed from the server. */
   onDiagnostics: (
     callback: (params: PublishDiagnosticsParams[]) => void,
@@ -205,6 +212,39 @@ export function useLanguageClient(): LanguageClientApi {
     [sendNotification],
   );
 
+  const initializeMetricSession = useCallback(
+    (params: MetricSessionParams) => {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/metric/initialize",
+        params,
+      });
+    },
+    [sendNotification],
+  );
+
+  const updateMetricSession = useCallback(
+    (params: MetricSessionParams) => {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/metric/didChange",
+        params,
+      });
+    },
+    [sendNotification],
+  );
+
+  const killMetricSession = useCallback(
+    (sessionId: string) => {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/metric/kill",
+        params: { sessionId },
+      });
+    },
+    [sendNotification],
+  );
+
   // --- Requests (return Promise) ---
 
   const sendRequest = useCallback(<T>(message: ClientMessage): Promise<T> => {
@@ -275,6 +315,9 @@ export function useLanguageClient(): LanguageClientApi {
     initializeScenarioSession,
     updateScenarioSession,
     killScenarioSession,
+    initializeMetricSession,
+    updateMetricSession,
+    killMetricSession,
     requestCompletion,
     requestHover,
     requestSignatureHelp,

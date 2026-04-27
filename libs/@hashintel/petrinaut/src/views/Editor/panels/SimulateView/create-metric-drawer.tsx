@@ -5,6 +5,7 @@ import { use } from "react";
 import { Button } from "../../../../components/button";
 import { Drawer } from "../../../../components/drawer";
 import { metricSchema } from "../../../../core/schemas/metric-schema";
+import { LanguageClientContext } from "../../../../lsp/context";
 import { compileMetric } from "../../../../simulation/compile-metric";
 import { MutationContext } from "../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
@@ -14,6 +15,7 @@ import {
   useMetricForm,
 } from "./metric-form";
 import { EMPTY_METRIC_FORM_STATE } from "./metric-form-defaults";
+import { summarizeMetricLspErrors } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
 import { ScenarioErrorDisplay } from "./scenario-error-display";
 
@@ -40,12 +42,18 @@ const CreateMetricFooter = ({
   const isDefaultValue = useStore(form.store, (state) => state.isDefaultValue);
   const formErrors = useStore(form.store, (state) => state.errors);
 
+  const { diagnosticsByUri } = use(LanguageClientContext);
+  const { count: lspErrorCount, firstMessage: firstLspMessage } =
+    summarizeMetricLspErrors(diagnosticsByUri);
+  const hasLspErrors = lspErrorCount > 0;
+
   const formError = formErrors.find((e) => typeof e === "string") as
     | string
     | undefined;
-  const firstError = formError ?? compileError ?? undefined;
-  const hasErrors = !!firstError;
-  const totalErrorCount = hasErrors ? 1 : 0;
+  const hasErrors = !!formError || hasLspErrors || !!compileError;
+  const totalErrorCount =
+    (formError ? 1 : 0) + lspErrorCount + (compileError ? 1 : 0);
+  const firstError = formError ?? firstLspMessage ?? compileError ?? undefined;
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
   return (
@@ -66,8 +74,12 @@ const CreateMetricFooter = ({
         disabled={!canSave}
         tooltip={
           formError ??
-          compileError ??
-          (isDefaultValue ? "Make changes to enable creation." : undefined)
+          (hasLspErrors
+            ? "Fix the errors in the metric code before saving."
+            : (compileError ??
+              (isDefaultValue
+                ? "Make changes to enable creation."
+                : undefined)))
         }
         onClick={() => {
           void form.handleSubmit();

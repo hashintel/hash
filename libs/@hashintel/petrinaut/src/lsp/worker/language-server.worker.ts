@@ -23,11 +23,15 @@ import type { SDCPN } from "../../core/types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
-import type { ScenarioSessionData } from "../lib/generate-virtual-files";
+import type {
+  MetricSessionData,
+  ScenarioSessionData,
+} from "../lib/generate-virtual-files";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 import type {
   ClientMessage,
+  MetricSessionParams,
   PublishDiagnosticsParams,
   ScenarioSessionParams,
   ServerMessage,
@@ -41,6 +45,9 @@ let server: SDCPNLanguageServer | null = null;
 
 /** Active scenario editing sessions (sessionId → session data). */
 const scenarioSessions = new Map<string, ScenarioSessionData>();
+
+/** Active metric editing sessions (sessionId → session data). */
+const metricSessions = new Map<string, MetricSessionData>();
 
 function respond(id: number, result: unknown): void {
   self.postMessage({
@@ -105,6 +112,31 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
     }
   }
 
+  // Include diagnostics for all active metric sessions
+  for (const [, session] of metricSessions) {
+    const metricFiles = server.getMetricFileNames(session.sessionId);
+    for (const filePath of metricFiles) {
+      // Skip defs files — only check code files
+      if (filePath.endsWith("/defs.d.ts")) {
+        continue;
+      }
+      const uri = filePathToUri(filePath);
+      if (!uri) {
+        continue;
+      }
+      const userContent = server.getUserContent(filePath) ?? "";
+      const semanticDiags = server.getSemanticDiagnostics(filePath);
+      const syntacticDiags = server.getSyntacticDiagnostics(filePath);
+      const allDiags = [...syntacticDiags, ...semanticDiags];
+      params.push({
+        uri,
+        diagnostics: allDiags.map((diag) =>
+          serializeDiagnostic(diag, userContent),
+        ),
+      });
+    }
+  }
+
   self.postMessage({
     jsonrpc: "2.0",
     method: "textDocument/publishDiagnostics",
@@ -137,6 +169,24 @@ function syncScenarioSession(
   publishAllDiagnostics(sdcpn);
 }
 
+/** Convert protocol params to internal metric session data. */
+function toMetricSessionData(params: MetricSessionParams): MetricSessionData {
+  return {
+    sessionId: params.sessionId,
+    code: params.code,
+  };
+}
+
+/** Sync metric session files and publish diagnostics. */
+function syncMetricSession(sessionData: MetricSessionData, sdcpn: SDCPN): void {
+  if (!server) {
+    return;
+  }
+  metricSessions.set(sessionData.sessionId, sessionData);
+  server.syncMetricFiles(sdcpn, sessionData);
+  publishAllDiagnostics(sdcpn);
+}
+
 // ---------------------------------------------------------------------------
 // Message handler
 // ---------------------------------------------------------------------------
@@ -150,6 +200,9 @@ let lastSDCPN: SDCPN | null = null;
  * can arrive before the SDCPN `initialize`. We queue them and replay after init.
  */
 let pendingScenarioInits: ScenarioSessionData[] = [];
+
+/** Same queueing strategy for metric sessions. */
+let pendingMetricInits: MetricSessionData[] = [];
 
 self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
   try {
@@ -167,6 +220,12 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           server.syncScenarioFiles(sdcpn, session);
         }
         pendingScenarioInits = [];
+        // Replay metric sessions that arrived before SDCPN init
+        for (const session of pendingMetricInits) {
+          metricSessions.set(session.sessionId, session);
+          server.syncMetricFiles(sdcpn, session);
+        }
+        pendingMetricInits = [];
         publishAllDiagnostics(sdcpn);
         break;
       }
@@ -179,6 +238,10 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
         // Re-sync all scenario sessions since SDCPN types may have changed
         for (const session of scenarioSessions.values()) {
           server.syncScenarioFiles(sdcpn, session);
+        }
+        // Re-sync all metric sessions since SDCPN types may have changed
+        for (const session of metricSessions.values()) {
+          server.syncMetricFiles(sdcpn, session);
         }
         publishAllDiagnostics(sdcpn);
         break;
@@ -235,6 +298,46 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           (s) => s.sessionId !== sessionId,
         );
         server?.removeScenarioSession(sessionId);
+        if (lastSDCPN) {
+          publishAllDiagnostics(lastSDCPN);
+        }
+        break;
+      }
+
+      case "temp/metric/initialize": {
+        const sessionData = toMetricSessionData(data.params);
+        if (!lastSDCPN) {
+          pendingMetricInits.push(sessionData);
+          break;
+        }
+        syncMetricSession(sessionData, lastSDCPN);
+        break;
+      }
+
+      case "temp/metric/didChange": {
+        const sessionData = toMetricSessionData(data.params);
+        if (!lastSDCPN) {
+          const idx = pendingMetricInits.findIndex(
+            (s) => s.sessionId === sessionData.sessionId,
+          );
+          if (idx >= 0) {
+            pendingMetricInits[idx] = sessionData;
+          } else {
+            pendingMetricInits.push(sessionData);
+          }
+          break;
+        }
+        syncMetricSession(sessionData, lastSDCPN);
+        break;
+      }
+
+      case "temp/metric/kill": {
+        const { sessionId } = data.params;
+        metricSessions.delete(sessionId);
+        pendingMetricInits = pendingMetricInits.filter(
+          (s) => s.sessionId !== sessionId,
+        );
+        server?.removeMetricSession(sessionId);
         if (lastSDCPN) {
           publishAllDiagnostics(lastSDCPN);
         }

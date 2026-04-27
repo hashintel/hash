@@ -58,6 +58,15 @@ export type ScenarioSessionParams = {
   initialStateAsCode: boolean;
 };
 
+/**
+ * Data describing a metric editing session for the language server.
+ */
+export type MetricSessionParams = {
+  sessionId: string;
+  /** Metric function body (must `return` a finite number). */
+  code: string;
+};
+
 /** Position in a text document (LSP standard: line/character based). */
 export type TextDocumentPositionParams = {
   textDocument: TextDocumentIdentifier;
@@ -101,6 +110,21 @@ type ClientNotification =
   | {
       jsonrpc: "2.0";
       method: "temp/scenario/kill";
+      params: { sessionId: string };
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/metric/initialize";
+      params: MetricSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/metric/didChange";
+      params: MetricSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/metric/kill";
       params: { sessionId: string };
     };
 
