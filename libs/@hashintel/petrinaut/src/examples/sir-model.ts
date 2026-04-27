@@ -162,9 +162,9 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         name: "Infected Fraction",
         description: "Share of the population currently infected.",
         code: [
-          "const s = state.places.Susceptible?.count ?? 0;",
-          "const i = state.places.Infected?.count ?? 0;",
-          "const r = state.places.Recovered?.count ?? 0;",
+          "const s = state.places.Susceptible.count;",
+          "const i = state.places.Infected.count;",
+          "const r = state.places.Recovered.count;",
           "const total = s + i + r;",
           "return total === 0 ? 0 : i / total;",
         ].join("\n"),
