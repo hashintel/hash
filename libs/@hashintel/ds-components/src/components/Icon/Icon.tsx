@@ -49,7 +49,7 @@ import File from "./svgs/regular/file.svg";
 import FileSpreadsheet from "./svgs/regular/file-spreadsheet.svg";
 import ForwardStep from "./svgs/solid/forward-step.svg";
 import Image from "./svgs/regular/image.svg";
-import Infinity from "./svgs/light/infinity.svg";
+import InfinityLoop from "./svgs/light/infinity.svg";
 import InputPipe from "./svgs/regular/input-pipe.svg";
 import LightbulbOn from "./svgs/regular/lightbulb-on.svg";
 import List from "./svgs/regular/list.svg";
@@ -137,7 +137,7 @@ const IconMap = {
   file: File,
   fileSpreadsheet: FileSpreadsheet,
   image: Image,
-  infinity: Infinity,
+  infinity: InfinityLoop,
   info: CircleInfo,
   inputPipe: InputPipe,
   lightbulbOn: LightbulbOn,

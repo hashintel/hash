@@ -1,7 +1,7 @@
 declare module "*.css" {}
 declare module "*.svg" {
-  import type { FunctionComponent, SVGProps } from "react";
-  const ReactComponent: FunctionComponent<SVGProps<SVGSVGElement>>;
+  import type { FunctionComponent } from "react";
+  const ReactComponent: FunctionComponent<SVGAttributes<SVGElement>>;
   export default ReactComponent;
 }
 declare module "@fontsource/*" {}
