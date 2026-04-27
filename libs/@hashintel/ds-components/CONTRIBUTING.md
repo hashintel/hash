@@ -18,7 +18,6 @@ For new internal work, treat `ds-components` as the only source of truth.
 | Area | Location | Notes |
 | --- | --- | --- |
 | Components | `src/components/*.tsx` and `src/components/*/*.stories.tsx` | Public component entrypoints live at the top of `src/components/` and are built by `tsdown`. |
-| Figma Code Connect | `src/components/*/*.figma.tsx` | Keep mappings close to the related component stories. |
 | Panda preset source | `src/preset.ts`, `src/preset/**` | This is the live preset consumed by `@hashintel/ds-components/preset`. |
 | Package-owned theme facade | `src/theme.ts` | Re-exports from `src/preset/theme`. |
 | Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
@@ -65,7 +64,6 @@ For a new component, keep the package pattern aligned with the existing files:
 ```text
 src/components/my-component.tsx
 src/components/MyComponent/my-component.stories.tsx
-src/components/MyComponent/my-component.figma.tsx
 ```
 
 The top-level `src/components/*.tsx` files are the publishable entrypoints collected by `tsdown.config.ts`. The nested `PascalCase` directories hold stories and Figma mappings.
