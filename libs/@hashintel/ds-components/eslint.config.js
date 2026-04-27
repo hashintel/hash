@@ -8,7 +8,6 @@ export default [
     ignores: [
       ".build/**",
       ".ladle/**",
-      ".storybook/**",
       "tests/**",
       "playwright.config.ts",
       "postcss.config.cjs",
@@ -41,6 +40,7 @@ export default [
     files: ["src/**/*.stories.ts{x,}"],
     rules: {
       "import/no-default-export": "off",
+      "react/destructuring-assignment": "off",
     },
   },
   {
@@ -72,12 +72,6 @@ export default [
     files: ["src/preset.ts"],
     rules: {
       "import/no-default-export": "off",
-    },
-  },
-  {
-    files: ["src/**/*.figma.ts{x,}"],
-    rules: {
-      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
     },
   },
 ];

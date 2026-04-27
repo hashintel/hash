@@ -1,23 +1,17 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Story, StoryDefault } from "@ladle/react";
 
-import { Switch } from "../switch";
+import { Switch, type SwitchProps } from "./switch";
 
-const meta = {
+export default {
   title: "Components/Switch",
-  component: Switch,
-  tags: ["docsPage"],
   parameters: {
     layout: "centered",
   },
-} satisfies Meta<typeof Switch>;
-
-export default meta;
-
-type Story = StoryObj<typeof meta>;
+} satisfies StoryDefault<SwitchProps>;
 
 /**
  * The default Switch component with standard settings.
  * Try dragging the Switch thumb or clicking to switch states.
  * Use the Controls panel below to adjust visual parameters.
  */
-export const Default: Story = {};
+export const Default: Story<SwitchProps> = (args) => <Switch {...args} />;
