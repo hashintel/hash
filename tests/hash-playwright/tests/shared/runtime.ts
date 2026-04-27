@@ -26,6 +26,9 @@ const tolerableResponseErrors: Array<{ status: number; urlPattern: RegExp }> = [
   // that the current login flow needs to upgrade (e.g. AAL2 required for
   // a TOTP-enabled user submitting password-only login).
   { status: 422, urlPattern: /\/auth\/self-service\/login(\?|$)/ },
+  // Recovery code submission: Kratos returns 422 to redirect to the
+  // settings page after a successful recovery code validation.
+  { status: 422, urlPattern: /\/auth\/self-service\/recovery(\?|$)/ },
   // Kratos rejects expected self-service conditions: invalid TOTP/backup
   // codes, `session_already_available` when hitting the login browser
   // endpoint with an active session, expired flows, ...

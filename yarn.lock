@@ -18037,6 +18037,7 @@ __metadata:
     "@local/hash-isomorphic-utils": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@playwright/test": "npm:1.58.2"
+    "@types/chrome": "npm:0.1.40"
     "@types/js-yaml": "npm:^4"
     eslint: "npm:9.39.4"
     execa: "npm:9.6.0"
@@ -18440,6 +18441,16 @@ __metadata:
   dependencies:
     "@types/deep-eql": "npm:*"
   checksum: 10c0/49282bf0e8246800ebb36f17256f97bd3a8c4fb31f92ad3c0eaa7623518d7e87f1eaad4ad206960fcaf7175854bdff4cb167e4fe96811e0081b4ada83dd533ec
+  languageName: node
+  linkType: hard
+
+"@types/chrome@npm:0.1.40":
+  version: 0.1.40
+  resolution: "@types/chrome@npm:0.1.40"
+  dependencies:
+    "@types/filesystem": "npm:*"
+    "@types/har-format": "npm:*"
+  checksum: 10c0/e32b69e967b6e02b3d71935ce12b679b0d443e5418241b27087bb13fc6d35005f3621261ff4abc83a1726463d56a7c07165811a5a6e526204717e22ade5a446c
   languageName: node
   linkType: hard
 
@@ -18863,6 +18874,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/filesystem@npm:*":
+  version: 0.0.36
+  resolution: "@types/filesystem@npm:0.0.36"
+  dependencies:
+    "@types/filewriter": "npm:*"
+  checksum: 10c0/3ebec32f0494b0a2612187d148e9f253ff55672c53f566d9a1e6d891eb6e2372df93c252b594b2775bc53e6660c4c37fdb05dc1b26e72b60a31010da8e1f7317
+  languageName: node
+  linkType: hard
+
+"@types/filewriter@npm:*":
+  version: 0.0.33
+  resolution: "@types/filewriter@npm:0.0.33"
+  checksum: 10c0/363ef9a658a961ceae04f52934562e4ebdcdc3a2564dd8544f593d77113c16574938b6ba4fea0bee418c37bda0668c1e03dfedb6adf00d55853f51fb3a59247b
+  languageName: node
+  linkType: hard
+
 "@types/fs-extra@npm:11.0.4":
   version: 11.0.4
   resolution: "@types/fs-extra@npm:11.0.4"
@@ -18908,6 +18935,13 @@ __metadata:
   version: 0.0.51
   resolution: "@types/google.picker@npm:0.0.51"
   checksum: 10c0/2dde89d735a5e4d353685ec21b4e08c3331f88bf4a5707086b1103b6b08f1d3f7fc93400ef8807a842baa1a514f6d0afd6a5939d99f59ea4e4ac0252b14cf73c
+  languageName: node
+  linkType: hard
+
+"@types/har-format@npm:*":
+  version: 1.2.16
+  resolution: "@types/har-format@npm:1.2.16"
+  checksum: 10c0/77e952bc219db0c1f0588cab3b95865bc343b922e8423a76fbbd6a757c40709a256933fa415eb8fefda6ea5897c8e3dd3191bb8a82b37c13d9232467d31ae485
   languageName: node
   linkType: hard
 

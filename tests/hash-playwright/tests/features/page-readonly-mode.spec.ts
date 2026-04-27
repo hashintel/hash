@@ -1,15 +1,9 @@
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
-import { loginUsingUi } from "./shared/login-using-ui";
-import { resetDb } from "./shared/reset-db";
-import { expect, test } from "./shared/runtime";
+import { expect, test } from "../shared/runtime";
 
 const placeholderSelector =
   "text=Type / to browse blocks, or @ to browse entities";
-
-test.beforeEach(async () => {
-  await resetDb();
-});
 
 /**
  * @todo: Re-enable this playwright test when required backend functionality is fixed
@@ -18,11 +12,6 @@ test.beforeEach(async () => {
 test.skip("user can view page in read-only mode but not update", async ({
   page,
 }) => {
-  await loginUsingUi({
-    page,
-    accountShortName: "alice",
-  });
-
   // TODO: investigate why delay is required for create page button to work
   await sleep(500);
   await page.locator('[data-testid="create-page-btn"]').click();

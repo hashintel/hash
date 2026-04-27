@@ -1,7 +1,11 @@
-import { resetDb } from "./shared/reset-db";
-import { expect, type Page, test } from "./shared/runtime";
-import { createUserAndCompleteSignup } from "./shared/signup-utils";
-import { generateTotpCode, waitForFreshTotpWindow } from "./shared/totp-utils";
+import { expect, type Page, test } from "../shared/runtime";
+import {
+  clearSessionCookies,
+  signInWithPassword,
+} from "../shared/signin-utils";
+import { createUserAndCompleteSignup } from "../shared/signup-utils";
+import { testUsers } from "../shared/test-users";
+import { generateTotpCode, waitForFreshTotpWindow } from "../shared/totp-utils";
 
 const enableTotpForCurrentUser = async (page: Page) => {
   await page.goto("/settings/security");
@@ -42,25 +46,8 @@ const enableTotpForCurrentUser = async (page: Page) => {
   return { backupCodes, secret };
 };
 
-const signInWithPassword = async (
-  page: Page,
-  { email, password }: { email: string; password: string },
-) => {
-  await page.goto("/signin");
-  await page.fill('[placeholder="Enter your email address"]', email);
-  await page.fill('[placeholder="Enter your password"]', password);
-  await page.click("text=Submit");
-};
-
-test.beforeEach(async () => {
-  await resetDb();
-});
-
 test("user can enable TOTP", async ({ page }) => {
-  await createUserAndCompleteSignup(page, {
-    email: "mfa-enable-totp@example.com",
-    shortname: "mfa-enable-totp",
-  });
+  await createUserAndCompleteSignup(page, testUsers.mfaEnable);
 
   const { backupCodes } = await enableTotpForCurrentUser(page);
 
@@ -68,13 +55,13 @@ test("user can enable TOTP", async ({ page }) => {
 });
 
 test("user with TOTP is prompted for code at login", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(page, {
-    email: "mfa-totp-login@example.com",
-    shortname: "mfa-totp-login",
-  });
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.mfaLogin,
+  );
   const { secret } = await enableTotpForCurrentUser(page);
 
-  await page.context().clearCookies();
+  await clearSessionCookies(page);
 
   await signInWithPassword(page, credentials);
 
@@ -93,15 +80,15 @@ test("user with TOTP is prompted for code at login", async ({ page }) => {
 });
 
 test("user can use backup code instead of TOTP", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(page, {
-    email: "mfa-backup-code@example.com",
-    shortname: "mfa-backup-code",
-  });
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.mfaBackup,
+  );
   const { backupCodes } = await enableTotpForCurrentUser(page);
 
   expect(backupCodes.length).toBeGreaterThan(0);
 
-  await page.context().clearCookies();
+  await clearSessionCookies(page);
 
   await signInWithPassword(page, credentials);
   await expect(
@@ -116,10 +103,10 @@ test("user can use backup code instead of TOTP", async ({ page }) => {
 });
 
 test("user can disable TOTP", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(page, {
-    email: "mfa-disable-totp@example.com",
-    shortname: "mfa-disable-totp",
-  });
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.mfaDisable,
+  );
   await enableTotpForCurrentUser(page);
 
   await page.goto("/settings/security");
@@ -131,10 +118,6 @@ test("user can disable TOTP", async ({ page }) => {
   ).toBeVisible();
 
   // Backup codes should also be cleared as part of the disable flow.
-  // Without `lookup_secret_disable: true` the user would be left at a
-  // permanently-required AAL2 with only orphan backup codes — so re-loading
-  // the security page should not surface the "Regenerate backup codes"
-  // button (which only appears while a `lookup_secret` credential exists).
   await page.reload();
   await expect(
     page.locator('[data-testid="show-enable-totp-form-button"]'),
@@ -143,7 +126,7 @@ test("user can disable TOTP", async ({ page }) => {
     page.locator('[data-testid="regenerate-backup-codes-button"]'),
   ).not.toBeVisible();
 
-  await page.context().clearCookies();
+  await clearSessionCookies(page);
 
   await signInWithPassword(page, credentials);
 
@@ -154,13 +137,13 @@ test("user can disable TOTP", async ({ page }) => {
 });
 
 test("wrong TOTP code shows error at login", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(page, {
-    email: "mfa-wrong-code@example.com",
-    shortname: "mfa-wrong-code",
-  });
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.mfaWrongCode,
+  );
   await enableTotpForCurrentUser(page);
 
-  await page.context().clearCookies();
+  await clearSessionCookies(page);
 
   await signInWithPassword(page, credentials);
   await expect(

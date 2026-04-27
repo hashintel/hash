@@ -1,33 +1,29 @@
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
+import {
+  changeSidebarListDisplay,
+  expandSidebarSection,
+} from "../shared/change-sidebar-list-display";
+import { expect, test } from "../shared/runtime";
 
-import { changeSidebarListDisplay } from "./shared/change-sidebar-list-display";
-import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import { resetDb } from "./shared/reset-db";
-import { expect, test } from "./shared/runtime";
-
-test.beforeEach(async () => {
-  await resetDb();
-});
+// Use bob so that sidebar-preference mutations don't conflict with
+// entities-page.spec.ts (which runs as alice) on the same entity.
+test.use({ storageState: "tests/.auth/bob.json" });
 
 test("user can create entity type", async ({ page }) => {
-  await loginUsingTempForm({
-    page,
-    userEmail: "alice@example.com",
-    userPassword: "password",
-  });
-
-  // Check if we are on the user page
+  await page.goto("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
-  // Enable the full list display for 'Types' in the sidebar
   await changeSidebarListDisplay({
     displayAs: "list",
     page,
     section: "Types",
   });
 
-  // Go to Create Entity Type
-  await page.locator('[data-testid="create-entity-type-btn"]').click();
+  await expandSidebarSection({ page, section: "Types" });
+
+  const sidebar = page.getByTestId("page-sidebar");
+  const createBtn = sidebar.getByTestId("create-entity-type-btn");
+  await expect(createBtn).toBeVisible();
+  await createBtn.click();
   await page.waitForURL(
     (url) => !!url.pathname.match(/^\/new\/types\/entity-type/),
   );
@@ -53,7 +49,7 @@ test("user can create entity type", async ({ page }) => {
   await page.click("[data-testid=entity-type-creation-form] button");
   await page.waitForURL(
     (url) =>
-      !!url.pathname.match(/^\/@alice\/types\/entity-type\/testentity/) &&
+      !!url.pathname.match(/^\/@bob01\/types\/entity-type\/testentity/) &&
       url.searchParams.has("draft"),
   );
 
@@ -81,8 +77,6 @@ test("user can create entity type", async ({ page }) => {
   // Publish the entity type
 
   await page.click('[data-testid="editbar-confirm"]');
-
-  await sleep(5_000);
 
   await page.waitForURL(
     (url) => !!url.pathname.endsWith(entityTypeName.toLowerCase()),

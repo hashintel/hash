@@ -96,11 +96,8 @@ const SecurityPage: NextPageWithLayout = () => {
     authenticatedUser?.emails[0]?.address ?? "";
 
   const [flow, setFlow] = useState<SettingsFlow>();
-  const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
 
-  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
-  const [currentPasswordError, setCurrentPasswordError] = useState<string>();
   const [totpCode, setTotpCode] = useState("");
   const [showTotpSetupForm, setShowTotpSetupForm] = useState(false);
   const [showTotpDisableForm, setShowTotpDisableForm] = useState(false);
@@ -155,9 +152,14 @@ const SecurityPage: NextPageWithLayout = () => {
             return undefined;
           }
 
-          return Promise.reject(error);
+          setErrorMessage(
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- response body is typed as SettingsFlow but non-400 responses have a different shape
+            error.response?.data?.ui?.messages?.[0]?.text ??
+              "Something went wrong. Please try again.",
+          );
+          return undefined;
         }),
-    [handleFlowError],
+    [handleFlowError, setErrorMessage],
   );
 
   useEffect(() => {
@@ -167,9 +169,6 @@ const SecurityPage: NextPageWithLayout = () => {
 
     const initFlow = (data: SettingsFlow) => {
       setFlow(data);
-      if (data.ui.messages?.some(({ id }) => id === 1060001)) {
-        setIsRecoveryFlow(true);
-      }
     };
 
     if (flowId) {
@@ -231,6 +230,51 @@ const SecurityPage: NextPageWithLayout = () => {
     setShowTotpDisableForm(false);
   }, [isTotpEnabled]);
 
+  const executeDisableTotp = useCallback(
+    async (currentFlow: SettingsFlow) => {
+      setDisablingTotp(true);
+      setShowTotpDisableForm(true);
+      persistFlowIdInUrl(currentFlow);
+
+      try {
+        // Step 1: Unlink TOTP.
+        const unlinkedFlow = await submitSettingsUpdate(currentFlow, {
+          method: "totp",
+          totp_unlink: true,
+          csrf_token: mustGetCsrfTokenFromFlow(currentFlow),
+        });
+
+        if (!unlinkedFlow) {
+          return;
+        }
+
+        // Step 2: Remove backup codes. Kratos enforces AAL2 as long as
+        // any second factor is present, so leaving orphan backup codes
+        // behind after unlinking TOTP would lock the user out at next
+        // login — they'd be asked for an authenticator code they no
+        // longer have.
+        const clearedFlow = await submitSettingsUpdate(unlinkedFlow, {
+          method: "lookup_secret",
+          lookup_secret_disable: true,
+          csrf_token: mustGetCsrfTokenFromFlow(unlinkedFlow),
+        });
+
+        if (!clearedFlow) {
+          setErrorMessage(
+            "TOTP was disabled, but backup codes could not be removed. " +
+              "Please reload the page and try again to avoid being locked out.",
+          );
+          return;
+        }
+
+        setShowTotpDisableForm(false);
+      } finally {
+        setDisablingTotp(false);
+      }
+    },
+    [submitSettingsUpdate, persistFlowIdInUrl],
+  );
+
   const totpQrCodeDataUri = useMemo(() => {
     for (const { attributes } of totpNodes) {
       if (
@@ -264,61 +308,34 @@ const SecurityPage: NextPageWithLayout = () => {
   const handlePasswordSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
 
-    if (!flow || !password || (!isRecoveryFlow && !currentPassword)) {
+    if (!flow || !password) {
+      return;
+    }
+
+    let csrfToken: string;
+    try {
+      csrfToken = mustGetCsrfTokenFromFlow(flow);
+    } catch {
+      setErrorMessage("Could not find CSRF token. Please reload the page.");
       return;
     }
 
     setUpdatingPassword(true);
-    setCurrentPasswordError(undefined);
     persistFlowIdInUrl(flow);
 
-    // @todo H-6417 the password-reentry step below only works for users
-    //   who actually have a password credential — SSO-only users can't
-    //   change their password today. The SSO-compatible forced session
-    //   refresh being designed under H-6417 is the path to fixing this
-    //   (tracked separately as H-6418 for the password-setup UI itself).
-
-    const updatePassword = async () => {
-      if (!isRecoveryFlow) {
-        // Verify the current password by creating and submitting a refresh
-        // login flow. This also refreshes the session to "privileged",
-        // ensuring the settings update won't be rejected.
-        // Recovery flows are already privileged, so we don't need to refresh them.
-        await oryKratosClient
-          .createBrowserLoginFlow({ refresh: true })
-          .then(({ data: loginFlow }) =>
-            oryKratosClient.updateLoginFlow({
-              flow: loginFlow.id,
-              updateLoginFlowBody: {
-                method: "password",
-                identifier: usernameForPasswordManagers,
-                password: currentPassword,
-                csrf_token: mustGetCsrfTokenFromFlow(loginFlow),
-              },
-            }),
-          );
-      }
-
-      const nextFlow = await submitSettingsUpdate(flow, {
-        method: "password",
-        password,
-        csrf_token: mustGetCsrfTokenFromFlow(flow),
-      });
-
-      if (nextFlow) {
-        setCurrentPassword("");
-        setPassword("");
-      }
-    };
-
-    void updatePassword()
-      .catch((error: AxiosError) => {
-        if (error.response?.status === 400) {
-          setCurrentPasswordError("Current password is incorrect.");
-          return;
+    // No manual session refresh — Kratos enforces `privileged_session_max_age`
+    // server-side. If the session is stale, Kratos returns
+    // `session_refresh_required` and the error handler takes over.
+    // This works for both password and SSO-only users.
+    void submitSettingsUpdate(flow, {
+      method: "password",
+      password,
+      csrf_token: csrfToken,
+    })
+      .then((nextFlow) => {
+        if (nextFlow) {
+          setPassword("");
         }
-
-        void handleFlowError(error);
       })
       .finally(() => setUpdatingPassword(false));
   };
@@ -393,54 +410,11 @@ const SecurityPage: NextPageWithLayout = () => {
       return;
     }
 
-    setDisablingTotp(true);
-    persistFlowIdInUrl(flow);
-
-    // @todo H-6417 force a session refresh before a security-sensitive
-    //   change like this, rather than relying solely on Kratos's
-    //   `privileged_session_max_age` window. The shape: queue the pending
-    //   change, redirect to `/signin?refresh=true&return_to=…`, let the
-    //   user reauthenticate via whichever credential they have (password,
-    //   SSO, passkey), then resume the change on return. Must work for
-    //   SSO-only users, so a password-reentry shim alone is not enough.
-
-    const disableSequence = async () => {
-      // Step 1: Unlink TOTP.
-      const unlinkedFlow = await submitSettingsUpdate(flow, {
-        method: "totp",
-        totp_unlink: true,
-        csrf_token: mustGetCsrfTokenFromFlow(flow),
-      });
-
-      if (!unlinkedFlow) {
-        return;
-      }
-
-      // Step 2: Unlink the `lookup_secret` credential.
-      // `required_aal: highest_available` treats any enrolled second
-      // factor (including backup codes) as enforcing AAL2, so leaving
-      // them behind after removing TOTP would force the user through an
-      // AAL2 prompt with no TOTP to answer it. If this step fails, TOTP
-      // is already gone — surface an error so the user can retry rather
-      // than silently landing in the orphan-AAL2 state.
-      const clearedFlow = await submitSettingsUpdate(unlinkedFlow, {
-        method: "lookup_secret",
-        lookup_secret_disable: true,
-        csrf_token: mustGetCsrfTokenFromFlow(unlinkedFlow),
-      });
-
-      if (!clearedFlow) {
-        setErrorMessage(
-          "TOTP was disabled, but backup codes could not be removed. " +
-            "Please reload the page and try again to avoid being locked out.",
-        );
-        return;
-      }
-
-      setShowTotpDisableForm(false);
-    };
-
-    void disableSequence().finally(() => setDisablingTotp(false));
+    // Kratos enforces `privileged_session_max_age` server-side. If the
+    // session is stale, the first `submitSettingsUpdate` call inside
+    // `executeDisableTotp` will fail with `session_refresh_required` and
+    // the error handler will redirect to re-authenticate.
+    void executeDisableTotp(flow);
   };
 
   const handleRegenerateBackupCodes = () => {
@@ -466,6 +440,11 @@ const SecurityPage: NextPageWithLayout = () => {
         if (regeneratedCodes.length > 0) {
           setBackupCodes(regeneratedCodes);
           setShowBackupCodesModal(true);
+        } else {
+          setErrorMessage(
+            "Could not extract backup codes from the response. " +
+              "Please reload the page and try again.",
+          );
         }
       })
       .finally(() => setRegeneratingBackupCodes(false));
@@ -535,26 +514,6 @@ const SecurityPage: NextPageWithLayout = () => {
               Password
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              {!isRecoveryFlow && (
-                <TextField
-                  label="Current password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="Enter your current password"
-                  value={currentPassword}
-                  onChange={({ target }) => {
-                    setCurrentPassword(target.value);
-                    setCurrentPasswordError(undefined);
-                  }}
-                  error={!!currentPasswordError}
-                  helperText={
-                    currentPasswordError ? (
-                      <Typography>{currentPasswordError}</Typography>
-                    ) : undefined
-                  }
-                  required
-                />
-              )}
               <TextField
                 label="New password"
                 type="password"
@@ -574,14 +533,7 @@ const SecurityPage: NextPageWithLayout = () => {
               />
             </Box>
             <Box mt={1.5}>
-              <Button
-                type="submit"
-                disabled={
-                  (!isRecoveryFlow && !currentPassword) ||
-                  !password ||
-                  updatingPassword
-                }
-              >
+              <Button type="submit" disabled={!password || updatingPassword}>
                 {updatingPassword ? "Updating password..." : "Update password"}
               </Button>
             </Box>

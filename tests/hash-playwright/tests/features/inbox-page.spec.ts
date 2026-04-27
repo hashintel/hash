@@ -10,10 +10,9 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { Page } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import { createEntity, getUser } from "./shared/api-queries";
-import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import type { APIRequestContext } from "./shared/runtime";
-import { expect, test } from "./shared/runtime";
+import { createEntity, getUser } from "../shared/api-queries";
+import type { APIRequestContext } from "../shared/runtime";
+import { expect, test } from "../shared/runtime";
 
 const createNotification = async ({
   draft,
@@ -101,13 +100,8 @@ const createNotification = async ({
 };
 
 test("new notifications are shown on notifications page", async ({ page }) => {
+  await page.goto("/");
   test.setTimeout(60_000);
-
-  await loginUsingTempForm({
-    page,
-    userEmail: "alice@example.com",
-    userPassword: "password",
-  });
 
   await expect(page.locator("text=Get support")).toBeVisible();
 

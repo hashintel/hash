@@ -8,7 +8,9 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "test:integration": "PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PW_EXPERIMENTAL_TS_ESM=1 npx playwright test --project chromium"
+    "test:integration": "PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PW_EXPERIMENTAL_TS_ESM=1 npx playwright test --project '*-chromium'",
+    "test:integration:firefox": "PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PW_EXPERIMENTAL_TS_ESM=1 npx playwright test --project '*-firefox'",
+    "test:integration:webkit": "PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1 PW_EXPERIMENTAL_TS_ESM=1 npx playwright test --project '*-webkit'"
   },
   "dependencies": {
     "@blockprotocol/type-system": "workspace:*",
@@ -28,6 +30,7 @@
     "@blockprotocol/graph": "workspace:*",
     "@graphql-codegen/cli": "^6.2.1",
     "@local/eslint": "workspace:*",
+    "@types/chrome": "0.1.40",
     "@types/js-yaml": "^4",
     "eslint": "9.39.4",
     "rimraf": "6.1.3",

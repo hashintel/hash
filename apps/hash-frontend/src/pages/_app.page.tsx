@@ -282,7 +282,12 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
    * Fetch the authenticated user on the very first page load so it's available in the frontend.
    * We leave it up to the client to re-fetch the user as necessary in response to user-initiated actions.
    *
-   * @todo this is running on every page transition. make it stop or make caching work (need to create new client on request to avoid sharing user data)
+   * @todo this is running on every page transition — the response should
+   *   be cacheable so it doesn't hit the backend on every navigation.
+   *   Note: the server-side `apolloClient` singleton has
+   *   `queryDeduplication: false` (see `create-apollo-client.ts`) because
+   *   Apollo's dedup key ignores `context` and would otherwise leak one
+   *   user's data into another concurrent SSR request.
    */
   const initialAuthenticatedUserSubgraph = await apolloClient
     .query<MeQuery>({

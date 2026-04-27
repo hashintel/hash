@@ -12,9 +12,9 @@ import { useAuthInfo } from "./auth-info-context";
 import type { Flows } from "./ory-kratos";
 import { flowMetadata, uiPathForKratosBrowserRedirect } from "./ory-kratos";
 
-export const useKratosErrorHandler = <S>(props: {
-  flowType: keyof Flows;
-  setFlow: Dispatch<SetStateAction<S | undefined>>;
+export const useKratosErrorHandler = <K extends keyof Flows>(props: {
+  flowType: K;
+  setFlow: Dispatch<SetStateAction<Flows[K][0] | undefined>>;
   setErrorMessage: Dispatch<SetStateAction<string | undefined>>;
 }) => {
   const { flowType, setFlow, setErrorMessage } = props;

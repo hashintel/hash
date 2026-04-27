@@ -65,6 +65,8 @@
     "start:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter @apps/hash-frontend --env-mode=loose",
     "start:graph": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter @apps/hash-graph --env-mode=loose",
     "start:test": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --env-mode=loose",
+    "start:test:backend": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --filter @apps/hash-api --env-mode=loose",
+    "start:test:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --filter @apps/hash-frontend --env-mode=loose",
     "start:test:graph": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --filter @apps/hash-graph --env-mode=loose",
     "start:test:worker": "CARGO_TERM_PROGRESS_WHEN=never turbo run start:test start:test:healthcheck --filter '@apps/hash-*-worker*' --env-mode=loose",
     "start:worker": "CARGO_TERM_PROGRESS_WHEN=never turbo run start start:healthcheck --filter '@apps/hash-*-worker*' --env-mode=loose",

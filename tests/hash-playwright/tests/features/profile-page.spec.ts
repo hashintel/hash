@@ -2,13 +2,9 @@ import { sleep } from "@local/hash-isomorphic-utils/sleep";
 // eslint-disable-next-line no-restricted-imports
 import { test as testTolerateConsoleErrors } from "@playwright/test";
 
-import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import { resetDb } from "./shared/reset-db";
-import { expect } from "./shared/runtime";
+import { expect } from "../shared/runtime";
 
-testTolerateConsoleErrors.beforeEach(async () => {
-  await resetDb();
-});
+testTolerateConsoleErrors.beforeEach(async () => {});
 
 const blockCollectionMountTimeout = 5_000;
 
@@ -19,12 +15,6 @@ const blockCollectionMountTimeout = 5_000;
 testTolerateConsoleErrors.skip(
   "a user's profile page renders",
   async ({ page }) => {
-    await loginUsingTempForm({
-      page,
-      userEmail: "alice@example.com",
-      userPassword: "password",
-    });
-
     await page.goto("/@alice");
 
     await expect(page.locator("text=@alice")).toBeVisible();
@@ -58,12 +48,6 @@ testTolerateConsoleErrors.skip(
 testTolerateConsoleErrors.skip(
   "an org's profile page renders, with and without a bio",
   async ({ page }) => {
-    await loginUsingTempForm({
-      page,
-      userEmail: "alice@example.com",
-      userPassword: "password",
-    });
-
     await page.goto("/@example-org");
 
     await expect(page.locator("text=@example-org")).toBeVisible();

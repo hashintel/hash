@@ -6,7 +6,7 @@ import { type BrowserContext, chromium, test as base } from "@playwright/test";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const monorepoRootDir = path.resolve(__dirname, "../../../../");
+const monorepoRootDir = path.resolve(__dirname, "../../../../../");
 
 export const test = base.extend<{
   context: BrowserContext;
@@ -39,6 +39,13 @@ export const test = base.extend<{
     if (!extensionId) {
       throw new Error("Could not find extension ID");
     }
+
+    // Drop any cached state from a previous run so the popup hydrates
+    // via `getUser()` rather than from stale local storage. Backend
+    // settings are still restored on login and are cleared per-test in
+    // the spec's reset helpers.
+    await background.evaluate(() => chrome.storage.local.clear());
+
     // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(extensionId);
   },

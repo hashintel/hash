@@ -1,9 +1,7 @@
 // import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
-import { loginUsingTempForm } from "./shared/login-using-temp-form";
-import { resetDb } from "./shared/reset-db";
-import { expect, test } from "./shared/runtime";
+import { expect, test } from "../shared/runtime";
 
 const pageNameSuffix = Date.now();
 const pageNameFallback = "Untitled";
@@ -15,14 +13,9 @@ const placeholderSelector =
   "text=Type / to browse blocks, or @ to browse entities";
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
 
-test.beforeEach(async () => {
-  await resetDb();
-});
-
 // @todo fix this test
 test.skip("user can create page", async ({ page }) => {
-  await loginUsingTempForm({ page });
-
+  await page.goto("/");
   await page.waitForURL("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
@@ -163,11 +156,9 @@ test.skip("user can create page", async ({ page }) => {
 
 // @todo fix this test
 test.skip("user can rename page", async ({ page }) => {
+  await page.goto("/");
   const pageName1 = `Page ${pageNameSuffix}`;
   const pageName2 = `Page 2 ${pageNameSuffix}`;
-
-  await loginUsingTempForm({ page });
-
   // TODO: investigate why delay is required for create page button to work
   await sleep(500);
   await page.locator(createPageButtonSelector).click();

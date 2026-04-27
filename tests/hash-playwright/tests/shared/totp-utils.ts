@@ -27,7 +27,7 @@ const decodeBase32 = (encodedSecret: string): Buffer => {
     const index = base32Alphabet.indexOf(character);
 
     if (index === -1) {
-      continue;
+      throw new Error(`Invalid base32 character '${character}' in TOTP secret`);
     }
 
     accumulator = accumulator * 32 + index;
