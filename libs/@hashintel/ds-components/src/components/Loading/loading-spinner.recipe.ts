@@ -2,7 +2,7 @@ import { cva } from "@hashintel/ds-helpers/css";
 
 export const styles = cva({
   base: {
-    animation: "rotateRight 1.1s infinite linear",
+    animation: "rotateLeft 1.1s infinite linear",
     width: "var(--loading-spinner-size)",
     height: "var(--loading-spinner-size)",
   },

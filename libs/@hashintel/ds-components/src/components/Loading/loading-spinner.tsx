@@ -1,4 +1,5 @@
 import { cx } from "@hashintel/ds-helpers/css";
+import { useId } from "react";
 
 import type { FormInputSize } from "../../util/form-shared";
 import { styles } from "./loading-spinner.recipe";
@@ -10,6 +11,7 @@ export const LoadingSpinner = ({
   size?: FormInputSize;
   className?: string;
 }) => {
+  const gradientId = useId();
   const bg = "color-mix(in oklab, currentColor, white 85%)";
 
   return (
@@ -20,12 +22,12 @@ export const LoadingSpinner = ({
       />
       <path
         d="M50.4 28C53.4928 28 56.0563 30.5317 55.4419 33.5629C54.6488 37.4748 53.0239 41.1939 50.6525 44.458C47.1769 49.2417 42.2761 52.8024 36.6525 54.6296C31.0289 56.4568 24.9711 56.4568 19.3475 54.6296C15.5104 53.3828 12.0098 51.329 9.06882 48.6304C6.79004 46.5393 7.37589 42.9843 9.87802 41.1664C12.3801 39.3485 15.8512 40.0088 18.3877 41.7784C19.7367 42.7195 21.2248 43.4632 22.8085 43.9777C26.1827 45.0741 29.8173 45.0741 33.1915 43.9777C36.5657 42.8814 39.5061 40.745 41.5915 37.8748C42.5703 36.5276 43.3371 35.0513 43.8752 33.497C44.8872 30.5744 47.3072 28 50.4 28Z"
-        fill="url(#paint0_linear_41842_38832)"
+        fill={`url(#${gradientId})`}
       />
 
       <defs>
         <linearGradient
-          id="paint0_linear_41842_38832"
+          id={gradientId}
           x1="33.069"
           y1="51.1724"
           x2="52.1379"

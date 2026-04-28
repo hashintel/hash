@@ -107,6 +107,7 @@ export function createPreset(options?: PresetOptions) {
         tokens,
         semanticTokens,
         keyframes: {
+          ...pandaPreset.theme.keyframes,
           fadeIn: {
             from: { opacity: "0" },
             to: { opacity: "1" },
@@ -115,11 +116,11 @@ export function createPreset(options?: PresetOptions) {
             from: { opacity: "1" },
             to: { opacity: "0" },
           },
-          rotateLeft: {
+          rotateRight: {
             from: { transform: "rotate(0deg)" },
             to: { transform: "rotate(360deg)" },
           },
-          rotateRight: {
+          rotateLeft: {
             from: { transform: "rotate(360deg)" },
             to: { transform: "rotate(0deg)" },
           },
