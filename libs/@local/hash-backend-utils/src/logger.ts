@@ -51,30 +51,49 @@ function mapWinstonLevelToOtel(level: string): SeverityNumber {
  *   so a plain `JSON.stringify(new Error("x"))` produces `{}`.
  * - BigInts: throw `TypeError: Do not know how to serialize a BigInt`.
  *
- * Returns a value safe to pass to `JSON.stringify` (or a stringifier like
- * winston's `format.json()`) without losing information.
+ * Values that already implement `toJSON` (Date, Buffer, decimal/ID types,
+ * etc.) are passed through unchanged — `JSON.stringify` will call `toJSON`
+ * on them and produce the right representation. Rebuilding their fields
+ * via `Object.entries` would lose the `toJSON` hook (e.g. `Date` would
+ * become `{}`).
+ *
+ * Cycles are tracked via a `WeakSet` and replaced with `[Circular]` so
+ * the function cannot infinite-recurse on a self-referential payload.
  */
-export const expandLogValue = (value: unknown): unknown => {
+export const expandLogValue = (
+  value: unknown,
+  seen: WeakSet<object> = new WeakSet(),
+): unknown => {
   if (value instanceof Error) {
     return {
       name: value.name,
       message: value.message,
       stack: value.stack,
       ...(value.cause !== undefined
-        ? { cause: expandLogValue(value.cause) }
+        ? { cause: expandLogValue(value.cause, seen) }
         : {}),
     };
   }
   if (typeof value === "bigint") {
     return value.toString();
   }
-  if (Array.isArray(value)) {
-    return value.map(expandLogValue);
-  }
-  if (value && typeof value === "object") {
+  if (value !== null && typeof value === "object") {
+    if (seen.has(value)) {
+      return "[Circular]";
+    }
+    seen.add(value);
+
+    // Anything with its own `toJSON` knows how to serialise itself —
+    // pass through and let `JSON.stringify` invoke it.
+    if (typeof (value as { toJSON?: unknown }).toJSON === "function") {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => expandLogValue(item, seen));
+    }
     const out: Record<string, unknown> = {};
     for (const [key, nested] of Object.entries(value)) {
-      out[key] = expandLogValue(nested);
+      out[key] = expandLogValue(nested, seen);
     }
     return out;
   }
@@ -82,8 +101,9 @@ export const expandLogValue = (value: unknown): unknown => {
 };
 
 /**
- * `JSON.stringify` that survives Errors, BigInts, and circular references.
- * Falls back to a marker string rather than throwing.
+ * `JSON.stringify` that survives Errors, BigInts, circular references,
+ * and types with custom `toJSON` (Date, Buffer, etc.). Falls back to a
+ * marker string rather than throwing.
  */
 export const safeStringify = (
   value: unknown,
@@ -104,13 +124,19 @@ export const safeStringify = (
 };
 
 /**
- * Winston format that recursively expands non-enumerable Error properties
- * and BigInts in the info object before any later format (notably
- * `format.json`) tries to serialise it.
+ * Winston format that expands Errors / BigInts / cycles in the info
+ * object before any later format (notably `format.json`) tries to
+ * serialise it. Wrapped in try/catch so a malformed payload cannot
+ * throw out of the Winston pipeline.
  */
-const expandLogValuesFormat = format(
-  (info) => expandLogValue(info) as winston.Logform.TransformableInfo,
-);
+const expandLogValuesFormat = format((info) => {
+  try {
+    return expandLogValue(info) as winston.Logform.TransformableInfo;
+  } catch {
+    // Best-effort: never crash the logger.
+    return info;
+  }
+});
 
 function toAnyValue(value: unknown): AnyValue {
   if (value === null || value === undefined) {
@@ -144,37 +170,61 @@ function sanitizeAttributes(obj: Record<string, unknown>): AnyValueMap {
  * This function takes the consolePrefix (if it exists) and prepends the message with it for the console transport.
  * A corresponding format is used to remove the consolePrefix from the message in the Http transport.
  *
- * This also removes any 'detailedFields' from the message if any are specified.
+ * Also removes any `detailedFields` listed in the payload — both from a
+ * legacy object-shaped `message` and from the top-level info metadata
+ * (callers that pass `logger.X("description", { detailedFields, ... })`
+ * spread the field list into the info object directly).
  */
 const rewriteForConsole = format(
   (original: winston.Logform.TransformableInfo & { message: unknown }) => {
-    const { message: fullMessage, ...metadata } = original;
-
-    const { consolePrefix, ...restMetadata } = metadata;
+    const consolePrefix = (original as { consolePrefix?: unknown })
+      .consolePrefix;
 
     if (typeof consolePrefix !== "string" || consolePrefix.length === 0) {
       return original;
     }
 
+    const fullMessage = original.message;
+    const detailedFromMeta = (original as { detailedFields?: unknown })
+      .detailedFields;
+    let detailedKeys: string[] | undefined = Array.isArray(detailedFromMeta)
+      ? (detailedFromMeta as string[])
+      : undefined;
+
     let message: string;
     if (typeof fullMessage === "object" && fullMessage !== null) {
-      const { detailedFields, ...restMessage } = fullMessage as {
-        detailedFields?: string[];
-        [key: string]: unknown;
-      };
+      const { detailedFields: detailedFromMessage, ...restMessage } =
+        fullMessage as {
+          detailedFields?: string[];
+          [key: string]: unknown;
+        };
+
+      detailedKeys = detailedKeys ?? detailedFromMessage;
 
       message = safeStringify(restMessage, {
         replacer: (key, value) =>
-          detailedFields?.includes(key) ? undefined : value,
+          detailedKeys?.includes(key) ? undefined : value,
       });
     } else {
       message = fullMessage as string;
     }
 
-    return {
+    // Strip detailed fields and `consolePrefix`/`detailedFields` markers
+    // from the surrounding metadata before they reach the console
+    // formatter, so heavy payloads (request/response blobs) don't get
+    // dumped into stdout.
+    const result: winston.Logform.TransformableInfo = {
+      ...original,
       message: `${consolePrefix} ${message}`,
-      ...restMetadata,
     };
+    delete (result as { consolePrefix?: unknown }).consolePrefix;
+    delete (result as { detailedFields?: unknown }).detailedFields;
+    if (detailedKeys) {
+      for (const key of detailedKeys) {
+        delete (result as Record<string, unknown>)[key];
+      }
+    }
+    return result;
   },
 );
 
