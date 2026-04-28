@@ -13,7 +13,6 @@ import type {
   LlmToolDefinition,
 } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { stringify } from "../../../shared/stringify.js";
 import type { Claim } from "../../shared/claims.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";

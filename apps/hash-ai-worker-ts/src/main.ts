@@ -175,7 +175,7 @@ process.on("SIGTERM", () => {
   process.exit(1);
 });
 
-run().catch((error) => {
+run().catch((error: unknown) => {
   logger.error("Error running worker", { error });
   process.exit(1);
 });

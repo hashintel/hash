@@ -40,7 +40,7 @@ export const heartbeatAndWaitCancellation = async (
     } satisfies ResearchActionCheckpointState);
   }, secondsBetweenHeartbeats * 1000);
 
-  return Context.current().cancelled.catch((error) => {
+  return Context.current().cancelled.catch((error: unknown) => {
     logger.error("Cancellation received", { error });
     clearInterval(heartbeatInterval);
     throw error;

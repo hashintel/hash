@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { safeStringify } from "@local/hash-backend-utils/logger";
 import { Context } from "@temporalio/activity";
 
 import { logger as baseLogger } from "../../shared/logger.js";
@@ -61,18 +62,15 @@ const log = (
       };
 
       /**
-       * Keep any detailed fields out of the log file.
-       * We create a file per LLM request, so we can inspect the detailed fields there,
-       * and including them in the main log file also makes it harder to inspect and very large.
-       *
-       * The requestId will be included in the main log file, so we can identify the relevant request file.
+       * Detailed fields go into per-request log files; keep them out of the
+       * flow-level log. Error / BigInt / circular handling is provided by
+       * `safeStringify`.
        */
-      const filtered = JSON.stringify(
-        restMeta,
-        (key, value) =>
-          detailedFields?.includes(key) ? undefined : (value as unknown),
-        2,
-      );
+      const filtered = safeStringify(restMeta, {
+        space: 2,
+        replacer: (key, value) =>
+          detailedFields?.includes(key) ? undefined : value,
+      });
 
       /**
        * We don't need the full console prefix because it includes the flow id, which is already in the file name.

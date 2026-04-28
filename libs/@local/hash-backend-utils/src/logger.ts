@@ -43,6 +43,75 @@ function mapWinstonLevelToOtel(level: string): SeverityNumber {
   }
 }
 
+/**
+ * Recursively replace values in a log payload that JSON.stringify cannot
+ * usefully serialise on its own:
+ *
+ * - Errors: their `message`, `stack`, `name`, and `cause` are non-enumerable
+ *   so a plain `JSON.stringify(new Error("x"))` produces `{}`.
+ * - BigInts: throw `TypeError: Do not know how to serialize a BigInt`.
+ *
+ * Returns a value safe to pass to `JSON.stringify` (or a stringifier like
+ * winston's `format.json()`) without losing information.
+ */
+export const expandLogValue = (value: unknown): unknown => {
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: value.message,
+      stack: value.stack,
+      ...(value.cause !== undefined
+        ? { cause: expandLogValue(value.cause) }
+        : {}),
+    };
+  }
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
+  if (Array.isArray(value)) {
+    return value.map(expandLogValue);
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value)) {
+      out[key] = expandLogValue(nested);
+    }
+    return out;
+  }
+  return value;
+};
+
+/**
+ * `JSON.stringify` that survives Errors, BigInts, and circular references.
+ * Falls back to a marker string rather than throwing.
+ */
+export const safeStringify = (
+  value: unknown,
+  options?: {
+    space?: number;
+    replacer?: (key: string, value: unknown) => unknown;
+  },
+): string => {
+  try {
+    return JSON.stringify(
+      expandLogValue(value),
+      options?.replacer,
+      options?.space,
+    );
+  } catch (error) {
+    return `[unserialisable: ${(error as Error).message}]`;
+  }
+};
+
+/**
+ * Winston format that recursively expands non-enumerable Error properties
+ * and BigInts in the info object before any later format (notably
+ * `format.json`) tries to serialise it.
+ */
+const expandLogValuesFormat = format(
+  (info) => expandLogValue(info) as winston.Logform.TransformableInfo,
+);
+
 function toAnyValue(value: unknown): AnyValue {
   if (value === null || value === undefined) {
     return undefined;
@@ -55,12 +124,7 @@ function toAnyValue(value: unknown): AnyValue {
   ) {
     return value as AnyValue;
   }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    return String(value);
-  }
+  return safeStringify(value);
 }
 
 function sanitizeAttributes(obj: Record<string, unknown>): AnyValueMap {
@@ -99,12 +163,9 @@ const rewriteForConsole = format(
         [key: string]: unknown;
       };
 
-      message = JSON.stringify(restMessage, (key, value) => {
-        if (detailedFields?.includes(key)) {
-          return undefined;
-        }
-
-        return value as unknown;
+      message = safeStringify(restMessage, {
+        replacer: (key, value) =>
+          detailedFields?.includes(key) ? undefined : value,
       });
     } else {
       message = fullMessage as string;
@@ -173,6 +234,10 @@ export class Logger {
       level,
       format: winston.format.combine(
         winston.format.errors({ stack: true }),
+        // Run before any later format that stringifies the info object
+        // (format.json on each transport) so Errors and BigInts in nested
+        // meta don't serialise to `{}` or throw.
+        expandLogValuesFormat(),
         winston.format.json(),
       ),
       defaultMeta: { service: cfg.serviceName, ...this.cfg.metadata },
