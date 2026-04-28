@@ -54,7 +54,7 @@ export default [
     files: [
       "src/**/*.story.ts{x,}",
       "src/**/*.stories.ts{x,}",
-      "src/stories/**/*.{ts,tsx,mdx}",
+      "src/tokens/**/*.{ts,tsx,mdx}",
     ],
     languageOptions: {
       parserOptions: {

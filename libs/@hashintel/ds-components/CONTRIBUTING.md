@@ -7,7 +7,7 @@ This guide covers the current post-FE-612 package layout for humans and coding a
 - `@hashintel/ds-components` is the source-owning package.
 - `src/preset/**` contains the Panda preset source and theme/token inputs used by the preset.
 - `scripts/**` owns token and color code generation.
-- `src/components/**`, `src/stories/**`, `.ladle/**`, and `tests/**` are owned here as the component, demo, and snapshot surfaces.
+- `src/components/**`, `src/tokens/**`, `src/stories/Intro.mdx`, `.ladle/**`, and `tests/**` are owned here as the component, demo, and snapshot surfaces.
 - `@hashintel/ds-helpers` is the generated Panda `styled-system` artifact only.
 - The old `@hashintel/ds-theme` package has been retired; use `@hashintel/ds-components/preset` instead.
 
@@ -21,7 +21,8 @@ For new internal work, treat `ds-components` as the only source of truth.
 | Panda preset source | `src/preset.ts`, `src/preset/**` | This is the live preset consumed by `@hashintel/ds-components/preset`. |
 | Package-owned token facade | `src/tokens.ts`, `src/preset/tokens.ts` | This is the public `@hashintel/ds-components/tokens` surface and its internal source of truth. |
 | Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
-| Token demo stories | `src/stories/tokens/**` | Token reference and migration/demo stories live here now. |
+| Token demo stories | `src/tokens/**` | Token reference and migration/demo stories live here now. |
+| Intro docs | `src/stories/Intro.mdx` | Shared intro documentation for the Ladle surface. |
 | Local demo config | `panda.local.config.ts` | Shared Panda config for local demo surfaces such as Ladle. |
 | Ladle harness | `.ladle/**` | Used for the token/demo surface and Playwright snapshots. |
 | Snapshot tests | `tests/**` | Snapshot harness for the Ladle surface. |
@@ -177,7 +178,7 @@ Color tokens should come from the semantic palette already defined in the preset
 
 - `yarn dev` is the primary Ladle-based loop and the best default when changing token stories or the demo harness. It uses the shared Vite/PostCSS config for Panda style extraction while Ladle is running.
 - `yarn dev:lib` is the lightest loop when you only need the publishable package build watcher.
-- `src/stories/tokens/**` owns the token reference stories that used to live under `ds-helpers`.
+- `src/tokens/**` owns the token reference stories that used to live under `ds-helpers`.
 - `tests/snapshots.spec.ts` exercises the Ladle surface and stores the images in `tests/__snapshots__/`.
 
 ## Common Pitfalls

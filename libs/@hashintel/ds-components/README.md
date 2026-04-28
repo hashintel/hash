@@ -39,7 +39,8 @@ Use `@hashintel/ds-components/tokens` when you need the package-owned Panda toke
 | Package token facade       | `src/tokens.ts`                  |
 | Token and color generators | `scripts/**`                     |
 | Stories                    | `src/components/*/*.stories.tsx` |
-| Token demo stories         | `src/stories/**`                 |
+| Token demo stories         | `src/tokens/**`                  |
+| Intro docs                 | `src/stories/Intro.mdx`          |
 | Local demo config          | `panda.local.config.ts`          |
 | Ladle harness              | `.ladle/**`                      |
 | Snapshot tests             | `tests/**`                       |

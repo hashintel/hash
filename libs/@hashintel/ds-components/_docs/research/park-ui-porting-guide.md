@@ -8,7 +8,7 @@ This guide was originally written before the FE-612 ownership restructure. Apply
 
 - preset and token source changes belong in `@hashintel/ds-components/src/preset/**`
 - token and color generation lives in `@hashintel/ds-components/scripts/**`
-- token demo stories live in `@hashintel/ds-components/src/stories/tokens/**`
+- token demo stories live in `@hashintel/ds-components/src/tokens/**`
 - `@hashintel/ds-helpers` is the generated Panda runtime only
 
 ## Reference Repositories
@@ -119,7 +119,7 @@ Established mapping from Radix neutral → HASH gray:
 | 11 | 60 | Low-contrast text |
 | 12 | 90 | High-contrast text |
 
-Visual comparison story: `libs/@hashintel/ds-components/src/stories/tokens/tokens.color-migration.story.tsx`
+Visual comparison story: `libs/@hashintel/ds-components/src/tokens/tokens.color-migration.story.tsx`
 
 ### Alpha → Solid Mapping
 
@@ -301,7 +301,7 @@ bg: 'bg.accent.bold.default'
 
 | File | Purpose |
 |------|---------|
-| `libs/@hashintel/ds-components/src/stories/tokens/tokens.color-migration.story.tsx` | Visual comparison tool for scale mapping |
+| `libs/@hashintel/ds-components/src/tokens/tokens.color-migration.story.tsx` | Visual comparison tool for scale mapping |
 | `libs/@hashintel/ds-components/_ai/park-ui-porting-guide.md` | This document |
 
 ## Next Steps
