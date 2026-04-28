@@ -1,5 +1,19 @@
 # @hashintel/petrinaut
 
+## 0.0.13
+
+### Patch Changes
+
+- [#8618](https://github.com/hashintel/hash/pull/8618) [`dae70b5`](https://github.com/hashintel/hash/commit/dae70b532abfc74158e6452f3e739f1baf8140f0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add support for inhibitor arcs
+
+- [#8611](https://github.com/hashintel/hash/pull/8611) [`21327f5`](https://github.com/hashintel/hash/commit/21327f52ad732b3e348b5e7421f6ed514295d417) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Let minZoom be dynamically based on the size of the net
+
+- [#8637](https://github.com/hashintel/hash/pull/8637) [`e02b330`](https://github.com/hashintel/hash/commit/e02b33016bf187ac1838827e477e68cea9d7922c) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - recenter offscreen selected items when drawer is opened
+
+- [#8623](https://github.com/hashintel/hash/pull/8623) [`ae168f5`](https://github.com/hashintel/hash/commit/ae168f540900a5fa938c557e82b6aa3f80d6fef0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Improve text wrapping for long text in nodes
+
+- [#8609](https://github.com/hashintel/hash/pull/8609) [`b12a1d2`](https://github.com/hashintel/hash/commit/b12a1d2e9cdeff8d20c8472b3cafa83fca5070ea) Thanks [@kube](https://github.com/kube)! - Add Scenarios: reusable simulation configurations with parameter overrides and initial state expressions
+
 ## 0.0.12
 
 ### Patch Changes
