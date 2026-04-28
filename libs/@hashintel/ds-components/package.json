@@ -26,6 +26,10 @@
       "types": "./dist/preset.d.ts",
       "import": "./dist/preset.js"
     },
+    "./tokens": {
+      "types": "./dist/tokens.d.ts",
+      "import": "./dist/tokens.js"
+    },
     "./panda.buildinfo.json": "./dist/panda.buildinfo.json",
     "./*": {
       "types": "./dist/components/*.d.ts",

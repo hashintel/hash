@@ -18,6 +18,7 @@ For new internal work, treat `ds-components` as the source of truth.
 | --------------------------------- | ------------------------------------------------------------------------------ |
 | `@hashintel/ds-components`        | Published component entrypoints from `src/components/*.tsx`                    |
 | `@hashintel/ds-components/preset` | Panda preset helpers such as `preset`, `createPreset`, and `scopedThemeConfig` |
+| `@hashintel/ds-components/tokens` | Package-owned Panda token objects such as `tokens` and `semanticTokens`        |
 
 Component implementation still uses the generated Panda runtime from `@hashintel/ds-helpers`:
 
@@ -26,7 +27,8 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { Box, Flex, Stack } from "@hashintel/ds-helpers/jsx";
 ```
 
-Token lookup helpers and token types should also come from `@hashintel/ds-helpers/tokens`.
+Token lookup helpers and token types should still come from `@hashintel/ds-helpers/tokens`.
+Use `@hashintel/ds-components/tokens` when you need the package-owned Panda token objects themselves.
 
 ## Package Layout
 
@@ -34,6 +36,7 @@ Token lookup helpers and token types should also come from `@hashintel/ds-helper
 | -------------------------- | -------------------------------- |
 | Components                 | `src/components/**`              |
 | Panda preset source        | `src/preset.ts`, `src/preset/**` |
+| Package token facade       | `src/tokens.ts`                  |
 | Token and color generators | `scripts/**`                     |
 | Stories                    | `src/components/*/*.stories.tsx` |
 | Token demo stories         | `src/stories/**`                 |

@@ -19,6 +19,7 @@ For new internal work, treat `ds-components` as the only source of truth.
 | --- | --- | --- |
 | Components | `src/components/<Component>/<component>.tsx` and `src/components/*/*.stories.tsx` | Public component entrypoints live at the top of `src/components/` and are built by `tsdown`. |
 | Panda preset source | `src/preset.ts`, `src/preset/**` | This is the live preset consumed by `@hashintel/ds-components/preset`. |
+| Package-owned token facade | `src/tokens.ts`, `src/preset/tokens.ts` | This is the public `@hashintel/ds-components/tokens` surface and its internal source of truth. |
 | Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
 | Token demo stories | `src/stories/tokens/**` | Token reference and migration/demo stories live here now. |
 | Local demo config | `panda.local.config.ts` | Shared Panda config for local demo surfaces such as Ladle. |
@@ -38,6 +39,12 @@ When you need token lookup helpers or public token types, use the generated runt
 
 ```ts
 import { token, type Token } from "@hashintel/ds-helpers/tokens";
+```
+
+When you need the package-owned Panda token objects that feed the preset, use:
+
+```ts
+import { semanticTokens, tokens } from "@hashintel/ds-components/tokens";
 ```
 
 When a consumer needs the Panda preset, use:
