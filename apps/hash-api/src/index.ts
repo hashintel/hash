@@ -364,19 +364,24 @@ const main = async () => {
     });
   }
 
-  // Add logging of requests
+  // Add logging of requests. /graphql is logged at the operation level
+  // (query/mutation name) by the Apollo plugin in `create-apollo-server.ts`,
+  // so logging it here would be a less informative duplicate.
   app.use((req, res, next) => {
     const requestId = nanoid();
     res.set("x-hash-request-id", requestId);
-    logger.info(`${req.method} ${req.path}`, {
-      requestId,
-      origin: req.headers.origin,
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-      graphqlClient:
-        req.headers[hashClientHeaderKey] ??
-        req.headers["apollographql-client-name"],
-    });
+
+    if (req.path !== "/graphql") {
+      logger.info(`${req.method} ${req.path}`, {
+        requestId,
+        origin: req.headers.origin,
+        ip: req.ip,
+        userAgent: req.headers["user-agent"],
+        graphqlClient:
+          req.headers[hashClientHeaderKey] ??
+          req.headers["apollographql-client-name"],
+      });
+    }
 
     next();
   });
