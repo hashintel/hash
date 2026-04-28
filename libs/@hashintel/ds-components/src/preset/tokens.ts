@@ -9,8 +9,8 @@ import {
   palettes as basePalettes,
   red,
   staticColors,
-} from "./foundations";
-import { createSemanticSet } from "./foundations/utils";
+} from "./tokens/gen";
+import { createSemanticSet } from "./tokens/utils";
 
 type TokenTree = Record<string, unknown>;
 type TokenValueNode = TokenTree & { value: string };

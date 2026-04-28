@@ -1,9 +1,6 @@
 import { defineGlobalStyles, definePreset } from "@pandacss/dev";
 
-import {
-  documentSurfaceStyles,
-  fontPipelineCssVars,
-} from "./preset/document-surface";
+import { documentSurfaceStyles, fontPipelineCssVars } from "./preset/document";
 import { recipes, slotRecipes } from "./preset/recipes";
 import { semanticTokens, tokens } from "./preset/tokens";
 

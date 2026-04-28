@@ -42,7 +42,7 @@ const COLOR_PALETTES: readonly PaletteName[] = [
 
 /**
  * Contrast flip thresholds per color mode.
- * Mirrors CONTRAST_FLIP_STEP_LIGHT / _DARK in ds-components/src/preset/foundations/utils.ts.
+ * Mirrors CONTRAST_FLIP_STEP_LIGHT / _DARK in ds-components/src/preset/tokens/utils.ts.
  *
  * Swatch labels always render in a single color (no mode-conditional CSS),
  * so this uses the light-mode threshold for a reasonable default.
