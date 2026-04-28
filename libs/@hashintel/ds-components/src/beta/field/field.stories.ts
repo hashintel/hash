@@ -1,3 +1,5 @@
+export default { title: "Primitives/Field" };
+
 export { App as basic } from "./basic.story";
 export { App as disabled } from "./disabled.story";
 export { App as helperText } from "./helper-text.story";

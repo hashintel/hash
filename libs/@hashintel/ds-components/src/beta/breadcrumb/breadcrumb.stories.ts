@@ -1,3 +1,5 @@
+export default { title: "Primitives/Breadcrumb" };
+
 export { App as basic } from "./basic.story";
 export { App as ellipsis } from "./ellipsis.story";
 export { App as icon } from "./icon.story";

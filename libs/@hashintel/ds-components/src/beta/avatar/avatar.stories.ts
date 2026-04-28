@@ -1,3 +1,5 @@
+export default { title: "Primitives/Avatar" };
+
 export { App as badge } from "./badge.story";
 export { App as basic } from "./basic.story";
 export { App as colors } from "./colors.story";

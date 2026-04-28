@@ -1,3 +1,5 @@
+export default { title: "Primitives/Checkbox" };
+
 export { App as basic } from "./basic.story";
 export { App as colors } from "./colors.story";
 export { App as controlled } from "./controlled.story";

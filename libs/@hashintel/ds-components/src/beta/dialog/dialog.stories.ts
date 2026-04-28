@@ -1,3 +1,5 @@
+export default { title: "Primitives/Dialog" };
+
 export { App as alert } from "./alert.story";
 export { App as basic } from "./basic.story";
 export { App as controlled } from "./controlled.story";

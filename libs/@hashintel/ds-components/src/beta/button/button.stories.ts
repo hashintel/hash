@@ -1,3 +1,5 @@
+export default { title: "Primitives/Button" };
+
 export { App as asLink } from "./as-link.story";
 export { App as attached } from "./attached.story";
 export { App as basic } from "./basic.story";

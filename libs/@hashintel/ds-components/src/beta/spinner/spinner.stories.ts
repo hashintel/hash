@@ -1,3 +1,5 @@
+export default { title: "Primitives/Spinner" };
+
 export { App as basic } from "./basic.story";
 export { App as colors } from "./colors.story";
 export { App as label } from "./label.story";

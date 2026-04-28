@@ -1,3 +1,5 @@
+export default { title: "Primitives/FileUpload" };
+
 export { App as acceptedFiles } from "./accepted-files.story";
 export { App as basic } from "./basic.story";
 export { App as directory } from "./directory.story";

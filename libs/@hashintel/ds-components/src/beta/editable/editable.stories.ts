@@ -1,3 +1,5 @@
+export default { title: "Primitives/Editable" };
+
 export { App as basic } from "./basic.story";
 export { App as controlled } from "./controlled.story";
 export { App as controls } from "./controls.story";

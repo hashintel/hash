@@ -1,3 +1,5 @@
+export default { title: "Primitives/Textarea" };
+
 export { App as autoresize } from "./autoresize.story";
 export { App as basic } from "./basic.story";
 export { App as field } from "./field.story";

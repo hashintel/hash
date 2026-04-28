@@ -1,3 +1,5 @@
+export default { title: "Primitives/Alert" };
+
 export { App as basic } from "./basic.story";
 export { App as closable } from "./closable.story";
 export { App as description } from "./description.story";

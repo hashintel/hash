@@ -1,3 +1,5 @@
+export default { title: "Primitives/Input" };
+
 export { App as addon } from "./addon.story";
 export { App as basic } from "./basic.story";
 export { App as element } from "./element.story";

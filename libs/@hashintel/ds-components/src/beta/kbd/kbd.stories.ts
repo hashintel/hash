@@ -1,3 +1,5 @@
+export default { title: "Primitives/Kbd" };
+
 export { App as basic } from "./basic.story";
 export { App as combinations } from "./combinations.story";
 export { App as inline } from "./inline.story";

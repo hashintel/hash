@@ -1,3 +1,5 @@
+export default { title: "Primitives/Table" };
+
 export { App as basic } from "./basic.story";
 export { App as columnBorder } from "./column-border.story";
 export { App as horizontal } from "./horizontal.story";

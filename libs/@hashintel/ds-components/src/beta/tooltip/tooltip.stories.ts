@@ -1,3 +1,5 @@
+export default { title: "Primitives/Tooltip" };
+
 export { App as arrow } from "./arrow.story";
 export { App as basic } from "./basic.story";
 export { App as controlled } from "./controlled.story";

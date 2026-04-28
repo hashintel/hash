@@ -1,3 +1,5 @@
+export default { title: "Primitives/Heading" };
+
 export { App as as } from "./as.story";
 export { App as basic } from "./basic.story";
 export { App as sizes } from "./sizes.story";

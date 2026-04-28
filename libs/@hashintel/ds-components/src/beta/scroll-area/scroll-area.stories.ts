@@ -1,3 +1,5 @@
+export default { title: "Primitives/ScrollArea" };
+
 export { App as basic } from "./basic.story";
 export { App as horizontal } from "./horizontal.story";
 export { App as infiniteScroll } from "./infinite-scroll.story";

@@ -1,3 +1,5 @@
+export default { title: "Primitives/Popover" };
+
 export { App as basic } from "./basic.story";
 export { App as controlled } from "./controlled.story";
 export { App as customBackground } from "./custom-background.story";

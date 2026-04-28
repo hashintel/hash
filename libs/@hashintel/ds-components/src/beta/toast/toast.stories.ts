@@ -1,3 +1,5 @@
+export default { title: "Primitives/Toast" };
+
 export { App as action } from "./action.story";
 export { App as basic } from "./basic.story";
 export { App as closable } from "./closable.story";

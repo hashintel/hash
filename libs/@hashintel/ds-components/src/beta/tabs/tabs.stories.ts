@@ -1,3 +1,5 @@
+export default { title: "Primitives/Tabs" };
+
 export { App as basic } from "./basic.story";
 export { App as fitted } from "./fitted.story";
 export { App as lazyMount } from "./lazy-mount.story";

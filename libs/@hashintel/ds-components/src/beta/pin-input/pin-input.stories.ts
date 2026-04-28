@@ -1,3 +1,5 @@
+export default { title: "Primitives/PinInput" };
+
 export { App as alphanumeric } from "./alphanumberic.story";
 export { App as attached } from "./attached.story";
 export { App as basic } from "./basic.story";
