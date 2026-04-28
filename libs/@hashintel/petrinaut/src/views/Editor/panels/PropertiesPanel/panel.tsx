@@ -11,9 +11,11 @@ import {
 import { EditorContext } from "../../../../state/editor-context";
 import { MutationContext } from "../../../../state/mutation-context";
 import { ActiveNetContext } from "../../../../state/active-net-context";
+import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { usePanelTarget } from "../../../../state/use-selection";
 import { UserSettingsContext } from "../../../../state/user-settings-context";
 import { ArcProperties } from "./arc-properties/main";
+import { ComponentInstanceProperties } from "./component-instance-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { MultiSelectionPanel } from "./multi-selection-panel";
 import { ParameterProperties } from "./parameter-properties/main";
@@ -66,6 +68,7 @@ export const PropertiesPanel: React.FC = () => {
   } = use(EditorContext);
 
   const { activeNet: petriNetDefinition } = use(ActiveNetContext);
+  const { petriNetDefinition: fullSdcpn } = use(SDCPNContext);
   const {
     updatePlace,
     updateTransition,
@@ -75,6 +78,7 @@ export const PropertiesPanel: React.FC = () => {
     updateType,
     updateDifferentialEquation,
     updateParameter,
+    updateComponentInstance,
     deleteItemsByIds,
   } = use(MutationContext);
 
@@ -189,6 +193,26 @@ export const PropertiesPanel: React.FC = () => {
             <ParameterProperties
               parameter={parameterData}
               updateParameter={updateParameter}
+            />
+          );
+        }
+        break;
+      }
+
+      case "componentInstance": {
+        const instanceData = petriNetDefinition.componentInstances.find(
+          (inst) => inst.id === item.id,
+        );
+        if (instanceData) {
+          const subnet =
+            (fullSdcpn.subnets ?? []).find(
+              (s) => s.id === instanceData.subnetId,
+            ) ?? null;
+          content = (
+            <ComponentInstanceProperties
+              instance={instanceData}
+              subnet={subnet}
+              updateComponentInstance={updateComponentInstance}
             />
           );
         }
