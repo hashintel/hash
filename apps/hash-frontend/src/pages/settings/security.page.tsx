@@ -533,7 +533,10 @@ const SecurityPage: NextPageWithLayout = () => {
               />
             </Box>
             <Box mt={1.5}>
-              <Button type="submit" disabled={!password || updatingPassword}>
+              <Button
+                type="submit"
+                disabled={!flow || !password || updatingPassword}
+              >
                 {updatingPassword ? "Updating password..." : "Update password"}
               </Button>
             </Box>

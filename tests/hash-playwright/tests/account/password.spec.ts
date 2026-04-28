@@ -78,10 +78,21 @@ test("user can recover account and set a new password", async ({ page }) => {
     recoveryTimestamp,
   );
 
+  // Kratos redirects to settings/security after successful recovery, and the
+  // page then fetches the settings flow from Kratos. Wait for that fetch
+  // before interacting — without it, the submit handler silently returns
+  // because `flow` is still undefined in component state.
+  const settingsFlowReady = page.waitForResponse(
+    (response) =>
+      response.request().method() === "GET" &&
+      response.url().includes("/auth/self-service/settings/flows"),
+    { timeout: 10_000 },
+  );
+
   await page.fill('[placeholder="Enter your verification code"]', recoveryCode);
 
-  // Kratos redirects to settings/security after successful recovery
   await page.waitForURL("**/settings/security**", { timeout: 5_000 });
+  await settingsFlowReady;
 
   // Recovery session is privileged — password change must work without re-auth
   await page.fill('[placeholder="Enter your new password"]', newPassword);
