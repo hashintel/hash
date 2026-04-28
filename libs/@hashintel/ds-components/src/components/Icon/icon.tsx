@@ -1,6 +1,5 @@
 /* eslint simple-import-sort/imports: "off", sort-imports: ["error", { ignoreDeclarationSort: true, ignoreMemberSort: true, ignoreCase: false }] */
 import { cx } from "@hashintel/ds-helpers/css";
-import { icon } from "@hashintel/ds-helpers/recipes";
 import AngleDown from "./svgs/solid/angle-down.svg";
 import AngleRight from "./svgs/regular/angle-right.svg";
 import ArrowDown from "./svgs/regular/arrow-down.svg";
@@ -86,6 +85,8 @@ import TriangleExclamation from "./svgs/solid/triangle-exclamation.svg";
 import UserPlus from "./svgs/regular/user-plus.svg";
 import WandMagicSparkles from "./svgs/regular/wand-magic-sparkles.svg";
 import Xmark from "./svgs/regular/xmark.svg";
+
+import { styles } from "./icon.recipe";
 
 export const sizes = ["xs", "sm", "md", "lg"] as const;
 export type Size = (typeof sizes)[number];
@@ -196,7 +197,7 @@ export const Icon = ({
 
   return (
     <IconSvg
-      className={cx(icon({ size }), className)}
+      className={cx(styles({ size }), className)}
       aria-label={alt}
       title={alt}
       viewBox="0 0 640 640"

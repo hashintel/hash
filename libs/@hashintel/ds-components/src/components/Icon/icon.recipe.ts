@@ -1,7 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva } from "@hashintel/ds-helpers/css";
 
-export const iconRecipe = defineRecipe({
-  className: "icon",
+export const styles = cva({
   base: {
     display: "inline-block",
     verticalAlign: "middle",
