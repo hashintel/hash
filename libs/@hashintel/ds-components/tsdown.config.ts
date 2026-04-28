@@ -10,6 +10,32 @@ const componentEntries = Object.fromEntries(
   ),
 );
 
+const suppressedWarningIds = [
+  "node_modules/pkg-types/dist/index.d.mts",
+  "node_modules/ts-evaluator/dist/esm/index.d.ts",
+];
+
+const isSuppressedBuildWarning = (
+  level: "warn" | "info" | "debug",
+  log: { code?: string; id?: string },
+) => {
+  if (level !== "warn") {
+    return false;
+  }
+
+  if (log.code === "PLUGIN_TIMINGS") {
+    return true;
+  }
+
+  const logId = log.id;
+
+  return (
+    (log.code === "MISSING_EXPORT" || log.code === "IMPORT_IS_UNDEFINED") &&
+    typeof logId === "string" &&
+    suppressedWarningIds.some((warningId) => logId.includes(warningId))
+  );
+};
+
 export default defineConfig({
   platform: "neutral",
   entry: {
@@ -21,5 +47,17 @@ export default defineConfig({
   copy: ["./src/types.d.ts"],
   plugins: [svgr()],
   format: ["esm"],
+  deps: {
+    onlyBundle: false,
+  },
   dts: true,
+  inputOptions: {
+    onLog(level, log, defaultHandler) {
+      if (isSuppressedBuildWarning(level, log)) {
+        return;
+      }
+
+      defaultHandler(level, log);
+    },
+  },
 });
