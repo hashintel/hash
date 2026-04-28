@@ -13,7 +13,7 @@ export const styles = cva({
       xs: { "--icon-size": "12px" },
       sm: { "--icon-size": "16px" },
       md: { "--icon-size": "24px" },
-      lg: { "--icon-size": "48px" },
+      lg: { "--icon-size": "32px" },
     },
   },
   defaultVariants: {
