@@ -18,12 +18,7 @@ export default defineConfig({
     theme: "./src/theme.ts",
     ...componentEntries,
   },
-  plugins: [
-    svgr({
-      // optional: add currentColor support, dimensions, etc.
-      svgoConfig: { plugins: [{ name: "preset-default" }] },
-    }),
-  ],
+  plugins: [svgr()],
   format: ["esm"],
   dts: true,
 });
