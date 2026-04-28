@@ -64,6 +64,7 @@
     "lint:tsc:beta": "tsc --noEmit -p tsconfig.beta.json",
     "prepare": "yarn run codegen",
     "prepublishOnly": "turbo run build",
+    "pretest:unit": "yarn build:buildinfo",
     "preview:ladle": "yarn build:ladle && ladle preview",
     "test:snapshots": "yarn build:ladle && playwright test",
     "test:snapshots:update": "yarn build:ladle && playwright test --update-snapshots",
