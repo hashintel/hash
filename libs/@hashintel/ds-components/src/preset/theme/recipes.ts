@@ -1,4 +1,4 @@
-import { absoluteCenter } from "../../beta/absolute-center/absolute-center.recipe";
+// import { absoluteCenter } from "../../beta/absolute-center/absolute-center.recipe";
 import { accordion } from "../../beta/accordion/accordion.recipe";
 import { alert } from "../../beta/alert/alert.recipe";
 import { angleSlider } from "../../beta/angle-slider/angle-slider.recipe";
@@ -67,7 +67,7 @@ import { tour } from "../../beta/tour/tour.recipe";
 import { treeView } from "../../beta/tree-view/tree-view.recipe";
 
 export const recipes = {
-  absoluteCenter,
+  // absoluteCenter,
   badge,
   button,
   code,
