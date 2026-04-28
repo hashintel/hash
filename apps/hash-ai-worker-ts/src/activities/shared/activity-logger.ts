@@ -61,20 +61,15 @@ const log = (
         [key: string]: unknown;
       };
 
-      /**
-       * Detailed fields go into per-request log files; keep them out of the
-       * flow-level log. Error / BigInt / circular handling is provided by
-       * `safeStringify`.
-       */
+      // Detailed fields go into per-request log files; keep them out of
+      // the flow-level log.
       const filtered = safeStringify(restMeta, {
         space: 2,
         replacer: (key, value) =>
           detailedFields?.includes(key) ? undefined : value,
       });
 
-      /**
-       * We don't need the full console prefix because it includes the flow id, which is already in the file name.
-       */
+      // File name already encodes the flow id, so no prefix needed here.
       stringifiedMessage = `[${now}] ${message}: ${filtered}`;
     } else {
       stringifiedMessage = `[${now}] ${message}`;

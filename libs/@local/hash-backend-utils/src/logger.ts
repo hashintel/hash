@@ -47,8 +47,9 @@ function mapWinstonLevelToOtel(level: string): SeverityNumber {
  * Recursively replace values in a log payload that JSON.stringify cannot
  * usefully serialise on its own:
  *
- * - Errors: their `message`, `stack`, `name`, and `cause` are non-enumerable
- *   so a plain `JSON.stringify(new Error("x"))` produces `{}`.
+ * - Errors: do not implement `toJSON`, and `message` / `stack` / `cause`
+ *   are non-enumerable own or inherited properties, so
+ *   `JSON.stringify(new Error("x"))` returns `{}`.
  * - BigInts: throw `TypeError: Do not know how to serialize a BigInt`.
  *
  * Values that already implement `toJSON` (Date, Buffer, decimal/ID types,
@@ -57,12 +58,14 @@ function mapWinstonLevelToOtel(level: string): SeverityNumber {
  * via `Object.entries` would lose the `toJSON` hook (e.g. `Date` would
  * become `{}`).
  *
- * Cycles are tracked via a `WeakSet` and replaced with `[Circular]` so
- * the function cannot infinite-recurse on a self-referential payload.
+ * Cycles are tracked via a path-scoped `Set` (added before recursion,
+ * removed after) so true self-references collapse to `[Circular]`
+ * without falsely flagging legitimate shared references that appear in
+ * sibling positions.
  */
 export const expandLogValue = (
   value: unknown,
-  seen: WeakSet<object> = new WeakSet(),
+  ancestors: Set<object> = new Set(),
 ): unknown => {
   if (value instanceof Error) {
     return {
@@ -70,40 +73,54 @@ export const expandLogValue = (
       message: value.message,
       stack: value.stack,
       ...(value.cause !== undefined
-        ? { cause: expandLogValue(value.cause, seen) }
+        ? { cause: expandLogValue(value.cause, ancestors) }
         : {}),
     };
   }
   if (typeof value === "bigint") {
     return value.toString();
   }
-  if (value !== null && typeof value === "object") {
-    if (seen.has(value)) {
-      return "[Circular]";
-    }
-    seen.add(value);
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+  if (ancestors.has(value)) {
+    return "[Circular]";
+  }
 
-    // Anything with its own `toJSON` knows how to serialise itself —
-    // pass through and let `JSON.stringify` invoke it.
-    if (typeof (value as { toJSON?: unknown }).toJSON === "function") {
-      return value;
-    }
+  // Anything with its own `toJSON` knows how to serialise itself —
+  // pass through and let `JSON.stringify` invoke it.
+  if (typeof (value as { toJSON?: unknown }).toJSON === "function") {
+    return value;
+  }
+
+  ancestors.add(value);
+  try {
     if (Array.isArray(value)) {
-      return value.map((item) => expandLogValue(item, seen));
+      return value.map((item) => expandLogValue(item, ancestors));
     }
-    const out: Record<string, unknown> = {};
+    const out: Record<string | symbol, unknown> = {};
     for (const [key, nested] of Object.entries(value)) {
-      out[key] = expandLogValue(nested, seen);
+      out[key] = expandLogValue(nested, ancestors);
+    }
+    // Carry symbol-keyed properties through unchanged. Winston attaches
+    // its finalised level/message/splat under `Symbol.for("level")` etc.,
+    // and `Object.entries` only enumerates string keys, so without this
+    // step a recursive rebuild silently strips them.
+    for (const sym of Object.getOwnPropertySymbols(value)) {
+      out[sym] = (value as Record<string | symbol, unknown>)[sym];
     }
     return out;
+  } finally {
+    ancestors.delete(value);
   }
-  return value;
 };
 
 /**
- * `JSON.stringify` that survives Errors, BigInts, circular references,
- * and types with custom `toJSON` (Date, Buffer, etc.). Falls back to a
- * marker string rather than throwing.
+ * `JSON.stringify` that handles values which would otherwise lose
+ * information or throw: Errors, BigInts, types with `toJSON`. Plain-object
+ * cycles are rewritten to `[Circular]` by `expandLogValue`; anything that
+ * still throws inside `JSON.stringify` is caught and replaced with a
+ * marker string rather than propagated.
  */
 export const safeStringify = (
   value: unknown,
@@ -133,7 +150,6 @@ const expandLogValuesFormat = format((info) => {
   try {
     return expandLogValue(info) as winston.Logform.TransformableInfo;
   } catch {
-    // Best-effort: never crash the logger.
     return info;
   }
 });
@@ -213,18 +229,18 @@ const rewriteForConsole = format(
     // from the surrounding metadata before they reach the console
     // formatter, so heavy payloads (request/response blobs) don't get
     // dumped into stdout.
-    const result: winston.Logform.TransformableInfo = {
+    const cleanedInfo: winston.Logform.TransformableInfo = {
       ...original,
       message: `${consolePrefix} ${message}`,
     };
-    delete (result as { consolePrefix?: unknown }).consolePrefix;
-    delete (result as { detailedFields?: unknown }).detailedFields;
+    delete (cleanedInfo as { consolePrefix?: unknown }).consolePrefix;
+    delete (cleanedInfo as { detailedFields?: unknown }).detailedFields;
     if (detailedKeys) {
       for (const key of detailedKeys) {
-        delete (result as Record<string, unknown>)[key];
+        delete (cleanedInfo as Record<string, unknown>)[key];
       }
     }
-    return result;
+    return cleanedInfo;
   },
 );
 

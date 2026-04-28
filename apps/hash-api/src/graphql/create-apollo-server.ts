@@ -96,8 +96,8 @@ const statsPlugin = ({
         };
         const operationType = ctx.operation?.operation ?? "graphql";
         const operationLabel = `${operationType} ${ctx.operationName ?? "anonymous"}`;
-        // Use the request-scoped logger (carries requestId via logger.child)
-        // so log lines correlate with the rest of the request.
+        // Use the request-scoped logger so log lines correlate with the
+        // rest of the request via the requestId set in the context.
         const reqLogger = ctx.contextValue.logger;
         if (ctx.errors) {
           if (ctx.errors[0]?.extensions.code !== "FORBIDDEN") {
