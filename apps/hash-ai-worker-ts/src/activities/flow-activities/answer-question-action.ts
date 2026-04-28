@@ -109,7 +109,7 @@ const runPythonCode = async (code: string, contextToUpload: string | null) => {
 
   const response = await sandbox.runPython(code);
 
-  logger.debug(`Python code execution response: ${stringify(response)}`);
+  logger.debug("Python code execution response", { response });
 
   const { stdout, stderr, artifacts } = response;
 

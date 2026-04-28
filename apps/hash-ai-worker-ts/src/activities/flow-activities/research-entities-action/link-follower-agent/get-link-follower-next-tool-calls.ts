@@ -373,7 +373,7 @@ export const getLinkFollowerNextToolCalls = async (
     };
   }
 
-  logger.error(`Unsuccessful link follower response: ${stringify(response)}`);
+  logger.error("Unsuccessful link follower response", { response });
 
   await sleep(2_000);
 

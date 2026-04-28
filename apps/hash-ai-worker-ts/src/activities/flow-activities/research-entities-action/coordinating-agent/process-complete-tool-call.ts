@@ -117,7 +117,7 @@ export const processCompleteToolCall = ({
   }
 
   if (warnings.length > 0) {
-    logger.debug(`Conducting check step with warnings: ${stringify(warnings)}`);
+    logger.debug("Conducting check step with warnings", { warnings });
     return {
       ...toolCall,
       output: dedent(`

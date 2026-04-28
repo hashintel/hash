@@ -42,7 +42,8 @@ export const logLlmServerError = (log: LlmServerErrorLog) => {
     detailedFields: ["response", "request"],
   };
 
-  logger.error(JSON.stringify(orderedLog));
+  const taskLabel = log.taskName ? ` ${log.taskName}` : "";
+  logger.error(`llm ${log.provider}${taskLabel} server error`, orderedLog);
 
   if (["development", "test"].includes(process.env.NODE_ENV ?? "")) {
     writeLogToFile(orderedLog);
@@ -65,10 +66,11 @@ export const logLlmRequest = (
     detailedFields: ["response", "request", "transformedRequest"],
   };
 
+  const taskLabel = log.taskName ? ` ${log.taskName}` : "";
   if (log.response.status === "ok") {
-    logger.debug(JSON.stringify(orderedLog));
+    logger.debug(`llm ${log.provider}${taskLabel}`, orderedLog);
   } else {
-    logger.error(JSON.stringify(orderedLog));
+    logger.error(`llm ${log.provider}${taskLabel} failed`, orderedLog);
   }
 
   if (["development", "test"].includes(process.env.NODE_ENV ?? "")) {

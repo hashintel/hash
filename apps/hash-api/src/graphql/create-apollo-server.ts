@@ -31,8 +31,12 @@ import type { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
 
 const statsPlugin = ({
+  logger,
   statsd,
-}: { statsd?: StatsD }): ApolloServerPlugin<GraphQLContext> => ({
+}: {
+  logger: Logger;
+  statsd?: StatsD;
+}): ApolloServerPlugin<GraphQLContext> => ({
   requestDidStart: async () => {
     const startTimestamp = performance.now();
 
@@ -92,19 +96,19 @@ const statsPlugin = ({
           },
           userAgent,
         };
+        const operationType = ctx.operation?.operation ?? "graphql";
+        const operationLabel = `${operationType} ${ctx.operationName ?? "anonymous"}`;
         if (ctx.errors) {
           if (ctx.errors[0]?.extensions.code !== "FORBIDDEN") {
             /** Log errors unrelated to auth failures */
-            ctx.logger.error(
-              JSON.stringify({
-                ...msg,
-                errors: ctx.errors,
-                stack: ctx.errors.map((err) => err.stack),
-              }),
-            );
+            logger.error(`${operationLabel} failed`, {
+              ...msg,
+              errors: ctx.errors,
+              stack: ctx.errors.map((err) => err.stack),
+            });
           }
         } else {
-          ctx.logger.info(JSON.stringify(msg));
+          logger.info(operationLabel, msg);
           if (ctx.operationName) {
             statsd?.timing(ctx.operationName, elapsed, 1, ["graphql"]);
           }
@@ -174,7 +178,7 @@ export const createApolloServer = async ({
   }
 }`,
           }),
-      statsPlugin({ statsd }),
+      statsPlugin({ logger, statsd }),
       ApolloServerPluginDrainHttpServer({ httpServer }),
     ],
   });

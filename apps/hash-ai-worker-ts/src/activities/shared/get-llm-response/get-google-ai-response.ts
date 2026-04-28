@@ -110,7 +110,7 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   try {
     ({ response } = await gemini.generateContent(transformedRequest));
   } catch (error) {
-    logger.error(`Google AI API error: ${stringifyError(error)}`);
+    logger.error("Google AI API error", { error: stringifyError(error) });
 
     if (isActivityCancelled()) {
       return {

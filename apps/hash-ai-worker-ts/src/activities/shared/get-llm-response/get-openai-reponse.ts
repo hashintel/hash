@@ -309,7 +309,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
       metadata,
     });
   } catch (error) {
-    logger.error(`OpenAI API error: ${stringifyError(error)}`);
+    logger.error("OpenAI API error", { error: stringifyError(error) });
 
     if (isActivityCancelled()) {
       return {

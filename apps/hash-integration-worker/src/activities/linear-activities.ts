@@ -409,7 +409,7 @@ export const createLinearIntegrationActivities = ({
   }>): Promise<void> {
     const issues = await readLinearIssues({ apiKey, filter });
 
-    logger.info(`Found ${issues.length} issues to sync to ${webId}`);
+    logger.info("Found Linear issues to sync", { count: issues.length, webId });
 
     const batchSize = 100;
 
@@ -424,7 +424,7 @@ export const createLinearIntegrationActivities = ({
       });
     }
 
-    logger.info(`Synced ${issues.length} issues to ${webId}`);
+    logger.info("Synced Linear issues", { count: issues.length, webId });
   },
 
   async readLinearTeams({ apiKey }: ParamsWithApiKey): Promise<Team[]> {

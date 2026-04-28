@@ -345,8 +345,8 @@ const main = async () => {
         await promisify((statsd as StatsD).close).bind(statsd)();
       });
     }
-  } catch (err) {
-    logger.error(`Could not start StatsD client: ${err}`);
+  } catch (error) {
+    logger.error("Could not start StatsD client", { error });
   }
 
   app.use(cors(CORS_CONFIG));
@@ -368,19 +368,15 @@ const main = async () => {
   app.use((req, res, next) => {
     const requestId = nanoid();
     res.set("x-hash-request-id", requestId);
-    logger.info(
-      JSON.stringify({
-        requestId,
-        method: req.method,
-        origin: req.headers.origin,
-        ip: req.ip,
-        path: req.path,
-        userAgent: req.headers["user-agent"],
-        graphqlClient:
-          req.headers[hashClientHeaderKey] ??
-          req.headers["apollographql-client-name"],
-      }),
-    );
+    logger.info(`${req.method} ${req.path}`, {
+      requestId,
+      origin: req.headers.origin,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+      graphqlClient:
+        req.headers[hashClientHeaderKey] ??
+        req.headers["apollographql-client-name"],
+    });
 
     next();
   });
@@ -746,7 +742,7 @@ const main = async () => {
       const { default: fs } = await import("node:fs/promises");
 
       const servers = dns.getServers();
-      logger.info(`DNS servers: ${servers}`);
+      logger.info("DNS servers", { servers });
 
       try {
         const resolveAny = await dns.resolveAny(rpcHost);

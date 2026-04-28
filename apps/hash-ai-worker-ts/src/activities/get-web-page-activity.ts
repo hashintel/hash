@@ -214,7 +214,10 @@ const getWebPageFromRemoteBrowser = async (
     };
   } catch (error) {
     const errMessage = stringifyError(error);
-    logger.error(`Failed to load URL ${url} in remote browser: ${errMessage}`);
+    logger.error(`Failed to load URL ${url} in remote browser`, {
+      url,
+      error: errMessage,
+    });
 
     return {
       error: errMessage,
