@@ -30,7 +30,7 @@
     "panda.config.ts",
     "panda.local.config.ts",
     "playwright.config.ts",
-    "tsdown.config.ts",
+    "tsup.config.ts",
     "vite.config.ts"
   ]
 }
