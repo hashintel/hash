@@ -199,6 +199,8 @@ export const Icon = ({
     <IconSvg
       className={cx(styles({ size }), className)}
       aria-label={alt}
+      role={alt ? "img" : undefined}
+      aria-hidden={alt ? undefined : "true"}
       viewBox="0 0 640 640"
     />
   );
