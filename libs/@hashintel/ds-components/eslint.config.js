@@ -1,6 +1,3 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from "eslint-plugin-storybook";
-
 import { createBase, disableRules } from "@local/eslint/deprecated";
 
 export default [
@@ -16,7 +13,6 @@ export default [
     ],
   },
   ...createBase(import.meta.dirname),
-  ...storybook.configs["flat/recommended"],
   ...disableRules([]),
   {
     rules: {
@@ -46,11 +42,12 @@ export default [
   {
     files: ["src/**/*.story.ts{x,}", "src/stories/**/*.{ts,tsx,mdx}"],
     rules: {
+      "@typescript-eslint/no-shadow": "off",
       "@typescript-eslint/no-unnecessary-condition": "off",
+      "@typescript-eslint/unbound-method": "off",
       "id-length": "off",
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
-      "storybook/default-exports": "off",
-      "storybook/no-redundant-story-name": "off",
+      "react/no-array-index-key": "off",
     },
   },
   {

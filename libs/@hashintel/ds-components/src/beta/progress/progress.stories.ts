@@ -1,0 +1,9 @@
+export { App as animated } from "./animated.story";
+export { App as basic } from "./basic.story";
+export { App as colors } from "./colors.story";
+export { App as indeterminate } from "./indeterminate.story";
+export { App as label } from "./label.story";
+export { App as shapes } from "./shapes.story";
+export { App as sizes } from "./sizes.story";
+export { App as stripes } from "./stripes.story";
+export { App as variants } from "./variants.story";
