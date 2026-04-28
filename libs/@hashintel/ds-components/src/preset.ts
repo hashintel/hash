@@ -15,6 +15,7 @@ import {
   red,
   staticColors,
 } from "./preset/theme";
+import { recipes, slotRecipes } from "./preset/theme/recipes";
 import { createSemanticSet } from "./preset/theme/utils";
 
 type TokenTree = Record<string, unknown>;
@@ -290,6 +291,8 @@ export function createPreset(options?: PresetOptions) {
           enabled: true,
           include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
         },
+        recipes,
+        slotRecipes,
       },
     },
   });

@@ -10,7 +10,7 @@
       "outputs": ["dist/panda.buildinfo.json"]
     },
     "build:ladle": {
-      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "dependsOn": ["codegen"],
       "outputs": [".build/ladle/**"]
     },
     "build:lib": {
@@ -26,37 +26,33 @@
     },
     "dev": {
       "cache": false,
-      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "dependsOn": ["codegen"],
       "persistent": true
-    },
-    "lint:eslint": {
-      "dependsOn": [
-        "codegen",
-        "@local/eslint#build",
-        "@hashintel/refractive#build"
-      ],
-      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"]
-    },
-    "lint:tsc": {
-      "dependsOn": ["codegen", "@hashintel/refractive#build"]
     },
     "dev:ladle": {
       "cache": false,
-      "dependsOn": ["codegen", "@hashintel/refractive#build"],
+      "dependsOn": ["codegen"],
       "persistent": true
+    },
+    "lint:eslint": {
+      "dependsOn": ["codegen", "@local/eslint#build"],
+      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["codegen"]
     },
     "preview:ladle": {
       "dependsOn": ["build:ladle"]
-    },
-    "test:unit": {
-      "dependsOn": ["build:buildinfo"],
-      "env": ["TEST_COVERAGE"]
     },
     "test:snapshots": {
       "dependsOn": ["build:ladle"]
     },
     "test:snapshots:update": {
       "dependsOn": ["build:ladle"]
+    },
+    "test:unit": {
+      "dependsOn": ["build:buildinfo"],
+      "env": ["TEST_COVERAGE"]
     }
   }
 }

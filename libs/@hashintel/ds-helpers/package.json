@@ -43,6 +43,11 @@
       "types": "./styled-system/jsx/index.d.ts",
       "require": "./styled-system/jsx/index.mjs",
       "import": "./styled-system/jsx/index.mjs"
+    },
+    "./recipes": {
+      "types": "./styled-system/recipes/index.d.ts",
+      "require": "./styled-system/recipes/index.mjs",
+      "import": "./styled-system/recipes/index.mjs"
     }
   },
   "publishConfig": {

@@ -1,6 +1,6 @@
 # @hashintel/ds-components
 
-React components for HASH's refractive design system, built with TypeScript, Ark UI, and PandaCSS.
+React components for HASH's design system, built with TypeScript, Ark UI, and PandaCSS.
 
 ## Ownership Model
 
@@ -14,11 +14,11 @@ For new internal work, treat `ds-components` as the source of truth.
 
 ## Public Entry Points
 
-| Entry point | Purpose |
-| --- | --- |
-| `@hashintel/ds-components` | Published component entrypoints from `src/components/*.tsx` |
+| Entry point                       | Purpose                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| `@hashintel/ds-components`        | Published component entrypoints from `src/components/*.tsx`                    |
 | `@hashintel/ds-components/preset` | Panda preset helpers such as `preset`, `createPreset`, and `scopedThemeConfig` |
-| `@hashintel/ds-components/theme` | Package-owned theme facade re-exporting from `src/preset/theme` |
+| `@hashintel/ds-components/theme`  | Package-owned theme facade re-exporting from `src/preset/theme`                |
 
 Component implementation still uses the generated Panda runtime from `@hashintel/ds-helpers`:
 
@@ -31,16 +31,16 @@ Token lookup helpers and token types should also come from `@hashintel/ds-helper
 
 ## Package Layout
 
-| Area | Location |
-| --- | --- |
-| Components | `src/components/**` |
-| Panda preset source | `src/preset.ts`, `src/preset/**` |
-| Token and color generators | `scripts/**` |
-| Stories | `src/components/*/*.stories.tsx` |
-| Token demo stories | `src/stories/**` |
-| Local demo config | `panda.local.config.ts` |
-| Ladle harness | `.ladle/**` |
-| Snapshot tests | `tests/**` |
+| Area                       | Location                         |
+| -------------------------- | -------------------------------- |
+| Components                 | `src/components/**`              |
+| Panda preset source        | `src/preset.ts`, `src/preset/**` |
+| Token and color generators | `scripts/**`                     |
+| Stories                    | `src/components/*/*.stories.tsx` |
+| Token demo stories         | `src/stories/**`                 |
+| Local demo config          | `panda.local.config.ts`          |
+| Ladle harness              | `.ladle/**`                      |
+| Snapshot tests             | `tests/**`                       |
 
 ## Common Commands
 

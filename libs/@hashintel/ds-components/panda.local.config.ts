@@ -6,7 +6,7 @@ export default defineConfig({
   ...coreConfig,
   outdir: "../ds-helpers/styled-system",
   include: [
-    "./src/components/**/*.{ts,tsx}",
+    ...(coreConfig.include ?? []),
     "./src/stories/**/*.{ts,tsx}",
     "./.ladle/**/*.{ts,tsx}",
   ],
