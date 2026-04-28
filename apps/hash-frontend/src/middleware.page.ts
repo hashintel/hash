@@ -65,7 +65,7 @@ export const middleware = async (request: NextRequest) => {
         `Error fetching isInMaintenanceMode from edge config: ${error}`,
       );
     }
-  } else {
+  } else if (process.env.VERCEL) {
     // eslint-disable-next-line no-console
     console.warn("EDGE_CONFIG env var is not set");
   }
