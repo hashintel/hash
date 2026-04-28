@@ -6,6 +6,7 @@ export default {
   viteConfig: "./vite.config.ts",
   outDir: ".build/ladle",
   envDir: ".",
+  storyOrder: ["primitives--*", "tokens--*", "legacy--*", "*"],
   addons: {
     rtl: { enabled: false },
     a11y: { enabled: false },
