@@ -48,6 +48,11 @@ export function getScenarioDocumentUri(
   }
 }
 
+/** Build a document URI for a metric expression (used as Monaco model URI). */
+export function getMetricDocumentUri(sessionId: string): string {
+  return `inmemory://sdcpn/_temp/metrics/${sessionId}/code.ts`;
+}
+
 // ---------------------------------------------------------------------------
 // URI regex patterns
 // ---------------------------------------------------------------------------
@@ -65,6 +70,8 @@ const SCENARIO_INITIAL_STATE_URI_RE =
 const SCENARIO_INITIAL_STATE_FULL_CODE_URI_RE =
   /^inmemory:\/\/sdcpn\/_temp\/scenarios\/([^/]+)\/initial-state-code\.ts$/;
 
+const METRIC_URI_RE = /^inmemory:\/\/sdcpn\/_temp\/metrics\/([^/]+)\/code\.ts$/;
+
 // ---------------------------------------------------------------------------
 // File path regex patterns
 // ---------------------------------------------------------------------------
@@ -79,6 +86,8 @@ const SCENARIO_INITIAL_STATE_PATH_RE =
   /^\/_temp\/scenarios\/([^/]+)\/initial_state\/([^/]+)\/code\.ts$/;
 const SCENARIO_INITIAL_STATE_FULL_CODE_PATH_RE =
   /^\/_temp\/scenarios\/([^/]+)\/initial_state_code\/code\.ts$/;
+
+const METRIC_PATH_RE = /^\/_temp\/metrics\/([^/]+)\/code\.ts$/;
 
 // ---------------------------------------------------------------------------
 // URI parsing
@@ -140,6 +149,14 @@ export function parseScenarioDocumentUri(
   return null;
 }
 
+/** Extract the session id from a metric document URI string. */
+export function parseMetricDocumentUri(
+  uri: string,
+): { sessionId: string } | null {
+  const match = METRIC_URI_RE.exec(uri);
+  return match ? { sessionId: match[1]! } : null;
+}
+
 // ---------------------------------------------------------------------------
 // URI ↔ internal file path conversion
 // ---------------------------------------------------------------------------
@@ -189,6 +206,14 @@ export function uriToFilePath(uri: string): string | null {
     }
   }
 
+  // Try metric URIs
+  const metricParsed = parseMetricDocumentUri(uri);
+  if (metricParsed) {
+    return getItemFilePath("metric-code", {
+      sessionId: metricParsed.sessionId,
+    });
+  }
+
   // Try scenario URIs
   return scenarioUriToFilePath(uri);
 }
@@ -236,6 +261,11 @@ export function filePathToUri(filePath: string): string | null {
       match[1]!,
       "",
     );
+  }
+
+  match = METRIC_PATH_RE.exec(filePath);
+  if (match) {
+    return getMetricDocumentUri(match[1]!);
   }
 
   return null;

@@ -1,20 +1,34 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useMemo, useRef, useState } from "react";
+import { TbList, TbPencil, TbPlus } from "react-icons/tb";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
+import { IconButton } from "../../../../../components/icon-button";
 import { SegmentGroup } from "../../../../../components/segment-group";
+import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { useElementSize } from "../../../../../hooks/use-element-size";
 import { useLatest } from "../../../../../hooks/use-latest";
 import { useStableCallback } from "../../../../../hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../playback/context";
-import { SimulationContext } from "../../../../../simulation/context";
+import {
+  type CompiledMetric,
+  compileMetric,
+} from "../../../../../simulation/compile-metric";
+import {
+  SimulationContext,
+  type SimulationFrame,
+} from "../../../../../simulation/context";
+import { buildMetricState } from "../../../../../simulation/metric-state";
 import {
   EditorContext,
   type TimelineChartType,
+  type TimelineView,
 } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { CreateMetricDrawer } from "../../SimulateView/create-metric-drawer";
+import { ViewMetricDrawer } from "../../SimulateView/view-metric-drawer";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -121,6 +135,57 @@ interface PlaceMeta {
 
 // -- Header action ------------------------------------------------------------
 
+const headerActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+});
+
+const metricPickerLabelStyle = css({
+  fontSize: "[10px]",
+  fontWeight: "semibold",
+  textTransform: "uppercase",
+  color: "neutral.a100",
+  letterSpacing: "[0.5px]",
+  flexShrink: 0,
+});
+
+const metricPickerWrapperStyle = css({
+  width: "[200px]",
+});
+
+// Sentinel values for the native views in the picker. Metric ids are UUIDs
+// (or `metric__*` in examples) so these cannot collide.
+const PER_PLACE_VALUE = "__per_place__";
+const PER_TYPE_VALUE = "__per_type__";
+const PER_TRANSITION_VALUE = "__per_transition__";
+
+function viewToSelectValue(view: TimelineView): string {
+  switch (view.kind) {
+    case "per-place":
+      return PER_PLACE_VALUE;
+    case "per-type":
+      return PER_TYPE_VALUE;
+    case "per-transition":
+      return PER_TRANSITION_VALUE;
+    case "metric":
+      return view.metricId;
+  }
+}
+
+function selectValueToView(value: string): TimelineView {
+  if (value === PER_PLACE_VALUE) {
+    return { kind: "per-place" };
+  }
+  if (value === PER_TYPE_VALUE) {
+    return { kind: "per-type" };
+  }
+  if (value === PER_TRANSITION_VALUE) {
+    return { kind: "per-transition" };
+  }
+  return { kind: "metric", metricId: value };
+}
+
 const TimelineChartTypeSelector: React.FC = () => {
   const { timelineChartType: chartType, setTimelineChartType: setChartType } =
     use(EditorContext);
@@ -134,6 +199,95 @@ const TimelineChartTypeSelector: React.FC = () => {
     />
   );
 };
+
+const TimelineViewPicker: React.FC = () => {
+  const { timelineView, setTimelineView, setGlobalMode, setSimulateViewMode } =
+    use(EditorContext);
+  const {
+    petriNetDefinition: { metrics = [] },
+  } = use(SDCPNContext);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+
+  const selectedMetric =
+    timelineView.kind === "metric"
+      ? metrics.find((m) => m.id === timelineView.metricId)
+      : undefined;
+
+  const options = [
+    { value: PER_PLACE_VALUE, label: "Tokens per place" },
+    { value: PER_TYPE_VALUE, label: "Tokens per type" },
+    { value: PER_TRANSITION_VALUE, label: "Transition firings" },
+    ...metrics.map((m) => ({ value: m.id, label: m.name })),
+  ];
+
+  return (
+    <>
+      <span className={metricPickerLabelStyle}>Metric</span>
+      <div className={metricPickerWrapperStyle}>
+        <Select
+          size="xs"
+          value={viewToSelectValue(timelineView)}
+          options={options}
+          onValueChange={(value) => setTimelineView(selectValueToView(value))}
+        />
+      </div>
+      <div style={{ display: "flex" }}>
+        {selectedMetric && (
+          <IconButton
+            size="xs"
+            variant="ghost"
+            aria-label="Edit metric"
+            tooltip="Edit Metric"
+            onClick={() => setIsViewOpen(true)}
+          >
+            <TbPencil size={14} />
+          </IconButton>
+        )}
+        <IconButton
+          size="xs"
+          variant="ghost"
+          aria-label="Create metric"
+          tooltip="Create Metric"
+          onClick={() => setIsCreateOpen(true)}
+        >
+          <TbPlus size={14} />
+        </IconButton>
+        <IconButton
+          size="xs"
+          variant="ghost"
+          aria-label="Manage metrics"
+          tooltip="Manage Metrics"
+          onClick={() => {
+            setSimulateViewMode("metrics");
+            setGlobalMode("simulate");
+          }}
+        >
+          <TbList size={14} />
+        </IconButton>
+      </div>
+      <CreateMetricDrawer
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+      />
+      <ViewMetricDrawer
+        // Gate on the metric existing — the picker can swap to a non-metric
+        // view while the drawer is open, and we don't want an empty overlay.
+        open={isViewOpen && !!selectedMetric}
+        onClose={() => setIsViewOpen(false)}
+        metric={selectedMetric}
+      />
+    </>
+  );
+};
+
+const TimelineHeaderActions: React.FC = () => (
+  <div className={headerActionsStyle}>
+    <TimelineViewPicker />
+    <TimelineChartTypeSelector />
+  </div>
+);
 
 // -- Streaming data hook (uPlot-native columnar format) -----------------------
 
@@ -162,45 +316,300 @@ function createEmptyStore(places: PlaceMeta[]): StreamingStore {
 }
 
 /**
+ * A single extractor returns the value for series `seriesIdx` at the given
+ * frame. Returning NaN leaves a gap on the chart.
+ */
+type SeriesExtractor = (frame: SimulationFrame, seriesIdx: number) => number;
+
+const UNTYPED_COLOR = "#94a3b8"; // slate-400
+
+/**
  * Hook that streams simulation frames directly into uPlot columnar arrays.
  * Returns a store ref (mutated in place) and a revision counter for React.
+ *
+ * Handles three view modes driven by `timelineView`:
+ *  - `per-place`: one series per place, values are token counts.
+ *  - `per-type`: one series per color type (plus "Untyped" for uncolored
+ *    places), values are the sum of token counts across places of that type.
+ *  - `metric`: a single series computed by the compiled user metric.
  */
 function useStreamingData(): {
   store: StreamingStore;
   revision: number;
+  metricError: string | null;
 } {
   "use no memo"; // imperative streaming with refs
 
   const { getFramesInRange, totalFrames } = use(SimulationContext);
   const {
-    petriNetDefinition: { places, types },
+    petriNetDefinition: { places, types, transitions, metrics = [] },
   } = use(SDCPNContext);
+  const { timelineView } = use(EditorContext);
 
-  const placeMeta: PlaceMeta[] = useMemo(
+  const selectedMetric = useMemo(
     () =>
-      places.map((place, index) => {
-        const tokenType = types.find((type) => type.id === place.colorId);
-        return {
-          placeId: place.id,
-          placeName: place.name,
-          color:
-            tokenType?.displayColor ??
-            DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
-        };
-      }),
-    [places, types],
+      timelineView.kind === "metric"
+        ? (metrics.find((m) => m.id === timelineView.metricId) ?? null)
+        : null,
+    [timelineView, metrics],
   );
 
-  const storeRef = useRef<StreamingStore>(createEmptyStore(placeMeta));
+  // Compile the selected metric. Recompiles only when its code changes.
+  const compiledMetric = useMemo<{
+    fn: CompiledMetric | null;
+    error: string | null;
+  }>(() => {
+    if (!selectedMetric) {
+      return { fn: null, error: null };
+    }
+    const outcome = compileMetric(selectedMetric);
+    if (outcome.ok) {
+      return { fn: outcome.fn, error: null };
+    }
+    return { fn: null, error: outcome.error };
+  }, [selectedMetric]);
+
+  // Build the series descriptors + a single extractor for the active view.
+  // The store only depends on `seriesConfig`; changing view switches series.
+  const seriesConfig: {
+    series: PlaceMeta[];
+    extract: SeriesExtractor;
+  } = useMemo(() => {
+    if (timelineView.kind === "metric") {
+      const metric = selectedMetric;
+      const fn = compiledMetric.fn;
+      if (metric && fn) {
+        const series: PlaceMeta[] = [
+          {
+            placeId: metric.id,
+            placeName: metric.name,
+            color: DEFAULT_COLORS[0]!,
+          },
+        ];
+        const extract: SeriesExtractor = (frame) => {
+          try {
+            return fn(buildMetricState(frame, places, types));
+          } catch {
+            // Runtime error (e.g. NaN) — render as a gap.
+            return Number.NaN;
+          }
+        };
+        return { series, extract };
+      }
+      // Fall through: metric missing or failed to compile. Render nothing
+      // for now (the component gates on `metricError` to render an error
+      // banner instead of the chart).
+      return {
+        series: [],
+        extract: () => Number.NaN,
+      };
+    }
+
+    if (timelineView.kind === "per-transition") {
+      // One series per transition; value at time t is the delta of an
+      // **interpolated** cumulative firing count over the trailing window.
+      //
+      // The raw `firingCount` is an integer step function, which makes the
+      // windowed delta visually spiky. To smooth it, we use the transition's
+      // `timeSinceLastFiringMs` and the most recent inter-firing interval
+      // to linearly ramp the cumulative from k to k+1 while the transition
+      // is between its k-th and expected (k+1)-th firing:
+      //
+      //   smoothed(t) = firingCount + min(1, tsl / lastInterval)
+      //
+      // Before a second firing occurs there's no interval estimate yet, so
+      // we fall back to the integer cumulative until one is known. The
+      // windowed delta is then computed from these floating-point values.
+      const PER_TRANSITION_WINDOW_SEC = 4;
+      // Exponential low-pass on the output. 0 < α ≤ 1; smaller = smoother
+      // (more lag). α ≈ 0.15 gives a ~6–7 frame effective window.
+      const OUTPUT_EWMA_ALPHA = 0.15;
+
+      const series: PlaceMeta[] = transitions.map((transition, index) => ({
+        placeId: `transition__${transition.id}`,
+        placeName: transition.name,
+        color: DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
+      }));
+      const transitionIds = transitions.map((t) => t.id);
+
+      // Per-series state. Recreated when seriesConfig is recreated
+      // (view/transitions change). Simulation restart (time regression) is
+      // detected below and clears the buffers in-place.
+      const timeHistory: number[] = [];
+      const cumulativeHistories: number[][] = transitions.map(() => []);
+      const lastFiringTimes: (number | null)[] = transitions.map(() => null);
+      const lastIntervals: (number | null)[] = transitions.map(() => null);
+      const prevFiringCounts: number[] = transitions.map(() => 0);
+      const smoothedOutputs: number[] = transitions.map(() => 0);
+
+      const resetState = () => {
+        timeHistory.length = 0;
+        for (const history of cumulativeHistories) {
+          history.length = 0;
+        }
+        for (let i = 0; i < transitions.length; i++) {
+          lastFiringTimes[i] = null;
+          lastIntervals[i] = null;
+          prevFiringCounts[i] = 0;
+          smoothedOutputs[i] = 0;
+        }
+      };
+
+      const extract: SeriesExtractor = (frame, seriesIdx) => {
+        const id = transitionIds[seriesIdx];
+        if (!id) {
+          return 0;
+        }
+
+        // On the first series of each frame, grow (or reset) the shared
+        // time history. A time regression means the simulation restarted.
+        if (seriesIdx === 0) {
+          const last = timeHistory[timeHistory.length - 1];
+          if (last !== undefined && frame.time < last) {
+            resetState();
+          }
+          timeHistory.push(frame.time);
+        }
+
+        const transitionState = frame.transitions[id];
+        const firingCount = transitionState?.firingCount ?? 0;
+        const tslSec = (transitionState?.timeSinceLastFiringMs ?? 0) / 1000;
+
+        // If the firing count increased since the last frame we observed,
+        // a firing just occurred — update the last-firing time and, when
+        // we already had one, the observed inter-firing interval.
+        if (firingCount > prevFiringCounts[seriesIdx]!) {
+          const prevFiringTime = lastFiringTimes[seriesIdx] ?? null;
+          if (prevFiringTime !== null) {
+            const interval = frame.time - prevFiringTime;
+            if (interval > 0) {
+              lastIntervals[seriesIdx] = interval;
+            }
+          }
+          lastFiringTimes[seriesIdx] = frame.time;
+        }
+        prevFiringCounts[seriesIdx] = firingCount;
+
+        // Interpolated cumulative: ramp linearly over the last known
+        // interval; cap at +1 so we never overshoot the next firing.
+        const interval = lastIntervals[seriesIdx] ?? null;
+        const interpolated =
+          interval !== null && interval > 0
+            ? firingCount + Math.min(1, tslSec / interval)
+            : firingCount;
+
+        cumulativeHistories[seriesIdx]!.push(interpolated);
+
+        // Find the cumulative value at the first stored time ≤ t − window.
+        // If no such entry exists, treat the baseline as 0 (pre-simulation).
+        const targetTime = frame.time - PER_TRANSITION_WINDOW_SEC;
+        const history = cumulativeHistories[seriesIdx]!;
+        let prev = 0;
+        // Skip the current-frame entry (just pushed) by starting at length-2.
+        for (let i = timeHistory.length - 2; i >= 0; i--) {
+          if (timeHistory[i]! <= targetTime) {
+            prev = history[i]!;
+            break;
+          }
+        }
+        const rawDelta = interpolated - prev;
+
+        // Exponential low-pass on the output to tame the residual
+        // stochastic noise in firing intervals. Single MAC per frame.
+        const smoothed =
+          OUTPUT_EWMA_ALPHA * rawDelta +
+          (1 - OUTPUT_EWMA_ALPHA) * smoothedOutputs[seriesIdx]!;
+        smoothedOutputs[seriesIdx] = smoothed;
+        return smoothed;
+      };
+      return { series, extract };
+    }
+
+    if (timelineView.kind === "per-type") {
+      // Group places by color type; places with no colorId become "Untyped".
+      const groups: { series: PlaceMeta; placeIds: string[] }[] = [];
+      for (const type of types) {
+        const placeIds = places
+          .filter((p) => p.colorId === type.id)
+          .map((p) => p.id);
+        if (placeIds.length === 0) {
+          continue;
+        }
+        groups.push({
+          series: {
+            placeId: `type__${type.id}`,
+            placeName: type.name,
+            color: type.displayColor || DEFAULT_COLORS[0]!,
+          },
+          placeIds,
+        });
+      }
+      const untypedIds = places
+        .filter((p) => p.colorId === null)
+        .map((p) => p.id);
+      if (untypedIds.length > 0) {
+        groups.push({
+          series: {
+            placeId: "type__untyped",
+            placeName: "Untyped",
+            color: UNTYPED_COLOR,
+          },
+          placeIds: untypedIds,
+        });
+      }
+      const groupPlaceIds = groups.map((g) => g.placeIds);
+      const extract: SeriesExtractor = (frame, seriesIdx) => {
+        const ids = groupPlaceIds[seriesIdx];
+        if (!ids) {
+          return 0;
+        }
+        let sum = 0;
+        for (const id of ids) {
+          sum += frame.places[id]?.count ?? 0;
+        }
+        return sum;
+      };
+      return { series: groups.map((g) => g.series), extract };
+    }
+
+    // per-place: one series per place
+    const series = places.map((place, index) => {
+      const tokenType = types.find((type) => type.id === place.colorId);
+      return {
+        placeId: place.id,
+        placeName: place.name,
+        color:
+          tokenType?.displayColor ??
+          DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
+      };
+    });
+    const placeIds = places.map((p) => p.id);
+    const extract: SeriesExtractor = (frame, seriesIdx) => {
+      const id = placeIds[seriesIdx];
+      return id ? (frame.places[id]?.count ?? 0) : 0;
+    };
+    return { series, extract };
+  }, [
+    timelineView,
+    places,
+    types,
+    transitions,
+    selectedMetric,
+    compiledMetric.fn,
+  ]);
+
+  const storeRef = useRef<StreamingStore>(
+    createEmptyStore(seriesConfig.series),
+  );
   const processedRef = useRef(0);
   const [revision, setRevision] = useState(0);
 
-  // Reset store if place structure changes
+  // Reset store when the series structure changes (view switch or net edits).
   useEffect(() => {
-    storeRef.current = createEmptyStore(placeMeta);
+    storeRef.current = createEmptyStore(seriesConfig.series);
     processedRef.current = 0;
     setRevision((r) => r + 1);
-  }, [placeMeta]);
+  }, [seriesConfig.series]);
 
   // Stream new frames into the store
   useEffect(() => {
@@ -238,13 +647,13 @@ function useStreamingData(): {
       // Push new data directly into existing arrays — O(k) where k = new frames
       const cols = storeRef.current.columns;
       const timeCol = cols[0]!;
-      const placeList = storeRef.current.places;
+      const seriesCount = storeRef.current.places.length;
+      const { extract } = seriesConfig;
 
       for (const frame of newFrames) {
         timeCol.push(frame.time);
-        for (let p = 0; p < placeList.length; p++) {
-          const count = frame.places[placeList[p]!.placeId]?.count ?? 0;
-          cols[p + 1]!.push(count);
+        for (let s = 0; s < seriesCount; s++) {
+          cols[s + 1]!.push(extract(frame, s));
         }
       }
 
@@ -260,9 +669,13 @@ function useStreamingData(): {
     return () => {
       cancelled = true;
     };
-  }, [getFramesInRange, totalFrames, placeMeta]);
+  }, [getFramesInRange, totalFrames, seriesConfig]);
 
-  return { store: storeRef.current, revision };
+  return {
+    store: storeRef.current,
+    revision,
+    metricError: compiledMetric.error,
+  };
 }
 
 // -- uPlot data builders (from store, no copies for run chart) ----------------
@@ -933,7 +1346,7 @@ const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
   const { totalFrames } = use(SimulationContext);
   const { currentFrameIndex } = use(PlaybackContext);
-  const { store, revision } = useStreamingData();
+  const { store, revision, metricError } = useStreamingData();
 
   const [hiddenPlaces, setHiddenPlaces] = useState<Set<string>>(new Set());
 
@@ -948,6 +1361,14 @@ const SimulationTimelineContent: React.FC = () => {
       return next;
     });
   };
+
+  if (metricError) {
+    return (
+      <div className={containerStyle}>
+        <span style={{ fontSize: 12, color: "#b91c1c" }}>{metricError}</span>
+      </div>
+    );
+  }
 
   if (store.length === 0 || totalFrames === 0) {
     return (
@@ -970,11 +1391,13 @@ const SimulationTimelineContent: React.FC = () => {
         totalFrames={totalFrames}
         currentFrameIndex={currentFrameIndex}
       />
-      <TimelineLegend
-        places={store.places}
-        hiddenPlaces={hiddenPlaces}
-        onToggleVisibility={togglePlaceVisibility}
-      />
+      {store.places.length > 1 && (
+        <TimelineLegend
+          places={store.places}
+          hiddenPlaces={hiddenPlaces}
+          onToggleVisibility={togglePlaceVisibility}
+        />
+      )}
     </div>
   );
 };
@@ -988,6 +1411,6 @@ export const simulationTimelineSubView: SubView = {
   tooltip:
     "View the simulation timeline with compartment time-series. Click/drag to scrub through frames.",
   component: SimulationTimelineContent,
-  renderHeaderAction: () => <TimelineChartTypeSelector />,
+  renderHeaderAction: () => <TimelineHeaderActions />,
   noPadding: true,
 };

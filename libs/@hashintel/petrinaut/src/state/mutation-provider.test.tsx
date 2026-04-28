@@ -99,6 +99,8 @@ const DEFAULT_EDITOR: EditorContextValue = {
   resetDraggingState: () => {},
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
+  setTimelineView: () => {},
+  setSimulateViewMode: () => {},
   setSearchOpen: () => {},
   searchInputRef: { current: null },
   triggerPanelAnimation: () => {},

@@ -5,6 +5,7 @@ import type {
   Diagnostic,
   DocumentUri,
   Hover,
+  MetricSessionParams,
   Position,
   ScenarioSessionParams,
   SignatureHelp,
@@ -35,6 +36,12 @@ export interface LanguageClientContextValue {
   updateScenarioSession: (params: ScenarioSessionParams) => void;
   /** Kill a scenario editing session. */
   killScenarioSession: (sessionId: string) => void;
+  /** Initialize a temporary metric editing session. */
+  initializeMetricSession: (params: MetricSessionParams) => void;
+  /** Update a metric editing session. */
+  updateMetricSession: (params: MetricSessionParams) => void;
+  /** Kill a metric editing session. */
+  killMetricSession: (sessionId: string) => void;
 }
 
 const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
@@ -47,6 +54,9 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
   initializeScenarioSession: () => {},
   updateScenarioSession: () => {},
   killScenarioSession: () => {},
+  initializeMetricSession: () => {},
+  updateMetricSession: () => {},
+  killMetricSession: () => {},
 };
 
 export const LanguageClientContext = createContext<LanguageClientContextValue>(

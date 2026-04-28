@@ -210,6 +210,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     },
     setTimelineChartType: (chartType) =>
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
+    setTimelineView: (view) =>
+      setState((prev) => ({ ...prev, timelineView: view })),
+    setSimulateViewMode: (mode) =>
+      setState((prev) => ({ ...prev, simulateViewMode: mode })),
     setSearchOpen: (isOpen) => {
       scheduleAnimationEnd();
       setState((prev) => {

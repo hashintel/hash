@@ -8,13 +8,17 @@ import { Button } from "../../../../components/button";
 import type { SegmentOption } from "../../../../components/segment-group";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { Stack } from "../../../../components/stack";
-import type { Scenario } from "../../../../core/types/sdcpn";
+import type { Metric, Scenario } from "../../../../core/types/sdcpn";
+import {
+  EditorContext,
+  type SimulateViewMode,
+} from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
+import { CreateMetricDrawer } from "./create-metric-drawer";
 import { CreateScenarioDrawer } from "./create-scenario-drawer";
+import { ViewMetricDrawer } from "./view-metric-drawer";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
-
-type SimulateMode = "scenarios" | "metrics" | "experiments";
 
 // -- Layout styles -------------------------------------------------------------
 
@@ -175,8 +179,7 @@ const modeOptions: SegmentOption[] = [
     label: "Metrics",
     icon: <TbChartBar size={16} />,
     hideLabel: true,
-    tooltip: "Metrics not yet available",
-    disabled: true,
+    tooltip: "Metrics",
   },
   {
     value: "experiments",
@@ -235,24 +238,80 @@ const ScenarioList = ({
   );
 };
 
+// -- Metric list component -----------------------------------------------------
+
+const MetricList = ({
+  metrics,
+  selectedId,
+  onSelect,
+}: {
+  metrics: Metric[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) => {
+  if (metrics.length === 0) {
+    return <div className={emptyStateStyle}>No metrics yet</div>;
+  }
+
+  return (
+    <div className={tableStyle} role="table">
+      <div className={tableHeaderStyle} role="row">
+        <span className={`${tableHeaderCellStyle} ${nameColumnStyle}`}>
+          Name
+        </span>
+        <span className={`${tableHeaderCellStyle} ${descriptionColumnStyle}`}>
+          Description
+        </span>
+      </div>
+
+      {metrics.map((metric) => (
+        <button
+          key={metric.id}
+          type="button"
+          className={`${tableRowStyle}${metric.id === selectedId ? ` ${selectedRowStyle}` : ""}`}
+          onClick={() => onSelect(metric.id)}
+        >
+          <div className={nameColumnStyle}>
+            <span className={scenarioNameStyle}>{metric.name}</span>
+          </div>
+          <div className={descriptionColumnStyle}>
+            <span className={scenarioDescriptionStyle}>
+              {metric.description ?? ""}
+            </span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 // -- Component -----------------------------------------------------------------
 
 type DrawerState =
   | { type: "closed" }
-  | { type: "view"; scenarioId: string }
-  | { type: "create" }
+  | { type: "view-scenario"; scenarioId: string }
+  | { type: "create-scenario" }
+  | { type: "view-metric"; metricId: string }
+  | { type: "create-metric" }
   | { type: "create-experiment" };
 
 export const SimulateView = () => {
-  const [mode, setMode] = useState<SimulateMode>("scenarios");
+  const { simulateViewMode: mode, setSimulateViewMode: setMode } =
+    use(EditorContext);
   const [drawer, setDrawer] = useState<DrawerState>({ type: "closed" });
 
   const { petriNetDefinition } = use(SDCPNContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
+  const metrics = petriNetDefinition.metrics ?? [];
 
   const selectedScenario =
-    drawer.type === "view"
+    drawer.type === "view-scenario"
       ? scenarios.find((s) => s.id === drawer.scenarioId)
+      : undefined;
+
+  const selectedMetric =
+    drawer.type === "view-metric"
+      ? metrics.find((m) => m.id === drawer.metricId)
       : undefined;
 
   const closeDrawer = () => setDrawer({ type: "closed" });
@@ -270,7 +329,7 @@ export const SimulateView = () => {
         <SegmentGroup
           value={mode}
           options={modeOptions}
-          onChange={(value) => setMode(value as SimulateMode)}
+          onChange={(value) => setMode(value as SimulateViewMode)}
           orientation="vertical"
           size="sm"
         />
@@ -285,9 +344,20 @@ export const SimulateView = () => {
               colorScheme="neutral"
               size="xs"
               iconLeft={<TbPlus size={14} />}
-              onClick={() => setDrawer({ type: "create" })}
+              onClick={() => setDrawer({ type: "create-scenario" })}
             >
               Create scenario
+            </Button>
+          )}
+          {mode === "metrics" && (
+            <Button
+              variant="ghost"
+              colorScheme="neutral"
+              size="xs"
+              iconLeft={<TbPlus size={14} />}
+              onClick={() => setDrawer({ type: "create-metric" })}
+            >
+              Create metric
             </Button>
           )}
           {mode === "experiments" && (
@@ -308,13 +378,17 @@ export const SimulateView = () => {
             <div className={contentStyle}>
               <ScenarioList
                 scenarios={scenarios}
-                selectedId={drawer.type === "view" ? drawer.scenarioId : null}
-                onSelect={(id) => setDrawer({ type: "view", scenarioId: id })}
+                selectedId={
+                  drawer.type === "view-scenario" ? drawer.scenarioId : null
+                }
+                onSelect={(id) =>
+                  setDrawer({ type: "view-scenario", scenarioId: id })
+                }
               />
             </div>
 
             <CreateScenarioDrawer
-              open={drawer.type === "create"}
+              open={drawer.type === "create-scenario"}
               onClose={closeDrawer}
             />
 
@@ -326,7 +400,30 @@ export const SimulateView = () => {
           </>
         )}
         {mode === "metrics" && (
-          <div className={emptyStateStyle}>Metrics coming soon</div>
+          <>
+            <div className={contentStyle}>
+              <MetricList
+                metrics={metrics}
+                selectedId={
+                  drawer.type === "view-metric" ? drawer.metricId : null
+                }
+                onSelect={(id) =>
+                  setDrawer({ type: "view-metric", metricId: id })
+                }
+              />
+            </div>
+
+            <CreateMetricDrawer
+              open={drawer.type === "create-metric"}
+              onClose={closeDrawer}
+            />
+
+            <ViewMetricDrawer
+              open={!!selectedMetric}
+              onClose={closeDrawer}
+              metric={selectedMetric}
+            />
+          </>
         )}
         {mode === "experiments" && (
           <>

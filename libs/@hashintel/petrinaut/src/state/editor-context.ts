@@ -22,6 +22,24 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
+export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
+
+/**
+ * What is rendered on the simulation timeline chart.
+ *
+ * - `per-place`: a series per place, counting tokens over time.
+ * - `per-type`: a series per color/type, counting tokens across all places
+ *   that use that type (places with no color are aggregated as "Untyped").
+ * - `per-transition`: a series per transition, plotting its cumulative
+ *   firing count over time.
+ * - `metric`: a single series computed by a user-authored metric function.
+ */
+export type TimelineView =
+  | { kind: "per-place" }
+  | { kind: "per-type" }
+  | { kind: "per-transition" }
+  | { kind: "metric"; metricId: string };
+
 /**
  * The state values for the editor.
  */
@@ -44,6 +62,17 @@ export type EditorState = {
   hoveredItem: SelectionItem | null;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
+  /**
+   * Which view is rendered in the simulation timeline chart. See
+   * {@link TimelineView} for the available options.
+   */
+  timelineView: TimelineView;
+  /**
+   * Which tab is active in the SimulateView sidebar ("scenarios" | "metrics"
+   * | "experiments"). Lifted here so external actions (e.g. the "Manage"
+   * button in the timeline header) can switch it.
+   */
+  simulateViewMode: SimulateViewMode;
   isPanelAnimating: boolean;
   isSearchOpen: boolean;
 };
@@ -91,6 +120,8 @@ export type EditorActions = {
   resetDraggingState: () => void;
   collapseAllPanels: () => void;
   setTimelineChartType: (chartType: TimelineChartType) => void;
+  setTimelineView: (view: TimelineView) => void;
+  setSimulateViewMode: (mode: SimulateViewMode) => void;
   setSearchOpen: (isOpen: boolean) => void;
   triggerPanelAnimation: () => void;
   __reinitialize: () => void;
@@ -118,6 +149,8 @@ export const initialEditorState: EditorState = {
   hoveredItem: null,
   draggingStateByNodeId: {},
   timelineChartType: "run",
+  timelineView: { kind: "per-place" },
+  simulateViewMode: "scenarios",
   isPanelAnimating: false,
   isSearchOpen: false,
 };
@@ -152,6 +185,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   resetDraggingState: () => {},
   collapseAllPanels: () => {},
   setTimelineChartType: () => {},
+  setTimelineView: () => {},
+  setSimulateViewMode: () => {},
   setSearchOpen: () => {},
   searchInputRef: createRef<HTMLInputElement | null>(),
   triggerPanelAnimation: () => {},

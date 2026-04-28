@@ -326,6 +326,38 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         }
       });
     },
+    addMetric(metric) {
+      scenarioMutate((sdcpn) => {
+        const metrics = sdcpn.metrics ?? [];
+        metrics.push(metric);
+        // eslint-disable-next-line no-param-reassign -- mutating draft inside immer/structuredClone
+        sdcpn.metrics = metrics;
+      });
+    },
+    updateMetric(metricId, updateFn) {
+      scenarioMutate((sdcpn) => {
+        for (const metric of sdcpn.metrics ?? []) {
+          if (metric.id === metricId) {
+            updateFn(metric);
+            break;
+          }
+        }
+      });
+    },
+    removeMetric(metricId) {
+      scenarioMutate((sdcpn) => {
+        const metrics = sdcpn.metrics;
+        if (!metrics) {
+          return;
+        }
+        for (const [index, metric] of metrics.entries()) {
+          if (metric.id === metricId) {
+            metrics.splice(index, 1);
+            break;
+          }
+        }
+      });
+    },
     deleteItemsByIds(items) {
       guardedMutate((sdcpn) => {
         // Partition selection by type for targeted deletion

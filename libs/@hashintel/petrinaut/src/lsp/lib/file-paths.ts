@@ -16,7 +16,9 @@ export type SDCPNFileType =
   | "scenario-session-defs"
   | "scenario-param-override-code"
   | "scenario-initial-state-code"
-  | "scenario-initial-state-full-code";
+  | "scenario-initial-state-full-code"
+  | "metric-session-defs"
+  | "metric-code";
 
 type FilePathParams = {
   "sdcpn-lib-defs": Record<string, never>;
@@ -32,6 +34,8 @@ type FilePathParams = {
   "scenario-param-override-code": { sessionId: string; paramId: string };
   "scenario-initial-state-code": { sessionId: string; placeId: string };
   "scenario-initial-state-full-code": { sessionId: string };
+  "metric-session-defs": { sessionId: string };
+  "metric-code": { sessionId: string };
 };
 
 /**
@@ -116,6 +120,16 @@ export const getItemFilePath = <T extends SDCPNFileType>(
       const { sessionId } =
         params as FilePathParams["scenario-initial-state-full-code"];
       return `/_temp/scenarios/${sessionId}/initial_state_code/code.ts`;
+    }
+
+    case "metric-session-defs": {
+      const { sessionId } = params as FilePathParams["metric-session-defs"];
+      return `/_temp/metrics/${sessionId}/defs.d.ts`;
+    }
+
+    case "metric-code": {
+      const { sessionId } = params as FilePathParams["metric-code"];
+      return `/_temp/metrics/${sessionId}/code.ts`;
     }
 
     default:

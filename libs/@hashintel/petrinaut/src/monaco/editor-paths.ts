@@ -4,6 +4,7 @@
  */
 export {
   getDocumentUri,
+  getMetricDocumentUri,
   getScenarioDocumentUri,
   parseDocumentUri,
 } from "../lsp/lib/document-uris";

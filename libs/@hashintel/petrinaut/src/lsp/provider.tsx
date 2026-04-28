@@ -78,6 +78,9 @@ export const LanguageClientProvider: React.FC<{
         initializeScenarioSession: client.initializeScenarioSession,
         updateScenarioSession: client.updateScenarioSession,
         killScenarioSession: client.killScenarioSession,
+        initializeMetricSession: client.initializeMetricSession,
+        updateMetricSession: client.updateMetricSession,
+        killMetricSession: client.killMetricSession,
       }}
     >
       {children}

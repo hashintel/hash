@@ -95,6 +95,13 @@ const scenarioSchema = z.object({
   initialState: initialStateSchema.default({ type: "per_place", content: {} }),
 });
 
+const metricSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  code: z.string().default(""),
+});
+
 const sdcpnSchema = z.object({
   places: z.array(placeSchema),
   transitions: z.array(transitionSchema),
@@ -102,6 +109,7 @@ const sdcpnSchema = z.object({
   differentialEquations: z.array(differentialEquationSchema).default([]),
   parameters: z.array(parameterSchema).default([]),
   scenarios: z.array(scenarioSchema).default([]),
+  metrics: z.array(metricSchema).default([]),
 });
 
 const fileMetaSchema = z.object({

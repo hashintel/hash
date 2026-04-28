@@ -158,12 +158,24 @@ const itemStyle = css({
   cursor: "pointer",
   outline: "none",
   color: "neutral.fg.body",
+  // Allow the inner text (a flex child) to shrink below its intrinsic
+  // content size so `text-overflow: ellipsis` on the label kicks in instead
+  // of the label wrapping or overflowing the dropdown container.
+  minWidth: "[0]",
   "&[data-highlighted]": {
     backgroundColor: "neutral.bg.min.hover",
   },
   '&[data-state="checked"]': {
     backgroundColor: "neutral.bg.min.active",
   },
+});
+
+const itemTextStyle = css({
+  flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 // -- Types --------------------------------------------------------------------
@@ -297,7 +309,9 @@ const SelectBase: React.FC<SelectBaseProps> = ({
                 {renderItem ? (
                   renderItem(item)
                 ) : (
-                  <ArkSelect.ItemText>{item.label}</ArkSelect.ItemText>
+                  <ArkSelect.ItemText className={itemTextStyle}>
+                    {item.label}
+                  </ArkSelect.ItemText>
                 )}
               </ArkSelect.Item>
             ))}
