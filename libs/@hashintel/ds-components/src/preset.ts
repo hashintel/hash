@@ -4,7 +4,7 @@ import {
   documentSurfaceStyles,
   fontPipelineCssVars,
 } from "./preset/document-surface";
-import { recipes, slotRecipes } from "./preset/theme/recipes";
+import { recipes, slotRecipes } from "./preset/recipes";
 import { semanticTokens, tokens } from "./preset/tokens";
 
 export type PresetOptions = {
