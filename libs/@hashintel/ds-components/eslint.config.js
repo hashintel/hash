@@ -1,4 +1,9 @@
+import typescriptEslint from "@typescript-eslint/eslint-plugin";
+
 import { createBase, disableRules } from "@local/eslint/deprecated";
+
+const disableTypeCheckedRules =
+  typescriptEslint.configs["disable-type-checked"]?.rules ?? {};
 
 export default [
   {
@@ -40,11 +45,29 @@ export default [
     },
   },
   {
-    files: ["src/**/*.story.ts{x,}", "src/stories/**/*.{ts,tsx,mdx}"],
+    // Story files are intentionally excluded from `tsconfig.json` (they live
+    // in `tsconfig.beta.json`). Running type-aware lint rules on them forces
+    // ESLint's project service into a slow default-project fallback per file
+    // *and* type-instantiates the very heavy generated `styled-system` types
+    // for every single story. Disable type-aware linting entirely for the
+    // story surface — they're demo code, not shipped to consumers.
+    files: [
+      "src/**/*.story.ts{x,}",
+      "src/**/*.stories.ts{x,}",
+      "src/stories/**/*.{ts,tsx,mdx}",
+    ],
+    languageOptions: {
+      parserOptions: {
+        // Drop the type-aware project lookup for story files. Without this,
+        // every story still costs a full project-service resolve even when
+        // every type-aware rule is off.
+        projectService: false,
+        project: false,
+      },
+    },
     rules: {
+      ...disableTypeCheckedRules,
       "@typescript-eslint/no-shadow": "off",
-      "@typescript-eslint/no-unnecessary-condition": "off",
-      "@typescript-eslint/unbound-method": "off",
       "id-length": "off",
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
       "react/no-array-index-key": "off",
