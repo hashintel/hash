@@ -8,7 +8,7 @@ As of the FE-612 ownership restructure:
 
 - `@hashintel/ds-components` owns the Panda preset source, token/codegen scripts, and demo surfaces.
 - `@hashintel/ds-helpers` is the generated Panda `styled-system` artifact.
-- The old `@hashintel/ds-theme` surface has been folded into `@hashintel/ds-components/preset` and `@hashintel/ds-components/theme`.
+- The old `@hashintel/ds-theme` surface has been folded into `@hashintel/ds-components/preset`.
 
 For new internal work, treat `ds-components` as the source of truth.
 
@@ -18,7 +18,6 @@ For new internal work, treat `ds-components` as the source of truth.
 | --------------------------------- | ------------------------------------------------------------------------------ |
 | `@hashintel/ds-components`        | Published component entrypoints from `src/components/*.tsx`                    |
 | `@hashintel/ds-components/preset` | Panda preset helpers such as `preset`, `createPreset`, and `scopedThemeConfig` |
-| `@hashintel/ds-components/theme`  | Package-owned theme facade re-exporting from `src/preset/theme`                |
 
 Component implementation still uses the generated Panda runtime from `@hashintel/ds-helpers`:
 

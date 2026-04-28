@@ -9,7 +9,7 @@ This guide covers the current post-FE-612 package layout for humans and coding a
 - `scripts/**` owns token and color code generation.
 - `src/components/**`, `src/stories/**`, `.ladle/**`, and `tests/**` are owned here as the component, demo, and snapshot surfaces.
 - `@hashintel/ds-helpers` is the generated Panda `styled-system` artifact only.
-- The old `@hashintel/ds-theme` package has been retired; use `@hashintel/ds-components/preset` and `@hashintel/ds-components/theme` instead.
+- The old `@hashintel/ds-theme` package has been retired; use `@hashintel/ds-components/preset` instead.
 
 For new internal work, treat `ds-components` as the only source of truth.
 
@@ -19,7 +19,6 @@ For new internal work, treat `ds-components` as the only source of truth.
 | --- | --- | --- |
 | Components | `src/components/<Component>/<component>.tsx` and `src/components/*/*.stories.tsx` | Public component entrypoints live at the top of `src/components/` and are built by `tsdown`. |
 | Panda preset source | `src/preset.ts`, `src/preset/**` | This is the live preset consumed by `@hashintel/ds-components/preset`. |
-| Package-owned theme facade | `src/theme.ts` | Re-exports from `src/preset/theme`. |
 | Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
 | Token demo stories | `src/stories/tokens/**` | Token reference and migration/demo stories live here now. |
 | Local demo config | `panda.local.config.ts` | Shared Panda config for local demo surfaces such as Ladle. |
@@ -47,7 +46,7 @@ When a consumer needs the Panda preset, use:
 import { preset, scopedThemeConfig } from "@hashintel/ds-components/preset";
 ```
 
-Do not resurrect `@hashintel/ds-theme`; `ds-components` now owns the public preset and theme entrypoints directly.
+Do not resurrect `@hashintel/ds-theme`; `ds-components` now owns the public preset entrypoint directly.
 
 ## Component Workflow
 

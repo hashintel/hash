@@ -26,10 +26,6 @@
       "types": "./dist/preset.d.ts",
       "import": "./dist/preset.js"
     },
-    "./theme": {
-      "types": "./dist/theme.d.ts",
-      "import": "./dist/theme.js"
-    },
     "./panda.buildinfo.json": "./dist/panda.buildinfo.json",
     "./*": {
       "types": "./dist/components/*.d.ts",

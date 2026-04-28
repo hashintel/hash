@@ -13,7 +13,6 @@ export default {
   entry: {
     main: "./src/main.ts",
     preset: "./src/preset.ts",
-    theme: "./src/theme.ts",
     ...componentEntries,
   },
   format: ["esm"],

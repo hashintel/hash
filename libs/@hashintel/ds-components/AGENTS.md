@@ -36,7 +36,7 @@ Boundary rules:
 
 - `ds-components` generates `../ds-helpers/styled-system` via Panda `outdir`.
 - `ds-helpers` must not depend on `ds-components`.
-- `@hashintel/ds-components/preset` and `@hashintel/ds-components/theme` are the canonical public preset/theme entrypoints.
+- `@hashintel/ds-components/preset` is the canonical public styling entrypoint.
 
 ## Panda CSS Configuration
 
