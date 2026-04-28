@@ -12,9 +12,12 @@ import fs from "node:fs";
 import { join } from "node:path";
 import Color from "colorjs.io";
 import * as radixColors from "@radix-ui/colors";
-import { withSemantics, type PaletteKind } from "../src/preset/theme/utils";
+import {
+  withSemantics,
+  type PaletteKind,
+} from "../src/preset/foundations/utils";
 
-const OUTPUT_DIR = "src/preset/theme/colors";
+const OUTPUT_DIR = "src/preset/foundations/colors";
 
 /**
  * Colors to include in generation. Add/remove as needed.
@@ -482,7 +485,7 @@ export const staticColors = { black, white };
  * Aliases are composed in main.ts, not generated here.
  */
 function writeBarrelFile(colorNames: string[]): void {
-  const filePath = join(process.cwd(), "src/preset/theme/colors.gen.ts");
+  const filePath = join(process.cwd(), "src/preset/foundations/colors.gen.ts");
 
   const imports = colorNames
     .map((name) => `import { ${name} } from "./colors/${name}.gen";`)
