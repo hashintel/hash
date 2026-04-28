@@ -124,6 +124,14 @@ export function createPreset(options?: PresetOptions) {
             from: { transform: "rotate(360deg)" },
             to: { transform: "rotate(0deg)" },
           },
+          expand: {
+            from: { height: "0" },
+            to: { height: "var(--height)" },
+          },
+          collapse: {
+            from: { height: "var(--height)" },
+            to: { height: "0" },
+          },
         },
         textStyles: {
           xs: {
