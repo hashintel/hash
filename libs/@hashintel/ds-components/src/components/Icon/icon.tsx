@@ -87,9 +87,7 @@ import WandMagicSparkles from "./svgs/regular/wand-magic-sparkles.svg";
 import Xmark from "./svgs/regular/xmark.svg";
 
 import { styles } from "./icon.recipe";
-
-export const sizes = ["xs", "sm", "md", "lg"] as const;
-export type Size = (typeof sizes)[number];
+import type { FormInputSize } from "../../util/form-shared";
 
 const IconMap = {
   angleDown: AngleDown,
@@ -190,7 +188,7 @@ export const Icon = ({
 }: {
   className?: string;
   name: IconName;
-  size?: Size;
+  size?: FormInputSize;
   alt?: string;
 }) => {
   const IconSvg = IconMap[name];

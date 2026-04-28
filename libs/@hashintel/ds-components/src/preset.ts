@@ -106,6 +106,24 @@ export function createPreset(options?: PresetOptions) {
       extend: {
         tokens,
         semanticTokens,
+        keyframes: {
+          fadeIn: {
+            from: { opacity: "0" },
+            to: { opacity: "1" },
+          },
+          fadeOut: {
+            from: { opacity: "1" },
+            to: { opacity: "0" },
+          },
+          rotateLeft: {
+            from: { transform: "rotate(0deg)" },
+            to: { transform: "rotate(360deg)" },
+          },
+          rotateRight: {
+            from: { transform: "rotate(360deg)" },
+            to: { transform: "rotate(0deg)" },
+          },
+        },
         textStyles: {
           xs: {
             value: {
