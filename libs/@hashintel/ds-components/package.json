@@ -61,6 +61,7 @@
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "lint:tsc:beta": "tsc --noEmit -p tsconfig.beta.json",
     "prepare": "yarn run codegen",
     "prepublishOnly": "turbo run build",
     "preview:ladle": "yarn build:ladle && ladle preview",
