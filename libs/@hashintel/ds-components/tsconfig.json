@@ -17,7 +17,6 @@
   "extends": "@tsconfig/strictest/tsconfig.json",
   "include": [
     "src/**/*",
-    ".storybook/**/*",
     ".ladle/**/*",
     "tests/**/*",
     "scripts/**/*",

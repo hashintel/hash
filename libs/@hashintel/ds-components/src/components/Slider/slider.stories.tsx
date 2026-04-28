@@ -1,11 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Story, StoryDefault } from "@ladle/react";
 
-import { Slider } from "../slider";
+import { Slider, type SliderProps } from "./slider";
 
-const meta = {
+export default {
   title: "Components/Slider",
-  component: Slider,
-  tags: ["docsPage"],
   parameters: {
     layout: "centered",
   },
@@ -47,6 +45,7 @@ const meta = {
       description: "Whether to show the current value as text above the slider",
     },
     onChange: {
+      action: "changed",
       description: "Callback function called when the slider value changes",
     },
   },
@@ -57,62 +56,63 @@ const meta = {
     label: "Volume",
     showValueText: true,
   },
-  render: (args) => <Slider {...args} style={{ width: "400px" }} />,
-} satisfies Meta<typeof Slider>;
-
-export default meta;
-
-type Story = StoryObj<typeof meta>;
+} satisfies StoryDefault<SliderProps>;
 
 /**
  * The default Slider component with standard settings.
  * Try dragging the slider thumb to change values.
  * Use the Controls panel below to adjust visual parameters.
  */
-export const Default: Story = {};
+export const Default: Story<SliderProps> = (args) => (
+  <Slider {...args} style={{ width: "400px" }} />
+);
 
 /**
  * Slider with only a label, no value text displayed.
  */
-export const WithLabel: Story = {
-  args: {
-    label: "Brightness",
-    showValueText: false,
-    defaultValue: 75,
-  },
+export const WithLabel: Story<SliderProps> = (args) => (
+  <Slider {...args} style={{ width: "400px" }} />
+);
+WithLabel.args = {
+  label: "Brightness",
+  showValueText: false,
+  defaultValue: 75,
 };
 
 /**
  * Slider with only value text, no label displayed.
  */
-export const WithValueText: Story = {
-  args: {
-    label: undefined,
-    showValueText: true,
-    defaultValue: 50,
-  },
+export const WithValueText: Story<SliderProps> = (args) => (
+  <Slider {...args} style={{ width: "400px" }} />
+);
+WithValueText.args = {
+  label: undefined,
+  showValueText: true,
+  defaultValue: 50,
 };
 
 /**
  * Slider with both label and value text.
  */
-export const WithLabelAndValue: Story = {
-  args: {
-    label: "Temperature",
-    showValueText: true,
-    defaultValue: 72,
-    min: 32,
-    max: 100,
-  },
+export const WithLabelAndValue: Story<SliderProps> = (args) => (
+  <Slider {...args} style={{ width: "400px" }} />
+);
+WithLabelAndValue.args = {
+  label: "Temperature",
+  showValueText: true,
+  defaultValue: 72,
+  min: 32,
+  max: 100,
 };
 
 /**
  * Minimal slider with no label or value text.
  */
-export const Minimal: Story = {
-  args: {
-    label: undefined,
-    showValueText: false,
-    defaultValue: 25,
-  },
+export const Minimal: Story<SliderProps> = (args) => (
+  <Slider {...args} style={{ width: "400px" }} />
+);
+Minimal.args = {
+  label: undefined,
+  showValueText: false,
+  defaultValue: 25,
 };

@@ -77,7 +77,7 @@ export const Label = withContext(Checkbox.Label, 'label')
 
 ### Testing Pattern
 
-Park UI uses **Storybook examples only** — no unit tests. Stories are organized as:
+Park UI uses **Story examples only** — no unit tests. Stories are organized as:
 
 - `/examples/{component}/{component}.stories.tsx` — story entry
 - `/examples/{component}/basic.tsx`, `variants.tsx`, etc. — individual examples

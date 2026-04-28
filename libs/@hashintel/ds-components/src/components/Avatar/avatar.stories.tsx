@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Story, StoryDefault } from "@ladle/react";
 
-import { Avatar, type AvatarProps } from "../avatar";
+import { Avatar, type AvatarProps } from "./avatar";
 
 // User icon SVG
 const UserIcon = (
@@ -31,70 +31,62 @@ type AvatarStoryArgs = Omit<AvatarProps, "indicator"> & {
   indicatorImage?: string;
 };
 
-const meta: Meta<AvatarStoryArgs> = {
+const renderAvatar = (args: AvatarStoryArgs) => {
+  const {
+    indicatorEnabled,
+    indicatorColorScheme,
+    indicatorSquared,
+    indicatorImage,
+    ...avatarProps
+  } = args;
+
+  const indicator = indicatorEnabled
+    ? {
+        colorScheme: indicatorColorScheme,
+        squared: indicatorSquared,
+        image: indicatorImage,
+      }
+    : undefined;
+
+  return <Avatar {...avatarProps} indicator={indicator} />;
+};
+
+export default {
   title: "Components/Avatar",
-  component: Avatar,
   parameters: {
     layout: "centered",
-    docs: {
-      description: {
-        component: `
-# Avatar Component
-
-A versatile avatar component built with @ark-ui/react and styled with PandaCSS.
-Displays user profile images with fallback support for initials or icons.
-
-## Features
-
-- **Multiple Sizes**: 16px, 20px, 24px, 32px, 40px, 48px, 64px
-- **Two Shapes**: Circle (default) or square
-- **Fallback Support**: Automatically shows fallback content when image fails to load
-- **Image Loading States**: Built-in handling of loading and error states
-
-## Types
-
-- **Image**: Displays a profile photo
-- **Initials**: Shows account name initials as fallback
-- **Icon**: Displays an icon as fallback
-
-## Indicator
-
-The indicator prop displays a status badge in the bottom-right corner of the avatar, useful for showing online/active status.
-        `,
-      },
-    },
   },
   argTypes: {
     size: {
       name: "Size",
-      control: "select",
+      control: { type: "select" },
       options: ["16", "20", "24", "32", "40", "48", "64"],
       description: "Size of the avatar in pixels",
     },
     shape: {
       name: "Shape",
-      control: "radio",
+      control: { type: "radio" },
       options: ["circle", "square"],
       description: "Shape of the avatar",
     },
     src: {
       name: "Image URL",
-      control: "text",
+      control: { type: "text" },
       description: "Image source URL",
     },
     alt: {
       name: "Alt Text",
-      control: "text",
+      control: { type: "text" },
       description: "Alt text for the image",
     },
     fallback: {
       name: "Fallback",
-      control: "text",
+      control: { type: "text" },
       description: "Fallback content (initials or icon)",
     },
     indicatorEnabled: {
       name: "Enabled",
-      control: "boolean",
+      control: { type: "boolean" },
       description: "Enable or disable the status indicator",
       table: {
         category: "Indicator",
@@ -102,7 +94,7 @@ The indicator prop displays a status badge in the bottom-right corner of the ava
     },
     indicatorColorScheme: {
       name: "Color Scheme",
-      control: "select",
+      control: { type: "select" },
       options: [
         "red",
         "orange",
@@ -122,7 +114,7 @@ The indicator prop displays a status badge in the bottom-right corner of the ava
     },
     indicatorSquared: {
       name: "Squared",
-      control: "boolean",
+      control: { type: "boolean" },
       description: "Whether the indicator is squared with border",
       table: {
         category: "Indicator",
@@ -131,7 +123,7 @@ The indicator prop displays a status badge in the bottom-right corner of the ava
     },
     indicatorImage: {
       name: "Image URL",
-      control: "text",
+      control: { type: "text" },
       description: "Optional image URL to display in the indicator",
       table: {
         category: "Indicator",
@@ -143,77 +135,46 @@ The indicator prop displays a status badge in the bottom-right corner of the ava
     size: "32",
     shape: "circle",
   },
-  render: (args) => {
-    const {
-      indicatorEnabled,
-      indicatorColorScheme,
-      indicatorSquared,
-      indicatorImage,
-      ...avatarProps
-    } = args;
+} satisfies StoryDefault<AvatarStoryArgs>;
 
-    const indicator = indicatorEnabled
-      ? {
-          colorScheme: indicatorColorScheme,
-          squared: indicatorSquared,
-          image: indicatorImage,
-        }
-      : undefined;
-
-    return <Avatar {...avatarProps} indicator={indicator} />;
-  },
+export const Default: Story<AvatarStoryArgs> = (args) => renderAvatar(args);
+Default.args = {
+  src: "https://i.pravatar.cc/300",
+  alt: "User avatar",
+  size: "32",
+  shape: "circle",
+  indicatorEnabled: true,
+  indicatorColorScheme: "green",
+  indicatorSquared: false,
 };
 
-export default meta;
-type Story = StoryObj<AvatarStoryArgs>;
-
-export const Default: Story = {
-  args: {
-    src: "https://i.pravatar.cc/300",
-    alt: "User avatar",
-    size: "32",
-    shape: "circle",
-    indicatorEnabled: true,
-    indicatorColorScheme: "green",
-    indicatorSquared: false,
-  },
+export const WithInitials: Story<AvatarStoryArgs> = (args) =>
+  renderAvatar(args);
+WithInitials.args = {
+  fallback: "AT",
+  size: "32",
+  shape: "circle",
 };
 
-export const WithInitials: Story = {
-  args: {
-    fallback: "AT",
-    size: "32",
-    shape: "circle",
-  },
+export const WithIcon: Story<AvatarStoryArgs> = (args) => renderAvatar(args);
+WithIcon.args = {
+  fallback: UserIcon,
+  size: "32",
+  shape: "circle",
 };
 
-export const WithIcon: Story = {
-  args: {
-    fallback: UserIcon,
-    size: "32",
-    shape: "circle",
-  },
-};
-
-export const AllSizes: Story = {
-  render: (args) => (
-    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-      <Avatar {...args} size="16" />
-      <Avatar {...args} size="20" />
-      <Avatar {...args} size="24" />
-      <Avatar {...args} size="32" />
-      <Avatar {...args} size="40" />
-      <Avatar {...args} size="48" />
-      <Avatar {...args} size="64" />
-    </div>
-  ),
-  args: {
-    src: "https://i.pravatar.cc/300",
-    shape: "circle",
-  },
-  argTypes: {
-    size: {
-      control: false,
-    },
-  },
+export const AllSizes: Story<AvatarStoryArgs> = (args) => (
+  <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+    <Avatar {...args} size="16" />
+    <Avatar {...args} size="20" />
+    <Avatar {...args} size="24" />
+    <Avatar {...args} size="32" />
+    <Avatar {...args} size="40" />
+    <Avatar {...args} size="48" />
+    <Avatar {...args} size="64" />
+  </div>
+);
+AllSizes.args = {
+  src: "https://i.pravatar.cc/300",
+  shape: "circle",
 };

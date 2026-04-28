@@ -52,7 +52,6 @@ export default defineConfig({
   outdir: "../ds-helpers/styled-system",
   include: [
     "./src/components/**/*.{ts,tsx}",
-    "./src/playground/**/*.{ts,tsx}",
   ],
   jsxFramework: "react",
   outExtension: "mjs",
@@ -69,7 +68,7 @@ Key points:
 - `src/preset.ts` is the local source of truth for the preset.
 - publish codegen writes to `../ds-helpers/styled-system`
 - `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
-- `panda.local.config.ts` exists separately for local demo surfaces such as Ladle and Storybook
+- `panda.local.config.ts` exists separately for local demo surfaces such as Ladle
 
 ### Token Naming Patterns (Strict Mode)
 
@@ -227,11 +226,9 @@ export const Checkbox = (props) => (
 | --- | --- |
 | `yarn dev` | Start the primary Ladle-based demo loop |
 | `yarn dev:lib` | Watch the publishable component library build |
-| `yarn dev:storybook` | Start Storybook for component stories |
 | `yarn codegen` | Generate token source files and `../ds-helpers/styled-system` |
 | `yarn build` | Build the component library entrypoints |
 | `yarn build:ladle` | Build the Ladle demo surface |
-| `yarn build:storybook` | Build static Storybook |
 | `yarn lint:eslint` | Lint the publishable package surface |
 | `yarn lint:tsc` | TypeScript type checking |
 | `yarn test:unit` | Run the Vitest unit suites without the Playwright snapshot harness |
@@ -245,12 +242,10 @@ libs/@hashintel/ds-components/
 ├── src/
 │   ├── components/
 │   ├── preset/             # Panda preset source of truth
-│   ├── playground/
 │   ├── stories/
 │   ├── theme.ts            # Public `./theme` facade
 ├── scripts/                # Token/codegen scripts
 ├── tests/                  # Snapshot/demo tests
-├── .storybook/             # Storybook configuration
 ├── panda.config.ts
 ├── panda.local.config.ts
 ├── package.json
