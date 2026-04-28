@@ -3,7 +3,7 @@ import type { Story, StoryDefault } from "@ladle/react";
 import { Slider, type SliderProps } from "./slider";
 
 export default {
-  title: "Components/Slider",
+  title: "Legacy/Slider",
   parameters: {
     layout: "centered",
   },

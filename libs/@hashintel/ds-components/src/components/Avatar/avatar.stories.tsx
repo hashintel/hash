@@ -52,7 +52,7 @@ const renderAvatar = (args: AvatarStoryArgs) => {
 };
 
 export default {
-  title: "Components/Avatar",
+  title: "Legacy/Avatar",
   parameters: {
     layout: "centered",
   },

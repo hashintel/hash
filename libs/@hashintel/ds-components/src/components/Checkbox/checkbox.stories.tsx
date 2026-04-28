@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Checkbox, type CheckboxProps } from "./checkbox";
 
 export default {
-  title: "Components/Checkbox",
+  title: "Legacy/Checkbox",
   parameters: {
     layout: "centered",
   },
