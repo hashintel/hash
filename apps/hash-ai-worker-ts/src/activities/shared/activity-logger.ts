@@ -24,11 +24,20 @@ const log = (
   meta: LogMeta | undefined,
   level: "debug" | "error" | "info" | "silly" | "warn",
 ) => {
-  let flowWorkflowId = "no-requestId-in-context";
+  // `Context.current()` throws when no Temporal activity context is
+  // active (e.g. when the logger is reached from a unit test or a
+  // non-activity bootstrap path). Falling back to placeholders keeps
+  // the logger working in those cases — particularly important
+  // because most callers reach the logger from `catch` blocks where
+  // a logger crash would swallow the original error.
+  let workflowExecution: { workflowId: string; runId: string } = {
+    workflowId: "no-context",
+    runId: "no-context",
+  };
   try {
-    flowWorkflowId = Context.current().info.workflowExecution.workflowId;
+    workflowExecution = Context.current().info.workflowExecution;
   } catch {
-    // no id in context for some reason
+    // no Temporal context — placeholders above are used
   }
 
   const now = new Date().toISOString();
@@ -36,9 +45,7 @@ const log = (
   /**
    * A special prefix which will appear in the console but be stripped out for other destinations (e.g. DataDog)
    */
-  const consolePrefix = `[Flow ${flowWorkflowId} – ${now}]`;
-
-  const workflowExecution = Context.current().info.workflowExecution;
+  const consolePrefix = `[Flow ${workflowExecution.workflowId} – ${now}]`;
 
   // Spread `meta` FIRST so the helper-owned fields (`message`,
   // `consolePrefix`, `workflowExecution`) always win — otherwise a
@@ -68,7 +75,10 @@ const log = (
       fs.mkdirSync(logFolderPath);
     }
 
-    const logFilePath = path.join(logFolderPath, `${flowWorkflowId}.log`);
+    const logFilePath = path.join(
+      logFolderPath,
+      `${workflowExecution.workflowId}.log`,
+    );
 
     let stringifiedMessage: string;
 
