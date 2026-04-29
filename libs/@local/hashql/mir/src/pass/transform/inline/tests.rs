@@ -8,7 +8,7 @@ use bstr::ByteVec as _;
 use hashql_core::{
     graph::algorithms::{Tarjan, TriColorDepthFirstSearch, tarjan::SccId},
     heap::Heap,
-    id::bit_vec::DenseBitSet,
+    id::{Id as _, bit_vec::DenseBitSet},
     pretty::Formatter,
     symbol::sym,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
@@ -1390,6 +1390,35 @@ fn run_loop_breaker<'heap>(
     (breakers, scc_orders)
 }
 
+use core::ops::ControlFlow;
+
+use hashql_core::graph::algorithms::color::NodeColor;
+
+struct RemainderCycleDetector<'a> {
+    members: &'a [DefId],
+    breakers: &'a DenseBitSet<DefId>,
+}
+
+impl<G: hashql_core::graph::DirectedGraph<NodeId = DefId>>
+    hashql_core::graph::algorithms::TriColorVisitor<G> for RemainderCycleDetector<'_>
+{
+    type Result = ControlFlow<()>;
+
+    fn node_examined(&mut self, _: DefId, before: Option<NodeColor>) -> Self::Result {
+        match before {
+            Some(NodeColor::Gray) => ControlFlow::Break(()),
+            _ => ControlFlow::Continue(()),
+        }
+    }
+
+    fn ignore_edge(&mut self, source: DefId, target: DefId) -> bool {
+        self.breakers.contains(source)
+            || self.breakers.contains(target)
+            || !self.members.contains(&source)
+            || !self.members.contains(&target)
+    }
+}
+
 /// SCC with two independent 2-cycles joined into one component.
 /// Requires at least two breakers.
 ///
@@ -1477,36 +1506,7 @@ fn loop_breaker_multi_breaker_scc() {
     let mut search = TriColorDepthFirstSearch::new_in(&graph, &heap);
     let mut cycle_found = false;
 
-    use core::ops::ControlFlow;
-
-    use hashql_core::graph::algorithms::color::NodeColor;
-
-    struct RemainderCycleDetector<'a> {
-        members: &'a [DefId],
-        breakers: &'a DenseBitSet<DefId>,
-    }
-
-    impl<G: hashql_core::graph::DirectedGraph<NodeId = DefId>>
-        hashql_core::graph::algorithms::TriColorVisitor<G> for RemainderCycleDetector<'_>
-    {
-        type Result = ControlFlow<()>;
-
-        fn node_examined(&mut self, _: DefId, before: Option<NodeColor>) -> Self::Result {
-            match before {
-                Some(NodeColor::Gray) => ControlFlow::Break(()),
-                _ => ControlFlow::Continue(()),
-            }
-        }
-
-        fn ignore_edge(&mut self, source: DefId, target: DefId) -> bool {
-            self.breakers.contains(source)
-                || self.breakers.contains(target)
-                || !self.members.contains(&source)
-                || !self.members.contains(&target)
-        }
-    }
-
-    let all_members: Vec<DefId> = (0..bodies.len()).map(|i| DefId::new(i as u32)).collect();
+    let all_members: Vec<DefId> = (0..bodies.len()).map(DefId::from_usize).collect();
     let mut detector = RemainderCycleDetector {
         members: &all_members,
         breakers: &breakers,
@@ -1514,11 +1514,9 @@ fn loop_breaker_multi_breaker_scc() {
 
     search.reset();
     for &member in &all_members {
-        if !breakers.contains(member) {
-            if search.run_from(member, &mut detector).is_break() {
-                cycle_found = true;
-                break;
-            }
+        if !breakers.contains(member) && search.run_from(member, &mut detector).is_break() {
+            cycle_found = true;
+            break;
         }
     }
 
@@ -1601,7 +1599,12 @@ fn loop_breaker_ordering_chain() {
     assert_eq!(order.len(), 4);
 
     // Non-breakers in postorder: W before Y before X.
-    let pos = |id: DefId| order.iter().position(|&n| n == id).unwrap();
+    let pos = |id: DefId| {
+        order
+            .iter()
+            .position(|&node| node == id)
+            .expect("node exists inside of order")
+    };
     assert!(
         pos(w_id) < pos(y_id),
         "W (leaf) must come before Y in postorder"
