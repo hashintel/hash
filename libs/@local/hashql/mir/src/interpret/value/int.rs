@@ -656,6 +656,8 @@ mod tests {
         clippy::float_cmp
     )]
 
+    use core::hash::BuildHasher as _;
+
     use crate::interpret::value::{Int, Numeric};
 
     #[test]
@@ -868,20 +870,19 @@ mod tests {
 
     #[test]
     fn hash_consistent_with_eq() {
-        use core::hash::{BuildHasher, Hash, Hasher};
-
         use hashql_core::collections::FastHasher;
 
         let build = FastHasher::default();
-        let hash_of = |value: &Int| -> u64 {
-            let mut hasher = build.build_hasher();
-            value.hash(&mut hasher);
-            hasher.finish()
-        };
 
         // Equal values must have equal hashes
-        assert_eq!(hash_of(&Int::from(true)), hash_of(&Int::from(1_i32)));
-        assert_eq!(hash_of(&Int::from(false)), hash_of(&Int::from(0_i32)));
+        assert_eq!(
+            build.hash_one(Int::from(true)),
+            build.hash_one(Int::from(1_i32))
+        );
+        assert_eq!(
+            build.hash_one(Int::from(false)),
+            build.hash_one(Int::from(0_i32))
+        );
     }
 
     #[test]
