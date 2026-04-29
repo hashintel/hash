@@ -21,14 +21,14 @@ jobs:
       # see: https://github.com/orgs/community/discussions/26245#discussioncomment-15601440
       id-token: write
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/dismiss-stale-approvals.yml@52c4a1f5fa1c72f30dfa02b00a6cbf0c89c1ea8a
+    uses: hashintel/.github/.github/workflows/preflight-stale-approvals.yml@a0df113e5602f3b721bf306bf6050ee2a0866956
 
   dependencies:
     name: Dependencies
     permissions:
       contents: read
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/dependencies.yml@52c4a1f5fa1c72f30dfa02b00a6cbf0c89c1ea8a
+    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@a0df113e5602f3b721bf306bf6050ee2a0866956
 
   labeler:
     name: Labeler
@@ -47,4 +47,4 @@ jobs:
     name: Todo comments
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/todo-comments.yml@52c4a1f5fa1c72f30dfa02b00a6cbf0c89c1ea8a
+    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@a0df113e5602f3b721bf306bf6050ee2a0866956
