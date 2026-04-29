@@ -10,9 +10,18 @@ import { logger as baseLogger } from "../../shared/logger.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Keys this helper owns on the resulting log object. Banning them in
+ * the caller's `meta` shape is the only way to prevent silent collisions
+ * — at runtime, either spread order discards data on overlap.
+ */
+type ReservedLogKeys = "message" | "consolePrefix" | "workflowExecution";
+
+type LogMeta = { [K in ReservedLogKeys]?: never } & Record<string, unknown>;
+
 const log = (
   message: string,
-  meta: object | undefined,
+  meta: LogMeta | undefined,
   level: "debug" | "error" | "info" | "silly" | "warn",
 ) => {
   let flowWorkflowId = "no-requestId-in-context";
@@ -31,13 +40,21 @@ const log = (
 
   const workflowExecution = Context.current().info.workflowExecution;
 
+  // Spread `meta` FIRST so the helper-owned fields (`message`,
+  // `consolePrefix`, `workflowExecution`) always win — otherwise a
+  // caller passing meta with a `message` key (e.g. an HTTP response
+  // body, an LLM error object) would silently overwrite the log
+  // description.
   const logObject: {
     consolePrefix: string;
     message: string | object;
     workflowExecution: { workflowId: string; runId: string };
-  } & Record<string, unknown> = meta
-    ? { consolePrefix, message, workflowExecution, ...meta }
-    : { consolePrefix, message, workflowExecution };
+  } & Record<string, unknown> = {
+    ...meta,
+    consolePrefix,
+    message,
+    workflowExecution,
+  };
 
   baseLogger[level](logObject);
 
@@ -85,9 +102,9 @@ const log = (
  * 2. Writes a file per flow run containing its logs, in development and test environments.
  */
 export const logger = {
-  debug: (message: string, meta?: object) => log(message, meta, "debug"),
-  error: (message: string, meta?: object) => log(message, meta, "error"),
-  info: (message: string, meta?: object) => log(message, meta, "info"),
-  silly: (message: string, meta?: object) => log(message, meta, "silly"),
-  warn: (message: string, meta?: object) => log(message, meta, "warn"),
+  debug: (message: string, meta?: LogMeta) => log(message, meta, "debug"),
+  error: (message: string, meta?: LogMeta) => log(message, meta, "error"),
+  info: (message: string, meta?: LogMeta) => log(message, meta, "info"),
+  silly: (message: string, meta?: LogMeta) => log(message, meta, "silly"),
+  warn: (message: string, meta?: LogMeta) => log(message, meta, "warn"),
 };
