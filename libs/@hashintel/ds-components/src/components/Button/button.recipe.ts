@@ -1,25 +1,61 @@
-import { cva } from "@hashintel/ds-helpers/css";
+import { sva } from "@hashintel/ds-helpers/css";
 
-export const styles = cva({
+export const styles = sva({
+  slots: ["button", "loadingContainer", "loadingContent"],
   base: {
-    cursor: "pointer",
-    display: "inline-block",
-    borderRadius: "sm",
-    border: "1px solid",
-    "&:focus-visible": {
-      outline: "2px solid neutral.s45",
+    button: {
+      cursor: "pointer",
+      display: "inline-block",
+      border: "1px solid",
+      "&:focus-visible": {
+        outline: "2px solid",
+        outlineColor: "black.a60",
+      },
     },
+    loadingContainer: {
+      position: "absolute",
+      inset: "0",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    loadingContent: { visibility: "hidden" },
   },
   variants: {
     size: {
-      xs: { paddingX: "1.5", paddingY: "0" },
-      sm: { paddingX: "2", paddingY: "0.5" },
-      md: { paddingX: "2.5", paddingY: "1.5" },
-      lg: { paddingX: "3", paddingY: "2" },
+      xs: {
+        button: {
+          paddingX: "1.5",
+          paddingY: "0",
+          borderRadius: "md",
+        },
+      },
+      sm: {
+        button: {
+          paddingX: "2",
+          paddingY: "0.5",
+          borderRadius: "lg",
+        },
+      },
+      md: {
+        button: {
+          paddingX: "2.5",
+          paddingY: "1.5",
+          borderRadius: "lg",
+        },
+      },
+      lg: {
+        button: {
+          paddingX: "3",
+          paddingY: "2.5",
+          borderRadius: "lg",
+          gap: "1.5",
+        },
+      },
     },
     shape: {
-      default: { borderRadius: "md" },
-      round: { borderRadius: "full" },
+      default: {},
+      round: { button: { borderRadius: "full" } },
     },
     tone: {
       error: {},
@@ -29,38 +65,30 @@ export const styles = cva({
     variant: {
       solid: {},
       subtle: {
-        background: "white",
-        borderColor: "neutral.a30",
-        color: "fg.body",
-        "&:hover": {
-          background: "bgSolid.min.hover",
-          borderColor: "bgSolid.solid.hover",
-          color: "fg.body.hover",
+        button: {
+          background: "[transparent]",
+          borderColor: "neutral.a60",
+          color: "neutral.s120",
+          "&:hover": {
+            background: "neutral.bg.subtle.hover",
+            borderColor: "neutral.a70",
+          },
         },
       },
       ghost: {
-        background: "bg.min",
-        borderColor: "bg.solid",
-        color: "fg.body",
-        "&:hover": {
-          background: "bg.min.hover",
-          borderColor: "bg.solid.hover",
-          color: "fg.body.hover",
+        button: {
+          background: "neutral.bg.subtle",
+          color: "neutral.s110",
+          "&:hover": {
+            background: "neutral.bg.subtle.hover",
+            borderColor: "neutral.a70",
+          },
         },
       },
-      link: {
-        display: "inline",
-        textAlign: "inherit",
-        padding: "0",
-        border: "0",
-        color: "blue.fg.body",
-        "&:hover": {
-          textDecoration: "underline",
-        },
-      },
+      link: {},
     },
     isLoading: {
-      true: {},
+      true: { button: { position: "relative" } },
     },
     isDisabled: {
       true: {},
@@ -70,16 +98,19 @@ export const styles = cva({
     },
   },
   compoundVariants: [
+    // ── Solid + Neutral ──
     {
       variant: "solid",
       tone: "neutral",
       css: {
-        background: "neutral.s120",
-        borderColor: "neutral.s120",
-        color: "fg.onSolid",
-        "&:hover": {
-          background: "neutral.s110",
-          borderColor: "neutral.s110",
+        button: {
+          background: "neutral.s120",
+          borderColor: "neutral.s120",
+          color: "fg.onSolid",
+          "&:hover": {
+            background: "neutral.s110",
+            borderColor: "neutral.s110",
+          },
         },
       },
     },
@@ -88,8 +119,9 @@ export const styles = cva({
       tone: "neutral",
       isPressed: true,
       css: {
-        background: "neutral.s125",
-        borderColor: "neutral.s125",
+        button: {
+          boxShadow: "[inset_0_2px_4px_rgba(0,0,0,0.05)]",
+        },
       },
     },
     {
@@ -97,20 +129,24 @@ export const styles = cva({
       tone: "neutral",
       isDisabled: true,
       css: {
-        background: "neutral.s40",
-        borderColor: "neutral.s40",
+        button: {
+          opacity: "0.3",
+        },
       },
     },
+    // ── Solid + Brand (blue) ──
     {
       variant: "solid",
       tone: "brand",
       css: {
-        background: "blue.s120",
-        borderColor: "blue.s120",
-        color: "fg.onSolid",
-        "&:hover": {
-          background: "blue.s110",
-          borderColor: "blue.s110",
+        button: {
+          background: "blue.s90",
+          borderColor: "blue.s90",
+          color: "fg.onSolid",
+          "&:hover": {
+            background: "blue.s85",
+            borderColor: "blue.s85",
+          },
         },
       },
     },
@@ -119,8 +155,9 @@ export const styles = cva({
       tone: "brand",
       isPressed: true,
       css: {
-        background: "blue.s125",
-        borderColor: "blue.s125",
+        button: {
+          boxShadow: "[inset_0_2px_4px_rgba(0,0,0,0.05)]",
+        },
       },
     },
     {
@@ -128,20 +165,25 @@ export const styles = cva({
       tone: "brand",
       isDisabled: true,
       css: {
-        background: "blue.s40",
-        borderColor: "blue.s40",
+        button: {
+          background: "blue.s60",
+          borderColor: "blue.s60",
+        },
       },
     },
+    // ── Solid + Error (red) ──
     {
       variant: "solid",
       tone: "error",
       css: {
-        background: "red.s120",
-        borderColor: "red.s120",
-        color: "fg.onSolid",
-        "&:hover": {
-          background: "red.s110",
-          borderColor: "red.s110",
+        button: {
+          background: "red.s90",
+          borderColor: "red.bd.subtle",
+          color: "fg.onSolid",
+          "&:hover": {
+            background: "red.s85",
+            borderColor: "red.s85",
+          },
         },
       },
     },
@@ -150,8 +192,9 @@ export const styles = cva({
       tone: "error",
       isPressed: true,
       css: {
-        background: "red.s125",
-        borderColor: "red.s125",
+        button: {
+          boxShadow: "[inset_0_2px_4px_rgba(0,0,0,0.05)]",
+        },
       },
     },
     {
@@ -159,8 +202,92 @@ export const styles = cva({
       tone: "error",
       isDisabled: true,
       css: {
-        background: "red.s40",
-        borderColor: "red.s40",
+        button: {
+          background: "red.s60",
+          borderColor: "red.s60",
+        },
+      },
+    },
+    // ── Outline (neutral) ──
+    {
+      variant: "subtle",
+      isPressed: true,
+      css: {
+        button: {
+          background: "neutral.bg.subtle.active",
+          color: "neutral.s110",
+          boxShadow: "[inset_0_2px_4px_rgba(0,0,0,0.05)]",
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      isDisabled: true,
+      css: {
+        button: {
+          background: "neutral.bg.subtle.disabled",
+          color: "neutral.s110",
+          opacity: "0.4",
+        },
+      },
+    },
+    // ── Ghost (neutral) ──
+    {
+      variant: "ghost",
+      isPressed: true,
+      css: {
+        button: {
+          background: "neutral.bg.subtle.active",
+          borderColor: "neutral.a60",
+          boxShadow: "[inset_0_2px_4px_rgba(0,0,0,0.05)]",
+        },
+      },
+    },
+    {
+      variant: "ghost",
+      isDisabled: true,
+      css: {
+        button: {
+          background: "neutral.bg.subtle.disabled",
+          opacity: "0.4",
+        },
+      },
+    },
+    // ── Subtle + Error (red) ──
+    {
+      variant: "subtle",
+      tone: "error",
+      css: {
+        button: {
+          background: "red.s20",
+          borderColor: "red.bd.subtle",
+          color: "red.s90",
+          "&:hover": {
+            background: "red.s25",
+          },
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      tone: "error",
+      isPressed: true,
+      css: {
+        button: {
+          boxShadow: "[inset_0_2px_4px_rgba(0,0,0,0.05)]",
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      tone: "error",
+      isDisabled: true,
+      css: {
+        button: {
+          background: "red.s15",
+          borderColor: "red.a30",
+          color: "red.s60",
+        },
       },
     },
   ],

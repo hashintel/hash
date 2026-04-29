@@ -23,8 +23,6 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     shape?: "default" | "round";
     /** Whether the button is in a loading state */
     loading?: boolean;
-    /** Whether the button should display that the loading state has completed */
-    loadingComplete?: boolean;
     /** Whether the button is in a pressed/active state */
     pressed?: boolean;
     disabled?: boolean;
@@ -115,19 +113,23 @@ export const Button = (props: ButtonProps) => {
     onBlur,
     ...rest
   } = props;
+  const classes = styles({
+    size,
+    variant,
+    shape,
+    tone,
+    isLoading: loading,
+    isDisabled: disabled,
+    isPressed: pressed,
+  });
 
   const iconElement = iconName ? <Icon name={iconName} size={size} /> : null;
-
-  const prefixContent = loading ? (
-    <LoadingSpinner size={size} />
-  ) : (
-    (prefix ?? (iconPosition === "left" ? iconElement : null))
-  );
-
+  const prefixContent =
+    prefix ?? (iconPosition === "left" ? iconElement : null);
   const suffixContent =
-    !loading && (suffix ?? (iconPosition === "right" ? iconElement : null));
+    suffix ?? (iconPosition === "right" ? iconElement : null);
 
-  const content = (
+  let content = (
     <>
       {prefixContent}
       {children}
@@ -135,8 +137,19 @@ export const Button = (props: ButtonProps) => {
     </>
   );
 
+  if (loading) {
+    content = (
+      <>
+        <span className={classes.loadingContainer}>
+          <LoadingSpinner size={size} />
+        </span>
+        <span className={classes.loadingContent}>{content}</span>
+      </>
+    );
+  }
+
   const sharedProps = {
-    className: cx(styles({ size, variant, shape, tone }), className),
+    className: cx(classes.button, className),
     title: tooltip,
     "aria-pressed": pressed,
     "aria-busy": loading,
