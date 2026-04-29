@@ -201,7 +201,6 @@ export const Icon = ({
       aria-label={alt}
       role={alt ? "img" : undefined}
       aria-hidden={alt ? undefined : "true"}
-      viewBox="0 0 640 640"
     />
   );
 };
