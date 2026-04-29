@@ -135,7 +135,7 @@ pub(crate) fn integer_type<'heap>(
             match env.r#type(r#type).kind.primitive()? {
                 PrimitiveType::Boolean => Some(IntegerType::Boolean),
                 PrimitiveType::Integer => Some(IntegerType::Integer),
-                _ => None,
+                PrimitiveType::Number | PrimitiveType::String | PrimitiveType::Null => None,
             }
         }
         Operand::Constant(hashql_mir::body::constant::Constant::Int(value)) => {
@@ -151,6 +151,14 @@ pub(crate) fn integer_type<'heap>(
         Operand::Constant(hashql_mir::body::constant::Constant::Primitive(
             hashql_core::value::Primitive::Integer(_),
         )) => Some(IntegerType::Integer),
-        _ => None,
+        Operand::Constant(
+            hashql_mir::body::constant::Constant::Primitive(
+                hashql_core::value::Primitive::Float(_)
+                | hashql_core::value::Primitive::String(_)
+                | hashql_core::value::Primitive::Null,
+            )
+            | hashql_mir::body::constant::Constant::FnPtr(_)
+            | hashql_mir::body::constant::Constant::Unit,
+        ) => None,
     }
 }

@@ -185,9 +185,9 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
     linter_config
         .override_dialect(DialectKind::Postgres)
         .expect("dialect should be loaded");
-    let mut linter =
-        Linter::new(linter_config, None, None, false).expect("linter should be created");
+    let linter = Linter::new(linter_config, None, None, false).expect("linter should be created");
 
+    #[expect(clippy::string_slice, reason = "Known to be valid codepoints")]
     for (island_id, entry_block) in postgres_islands {
         let island = &residual.islands[island_id];
 
@@ -208,7 +208,7 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
             .lint_string(&format!("SELECT {sql}"), None, true)
             .expect("should be valid SQL");
 
-        let mut fixed = linted.fix_string();
+        let fixed = linted.fix_string();
         let fixed: String = fixed[7..]
             .lines()
             .map(|line| &line[4..])
@@ -318,8 +318,7 @@ fn compile_full_query_with_mask<'heap>(
     linter_config
         .override_dialect(DialectKind::Postgres)
         .expect("dialect should be loaded");
-    let mut linter =
-        Linter::new(linter_config, None, None, false).expect("linter should be created");
+    let linter = Linter::new(linter_config, None, None, false).expect("linter should be created");
 
     let sql = prepared_query.transpile().to_string();
     let linted = linter

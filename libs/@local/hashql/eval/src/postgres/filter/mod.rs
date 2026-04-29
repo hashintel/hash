@@ -500,7 +500,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                 None => {
                     self.diagnostics
                         .push(ambiguous_integer_type(span, BinOp::BitAnd.as_str()));
-                    return Expression::Constant(query::Constant::Null);
+                    Expression::Constant(query::Constant::Null)
                 }
             },
             BinOp::BitOr => match integer_type(self.context.env, self.body, &binary.left) {
@@ -513,7 +513,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                 None => {
                     self.diagnostics
                         .push(ambiguous_integer_type(span, BinOp::BitOr.as_str()));
-                    return Expression::Constant(query::Constant::Null);
+                    Expression::Constant(query::Constant::Null)
                 }
             },
             BinOp::Eq => operands

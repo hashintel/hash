@@ -88,7 +88,7 @@ fn traversal_single_path_cost() {
 
         bb0() {
             archived = load archived_proj;
-            result = un.! archived;
+            result = un.~ archived;
             return result;
         }
     });
