@@ -19,4 +19,4 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
 }
 ==================== Island (entry: bb0, target: postgres) =====================
 
-(ROW(((jsonb_extract_path("entity_editions_0_0_1"."properties", (($1)::text), (($2)::text)) = $3)::boolean), NULL, NULL, NULL)::continuation)
+(ROW(COALESCE(((to_jsonb(jsonb_extract_path("entity_editions_0_0_1"."properties", ((($1::text))::text), ((($2::text))::text))) = to_jsonb(($3::jsonb)))::boolean), FALSE), NULL, NULL, NULL)::continuation)

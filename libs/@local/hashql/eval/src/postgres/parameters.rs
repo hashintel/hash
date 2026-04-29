@@ -11,14 +11,17 @@ use core::{
     fmt::{self, Display},
 };
 
-use hash_graph_postgres_store::store::postgres::query::Expression;
+use hash_graph_postgres_store::store::postgres::query::{Expression, PostgresType};
 use hashql_core::{
     collections::{FastHashMap, fast_hash_map_in},
     id::{self, Id as _, IdVec},
     symbol::Symbol,
     value::Primitive,
 };
-use hashql_mir::{body::place::FieldIndex, def::DefId, interpret::value::Int};
+use hashql_mir::{
+    body::{local::Local, place::FieldIndex},
+    interpret::value::Int,
+};
 
 id::newtype!(
     /// Index of a SQL parameter in the compiled query, rendered as `$N` by the SQL formatter.
@@ -38,12 +41,48 @@ impl From<ParameterIndex> for Expression {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ParameterKind {
+    Value,
+    String,
+    Integer,
+    Boolean,
+    Number,
+    TimestampInterval,
+}
+
+impl From<ParameterKind> for PostgresType {
+    fn from(value: ParameterKind) -> Self {
+        match value {
+            ParameterKind::Value => Self::JsonB,
+            ParameterKind::String => Self::Text,
+            ParameterKind::Integer => Self::BigInt,
+            ParameterKind::Boolean => Self::Boolean,
+            ParameterKind::Number => Self::Numeric,
+            ParameterKind::TimestampInterval => Self::TimestampTzRange,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Parameter {
+    pub index: ParameterIndex,
+    pub kind: ParameterKind,
+}
+
+impl Parameter {
+    #[must_use]
+    pub fn to_expr(self) -> Expression {
+        Expression::Cast(Box::new(self.index.into()), PostgresType::from(self.kind))
+    }
+}
+
 /// Interned identity for a SQL parameter.
 ///
 /// Parameters are deduplicated by this key so multiple occurrences of the same logical value
 /// (e.g. the same input symbol) share one `$N` placeholder.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-enum Parameter<'heap> {
+pub enum ParameterValue<'heap> {
     /// A user-provided input binding.
     Input(Symbol<'heap>),
     /// An integer constant that does not fit in a `u32`.
@@ -53,7 +92,7 @@ enum Parameter<'heap> {
     /// A symbol used as a JSON object key in SQL expressions.
     Symbol(Symbol<'heap>),
     /// A captured-environment field access.
-    Env(DefId, FieldIndex),
+    Env(Local, FieldIndex),
     /// Temporal axis range provided by the interpreter at execution time.
     ///
     /// The interpreter binds these based on the user's temporal axes configuration:
@@ -62,14 +101,31 @@ enum Parameter<'heap> {
     TemporalAxis(TemporalAxis),
 }
 
-impl fmt::Display for Parameter<'_> {
+impl ParameterValue<'_> {
+    #[must_use]
+    pub const fn kind(&self) -> ParameterKind {
+        match self {
+            Self::Int(int) if int.is_bool() => ParameterKind::Boolean,
+            Self::Int(_) | Self::Primitive(Primitive::Integer(_)) => ParameterKind::Integer,
+            Self::Primitive(Primitive::Boolean(_)) => ParameterKind::Boolean,
+            Self::Primitive(Primitive::Float(_)) => ParameterKind::Number,
+            Self::Primitive(Primitive::String(_)) | Self::Symbol(_) => ParameterKind::String,
+            Self::Input(_) | Self::Primitive(Primitive::Null) | Self::Env(_, _) => {
+                ParameterKind::Value
+            }
+            Self::TemporalAxis(_) => ParameterKind::TimestampInterval,
+        }
+    }
+}
+
+impl fmt::Display for ParameterValue<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Input(symbol) => write!(fmt, "Input({symbol})"),
             Self::Int(int) => write!(fmt, "Int({int})"),
             Self::Primitive(primitive) => write!(fmt, "Primitive({primitive})"),
             Self::Symbol(symbol) => write!(fmt, "Symbol({symbol})"),
-            Self::Env(def, field) => write!(fmt, "Env({def}, #{})", field.as_u32()),
+            Self::Env(local, field) => write!(fmt, "Env({local}, #{})", field.as_u32()),
             Self::TemporalAxis(axis) => write!(fmt, "TemporalAxis({axis})"),
         }
     }
@@ -100,8 +156,8 @@ impl fmt::Display for TemporalAxis {
 ///
 /// The interpreter uses the reverse mapping to bind runtime values in the correct order.
 pub struct Parameters<'heap, A: Allocator = Global> {
-    lookup: FastHashMap<Parameter<'heap>, ParameterIndex, A>,
-    reverse: IdVec<ParameterIndex, Parameter<'heap>, A>,
+    lookup: FastHashMap<ParameterValue<'heap>, ParameterIndex, A>,
+    reverse: IdVec<ParameterIndex, ParameterValue<'heap>, A>,
 }
 
 impl<'heap, A: Allocator> Parameters<'heap, A> {
@@ -115,36 +171,39 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
         }
     }
 
-    fn get_or_insert(&mut self, param: Parameter<'heap>) -> ParameterIndex {
-        *self
+    fn get_or_insert(&mut self, param: ParameterValue<'heap>) -> Parameter {
+        let kind = param.kind();
+        let index = *self
             .lookup
             .entry(param)
-            .or_insert_with(|| self.reverse.push(param))
+            .or_insert_with(|| self.reverse.push(param));
+
+        Parameter { index, kind }
     }
 
-    pub(crate) fn input(&mut self, name: Symbol<'heap>) -> ParameterIndex {
-        self.get_or_insert(Parameter::Input(name))
+    pub(crate) fn input(&mut self, name: Symbol<'heap>) -> Parameter {
+        self.get_or_insert(ParameterValue::Input(name))
     }
 
     /// Allocates a parameter for a symbol used as a JSON object key in SQL expressions.
-    pub(crate) fn symbol(&mut self, name: Symbol<'heap>) -> ParameterIndex {
-        self.get_or_insert(Parameter::Symbol(name))
+    pub(crate) fn symbol(&mut self, name: Symbol<'heap>) -> Parameter {
+        self.get_or_insert(ParameterValue::Symbol(name))
     }
 
-    pub(crate) fn int(&mut self, value: Int) -> ParameterIndex {
-        self.get_or_insert(Parameter::Int(value))
+    pub(crate) fn int(&mut self, value: Int) -> Parameter {
+        self.get_or_insert(ParameterValue::Int(value))
     }
 
-    pub(crate) fn primitive(&mut self, primitive: Primitive<'heap>) -> ParameterIndex {
-        self.get_or_insert(Parameter::Primitive(primitive))
+    pub(crate) fn primitive(&mut self, primitive: Primitive<'heap>) -> Parameter {
+        self.get_or_insert(ParameterValue::Primitive(primitive))
     }
 
-    pub(crate) fn env(&mut self, body: DefId, field: FieldIndex) -> ParameterIndex {
-        self.get_or_insert(Parameter::Env(body, field))
+    pub(crate) fn env(&mut self, local: Local, field: FieldIndex) -> Parameter {
+        self.get_or_insert(ParameterValue::Env(local, field))
     }
 
-    pub(crate) fn temporal_axis(&mut self, axis: TemporalAxis) -> ParameterIndex {
-        self.get_or_insert(Parameter::TemporalAxis(axis))
+    pub(crate) fn temporal_axis(&mut self, axis: TemporalAxis) -> Parameter {
+        self.get_or_insert(ParameterValue::TemporalAxis(axis))
     }
 
     /// Returns the number of distinct parameters allocated so far.
@@ -155,6 +214,24 @@ impl<'heap, A: Allocator> Parameters<'heap, A> {
     /// Returns `true` if no parameters have been allocated.
     pub fn is_empty(&self) -> bool {
         self.reverse.is_empty()
+    }
+
+    pub fn iter(
+        &self,
+    ) -> impl ExactSizeIterator<Item = &ParameterValue<'heap>> + DoubleEndedIterator {
+        self.reverse.iter()
+    }
+}
+
+impl<'this, 'heap> IntoIterator for &'this Parameters<'heap> {
+    type Item = &'this ParameterValue<'heap>;
+
+    type IntoIter =
+        impl ExactSizeIterator<Item = &'this ParameterValue<'heap>> + DoubleEndedIterator;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
@@ -181,7 +258,10 @@ mod tests {
         id::Id as _,
         value::{Primitive, String},
     };
-    use hashql_mir::{body::place::FieldIndex, def::DefId, interpret::value::Int};
+    use hashql_mir::{
+        body::{local::Local, place::FieldIndex},
+        interpret::value::Int,
+    };
 
     use super::{Parameters, TemporalAxis};
 
@@ -247,8 +327,8 @@ mod tests {
     #[test]
     fn env_dedup() {
         let mut params = Parameters::new_in(Global);
-        let a = params.env(DefId::MIN, FieldIndex::new(0));
-        let b = params.env(DefId::MIN, FieldIndex::new(0));
+        let a = params.env(Local::MIN, FieldIndex::new(0));
+        let b = params.env(Local::MIN, FieldIndex::new(0));
 
         assert_eq!(a, b);
         assert_eq!(params.len(), 1);

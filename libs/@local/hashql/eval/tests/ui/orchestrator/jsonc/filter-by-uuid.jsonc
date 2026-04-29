@@ -1,0 +1,13 @@
+// Filter entities by entity_uuid matching Alice.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
+        ["input", "alice_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+      ]
+    ]
+  ]
+]

@@ -117,8 +117,14 @@ impl Suite for EvalPostgres {
         let mir_buf = format_mir_with_placement(heap, &environment, &bodies, &analysis);
         secondary_outputs.insert("mir", mir_buf);
 
-        let mut context =
-            EvalContext::new_in(&environment, &bodies, &analysis, context.heap, &mut scratch);
+        let mut context = EvalContext::new_in(
+            &environment,
+            &interner,
+            &bodies,
+            &analysis,
+            context.heap,
+            &mut scratch,
+        );
         scratch.reset();
 
         // Inside of **all** the bodies, find the `GraphRead` terminators to compile.
@@ -128,7 +134,7 @@ impl Suite for EvalPostgres {
         for body in &bodies {
             for block in &*body.basic_blocks {
                 if let TerminatorKind::GraphRead(read) = &block.terminator.kind {
-                    let prepared_query = compiler.compile(read);
+                    let prepared_query = compiler.compile_graph_read(read);
                     prepared_queries.push(prepared_query);
                 }
             }

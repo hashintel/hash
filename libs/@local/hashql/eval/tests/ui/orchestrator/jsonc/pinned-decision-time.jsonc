@@ -1,0 +1,12 @@
+//@ axis[decision] = (946684800000)
+// Pin decision time to 2000-01-01T00:00:00Z.
+// Verifies TemporalInterval wire encoding is accepted by PostgreSQL.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      {"#literal": true}
+    ]
+  ]
+]

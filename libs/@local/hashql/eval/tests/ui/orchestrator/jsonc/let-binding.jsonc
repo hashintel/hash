@@ -1,0 +1,16 @@
+// Let binding propagation into filter body.
+// biome-ignore format: readability
+["let", "target",
+  ["input", "alice_uuid", "::graph::types::knowledge::entity::EntityUuid"],
+  ["::graph::tail::collect",
+    ["::graph::body::filter",
+      ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+      ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+        ["==",
+          "vertex.metadata.record_id.entity_id.entity_uuid",
+          "target"
+        ]
+      ]
+    ]
+  ]
+]

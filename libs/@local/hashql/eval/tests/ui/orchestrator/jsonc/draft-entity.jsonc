@@ -1,0 +1,14 @@
+// Select the draft entity by UUID. Verifies EntityPath::DraftId produces
+// Optional::Value (non-null draft_id) rather than Optional::Skipped.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
+        ["input", "draft_alice_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+      ]
+    ]
+  ]
+]

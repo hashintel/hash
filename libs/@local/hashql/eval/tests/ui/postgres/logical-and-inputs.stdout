@@ -2,9 +2,9 @@
 
 SELECT ("continuation_3_0"."row")."block" AS "continuation_3_0_block", ("continuation_3_0"."row")."locals" AS "continuation_3_0_locals", ("continuation_3_0"."row")."values" AS "continuation_3_0_values"
 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-CROSS JOIN LATERAL (SELECT CASE WHEN (($3)::int) = 0 THEN (ROW(((0)::boolean), NULL, NULL, NULL)::continuation) WHEN (($3)::int) = 1 THEN (ROW((($4)::boolean), NULL, NULL, NULL)::continuation) END AS "row"
+CROSS JOIN LATERAL (SELECT CASE WHEN ((($3::jsonb))::int) IS NULL THEN (ROW(COALESCE(((FALSE)::boolean), FALSE), NULL, NULL, NULL)::continuation) WHEN ((($3::jsonb))::int) = 0 THEN (ROW(COALESCE(((0)::boolean), FALSE), NULL, NULL, NULL)::continuation) WHEN ((($3::jsonb))::int) = 1 THEN (ROW(COALESCE(((($4::jsonb))::boolean), FALSE), NULL, NULL, NULL)::continuation) END AS "row"
 OFFSET 0) AS "continuation_3_0"
-WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $1 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ("continuation_3_0"."row")."filter" IS NOT FALSE
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange) AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange) AND ("continuation_3_0"."row")."filter" IS NOT FALSE
 
 ════ Parameters ════════════════════════════════════════════════════════════════
 

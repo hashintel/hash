@@ -1,0 +1,40 @@
+// Two sequential filters on the same graph read.
+// First filter: exclude non-person entities (org, draft, link) by
+//   requiring entity_uuid != org_uuid AND entity_uuid != draft_alice_uuid
+//   AND entity_uuid != friend_link_uuid. Keeps Alice and Bob.
+// Second filter: keep only Alice (entity_uuid == alice_uuid).
+// Net result: only Alice survives.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::body::filter",
+      ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+      ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+        ["if",
+          ["!=",
+            "vertex.metadata.record_id.entity_id.entity_uuid",
+            ["input", "org_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+          ],
+          ["if",
+            ["!=",
+              "vertex.metadata.record_id.entity_id.entity_uuid",
+              ["input", "draft_alice_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+            ],
+            ["!=",
+              "vertex.metadata.record_id.entity_id.entity_uuid",
+              ["input", "friend_link_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+            ],
+            { "#literal": false }
+          ],
+          { "#literal": false }
+        ]
+      ]
+    ],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.record_id.entity_id.entity_uuid",
+        ["input", "alice_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+      ]
+    ]
+  ]
+]

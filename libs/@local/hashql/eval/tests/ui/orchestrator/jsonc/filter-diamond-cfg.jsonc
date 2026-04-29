@@ -1,0 +1,26 @@
+// Diamond CFG in filter: discriminant depends on the vertex.
+// If entity_uuid matches Alice, compare against Alice's full EntityId.
+// Otherwise compare entity_uuid against Bob's EntityUuid.
+// Expected result: Alice (first arm) and Bob (second arm).
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["if",
+        ["==",
+          "vertex.metadata.record_id.entity_id.entity_uuid",
+          ["input", "alice_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+        ],
+        ["==",
+          "vertex.metadata.record_id.entity_id",
+          ["input", "alice_id", "::graph::types::knowledge::entity::EntityId"]
+        ],
+        ["==",
+          "vertex.metadata.record_id.entity_id.entity_uuid",
+          ["input", "bob_uuid", "::graph::types::knowledge::entity::EntityUuid"]
+        ]
+      ]
+    ]
+  ]
+]
