@@ -18,6 +18,7 @@ export default defineConfig({
     theme: "./src/theme.ts",
     ...componentEntries,
   },
+  copy: ["./src/types.d.ts"],
   plugins: [svgr()],
   format: ["esm"],
   dts: true,

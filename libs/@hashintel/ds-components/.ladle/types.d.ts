@@ -1,4 +1,4 @@
-/// <reference path="../types.d.ts" />
+/// <reference path="../src/types.d.ts" />
 
 declare module "*.css" {}
 declare module "@fontsource/*" {}
