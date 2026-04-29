@@ -10,7 +10,10 @@
     never_type,
 
     // Library Features
-    iterator_try_collect
+    allocator_api,
+    iter_array_chunks,
+    iterator_try_collect,
+    maybe_uninit_fill,
 )]
 
 extern crate alloc;
