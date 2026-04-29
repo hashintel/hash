@@ -41,6 +41,9 @@
     "lint:tsc": {
       "dependsOn": ["codegen"]
     },
+    "fix": {
+      "dependsOn": ["codegen"]
+    },
     "preview:ladle": {
       "dependsOn": ["build:ladle"]
     },

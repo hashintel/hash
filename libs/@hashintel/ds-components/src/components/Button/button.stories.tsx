@@ -4,7 +4,6 @@ import type { Story, StoryDefault } from "@ladle/react";
 import { formInputSizes } from "../../util/form-shared";
 import { iconNames } from "../Icon/icon";
 import {
-  type AnchorElementProps,
   Button as ButtonComponent,
   type ButtonElementProps,
   type Tone,
@@ -82,10 +81,6 @@ const Button = (args: ButtonElementProps) => (
 );
 
 export const Default: Story<ButtonElementProps> = (args) => (
-  <Button {...args} />
-);
-
-export const Variants: Story<ButtonElementProps> = (args) => (
   <>
     {tones.map((tone) => (
       <div
@@ -99,134 +94,168 @@ export const Variants: Story<ButtonElementProps> = (args) => (
         })}
       >
         {variants.map((variant) => (
-          <Button key={variant} {...args} variant={variant} tone={tone}>
-            {variant}
-          </Button>
+          <>
+            <Button key={variant} {...args} variant={variant} tone={tone}>
+              {variant}
+            </Button>
+            <Button
+              key={`${variant}loading`}
+              {...args}
+              variant={variant}
+              tone={tone}
+              loading
+            >
+              {variant}
+            </Button>
+            <Button
+              key={`${variant}disabled`}
+              {...args}
+              variant={variant}
+              tone={tone}
+              disabled
+            >
+              {variant}
+            </Button>
+            <Button
+              key={`${variant}pressed`}
+              {...args}
+              variant={variant}
+              tone={tone}
+              pressed
+            >
+              {variant}
+            </Button>
+          </>
         ))}
       </div>
     ))}
   </>
 );
 
-Variants.parameters = {
-  controls: { exclude: ["variant", "tone"] },
+Default.parameters = {
+  controls: { exclude: ["variant", "tone", "loading", "pressed", "disabled"] },
 };
 
 export const Sizes: Story<ButtonElementProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[16px]",
-      alignItems: "center",
-    })}
-  >
-    {formInputSizes.map((size) => (
+  <>
+    {variants.map((variant) => (
       <div
-        key={size}
+        key={variant}
         className={css({
           display: "flex",
-          flexDirection: "column",
+          gap: "[16px]",
           alignItems: "center",
-          gap: "[8px]",
+          marginBottom: "4",
         })}
       >
-        <Button {...args} size={size}>
-          {size}
-        </Button>
-        <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-          {size}
-        </span>
+        {formInputSizes.map((size) => (
+          <div
+            key={size}
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "[8px]",
+            })}
+          >
+            <div
+              className={css({
+                display: "flex",
+                gap: "[4px]",
+                alignItems: "center",
+                marginBottom: "4",
+              })}
+            >
+              <Button {...args} size={size} variant={variant}>
+                {size}
+              </Button>
+              <Button {...args} size={size} variant={variant} loading>
+                {size}
+              </Button>
+            </div>
+            <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+              {size}
+            </span>
+          </div>
+        ))}
       </div>
     ))}
-  </div>
+  </>
 );
 
 Sizes.parameters = {
-  controls: { exclude: ["size"] },
+  controls: { exclude: ["size", "loading", "variant"] },
 };
 
 export const WithIcon: Story<ButtonElementProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[16px]",
-      alignItems: "center",
-    })}
-  >
-    <Button {...args} iconName="plus">
-      Icon Left
-    </Button>
-    <Button {...args} iconName="arrowRight" iconPosition="right">
-      Icon Right
-    </Button>
-    <Button {...args} iconName="star">
-      {undefined}
-    </Button>
-  </div>
+  <>
+    {variants.map((variant) => (
+      <div
+        key={variant}
+        className={css({
+          display: "flex",
+          gap: "[16px]",
+          alignItems: "center",
+          marginBottom: "4",
+        })}
+      >
+        <Button {...args} variant={variant} iconName="plus">
+          Icon Left
+        </Button>
+        <Button
+          {...args}
+          variant={variant}
+          iconName="arrowRight"
+          iconPosition="right"
+        >
+          Icon Right
+        </Button>
+        <Button {...args} variant={variant} iconName="star">
+          {undefined}
+        </Button>
+        <Button {...args} variant={variant} iconName="plus" loading>
+          Icon Left
+        </Button>
+        <Button
+          {...args}
+          variant={variant}
+          iconName="arrowRight"
+          iconPosition="right"
+          loading
+        >
+          Icon Right
+        </Button>
+        <Button {...args} variant={variant} iconName="star" loading>
+          {undefined}
+        </Button>
+      </div>
+    ))}
+  </>
 );
 
 WithIcon.parameters = {
-  controls: { exclude: ["iconName", "iconPosition"] },
+  controls: { exclude: ["iconName", "iconPosition", "variant", "loading"] },
 };
 
-export const Loading: Story<ButtonElementProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[16px]",
-      alignItems: "center",
-    })}
-  >
-    <Button {...args} loading>
-      Loading
-    </Button>
-    <Button {...args} loading iconName="star">
-      With Icon
-    </Button>
-  </div>
-);
-
-Loading.parameters = {
-  controls: { exclude: ["loading"] },
-};
-
-export const Disabled: Story<ButtonElementProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[16px]",
-      alignItems: "center",
-      flexWrap: "wrap",
-    })}
-  >
+export const Shape: Story<ButtonElementProps> = (args) => (
+  <>
     {variants.map((variant) => (
-      <Button key={variant} {...args} variant={variant} disabled>
-        {variant}
-      </Button>
+      <div
+        key={variant}
+        className={css({
+          display: "flex",
+          gap: "[16px]",
+          alignItems: "center",
+          marginBottom: "4",
+        })}
+      >
+        <Button {...args} variant={variant}>
+          Default
+        </Button>
+        <Button {...args} shape="round" variant={variant}>
+          Round
+        </Button>
+      </div>
     ))}
-  </div>
-);
-
-Disabled.parameters = {
-  controls: { exclude: ["variant", "disabled"] },
-};
-
-export const AsLink: Story<AnchorElementProps> = () => (
-  <div
-    className={css({
-      display: "flex",
-      gap: "[16px]",
-      alignItems: "center",
-    })}
-  >
-    <ButtonComponent href="https://example.com">Internal Link</ButtonComponent>
-    <ButtonComponent
-      href="https://example.com"
-      target="_blank"
-      iconName="externalLink"
-      iconPosition="right"
-    >
-      External Link
-    </ButtonComponent>
-  </div>
+  </>
 );
