@@ -136,7 +136,7 @@ export const safeStringify = (
       options?.space,
     );
   } catch (error) {
-    return `[unserialisable: ${(error as Error).message}]`;
+    return `[unserializable: ${(error as Error).message}]`;
   }
 };
 
