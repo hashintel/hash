@@ -26,7 +26,7 @@ fn {closure@4294967040}() -> Boolean {
     bb0(): {
         %0 = 42
         %1 = 42
-        %2 = 1
+        %2 = true
 
         return %2
     }

@@ -44,7 +44,7 @@ fn {closure@4294967040}(%0: Integer) -> Boolean {
     }
 
     bb3(%1): {
-        %2 = 1
+        %2 = true
 
         return %2
     }

@@ -6,7 +6,7 @@ fn {closure@4294967040}() -> Boolean {
     let %0: Boolean
 
     bb0(): {
-        %0 = !1
+        %0 = !true
 
         return %0
     }
@@ -18,7 +18,7 @@ fn {closure@4294967040}() -> Boolean {
     let %0: Boolean
 
     bb0(): {
-        %0 = 0
+        %0 = false
 
         return %0
     }
