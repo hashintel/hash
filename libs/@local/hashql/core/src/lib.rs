@@ -33,9 +33,10 @@
     slice_partition_dedup,
     slice_swap_unchecked,
     step_trait,
-    str_from_raw_parts,
     try_trait_v2,
     variant_count,
+    get_mut_unchecked,
+    extern_types
 )]
 
 extern crate alloc;

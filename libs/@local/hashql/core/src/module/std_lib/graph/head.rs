@@ -5,12 +5,13 @@ use crate::{
         locals::TypeDef,
         std_lib::{self, ModuleDef, StandardLibraryModule, core::func, decl},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Head {
     _dependencies: (
         std_lib::graph::Graph,
+        std_lib::graph::temporal::Temporal,
         std_lib::graph::types::knowledge::entity::Entity,
     ),
 }
@@ -26,10 +27,13 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
         let mut def = ModuleDef::new();
         let heap = lib.heap;
 
-        let graph = lib.manifest::<std_lib::graph::Graph>();
+        let query_temporal_axes_ty = lib
+            .manifest::<std_lib::graph::temporal::Temporal>()
+            .expect_type(sym::QueryTemporalAxes);
 
-        let query_temporal_axes_ty = graph.expect_type(heap.intern_symbol("QueryTemporalAxes"));
-        let mut graph_ty = graph.expect_type(heap.intern_symbol("Graph"));
+        let mut graph_ty = lib
+            .manifest::<std_lib::graph::Graph>()
+            .expect_type(heap.intern_symbol("Graph"));
         graph_ty.instantiate(&mut lib.instantiate);
 
         let mut entity = lib
