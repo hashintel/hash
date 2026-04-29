@@ -1,5 +1,5 @@
-thunk {thunk#1}() -> ::graph::TimeAxis {
-    let %0: ::graph::TimeAxis
+thunk {thunk#1}() -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
+    let %0: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %0 = input LOAD time_axis
@@ -63,7 +63,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
 thunk {thunk#7}() -> List<::graph::types::knowledge::entity::Entity> {
     let %0: List<::graph::types::knowledge::entity::Entity>
     let %1: ()
-    let %2: ::graph::TimeAxis
+    let %2: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %2 = input LOAD time_axis
