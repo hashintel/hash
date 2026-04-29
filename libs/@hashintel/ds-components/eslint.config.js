@@ -53,7 +53,7 @@ export default [
     // story surface — they're demo code, not shipped to consumers.
     files: [
       "src/**/*.story.ts{x,}",
-      "src/**/*.stories.ts{x,}",
+      "src/beta/**/*.stories.ts{x,}",
       "src/tokens/**/*.{ts,tsx,mdx}",
     ],
     languageOptions: {
