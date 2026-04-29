@@ -1,5 +1,6 @@
 //! Allocator-aware conversion traits.
 
+use alloc::rc::Rc;
 use core::alloc::Allocator;
 
 use super::CollectIn as _;
@@ -58,6 +59,26 @@ impl<A: Allocator> FromIn<String, A> for Box<str, A> {
     }
 }
 
+impl<A: Allocator> FromIn<&str, A> for Rc<str, A> {
+    #[inline]
+    fn from_in(value: &str, allocator: A) -> Self {
+        // This is very much the same as Rc::from(), but without the specialization
+        let mut slice = Rc::new_uninit_slice_in(value.len(), allocator);
+
+        // SAFETY: We have just created the slice, so we're guaranteed to have exclusive access.
+        let slice_ref = unsafe { Rc::get_mut_unchecked(&mut slice) };
+        slice_ref.write_copy_of_slice(value.as_bytes());
+
+        // SAFETY: We have just written to the slice, so we're guaranteed to have initialized it.
+        let slice = unsafe { slice.assume_init() };
+
+        let (ptr, alloc) = Rc::into_raw_with_allocator(slice);
+
+        // SAFETY: str has the same layout as `[u8]`, so this is safe.
+        unsafe { Self::from_raw_in(ptr as *const str, alloc) }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,5 +129,46 @@ mod tests {
 
         let boxed: Box<str, &Heap> = String::from("foo").into_in(&heap);
         assert_eq!(&*boxed, "foo");
+    }
+
+    #[test]
+    fn str_into_rc_str() {
+        let heap = Heap::new();
+
+        let rc: Rc<str, &Heap> = "hello".into_in(&heap);
+        assert_eq!(&*rc, "hello");
+
+        let rc: Rc<str, &Heap> = Rc::from_in("world", &heap);
+        assert_eq!(&*rc, "world");
+    }
+
+    #[expect(clippy::non_ascii_literal)]
+    #[test]
+    fn str_into_rc_str_unicode() {
+        let heap = Heap::new();
+
+        let rc: Rc<str, &Heap> = "日本語 🎉".into_in(&heap);
+        assert_eq!(&*rc, "日本語 🎉");
+    }
+
+    #[test]
+    fn str_into_rc_str_empty() {
+        let heap = Heap::new();
+
+        let rc: Rc<str, &Heap> = "".into_in(&heap);
+        assert_eq!(&*rc, "");
+        assert_eq!(rc.len(), 0);
+    }
+
+    #[test]
+    fn rc_str_clone_shares_data() {
+        let heap = Heap::new();
+
+        let rc1: Rc<str, &Heap> = "shared".into_in(&heap);
+        let rc2 = Rc::clone(&rc1);
+
+        assert_eq!(&*rc1, "shared");
+        assert_eq!(&*rc2, "shared");
+        assert!(Rc::ptr_eq(&rc1, &rc2));
     }
 }

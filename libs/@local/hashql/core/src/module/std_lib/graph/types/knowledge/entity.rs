@@ -2,292 +2,545 @@ use crate::{
     heap::Heap,
     module::{
         StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::option},
+        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule},
     },
     symbol::{Symbol, sym},
 };
+
+pub mod types {
+    use crate::{
+        module::std_lib::{self, core::option::types::option},
+        symbol::sym,
+        r#type::{TypeBuilder, TypeId},
+    };
+
+    // newtype EntityUuid = Uuid;
+    pub struct EntityUuidDependencies {
+        pub uuid: TypeId,
+    }
+
+    #[must_use]
+    pub fn entity_uuid(ty: &TypeBuilder<'_, '_>, deps: Option<EntityUuidDependencies>) -> TypeId {
+        let EntityUuidDependencies { uuid } = deps.unwrap_or_else(|| EntityUuidDependencies {
+            uuid: std_lib::core::uuid::types::uuid(ty),
+        });
+
+        ty.opaque(sym::path::EntityUuid, uuid)
+    }
+
+    // newtype DraftId = Uuid;
+    pub struct DraftIdDependencies {
+        pub uuid: TypeId,
+    }
+
+    #[must_use]
+    pub fn draft_id(ty: &TypeBuilder<'_, '_>, deps: Option<DraftIdDependencies>) -> TypeId {
+        let DraftIdDependencies { uuid } = deps.unwrap_or_else(|| DraftIdDependencies {
+            uuid: std_lib::core::uuid::types::uuid(ty),
+        });
+
+        ty.opaque(sym::path::DraftId, uuid)
+    }
+
+    // newtype EntityEditionId = Uuid;
+    pub struct EntityEditionIdDependencies {
+        pub uuid: TypeId,
+    }
+
+    #[must_use]
+    pub fn entity_edition_id(
+        ty: &TypeBuilder<'_, '_>,
+        deps: Option<EntityEditionIdDependencies>,
+    ) -> TypeId {
+        let EntityEditionIdDependencies { uuid } =
+            deps.unwrap_or_else(|| EntityEditionIdDependencies {
+                uuid: std_lib::core::uuid::types::uuid(ty),
+            });
+
+        ty.opaque(sym::path::EntityEditionId, uuid)
+    }
+
+    // newtype EntityId = (web_id: WebId, entity_uuid: EntityUuid, draft_id: Option<DraftId>)
+    pub struct EntityIdDependencies {
+        pub web_id: TypeId,
+        pub entity_uuid: TypeId,
+        pub draft_id: TypeId,
+    }
+
+    #[must_use]
+    pub fn entity_id(ty: &TypeBuilder<'_, '_>, deps: Option<EntityIdDependencies>) -> TypeId {
+        let EntityIdDependencies {
+            web_id,
+            entity_uuid,
+            draft_id,
+        } = deps.unwrap_or_else(|| EntityIdDependencies {
+            web_id: std_lib::graph::types::principal::actor_group::web::types::web_id(ty, None),
+            entity_uuid: self::entity_uuid(ty, None),
+            draft_id: self::draft_id(ty, None),
+        });
+
+        ty.opaque(
+            sym::path::EntityId,
+            ty.r#struct([
+                (sym::web_id, web_id),
+                (sym::entity_uuid, entity_uuid),
+                (sym::draft_id, option(ty, draft_id)),
+            ]),
+        )
+    }
+
+    // newtype RecordId = (entity_id: EntityId, edition_id: EntityEditionId)
+    pub struct RecordIdDependencies {
+        pub entity_id: TypeId,
+        pub edition_id: TypeId,
+    }
+
+    #[must_use]
+    pub fn record_id(ty: &TypeBuilder<'_, '_>, deps: Option<RecordIdDependencies>) -> TypeId {
+        let RecordIdDependencies {
+            entity_id,
+            edition_id,
+        } = deps.unwrap_or_else(|| RecordIdDependencies {
+            entity_id: self::entity_id(ty, None),
+            edition_id: self::entity_edition_id(ty, None),
+        });
+
+        ty.opaque(
+            sym::path::RecordId,
+            ty.r#struct([(sym::entity_id, entity_id), (sym::edition_id, edition_id)]),
+        )
+    }
+
+    // newtype TemporalMetadata = (
+    //     decision_time: DecisionTime<LeftClosedTemporalInterval>,
+    //     transaction_time: TransactionTime<LeftClosedTemporalInterval>,
+    // )
+    pub struct TemporalMetadataDependencies {
+        pub interval: TypeId,
+    }
+
+    #[must_use]
+    pub fn temporal_metadata(
+        ty: &TypeBuilder<'_, '_>,
+        deps: Option<TemporalMetadataDependencies>,
+    ) -> TypeId {
+        let TemporalMetadataDependencies { interval } =
+            deps.unwrap_or_else(|| TemporalMetadataDependencies {
+                interval: std_lib::graph::temporal::types::left_closed_temporal_interval(ty),
+            });
+
+        ty.opaque(
+            sym::path::TemporalMetadata,
+            ty.r#struct([
+                (
+                    sym::decision_time,
+                    std_lib::graph::temporal::types::decision_time(ty, interval),
+                ),
+                (
+                    sym::transaction_time,
+                    std_lib::graph::temporal::types::transaction_time(ty, interval),
+                ),
+            ]),
+        )
+    }
+
+    // newtype Confidence = Number
+    #[must_use]
+    pub fn confidence(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::Confidence, ty.number())
+    }
+
+    // newtype InferredEntityProvenance = Unknown
+    //
+    // JSONB blob in `entity_ids.provenance`. Contains `created_by_id`,
+    // `created_at_transaction_time`, `created_at_decision_time`, and optional
+    // `first_non_draft_created_at_*` timestamps.
+    #[must_use]
+    pub fn inferred_entity_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::InferredEntityProvenance, ty.unknown())
+    }
+
+    // newtype EntityEditionProvenance = Unknown
+    //
+    // JSONB blob in `entity_editions.provenance`. Contains `created_by_id`,
+    // optional `archived_by_id`, `actor_type`, `OriginProvenance`, and
+    // `Vec<SourceProvenance>`.
+    #[must_use]
+    pub fn entity_edition_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::EntityEditionProvenance, ty.unknown())
+    }
+
+    // newtype EntityProvenance = (
+    //     inferred: InferredEntityProvenance,
+    //     edition: EntityEditionProvenance,
+    // )
+    pub struct EntityProvenanceDependencies {
+        pub inferred: TypeId,
+        pub edition: TypeId,
+    }
+
+    #[must_use]
+    pub fn entity_provenance(
+        ty: &TypeBuilder<'_, '_>,
+        deps: Option<EntityProvenanceDependencies>,
+    ) -> TypeId {
+        let EntityProvenanceDependencies { inferred, edition } =
+            deps.unwrap_or_else(|| EntityProvenanceDependencies {
+                inferred: self::inferred_entity_provenance(ty),
+                edition: self::entity_edition_provenance(ty),
+            });
+
+        ty.opaque(
+            sym::path::EntityProvenance,
+            ty.r#struct([(sym::inferred, inferred), (sym::edition, edition)]),
+        )
+    }
+
+    // newtype PropertyProvenance = Unknown
+    //
+    // JSONB blob on entity edges (`entity_edge.provenance`). Just
+    // `Vec<SourceProvenance>`.
+    #[must_use]
+    pub fn property_provenance(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::PropertyProvenance, ty.unknown())
+    }
+
+    // newtype PropertyObjectMetadata = Unknown
+    //
+    // JSONB blob in `entity_editions.property_metadata`. Contains per-property-key
+    // metadata (confidence, provenance) rather than property values.
+    #[must_use]
+    pub fn property_object_metadata(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(sym::path::PropertyObjectMetadata, ty.unknown())
+    }
+
+    // newtype EntityMetadata = (
+    //     record_id: EntityRecordId,
+    //     temporal_versioning: EntityTemporalMetadata,
+    //     entity_type_ids: List<VersionedUrl>,
+    //     archived: Boolean,
+    //     provenance: EntityProvenance,
+    //     confidence: Option<Confidence>,
+    //     properties: PropertyObjectMetadata,
+    // )
+    pub struct EntityMetadataDependencies {
+        pub record_id: TypeId,
+        pub temporal_versioning: TypeId,
+        pub entity_type_ids: TypeId,
+        pub provenance: TypeId,
+        pub confidence: TypeId,
+        pub properties: TypeId,
+    }
+
+    #[must_use]
+    pub fn entity_metadata(
+        ty: &TypeBuilder<'_, '_>,
+        deps: Option<EntityMetadataDependencies>,
+    ) -> TypeId {
+        let EntityMetadataDependencies {
+            record_id,
+            temporal_versioning,
+            entity_type_ids,
+            provenance,
+            confidence,
+            properties,
+        } = deps.unwrap_or_else(|| EntityMetadataDependencies {
+            record_id: self::record_id(ty, None),
+            temporal_versioning: self::temporal_metadata(ty, None),
+            entity_type_ids: ty.list(std_lib::graph::types::ontology::types::versioned_url(
+                ty, None,
+            )),
+            provenance: self::entity_provenance(ty, None),
+            confidence: self::confidence(ty),
+            properties: self::property_object_metadata(ty),
+        });
+
+        ty.opaque(
+            sym::path::EntityMetadata,
+            ty.r#struct([
+                (sym::record_id, record_id),
+                (sym::temporal_versioning, temporal_versioning),
+                (sym::entity_type_ids, entity_type_ids),
+                (sym::archived, ty.boolean()),
+                (sym::provenance, provenance),
+                (sym::confidence, option(ty, confidence)),
+                (sym::properties, properties),
+            ]),
+        )
+    }
+
+    // newtype LinkData = (
+    //     left_entity_id: EntityId,
+    //     right_entity_id: EntityId,
+    //     left_entity_confidence: Option<Confidence>,
+    //     left_entity_provenance: PropertyProvenance,
+    //     right_entity_confidence: Option<Confidence>,
+    //     right_entity_provenance: PropertyProvenance,
+    // )
+    pub struct LinkDataDependencies {
+        pub entity_id: TypeId,
+        pub confidence: TypeId,
+        pub property_provenance: TypeId,
+    }
+
+    #[must_use]
+    pub fn link_data(ty: &TypeBuilder<'_, '_>, deps: Option<LinkDataDependencies>) -> TypeId {
+        let LinkDataDependencies {
+            entity_id,
+            confidence,
+            property_provenance,
+        } = deps.unwrap_or_else(|| LinkDataDependencies {
+            entity_id: self::entity_id(ty, None),
+            confidence: self::confidence(ty),
+            property_provenance: self::property_provenance(ty),
+        });
+
+        ty.opaque(
+            sym::path::LinkData,
+            ty.r#struct([
+                (sym::left_entity_id, entity_id),
+                (sym::right_entity_id, entity_id),
+                (sym::left_entity_confidence, option(ty, confidence)),
+                (sym::left_entity_provenance, property_provenance),
+                (sym::right_entity_confidence, option(ty, confidence)),
+                (sym::right_entity_provenance, property_provenance),
+            ]),
+        )
+    }
+
+    // newtype EntityEncodings = (vectors: Unknown)
+    //
+    // The graph API doesn't expose encodings yet, but the storage layer already has
+    // them. The `?` inner type is correct; the encoding format is opaque to the
+    // type system.
+    #[must_use]
+    pub fn entity_encodings(ty: &TypeBuilder<'_, '_>) -> TypeId {
+        ty.opaque(
+            sym::path::EntityEncodings,
+            ty.r#struct([(sym::vectors, ty.unknown())]),
+        )
+    }
+
+    // newtype Entity<T> = (
+    //     properties: T,
+    //     link_data: Option<LinkData>,
+    //     metadata: EntityMetadata,
+    //     encodings: EntityEncodings,
+    // )
+    pub struct EntityDependencies {
+        pub link_data: TypeId,
+        pub metadata: TypeId,
+        pub encodings: TypeId,
+    }
+
+    #[must_use]
+    pub fn entity(
+        ty: &TypeBuilder<'_, '_>,
+        properties: TypeId,
+        deps: Option<EntityDependencies>,
+    ) -> TypeId {
+        let EntityDependencies {
+            link_data,
+            metadata,
+            encodings,
+        } = deps.unwrap_or_else(|| EntityDependencies {
+            link_data: self::link_data(ty, None),
+            metadata: self::entity_metadata(ty, None),
+            encodings: self::entity_encodings(ty),
+        });
+
+        ty.opaque(
+            sym::path::Entity,
+            ty.r#struct([
+                (sym::properties, properties),
+                (sym::link_data, option(ty, link_data)),
+                (sym::metadata, metadata),
+                (sym::encodings, encodings),
+            ]),
+        )
+    }
+}
 
 pub(in crate::module::std_lib) struct Entity {
     _dependencies: (
         std_lib::core::uuid::Uuid,
         std_lib::graph::types::principal::actor_group::web::Web,
         std_lib::graph::types::ontology::Ontology,
+        std_lib::graph::temporal::Temporal,
     ),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Entity {
     type Children = ();
 
-    fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("entity")
+    fn name(_: &'heap Heap) -> Symbol<'heap> {
+        sym::entity
     }
 
     #[expect(clippy::too_many_lines)]
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
-        let heap = lib.heap;
 
-        // newtype EntityUuid = Uuid;
         let uuid_ty = lib
             .manifest::<std_lib::core::uuid::Uuid>()
-            .expect_newtype(heap.intern_symbol("Uuid"));
-        let entity_uuid_ty = lib
-            .ty
-            .opaque("::graph::types::knowledge::entity::EntityUuid", uuid_ty.id);
-        def.push(
-            heap.intern_symbol("EntityUuid"),
-            ItemDef::newtype(lib.ty.env, entity_uuid_ty, &[]),
-        );
-
-        // newtype DraftId = Uuid;
-        let draft_id_ty = lib
-            .ty
-            .opaque("::graph::types::knowledge::entity::DraftId", uuid_ty.id);
-        def.push(
-            heap.intern_symbol("DraftId"),
-            ItemDef::newtype(lib.ty.env, draft_id_ty, &[]),
-        );
-
-        // newtype EntityEditionId = Uuid;
-        let entity_edition_id_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::EntityEditionId",
-            uuid_ty.id,
-        );
-        def.push(
-            heap.intern_symbol("EntityEditionId"),
-            ItemDef::newtype(lib.ty.env, entity_edition_id_ty, &[]),
-        );
-
-        // newtype EntityId = (web_id: WebId, entity_uuid: EntityUuid, draft_id: Option<DraftId>)
-        let web_id = lib
+            .expect_newtype(sym::Uuid)
+            .id;
+        let web_id_ty = lib
             .manifest::<std_lib::graph::types::principal::actor_group::web::Web>()
-            .expect_newtype(heap.intern_symbol("WebId"));
-        let entity_id_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::EntityId",
-            lib.ty.r#struct([
-                ("web_id", web_id.id),
-                ("entity_uuid", entity_uuid_ty),
-                ("draft_id", option(lib, draft_id_ty)),
-            ]),
-        );
-        def.push(
-            heap.intern_symbol("EntityId"),
-            ItemDef::newtype(lib.ty.env, entity_id_ty, &[]),
-        );
-
-        // newtype EntityRecordId = (entity_id: EntityId, edition_id: EntityEditionId)
-        let entity_record_id_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::EntityRecordId",
-            lib.ty.r#struct([
-                ("entity_id", entity_id_ty),
-                ("edition_id", entity_edition_id_ty),
-            ]),
-        );
-        def.push(
-            heap.intern_symbol("EntityRecordId"),
-            ItemDef::newtype(lib.ty.env, entity_record_id_ty, &[]),
-        );
-
-        // newtype TemporalInterval = Unknown
-        //
-        // Opaque wrapper for `LeftClosedTemporalInterval`. The internal structure (start bound,
-        // end bound) is not exposed to the HashQL type system; the placement resolver only needs
-        // the field name prefix (`temporal_versioning.decision_time`).
-        let temporal_interval_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::TemporalInterval",
-            lib.ty.unknown(),
-        );
-        def.push(
-            heap.intern_symbol("TemporalInterval"),
-            ItemDef::newtype(lib.ty.env, temporal_interval_ty, &[]),
-        );
-
-        // newtype EntityTemporalMetadata = (
-        //     decision_time: TemporalInterval,
-        //     transaction_time: TemporalInterval,
-        // )
-        let temporal_metadata_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::EntityTemporalMetadata",
-            lib.ty.r#struct([
-                ("decision_time", temporal_interval_ty),
-                ("transaction_time", temporal_interval_ty),
-            ]),
-        );
-        def.push(
-            heap.intern_symbol("EntityTemporalMetadata"),
-            ItemDef::newtype(lib.ty.env, temporal_metadata_ty, &[]),
-        );
-
-        // newtype Confidence = Number
-        let confidence_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::Confidence",
-            lib.ty.number(),
-        );
-        def.push(
-            heap.intern_symbol("Confidence"),
-            ItemDef::newtype(lib.ty.env, confidence_ty, &[]),
-        );
-
-        // newtype InferredEntityProvenance = Unknown
-        //
-        // JSONB blob in `entity_ids.provenance`. Contains `created_by_id`,
-        // `created_at_transaction_time`, `created_at_decision_time`, and optional
-        // `first_non_draft_created_at_*` timestamps.
-        let inferred_provenance_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::InferredEntityProvenance",
-            lib.ty.unknown(),
-        );
-        def.push(
-            heap.intern_symbol("InferredEntityProvenance"),
-            ItemDef::newtype(lib.ty.env, inferred_provenance_ty, &[]),
-        );
-
-        // newtype EntityEditionProvenance = Unknown
-        //
-        // JSONB blob in `entity_editions.provenance`. Contains `created_by_id`,
-        // optional `archived_by_id`, `actor_type`, `OriginProvenance`, and
-        // `Vec<SourceProvenance>`.
-        let edition_provenance_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::EntityEditionProvenance",
-            lib.ty.unknown(),
-        );
-        def.push(
-            heap.intern_symbol("EntityEditionProvenance"),
-            ItemDef::newtype(lib.ty.env, edition_provenance_ty, &[]),
-        );
-
-        // newtype EntityProvenance = (
-        //     inferred: InferredEntityProvenance,
-        //     edition: EntityEditionProvenance,
-        // )
-        let entity_provenance_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::EntityProvenance",
-            lib.ty.r#struct([
-                ("inferred", inferred_provenance_ty),
-                ("edition", edition_provenance_ty),
-            ]),
-        );
-        def.push(
-            heap.intern_symbol("EntityProvenance"),
-            ItemDef::newtype(lib.ty.env, entity_provenance_ty, &[]),
-        );
-
-        // newtype PropertyProvenance = Unknown
-        //
-        // JSONB blob on entity edges (`entity_edge.provenance`). Just
-        // `Vec<SourceProvenance>`.
-        let property_provenance_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::PropertyProvenance",
-            lib.ty.unknown(),
-        );
-        def.push(
-            heap.intern_symbol("PropertyProvenance"),
-            ItemDef::newtype(lib.ty.env, property_provenance_ty, &[]),
-        );
-
-        // newtype PropertyObjectMetadata = Unknown
-        //
-        // JSONB blob in `entity_editions.property_metadata`. Contains per-property-key
-        // metadata (confidence, provenance) rather than property values.
-        let property_object_metadata_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::PropertyObjectMetadata",
-            lib.ty.unknown(),
-        );
-        def.push(
-            heap.intern_symbol("PropertyObjectMetadata"),
-            ItemDef::newtype(lib.ty.env, property_object_metadata_ty, &[]),
-        );
-
-        // newtype EntityMetadata = (
-        //     record_id: EntityRecordId,
-        //     temporal_versioning: EntityTemporalMetadata,
-        //     entity_type_ids: List<VersionedUrl>,
-        //     archived: Boolean,
-        //     provenance: EntityProvenance,
-        //     confidence: Option<Confidence>,
-        //     properties: PropertyObjectMetadata,
-        // )
-        let versioned_url = lib
+            .expect_newtype(sym::WebId)
+            .id;
+        let versioned_url_ty = lib
             .manifest::<std_lib::graph::types::ontology::Ontology>()
-            .expect_newtype(heap.intern_symbol("VersionedUrl"));
-        let entity_metadata_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::EntityMetadata",
-            lib.ty.r#struct([
-                ("record_id", entity_record_id_ty),
-                ("temporal_versioning", temporal_metadata_ty),
-                ("entity_type_ids", lib.ty.list(versioned_url.id)),
-                ("archived", lib.ty.boolean()),
-                ("provenance", entity_provenance_ty),
-                ("confidence", option(lib, confidence_ty)),
-                ("properties", property_object_metadata_ty),
-            ]),
-        );
+            .expect_newtype(sym::VersionedUrl)
+            .id;
+        let left_closed_interval_ty = lib
+            .manifest::<std_lib::graph::temporal::Temporal>()
+            .expect_type(sym::LeftClosedTemporalInterval)
+            .id;
+
+        let ty = &lib.ty;
+
+        let entity_uuid_ty =
+            types::entity_uuid(ty, Some(types::EntityUuidDependencies { uuid: uuid_ty }));
         def.push(
-            heap.intern_symbol("EntityMetadata"),
-            ItemDef::newtype(lib.ty.env, entity_metadata_ty, &[]),
+            sym::EntityUuid,
+            ItemDef::newtype(ty.env, entity_uuid_ty, &[]),
         );
 
-        // newtype LinkData = (
-        //     left_entity_id: EntityId,
-        //     right_entity_id: EntityId,
-        //     left_entity_confidence: Option<Confidence>,
-        //     left_entity_provenance: PropertyProvenance,
-        //     right_entity_confidence: Option<Confidence>,
-        //     right_entity_provenance: PropertyProvenance,
-        // )
-        let link_data_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::LinkData",
-            lib.ty.r#struct([
-                ("left_entity_id", entity_id_ty),
-                ("right_entity_id", entity_id_ty),
-                ("left_entity_confidence", option(lib, confidence_ty)),
-                ("left_entity_provenance", property_provenance_ty),
-                ("right_entity_confidence", option(lib, confidence_ty)),
-                ("right_entity_provenance", property_provenance_ty),
-            ]),
+        let draft_id_ty = types::draft_id(ty, Some(types::DraftIdDependencies { uuid: uuid_ty }));
+        def.push(sym::DraftId, ItemDef::newtype(ty.env, draft_id_ty, &[]));
+
+        let entity_edition_id_ty = types::entity_edition_id(
+            ty,
+            Some(types::EntityEditionIdDependencies { uuid: uuid_ty }),
         );
         def.push(
-            heap.intern_symbol("LinkData"),
-            ItemDef::newtype(lib.ty.env, link_data_ty, &[]),
+            sym::EntityEditionId,
+            ItemDef::newtype(ty.env, entity_edition_id_ty, &[]),
         );
 
-        // newtype EntityEncodings = (vectors: Unknown)
-        //
-        // The graph API doesn't expose encodings yet, but the storage layer already has
-        // them. The `?` inner type is correct; the encoding format is opaque to the
-        // type system.
-        let encodings_ty = lib.ty.opaque(
-            "::graph::types::knowledge::entity::EntityEncodings",
-            lib.ty.r#struct([("vectors", lib.ty.unknown())]),
+        let entity_id_ty = types::entity_id(
+            ty,
+            Some(types::EntityIdDependencies {
+                web_id: web_id_ty,
+                entity_uuid: entity_uuid_ty,
+                draft_id: draft_id_ty,
+            }),
+        );
+        def.push(sym::EntityId, ItemDef::newtype(ty.env, entity_id_ty, &[]));
+
+        let record_id_ty = types::record_id(
+            ty,
+            Some(types::RecordIdDependencies {
+                entity_id: entity_id_ty,
+                edition_id: entity_edition_id_ty,
+            }),
+        );
+        def.push(sym::RecordId, ItemDef::newtype(ty.env, record_id_ty, &[]));
+
+        let temporal_metadata_ty = types::temporal_metadata(
+            ty,
+            Some(types::TemporalMetadataDependencies {
+                interval: left_closed_interval_ty,
+            }),
         );
         def.push(
-            heap.intern_symbol("EntityEncodings"),
-            ItemDef::newtype(lib.ty.env, encodings_ty, &[]),
+            sym::TemporalMetadata,
+            ItemDef::newtype(ty.env, temporal_metadata_ty, &[]),
         );
 
-        // newtype Entity<T> = (
-        //     properties: T,
-        //     link_data: Option<LinkData>,
-        //     metadata: EntityMetadata,
-        //     encodings: EntityEncodings,
-        // )
-        let t_arg = lib.ty.fresh_argument("T");
+        let confidence_ty = types::confidence(ty);
+        def.push(
+            sym::Confidence,
+            ItemDef::newtype(ty.env, confidence_ty, &[]),
+        );
+
+        let inferred_provenance_ty = types::inferred_entity_provenance(ty);
+        def.push(
+            sym::InferredEntityProvenance,
+            ItemDef::newtype(ty.env, inferred_provenance_ty, &[]),
+        );
+
+        let edition_provenance_ty = types::entity_edition_provenance(ty);
+        def.push(
+            sym::EntityEditionProvenance,
+            ItemDef::newtype(ty.env, edition_provenance_ty, &[]),
+        );
+
+        let entity_provenance_ty = types::entity_provenance(
+            ty,
+            Some(types::EntityProvenanceDependencies {
+                inferred: inferred_provenance_ty,
+                edition: edition_provenance_ty,
+            }),
+        );
+        def.push(
+            sym::EntityProvenance,
+            ItemDef::newtype(ty.env, entity_provenance_ty, &[]),
+        );
+
+        let property_provenance_ty = types::property_provenance(ty);
+        def.push(
+            sym::PropertyProvenance,
+            ItemDef::newtype(ty.env, property_provenance_ty, &[]),
+        );
+
+        let property_object_metadata_ty = types::property_object_metadata(ty);
+        def.push(
+            sym::PropertyObjectMetadata,
+            ItemDef::newtype(ty.env, property_object_metadata_ty, &[]),
+        );
+
+        let entity_metadata_ty = types::entity_metadata(
+            ty,
+            Some(types::EntityMetadataDependencies {
+                record_id: record_id_ty,
+                temporal_versioning: temporal_metadata_ty,
+                entity_type_ids: ty.list(versioned_url_ty),
+                provenance: entity_provenance_ty,
+                confidence: confidence_ty,
+                properties: property_object_metadata_ty,
+            }),
+        );
+        def.push(
+            sym::EntityMetadata,
+            ItemDef::newtype(ty.env, entity_metadata_ty, &[]),
+        );
+
+        let link_data_ty = types::link_data(
+            ty,
+            Some(types::LinkDataDependencies {
+                entity_id: entity_id_ty,
+                confidence: confidence_ty,
+                property_provenance: property_provenance_ty,
+            }),
+        );
+        def.push(sym::LinkData, ItemDef::newtype(ty.env, link_data_ty, &[]));
+
+        let encodings_ty = types::entity_encodings(ty);
+        def.push(
+            sym::EntityEncodings,
+            ItemDef::newtype(ty.env, encodings_ty, &[]),
+        );
+
+        // Entity<T>
+        let t_arg = lib.ty.fresh_argument(sym::T);
         let t_ref = lib.ty.hydrate_argument(t_arg);
         let t_param = lib.ty.param(t_arg);
         let entity_ty = lib.ty.generic(
             [t_arg],
-            lib.ty.opaque(
-                sym::path::Entity,
-                lib.ty.r#struct([
-                    ("properties", t_param),
-                    ("link_data", option(lib, link_data_ty)),
-                    ("metadata", entity_metadata_ty),
-                    ("encodings", encodings_ty),
-                ]),
+            types::entity(
+                &lib.ty,
+                t_param,
+                Some(types::EntityDependencies {
+                    link_data: link_data_ty,
+                    metadata: entity_metadata_ty,
+                    encodings: encodings_ty,
+                }),
             ),
         );
         def.push(
-            heap.intern_symbol("Entity"),
+            sym::Entity,
             ItemDef::newtype(lib.ty.env, entity_ty, &[t_ref]),
         );
 
