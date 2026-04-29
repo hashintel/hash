@@ -15,11 +15,11 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
     }
 
     bb1(): {
-        goto -> bb3(1)
+        goto -> bb3(true)
     }
 
     bb2(): {
-        goto -> bb3(0)
+        goto -> bb3(false)
     }
 
     bb3(%3): {
