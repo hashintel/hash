@@ -58,16 +58,14 @@ export const checkbox = defineSlotRecipe({
     variant: {
       solid: {
         control: {
-          control: {
-            borderColor: "border",
-            _checked: {
-              bg: "colorPalette.solid.bg",
-              borderColor: "colorPalette.solid.bg",
-              color: "colorPalette.solid.fg",
-            },
-            _invalid: {
-              background: "error",
-            },
+          borderColor: "border",
+          _checked: {
+            bg: "colorPalette.solid.bg",
+            borderColor: "colorPalette.solid.bg",
+            color: "colorPalette.solid.fg",
+          },
+          _invalid: {
+            background: "error",
           },
         },
       },

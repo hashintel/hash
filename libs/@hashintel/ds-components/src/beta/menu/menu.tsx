@@ -17,7 +17,7 @@ export type RootProps = ComponentProps<typeof Root>;
 export const Root = withRootProvider(Menu.Root, {
   defaultProps: { unmountOnExit: true, lazyMount: true },
 });
-export const RootProvider = withRootProvider(Menu.Root, {
+export const RootProvider = withRootProvider(Menu.RootProvider, {
   defaultProps: { unmountOnExit: true, lazyMount: true },
 });
 export const Arrow = withContext(Menu.Arrow, "arrow");

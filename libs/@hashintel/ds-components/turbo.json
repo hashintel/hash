@@ -18,7 +18,7 @@
       "outputs": ["dist/**"]
     },
     "codegen": {
-      "dependsOn": [],
+      "dependsOn": ["^build"],
       "outputs": [
         "src/preset/theme/**/*.gen.ts",
         "../ds-helpers/styled-system/**"

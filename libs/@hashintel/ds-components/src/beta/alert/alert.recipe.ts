@@ -67,8 +67,7 @@ export const alert = defineSlotRecipe({
     variant: {
       solid: {
         root: {
-          // bg: "colorPalette.solid.bg",
-          bg: "[ #ff0000]",
+          bg: "colorPalette.solid.bg",
           color: "colorPalette.solid.fg",
         },
       },
