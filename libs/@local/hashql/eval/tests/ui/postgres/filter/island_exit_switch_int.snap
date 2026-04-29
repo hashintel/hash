@@ -22,7 +22,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
     }
 
     bb1(): {
-        %7 = 1
+        %7 = true
 
         return %7
     }

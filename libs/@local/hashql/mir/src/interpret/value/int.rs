@@ -61,8 +61,8 @@ const INT_BITS: NonZero<u8> = NonZero::new(128).unwrap();
 /// assert_eq!(n.size(), 128);
 /// assert_eq!(n.as_int(), 42);
 ///
-/// // Bool provenance is preserved: from(true) ≠ from(1)
-/// assert_ne!(Int::from(true), Int::from(1_i32));
+/// // Bool provenance is metadata, not identity: from(true) == from(1)
+/// assert_eq!(Int::from(true), Int::from(1_i32));
 /// ```
 // Uses `#[repr(packed)]` to avoid alignment padding, which would duplicate size, same as
 // rust-lang's ScalarInt.
@@ -310,7 +310,7 @@ impl Display for Int {
 impl PartialEq for Int {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.as_int() == other.as_int() && self.size() == other.size()
+        self.as_int() == other.as_int()
     }
 }
 
@@ -326,7 +326,7 @@ impl PartialOrd for Int {
 impl Ord for Int {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        (self.size(), self.as_int()).cmp(&(other.size(), other.as_int()))
+        self.as_int().cmp(&other.as_int())
     }
 }
 
@@ -334,7 +334,6 @@ impl Hash for Int {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.as_int().hash(state);
-        self.size().hash(state);
     }
 }
 
@@ -681,10 +680,12 @@ mod tests {
     }
 
     #[test]
-    fn bool_provenance_preserved() {
-        // from(true) and from(1) have the same numeric value but different sizes
-        assert_ne!(Int::from(true), Int::from(1_i32));
-        assert_ne!(Int::from(false), Int::from(0_i32));
+    fn bool_int_equality_is_numeric() {
+        // Bool provenance (size) does not affect equality — only the numeric value matters.
+        // The type checker prevents comparing bools with ints; at the value level,
+        // same numeric content means same value.
+        assert_eq!(Int::from(true), Int::from(1_i32));
+        assert_eq!(Int::from(false), Int::from(0_i32));
     }
 
     #[test]
@@ -726,16 +727,22 @@ mod tests {
     }
 
     #[test]
-    fn equality_is_size_aware() {
+    fn equality_is_numeric() {
         assert_eq!(Int::from(true), Int::from(true));
         assert_eq!(Int::from(42_i64), Int::from(42_i64));
-        assert_ne!(Int::from(true), Int::from(1_i64));
+        assert_eq!(Int::from(true), Int::from(1_i64));
+        assert_eq!(Int::from(false), Int::from(0_i64));
     }
 
     #[test]
-    fn ordering_groups_by_size() {
-        // Bools (size 1) sort before ints (size 128)
-        assert!(Int::from(true) < Int::from(0_i32));
+    fn ordering_is_numeric() {
+        // Ordering is purely by numeric value, size is not considered.
+        assert_eq!(
+            Int::from(true).cmp(&Int::from(1_i32)),
+            core::cmp::Ordering::Equal
+        );
+        assert!(Int::from(false) < Int::from(1_i32));
+        assert!(Int::from(true) > Int::from(0_i32));
     }
 
     #[test]
@@ -836,6 +843,45 @@ mod tests {
     fn not_bool() {
         assert_eq!(!Int::from(true), Int::from(false));
         assert_eq!(!Int::from(false), Int::from(true));
+    }
+
+    #[test]
+    fn eq_ord_transitivity_with_num() {
+        use core::cmp::Ordering;
+
+        use crate::interpret::value::Num;
+
+        let bool_one = Int::from(true);
+        let int_one = Int::from(1_i32);
+        let num_one = Num::from(1.0);
+
+        // Transitivity: bool_one == num_one, num_one == int_one, therefore bool_one == int_one
+        assert_eq!(bool_one, num_one);
+        assert_eq!(num_one, int_one);
+        assert_eq!(bool_one, int_one);
+
+        // Ord consistency
+        assert_eq!(num_one.cmp_int(&bool_one), Ordering::Equal);
+        assert_eq!(num_one.cmp_int(&int_one), Ordering::Equal);
+        assert_eq!(bool_one.cmp(&int_one), Ordering::Equal);
+    }
+
+    #[test]
+    fn hash_consistent_with_eq() {
+        use core::hash::{BuildHasher, Hash, Hasher};
+
+        use hashql_core::collections::FastHasher;
+
+        let build = FastHasher::default();
+        let hash_of = |value: &Int| -> u64 {
+            let mut hasher = build.build_hasher();
+            value.hash(&mut hasher);
+            hasher.finish()
+        };
+
+        // Equal values must have equal hashes
+        assert_eq!(hash_of(&Int::from(true)), hash_of(&Int::from(1_i32)));
+        assert_eq!(hash_of(&Int::from(false)), hash_of(&Int::from(0_i32)));
     }
 
     #[test]

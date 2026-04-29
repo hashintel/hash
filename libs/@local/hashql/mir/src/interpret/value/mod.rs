@@ -557,3 +557,35 @@ impl<'value, 'heap, A: Allocator> From<&'value Value<'heap, A>>
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use core::cmp::Ordering;
+
+    use super::{Int, Num, Value};
+
+    #[test]
+    fn value_eq_transitivity_bool_num_int() {
+        // Regression test: Value::Eq must be transitive across Integer/Number variants.
+        // Previously, Integer(from(true)) == Number(1.0) and Number(1.0) == Integer(from(1)),
+        // but Integer(from(true)) != Integer(from(1)) — violating transitivity.
+        let a: Value = Value::Integer(Int::from(true));
+        let b: Value = Value::Number(Num::from(1.0));
+        let c: Value = Value::Integer(Int::from(1_i32));
+
+        assert_eq!(a, b, "bool-int == num");
+        assert_eq!(b, c, "num == int");
+        assert_eq!(a, c, "bool-int == int (transitivity)");
+    }
+
+    #[test]
+    fn value_ord_transitivity_bool_num_int() {
+        let a: Value = Value::Integer(Int::from(true));
+        let b: Value = Value::Number(Num::from(1.0));
+        let c: Value = Value::Integer(Int::from(1_i32));
+
+        assert_eq!(a.cmp(&b), Ordering::Equal);
+        assert_eq!(b.cmp(&c), Ordering::Equal);
+        assert_eq!(a.cmp(&c), Ordering::Equal);
+    }
+}
