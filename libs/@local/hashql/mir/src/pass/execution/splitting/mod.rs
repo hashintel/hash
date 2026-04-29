@@ -219,6 +219,11 @@ fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
                 // No statements: the block's target affinity comes from its terminator.
                 targets[start_id] = supported_terminator(terminator_costs, index);
             } else {
+                // `count_regions` only produces a single region (no split) when all statements
+                // share uniform target support AND the terminator's support is a superset of
+                // that. The terminator can run everywhere the statements can, so the statement
+                // support is the binding constraint. Index 0 is representative of all statements
+                // because uniformity is what made this a single region.
                 targets[start_id] = supported_statement(&costs, 0);
             }
 
