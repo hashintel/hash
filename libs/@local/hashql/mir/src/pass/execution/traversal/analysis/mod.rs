@@ -25,9 +25,6 @@ pub(crate) enum TraversalResult {
 ///
 /// Walks a body's places, finds uses of [`Local::VERTEX`], resolves the projection chain
 /// via [`EntityPath::resolve`], and calls `on_traversal` with the [`Location`] and result.
-// TODO: Each consumer (statement placement per target, island placement) resolves traversal paths
-//   independently. Consider caching resolved paths per body to avoid redundant work.
-//   See: https://linear.app/hash/issue/BE-435
 pub(crate) struct TraversalAnalysisVisitor<F> {
     vertex: VertexType,
     on_traversal: F,
