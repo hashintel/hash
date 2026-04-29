@@ -830,11 +830,11 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     ///
     /// # Return value
     ///
-    /// - [`ControlFlow::Break(())`]: transition point reached. The callstack is positioned at the
-    ///   block where `continue` returned `false`.
-    /// - [`ControlFlow::Continue(Yield::Return(v))`]: interpretation completed.
-    /// - [`ControlFlow::Continue(Yield::Suspension(s))`]: interpreter suspended for external data.
-    ///   Apply the continuation and call this method again.
+    /// - [`ControlFlow::Break`]: transition point reached. The callstack is positioned at the block
+    ///   where `continue` returned `false`.
+    /// - [`ControlFlow::Continue`] with [`Yield::Return`]: interpretation completed.
+    /// - [`ControlFlow::Continue`] with [`Yield::Suspension`]: interpreter suspended for external
+    ///   data. Apply the continuation and call this method again.
     ///
     /// # Errors
     ///
