@@ -560,6 +560,7 @@ impl<'value, 'heap, A: Allocator> From<&'value Value<'heap, A>>
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::min_ident_chars)]
     use core::cmp::Ordering;
 
     use super::{Int, Num, Value};
