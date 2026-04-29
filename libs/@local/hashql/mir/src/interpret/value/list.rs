@@ -42,7 +42,7 @@ impl<'heap, A: Allocator> List<'heap, A> {
     /// Returns a reference to the element at the given `index`.
     #[must_use]
     pub fn get(&self, index: Int) -> Option<&Value<'heap, A>> {
-        let index = index.as_isize()?;
+        let index = isize::try_from(index.as_int()).ok()?;
 
         if index.is_negative() {
             let abs = index.unsigned_abs();
@@ -63,7 +63,7 @@ impl<'heap, A: Allocator> List<'heap, A> {
     where
         A: Clone,
     {
-        let index = index.as_isize()?;
+        let index = isize::try_from(index.as_int()).ok()?;
 
         if index.is_negative() {
             let abs = index.unsigned_abs();

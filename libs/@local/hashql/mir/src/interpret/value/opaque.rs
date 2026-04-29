@@ -44,6 +44,14 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
         &self.value
     }
 
+    #[must_use]
+    pub fn value_mut(&mut self) -> &mut Value<'heap, A>
+    where
+        A: Clone,
+    {
+        Rc::make_mut(&mut self.value)
+    }
+
     /// Returns a displayable representation of this opaque type's name.
     pub fn type_name(&self) -> impl Display {
         fmt::from_fn(|fmt| {

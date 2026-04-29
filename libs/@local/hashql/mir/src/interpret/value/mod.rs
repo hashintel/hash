@@ -55,7 +55,7 @@ pub use self::{
     opaque::Opaque,
     ptr::Ptr,
     str::Str,
-    r#struct::Struct,
+    r#struct::{Struct, StructBuilder},
     tuple::Tuple,
 };
 use super::error::{RuntimeError, TypeName};
@@ -125,7 +125,7 @@ pub enum Value<'heap, A: Allocator = Global> {
 impl<'heap, A: Allocator> Value<'heap, A> {
     const UNIT: Self = Self::Unit;
 
-    pub(crate) fn type_name(&self) -> ValueTypeName<'_, 'heap, A> {
+    pub fn type_name(&self) -> ValueTypeName<'_, 'heap, A> {
         ValueTypeName::from(self)
     }
 
@@ -154,10 +154,10 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// Returns an error if this value is not subscriptable (not a list or dict),
     /// or if the index type is invalid for the collection type.
     #[inline]
-    pub fn subscript<'this, 'index>(
+    pub fn subscript<'this, 'index, E>(
         &'this self,
         index: &'index Self,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, E, A>> {
         match self {
             Self::List(list) if let &Self::Integer(value) = index => {
                 Ok(list.get(value).unwrap_or(&Self::UNIT))
@@ -189,10 +189,10 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     ///
     /// Returns an error if this value is not subscriptable, if the index type
     /// is invalid, or if a list index is out of bounds.
-    pub fn subscript_mut<'this>(
+    pub fn subscript_mut<'this, E>(
         &'this mut self,
         index: &Self,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -232,11 +232,12 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     ///
     /// Returns an error if this value is not projectable or the field index is invalid.
     #[inline]
-    pub fn project<'this>(
+    pub fn project<'this, E>(
         &'this self,
         index: FieldIndex,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, E, A>> {
         match self {
+            Self::Opaque(opaque) => opaque.value().project(index),
             Self::Struct(r#struct) => {
                 r#struct
                     .get_by_index(index)
@@ -254,7 +255,6 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             | Self::Number(_)
             | Self::String(_)
             | Self::Pointer(_)
-            | Self::Opaque(_)
             | Self::List(_)
             | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType {
                 base: self.type_name().into(),
@@ -269,10 +269,10 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Errors
     ///
     /// Returns an error if this value is not projectable or the field index is invalid.
-    pub fn project_mut<'this>(
+    pub fn project_mut<'this, E>(
         &'this mut self,
         index: FieldIndex,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
@@ -293,12 +293,12 @@ impl<'heap, A: Allocator> Value<'heap, A> {
                     base: TypeName::terse(terse_name),
                     field: index,
                 }),
+            Self::Opaque(opaque) => opaque.value_mut().project_mut(index),
             Self::Unit
             | Self::Integer(_)
             | Self::Number(_)
             | Self::String(_)
             | Self::Pointer(_)
-            | Self::Opaque(_)
             | Self::List(_)
             | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType {
                 base: self.type_name().into(),
@@ -313,22 +313,31 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Errors
     ///
     /// Returns an error if this value is not a struct or the field name is not found.
-    pub fn project_by_name<'this>(
+    pub fn project_by_name<'this, E>(
         &'this self,
         index: Symbol<'heap>,
-    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
-        let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionByNameType {
+    ) -> Result<&'this Self, RuntimeError<'heap, E, A>> {
+        match self {
+            Value::Opaque(opaque) => opaque.value().project_by_name(index),
+            Value::Struct(r#struct) => {
+                r#struct
+                    .get_by_name(index)
+                    .ok_or_else(|| RuntimeError::UnknownFieldByName {
+                        base: self.type_name().into(),
+                        field: index,
+                    })
+            }
+            Value::Unit
+            | Value::Integer(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Pointer(_)
+            | Value::Tuple(_)
+            | Value::List(_)
+            | Value::Dict(_) => Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
-            });
-        };
-
-        r#struct
-            .get_by_name(index)
-            .ok_or_else(|| RuntimeError::UnknownFieldByName {
-                base: self.type_name().into(),
-                field: index,
-            })
+            }),
+        }
     }
 
     /// Mutably projects a field from this value by name.
@@ -338,28 +347,37 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Errors
     ///
     /// Returns an error if this value is not a struct or the field name is not found.
-    pub fn project_by_name_mut<'this>(
+    pub fn project_by_name_mut<'this, E>(
         &'this mut self,
         index: Symbol<'heap>,
-    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, E, A>>
     where
         A: Clone,
     {
         let terse_name = self.type_name_terse();
-        let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionByNameType {
+        match self {
+            Value::Opaque(opaque) => opaque.value_mut().project_by_name_mut(index),
+            Value::Struct(r#struct) => {
+                if let Some(value) = r#struct.get_by_name_mut(index) {
+                    return Ok(value);
+                }
+
+                Err(RuntimeError::UnknownFieldByName {
+                    base: TypeName::terse(terse_name),
+                    field: index,
+                })
+            }
+            Value::Unit
+            | Value::Integer(_)
+            | Value::Number(_)
+            | Value::String(_)
+            | Value::Pointer(_)
+            | Value::Tuple(_)
+            | Value::List(_)
+            | Value::Dict(_) => Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
-            });
-        };
-
-        if let Some(value) = r#struct.get_by_name_mut(index) {
-            return Ok(value);
+            }),
         }
-
-        Err(RuntimeError::UnknownFieldByName {
-            base: TypeName::terse(terse_name),
-            field: index,
-        })
     }
 }
 
