@@ -522,11 +522,11 @@ impl Add for Int {
 
     #[expect(clippy::float_arithmetic)]
     fn add(self, rhs: Self) -> Self::Output {
-        let (lhs, rhs) = (self.as_int(), rhs.as_int());
-        let (result, overflow) = lhs.overflowing_add(rhs);
+        let (lhs, rhs_val) = (self.as_int(), rhs.as_int());
+        let (result, overflow) = lhs.overflowing_add(rhs_val);
 
         if hint::unlikely(overflow) {
-            Numeric::Num(Num::from(self.as_f64() + Self::from_i128(rhs).as_f64()))
+            Numeric::Num(Num::from(self.as_f64() + rhs.as_f64()))
         } else {
             Numeric::Int(Self::from_i128(result))
         }
