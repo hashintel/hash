@@ -49,7 +49,10 @@ function mapWinstonLevelToOtel(level: string): SeverityNumber {
  *
  * - Errors: do not implement `toJSON`, and `message` / `stack` / `cause`
  *   are non-enumerable own or inherited properties, so
- *   `JSON.stringify(new Error("x"))` returns `{}`.
+ *   `JSON.stringify(new Error("x"))` returns `{}`. This rebuild is the
+ *   canonical handling for log payloads — call sites should pass
+ *   `logger.X("desc", { error })` and rely on this expansion rather
+ *   than pre-stringify the error themselves.
  * - BigInts: throw `TypeError: Do not know how to serialize a BigInt`.
  *
  * Values that already implement `toJSON` (Date, Buffer, decimal/ID types,
@@ -61,21 +64,31 @@ function mapWinstonLevelToOtel(level: string): SeverityNumber {
  * Cycles are tracked via a path-scoped `Set` (added before recursion,
  * removed after) so true self-references collapse to `[Circular]`
  * without falsely flagging legitimate shared references that appear in
- * sibling positions.
+ * sibling positions. Errors are part of this protection — Axios
+ * v1.12+ is known to produce `Error.cause` chains that loop back on
+ * themselves, which would otherwise blow the stack.
  */
 export const expandLogValue = (
   value: unknown,
   ancestors: Set<object> = new Set(),
 ): unknown => {
   if (value instanceof Error) {
-    return {
-      name: value.name,
-      message: value.message,
-      stack: value.stack,
-      ...(value.cause !== undefined
-        ? { cause: expandLogValue(value.cause, ancestors) }
-        : {}),
-    };
+    if (ancestors.has(value)) {
+      return "[Circular]";
+    }
+    ancestors.add(value);
+    try {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack,
+        ...(value.cause !== undefined
+          ? { cause: expandLogValue(value.cause, ancestors) }
+          : {}),
+      };
+    } finally {
+      ancestors.delete(value);
+    }
   }
   if (typeof value === "bigint") {
     return value.toString();
