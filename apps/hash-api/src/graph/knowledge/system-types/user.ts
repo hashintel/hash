@@ -140,7 +140,7 @@ const getKratosIdentityIdByEmail = async (
     });
     return identities.length > 0 ? identities[0]!.id : null;
   } catch (error) {
-    logger.warn(`Failed to lookup Kratos identity by email ${email}: ${error}`);
+    logger.warn("Failed to lookup Kratos identity", { email, error });
     return null;
   }
 };

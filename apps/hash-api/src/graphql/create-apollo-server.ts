@@ -32,7 +32,9 @@ import { resolvers } from "./resolvers";
 
 const statsPlugin = ({
   statsd,
-}: { statsd?: StatsD }): ApolloServerPlugin<GraphQLContext> => ({
+}: {
+  statsd?: StatsD;
+}): ApolloServerPlugin<GraphQLContext> => ({
   requestDidStart: async () => {
     const startTimestamp = performance.now();
 
@@ -92,19 +94,22 @@ const statsPlugin = ({
           },
           userAgent,
         };
+        const operationType = ctx.operation?.operation ?? "graphql";
+        const operationLabel = `${operationType} ${ctx.operationName ?? "anonymous"}`;
+        // Use the request-scoped logger so log lines correlate with the
+        // rest of the request via the requestId set in the context.
+        const reqLogger = ctx.contextValue.logger;
         if (ctx.errors) {
           if (ctx.errors[0]?.extensions.code !== "FORBIDDEN") {
             /** Log errors unrelated to auth failures */
-            ctx.logger.error(
-              JSON.stringify({
-                ...msg,
-                errors: ctx.errors,
-                stack: ctx.errors.map((err) => err.stack),
-              }),
-            );
+            reqLogger.error(`${operationLabel} failed`, {
+              ...msg,
+              errors: ctx.errors,
+              stack: ctx.errors.map((err) => err.stack),
+            });
           }
         } else {
-          ctx.logger.info(JSON.stringify(msg));
+          reqLogger.info(operationLabel, msg);
           if (ctx.operationName) {
             statsd?.timing(ctx.operationName, elapsed, 1, ["graphql"]);
           }

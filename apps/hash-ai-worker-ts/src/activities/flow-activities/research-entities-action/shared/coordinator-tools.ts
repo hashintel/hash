@@ -570,9 +570,12 @@ const toolCallExceptionHandler = <
   error: unknown;
   toolCall: ToolCall;
 }): CompletedCoordinatorToolCall<ToolCall["name"]> => {
-  logger.error(
-    `Error getting ${agentType} tool call results for tool call ${toolCall.name} with id ${toolCall.id}: ${stringifyError(error)}`,
-  );
+  logger.error("Error getting tool call results", {
+    agentType,
+    toolCallName: toolCall.name,
+    toolCallId: toolCall.id,
+    error,
+  });
 
   const errorForLlm =
     error && typeof error === "object" && "message" in error

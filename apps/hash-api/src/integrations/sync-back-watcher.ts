@@ -115,9 +115,9 @@ export const createIntegrationSyncBackWatcher = async ({
 
         return true;
       })
-      .catch((err) => {
+      .catch((error) => {
         // caught because this function loses ownership of the queue occasionally in dev
-        logger.error(`Could not take message from queue: ${err.message}`);
+        logger.error("Could not take message from queue", { error });
       });
   };
 

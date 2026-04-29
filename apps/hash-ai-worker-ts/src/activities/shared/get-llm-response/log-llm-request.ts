@@ -10,7 +10,11 @@ import type { LlmLog, LlmServerErrorLog } from "./types.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const writeLogToFile = (log: LlmLog | LlmServerErrorLog) => {
+const writeLogToFile = (
+  log: (LlmLog | LlmServerErrorLog) & {
+    workflowExecution?: { workflowId: string; runId: string };
+  },
+) => {
   const logFolderPath = path.join(__dirname, "logs");
 
   if (!existsSync(logFolderPath)) {
@@ -30,9 +34,11 @@ const writeLogToFile = (log: LlmLog | LlmServerErrorLog) => {
 };
 
 export const logLlmServerError = (log: LlmServerErrorLog) => {
+  // `workflowExecution` is owned by the activity-logger — it stamps it
+  // onto every log object from the Temporal context. Add it only for
+  // the per-request file dump, where it's part of the record on disk.
   const orderedLog = {
     requestId: log.requestId,
-    workflowExecution: Context.current().info.workflowExecution,
     provider: log.provider,
     stepId: log.stepId,
     taskName: log.taskName,
@@ -42,10 +48,14 @@ export const logLlmServerError = (log: LlmServerErrorLog) => {
     detailedFields: ["response", "request"],
   };
 
-  logger.error(JSON.stringify(orderedLog));
+  const taskLabel = log.taskName ? ` ${log.taskName}` : "";
+  logger.error(`llm ${log.provider}${taskLabel} server error`, orderedLog);
 
   if (["development", "test"].includes(process.env.NODE_ENV ?? "")) {
-    writeLogToFile(orderedLog);
+    writeLogToFile({
+      ...orderedLog,
+      workflowExecution: Context.current().info.workflowExecution,
+    });
   }
 };
 
@@ -65,10 +75,11 @@ export const logLlmRequest = (
     detailedFields: ["response", "request", "transformedRequest"],
   };
 
+  const taskLabel = log.taskName ? ` ${log.taskName}` : "";
   if (log.response.status === "ok") {
-    logger.debug(JSON.stringify(orderedLog));
+    logger.debug(`llm ${log.provider}${taskLabel}`, orderedLog);
   } else {
-    logger.error(JSON.stringify(orderedLog));
+    logger.error(`llm ${log.provider}${taskLabel} failed`, orderedLog);
   }
 
   if (["development", "test"].includes(process.env.NODE_ENV ?? "")) {

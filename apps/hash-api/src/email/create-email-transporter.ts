@@ -55,7 +55,7 @@ export const createEmailTransporter = (): EmailTransporter => {
 
   return {
     sendMail: (mail) => {
-      logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+      logger.info(`Tried to send mail to ${mail.to}`, { html: mail.html });
     },
   } as EmailTransporter;
 };

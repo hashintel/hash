@@ -2,7 +2,6 @@ import type { Url } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { GetWebSearchResults200ResponseWebSearchResultsInner } from "@local/internal-api-client";
 import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
@@ -38,11 +37,7 @@ export const webSearchAction: AiFlowActionActivity<"webSearch"> = async ({
       try {
         return await internalApiClient.getWebSearchResults(query);
       } catch (error) {
-        logger.error(
-          `Error fetching web search results for query "${query}": ${stringifyError(
-            error,
-          )}`,
-        );
+        logger.error("Error fetching web search results", { query, error });
         throw error;
       }
     },
