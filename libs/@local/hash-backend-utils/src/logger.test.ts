@@ -48,6 +48,27 @@ describe("expandLogValue / Error handling", () => {
     expect(causeOfA.message).toBe("b");
     expect(causeOfA.cause).toBe("[Circular]");
   });
+
+  it("preserves enumerable own properties on Error subclasses", () => {
+    class APIError extends Error {
+      constructor(
+        message: string,
+        public status: number,
+        public code: string,
+      ) {
+        super(message);
+        this.name = "APIError";
+      }
+    }
+    const err = new APIError("rate limit", 429, "rate_limit_exceeded");
+
+    const expanded = expandLogValue(err) as Record<string, unknown>;
+
+    expect(expanded.name).toBe("APIError");
+    expect(expanded.message).toBe("rate limit");
+    expect(expanded.status).toBe(429);
+    expect(expanded.code).toBe("rate_limit_exceeded");
+  });
 });
 
 describe("expandLogValue / cycles in plain objects", () => {

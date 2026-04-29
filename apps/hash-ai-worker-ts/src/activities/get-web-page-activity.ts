@@ -213,14 +213,13 @@ const getWebPageFromRemoteBrowser = async (
       url,
     };
   } catch (error) {
-    const errMessage = stringifyError(error);
     logger.error(`Failed to load URL ${url} in remote browser`, {
       url,
-      error: errMessage,
+      error,
     });
 
     return {
-      error: errMessage,
+      error: stringifyError(error),
     };
   } finally {
     await page?.close().catch(() => {});

@@ -78,14 +78,25 @@ export const expandLogValue = (
     }
     ancestors.add(value);
     try {
-      return {
+      const out: Record<string, unknown> = {
         name: value.name,
         message: value.message,
         stack: value.stack,
-        ...(value.cause !== undefined
-          ? { cause: expandLogValue(value.cause, ancestors) }
-          : {}),
       };
+      // Preserve enumerable own properties added by Error subclasses
+      // (e.g. `status`, `code`, `headers` on OpenAI.APIError or
+      // AxiosError) — `Object.entries` skips name/message/stack
+      // because those are non-enumerable on the prototype, so we
+      // don't double up on them.
+      for (const [key, nested] of Object.entries(value)) {
+        if (key !== "cause") {
+          out[key] = expandLogValue(nested, ancestors);
+        }
+      }
+      if (value.cause !== undefined) {
+        out.cause = expandLogValue(value.cause, ancestors);
+      }
+      return out;
     } finally {
       ancestors.delete(value);
     }

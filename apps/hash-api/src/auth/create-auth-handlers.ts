@@ -3,7 +3,6 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { Session } from "@ory/kratos-client";
 import * as Sentry from "@sentry/node";
 import type { AxiosError } from "axios";
@@ -75,9 +74,10 @@ const kratosAfterRegistrationHookHandler =
       } catch (error) {
         // The kratos hook can interrupt creation on 4xx and 5xx responses.
 
-        logger.error(
-          `Error creating user with kratos identity id "${kratosIdentityId}": ${stringifyError(error, { prettify: false })}`,
-        );
+        logger.error("Error creating user from kratos identity", {
+          kratosIdentityId,
+          error,
+        });
         Sentry.captureException(error);
 
         res.status(400).send(

@@ -7,7 +7,6 @@ import {
   type Part,
 } from "@google-cloud/vertexai";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { logger } from "../activity-logger.js";
@@ -110,7 +109,7 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   try {
     ({ response } = await gemini.generateContent(transformedRequest));
   } catch (error) {
-    logger.error("Google AI API error", { error: stringifyError(error) });
+    logger.error("Google AI API error", { error });
 
     if (isActivityCancelled()) {
       return {
