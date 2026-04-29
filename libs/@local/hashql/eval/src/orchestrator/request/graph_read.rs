@@ -57,15 +57,15 @@ type State<'heap, L> = (Value<'heap, L>, Vec<PostgresState<'heap, L>, L>);
 ///
 /// [`GraphRead`]: hashql_mir::body::terminator::GraphRead
 /// [`Orchestrator`]: super::super::Orchestrator
-pub(crate) struct GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, E, A: Allocator> {
-    inner: &'or Orchestrator<'ctx, 'env, 'heap, C, E, A>,
+pub(crate) struct GraphReadOrchestrator<'or, 'env, 'ctx, 'heap, C, E, A: Allocator> {
+    inner: &'or Orchestrator<'env, 'ctx, 'heap, C, E, A>,
 }
 
 #[expect(clippy::future_not_send)]
-impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
-    GraphReadOrchestrator<'or, 'ctx, 'env, 'heap, C, E, A>
+impl<'or, 'env, 'ctx, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
+    GraphReadOrchestrator<'or, 'env, 'ctx, 'heap, C, E, A>
 {
-    pub(crate) const fn new(orchestrator: &'or Orchestrator<'ctx, 'env, 'heap, C, E, A>) -> Self {
+    pub(crate) const fn new(orchestrator: &'or Orchestrator<'env, 'ctx, 'heap, C, E, A>) -> Self {
         Self {
             inner: orchestrator,
         }
@@ -73,7 +73,7 @@ impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
 
     fn postgres_hydrate_in<L: Allocator + Clone>(
         &self,
-        decoder: &Decoder<'ctx, 'heap, L>,
+        decoder: &Decoder<'env, 'heap, L>,
 
         query: &PreparedQuery<'_, impl Allocator>,
         row: &Row,
@@ -130,7 +130,7 @@ impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
     fn finish_in<L: Allocator + Clone>(
         &self,
 
-        decoder: &Decoder<'ctx, 'heap, L>,
+        decoder: &Decoder<'env, 'heap, L>,
 
         partial: Partial<'heap, L>,
         partial_states: Vec<PartialPostgresState<L>, L>,
@@ -373,9 +373,9 @@ impl<'or, 'ctx, 'env, 'heap, C: AsRef<Client>, E: EventLog, A: Allocator>
             block,
             read,
             axis: _,
-        }: GraphReadSuspension<'env, 'heap>,
+        }: GraphReadSuspension<'ctx, 'heap>,
         alloc: L,
-    ) -> Result<Continuation<'env, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>> {
+    ) -> Result<Continuation<'ctx, 'heap, L>, RuntimeError<'heap, BridgeError<'heap>, L>> {
         // Because postgres is our source of truth, it means that any graph read suspension must be
         // resolved by querying postgres first.
         let query =
