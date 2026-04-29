@@ -314,7 +314,6 @@ pub enum Expression {
 }
 
 /// Convenience constructors for condition variants to avoid `Box::new()` boilerplate.
-#[expect(clippy::should_implement_trait)]
 impl Expression {
     #[must_use]
     pub const fn all(conditions: Vec<Self>) -> Self {
@@ -333,6 +332,7 @@ impl Expression {
     }
 
     #[must_use]
+    #[expect(clippy::should_implement_trait)]
     pub fn not(self) -> Self {
         Self::Unary(UnaryExpression {
             op: UnaryOperator::Not,
@@ -439,6 +439,7 @@ impl Expression {
     }
 
     #[must_use]
+    #[expect(clippy::should_implement_trait)]
     pub fn add(lhs: Self, rhs: Self) -> Self {
         Self::Binary(BinaryExpression {
             op: BinaryOperator::Add,
