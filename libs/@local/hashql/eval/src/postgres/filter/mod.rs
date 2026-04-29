@@ -360,7 +360,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         constant: &Constant<'heap>,
     ) -> Expression {
         match constant {
-            Constant::Int(int) if let Some(uint) = int.as_u32() => {
+            Constant::Int(int) if let Ok(uint) = u32::try_from(int.as_uint()) => {
                 Expression::Constant(query::Constant::U32(uint))
             }
             &Constant::Int(int) => db.parameters.int(int).into(),
