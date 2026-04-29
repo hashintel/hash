@@ -12,7 +12,6 @@ import {
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import { getActiveOpenTelemetrySetup } from "@local/hash-backend-utils/opentelemetry";
 import { createRedisClient } from "@local/hash-backend-utils/redis";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -67,6 +66,7 @@ import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
+import { otelSetup } from "./instrument.mjs";
 import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
@@ -103,8 +103,8 @@ const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 // Flush OpenTelemetry last so cleanup hooks above this point can still
 // emit shutdown spans / logs before the providers disconnect from the
-// collector.
-const otelSetup = getActiveOpenTelemetrySetup();
+// collector. `otelSetup` is `undefined` when no `HASH_OTLP_ENDPOINT` is
+// configured (no collector) or when bootstrap throws.
 if (otelSetup) {
   shutdown.addCleanup("OpenTelemetry", otelSetup.shutdown);
 }

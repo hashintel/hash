@@ -29,7 +29,10 @@ use crate::{TemporalClient, WorkflowError};
 
 /// Header key used by `@temporalio/interceptors-opentelemetry` to carry the
 /// trace-context payload across workflow boundaries. Must stay in sync with
-/// the constant declared in that package's `instrumentation.ts`.
+/// `TRACE_HEADER` in that package's `instrumentation.ts`; if it drifts,
+/// workflows started from Rust will ship correct headers that the TypeScript
+/// inbound interceptor silently ignores, and every resulting span renders
+/// parent-less in Tempo.
 const TRACE_HEADER: &str = "_tracer-data";
 
 /// Adapter so `opentelemetry`'s text-map propagator can write into a plain
@@ -56,6 +59,20 @@ fn build_otel_header() -> Option<Header> {
         propagator.inject_context(&context, &mut CarrierWriter(&mut carrier));
     });
     if carrier.is_empty() {
+        // Surface this once per process: an empty carrier means either no
+        // active tracing span (caller missing `#[instrument]`) or no
+        // global propagator registered (telemetry bootstrap missing
+        // `set_text_map_propagator`). Either way the workflow will start
+        // with no parent context and the worker-side span renders detached
+        // from the caller's trace.
+        static WARNED: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+        WARNED.get_or_init(|| {
+            tracing::warn!(
+                "OpenTelemetry text-map propagator wrote no headers when starting workflow; \
+                 workflow spans will be parent-less. Verify the global propagator is installed \
+                 and the calling fn carries an active tracing span."
+            );
+        });
         return None;
     }
 
@@ -83,15 +100,17 @@ struct AuthenticationContext {
 }
 
 impl TemporalClient {
-    /// Start a workflow on the `ai` task queue with the active OTEL trace
-    /// context propagated through the workflow headers. The TypeScript
-    /// worker's `OpenTelemetryInboundInterceptor` extracts this context so
-    /// the resulting `RunWorkflow` and `RunActivity` spans chain off the
-    /// caller's trace.
+    /// Start a workflow on the `ai` task queue, injecting the active
+    /// OTEL trace context into the workflow start headers so the
+    /// worker-side interceptors can parent the workflow + activity
+    /// spans off the caller's trace.
     ///
-    /// Bypasses the `WorkflowClientTrait::start_workflow` helper because
-    /// that helper does not expose the proto `header` field. Calls
-    /// `WorkflowService::start_workflow_execution` directly instead.
+    /// Goes via the low-level `WorkflowService::start_workflow_execution`
+    /// because `WorkflowClientTrait::start_workflow` does not expose the
+    /// proto `header` field. The span is annotated with `otel.kind =
+    /// "producer"` for the asynchronous fire-and-forget shape (the value
+    /// is case-sensitive; `tracing-opentelemetry` falls back to
+    /// `Internal` on typos).
     #[instrument(
         skip(self, payload),
         fields(workflow_type = workflow, otel.kind = "producer"),

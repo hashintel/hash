@@ -11,14 +11,14 @@ export { Client as TemporalClient } from "@temporalio/client";
 export const temporalNamespace = "HASH";
 
 /**
- * Create a Temporal SDK `Logger` that pipes Rust-core SDK logs and
- * Node-side worker events through the application's structured Winston
- * logger. Without this, `Runtime.install({ telemetryOptions: { logging:
- * { forward } } })` forwards Rust-core logs to a default sink that
- * writes to `stderr` directly — bypassing OTLP and the JSON-formatted
- * console output the rest of the worker uses.
+ * Adapter that pipes Temporal SDK logs (both Rust core and Node-side
+ * worker events) through the application logger, keeping them in the
+ * same JSON format and log-level scheme as the rest of the worker
+ * output. Pass to `Runtime.install({ logger })`.
  */
 export const createTemporalSdkLogger = (logger: Logger): DefaultLogger =>
+  // DefaultLogger filters at INFO, so TRACE / DEBUG paths only fire
+  // when the level is bumped at the call site.
   new DefaultLogger("INFO", ({ level, message, meta }) => {
     switch (level) {
       case "TRACE":
@@ -33,6 +33,12 @@ export const createTemporalSdkLogger = (logger: Logger): DefaultLogger =>
         return;
       case "ERROR":
         logger.error(message, meta);
+        return;
+      default:
+        logger.warn(`Unknown Temporal SDK log level: ${level as string}`, {
+          message,
+          meta,
+        });
     }
   });
 
@@ -47,12 +53,10 @@ export const createTemporalClient = async () => {
     address: `${host}:${port}`,
   });
 
-  // When the caller has OTEL configured (instrument.mjs ran and a global
-  // tracer provider is registered), attach the workflow client
-  // interceptor so the active trace context (e.g. an Express HTTP span)
-  // gets propagated into the workflow headers. The worker-side
-  // interceptors then pick it up, and the workflow + activity spans
-  // chain off the caller's trace.
+  // When OTEL is configured the active trace context (e.g. an Express
+  // HTTP span) is injected into workflow start headers. The worker-side
+  // interceptors extract it and parent the workflow + activity spans
+  // off the caller's trace.
   const interceptors = process.env.HASH_OTLP_ENDPOINT
     ? {
         workflow: [

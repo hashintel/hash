@@ -17,6 +17,14 @@ async function bundle() {
       require.resolve(
         "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
       ),
+      // OTEL workflow interceptor must be in the bundle: when the
+      // worker boots with `workflowBundle`, the `interceptors.workflowModules`
+      // option on `Worker.create` is ignored. The interceptor is a no-op
+      // when no global TracerProvider is registered, so it's safe to
+      // include unconditionally.
+      require.resolve(
+        "@local/hash-backend-utils/temporal/interceptors/workflows/opentelemetry",
+      ),
     ],
   });
   const codePath = path.join(__dirname, "../dist/workflow-bundle.js");

@@ -9219,6 +9219,7 @@ __metadata:
     "@opentelemetry/exporter-metrics-otlp-grpc": "npm:0.207.0"
     "@opentelemetry/exporter-trace-otlp-grpc": "npm:0.207.0"
     "@opentelemetry/instrumentation": "npm:0.207.0"
+    "@opentelemetry/instrumentation-http": "npm:0.207.0"
     "@opentelemetry/instrumentation-undici": "npm:0.25.0"
     "@opentelemetry/resources": "npm:2.2.0"
     "@opentelemetry/sdk-logs": "npm:0.207.0"

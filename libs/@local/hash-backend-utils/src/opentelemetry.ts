@@ -15,6 +15,7 @@ import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import type { Instrumentation } from "@opentelemetry/instrumentation";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
+import type { HttpInstrumentationConfig } from "@opentelemetry/instrumentation-http";
 import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
 import type { Resource } from "@opentelemetry/resources";
 import {
@@ -22,19 +23,20 @@ import {
   resourceFromAttributes,
 } from "@opentelemetry/resources";
 import {
+  BatchLogRecordProcessor,
   LoggerProvider,
-  SimpleLogRecordProcessor,
 } from "@opentelemetry/sdk-logs";
 import {
   MeterProvider,
   PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
 import type { SpanExporter } from "@opentelemetry/sdk-trace-base";
-import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
+import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 
 const traceTimeoutMs = 5000;
 const metricExportIntervalMs = 30_000;
+const shutdownTimeoutMs = 2000;
 
 export interface RegisterOpenTelemetryOptions {
   /**
@@ -50,6 +52,8 @@ export interface RegisterOpenTelemetryOptions {
 }
 
 export interface OpenTelemetrySetup {
+  /** OTLP gRPC endpoint this setup is attached to. */
+  endpoint: string;
   /** Run during graceful shutdown to flush pending spans / logs / metrics. */
   shutdown: () => Promise<void>;
   /**
@@ -64,39 +68,44 @@ export interface OpenTelemetrySetup {
 /**
  * Mapping of outbound `host` → `peer.service` label used by Tempo's
  * `service_graphs` processor to render external dependencies as
- * separate nodes in the service map. Without this attribute the
- * undici-instrumentation spans land under the caller service ("AI
- * Worker") with a bare `POST` name and no external-service edge.
+ * separate nodes in the service map.
  *
- * Keys are matched as exact host or as suffix (`.openai.com` matches
- * `api.openai.com`).
+ * Order matters: the first match wins, so place narrower exact matches
+ * before broader suffix matches. `kind: "suffix"` matches against the
+ * tail of the host (e.g. `.googleapis.com` matches `bigquery.googleapis.com`
+ * but not the bare `googleapis.com`).
  */
-const PEER_SERVICE_BY_HOST: Array<[string, string]> = [
-  ["api.openai.com", "OpenAI"],
-  ["api.anthropic.com", "Anthropic"],
-  ["api.linear.app", "Linear"],
-  [".googleapis.com", "Google Cloud"],
-  ["edge-config.vercel.com", "Vercel Edge Config"],
-  [".vercel.com", "Vercel"],
+type PeerServiceRule =
+  | { kind: "exact"; host: string; service: string }
+  | { kind: "suffix"; suffix: string; service: string };
+
+const PEER_SERVICE_RULES: readonly PeerServiceRule[] = [
+  { kind: "exact", host: "api.openai.com", service: "OpenAI" },
+  { kind: "exact", host: "api.anthropic.com", service: "Anthropic" },
+  { kind: "exact", host: "api.linear.app", service: "Linear" },
+  { kind: "suffix", suffix: ".googleapis.com", service: "Google Cloud" },
 ];
 
-const resolvePeerService = (host: string): string | undefined => {
-  for (const [match, service] of PEER_SERVICE_BY_HOST) {
-    if (match.startsWith(".") ? host.endsWith(match) : host === match) {
-      return service;
+export const resolvePeerService = (host: string): string | undefined => {
+  for (const rule of PEER_SERVICE_RULES) {
+    if (rule.kind === "exact" && rule.host === host) {
+      return rule.service;
+    }
+    if (rule.kind === "suffix" && host.endsWith(rule.suffix)) {
+      return rule.service;
     }
   }
   return undefined;
 };
 
 /**
- * `@opentelemetry/instrumentation-undici` instance configured with:
+ * Undici instrumentation configured to:
  *
- * - `peer.service` derived from the outbound host (Tempo's
- *   `service_graphs` processor turns this into an external-service
- *   edge in the service map).
- * - Span name set to `METHOD host/path` rather than the bare HTTP
- *   verb the instrumentation defaults to.
+ * - Tag spans with `peer.service` derived from the outbound host. Tempo's
+ *   `service_graphs` processor turns this into an external-service edge
+ *   in the service map.
+ * - Name spans `METHOD path`. The host already lives in `peer.service`,
+ *   so the span name only carries the path.
  */
 export const createUndiciInstrumentation = (): UndiciInstrumentation =>
   new UndiciInstrumentation({
@@ -110,29 +119,68 @@ export const createUndiciInstrumentation = (): UndiciInstrumentation =>
       }
     },
     requestHook: (span, request) => {
-      // Default span name is just `POST` — replace with `METHOD path`
-      // so outbound calls are distinguishable in Tempo. The host is
-      // covered by `peer.service` (set in `startSpanHook`), so the
-      // span name only carries the path. Strip query string to keep
-      // cardinality bounded.
+      if (typeof request.path !== "string") {
+        return;
+      }
+      // Strip query string to keep cardinality bounded.
       const path = request.path.split("?")[0];
-      span.updateName(`${request.method} ${path}`);
+      if (path) {
+        span.updateName(`${request.method} ${path}`);
+      }
     },
   });
 
 /**
- * Last setup returned from `registerOpenTelemetry`. Exposed so callers
- * that bootstrap OTEL via a `--import` shim (where the setup handle
- * isn't naturally accessible from the main entry point) can still wire
- * `shutdown()` into their graceful-shutdown chain.
+ * `requestHook` for `@opentelemetry/instrumentation-http` that names
+ * spans `METHOD /path`. Path source depends on the request shape:
+ * outgoing `ClientRequest` exposes `path`, incoming `IncomingMessage`
+ * exposes `url`. `originalUrl` is checked first as a no-cost fallback
+ * for the case where Express has already wrapped the request before
+ * the hook reads it.
  */
-let activeSetup: OpenTelemetrySetup | undefined;
+export const httpRequestSpanNameHook: NonNullable<
+  HttpInstrumentationConfig["requestHook"]
+> = (span, request) => {
+  if (!("method" in request) || !request.method) {
+    return;
+  }
+  const candidates = [
+    "originalUrl" in request ? request.originalUrl : undefined,
+    "url" in request ? request.url : undefined,
+    "path" in request ? request.path : undefined,
+  ];
+  const rawPath = candidates.find(
+    (value): value is string => typeof value === "string",
+  );
+  // Strip query string to keep cardinality bounded.
+  const path = rawPath?.split("?")[0];
+  if (path) {
+    span.updateName(`${request.method} ${path}`);
+  }
+};
 
-/**
- * Returns the most recently registered OTEL setup, if any.
- */
-export const getActiveOpenTelemetrySetup = (): OpenTelemetrySetup | undefined =>
-  activeSetup;
+const shutdownWithTimeout = async (
+  label: string,
+  shutdown: () => Promise<void>,
+): Promise<void> => {
+  let timer: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new Error(
+          `${label} shutdown exceeded ${shutdownTimeoutMs}ms — pending exports may be dropped.`,
+        ),
+      );
+    }, shutdownTimeoutMs);
+  });
+  try {
+    await Promise.race([shutdown(), timeoutPromise]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+};
 
 /**
  * Initialise tracing, logging, and metrics. Returns `undefined` when
@@ -144,9 +192,8 @@ export const registerOpenTelemetry = ({
   instrumentations = [],
 }: RegisterOpenTelemetryOptions): OpenTelemetrySetup | undefined => {
   if (!endpoint) {
-    // This runs before any logger is wired up, so direct stderr is the
-    // right channel — and it's a one-shot bootstrap message, not a hot
-    // log path.
+    // Runs before any logger is wired up, so direct stderr is the
+    // right channel.
     // eslint-disable-next-line no-console
     console.warn(
       "No OpenTelemetry Protocol endpoint given. Not sending telemetry anywhere.",
@@ -163,23 +210,24 @@ export const registerOpenTelemetry = ({
     resourceFromAttributes({ "service.name": serviceName }),
   );
 
-  // Tracing
+  // Batch processors keep span / log export off the request path. The
+  // Simple variants export each record synchronously, which under load
+  // saturates the gRPC connection and adds tail latency to every
+  // request.
   const traceExporter = new OTLPTraceExporter(collectorOptions);
   const traceProvider = new NodeTracerProvider({
     resource,
-    spanProcessors: [new SimpleSpanProcessor(traceExporter)],
+    spanProcessors: [new BatchSpanProcessor(traceExporter)],
   });
   traceProvider.register();
 
-  // Logs
   const logExporter = new OTLPLogExporter(collectorOptions);
   const logProvider = new LoggerProvider({
     resource,
-    processors: [new SimpleLogRecordProcessor(logExporter)],
+    processors: [new BatchLogRecordProcessor(logExporter)],
   });
   logs.setGlobalLoggerProvider(logProvider);
 
-  // Metrics
   const metricExporter = new OTLPMetricExporter(collectorOptions);
   const meterProvider = new MeterProvider({
     resource,
@@ -201,18 +249,33 @@ export const registerOpenTelemetry = ({
     `Registered OpenTelemetry (traces + logs + metrics) at endpoint ${endpoint} for ${serviceName}`,
   );
 
-  const setup: OpenTelemetrySetup = {
+  return {
+    endpoint,
     traceExporter,
     resource,
     shutdown: async () => {
-      await Promise.allSettled([
-        traceProvider.shutdown(),
-        logProvider.shutdown(),
-        meterProvider.shutdown(),
-      ]);
+      // Flush each provider with a per-provider timeout so a stuck
+      // exporter (collector unreachable, gRPC channel hung) cannot
+      // block the SIGTERM handler indefinitely. Failures are surfaced
+      // to stderr because the logger may already be shutting down.
+      const targets: Array<readonly [string, () => Promise<void>]> = [
+        ["trace provider", () => traceProvider.shutdown()],
+        ["log provider", () => logProvider.shutdown()],
+        ["meter provider", () => meterProvider.shutdown()],
+      ];
+      const results = await Promise.allSettled(
+        targets.map(([label, run]) => shutdownWithTimeout(label, run)),
+      );
+      for (const [index, result] of results.entries()) {
+        if (result.status === "rejected") {
+          // eslint-disable-next-line no-console
+          console.error(
+            `OpenTelemetry ${targets[index]![0]} shutdown failed:`,
+            result.reason,
+          );
+        }
+      }
       unregisterInstrumentations();
     },
   };
-  activeSetup = setup;
-  return setup;
 };

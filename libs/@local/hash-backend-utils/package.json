@@ -78,6 +78,7 @@
   "devDependencies": {
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
+    "@opentelemetry/instrumentation-http": "0.207.0",
     "@types/dotenv-flow": "3.3.3",
     "@types/mime-types": "2.1.4",
     "@types/node": "22.18.13",
