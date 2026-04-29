@@ -17,4 +17,4 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
 }
 ==================== Island (entry: bb0, target: postgres) =====================
 
-(ROW(((jsonb_extract_path(jsonb_build_array(10, 20), ((0)::text)))::boolean), NULL, NULL, NULL)::continuation)
+(ROW(COALESCE(((jsonb_extract_path(jsonb_build_array(10, 20), ((0)::text)))::boolean), FALSE), NULL, NULL, NULL)::continuation)

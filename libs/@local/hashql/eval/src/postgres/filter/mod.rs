@@ -96,7 +96,10 @@ impl From<Continuation> for Expression {
         let row = match continuation {
             Continuation::Return { filter } => {
                 vec![
-                    filter.grouped().cast(PostgresType::Boolean),
+                    filter
+                        .grouped()
+                        .cast(PostgresType::Boolean)
+                        .coalesce(Self::Constant(query::Constant::Boolean(false))),
                     null.clone(),
                     null.clone(),
                     null,
@@ -184,7 +187,20 @@ fn finish_switch_int<A: Allocator>(
     let discriminant = Box::new(discriminant.grouped().cast(PostgresType::Int));
 
     let mut discriminant = Some(discriminant);
-    let mut conditions = Vec::with_capacity(targets.values().len());
+    // +1 for the NULL guard: a NULL discriminant means the computation could
+    // not be evaluated (e.g. missing JSONB key), so we reject the row.
+    let mut conditions = Vec::with_capacity(targets.values().len() + 1);
+
+    conditions.push((
+        Expression::Unary(UnaryExpression {
+            op: UnaryOperator::IsNull,
+            expr: discriminant.clone().unwrap_or_else(|| unreachable!()),
+        }),
+        Continuation::Return {
+            filter: Expression::Constant(query::Constant::Boolean(false)),
+        }
+        .into(),
+    ));
 
     for (index, (&value, then)) in targets.values().iter().zip(branch_results).enumerate() {
         let is_last = index == targets.values().len() - 1;
@@ -219,6 +235,8 @@ pub(crate) struct GraphReadFilterCompiler<'ctx, 'heap, A: Allocator = Global, S:
     context: &'ctx EvalContext<'ctx, 'heap, A>,
 
     body: &'ctx Body<'heap>,
+    env: Local,
+
     /// MIR local → SQL expression mapping, with snapshot/rollback for branching.
     locals: LocalSnapshotVec<Option<Expression>, AppendOnly, S>,
     diagnostics: EvalDiagnosticIssues,
@@ -230,6 +248,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
     pub(crate) fn new(
         context: &'ctx EvalContext<'ctx, 'heap, A>,
         body: &'ctx Body<'heap>,
+        env: Local,
         scratch: S,
     ) -> Self
     where
@@ -238,6 +257,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         Self {
             context,
             body,
+            env,
             locals: IdSnapshotVec::new_in(scratch.clone()),
             diagnostics: DiagnosticIssues::new(),
             scratch,
@@ -295,8 +315,8 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                 },
                 rest @ ..,
             ] => {
-                let param = db.parameters.env(self.body.id, *field);
-                (param.into(), rest)
+                let param = db.parameters.env(self.env, *field);
+                (param.to_expr(), rest)
             }
             [..] => {
                 self.diagnostics.push(invalid_env_projection(span));
@@ -334,7 +354,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                     ProjectionKind::Field(field_index) => {
                         Expression::Constant(query::Constant::U32(field_index.as_u32()))
                     }
-                    &ProjectionKind::FieldByName(symbol) => db.parameters.symbol(symbol).into(),
+                    &ProjectionKind::FieldByName(symbol) => db.parameters.symbol(symbol).to_expr(),
                     &ProjectionKind::Index(local) => self
                         .locals
                         .lookup(local)
@@ -363,8 +383,8 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
             Constant::Int(int) if let Ok(uint) = u32::try_from(int.as_uint()) => {
                 Expression::Constant(query::Constant::U32(uint))
             }
-            &Constant::Int(int) => db.parameters.int(int).into(),
-            &Constant::Primitive(primitive) => db.parameters.primitive(primitive).into(),
+            &Constant::Int(int) => db.parameters.int(int).to_expr(),
+            &Constant::Primitive(primitive) => db.parameters.primitive(primitive).to_expr(),
             // Unit is the zero-sized type, represented as JSON `null` inside jsonb values.
             Constant::Unit => Expression::Constant(query::Constant::JsonNull),
             Constant::FnPtr(_) => {
@@ -418,22 +438,31 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         // Operands coming from jsonb extraction are untyped from Postgres' perspective.
         // Arithmetic and bitwise operators need explicit casts; comparisons work on jsonb
         // directly.
-        let (op, cast) = match *op {
-            BinOp::Add => (BinaryOperator::Add, Some(PostgresType::Numeric)),
-            BinOp::Sub => (BinaryOperator::Subtract, Some(PostgresType::Numeric)),
-            BinOp::BitAnd => (BinaryOperator::BitwiseAnd, Some(PostgresType::BigInt)),
-            BinOp::BitOr => (BinaryOperator::BitwiseOr, Some(PostgresType::BigInt)),
-            BinOp::Eq => (BinaryOperator::Equal, None),
-            BinOp::Ne => (BinaryOperator::NotEqual, None),
-            BinOp::Lt => (BinaryOperator::Less, None),
-            BinOp::Lte => (BinaryOperator::LessOrEqual, None),
-            BinOp::Gt => (BinaryOperator::Greater, None),
-            BinOp::Gte => (BinaryOperator::GreaterOrEqual, None),
+        let (op, cast, function) = match *op {
+            BinOp::Add => (BinaryOperator::Add, Some(PostgresType::Numeric), None),
+            BinOp::Sub => (BinaryOperator::Subtract, Some(PostgresType::Numeric), None),
+            BinOp::BitAnd => (BinaryOperator::BitwiseAnd, Some(PostgresType::BigInt), None),
+            BinOp::BitOr => (BinaryOperator::BitwiseOr, Some(PostgresType::BigInt), None),
+            BinOp::Eq => (BinaryOperator::Equal, None, Some(query::Function::ToJson)),
+            BinOp::Ne => (
+                BinaryOperator::NotEqual,
+                None,
+                Some(query::Function::ToJson),
+            ),
+            BinOp::Lt => (BinaryOperator::Less, None, None),
+            BinOp::Lte => (BinaryOperator::LessOrEqual, None, None),
+            BinOp::Gt => (BinaryOperator::Greater, None, None),
+            BinOp::Gte => (BinaryOperator::GreaterOrEqual, None, None),
         };
 
         if let Some(target) = cast {
             left = left.grouped().cast(target.clone());
             right = right.grouped().cast(target);
+        }
+
+        if let Some(function) = function {
+            left = Expression::Function(function(Box::new(left)));
+            right = Expression::Function(function(Box::new(right)));
         }
 
         Expression::Binary(BinaryExpression {
@@ -450,12 +479,12 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         let index = db.parameters.input(*name);
 
         match *op {
-            InputOp::Load { required: _ } => index.into(),
+            InputOp::Load { required: _ } => index.to_expr(),
             InputOp::Exists => Expression::Unary(UnaryExpression {
                 op: UnaryOperator::Not,
                 expr: Box::new(Expression::Unary(UnaryExpression {
                     op: UnaryOperator::IsNull,
-                    expr: Box::new(index.into()),
+                    expr: Box::new(index.to_expr()),
                 })),
             }),
         }
@@ -488,7 +517,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
                     let key = db.parameters.symbol(key);
                     let value = self.compile_operand(db, span, value);
 
-                    expressions.push((key.into(), value));
+                    expressions.push((key.to_expr(), value));
                 }
 
                 // Values are reconstructed to their corresponding tuple and struct definitions

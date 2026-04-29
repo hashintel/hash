@@ -158,6 +158,7 @@ let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
 | `x = tuple <a>, <b>;` | Create tuple | `Assign(x, Aggregate(Tuple, [a, b]))` |
 | `x = struct a: <v1>, b: <v2>;` | Create struct | `Assign(x, Aggregate(Struct, [v1, v2]))` |
 | `x = closure <def> <env>;` | Create closure | `Assign(x, Aggregate(Closure, [def, env]))` |
+| `x = opaque (<name>), <value>;` | Create opaque wrapper | `Assign(x, Aggregate(Opaque(name), [value]))` |
 | `x = bin.<op> <lhs> <rhs>;` | Binary operation | `Assign(x, Binary(lhs, op, rhs))` |
 | `x = un.<op> <operand>;` | Unary operation | `Assign(x, Unary(op, operand))` |
 | `x = input.load! "name";` | Load required input | `Assign(x, Input(Load { required: true }, "name"))` |
@@ -271,6 +272,27 @@ let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
 
     bb0() {
         result = bin.== vertex_field 42;
+        return result;
+    }
+});
+```
+
+### Opaque Construction and Projection
+
+Construct opaque-wrapped values with `opaque (<name>), <value>`. The name must
+be wrapped in parentheses because it is a multi-token path.
+
+```rust
+use hashql_core::symbol::sym;
+
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl inner: (x: Int, y: Int), wrapped: [Opaque sym::path::Entity; ?], result: Int;
+    @proj y_field = wrapped.y: Int;
+
+    bb0() {
+        inner = struct x: 100, y: 200;
+        wrapped = opaque (sym::path::Entity), inner;
+        result = load y_field;
         return result;
     }
 });

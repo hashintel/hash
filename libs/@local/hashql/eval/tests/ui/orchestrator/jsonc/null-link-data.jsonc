@@ -1,0 +1,11 @@
+// Filter entities where link_data is None (non-link entities).
+// Verifies Optional::Null comparison against real NULL LEFT JOIN columns.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==", "vertex.link_data", ["None"]]
+    ]
+  ]
+]
