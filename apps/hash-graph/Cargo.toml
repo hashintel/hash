@@ -34,7 +34,7 @@ jsonwebtoken = { workspace = true }
 mimalloc = { workspace = true }
 multiaddr = { workspace = true }
 regex = { workspace = true }
-reqwest = { workspace = true, features = ["rustls-tls"] }
+reqwest = { workspace = true, features = ["rustls"] }
 simple-mermaid = { workspace = true }
 tarpc = { workspace = true, features = [
     "serde1",
