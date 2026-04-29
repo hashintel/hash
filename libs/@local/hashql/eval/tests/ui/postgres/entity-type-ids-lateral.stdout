@@ -7,8 +7,7 @@ FROM "entity_is_of_type_ids" AS "eit"
 CROSS JOIN UNNEST("eit"."base_urls", ("eit"."versions"::text[])) AS "u"("b", "v")
 WHERE "eit"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id") AS "entity_is_of_type_ids_0_0_1"
   ON TRUE
-CROSS JOIN LATERAL (SELECT (ROW(COALESCE(((to_jsonb("entity_is_of_type_ids_0_0_1"."entity_type_ids") = to_jsonb(($3::jsonb)))::boolean), FALSE), NULL, NULL, NULL)::continuation) AS "row"
-OFFSET 0) AS "continuation_2_0"
+CROSS JOIN LATERAL (SELECT (ROW(COALESCE(((to_jsonb("entity_is_of_type_ids_0_0_1"."entity_type_ids") = to_jsonb(($3::jsonb)))::boolean), FALSE), NULL, NULL, NULL)::continuation) AS "row") AS "continuation_2_0"
 WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange) AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange) AND ("continuation_2_0"."row")."filter" IS NOT FALSE
 
 ════ Parameters ════════════════════════════════════════════════════════════════
