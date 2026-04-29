@@ -44,7 +44,7 @@
 //! use hash_graph_test_data::seeding::context::{
 //!     LocalId, ProduceContext, ProducerId, Provenance, RunId, Scope, ShardId, StageId, SubScope,
 //! };
-//! use rand::Rng as _;
+//! use rand::RngExt as _;
 //!
 //! let context = ProduceContext {
 //!     run_id: RunId::new(0xDEAD),
