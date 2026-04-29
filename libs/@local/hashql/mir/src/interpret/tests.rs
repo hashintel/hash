@@ -508,7 +508,7 @@ fn unary_not_true() {
         decl result: Bool;
 
         bb0() {
-            result = un.! true;
+            result = un.~ true;
             return result;
         }
     });
@@ -527,7 +527,7 @@ fn unary_not_false() {
         decl result: Bool;
 
         bb0() {
-            result = un.! false;
+            result = un.~ false;
             return result;
         }
     });
@@ -881,7 +881,7 @@ fn nested_function_calls() {
         decl x: Bool, result: Bool;
 
         bb0() {
-            result = un.! x;
+            result = un.~ x;
             return result;
         }
     });
@@ -1444,7 +1444,7 @@ fn ice_unary_not_type_mismatch() {
 
         bb0() {
             x = load 42;
-            result = un.! x;
+            result = un.~ x;
             return result;
         }
     });
