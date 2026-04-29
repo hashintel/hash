@@ -1,6 +1,7 @@
 import { globSync } from "node:fs";
 import path from "node:path";
 
+import svgr from "@svgr/rollup";
 import { defineConfig } from "tsdown";
 
 const componentEntries = Object.fromEntries(
@@ -17,6 +18,8 @@ export default defineConfig({
     theme: "./src/theme.ts",
     ...componentEntries,
   },
+  copy: ["./src/types.d.ts"],
+  plugins: [svgr()],
   format: ["esm"],
   dts: true,
 });
