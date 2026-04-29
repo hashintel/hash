@@ -15,7 +15,7 @@ use core::error::Error;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use rand::{Rng, distr::Distribution};
+use rand::{Rng, RngExt as _, distr::Distribution};
 use type_system::ontology::{
     BaseUrl,
     property_type::schema::{PropertyTypeReference, ValueOrArray},
