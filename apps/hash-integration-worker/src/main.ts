@@ -1,4 +1,8 @@
-/* eslint-disable import/first */
+/* eslint-disable import/first, import/order, simple-import-sort/imports */
+
+// Must be the first import so OTEL auto-instrumentations can patch
+// http / grpc / Sentry's own monkey-patches before they apply.
+import { otelSetup } from "./instrument.js";
 
 import * as Sentry from "@sentry/node";
 
@@ -12,6 +16,12 @@ Sentry.init({
     process.env.ENVIRONMENT ||
     (process.env.NODE_ENV === "production" ? "production" : "development"),
   tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
+  // When OTEL is configured we already have a global TracerProvider
+  // wired up to OTLP. Tell Sentry to share it instead of registering its
+  // own, so Sentry's spans flow through our pipeline and inherit the
+  // active OTEL context (including parent spans extracted from Temporal
+  // headers by OpenTelemetryActivityInboundInterceptor).
+  skipOpenTelemetrySetup: !!process.env.HASH_OTLP_ENDPOINT,
 });
 
 import * as http from "node:http";
@@ -23,10 +33,20 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { createCommonFlowActivities } from "@local/hash-backend-utils/flows";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { OpenTelemetryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/opentelemetry";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
+import { createTemporalSdkLogger } from "@local/hash-backend-utils/temporal";
+import { wrapWorkflowSpanExporter } from "@local/hash-backend-utils/temporal/workflow-span-adapter";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
+import { makeWorkflowExporter } from "@temporalio/interceptors-opentelemetry";
+import type { ActivityInboundCallsInterceptorFactory } from "@temporalio/worker";
+import {
+  defaultSinks,
+  NativeConnection,
+  Runtime,
+  Worker,
+} from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import { createFlowActivities } from "./activities/flow-activities.js";
@@ -88,8 +108,31 @@ const workflowOption = () =>
     : { workflowsPath: require.resolve("./workflows") };
 
 async function run() {
-  // eslint-disable-next-line no-console
-  console.info("Starting integration worker...");
+  logger.info("Starting integration worker...");
+
+  // Temporal SDK runtime telemetry: emits SDK-internal metrics (worker
+  // slot utilisation, sticky cache hits, polling latency, activity /
+  // workflow execution latency) and forwards Rust core logs to OTLP.
+  // Must be installed before any Temporal Connection / Worker is
+  // created. Distinct from the per-activity user-code spans the
+  // interceptors below produce.
+  if (otelSetup) {
+    Runtime.install({
+      // Pipe Rust-core SDK logs through the same structured logger as
+      // the rest of the worker, so they end up on the OTLP transport
+      // alongside app logs instead of bypassing it to stderr.
+      logger: createTemporalSdkLogger(logger),
+      telemetryOptions: {
+        metrics: {
+          otel: {
+            url: process.env.HASH_OTLP_ENDPOINT!,
+            metricsExportInterval: "30s",
+          },
+        },
+        logging: { forward: { level: "INFO" } },
+      },
+    });
+  }
 
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
@@ -112,39 +155,81 @@ async function run() {
     }),
     namespace: "HASH",
     taskQueue: "integration",
-    sinks: { ...defaultSinks(), ...sentrySinks() },
+    sinks: {
+      ...defaultSinks(),
+      ...sentrySinks(),
+      ...(otelSetup
+        ? {
+            exporter: makeWorkflowExporter(
+              // Wrap our v2 OTLPTraceExporter so it can ingest the v1-
+              // shaped `ReadableSpan`s that Temporal's workflow sandbox
+              // produces. Without this, the `instrumentationLibrary` →
+              // `instrumentationScope` rename in sdk-trace-base v2
+              // causes the OTLP transformer to crash on every workflow
+              // span export.
+              wrapWorkflowSpanExporter(
+                otelSetup.traceExporter,
+              ) as unknown as Parameters<typeof makeWorkflowExporter>[0],
+              otelSetup.resource as unknown as Parameters<
+                typeof makeWorkflowExporter
+              >[1],
+            ),
+          }
+        : {}),
+    },
     interceptors: {
       workflowModules: [
         require.resolve(
           "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
         ),
+        ...(otelSetup
+          ? [
+              require.resolve(
+                "@local/hash-backend-utils/temporal/interceptors/workflows/opentelemetry",
+              ),
+            ]
+          : []),
       ],
-      activityInbound: [(ctx) => new SentryActivityInboundInterceptor(ctx)],
+      // OTEL interceptor must run as the OUTER wrapper so it can
+      // extract the trace context the workflow client injected into
+      // the activity headers before any other span is created. Sentry
+      // doesn't know the Temporal `_tracer-data` header convention, so
+      // a Sentry-first ordering produces a parent-less span and breaks
+      // the caller→workflow→activity trace chain.
+      activityInbound: [
+        ...((otelSetup
+          ? [(ctx) => new OpenTelemetryActivityInboundInterceptor(ctx)]
+          : []) satisfies ActivityInboundCallsInterceptorFactory[]),
+        (ctx) => new SentryActivityInboundInterceptor(ctx),
+      ],
     },
   });
 
   const httpServer = createHealthCheckServer();
   const port = 4300;
   httpServer.listen({ host: "0.0.0.0", port });
-  // eslint-disable-next-line no-console
-  console.info(`HTTP server listening on port ${port}`);
+  logger.info(`HTTP server listening on port ${port}`);
 
   await worker.run();
 }
 
-process.on("SIGINT", () => {
-  // eslint-disable-next-line no-console
-  console.info("Received SIGINT, exiting...");
+const shutdown = async (signal: NodeJS.Signals) => {
+  logger.info(`Received ${signal}, exiting...`);
+  // Flush any pending OTLP exports before tearing down the process.
+  // Without this, the last seconds of telemetry are lost on every
+  // graceful restart.
+  try {
+    await otelSetup?.shutdown();
+  } catch (error) {
+    logger.error("Failed to flush OpenTelemetry", { error });
+  }
   process.exit(1);
-});
-process.on("SIGTERM", () => {
-  // eslint-disable-next-line no-console
-  console.info("Received SIGTERM, exiting...");
-  process.exit(1);
-});
+};
 
-run().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error(err);
+process.on("SIGINT", (signal) => void shutdown(signal));
+process.on("SIGTERM", (signal) => void shutdown(signal));
+
+run().catch((error: unknown) => {
+  logger.error("Error running worker", { error });
   process.exit(1);
 });
