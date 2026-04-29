@@ -1,11 +1,11 @@
 warning[mir::transform::excessive-inlining-depth]: Excessive inlining depth
    ╭▸ 
-17 │ ┏     [
-18 │ ┃       "fn",
-19 │ ┃       { "#tuple": [] },
-20 │ ┃       { "#struct": { "vertex": "_" } },
+14 │ ┏     [
+15 │ ┃       "fn",
+16 │ ┃       { "#tuple": [] },
+17 │ ┃       { "#struct": { "vertex": "_" } },
    ‡ ┃
-67 │ ┃     ]
+64 │ ┃     ]
    │ ┗━━━━━┛ filter has deeply nested calls that could not be fully inlined
    │
    ├ note: aggressive inlining stopped after 1 iterations
