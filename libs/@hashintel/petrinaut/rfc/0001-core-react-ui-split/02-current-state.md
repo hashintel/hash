@@ -4,7 +4,7 @@
 
 A single `<Petrinaut>` component (`src/petrinaut.tsx`) composes a stack of providers:
 
-```
+```text
 NotificationsProvider
 └─ UndoRedoContext
    └─ SDCPNProvider             ← holds petriNetDefinition + mutate callback (from props)
