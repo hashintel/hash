@@ -43,7 +43,7 @@ error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic funct
   │                           edition: ?,
   │                           inferred: ?
   │                       ),
-  │                       record_id: ::graph::types::knowledge::entity::EntityRecordId(
+  │                       record_id: ::graph::types::knowledge::entity::RecordId(
   │                           edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
   │                           entity_id: ::graph::types::knowledge::entity::EntityId(
   │                               draft_id: ::core::option::None(Null)
@@ -52,9 +52,17 @@ error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic funct
   │                               web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
   │                           )
   │                       ),
-  │                       temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-  │                           decision_time: ?,
-  │                           transaction_time: ?
+  │                       temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+  │                           decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+  │                               end: ::graph::temporal::UnboundedTemporalBound(Null)
+  │                               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+  │                               start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+  │                           )),
+  │                           transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+  │                               end: ::graph::temporal::UnboundedTemporalBound(Null)
+  │                               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+  │                               start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+  │                           ))
   │                       )
   │                   ),
   │                   properties: ?
@@ -99,7 +107,7 @@ error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic funct
   │                       edition: ?,
   │                       inferred: ?
   │                   ),
-  │                   record_id: ::graph::types::knowledge::entity::EntityRecordId(
+  │                   record_id: ::graph::types::knowledge::entity::RecordId(
   │                       edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
   │                       entity_id: ::graph::types::knowledge::entity::EntityId(
   │                           draft_id: ::core::option::None(Null)
@@ -108,9 +116,17 @@ error[lower::specialization::non-intrinsic-graph-operation]: Non-intrinsic funct
   │                           web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
   │                       )
   │                   ),
-  │                   temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-  │                       decision_time: ?,
-  │                       transaction_time: ?
+  │                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+  │                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+  │                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+  │                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+  │                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+  │                       )),
+  │                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+  │                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+  │                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+  │                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+  │                       ))
   │                   )
   │               ),
   │               properties: ?

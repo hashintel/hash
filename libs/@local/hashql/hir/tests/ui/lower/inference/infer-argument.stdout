@@ -18,8 +18,8 @@
 └→ _3«Integer»
 
 ┌─ ::core::math::add
-└→ <T?25: Number, U?26: Number>(T?25«Integer», U?26«Integer») ->
-       (T?25«Integer» | U?26«Integer»)
+└→ <T?29: Number, U?30: Number>(T?29«Integer», U?30«Integer») ->
+       (T?29«Integer» | U?30«Integer»)
 
 ┌─ lhs:0
 └→ _0«Integer»

@@ -1,7 +1,7 @@
 ════ Initial MIR ═══════════════════════════════════════════════════════════════
 
-fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
-    let %1: ::graph::TimeAxis
+fn {closure#3}(%0: ()) -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
+    let %1: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %1 = input LOAD axis
@@ -10,8 +10,8 @@ fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
     }
 }
 
-thunk get_axis:0() -> () -> ::graph::TimeAxis {
-    let %0: () -> ::graph::TimeAxis
+thunk get_axis:0() -> () -> (::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes) {
+    let %0: () -> (::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes)
     let %1: ()
 
     bb0(): {
@@ -22,9 +22,9 @@ thunk get_axis:0() -> () -> ::graph::TimeAxis {
     }
 }
 
-*thunk {thunk#2}() -> ::graph::TimeAxis {
-    let %0: () -> ::graph::TimeAxis
-    let %1: ::graph::TimeAxis
+*thunk {thunk#2}() -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
+    let %0: () -> (::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes)
+    let %1: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %0 = apply (get_axis:0 as FnPtr)
@@ -36,8 +36,8 @@ thunk get_axis:0() -> () -> ::graph::TimeAxis {
 
 ════ Pre-inlining MIR ══════════════════════════════════════════════════════════
 
-fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
-    let %1: ::graph::TimeAxis
+fn {closure#3}(%0: ()) -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
+    let %1: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %1 = input LOAD axis
@@ -46,8 +46,8 @@ fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
     }
 }
 
-thunk get_axis:0() -> () -> ::graph::TimeAxis {
-    let %0: () -> ::graph::TimeAxis
+thunk get_axis:0() -> () -> (::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes) {
+    let %0: () -> (::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes)
 
     bb0(): {
         %0 = closure(({closure#3} as FnPtr), ())
@@ -56,8 +56,8 @@ thunk get_axis:0() -> () -> ::graph::TimeAxis {
     }
 }
 
-*thunk {thunk#2}() -> ::graph::TimeAxis {
-    let %0: ::graph::TimeAxis
+*thunk {thunk#2}() -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
+    let %0: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %0 = apply ({closure#3} as FnPtr) ()
@@ -68,8 +68,8 @@ thunk get_axis:0() -> () -> ::graph::TimeAxis {
 
 ════ Inlined MIR ═══════════════════════════════════════════════════════════════
 
-fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
-    let %1: ::graph::TimeAxis
+fn {closure#3}(%0: ()) -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
+    let %1: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %1 = input LOAD axis
@@ -78,8 +78,8 @@ fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
     }
 }
 
-thunk get_axis:0() -> () -> ::graph::TimeAxis {
-    let %0: () -> ::graph::TimeAxis
+thunk get_axis:0() -> () -> (::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes) {
+    let %0: () -> (::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes)
 
     bb0(): {
         %0 = closure(({closure#3} as FnPtr), ())
@@ -88,10 +88,10 @@ thunk get_axis:0() -> () -> ::graph::TimeAxis {
     }
 }
 
-*thunk {thunk#2}() -> ::graph::TimeAxis {
-    let %0: ::graph::TimeAxis
+*thunk {thunk#2}() -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
+    let %0: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
     let %1: ()
-    let %2: ::graph::TimeAxis
+    let %2: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %1 = ()

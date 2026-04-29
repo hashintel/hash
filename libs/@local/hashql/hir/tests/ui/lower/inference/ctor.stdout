@@ -12,7 +12,7 @@
 └→ _0«::core::option::Some(Integer)»
 
 ┌─ ::core::option::Some
-└→ <T?25>(T?25«Integer») -> ::core::option::Some(T?25«Integer»)
+└→ <T?29>(T?29«Integer») -> ::core::option::Some(T?29«Integer»)
 
 ┌─ 2
 └→ Integer
