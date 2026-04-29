@@ -2,6 +2,21 @@
 source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
 expression: query_report.to_string()
 ---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
+    let %2: ?
+    let %3: () -> ?
+    let %4: ?
+
+    bb0(): {
+        %2 = %1.entity_uuid
+        %3 = ({def@99} as FnPtr)
+        %4 = apply %3
+
+        return %4
+    }
+}
 ===================================== SQL ======================================
 
 SELECT "entity_editions_0_0_1"."properties" AS "properties", jsonb_build_object($3, jsonb_build_object($4, "entity_temporal_metadata_0_0_0"."web_id", $5, "entity_temporal_metadata_0_0_0"."entity_uuid", $6, "entity_temporal_metadata_0_0_0"."draft_id"), $6, "entity_temporal_metadata_0_0_0"."draft_id") AS "record_id", jsonb_build_object($7, "entity_temporal_metadata_0_0_0"."decision_time", $8, "entity_temporal_metadata_0_0_0"."transaction_time") AS "temporal_versioning", "entity_is_of_type_ids_0_0_2"."entity_type_ids" AS "entity_type_ids", "entity_editions_0_0_1"."archived" AS "archived", "entity_editions_0_0_1"."confidence" AS "confidence", "entity_ids_0_0_3"."provenance" AS "provenance_inferred", "entity_editions_0_0_1"."provenance" AS "provenance_edition", "entity_editions_0_0_1"."property_metadata" AS "property_metadata", "entity_has_left_entity_0_0_4"."left_web_id" AS "left_entity_web_id", "entity_has_left_entity_0_0_4"."left_entity_uuid" AS "left_entity_uuid", "entity_has_right_entity_0_0_5"."right_web_id" AS "right_entity_web_id", "entity_has_right_entity_0_0_5"."right_entity_uuid" AS "right_entity_uuid", "entity_has_left_entity_0_0_4"."confidence" AS "left_entity_confidence", "entity_has_right_entity_0_0_5"."confidence" AS "right_entity_confidence", "entity_has_left_entity_0_0_4"."provenance" AS "left_entity_provenance", "entity_has_right_entity_0_0_5"."provenance" AS "right_entity_provenance"

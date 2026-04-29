@@ -2,6 +2,21 @@
 source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
 expression: report.to_string()
 ---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: ?
+    let %3: ?
+    let %4: Boolean
+
+    bb0(): {
+        %2 = %1.properties.address.city
+        %3 = input LOAD expected_city
+        %4 = %2 == %3
+
+        return %4
+    }
+}
 ==================== Island (entry: bb0, target: postgres) =====================
 
 (ROW(((jsonb_extract_path("entity_editions_0_0_1"."properties", (($1)::text), (($2)::text)) = $3)::boolean), NULL, NULL, NULL)::continuation)

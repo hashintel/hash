@@ -15,8 +15,9 @@ use hash_graph_postgres_store::store::postgres::query::{Expression, Transpile as
 use hashql_core::{
     heap::{Heap, Scratch},
     id::Id as _,
+    pretty::Formatter,
     symbol::sym,
-    r#type::{TypeBuilder, TypeId, environment::Environment},
+    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, TypeId, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::node::operation::InputOp;
@@ -31,6 +32,7 @@ use hashql_mir::{
         analysis::SizeEstimationAnalysis,
         execution::{ExecutionAnalysis, ExecutionAnalysisResidual, IslandKind, TargetId},
     },
+    pretty::TextFormatOptions,
 };
 use insta::{Settings, assert_snapshot};
 
@@ -101,25 +103,46 @@ struct FilterIslandReport {
 }
 
 struct FilterReport {
+    body: String,
     islands: Vec<FilterIslandReport>,
 }
 
 impl core::fmt::Display for FilterReport {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        for (i, island) in self.islands.iter().enumerate() {
-            if i > 0 {
-                writeln!(f)?;
-            }
+        writeln!(f, "{:=^80}\n", " MIR ")?;
+        write!(f, "{}", self.body)?;
+
+        for island in &self.islands {
             let label = format!(
                 " Island (entry: bb{}, target: {}) ",
                 island.entry_block.as_u32(),
                 island.target,
             );
-            writeln!(f, "{label:=^80}\n")?;
+            writeln!(f, "\n{label:=^80}\n")?;
             write!(f, "{}", island.sql)?;
         }
         Ok(())
     }
+}
+
+fn format_body<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> String {
+    let formatter = Formatter::new(heap);
+    let mut type_formatter =
+        TypeFormatter::new(&formatter, &fixture.env, TypeFormatterOptions::terse());
+
+    let mut text_format = TextFormatOptions {
+        writer: Vec::<u8>::new(),
+        indent: 4,
+        sources: (),
+        types: &mut type_formatter,
+        annotations: (),
+    }
+    .build();
+
+    let body = &fixture.bodies[fixture.def()];
+    text_format.format_body(body).expect("formatting failed");
+
+    String::from_utf8(text_format.writer).expect("valid UTF-8")
 }
 
 fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) -> FilterReport {
@@ -177,6 +200,7 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
     }
 
     FilterReport {
+        body: format_body(fixture, heap),
         islands: island_reports,
     }
 }
@@ -199,13 +223,17 @@ fn find_entry_block(
     unreachable!("The postgres island always has an entry block (BasicBlockId::START)")
 }
 struct QueryReport {
+    body: String,
     sql: String,
     parameters: String,
 }
 
 impl core::fmt::Display for QueryReport {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        writeln!(f, "{:=^80}\n", " SQL ")?;
+        writeln!(f, "{:=^80}\n", " MIR ")?;
+        write!(f, "{}", self.body)?;
+
+        writeln!(f, "\n{:=^80}\n", " SQL ")?;
         write!(f, "{}", self.sql)?;
 
         if !self.parameters.is_empty() {
@@ -264,7 +292,11 @@ fn compile_full_query_with_mask<'heap>(
     let sql = prepared_query.transpile().to_string();
     let parameters = format!("{}", prepared_query.parameters);
 
-    QueryReport { sql, parameters }
+    QueryReport {
+        body: format_body(fixture, heap),
+        sql,
+        parameters,
+    }
 }
 
 fn snapshot_settings() -> Settings {
