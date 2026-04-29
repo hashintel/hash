@@ -114,7 +114,7 @@ export const Default: Story<ButtonElementProps> = (args) => (
               tone={tone}
               disabled
             >
-              {variant}
+              disabled
             </Button>
             <Button
               key={`${variant}pressed`}
@@ -123,7 +123,7 @@ export const Default: Story<ButtonElementProps> = (args) => (
               tone={tone}
               pressed
             >
-              {variant}
+              pressed
             </Button>
           </>
         ))}
@@ -197,33 +197,30 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
           gap: "[16px]",
           alignItems: "center",
           marginBottom: "4",
+          flexWrap: "wrap",
         })}
       >
-        <Button {...args} variant={variant} iconName="plus">
-          Icon Left
-        </Button>
-        <Button
-          {...args}
-          variant={variant}
-          iconName="arrowRight"
-          iconPosition="right"
-        >
-          Icon Right
-        </Button>
-        <Button {...args} variant={variant} iconName="star">
-          {undefined}
-        </Button>
+        {formInputSizes.map((size) => (
+          <>
+            <Button {...args} variant={variant} iconName="plus" size={size}>
+              Icon Left
+            </Button>
+            <Button
+              {...args}
+              variant={variant}
+              iconName="arrowRight"
+              iconPosition="right"
+              size={size}
+            >
+              Icon Right
+            </Button>
+            <Button {...args} variant={variant} iconName="star" size={size}>
+              {undefined}
+            </Button>
+          </>
+        ))}
         <Button {...args} variant={variant} iconName="plus" loading>
           Icon Left
-        </Button>
-        <Button
-          {...args}
-          variant={variant}
-          iconName="arrowRight"
-          iconPosition="right"
-          loading
-        >
-          Icon Right
         </Button>
         <Button {...args} variant={variant} iconName="star" loading>
           {undefined}

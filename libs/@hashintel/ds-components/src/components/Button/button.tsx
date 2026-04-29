@@ -86,6 +86,20 @@ export type AnchorElementProps = AnchorElementOnlyProps &
   ButtonIconProps;
 export type ButtonProps = ButtonElementProps | AnchorElementProps;
 
+const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+  xs: "sm",
+  sm: "sm",
+  md: "md",
+  lg: "md",
+};
+
+const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
+  xs: "xs",
+  sm: "sm",
+  md: "md",
+  lg: "md",
+};
+
 export const Button = (props: ButtonProps) => {
   const {
     className,
@@ -113,26 +127,41 @@ export const Button = (props: ButtonProps) => {
     onBlur,
     ...rest
   } = props;
+
+  const iconElement = iconName ? (
+    <Icon name={iconName} size={iconSizeMap[size ?? "md"]} />
+  ) : null;
+  const prefixContent =
+    prefix ?? (iconPosition === "left" ? iconElement : null);
+  const suffixContent =
+    suffix ?? (iconPosition === "right" ? iconElement : null);
+
+  const hasIcon = !!suffixContent || !!prefixContent;
+
   const classes = styles({
     size,
     variant,
     shape,
     tone,
     isLoading: loading,
-    isDisabled: disabled,
+    isDisabled: disabled || loading,
     isPressed: pressed,
+    hasIcon,
+    hasIconLeft: !!prefixContent,
+    hasIconRight: !!suffixContent,
   });
 
-  const iconElement = iconName ? <Icon name={iconName} size={size} /> : null;
-  const prefixContent =
-    prefix ?? (iconPosition === "left" ? iconElement : null);
-  const suffixContent =
-    suffix ?? (iconPosition === "right" ? iconElement : null);
-
   let content = (
+    // Adds a zero-width space before suffix/prefix content so that even when there is no text alignment and height stay consistent
     <>
+      {prefixContent ? "\u200B" : null}
       {prefixContent}
-      {children}
+      {hasIcon && children ? (
+        <span className={classes.iconText}>{children}</span>
+      ) : (
+        children
+      )}
+      {suffixContent ? "\u200B" : null}
       {suffixContent}
     </>
   );
@@ -141,7 +170,7 @@ export const Button = (props: ButtonProps) => {
     content = (
       <>
         <span className={classes.loadingContainer}>
-          <LoadingSpinner size={size} />
+          <LoadingSpinner size={loadingSizeMap[size ?? "md"]} />
         </span>
         <span className={classes.loadingContent}>{content}</span>
       </>
