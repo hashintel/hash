@@ -10,7 +10,7 @@ import {
   type Variant,
 } from "./button";
 
-const variants: Variant[] = ["solid", "subtle", "ghost", "link"];
+const variants: Variant[] = ["solid", "subtle", "ghost", "link", "linkSubtle"];
 const tones: Tone[] = ["neutral", "brand", "error"];
 
 export default {

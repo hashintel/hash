@@ -7,7 +7,7 @@ import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { styles } from "./button.recipe";
 
-export type Variant = "solid" | "subtle" | "ghost" | "link";
+export type Variant = "solid" | "subtle" | "ghost" | "link" | "linkSubtle";
 export type Tone = "neutral" | "brand" | "error"; // success, warning, etc
 
 type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
