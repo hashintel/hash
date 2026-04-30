@@ -119,7 +119,7 @@ pub use self::{
 /// # Unary Operators
 ///
 /// ```
-/// use hashql_hir::node::operation::UnOp;
+/// use hashql_mir::body::rvalue::UnOp;
 /// use hashql_mir::op;
 ///
 /// assert!(matches!(op![neg], UnOp::Neg)); // `neg` is used since `-` alone is ambiguous
