@@ -7,7 +7,8 @@ export const styles = sva({
       cursor: "pointer",
       display: "inline-block",
       border: "1px solid",
-      transition: "[background 0.2s ease, color 0.2 ease, border 0.2 ease]",
+      transition:
+        "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
       "&:focus-visible": {
         outline: "2px solid",
       },
