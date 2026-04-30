@@ -195,8 +195,8 @@ pub(crate) fn serialize_value<'heap, V: Allocator>(
         .map(Json)
 }
 
-/// Encodes a single query [`Parameter`] into a boxed [`ToSql`] value ready
-/// for the PostgreSQL wire protocol.
+/// Encodes a single query [`Parameter`](crate::postgres::Parameter) into a boxed [`ToSql`] value
+/// ready for the PostgreSQL wire protocol.
 ///
 /// Handles all parameter variants: user inputs (serialized to JSON), literal
 /// integers and primitives, interned symbols, captured environment values,

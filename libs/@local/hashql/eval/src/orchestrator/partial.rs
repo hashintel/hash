@@ -263,7 +263,7 @@ impl<A: Allocator> Default for PartialEncodings<'_, A> {
 ///
 /// Unlike [`PartialEntityId`], this only has `web_id` and `entity_uuid`:
 /// link targets are not addressable by `draft_id` through
-/// [`EntityPath`](hashql_mir::pass::execution::traversal::EntityPath).
+/// [`EntityPath`].
 pub(crate) struct PartialLinkEntityId<'heap, A: Allocator> {
     pub web_id: Required<Value<'heap, A>>,
     pub entity_uuid: Required<Value<'heap, A>>,
