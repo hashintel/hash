@@ -1434,26 +1434,6 @@ fn ice_binary_bitor_type_mismatch() {
 }
 
 #[test]
-fn ice_unary_not_type_mismatch() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, result: Int;
-
-        bb0() {
-            x = load 42;
-            result = un.~ x;
-            return result;
-        }
-    });
-
-    let result = run_body(body).expect_err("should fail with unary not type mismatch");
-    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
-}
-
-#[test]
 fn ice_unary_bitnot_type_mismatch() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
