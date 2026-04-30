@@ -202,11 +202,17 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
       >
         {formInputSizes.map((size) => (
           <>
-            <Button {...args} variant={variant} iconName="plus" size={size}>
+            {/* eslint-disable -- spreading union-typed Ladle args triggers false TS errors from RequireAtLeastOne/ExclusifyUnion distribution */}
+            <Button
+              {...(args as any)}
+              variant={variant}
+              iconName="plus"
+              size={size}
+            >
               Icon Left
             </Button>
             <Button
-              {...args}
+              {...(args as any)}
               variant={variant}
               iconName="arrowRight"
               iconPosition="right"
@@ -215,7 +221,7 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
               Icon Right
             </Button>
             <ButtonComponent
-              {...args}
+              {...(args as any)}
               variant={variant}
               size={size}
               prefix={<Icon name="plus" size="sm" />}
@@ -224,11 +230,16 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
             >
               Both Icons
             </ButtonComponent>
-            <Button {...args} variant={variant} iconName="star" size={size}>
+            <Button
+              {...(args as any)}
+              variant={variant}
+              iconName="star"
+              size={size}
+            >
               {undefined}
             </Button>
             <ButtonComponent
-              {...args}
+              {...(args as any)}
               variant={variant}
               size={size}
               prefix={<Icon name="plus" size="sm" />}
@@ -238,9 +249,11 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
             >
               {undefined}
             </ButtonComponent>
+            {/* eslint-enable */}
           </>
         ))}
-        <Button {...args} variant={variant} iconName="star" loading>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */}
+        <Button {...(args as any)} variant={variant} iconName="star" loading>
           {undefined}
         </Button>
       </div>
