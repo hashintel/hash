@@ -54,21 +54,46 @@ export const useNotifications = (handler: (n: Notification) => void) => /* subsc
 
 Hook surface principle: **one hook per stream slice.** Nothing returns the whole instance plus all its state — that defeats the point of `useSyncExternalStore`'s selector-driven re-renders.
 
-## 6.3 LSP example
+## 6.3 Bridging `ReadableStore<T>` to `useSyncExternalStore`
+
+Core's `ReadableStore<T>.subscribe` passes the new value to its listener; React's `useSyncExternalStore` passes nothing. The adapter is one function:
+
+```ts
+// @hashintel/petrinaut/react/lib/use-store.ts
+import { useSyncExternalStore } from "react";
+import type { ReadableStore } from "@hashintel/petrinaut/core";
+
+export function useStore<T>(store: ReadableStore<T>): T {
+  return useSyncExternalStore(
+    (onStoreChange) => store.subscribe(() => onStoreChange()),
+    store.get,
+  );
+}
+
+export function useStoreSelector<T, U>(
+  store: ReadableStore<T>,
+  selector: (value: T) => U,
+): U {
+  return useSyncExternalStore(
+    (onStoreChange) => store.subscribe(() => onStoreChange()),
+    () => selector(store.get()),
+  );
+}
+```
+
+Every hook in `/react` uses these two helpers. Consumers never call `useSyncExternalStore` directly.
+
+### LSP example
 
 The existing `LanguageClientProvider` becomes a ~10-line bridge:
 
 ```tsx
 const instance = usePetrinautInstance();
+const diagnostics = useStore(instance.lsp.diagnostics);
+
 const value: LanguageClientContextValue = {
-  diagnosticsByUri: useSyncExternalStore(
-    instance.lsp.diagnostics.subscribe,
-    () => instance.lsp.diagnostics.get().byUri,
-  ),
-  totalDiagnosticsCount: useSyncExternalStore(
-    instance.lsp.diagnostics.subscribe,
-    () => instance.lsp.diagnostics.get().total,
-  ),
+  diagnosticsByUri: diagnostics.byUri,
+  totalDiagnosticsCount: diagnostics.total,
   notifyDocumentChanged: instance.lsp.notifyDocumentChanged,
   requestCompletion: instance.lsp.requestCompletion,
   requestHover: instance.lsp.requestHover,

@@ -35,19 +35,40 @@ const instance = createPetrinaut({
 
 > **Major design decision (Q1 in [07-open-questions.md](./07-open-questions.md)):** does Core own the document, or does the host? Today the host owns it, which lets immer/automerge sit on top. If Core owns it, we remove the `mutate` callback and Core just exposes the post-mutation state on a stream — but then automerge / collaborative editing has to wrap Core, not the other way around.
 
-## 4.2 Stream primitive
+## 4.2 Stream primitive (locked)
 
-We pick **one** stream primitive and stick with it. Options:
+Two primitives. State uses `ReadableStore<T>`; one-shot events use `EventStream<T>`.
 
-| Option | Pros | Cons |
-| ------ | ---- | ---- |
-| **Standard `Observable` (TC39 proposal / zen-observable)** | Familiar, composable, no new dep if we ship a small shim. | Not yet standard; need a tiny base class. |
-| **RxJS** | Battle-tested, powerful operators. | Heavy dep for a "core" library; conflicts with consumers' RxJS versions. |
-| **`AsyncIterable`** | Native, no dep. | Awkward for state ("current value" semantics need extra logic); harder to multicast. |
-| **Custom `subscribe(listener) → unsubscribe` + `getSnapshot()`** | Trivial, matches React's `useSyncExternalStore`. | Reinventing observables; less interop. |
-| **Signals (`@preact/signals-core`)** | Tiny, fine-grained, very ergonomic. | Push-pull rather than pure push; less common in non-React code. |
+```ts
+type ReadableStore<T> = {
+  /** Synchronous read of the current value. */
+  get(): T;
+  /** Subscribe to changes. The listener receives the new value on every call. Returns an unsubscribe function. */
+  subscribe(listener: (value: T) => void): () => void;
+};
 
-**Recommendation:** `subscribe(listener) → unsubscribe` + `getSnapshot()` for state slices, plus an event-emitter pattern for one-shot events (notifications, completion). Zero deps, maps cleanly to `useSyncExternalStore`, easy to wrap as Observable/AsyncIterable on the consumer side. Pending final ack — see Q2 in [07-open-questions.md](./07-open-questions.md).
+type EventStream<T> = {
+  /** Subscribe to discrete events. Returns an unsubscribe function. */
+  subscribe(listener: (event: T) => void): () => void;
+};
+```
+
+### Why this shape
+
+- **Zero dependencies.** Two interfaces, no library.
+- **Listener receives the value.** Avoids forcing every consumer to call `get()` after a ping. Slight allocation cost per emission is acceptable for the rates Petrinaut runs at.
+- **Easy to wrap.** A consumer who wants Observable / RxJS / AsyncIterable / Signals can build any of them as a thin adapter on top.
+- **React adaptation is one wrapper line.** See [06-react-bindings.md](./06-react-bindings.md) §6.3.
+
+### Alternatives considered
+
+| Option | Why rejected |
+| ------ | ------------ |
+| Standard `Observable` (TC39 / zen-observable) | Adds a base class for little gain; `error`/`complete` channels rarely apply to state slices. |
+| RxJS | Heavy for `/core`; conflicts with consumers' own RxJS versions. |
+| `AsyncIterable` | No native "current value" semantics; awkward to multicast. |
+| Signals (`@preact/signals-core`) | Push-pull model; less idiomatic outside React-likes. |
+| Listener-as-ping (React `useSyncExternalStore` shape) | Slightly cheaper for React, but worse ergonomics for non-React consumers who'd then have to chase a `get()` after every notification. |
 
 ## 4.3 Sketch of the surface
 

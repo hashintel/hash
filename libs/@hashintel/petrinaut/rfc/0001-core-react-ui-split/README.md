@@ -45,7 +45,7 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
 - Three entry points: `core`, `react`, `ui` (not two; not `hooks`).
 - Single package with an `exports` map, not three separate packages.
 - Simulation worker lives in `/core`; bundling via caller-provided `createWorker` factory + `./core/simulation.worker` sub-entry. See [05-simulation.md](./05-simulation.md).
-- Stream primitive recommendation: `subscribe + getSnapshot` for state, event emitter for one-shot events. (Pending final ack — see Q2 in [07-open-questions.md](./07-open-questions.md).)
+- Stream primitive: `ReadableStore<T>` (`get` + value-passing `subscribe`) for state, `EventStream<T>` for one-shot events. React adapts via a `useStore` helper. See [04-core-instance.md](./04-core-instance.md) §4.2.
 
 ## What this RFC does *not* cover
 
