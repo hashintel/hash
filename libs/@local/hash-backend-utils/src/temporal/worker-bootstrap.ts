@@ -100,7 +100,12 @@ export type ExtraWorkerOptions = Omit<
 >;
 
 export interface RunWorkerOptions {
-  /** Logged once at startup; also used as Temporal worker identity. */
+  /**
+   * Logged once at startup and used as `service.name` for OTEL traces /
+   * logs / metrics. The Temporal worker identity stays at the SDK default
+   * (`pid@hostname`) so multiple replicas remain distinguishable in the
+   * Temporal UI.
+   */
   serviceName: string;
   /** Temporal task queue this worker pulls work from. */
   taskQueue: string;

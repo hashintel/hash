@@ -121,6 +121,12 @@ impl TemporalClient {
         payload: &(impl Serialize + Sync),
     ) -> Result<String, Report<WorkflowError>> {
         let mut client = self.client.clone();
+        // `WorkflowClientTrait::start_workflow` auto-populates `identity` from
+        // `ClientOptions` (typically `pid@hostname`). The low-level
+        // `StartWorkflowExecutionRequest` defaults it to an empty string,
+        // which makes Temporal Server / UI unable to attribute starts to a
+        // client. Read it back from the configured client.
+        let identity = client.get_client().identity().to_owned();
         let request = StartWorkflowExecutionRequest {
             namespace: <_ as NamespacedClient>::namespace(&client),
             input: vec![Payload {
@@ -141,6 +147,7 @@ impl TemporalClient {
                 kind: TaskQueueKind::Unspecified as i32,
                 normal_name: String::new(),
             }),
+            identity,
             request_id: Uuid::new_v4().to_string(),
             header: build_otel_header(),
             ..Default::default()

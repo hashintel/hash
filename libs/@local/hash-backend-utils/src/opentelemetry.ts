@@ -111,8 +111,11 @@ export const createUndiciInstrumentation = (): UndiciInstrumentation =>
   new UndiciInstrumentation({
     startSpanHook: (request) => {
       try {
-        const { host } = new URL(request.origin);
-        const peerService = resolvePeerService(host);
+        // `hostname` (not `host`): the latter includes the port for non-default
+        // schemes (e.g. `api.openai.com:443`), which would miss exact matches
+        // in `resolvePeerService`.
+        const { hostname } = new URL(request.origin);
+        const peerService = resolvePeerService(hostname);
         return peerService ? { "peer.service": peerService } : {};
       } catch {
         return {};
@@ -263,18 +266,17 @@ export const registerOpenTelemetry = ({
         ["log provider", () => logProvider.shutdown()],
         ["meter provider", () => meterProvider.shutdown()],
       ];
-      const results = await Promise.allSettled(
-        targets.map(([label, run]) => shutdownWithTimeout(label, run)),
+      await Promise.allSettled(
+        targets.map(async ([label, run]) => {
+          try {
+            await shutdownWithTimeout(label, run);
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error("OpenTelemetry %s shutdown failed:", label, error);
+            throw error;
+          }
+        }),
       );
-      for (const [index, result] of results.entries()) {
-        if (result.status === "rejected") {
-          // eslint-disable-next-line no-console
-          console.error(
-            `OpenTelemetry ${targets[index]![0]} shutdown failed:`,
-            result.reason,
-          );
-        }
-      }
       unregisterInstrumentations();
     },
   };
