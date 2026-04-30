@@ -18,6 +18,7 @@ import type {
   WorkflowBundleOption,
 } from "@temporalio/worker";
 import {
+  DefaultLogger,
   defaultSinks,
   NativeConnection,
   Runtime,
@@ -26,7 +27,6 @@ import {
 
 import type { Logger } from "../logger.js";
 import type { OpenTelemetrySetup } from "../opentelemetry.js";
-import { createTemporalSdkLogger } from "../temporal.js";
 import {
   OpenTelemetryActivityInboundInterceptor,
   OpenTelemetryActivityOutboundInterceptor,
@@ -36,6 +36,40 @@ import { sentrySinks } from "./sinks/sentry.js";
 import { makeV2WorkflowSink } from "./workflow-span-adapter.js";
 
 const require = createRequire(import.meta.url);
+
+/**
+ * Adapter that pipes Temporal SDK logs (both Rust core and Node-side
+ * worker events) through the application logger, keeping them in the
+ * same JSON format and log-level scheme as the rest of the worker
+ * output. Lives here rather than in `temporal.ts` so the API server's
+ * import of `createTemporalClient` does not pull in `@temporalio/worker`
+ * (which bundles native Rust core bindings).
+ */
+const createTemporalSdkLogger = (logger: Logger): DefaultLogger =>
+  // DefaultLogger filters at INFO, so TRACE / DEBUG paths only fire
+  // when the level is bumped at the call site.
+  new DefaultLogger("INFO", ({ level, message, meta }) => {
+    switch (level) {
+      case "TRACE":
+      case "DEBUG":
+        logger.debug(message, meta);
+        return;
+      case "INFO":
+        logger.info(message, meta);
+        return;
+      case "WARN":
+        logger.warn(message, meta);
+        return;
+      case "ERROR":
+        logger.error(message, meta);
+        return;
+      default:
+        logger.warn(`Unknown Temporal SDK log level: ${level as string}`, {
+          message,
+          meta,
+        });
+    }
+  });
 
 const TEMPORAL_DEFAULT_PORT = 7233;
 
