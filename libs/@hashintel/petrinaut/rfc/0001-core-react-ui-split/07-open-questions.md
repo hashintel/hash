@@ -2,14 +2,13 @@
 
 The hot file while the RFC is in flight. Each question lists its current status. Decided questions are struck through with a pointer to where the conclusion lives.
 
-## Q1. Document ownership
+## Q1. ~~Document ownership~~
 
-Core-owned, host-owned, or both via a `document.mode` discriminant?
+**Decided.** Core never owns the document. It is given a `PetrinautDocHandle` — a single interface that adapts plain JSON, Immer-backed state, Automerge `DocHandle`, or anything else. The handle exposes `doc()`, `change(fn)`, `subscribe(listener)`, plus `id`, `state`, `whenReady()`. Subscriptions deliver `{ next, patches?, source? }` events. Repos, storage, and sync are host concerns — Petrinaut never sees a Repo. See [04-core-instance.md](./04-core-instance.md) §4.1 / §4.4.
 
-- **Today:** host-owned. Lets immer/Automerge sit on top.
-- **Tradeoff:** core-owned is simpler for headless consumers but breaks collaborative editing unless the host wraps Core (rather than the other way around).
-- **Likely outcome:** support both via a discriminant. ~30 extra lines, two code paths, but preserves both ergonomics.
-- **Status:** open. **This is the load-bearing decision** — affects [04-core-instance.md](./04-core-instance.md) §4.1, §4.4 and [09-risks.md](./09-risks.md).
+### Q1.b. ~~Patch type~~
+
+**Decided.** Petrinaut defines its own minimal `PetrinautPatch` type modeled on Immer's `produceWithPatches` shape (array path, `op: "add" | "remove" | "replace"`). Immer-backed handles (including `createJsonDocHandle`) emit it natively. Automerge consumers convert via a small switch in their adapter. No runtime dependency. See [04-core-instance.md](./04-core-instance.md) §4.1.
 
 ## Q2. ~~Stream primitive~~
 

@@ -5,24 +5,16 @@ The Core needs to express:
 - **Inputs** (commands flowing in): mutate definition, run/pause/reset simulation, set playback speed/frame, ack frames, paste from clipboard, etc.
 - **Outputs** (events/state flowing out): current SDCPN, simulation status + frame stream, playback frame index, LSP diagnostics, validation errors, notifications.
 
-## 4.1 Construction
+## 4.1 Construction (locked)
+
+Core never owns the document. It is given a **handle** to one — produced by the host from a plain JSON store, an Automerge `DocHandle`, or anything else that can satisfy the `PetrinautDocHandle` interface.
 
 ```ts
 import { createPetrinaut } from "@hashintel/petrinaut/core";
+import type { PetrinautDocHandle, ErrorTracker } from "@hashintel/petrinaut/core";
 
 const instance = createPetrinaut({
-  // Document ownership: who holds the source of truth?
-  document: {
-    // Option A — core owns it; host subscribes to changes:
-    mode: "owned";
-    initial: SDCPN;
-  } | {
-    // Option B — host owns it (today's model); core asks host to mutate:
-    mode: "external";
-    get: () => SDCPN;
-    mutate: MutateSDCPN; // (fn: (draft: SDCPN) => void) => void
-    subscribe: (listener: (next: SDCPN) => void) => () => void;
-  };
+  document: PetrinautDocHandle;
 
   simulation?: {
     createWorker: () => Worker; // see 05-simulation.md
@@ -33,7 +25,82 @@ const instance = createPetrinaut({
 });
 ```
 
-> **Major design decision (Q1 in [07-open-questions.md](./07-open-questions.md)):** does Core own the document, or does the host? Today the host owns it, which lets immer/automerge sit on top. If Core owns it, we remove the `mutate` callback and Core just exposes the post-mutation state on a stream — but then automerge / collaborative editing has to wrap Core, not the other way around.
+### Handle interface
+
+```ts
+export type DocumentId = string;
+export type DocHandleState = "loading" | "ready" | "deleted" | "unavailable";
+
+/**
+ * Minimal RFC 6902-shaped patch. Modeled on Immer's `produceWithPatches` output:
+ * array path, `op` field, three operations only.
+ *
+ * Petrinaut-defined to avoid a runtime dependency. Adapters from Immer (no
+ * conversion needed) and Automerge (small mapper) are documented at the
+ * adapter-construction site.
+ */
+export type PetrinautPatch = {
+  op: "add" | "remove" | "replace";
+  path: (string | number)[];
+  value?: unknown;
+};
+
+export type DocChangeEvent = {
+  /** Post-mutation snapshot. */
+  next: SDCPN;
+  /** Optional. Emitted by handles that can produce them (e.g. Immer-backed, Automerge-backed). */
+  patches?: PetrinautPatch[];
+  /** Optional. "local" if produced by `change()`, "remote" if delivered via a sync channel. */
+  source?: "local" | "remote";
+};
+
+export interface PetrinautDocHandle {
+  /** Stable id. Used for LSP document URIs, error reports, simulation-recording keys. */
+  readonly id: DocumentId;
+
+  /** Lifecycle state, observable. */
+  readonly state: ReadableStore<DocHandleState>;
+
+  /** Resolves when state reaches "ready"; rejects on "unavailable" / "deleted". */
+  whenReady(): Promise<void>;
+
+  /** Synchronous current value. `undefined` while not ready. */
+  doc(): SDCPN | undefined;
+
+  /** Apply a mutation. Implementation decides how (Immer.produce, Automerge.change, plain assignment). */
+  change(fn: (draft: SDCPN) => void): void;
+
+  /** Subscribe to changes (local + remote). */
+  subscribe(listener: (event: DocChangeEvent) => void): () => void;
+}
+```
+
+### Why a handle, not a document or repo
+
+| Level | Why not |
+| ----- | ------- |
+| **Document** (raw value + 3 callbacks — today's prop shape) | Three loose primitives, no unifying type, no lifecycle (loading / ready / deleted). |
+| **Repo** (multi-document, load-by-id, storage / network adapters) | Persistence and sync are host concerns. Core handles one document at a time. |
+| **Handle** ✓ | Right scope. One document, observable lifecycle, mutate + subscribe in one type. Matches Automerge `DocHandle<T>` so collaboration plugs in cleanly. |
+
+### Adapters
+
+Core ships exactly one helper for the common case:
+
+```ts
+export function createJsonDocHandle(opts: {
+  id?: DocumentId;
+  initial: SDCPN;
+}): PetrinautDocHandle;
+```
+
+Internally uses Immer's `produceWithPatches` so plain-JSON consumers get patches for free. Adds `immer` (~14 KB) as a `/core` dep.
+
+For **Automerge**, no adapter is shipped (would require `@automerge/automerge-repo` as a peer dep). The docs include a 5-line wrapper consumers paste in; Automerge's `Patch` shape maps to `PetrinautPatch` via a small switch (`put` → `replace`, `del` → `remove`, `splice`/`insert` → multiple `add`).
+
+### Why the handle has its own subscribe shape
+
+`PetrinautDocHandle.subscribe` is **not** a `ReadableStore<SDCPN>`. The event carries optional `patches` and `source` fields that don't belong in a generic state-store interface. Internally Core constructs a `ReadableStore<SDCPN>` (`instance.definition`) on top of the handle, dropping `patches`/`source` for consumers that just want the value.
 
 ## 4.2 Stream primitive (locked)
 
@@ -74,9 +141,11 @@ type EventStream<T> = {
 
 ```ts
 type Petrinaut = {
-  // --- Document ---
-  definition: ReadableStore<SDCPN>;
-  mutate: MutateSDCPN;
+  // --- Document (derived from the handle) ---
+  handle: PetrinautDocHandle;            // the handle Core was constructed with
+  definition: ReadableStore<SDCPN>;      // post-`whenReady` snapshot store, sourced from `handle`
+  patches: EventStream<PetrinautPatch[]>; // emitted only by handles that produce them
+  mutate: (fn: (draft: SDCPN) => void) => void; // delegates to handle.change
   setTitle: (title: string) => void;
 
   // --- Simulation (lazy — see 05-simulation.md) ---
@@ -125,75 +194,55 @@ type EventStream<T> = {
 
 ## 4.4 Instantiation patterns
 
-The host-app integration depends on which mode is picked in Q1. The three shapes:
+The host produces a `PetrinautDocHandle` and passes it to Core. The four shapes:
 
-### A. External-document mode (today's model preserved)
-
-Host owns the SDCPN; Core borrows it. This is what most existing consumers (immer, Automerge) already do.
+### A. Plain JSON (in-memory, headless or React)
 
 ```ts
-import { createPetrinaut } from "@hashintel/petrinaut/core";
-import { produce } from "immer";
+import { createPetrinaut, createJsonDocHandle } from "@hashintel/petrinaut/core";
 
-let doc: SDCPN = initialDefinition;
-const listeners = new Set<(d: SDCPN) => void>();
-
-const instance = createPetrinaut({
-  document: {
-    mode: "external",
-    get: () => doc,
-    mutate: (fn) => {
-      doc = produce(doc, fn);
-      listeners.forEach((l) => l(doc));
-    },
-    subscribe: (l) => (listeners.add(l), () => listeners.delete(l)),
-  },
-  readonly: false,
-  errorTracker: mySentryAdapter,
-});
-```
-
-Automerge variant: `mutate: (fn) => changeDoc(handle, fn)`, `subscribe` taps `handle.on("change", ...)`.
-
-### B. Owned-document mode (Core holds the state)
-
-Simpler for headless consumers that don't need collaboration.
-
-```ts
-const instance = createPetrinaut({
-  document: { mode: "owned", initial: initialDefinition },
-});
+const handle = createJsonDocHandle({ id: "net-1", initial: emptyNet() });
+const instance = createPetrinaut({ document: handle });
 
 instance.mutate((draft) => {
   draft.places.push({ id: "p1", /* … */ });
 });
-
-const unsubscribe = instance.definition.subscribe((next) => {
-  console.log("definition changed", next);
-});
 ```
 
-### C. From the React component (what 99% of users see)
+`createJsonDocHandle` uses Immer internally, so `subscribe` events carry patches.
 
-Host never calls `createPetrinaut` directly — `<Petrinaut>` does it internally and wires its props into mode A:
+### B. Automerge
+
+```ts
+import { createPetrinaut } from "@hashintel/petrinaut/core";
+import { Repo } from "@automerge/automerge-repo";
+
+const repo = new Repo({ /* storage, network, … */ });
+const automergeHandle = repo.find<SDCPN>("automerge:abc123");
+
+const handle = fromAutomergeHandle(automergeHandle); // 5-line adapter, see docs
+const instance = createPetrinaut({ document: handle });
+```
+
+Petrinaut never sees the `Repo`. Storage, sync, and lifecycle stay in the host.
+
+### C. From the React component (what most consumers see)
 
 ```tsx
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
-<Petrinaut
-  petriNetDefinition={doc}
-  mutatePetriNetDefinition={(fn) => setDoc(produce(doc, fn))}
-  /* …rest of today's props… */
-/>;
+<Petrinaut handle={handle} /* …other UI props… */ />;
 ```
+
+`<Petrinaut>` calls `createPetrinaut` internally and disposes the instance on unmount. The handle's identity is the React `key` — replacing the handle re-creates the instance.
 
 ### D. Headless simulation (the new use case the split unlocks)
 
 ```ts
-const instance = createPetrinaut({ document: { mode: "owned", initial: net } });
+const handle = createJsonDocHandle({ initial: net });
+const instance = createPetrinaut({ document: handle });
+
 const sim = await instance.startSimulation({ seed: 42, dt: 0.01, maxTime: 100 });
 const off = sim.frames.subscribe(({ latest }) => recordFrame(latest));
 sim.run();
 ```
-
-> Open: do we support both A and B (one factory, discriminated `document` field) or pick one? Supporting both is ~30 lines extra and keeps headless ergonomics nice without breaking collaborative editing — but it does mean two code paths to maintain. See Q1.

@@ -46,6 +46,8 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
 - Single package with an `exports` map, not three separate packages.
 - Simulation worker lives in `/core`; bundling via caller-provided `createWorker` factory + `./core/simulation.worker` sub-entry. See [05-simulation.md](./05-simulation.md).
 - Stream primitive: `ReadableStore<T>` (`get` + value-passing `subscribe`) for state, `EventStream<T>` for one-shot events. React adapts via a `useStore` helper. See [04-core-instance.md](./04-core-instance.md) §4.2.
+- Document never owned by Core — Core takes a `PetrinautDocHandle` (adapts plain JSON, Immer, Automerge, …). `createJsonDocHandle` shipped for the common case. See [04-core-instance.md](./04-core-instance.md) §4.1.
+- Patches: Petrinaut-defined minimal `PetrinautPatch` type (Immer-shaped: array path, `op: add | remove | replace`). No runtime dep. See [04-core-instance.md](./04-core-instance.md) §4.1.
 
 ## What this RFC does *not* cover
 

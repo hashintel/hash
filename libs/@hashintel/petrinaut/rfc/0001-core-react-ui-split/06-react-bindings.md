@@ -110,8 +110,16 @@ Monaco bindings (`monaco/sync/*` adapters that today call into `LanguageClientCo
 
 ```tsx
 // @hashintel/petrinaut/ui
+export type PetrinautProps = {
+  handle: PetrinautDocHandle; // replaces today's petriNetDefinition + mutatePetriNetDefinition
+  readonly?: boolean;
+  hideNetManagementControls?: boolean;
+  viewportActions?: ViewportAction[];
+  // …other UI props…
+};
+
 export const Petrinaut: FC<PetrinautProps> = (props) => {
-  const instance = useMemo(() => createPetrinaut(/* derived from props */), []);
+  const instance = useMemo(() => createPetrinaut({ document: props.handle, readonly: props.readonly }), [props.handle, props.readonly]);
   useEffect(() => () => instance.dispose(), [instance]);
 
   return (

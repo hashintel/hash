@@ -23,9 +23,12 @@ The current worker setup uses Vite's `?worker` import, which is bundler-specific
 
 Opt out with `"use no memo"` only where genuinely needed.
 
-## Collaborative editing (Automerge / Yjs)
+## Handle adapter drift
 
-Today the host owns the doc; if Core starts owning it (Q1 → owned-only mode), every collaborative consumer has to rewrite. **External-document mode must remain supported**, even if owned mode is the recommended default. The instantiation pattern in [04-core-instance.md](./04-core-instance.md) §4.4-A is the contract collaborative consumers depend on.
+Core never owns the document — it receives a `PetrinautDocHandle`. For Automerge, consumers paste a small adapter that wraps `DocHandle<SDCPN>`. Two risks:
+
+- **Automerge API drift.** If `automerge-repo` changes its `DocHandle` surface (e.g. `docSync` returning a different shape), the published adapter snippet goes stale. Mitigation: the adapter is short, version-tagged, and lives in a docs page rather than in Petrinaut's own code.
+- **Patch-format mismatch.** Automerge patches don't map 1:1 to `PetrinautPatch` (e.g. `splice` becomes multiple `add` ops). If a consumer relies on Automerge-flavoured patches inside Petrinaut, they'll be confused. Mitigation: document the conversion explicitly in the adapter section.
 
 ## Layout (`elkjs`)
 
