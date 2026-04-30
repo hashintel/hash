@@ -114,23 +114,12 @@ export type WorkflowSource =
     };
 
 /**
- * Per-worker tuning passed straight through to `Worker.create`. Keys
- * owned by the helper (`activities`, `connection`, `namespace`,
- * `taskQueue`, `sinks`, `interceptors`) and the workflow-source keys
- * (`workflowBundle`, `workflowsPath`, `bundlerOptions`) are excluded —
- * `workflowSource` is the only way to set them.
+ * Per-worker tuning passed straight through to `Worker.create`. Add
+ * keys here as needed; helper-owned wiring stays inaccessible.
  */
-export type ExtraWorkerOptions = Omit<
+export type ExtraWorkerOptions = Pick<
   WorkerOptions,
-  | "activities"
-  | "connection"
-  | "namespace"
-  | "taskQueue"
-  | "sinks"
-  | "interceptors"
-  | "workflowBundle"
-  | "workflowsPath"
-  | "bundlerOptions"
+  "maxHeartbeatThrottleInterval"
 >;
 
 export interface RunWorkerOptions {
