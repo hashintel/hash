@@ -27,13 +27,36 @@ export const Default: Story<LoadingSpinnerProps> = (args) => (
   <div
     className={css({
       display: "flex",
-      gap: "[16px]",
-      alignItems: "center",
+      flexDirection: "column",
+      gap: "[24px]",
     })}
   >
-    {formInputSizes.map((size) => (
-      <LoadingSpinner {...args} key={size} size={size} />
-    ))}
+    <div
+      className={css({
+        display: "flex",
+        gap: "[16px]",
+        alignItems: "center",
+      })}
+    >
+      {formInputSizes.map((size) => (
+        <LoadingSpinner {...args} key={size} size={size} />
+      ))}
+    </div>
+    <div
+      className={css({
+        display: "flex",
+        gap: "[16px]",
+        alignItems: "center",
+        backgroundColor: "black",
+        padding: "[16px]",
+        borderRadius: "[8px]",
+        color: "white",
+      })}
+    >
+      {formInputSizes.map((size) => (
+        <LoadingSpinner {...args} key={size} size={size} />
+      ))}
+    </div>
   </div>
 );
 
