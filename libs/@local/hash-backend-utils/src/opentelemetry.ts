@@ -114,9 +114,9 @@ export const createUndiciInstrumentation = (): UndiciInstrumentation =>
   new UndiciInstrumentation({
     startSpanHook: (request) => {
       try {
-        // `hostname` (not `host`): the latter includes the port for non-default
-        // schemes (e.g. `api.openai.com:443`), which would miss exact matches
-        // in `resolvePeerService`.
+        // `hostname` strips the port unconditionally; `host` keeps it for
+        // non-default ports (e.g. `collector:4318`), which would miss
+        // exact-host matches in `resolvePeerService`.
         const { hostname } = new URL(request.origin);
         const peerService = resolvePeerService(hostname);
         return peerService ? { "peer.service": peerService } : {};

@@ -320,11 +320,15 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     });
   }
 
-  try {
-    httpServer.close();
-  } catch (error) {
-    logger.error("Health-check server close failed", { error });
-  }
+  // `http.Server.close()` reports failures via the optional callback,
+  // not synchronously, so a `try`/`catch` around the bare call would be
+  // dead. Pass a callback to log close failures and let the OTEL flush
+  // below give the listening socket time to release before exit.
+  httpServer.close((error) => {
+    if (error) {
+      logger.error("Health-check server close failed", { error });
+    }
+  });
   try {
     await otelSetup?.shutdown();
   } catch (error) {

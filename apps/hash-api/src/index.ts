@@ -101,10 +101,12 @@ const httpServer = http.createServer(app);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
-// Flush OpenTelemetry last so cleanup hooks above this point can still
-// emit shutdown spans / logs before the providers disconnect from the
-// collector. `otelSetup` is `undefined` when no `HASH_OTLP_ENDPOINT` is
-// configured (no collector) or when bootstrap throws.
+// Register OpenTelemetry first so it flushes last — `GracefulShutdown`
+// runs cleanups in reverse registration order. Cleanup hooks added below
+// can still emit shutdown spans / logs before the providers disconnect
+// from the collector. `otelSetup` is `undefined` when no
+// `HASH_OTLP_ENDPOINT` is configured (no collector) or when bootstrap
+// throws.
 if (otelSetup) {
   shutdown.addCleanup("OpenTelemetry", otelSetup.shutdown);
 }
