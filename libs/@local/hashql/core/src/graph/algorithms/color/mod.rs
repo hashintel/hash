@@ -3,8 +3,8 @@
 //! Implements a DFS where each node transitions through three states:
 //!
 //! - **White** (unvisited): not yet encountered.
-//! - **Gray** (in the [`gray`] set): discovered but not yet finished; still on the DFS stack.
-//! - **Black** (in the [`black`] set): all successors have been processed.
+//! - **Gray** (in the `gray` set): discovered but not yet finished; still on the DFS stack.
+//! - **Black** (in the `black` set): all successors have been processed.
 //!
 //! The color of a node when it is re-encountered determines the edge classification:
 //!
@@ -19,8 +19,6 @@
 //! successors are finished ([`node_finished`]). The `node_finished` callback fires in
 //! postorder.
 //!
-//! [`gray`]: TriColorDepthFirstSearch::gray
-//! [`black`]: TriColorDepthFirstSearch::black
 //! [`node_examined`]: TriColorVisitor::node_examined
 //! [`node_finished`]: TriColorVisitor::node_finished
 
