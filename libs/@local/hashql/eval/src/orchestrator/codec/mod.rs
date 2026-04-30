@@ -1,10 +1,10 @@
 //! JSON codec for converting between interpreter [`Value`]s and the PostgreSQL
 //! wire format.
 //!
-//! - [`decode`]: deserializes JSON column values (from `tokio_postgres` rows) into typed
-//!   [`Value`]s, guided by the HashQL type system.
-//! - [`encode`]: serializes runtime [`Value`]s and query parameters into forms that
-//!   `tokio_postgres` can send to the database (via [`ToSql`]).
+//! - `decode`: deserializes JSON column values (from `tokio_postgres` rows) into typed [`Value`]s,
+//!   guided by the HashQL type system.
+//! - `encode`: serializes runtime [`Value`]s and query parameters into forms that `tokio_postgres`
+//!   can send to the database (via [`ToSql`]).
 //!
 //! The [`JsonValueRef`] type provides a borrowed view over `serde_json::Value`
 //! that avoids cloning during decode, while [`JsonValueKind`] is a data-free

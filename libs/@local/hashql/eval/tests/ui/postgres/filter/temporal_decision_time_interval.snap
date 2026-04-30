@@ -2,6 +2,21 @@
 source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
 expression: report.to_string()
 ---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
+    let %2: ?
+    let %3: () -> ?
+    let %4: ?
+
+    bb0(): {
+        %2 = %1.metadata.temporal_versioning.decision_time
+        %3 = ({def@99} as FnPtr)
+        %4 = apply %3
+
+        return %4
+    }
+}
 ===================================== SQL ======================================
 
 SELECT jsonb_build_object(($3::text), (extract(epoch from lower("entity_temporal_metadata_0_0_0"."decision_time")) * 1000)::int8, ($4::text), CASE WHEN upper_inf("entity_temporal_metadata_0_0_0"."decision_time") THEN NULL ELSE (extract(epoch from upper("entity_temporal_metadata_0_0_0"."decision_time")) * 1000)::int8 END) AS "decision_time"

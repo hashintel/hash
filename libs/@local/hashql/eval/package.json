@@ -17,5 +17,10 @@
     "@rust/hashql-diagnostics": "workspace:*",
     "@rust/hashql-hir": "workspace:*",
     "@rust/hashql-mir": "workspace:*"
+  },
+  "devDependencies": {
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-graph-authorization": "workspace:*",
+    "@rust/hash-graph-test-data": "workspace:*"
   }
 }
