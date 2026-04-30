@@ -116,6 +116,18 @@ export const styles = sva({
           },
         },
       },
+      linkSubtle: {
+        button: {
+          display: "inline",
+          padding: "0 !important",
+          border: "0 !important",
+          background: "[none !important]",
+          fontWeight: "semibold",
+          "&:focus-visible": {
+            outlineOffset: "0.5",
+          },
+        },
+      },
     },
     isLoading: {
       true: { button: { position: "relative" } },
@@ -630,6 +642,86 @@ export const styles = sva({
       css: {
         button: {
           color: "red.s100",
+        },
+      },
+    },
+
+    // ── Link Subtle ──
+    {
+      variant: "linkSubtle",
+      isDisabled: true,
+      css: {
+        button: {
+          opacity: 0.4,
+        },
+      },
+    },
+    // ── Link Subtle (neutral) ──
+    {
+      variant: "linkSubtle",
+      tone: "neutral",
+      css: {
+        button: {
+          color: "neutral.s120",
+          "&:not([aria-disabled=true]):hover": {
+            color: "neutral.s100",
+          },
+        },
+      },
+    },
+    {
+      variant: "linkSubtle",
+      tone: "neutral",
+      isPressed: true,
+      css: {
+        button: {
+          color: "neutral.s110",
+        },
+      },
+    },
+    // ── Link (brand) ──
+    {
+      variant: "linkSubtle",
+      tone: "brand",
+      css: {
+        button: {
+          color: "blue.s105",
+          "&:not([aria-disabled=true]):hover": {
+            color: "blue.s80",
+          },
+        },
+      },
+    },
+    {
+      variant: "linkSubtle",
+      tone: "brand",
+      isPressed: true,
+      css: {
+        button: {
+          color: "blue.s115",
+        },
+      },
+    },
+    // ── Link (error) ──
+    {
+      variant: "linkSubtle",
+      tone: "error",
+      css: {
+        button: {
+          color: "red.s100",
+          "&:not([aria-disabled=true]):hover": {
+            color: "red.s80",
+          },
+        },
+      },
+    },
+    {
+      variant: "linkSubtle",
+      tone: "error",
+      isPressed: true,
+      css: {
+        button: {
+          color: "red.s115",
         },
       },
     },
