@@ -7,9 +7,9 @@ export const styles = sva({
       cursor: "pointer",
       display: "inline-block",
       border: "1px solid",
+      transition: "[background 0.2s ease, color 0.2 ease, border 0.2 ease]",
       "&:focus-visible": {
         outline: "2px solid",
-        outlineColor: "black.a60",
       },
       '&[aria-disabled="true"]': {
         cursor: "auto",
@@ -29,9 +29,10 @@ export const styles = sva({
     size: {
       xs: {
         button: {
-          paddingX: "1.5",
+          paddingX: "2",
           paddingY: "0",
           borderRadius: "md",
+          textStyle: "xs",
         },
       },
       sm: {
@@ -39,20 +40,23 @@ export const styles = sva({
           paddingX: "2",
           paddingY: "0.5",
           borderRadius: "lg",
+          textStyle: "sm",
         },
       },
       md: {
         button: {
-          paddingX: "2.5",
-          paddingY: "1.5",
+          paddingX: "3",
+          paddingY: "1",
           borderRadius: "lg",
+          textStyle: "base",
         },
       },
       lg: {
         button: {
-          paddingX: "3",
-          paddingY: "2.5",
+          paddingX: "4",
+          paddingY: "2",
           borderRadius: "lg",
+          textStyle: "base",
         },
       },
     },
@@ -61,9 +65,27 @@ export const styles = sva({
       round: { button: { borderRadius: "full" } },
     },
     tone: {
-      error: {},
-      neutral: {},
-      brand: {},
+      neutral: {
+        button: {
+          "&:focus-visible": {
+            outlineColor: "black.a60",
+          },
+        },
+      },
+      brand: {
+        button: {
+          "&:focus-visible": {
+            outlineColor: "blue.a60",
+          },
+        },
+      },
+      error: {
+        button: {
+          "&:focus-visible": {
+            outlineColor: "red.a60",
+          },
+        },
+      },
     },
     variant: {
       solid: {},
@@ -83,6 +105,9 @@ export const styles = sva({
           fontWeight: "semibold",
           "&:not([aria-disabled=true]):hover": {
             textDecoration: "underline",
+          },
+          "&:focus-visible": {
+            outlineOffset: "0.5",
           },
         },
       },
@@ -511,7 +536,7 @@ export const styles = sva({
       tone: "error",
       css: {
         button: {
-          color: "red.s105",
+          color: "red.s100",
         },
       },
     },
