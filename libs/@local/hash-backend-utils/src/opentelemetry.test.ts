@@ -1,7 +1,6 @@
 import type { ClientRequest, IncomingMessage } from "node:http";
 
 import { type Span, trace } from "@opentelemetry/api";
-import type { HttpInstrumentationConfig } from "@opentelemetry/instrumentation-http";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -142,9 +141,7 @@ describe("createHttpInstrumentation OTLP-port filter", () => {
    * itself, amplifying span volume per export batch.
    */
   const ignoreOutgoingFor = (otlpEndpoint: string) => {
-    const config = createHttpInstrumentation(
-      otlpEndpoint,
-    ).getConfig() as HttpInstrumentationConfig;
+    const config = createHttpInstrumentation(otlpEndpoint).getConfig();
     const hook = config.ignoreOutgoingRequestHook;
     if (!hook) {
       throw new Error("ignoreOutgoingRequestHook should be set");

@@ -303,6 +303,7 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
   // activities after `worker.shutdown()` is called. If a signal already
   // arrived during startup, skip running entirely and fall through to
   // the cleanup path below.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const workerRunPromise = shuttingDown ? Promise.resolve() : worker.run();
 
   let exitCode = 0;
