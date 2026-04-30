@@ -93,8 +93,8 @@ use crate::{
 ///       - leaf_penalty              (if function has no outgoing calls)
 /// ```
 ///
-/// Functions with [`InlineDirective::Never`] get score `+inf` (ideal breakers).
-/// Functions with [`InlineDirective::Always`] get score `-inf` (avoided unless
+/// Functions with `InlineDirective::Never` get score `+inf` (ideal breakers).
+/// Functions with `InlineDirective::Always` get score `-inf` (avoided unless
 /// every other candidate has been exhausted).
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct InlineLoopBreakerConfig {
