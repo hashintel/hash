@@ -192,6 +192,37 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
 
   logger.info(`Starting ${opts.serviceName}...`);
 
+  // Install signal handlers up-front so a SIGTERM during the
+  // potentially-slow startup phase (NativeConnection.connect, workflow
+  // bundle compile, Worker.create) doesn't terminate the process via
+  // the Node default — we'd lose the OTEL flush. The handler captures a
+  // reference to `worker` once it's set; until then the linear cleanup
+  // path below handles flush+exit when `workerRunPromise` (also unset
+  // pre-Worker.create) is replaced by a sentinel that resolves
+  // immediately on signal during startup.
+  let worker: Worker | undefined;
+  let shuttingDown = false;
+  const onSignal = (signal: NodeJS.Signals) => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    logger.info(`Received ${signal}, exiting...`);
+    if (worker) {
+      try {
+        worker.shutdown();
+      } catch (error) {
+        logger.error("Worker shutdown trigger failed", { error });
+      }
+    }
+    // If the worker hasn't been created yet, do nothing more here:
+    // `runWorker` is still in startup and the early-exit branch below
+    // will fall through to the linear cleanup path when control
+    // returns from whichever `await` is pending.
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+
   // Temporal SDK runtime telemetry: emits SDK-internal metrics (worker
   // slot utilisation, sticky cache hits, polling latency, activity /
   // workflow execution latency) directly to OTLP, and forwards Rust
@@ -237,7 +268,7 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     inbound: new SentryActivityInboundInterceptor(ctx),
   }));
 
-  const worker = await Worker.create({
+  worker = await Worker.create({
     ...opts.workerOptions,
     ...expandWorkflowSource(opts.workflowSource),
     activities: opts.activities,
@@ -280,29 +311,10 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
   });
 
   // `worker.run()` resolves once the SDK has fully drained in-flight
-  // activities after `worker.shutdown()` is called.
-  const workerRunPromise = worker.run();
-
-  // Signal handler ONLY triggers drain. All cleanup (HTTP close + OTEL
-  // flush + process.exit) lives on the linear path below, so it runs on
-  // every termination mode: signal-driven shutdown, fatal worker error,
-  // and clean worker exit. A fire-and-forget signal handler that owns
-  // cleanup races against the main flow returning to `main.ts`.
-  let shuttingDown = false;
-  const onSignal = (signal: NodeJS.Signals) => {
-    if (shuttingDown) {
-      return;
-    }
-    shuttingDown = true;
-    logger.info(`Received ${signal}, exiting...`);
-    try {
-      worker.shutdown();
-    } catch (error) {
-      logger.error("Worker shutdown trigger failed", { error });
-    }
-  };
-  process.on("SIGINT", onSignal);
-  process.on("SIGTERM", onSignal);
+  // activities after `worker.shutdown()` is called. If a signal already
+  // arrived during startup, skip running entirely and fall through to
+  // the cleanup path below.
+  const workerRunPromise = shuttingDown ? Promise.resolve() : worker.run();
 
   let exitCode = 0;
   let workerError: unknown;
