@@ -146,7 +146,7 @@ describe("createHttpInstrumentation OTLP-port filter", () => {
     if (!hook) {
       throw new Error("ignoreOutgoingRequestHook should be set");
     }
-    return (port: number | undefined) =>
+    return (port: number | string | undefined) =>
       hook({ port } as Parameters<NonNullable<typeof hook>>[0]);
   };
 
@@ -154,6 +154,15 @@ describe("createHttpInstrumentation OTLP-port filter", () => {
     const ignored = ignoreOutgoingFor("http://collector:4317");
     expect(ignored(4317)).toBe(true);
     expect(ignored(443)).toBe(false);
+  });
+
+  // RequestOptions.port is `string | number | null | undefined`; a strict
+  // `===` would let "4317" through and the exporter would self-trace.
+  it("matches the OTLP port whether callers pass a number or a string", () => {
+    const ignored = ignoreOutgoingFor("http://collector:4317");
+    expect(ignored("4317")).toBe(true);
+    expect(ignored("443")).toBe(false);
+    expect(ignored(undefined)).toBe(false);
   });
 
   it("derives a non-default OTLP port from the endpoint URL", () => {

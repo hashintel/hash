@@ -208,7 +208,12 @@ export const createHttpInstrumentation = (
   const otlpPort = otlpPortFromEndpoint(otlpEndpoint);
   return new HttpInstrumentation({
     ...extra,
-    ignoreOutgoingRequestHook: (options) => options.port === otlpPort,
+    ignoreOutgoingRequestHook: (options) =>
+      // `RequestOptions.port` is `string | number | null | undefined`;
+      // some callers (raw `http.request`, axios) pass a string. Coerce
+      // to compare consistently — otherwise `"4317" === 4317` is false
+      // and the exporter's own outbound traffic slips through.
+      Number(options.port) === otlpPort,
     requestHook: httpRequestSpanNameHook,
   });
 };
