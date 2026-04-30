@@ -2,14 +2,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import type { Story, StoryDefault } from "@ladle/react";
 
 import { formInputSizes } from "../../util/form-shared";
-import { iconNames } from "../Icon/icon";
+import { Icon, iconNames } from "../Icon/icon";
 import {
   Button as ButtonComponent,
   type ButtonElementProps,
   type Tone,
   type Variant,
 } from "./button";
-import { Icon } from "../Icon/icon";
 
 const variants: Variant[] = ["solid", "subtle", "ghost", "link"];
 const tones: Tone[] = ["neutral", "brand", "error"];
