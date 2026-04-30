@@ -35,9 +35,12 @@ export const otelSetup: ReturnType<typeof registerOpenTelemetry> = (() => {
       ],
     });
   } catch (error) {
-    // Bootstrap runs before any logger is wired up, so direct stderr is
-    // the right channel. Don't rethrow — the worker should still start
-    // without telemetry.
+    // Outside production, fail loud: realistic causes here are coding
+    // errors (bad URL, malformed instrumentation config) and hiding
+    // them in dev/CI loses regressions.
+    if (process.env.NODE_ENV !== "production") {
+      throw error;
+    }
     // eslint-disable-next-line no-console
     console.error(
       "OpenTelemetry bootstrap failed; AI worker will start without telemetry.",

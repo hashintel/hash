@@ -52,10 +52,12 @@ export const otelSetup = (() => {
       ],
     });
   } catch (error) {
-    // Bootstrap runs before the application logger is wired up, so direct
-    // stderr is the right channel. Do not rethrow: the service should
-    // still start without telemetry rather than crash on a misconfigured
-    // collector.
+    // Outside production, fail loud: the only realistic causes here are
+    // coding errors (bad URL, malformed instrumentation config) and
+    // hiding them in dev/CI loses regressions.
+    if (!isProdEnv) {
+      throw error;
+    }
     // eslint-disable-next-line no-console
     console.error(
       "OpenTelemetry bootstrap failed; service will start without telemetry.",
