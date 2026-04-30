@@ -102,8 +102,8 @@ import Table from "./svgs/light/table.svg";
 import Terminal from "./svgs/light/terminal.svg";
 import Text from "./svgs/regular/text.svg";
 import ThoughtBubble from "./svgs/light/thought-bubble.svg";
-import TrashCan from "./svgs/regular/trash-can.svg";
 import ThreeCircles from "./svgs/solid/circles-overlap-3.svg";
+import TrashCan from "./svgs/regular/trash-can.svg";
 import TriangleExclamation from "./svgs/solid/triangle-exclamation.svg";
 import UserPlus from "./svgs/regular/user-plus.svg";
 import WandMagicSparkles from "./svgs/regular/wand-magic-sparkles.svg";
@@ -217,8 +217,8 @@ const IconMap = {
   terminal: Terminal,
   text: Text,
   thoughtBubble: ThoughtBubble,
-  trash: TrashCan,
   threeCircles: ThreeCircles,
+  trash: TrashCan,
   undo: ArrowRotateLeft,
   userPlus: UserPlus,
   warning: TriangleExclamation,
