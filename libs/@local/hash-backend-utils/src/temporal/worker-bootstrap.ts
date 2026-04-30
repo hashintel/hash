@@ -277,6 +277,10 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
   } catch (error) {
     workerError = error;
     exitCode = 1;
+    // `shuttingDown` is mutated in the signal-handler closure; TS narrows
+    // it to the initial `false` here so the conditional looks dead to
+    // eslint.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     logger.error(shuttingDown ? "Worker drain failed" : "Worker run failed", {
       error,
     });
@@ -294,12 +298,16 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     exitCode = 1;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (shuttingDown) {
     // Signal-driven exit: `main.ts` has nothing to do after `run()`
     // returns, so terminate explicitly with the chosen exit code.
     process.exit(exitCode);
   }
   if (workerError) {
+    // The catch block stored whatever the SDK threw; rethrow the same
+    // value so the caller sees the original.
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
     throw workerError;
   }
   // Clean worker exit: return; `main.ts` has no further work.
