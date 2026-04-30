@@ -1,9 +1,11 @@
 import type { ClientRequest, IncomingMessage } from "node:http";
 
 import { type Span, trace } from "@opentelemetry/api";
+import type { HttpInstrumentationConfig } from "@opentelemetry/instrumentation-http";
 import { describe, expect, it } from "vitest";
 
 import {
+  createHttpInstrumentation,
   httpRequestSpanNameHook,
   resolvePeerService,
 } from "./opentelemetry.js";
@@ -129,5 +131,55 @@ describe("httpRequestSpanNameHook", () => {
     httpRequestSpanNameHook(span, { method: "GET" } as IncomingMessage);
 
     expect(updates).toEqual([]);
+  });
+});
+
+describe("createHttpInstrumentation OTLP-port filter", () => {
+  /**
+   * Read the configured `ignoreOutgoingRequestHook` back off the
+   * instrumentation. Without this, a regression that drops the filter
+   * would only show up at runtime as exporter traffic feeding back into
+   * itself, amplifying span volume per export batch.
+   */
+  const ignoreOutgoingFor = (otlpEndpoint: string) => {
+    const config = createHttpInstrumentation(
+      otlpEndpoint,
+    ).getConfig() as HttpInstrumentationConfig;
+    const hook = config.ignoreOutgoingRequestHook;
+    if (!hook) {
+      throw new Error("ignoreOutgoingRequestHook should be set");
+    }
+    return (port: number | undefined) =>
+      hook({ port } as Parameters<NonNullable<typeof hook>>[0]);
+  };
+
+  it("ignores outgoing requests to the configured OTLP gRPC port", () => {
+    const ignored = ignoreOutgoingFor("http://collector:4317");
+    expect(ignored(4317)).toBe(true);
+    expect(ignored(443)).toBe(false);
+  });
+
+  it("derives a non-default OTLP port from the endpoint URL", () => {
+    // `:4318` is the OTLP/HTTP convention; if the helper hardcoded 4317
+    // a self-instrumented exporter on 4318 would feed back into itself.
+    const ignored = ignoreOutgoingFor("http://collector:4318");
+    expect(ignored(4318)).toBe(true);
+    expect(ignored(4317)).toBe(false);
+  });
+
+  it("falls back to 4317 when the endpoint has no explicit port", () => {
+    const ignored = ignoreOutgoingFor("http://collector");
+    expect(ignored(4317)).toBe(true);
+    expect(ignored(8080)).toBe(false);
+  });
+
+  it("falls back to 4317 when the endpoint is malformed", () => {
+    // Bad URL must not throw on every outgoing request — that would
+    // disable HTTP tracing entirely. Falling back to 4317 keeps the
+    // tracer running; `registerOpenTelemetry` surfaces the URL error
+    // separately when it builds the exporter.
+    const ignored = ignoreOutgoingFor("not a url");
+    expect(ignored(4317)).toBe(true);
+    expect(ignored(443)).toBe(false);
   });
 });
