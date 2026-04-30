@@ -141,13 +141,13 @@ LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_0_5"
         = "entity_temporal_metadata_0_0_0"."web_id"
         AND "entity_has_right_entity_0_0_5"."entity_uuid"
         = "entity_temporal_metadata_0_0_0"."entity_uuid"
-CROSS JOIN LATERAL (
-    SELECT
-        (
-            row(NULL, 1, ARRAY[]::int [], ARRAY[]::jsonb [])::continuation
-        ) AS "row"
-        OFFSET 0
-) AS "continuation_0_0"
+CROSS JOIN LATERAL
+    (
+        SELECT
+            (
+                row(NULL, 1, ARRAY[]::int [], ARRAY[]::jsonb [])::continuation
+            ) AS "row"
+    ) AS "continuation_0_0"
 WHERE
     "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange)
     AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange)
