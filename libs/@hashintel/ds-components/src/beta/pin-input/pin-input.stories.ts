@@ -1,0 +1,12 @@
+export default { title: "Primitives/PinInput" };
+
+export { App as alphanumeric } from "./alphanumberic.story";
+export { App as attached } from "./attached.story";
+export { App as basic } from "./basic.story";
+export { App as controlled } from "./controlled.story";
+export { App as field } from "./field.story";
+export { App as mask } from "./mask.story";
+export { App as otp } from "./otp.story";
+export { App as placeholder } from "./placeholder.story";
+export { App as sizes } from "./sizes.story";
+export { App as variants } from "./variants.story";

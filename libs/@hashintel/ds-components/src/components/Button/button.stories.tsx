@@ -3,7 +3,7 @@ import type { Story, StoryDefault } from "@ladle/react";
 import { Button, type ButtonProps } from "./button";
 
 export default {
-  title: "Components/Button",
+  title: "Legacy/Button",
   argTypes: {
     variant: {
       control: { type: "select" },

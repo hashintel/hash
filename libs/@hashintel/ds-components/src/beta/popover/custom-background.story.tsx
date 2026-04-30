@@ -1,0 +1,29 @@
+import { Portal } from "@ark-ui/react/portal";
+
+import { Button } from "../button/button";
+import { CloseButton } from "../close-button/close-button";
+import * as Popover from "./popover";
+
+export const App = () => {
+  return (
+    <Popover.Root lazyMount unmountOnExit>
+      <Popover.Trigger asChild>
+        <Button variant="outline">Open Popover</Button>
+      </Popover.Trigger>
+      <Portal>
+        <Popover.Positioner>
+          <Popover.Content css={{ "--popover-bg": "lightblue" }}>
+            <Popover.Arrow />
+            <Popover.Body>
+              <Popover.Title>Title</Popover.Title>
+              <Popover.Description>Description</Popover.Description>
+            </Popover.Body>
+            <Popover.CloseTrigger asChild>
+              <CloseButton />
+            </Popover.CloseTrigger>
+          </Popover.Content>
+        </Popover.Positioner>
+      </Portal>
+    </Popover.Root>
+  );
+};

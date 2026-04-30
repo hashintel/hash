@@ -3,7 +3,7 @@ import type { Story, StoryDefault } from "@ladle/react";
 import { Switch, type SwitchProps } from "./switch";
 
 export default {
-  title: "Components/Switch",
+  title: "Legacy/Switch",
   parameters: {
     layout: "centered",
   },

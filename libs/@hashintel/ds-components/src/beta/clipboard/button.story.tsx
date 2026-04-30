@@ -1,0 +1,15 @@
+import { Button } from "../button/button";
+import * as Clipboard from "./clipboard";
+
+export const App = () => {
+  return (
+    <Clipboard.Root value="https://park-ui.com">
+      <Clipboard.Trigger asChild>
+        <Button variant="surface" size="sm">
+          <Clipboard.Indicator />
+          <Clipboard.CopyText />
+        </Button>
+      </Clipboard.Trigger>
+    </Clipboard.Root>
+  );
+};

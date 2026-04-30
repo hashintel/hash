@@ -1,0 +1,14 @@
+export default { title: "Primitives/NumberInput" };
+
+export { App as basic } from "./basic.story";
+export { App as controlled } from "./controlled.story";
+export { App as disabled } from "./disabled.story";
+export { App as element } from "./element.story";
+export { App as formatting } from "./formatting.story";
+export { App as helperText } from "./helper-text.story";
+export { App as invalid } from "./invalid.story";
+export { App as minMax } from "./min-max.story";
+export { App as mouseWheel } from "./mouse-wheel.story";
+export { App as scrubber } from "./scrubber.story";
+export { App as sizes } from "./sizes.story";
+export { App as step } from "./step.story";

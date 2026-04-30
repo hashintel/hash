@@ -7,7 +7,7 @@ import {
 } from "./segmented-control";
 
 export default {
-  title: "Components/SegmentedControl",
+  title: "Legacy/SegmentedControl",
   parameters: {
     layout: "centered",
   },

@@ -1,0 +1,12 @@
+export default { title: "Primitives/Avatar" };
+
+export { App as badge } from "./badge.story";
+export { App as basic } from "./basic.story";
+export { App as colors } from "./colors.story";
+export { App as fallback } from "./fallback.story";
+export { App as group } from "./group.story";
+export { App as persona } from "./persona.story";
+export { App as ring } from "./ring.story";
+export { App as shapes } from "./shapes.story";
+export { App as sizes } from "./sizes.story";
+export { App as variants } from "./variants.story";

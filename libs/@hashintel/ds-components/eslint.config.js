@@ -1,7 +1,9 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from "eslint-plugin-storybook";
+import typescriptEslint from "@typescript-eslint/eslint-plugin";
 
 import { createBase, disableRules } from "@local/eslint/deprecated";
+
+const disableTypeCheckedRules =
+  typescriptEslint.configs["disable-type-checked"]?.rules ?? {};
 
 export default [
   {
@@ -16,7 +18,6 @@ export default [
     ],
   },
   ...createBase(import.meta.dirname),
-  ...storybook.configs["flat/recommended"],
   ...disableRules([]),
   {
     rules: {
@@ -44,13 +45,32 @@ export default [
     },
   },
   {
-    files: ["src/**/*.story.ts{x,}", "src/stories/**/*.{ts,tsx,mdx}"],
+    // Story files are intentionally excluded from `tsconfig.json` (they live
+    // in `tsconfig.beta.json`). Running type-aware lint rules on them forces
+    // ESLint's project service into a slow default-project fallback per file
+    // *and* type-instantiates the very heavy generated `styled-system` types
+    // for every single story. Disable type-aware linting entirely for the
+    // story surface — they're demo code, not shipped to consumers.
+    files: [
+      "src/**/*.story.ts{x,}",
+      "src/beta/**/*.stories.ts{x,}",
+      "src/tokens/**/*.{ts,tsx,mdx}",
+    ],
+    languageOptions: {
+      parserOptions: {
+        // Drop the type-aware project lookup for story files. Without this,
+        // every story still costs a full project-service resolve even when
+        // every type-aware rule is off.
+        projectService: false,
+        project: false,
+      },
+    },
     rules: {
-      "@typescript-eslint/no-unnecessary-condition": "off",
+      ...disableTypeCheckedRules,
+      "@typescript-eslint/no-shadow": "off",
       "id-length": "off",
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
-      "storybook/default-exports": "off",
-      "storybook/no-redundant-story-name": "off",
+      "react/no-array-index-key": "off",
     },
   },
   {

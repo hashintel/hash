@@ -11,7 +11,7 @@ import {
   transformLineHeightReference,
 } from "./transforms";
 
-const OUTPUT_DIR = "src/preset/theme/tokens";
+const OUTPUT_DIR = "src/preset/tokens/gen";
 
 // ============================================================================
 // SPACING TOKENS
@@ -160,21 +160,6 @@ export const lineHeights = defineTokens.lineHeights(${formatTokensForOutput(line
 }
 
 // ============================================================================
-// BARREL FILE
-// ============================================================================
-
-function generateBarrelFile(): void {
-  const filePath = join(process.cwd(), "src/preset/theme/tokens.gen.ts");
-
-  const content = `export { spacing } from "./tokens/spacing.gen";
-export { fonts, fontWeights, fontSizes, lineHeights } from "./tokens/typography.gen";
-`;
-
-  fs.writeFileSync(filePath, content, "utf8");
-  console.log("📄 Created tokens.gen.ts (barrel file)");
-}
-
-// ============================================================================
 // TOP-LEVEL SCHEMA - Validates expected structure of Figma export
 // ============================================================================
 
@@ -207,9 +192,6 @@ function main(): void {
 
   console.log("\n📦 Typography tokens:");
   generateTypographyTokens();
-
-  console.log("\n📦 Barrel file:");
-  generateBarrelFile();
 
   console.log("\n✅ Token generation complete!");
 }

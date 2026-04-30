@@ -4,7 +4,7 @@ import { useState } from "react";
 import { RadioGroup, type RadioGroupProps } from "./radio-group";
 
 export default {
-  title: "Components/RadioGroup",
+  title: "Legacy/RadioGroup",
   parameters: {
     layout: "centered",
   },

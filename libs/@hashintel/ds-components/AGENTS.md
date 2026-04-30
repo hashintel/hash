@@ -9,7 +9,7 @@ It owns:
 - the Panda preset source in `src/preset/**`
 - token/codegen scripts in `scripts/**`
 - the component library in `src/components/**`
-- the token/demo surface in `src/stories/**`, `.ladle/`, and `tests/**`
+- the token/demo surface in `src/tokens/**`, `src/stories/Intro.mdx`, `.ladle/`, and `tests/**`
 
 It still consumes the generated runtime styling utilities from `@hashintel/ds-helpers`.
 
@@ -36,7 +36,8 @@ Boundary rules:
 
 - `ds-components` generates `../ds-helpers/styled-system` via Panda `outdir`.
 - `ds-helpers` must not depend on `ds-components`.
-- `@hashintel/ds-components/preset` and `@hashintel/ds-components/theme` are the canonical public preset/theme entrypoints.
+- `@hashintel/ds-components/preset` is the canonical public styling entrypoint.
+- `@hashintel/ds-components/tokens` is the public package-owned token export for `tokens` and `semanticTokens`.
 
 ## Panda CSS Configuration
 
@@ -242,8 +243,9 @@ libs/@hashintel/ds-components/
 ├── src/
 │   ├── components/
 │   ├── preset/             # Panda preset source of truth
-│   ├── stories/
-│   ├── theme.ts            # Public `./theme` facade
+│   ├── stories/            # Shared docs such as Intro.mdx
+│   ├── tokens/             # Token stories and fixtures
+│   ├── tokens.ts           # Public `./tokens` facade
 ├── scripts/                # Token/codegen scripts
 ├── tests/                  # Snapshot/demo tests
 ├── panda.config.ts
