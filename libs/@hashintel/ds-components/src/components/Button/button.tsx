@@ -170,7 +170,7 @@ export const Button = (props: ButtonProps) => {
     content = (
       <>
         <span className={classes.loadingContainer}>
-          <LoadingSpinner size={loadingSizeMap[size ?? "md"]} />
+          <LoadingSpinner size={loadingSizeMap[size ?? "md"]} variant="bars" />
         </span>
         <span className={classes.loadingContent}>{content}</span>
       </>

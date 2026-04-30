@@ -4,18 +4,64 @@ import { useId } from "react";
 import type { FormInputSize } from "../../util/form-shared";
 import { styles } from "./loading-spinner.recipe";
 
+export type LoadingSpinnerVariant = "default" | "bars";
+
+const spokes = [
+  { rotation: 0, opacity: 1 },
+  { rotation: 30, opacity: 0.93 },
+  { rotation: 60, opacity: 0.83 },
+  { rotation: 90, opacity: 0.73 },
+  { rotation: 120, opacity: 0.63 },
+  { rotation: 150, opacity: 0.53 },
+  { rotation: 180, opacity: 0.43 },
+  { rotation: 210, opacity: 0.33 },
+  { rotation: 240, opacity: 0.25 },
+  { rotation: 270, opacity: 0.2 },
+  { rotation: 300, opacity: 0.15 },
+  { rotation: 330, opacity: 0.1 },
+] as const;
+
 export const LoadingSpinner = ({
   size = "md",
+  variant = "default",
   className,
 }: {
   size?: FormInputSize;
+  variant?: LoadingSpinnerVariant;
   className?: string;
 }) => {
   const gradientId = useId();
+
+  if (variant === "bars") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className={cx(styles({ size, variant: "bars" }), className)}
+      >
+        {spokes.map((spoke) => (
+          <rect
+            key={spoke.rotation}
+            x={11}
+            y={2}
+            width={2}
+            height={6}
+            rx={1}
+            fill="currentColor"
+            opacity={spoke.opacity}
+            transform={`rotate(${spoke.rotation} 12 12)`}
+          />
+        ))}
+      </svg>
+    );
+  }
+
   const bg = "color-mix(in oklab, currentColor, transparent 85%)";
 
   return (
-    <svg viewBox="0 0 56 56" className={cx(styles({ size }), className)}>
+    <svg
+      viewBox="0 0 56 56"
+      className={cx(styles({ size, variant: "default" }), className)}
+    >
       <path
         d="M56 28C56 43.464 43.464 56 28 56C12.536 56 0 43.464 0 28C0 12.536 12.536 0 28 0C43.464 0 56 12.536 56 28ZM11.2 28C11.2 37.2784 18.7216 44.8 28 44.8C37.2784 44.8 44.8 37.2784 44.8 28C44.8 18.7216 37.2784 11.2 28 11.2C18.7216 11.2 11.2 18.7216 11.2 28Z"
         fill={bg}
