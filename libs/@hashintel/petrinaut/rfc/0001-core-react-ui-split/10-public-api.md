@@ -4,8 +4,12 @@
 
 ```ts
 // Headless engine
-import { createPetrinaut } from "@hashintel/petrinaut/core";
-import type { SDCPN, Place, Transition, /* … */ } from "@hashintel/petrinaut/core";
+import { createPetrinaut, createJsonDocHandle } from "@hashintel/petrinaut/core";
+import type {
+  SDCPN, Place, Transition,
+  PetrinautDocHandle, PetrinautPatch, DocChangeEvent, DocumentId,
+  /* … */
+} from "@hashintel/petrinaut/core";
 
 // React bindings (build your own UI)
 import {
