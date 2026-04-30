@@ -136,6 +136,9 @@ export const styles = sva({
     isPressed: {
       true: {},
     },
+    isIconOnly: {
+      true: {},
+    },
   },
   compoundVariants: [
     {
@@ -192,6 +195,35 @@ export const styles = sva({
       hasIconRight: true,
       css: {
         iconText: { marginRight: "2" },
+      },
+    },
+    // ── Icon-only (square) ──
+    {
+      size: "xs",
+      isIconOnly: true,
+      css: {
+        button: { paddingX: "0" },
+      },
+    },
+    {
+      size: "sm",
+      isIconOnly: true,
+      css: {
+        button: { paddingX: "0.5" },
+      },
+    },
+    {
+      size: "md",
+      isIconOnly: true,
+      css: {
+        button: { paddingX: "1" },
+      },
+    },
+    {
+      size: "lg",
+      isIconOnly: true,
+      css: {
+        button: { paddingX: "2" },
       },
     },
     // ── Solid + Neutral ──

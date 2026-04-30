@@ -137,6 +137,7 @@ export const Button = (props: ButtonProps) => {
     suffix ?? (iconPosition === "right" ? iconElement : null);
 
   const hasIcon = !!suffixContent || !!prefixContent;
+  const isIconOnly = hasIcon && !children;
 
   const classes = styles({
     size,
@@ -149,6 +150,7 @@ export const Button = (props: ButtonProps) => {
     hasIcon,
     hasIconLeft: !!prefixContent,
     hasIconRight: !!suffixContent,
+    isIconOnly,
   });
 
   let content = (
