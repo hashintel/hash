@@ -341,7 +341,7 @@ export const SimulateView = () => {
           {mode === "scenarios" && (
             <Button
               variant="ghost"
-              colorScheme="neutral"
+              tone="neutral"
               size="xs"
               iconLeft={<TbPlus size={14} />}
               onClick={() => setDrawer({ type: "create-scenario" })}
@@ -363,9 +363,9 @@ export const SimulateView = () => {
           {mode === "experiments" && (
             <Button
               variant="ghost"
-              colorScheme="neutral"
+              tone="neutral"
               size="xs"
-              iconLeft={<TbPlus size={14} />}
+              prefix={<TbPlus size={14} />}
               onClick={() => setDrawer({ type: "create-experiment" })}
             >
               Create experiment
