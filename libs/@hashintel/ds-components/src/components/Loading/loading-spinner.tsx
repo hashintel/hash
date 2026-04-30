@@ -12,7 +12,7 @@ export const LoadingSpinner = ({
   className?: string;
 }) => {
   const gradientId = useId();
-  const bg = "color-mix(in oklab, currentColor, white 85%)";
+  const bg = "color-mix(in oklab, currentColor, transparent 85%)";
 
   return (
     <svg viewBox="0 0 56 56" className={cx(styles({ size }), className)}>
@@ -34,7 +34,7 @@ export const LoadingSpinner = ({
           y2="28.9655"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stopColor={bg} />
+          <stop stopColor="currentColor" stopOpacity={0} />
           <stop offset="1" stopColor="currentColor" />
         </linearGradient>
       </defs>
