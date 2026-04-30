@@ -1,10 +1,11 @@
 #![expect(clippy::significant_drop_tightening, reason = "test code")]
 use alloc::sync::Arc;
 use core::{
+    io::ErrorKind,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use std::io::{self, ErrorKind};
+use std::io;
 
 use bytes::{Bytes, BytesMut};
 use error_stack::{Report, ResultExt as _};
