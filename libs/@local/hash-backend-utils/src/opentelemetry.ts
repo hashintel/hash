@@ -317,7 +317,7 @@ export const registerOpenTelemetry = ({
         ["log provider", () => logProvider.shutdown()],
         ["meter provider", () => meterProvider.shutdown()],
       ];
-      await Promise.allSettled(
+      const results = await Promise.allSettled(
         targets.map(async ([label, run]) => {
           try {
             await shutdownWithTimeout(label, run);
@@ -329,6 +329,20 @@ export const registerOpenTelemetry = ({
         }),
       );
       unregisterInstrumentations();
+      // `Promise.allSettled` itself never rejects, so without inspecting the
+      // results the caller's `catch` block would never fire and downstream
+      // exit-code / error-reporting logic would treat partial flush failures
+      // as success. Surface them as an `AggregateError` so the caller can
+      // react.
+      const failures = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason as unknown] : [],
+      );
+      if (failures.length > 0) {
+        throw new AggregateError(
+          failures,
+          "One or more OpenTelemetry providers failed to shut down",
+        );
+      }
     },
   };
 };
