@@ -1,4 +1,5 @@
 import { defineGlobalStyles, definePreset } from "@pandacss/dev";
+import pandaPreset from "@pandacss/preset-panda";
 
 import { documentSurfaceStyles, fontPipelineCssVars } from "./preset/document";
 import { recipes, slotRecipes } from "./preset/recipes";
