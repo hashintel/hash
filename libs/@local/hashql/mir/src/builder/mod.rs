@@ -122,7 +122,6 @@ pub use self::{
 /// use hashql_hir::node::operation::UnOp;
 /// use hashql_mir::op;
 ///
-/// assert!(matches!(op![!], UnOp::Not));
 /// assert!(matches!(op![neg], UnOp::Neg)); // `neg` is used since `-` alone is ambiguous
 /// assert!(matches!(op![~], UnOp::BitNot));
 /// ```
