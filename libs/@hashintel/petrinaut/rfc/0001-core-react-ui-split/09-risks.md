@@ -23,6 +23,15 @@ The current worker setup uses Vite's `?worker` import, which is bundler-specific
 
 Opt out with `"use no memo"` only where genuinely needed.
 
+## Whole-string `replace` for text edits
+
+`PetrinautPatch` is Immer-shaped, so any character change inside a long code field (guards, kernels, equations) emits a `replace` carrying the entire new string. Drawbacks:
+
+- **Patch volume.** Keystrokes in a 10 KB code block produce 10 KB-per-stroke patches.
+- **No collaborative text merging.** Character-level CRDTs need sub-string `splice` ops; whole-string replace can't merge concurrent edits without conflict.
+
+Mitigation: deferred. See [Q1.c in 07-open-questions.md](./07-open-questions.md) and the "Known limitation: text-range edits" section in [04-core-instance.md](./04-core-instance.md) §4.1. Will be addressed by a follow-up RFC if/when collaboration or patch-volume becomes a real concern.
+
 ## Handle adapter drift
 
 Core never owns the document — it receives a `PetrinautDocHandle`. For Automerge, consumers paste a small adapter that wraps `DocHandle<SDCPN>`. Two risks:

@@ -102,6 +102,22 @@ For **Automerge**, no adapter is shipped (would require `@automerge/automerge-re
 
 `PetrinautDocHandle.subscribe` is **not** a `ReadableStore<SDCPN>`. The event carries optional `patches` and `source` fields that don't belong in a generic state-store interface. Internally Core constructs a `ReadableStore<SDCPN>` (`instance.definition`) on top of the handle, dropping `patches`/`source` for consumers that just want the value.
 
+### Known limitation: text-range edits
+
+`PetrinautPatch` (Immer-shaped) treats strings as atomic. A single-character edit inside a long code block (transition guard, kernel, equation) emits a `replace` carrying the **entire new string** — there is no `splice` op for sub-string ranges.
+
+This is acceptable for the current single-user editor, but it has two drawbacks worth flagging:
+
+1. **Bandwidth.** Every keystroke produces a patch sized like the whole field. For 10 KB code blocks, that's a lot of duplication.
+2. **Collaboration.** Character-level CRDT merging (Automerge `Text`, Yjs) requires sub-string operations. Whole-string `replace` ops can't be merged without conflict and would defeat collaborative code editing if it's ever introduced.
+
+**Decision:** keep Immer-shape now; address later. When/if Petrinaut needs collaborative code editing — or when patch volume becomes a problem — a follow-up RFC will introduce either:
+
+- a richer op (`{ op: "splice"; path; index; remove; insert }`) added to `PetrinautPatch`, or
+- a separate text-edit event channel on `PetrinautDocHandle` (e.g. `subscribeText(path, listener)`) that operates alongside the structural patch stream.
+
+Tracked as a known follow-up in [07-open-questions.md](./07-open-questions.md) and [09-risks.md](./09-risks.md).
+
 ## 4.2 Stream primitive (locked)
 
 Two primitives. State uses `ReadableStore<T>`; one-shot events use `EventStream<T>`.

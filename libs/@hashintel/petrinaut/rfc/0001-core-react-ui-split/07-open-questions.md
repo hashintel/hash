@@ -10,6 +10,15 @@ The hot file while the RFC is in flight. Each question lists its current status.
 
 **Decided.** Petrinaut defines its own minimal `PetrinautPatch` type modeled on Immer's `produceWithPatches` shape (array path, `op: "add" | "remove" | "replace"`). Immer-backed handles (including `createJsonDocHandle`) emit it natively. Automerge consumers convert via a small switch in their adapter. No runtime dependency. See [04-core-instance.md](./04-core-instance.md) §4.1.
 
+### Q1.c. Text-range edits — deferred
+
+`PetrinautPatch` cannot represent sub-string operations; a one-character edit inside a long code block emits a `replace` with the entire new string. Acceptable for single-user editing today; will need addressing if/when:
+
+- patch volume becomes a real problem on large code blocks, or
+- collaborative code editing is introduced (character-level CRDTs require splice-on-string ops).
+
+**Status:** deferred. Likely follow-up RFC; sketches in [04-core-instance.md](./04-core-instance.md) §4.1 ("Known limitation: text-range edits").
+
 ## Q2. ~~Stream primitive~~
 
 **Decided.** `ReadableStore<T>` (`get()` + `subscribe(listener: (value: T) => void)`) for state slices; `EventStream<T>` (`subscribe(listener: (event: T) => void)`) for one-shot events. The listener receives the value on every call. React adapts via a `useStore(store)` helper that wraps `subscribe` to drop the value, so `useSyncExternalStore`'s ping shape is satisfied. See [04-core-instance.md](./04-core-instance.md) §4.2 and [06-react-bindings.md](./06-react-bindings.md) §6.3.
