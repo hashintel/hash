@@ -2,6 +2,21 @@
 source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
 expression: report.to_string()
 ---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+
+    bb0(): {
+        %2 = input LOAD a
+        %3 = input LOAD b
+        %4 = %2 & %3
+
+        return %4
+    }
+}
 ==================== Island (entry: bb0, target: postgres) =====================
 
 (

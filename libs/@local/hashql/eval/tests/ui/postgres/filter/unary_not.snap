@@ -10,7 +10,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
 
     bb0(): {
         %2 = input LOAD val
-        %3 = !%2
+        %3 = ~%2
 
         return %3
     }
