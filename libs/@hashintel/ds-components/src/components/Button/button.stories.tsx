@@ -88,7 +88,7 @@ export const Default: Story<ButtonElementProps> = (args) => (
         className={css({
           display: "flex",
           gap: "[16px]",
-          alignItems: "center",
+          alignItems: "flex-end",
           flexWrap: "wrap",
           marginBottom: "4",
         })}
