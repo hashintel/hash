@@ -359,10 +359,10 @@ export const styles = sva({
       tone: "neutral",
       css: {
         button: {
-          color: "neutral.s110",
+          color: "neutral.s120",
           "&:not([aria-disabled=true]):hover": {
-            background: "neutral.a30",
-            borderColor: "neutral.a70",
+            background: "neutral.a20",
+            borderColor: "neutral.a60",
           },
         },
       },
@@ -373,18 +373,145 @@ export const styles = sva({
       isPressed: true,
       css: {
         button: {
-          background: "neutral.a20",
-          borderColor: "neutral.a60",
+          color: "neutral.s115",
+          background: "neutral.a10",
+          borderColor: "neutral.a50",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
         },
       },
     },
     {
       variant: "ghost",
+      tone: "neutral",
       isDisabled: true,
       css: {
         button: {
-          opacity: "0.4",
+          color: "neutral.s70",
+        },
+      },
+    },
+
+    // ── Ghost (brand) ──
+    {
+      variant: "ghost",
+      tone: "brand",
+      css: {
+        button: {
+          color: "blue.s105",
+          "&:not([aria-disabled=true]):hover": {
+            background: "blue.a30",
+            borderColor: "blue.a70",
+          },
+        },
+      },
+    },
+    {
+      variant: "ghost",
+      tone: "brand",
+      isPressed: true,
+      css: {
+        button: {
+          color: "blue.s85",
+          background: "blue.a25",
+          borderColor: "blue.a50",
+          boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
+        },
+      },
+    },
+    {
+      variant: "ghost",
+      tone: "brand",
+      isDisabled: true,
+      css: {
+        button: {
+          color: "blue.s70",
+        },
+      },
+    },
+    // ── Ghost (error) ──
+    {
+      variant: "ghost",
+      tone: "error",
+      css: {
+        button: {
+          color: "red.s105",
+          "&:not([aria-disabled=true]):hover": {
+            background: "red.a25",
+            borderColor: "red.a70",
+          },
+        },
+      },
+    },
+    {
+      variant: "ghost",
+      tone: "error",
+      isPressed: true,
+      css: {
+        button: {
+          color: "red.s85",
+          background: "red.a20",
+          borderColor: "red.a60",
+          boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
+        },
+      },
+    },
+    {
+      variant: "ghost",
+      tone: "error",
+      isDisabled: true,
+      css: {
+        button: {
+          color: "red.s70",
+        },
+      },
+    },
+
+    // ── Link ──
+    {
+      variant: "link",
+      isPressed: true,
+      css: {
+        button: {
+          textDecoration: "underline",
+        },
+      },
+    },
+    {
+      variant: "link",
+      isDisabled: true,
+      css: {
+        button: {
+          opacity: 0.4,
+        },
+      },
+    },
+    // ── Link (neutral) ──
+    {
+      variant: "link",
+      tone: "neutral",
+      css: {
+        button: {
+          color: "[inherit]",
+        },
+      },
+    },
+    // ── Link (brand) ──
+    {
+      variant: "link",
+      tone: "brand",
+      css: {
+        button: {
+          color: "blue.s105",
+        },
+      },
+    },
+    // ── Link (error) ──
+    {
+      variant: "link",
+      tone: "error",
+      css: {
+        button: {
+          color: "red.s105",
         },
       },
     },
