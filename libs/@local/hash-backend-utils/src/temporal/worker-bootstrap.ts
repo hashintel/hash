@@ -294,5 +294,28 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
   process.on("SIGINT", onSignal);
   process.on("SIGTERM", onSignal);
 
-  await workerRunPromise;
+  try {
+    await workerRunPromise;
+  } catch (error) {
+    // Fatal worker error (no signal): the signal-driven `shutdown()` never
+    // ran, so the OTEL batch processors still hold the spans / logs from
+    // the crashing session. Flush them before letting `main.ts` exit.
+    // The `shuttingDown` guard avoids double-flushing if a signal raced in
+    // and `shutdown()` is already running concurrently — TS can't see the
+    // closure mutation, hence the disable.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!shuttingDown) {
+      try {
+        httpServer.close();
+      } catch (closeError) {
+        logger.error("Health-check server close failed", { error: closeError });
+      }
+      try {
+        await otelSetup?.shutdown();
+      } catch (flushError) {
+        logger.error("Failed to flush OpenTelemetry", { error: flushError });
+      }
+    }
+    throw error;
+  }
 }
