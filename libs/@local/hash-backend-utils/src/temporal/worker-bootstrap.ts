@@ -245,77 +245,62 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     });
   });
 
-  // Start the worker; `worker.run()` resolves once the SDK has fully
-  // drained in-flight activities after `worker.shutdown()` is called.
-  // The shutdown handler awaits this promise so SIGTERM doesn't kill
-  // activities mid-execution.
+  // `worker.run()` resolves once the SDK has fully drained in-flight
+  // activities after `worker.shutdown()` is called.
   const workerRunPromise = worker.run();
 
+  // Signal handler ONLY triggers drain. All cleanup (HTTP close + OTEL
+  // flush + process.exit) lives on the linear path below, so it runs on
+  // every termination mode: signal-driven shutdown, fatal worker error,
+  // and clean worker exit. A fire-and-forget signal handler that owns
+  // cleanup races against the main flow returning to `main.ts`.
   let shuttingDown = false;
-  const shutdown = async (signal: NodeJS.Signals) => {
+  const onSignal = (signal: NodeJS.Signals) => {
     if (shuttingDown) {
       return;
     }
     shuttingDown = true;
     logger.info(`Received ${signal}, exiting...`);
-    let exitCode = 0;
     try {
       worker.shutdown();
     } catch (error) {
       logger.error("Worker shutdown trigger failed", { error });
-      exitCode = 1;
     }
-    try {
-      await workerRunPromise;
-    } catch (error) {
-      logger.error("Worker drain failed", { error });
-      exitCode = 1;
-    }
-    try {
-      httpServer.close();
-    } catch (error) {
-      logger.error("Health-check server close failed", { error });
-    }
-    try {
-      await otelSetup?.shutdown();
-    } catch (error) {
-      logger.error("Failed to flush OpenTelemetry", { error });
-      exitCode = 1;
-    }
-    process.exit(exitCode);
-  };
-
-  const onSignal = (signal: NodeJS.Signals) => {
-    shutdown(signal).catch((error: unknown) => {
-      logger.error("Shutdown handler threw", { error });
-      process.exit(1);
-    });
   };
   process.on("SIGINT", onSignal);
   process.on("SIGTERM", onSignal);
 
+  let exitCode = 0;
+  let workerError: unknown;
   try {
     await workerRunPromise;
   } catch (error) {
-    // Fatal worker error (no signal): the signal-driven `shutdown()` never
-    // ran, so the OTEL batch processors still hold the spans / logs from
-    // the crashing session. Flush them before letting `main.ts` exit.
-    // The `shuttingDown` guard avoids double-flushing if a signal raced in
-    // and `shutdown()` is already running concurrently — TS can't see the
-    // closure mutation, hence the disable.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!shuttingDown) {
-      try {
-        httpServer.close();
-      } catch (closeError) {
-        logger.error("Health-check server close failed", { error: closeError });
-      }
-      try {
-        await otelSetup?.shutdown();
-      } catch (flushError) {
-        logger.error("Failed to flush OpenTelemetry", { error: flushError });
-      }
-    }
-    throw error;
+    workerError = error;
+    exitCode = 1;
+    logger.error(shuttingDown ? "Worker drain failed" : "Worker run failed", {
+      error,
+    });
   }
+
+  try {
+    httpServer.close();
+  } catch (error) {
+    logger.error("Health-check server close failed", { error });
+  }
+  try {
+    await otelSetup?.shutdown();
+  } catch (error) {
+    logger.error("Failed to flush OpenTelemetry", { error });
+    exitCode = 1;
+  }
+
+  if (shuttingDown) {
+    // Signal-driven exit: `main.ts` has nothing to do after `run()`
+    // returns, so terminate explicitly with the chosen exit code.
+    process.exit(exitCode);
+  }
+  if (workerError) {
+    throw workerError;
+  }
+  // Clean worker exit: return; `main.ts` has no further work.
 }
