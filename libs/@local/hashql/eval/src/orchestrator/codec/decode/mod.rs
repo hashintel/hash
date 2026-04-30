@@ -33,13 +33,13 @@ mod tests;
 /// variant in order, and opaque types wrap their inner representation.
 ///
 /// When the type is unknown ([`Param`], [`Infer`], [`Unknown`]), falls back to
-/// [`decode_unknown`](Self::decode_unknown), which uses JSON structure alone
+/// `decode_unknown`, which uses JSON structure alone
 /// (objects become structs or dicts, arrays become lists, etc.).
 ///
 /// [`Value`]: hashql_mir::interpret::value::Value
-/// [`Param`]: hashql_core::type_::kind::TypeKind::Param
-/// [`Infer`]: hashql_core::type_::kind::TypeKind::Infer
-/// [`Unknown`]: hashql_core::type_::kind::TypeKind::Unknown
+/// [`Param`]: hashql_core::type::kind::TypeKind::Param
+/// [`Infer`]: hashql_core::type::kind::TypeKind::Infer
+/// [`Unknown`]: hashql_core::type::kind::TypeKind::Unknown
 pub struct Decoder<'env, 'heap, A> {
     env: &'env Environment<'heap>,
     interner: &'env hashql_mir::intern::Interner<'heap>,

@@ -47,8 +47,8 @@ impl ContinuationAlias {
 
 /// Continuation fields returned to the bridge in the `SELECT` list.
 ///
-/// A subset of [`ContinuationColumn`] that excludes internal-only columns
-/// ([`Entry`](ContinuationColumn::Entry) and [`Filter`](ContinuationColumn::Filter)).
+/// A subset of `ContinuationColumn` that excludes internal-only columns
+/// (`Entry` and `Filter`).
 /// Each variant corresponds to a column the bridge must decode to reconstruct
 /// island exit control flow and live-out locals.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
