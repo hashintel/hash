@@ -125,10 +125,10 @@ export const styles = sva({
       },
     },
     hasIconLeft: {
-      true: { iconText: { marginLeft: "1" } },
+      true: {},
     },
     hasIconRight: {
-      true: { iconText: { marginRight: "1" } },
+      true: {},
     },
     isDisabled: {
       true: {},
@@ -138,6 +138,62 @@ export const styles = sva({
     },
   },
   compoundVariants: [
+    {
+      size: "xs",
+      hasIconLeft: true,
+      css: {
+        iconText: { marginLeft: "1" },
+      },
+    },
+    {
+      size: "xs",
+      hasIconRight: true,
+      css: {
+        iconText: { marginRight: "1" },
+      },
+    },
+    {
+      size: "sm",
+      hasIconLeft: true,
+      css: {
+        iconText: { marginLeft: "1.5" },
+      },
+    },
+    {
+      size: "sm",
+      hasIconRight: true,
+      css: {
+        iconText: { marginRight: "1.5" },
+      },
+    },
+    {
+      size: "md",
+      hasIconLeft: true,
+      css: {
+        iconText: { marginLeft: "2" },
+      },
+    },
+    {
+      size: "md",
+      hasIconRight: true,
+      css: {
+        iconText: { marginRight: "2" },
+      },
+    },
+    {
+      size: "lg",
+      hasIconLeft: true,
+      css: {
+        iconText: { marginLeft: "2" },
+      },
+    },
+    {
+      size: "lg",
+      hasIconRight: true,
+      css: {
+        iconText: { marginRight: "2" },
+      },
+    },
     // ── Solid + Neutral ──
     {
       variant: "solid",
