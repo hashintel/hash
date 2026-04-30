@@ -34,6 +34,7 @@ export const styles = sva({
           paddingY: "0",
           borderRadius: "md",
           textStyle: "xs",
+          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + 2px)]`,
         },
       },
       sm: {
@@ -42,6 +43,7 @@ export const styles = sva({
           paddingY: "0.5",
           borderRadius: "lg",
           textStyle: "sm",
+          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--spacing-0\\.5) * 2 + 2px)]`,
         },
       },
       md: {
@@ -50,6 +52,7 @@ export const styles = sva({
           paddingY: "1",
           borderRadius: "lg",
           textStyle: "base",
+          minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-1) * 2 + 2px)]`,
         },
       },
       lg: {
@@ -58,6 +61,7 @@ export const styles = sva({
           paddingY: "2",
           borderRadius: "lg",
           textStyle: "base",
+          minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-2) * 2 + 2px)]`,
         },
       },
     },
