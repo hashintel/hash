@@ -17,9 +17,6 @@
 //! - **`block`** (`int`): next basic block when leaving the island.
 //! - **`locals`** (`int[]`) and **`values`** (`jsonb[]`): parallel arrays carrying live-out locals.
 //!
-//! Continuation subqueries are forced to materialise once per row using `OFFSET 0` to prevent
-//! PostgreSQL from inlining the subquery and duplicating the island's `CASE` tree per field access.
-//!
 //! ## Parameters and projections
 //!
 //! Parameters are deduplicated by identity and referenced by index (rendered as `$N` in SQL).

@@ -1,7 +1,7 @@
 //! Naming conventions and helpers for the continuation LATERAL subqueries.
 //!
 //! Each postgres island in a filter body produces a `CROSS JOIN LATERAL` subquery
-//! that evaluates its CASE tree once per row (via `OFFSET 0`) and returns a
+//! that evaluates its CASE tree once per row  and returns a
 //! composite `continuation` value. This module provides the identifiers, column
 //! names, and expression helpers used to construct and reference those subqueries.
 
@@ -80,7 +80,7 @@ impl From<ContinuationField> for ContinuationColumn {
 pub(crate) enum ContinuationColumn {
     /// The composite `continuation` value column in the LATERAL subquery.
     ///
-    /// The LATERAL is `(SELECT <CASE tree>::continuation AS c OFFSET 0) AS f0`,
+    /// The LATERAL is `(SELECT <CASE tree>::continuation AS c) AS f0`,
     /// so field access is `(f0."c")."filter"`.
     Entry,
     /// The filter boolean. `NULL` means passthrough, `true` keeps, `false` rejects.
