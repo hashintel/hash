@@ -2,8 +2,8 @@
 import "@local/hash-backend-utils/environment";
 
 import {
+  createHttpInstrumentation,
   createUndiciInstrumentation,
-  httpRequestSpanNameHook,
   registerOpenTelemetry,
 } from "@local/hash-backend-utils/opentelemetry";
 import {
@@ -11,7 +11,6 @@ import {
   ExpressLayerType,
 } from "@opentelemetry/instrumentation-express";
 import { GraphQLInstrumentation } from "@opentelemetry/instrumentation-graphql";
-import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
 import * as Sentry from "@sentry/node";
 
 import { isProdEnv } from "./lib/env-config";
@@ -34,12 +33,7 @@ export const otelSetup = (() => {
       endpoint: otlpEndpoint,
       serviceName: process.env.OTEL_SERVICE_NAME || "Node API",
       instrumentations: [
-        new HttpInstrumentation({
-          // Don't trace the OTLP exporter's own outgoing requests — every
-          // export would create a span that needs to be exported, recursively.
-          ignoreOutgoingRequestHook: (options) => options.port === 4317,
-          requestHook: httpRequestSpanNameHook,
-        }),
+        createHttpInstrumentation(otlpEndpoint),
         new ExpressInstrumentation({
           ignoreLayersType: [ExpressLayerType.MIDDLEWARE],
         }),

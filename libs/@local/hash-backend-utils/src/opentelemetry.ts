@@ -15,7 +15,10 @@ import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import type { Instrumentation } from "@opentelemetry/instrumentation";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
-import type { HttpInstrumentationConfig } from "@opentelemetry/instrumentation-http";
+import {
+  HttpInstrumentation,
+  type HttpInstrumentationConfig,
+} from "@opentelemetry/instrumentation-http";
 import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
 import type { Resource } from "@opentelemetry/resources";
 import {
@@ -160,6 +163,54 @@ export const httpRequestSpanNameHook: NonNullable<
   if (path) {
     span.updateName(`${request.method} ${path}`);
   }
+};
+
+/**
+ * Default OTLP/gRPC port. Used when the configured endpoint URL does not
+ * carry an explicit port (e.g. `http://collector` resolves via gRPC default).
+ */
+const DEFAULT_OTLP_PORT = 4317;
+
+const otlpPortFromEndpoint = (otlpEndpoint: string): number => {
+  try {
+    const { port } = new URL(otlpEndpoint);
+    return port ? Number.parseInt(port, 10) : DEFAULT_OTLP_PORT;
+  } catch {
+    // `registerOpenTelemetry` will surface the malformed-URL error when
+    // it builds the exporter; here we just fall back so the filter does
+    // not throw on every outgoing request.
+    return DEFAULT_OTLP_PORT;
+  }
+};
+
+/**
+ * `@opentelemetry/instrumentation-http` configured for HASH services:
+ *
+ * - Skips outgoing requests to the OTLP collector port. Without this filter
+ *   each export would itself produce a span, which would be batched for
+ *   export, which would produce another span — amplifying export volume on
+ *   every batch. The port is derived from `otlpEndpoint` so a non-default
+ *   collector port (e.g. `:4318` for OTLP/HTTP) still gets ignored.
+ * - Names spans `METHOD /path` via {@link httpRequestSpanNameHook}.
+ *
+ * Pass `extra` to merge per-service options (e.g. `ignoreIncomingPaths`).
+ * `ignoreOutgoingRequestHook` and `requestHook` are intentionally not
+ * mergeable here — callers needing different shapes should construct
+ * `HttpInstrumentation` directly.
+ */
+export const createHttpInstrumentation = (
+  otlpEndpoint: string,
+  extra: Omit<
+    HttpInstrumentationConfig,
+    "ignoreOutgoingRequestHook" | "requestHook"
+  > = {},
+): HttpInstrumentation => {
+  const otlpPort = otlpPortFromEndpoint(otlpEndpoint);
+  return new HttpInstrumentation({
+    ...extra,
+    ignoreOutgoingRequestHook: (options) => options.port === otlpPort,
+    requestHook: httpRequestSpanNameHook,
+  });
 };
 
 const shutdownWithTimeout = async (

@@ -44,6 +44,7 @@
     "@opentelemetry/exporter-metrics-otlp-grpc": "0.207.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "0.207.0",
     "@opentelemetry/instrumentation": "0.207.0",
+    "@opentelemetry/instrumentation-http": "0.207.0",
     "@opentelemetry/instrumentation-undici": "0.25.0",
     "@opentelemetry/resources": "2.2.0",
     "@opentelemetry/sdk-logs": "0.207.0",
@@ -78,7 +79,6 @@
   "devDependencies": {
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
-    "@opentelemetry/instrumentation-http": "0.207.0",
     "@types/dotenv-flow": "3.3.3",
     "@types/mime-types": "2.1.4",
     "@types/node": "22.18.13",

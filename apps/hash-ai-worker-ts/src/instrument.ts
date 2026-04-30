@@ -4,12 +4,11 @@
  * and gRPC modules before any other code requires them.
  */
 import {
+  createHttpInstrumentation,
   createUndiciInstrumentation,
-  httpRequestSpanNameHook,
   registerOpenTelemetry,
 } from "@local/hash-backend-utils/opentelemetry";
 import { GrpcInstrumentation } from "@opentelemetry/instrumentation-grpc";
-import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
 
 /**
  * Setup handles. `undefined` when no `HASH_OTLP_ENDPOINT` is configured
@@ -25,12 +24,7 @@ export const otelSetup: ReturnType<typeof registerOpenTelemetry> = (() => {
       endpoint: otlpEndpoint,
       serviceName: process.env.OTEL_SERVICE_NAME ?? "AI Worker",
       instrumentations: [
-        new HttpInstrumentation({
-          // Don't trace the OTLP exporter's own outgoing requests — every
-          // export would create a span that needs to be exported, recursively.
-          ignoreOutgoingRequestHook: (options) => options.port === 4317,
-          requestHook: httpRequestSpanNameHook,
-        }),
+        createHttpInstrumentation(otlpEndpoint),
         new GrpcInstrumentation(),
         // Native `fetch` (used by openai / @anthropic-ai/sdk / Vertex AI
         // SDKs) goes through undici, which the http instrumentation does

@@ -60,7 +60,6 @@
     "@opentelemetry/api-logs": "0.207.0",
     "@opentelemetry/instrumentation": "0.207.0",
     "@opentelemetry/instrumentation-grpc": "0.207.0",
-    "@opentelemetry/instrumentation-http": "0.207.0",
     "@sentry/node": "10.42.0",
     "@temporalio/activity": "1.12.1",
     "@temporalio/common": "1.12.1",
