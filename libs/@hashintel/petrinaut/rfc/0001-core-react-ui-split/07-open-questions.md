@@ -11,13 +11,9 @@ Core-owned, host-owned, or both via a `document.mode` discriminant?
 - **Likely outcome:** support both via a discriminant. ~30 extra lines, two code paths, but preserves both ergonomics.
 - **Status:** open. **This is the load-bearing decision** — affects [04-core-instance.md](./04-core-instance.md) §4.1, §4.4 and [09-risks.md](./09-risks.md).
 
-## Q2. Stream primitive
+## Q2. ~~Stream primitive~~
 
-`subscribe + getSnapshot`, Observable, AsyncIterable, RxJS, or Signals?
-
-- **Recommendation:** `subscribe + getSnapshot` for state slices; event-emitter for one-shot events.
-- **Why:** zero deps; matches `useSyncExternalStore`; trivial to wrap as Observable/AsyncIterable on the consumer side.
-- **Status:** awaiting final ack.
+**Decided.** `ReadableStore<T>` (`get()` + `subscribe(listener: (value: T) => void)`) for state slices; `EventStream<T>` (`subscribe(listener: (event: T) => void)`) for one-shot events. The listener receives the value on every call. React adapts via a `useStore(store)` helper that wraps `subscribe` to drop the value, so `useSyncExternalStore`'s ping shape is satisfied. See [04-core-instance.md](./04-core-instance.md) §4.2 and [06-react-bindings.md](./06-react-bindings.md) §6.3.
 
 ## Q3. Editor / UI state in core?
 
