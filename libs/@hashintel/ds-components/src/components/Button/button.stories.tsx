@@ -9,6 +9,7 @@ import {
   type Tone,
   type Variant,
 } from "./button";
+import { Icon } from "../Icon/icon";
 
 const variants: Variant[] = ["solid", "subtle", "ghost", "link"];
 const tones: Tone[] = ["neutral", "brand", "error"];
@@ -214,14 +215,32 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
             >
               Icon Right
             </Button>
+            <ButtonComponent
+              {...args}
+              variant={variant}
+              size={size}
+              prefix={<Icon name="plus" size="sm" />}
+              suffix={<Icon name="arrowRight" size="sm" />}
+              onClick={() => {}}
+            >
+              Both Icons
+            </ButtonComponent>
             <Button {...args} variant={variant} iconName="star" size={size}>
               {undefined}
             </Button>
+            <ButtonComponent
+              {...args}
+              variant={variant}
+              size={size}
+              prefix={<Icon name="plus" size="sm" />}
+              suffix={<Icon name="arrowRight" size="sm" />}
+              onClick={() => {}}
+              tooltip="Icon only with prefix and suffix"
+            >
+              {undefined}
+            </ButtonComponent>
           </>
         ))}
-        <Button {...args} variant={variant} iconName="plus" loading>
-          Icon Left
-        </Button>
         <Button {...args} variant={variant} iconName="star" loading>
           {undefined}
         </Button>
