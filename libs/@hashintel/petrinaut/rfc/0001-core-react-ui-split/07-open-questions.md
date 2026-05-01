@@ -31,13 +31,11 @@ Selection, current mode, panel layout, user settings — does any of this belong
 - **Caveat:** collaborative cursors / multiplayer presence might want a thin selection slice in core.
 - **Status:** open. Decision affects [03-layering.md](./03-layering.md) §3.4.
 
-## Q4. Undo/redo
+## Q4. ~~Undo/redo~~
 
-Pass-through (today) vs default-implementation-with-override.
+**Decided.** Undo/redo lives on the handle as an optional `history` field. `createJsonDocHandle` ships a default Immer-based implementation (bounded stack, default 50 entries, truncate-on-mutate, `goToIndex` for version-history-style navigation). Other handles (Automerge, custom) implement their own. The host no longer wires history separately — the `UndoRedoContextValue` pass-through goes away. See [04-core-instance.md](./04-core-instance.md) §4.1 "History (locked)".
 
-- **Today:** host implements it; Core just exposes the interface.
-- **Recommendation:** keep pass-through. A default implementation would need to know about the document model, which depends on Q1.
-- **Status:** open, but low risk.
+**Coalescing** (typing-burst → single undo entry) is a known follow-up — sketched in §4.1 "Coalescing — deferred", scheduled for Phase 3.
 
 ## Q5. ~~Worker bundling~~
 

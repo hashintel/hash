@@ -1,5 +1,9 @@
-import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut";
-import { Petrinaut } from "@hashintel/petrinaut";
+import type {
+  MinimalNetMetadata,
+  PetrinautDocHandle,
+  SDCPN,
+} from "@hashintel/petrinaut";
+import { createJsonDocHandle, PetrinautNext } from "@hashintel/petrinaut";
 import { produce } from "immer";
 import { useEffect, useRef, useState } from "react";
 
@@ -8,15 +12,6 @@ import {
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./app/use-local-storage-sdcpns";
-import { useUndoRedo } from "./app/use-undo-redo";
-
-const EMPTY_SDCPN: SDCPN = {
-  places: [],
-  transitions: [],
-  types: [],
-  parameters: [],
-  differentialEquations: [],
-};
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
@@ -32,6 +27,42 @@ export const DevApp = () => {
   const [currentNetId, setCurrentNetId] = useState<string | null>(null);
 
   const currentNet = currentNetId ? (storedSDCPNs[currentNetId] ?? null) : null;
+
+  /**
+   * Per-net handles. Each handle owns the live SDCPN and its undo/redo
+   * history. localStorage is the persistence layer; we mirror handle
+   * changes into it via subscribe.
+   */
+  const handlesRef = useRef<Map<string, PetrinautDocHandle>>(new Map());
+  const setStoredSDCPNsRef = useRef(setStoredSDCPNs);
+  setStoredSDCPNsRef.current = setStoredSDCPNs;
+
+  const getOrCreateHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle => {
+    const existing = handlesRef.current.get(net.id);
+    if (existing) {
+      return existing;
+    }
+    const handle = createJsonDocHandle({ id: net.id, initial: net.sdcpn });
+    handlesRef.current.set(net.id, handle);
+
+    handle.subscribe((event) => {
+      setStoredSDCPNsRef.current((prev) => {
+        const stored = prev[net.id];
+        if (!stored) {
+          return prev;
+        }
+        return produce(prev, (draft) => {
+          draft[net.id] = {
+            ...stored,
+            sdcpn: event.next,
+            lastUpdated: new Date().toISOString(),
+          };
+        });
+      });
+    });
+
+    return handle;
+  };
 
   const existingNets: MinimalNetMetadata[] = Object.values(storedSDCPNs)
     .map((net) => ({
@@ -63,6 +94,7 @@ export const DevApp = () => {
         const prevNet = prev[currentNetId];
         if (prevNet && isEmptySDCPN(prevNet.sdcpn)) {
           delete next[currentNetId];
+          handlesRef.current.delete(currentNetId);
         }
       }
 
@@ -79,6 +111,7 @@ export const DevApp = () => {
         if (prevNet && isEmptySDCPN(prevNet.sdcpn)) {
           const next = { ...prev };
           delete next[currentNetId];
+          handlesRef.current.delete(currentNetId);
           return next;
         }
         return prev;
@@ -99,99 +132,6 @@ export const DevApp = () => {
         }
       }),
     );
-  };
-
-  const setSDCPNDirectly = (sdcpn: SDCPN) => {
-    if (!currentNetId) {
-      return;
-    }
-    setStoredSDCPNs((prev) =>
-      produce(prev, (draft) => {
-        if (draft[currentNetId]) {
-          draft[currentNetId].sdcpn = sdcpn;
-        }
-      }),
-    );
-  };
-
-  const {
-    pushState,
-    undo: undoHistory,
-    redo: redoHistory,
-    goToIndex: goToHistoryIndex,
-    canUndo,
-    canRedo,
-    history,
-    currentIndex,
-    reset: resetHistory,
-  } = useUndoRedo(currentNet ? currentNet.sdcpn : EMPTY_SDCPN);
-
-  const mutatePetriNetDefinition = (
-    definitionMutationFn: (draft: SDCPN) => void,
-  ) => {
-    if (!currentNetId) {
-      return;
-    }
-
-    let newSDCPN: SDCPN | undefined;
-
-    // Use the updater form so that multiple calls before a re-render
-    // (e.g. multi-node drag end) each see the latest state.
-    setStoredSDCPNs((prev) => {
-      const net = prev[currentNetId];
-      if (!net) {
-        return prev;
-      }
-      const updatedSDCPN = produce(net.sdcpn, definitionMutationFn);
-      newSDCPN = updatedSDCPN;
-      return {
-        ...prev,
-        [currentNetId]: {
-          ...net,
-          sdcpn: updatedSDCPN,
-          lastUpdated: new Date().toISOString(),
-        },
-      };
-    });
-
-    if (newSDCPN) {
-      pushState(newSDCPN);
-    }
-  };
-
-  const prevNetIdRef = useRef(currentNetId);
-  useEffect(() => {
-    if (currentNetId !== prevNetIdRef.current) {
-      prevNetIdRef.current = currentNetId;
-      if (currentNet) {
-        resetHistory(currentNet.sdcpn);
-      }
-    }
-  }, [currentNetId, currentNet, resetHistory]);
-
-  const undoRedo = {
-    undo: () => {
-      const sdcpn = undoHistory();
-      if (sdcpn) {
-        setSDCPNDirectly(sdcpn);
-      }
-    },
-    redo: () => {
-      const sdcpn = redoHistory();
-      if (sdcpn) {
-        setSDCPNDirectly(sdcpn);
-      }
-    },
-    canUndo,
-    canRedo,
-    history: history.current,
-    currentIndex,
-    goToIndex: (index: number) => {
-      const sdcpn = goToHistoryIndex(index);
-      if (sdcpn) {
-        setSDCPNDirectly(sdcpn);
-      }
-    },
   };
 
   // Initialize with a default net if none exists
@@ -218,20 +158,19 @@ export const DevApp = () => {
     return null;
   }
 
+  const handle = getOrCreateHandle(currentNet);
+
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
-      <Petrinaut
+      <PetrinautNext
+        handle={handle}
         existingNets={existingNets}
         createNewNet={createNewNet}
         hideNetManagementControls={false}
         loadPetriNet={loadPetriNet}
-        petriNetId={currentNetId}
-        petriNetDefinition={currentNet.sdcpn}
-        mutatePetriNetDefinition={mutatePetriNetDefinition}
         readonly={false}
         setTitle={setTitle}
         title={currentNet.title}
-        undoRedo={undoRedo}
         viewportActions={[sentryFeedbackAction]}
       />
     </div>

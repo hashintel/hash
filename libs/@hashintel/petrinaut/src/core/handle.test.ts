@@ -122,3 +122,122 @@ describe("createPetrinaut", () => {
     expect(instance.definition.get().types).toHaveLength(0);
   });
 });
+
+describe("PetrinautDocHandle history", () => {
+  const addType = (name: string) => (draft: SDCPN) => {
+    draft.types.push({
+      id: name,
+      name,
+      iconSlug: "circle",
+      displayColor: "#FF0000",
+      elements: [],
+    });
+  };
+
+  it("is present on createJsonDocHandle and starts empty", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    expect(handle.history).toBeDefined();
+    expect(handle.history?.canUndo.get()).toBe(false);
+    expect(handle.history?.canRedo.get()).toBe(false);
+    expect(handle.history?.entries.get()).toHaveLength(1);
+    expect(handle.history?.currentIndex.get()).toBe(0);
+  });
+
+  it("is omitted when historyLimit is 0", () => {
+    const handle = createJsonDocHandle({ initial: empty(), historyLimit: 0 });
+    expect(handle.history).toBeUndefined();
+  });
+
+  it("undoes a single mutation", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    handle.change(addType("c1"));
+    expect(handle.doc()?.types).toHaveLength(1);
+    expect(handle.history?.canUndo.get()).toBe(true);
+
+    const undone = handle.history?.undo();
+    expect(undone).toBe(true);
+    expect(handle.doc()?.types).toHaveLength(0);
+    expect(handle.history?.canUndo.get()).toBe(false);
+    expect(handle.history?.canRedo.get()).toBe(true);
+  });
+
+  it("redoes after undoing", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    handle.change(addType("c1"));
+    handle.history?.undo();
+    expect(handle.doc()?.types).toHaveLength(0);
+
+    const redone = handle.history?.redo();
+    expect(redone).toBe(true);
+    expect(handle.doc()?.types).toHaveLength(1);
+  });
+
+  it("truncates the redo stack on a new mutation after undo", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    handle.change(addType("c1"));
+    handle.change(addType("c2"));
+    handle.history?.undo();
+    expect(handle.history?.canRedo.get()).toBe(true);
+
+    handle.change(addType("c3"));
+    expect(handle.history?.canRedo.get()).toBe(false);
+    expect(handle.doc()?.types.map((t) => t.id)).toEqual(["c1", "c3"]);
+  });
+
+  it("emits change events with patches when undoing or redoing", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    const events: number[] = [];
+    handle.subscribe((event) => events.push(event.patches?.length ?? 0));
+
+    handle.change(addType("c1"));
+    handle.history?.undo();
+    handle.history?.redo();
+
+    expect(events).toHaveLength(3);
+    expect(events.every((n) => n > 0)).toBe(true);
+  });
+
+  it("supports goToIndex jumping forward and backward", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    handle.change(addType("c1"));
+    handle.change(addType("c2"));
+    handle.change(addType("c3"));
+    expect(handle.doc()?.types).toHaveLength(3);
+
+    handle.history?.goToIndex(1);
+    expect(handle.doc()?.types.map((t) => t.id)).toEqual(["c1"]);
+
+    handle.history?.goToIndex(3);
+    expect(handle.doc()?.types.map((t) => t.id)).toEqual(["c1", "c2", "c3"]);
+
+    handle.history?.goToIndex(0);
+    expect(handle.doc()?.types).toHaveLength(0);
+  });
+
+  it("respects historyLimit by dropping oldest entries", () => {
+    const handle = createJsonDocHandle({ initial: empty(), historyLimit: 2 });
+    handle.change(addType("c1"));
+    handle.change(addType("c2"));
+    handle.change(addType("c3"));
+
+    // Stack capped at 2 entries; cursor is at the latest.
+    expect(handle.history?.entries.get().length).toBe(3); // initial + 2 retained
+    expect(handle.history?.canRedo.get()).toBe(false);
+    expect(handle.doc()?.types.map((t) => t.id)).toEqual(["c1", "c2", "c3"]);
+
+    // Undoing twice rolls back the two retained entries.
+    handle.history?.undo();
+    handle.history?.undo();
+    expect(handle.history?.canUndo.get()).toBe(false);
+    expect(handle.doc()?.types.map((t) => t.id)).toEqual(["c1"]);
+  });
+
+  it("clear() drops the history stack", () => {
+    const handle = createJsonDocHandle({ initial: empty() });
+    handle.change(addType("c1"));
+    handle.history?.clear();
+    expect(handle.history?.canUndo.get()).toBe(false);
+    expect(handle.history?.entries.get()).toHaveLength(1);
+    expect(handle.doc()?.types).toHaveLength(1); // doc state unchanged
+  });
+});
