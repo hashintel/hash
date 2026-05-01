@@ -96,6 +96,11 @@ export function createJsonDocHandle(opts: {
 
 Internally uses Immer's `produceWithPatches` so plain-JSON consumers get patches for free. Adds `immer` (~14 KB) as a `/core` dep.
 
+Implementation notes (locked by the Phase 0 spike):
+
+- `enablePatches()` must be called once at `/core` module load — `handle.ts` does this at import time before any `produceWithPatches` call.
+- **No-op mutations do not emit.** `produceWithPatches` returns an empty patch array when the draft was not actually changed; in that case the handle skips notifying subscribers. Subscribers can rely on "every event corresponds to a real change."
+
 For **Automerge**, no adapter is shipped (would require `@automerge/automerge-repo` as a peer dep). The docs include a 5-line wrapper consumers paste in; Automerge's `Patch` shape maps to `PetrinautPatch` via a small switch (`put` → `replace`, `del` → `remove`, `splice`/`insert` → multiple `add`).
 
 ### Where patch conversion happens
