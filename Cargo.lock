@@ -2263,6 +2263,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "dispatch2"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3786,7 +3807,7 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "temporalio-client",
- "temporalio-common",
+ "temporalio-common 0.1.0",
  "thiserror 2.0.18",
  "type-system",
  "url",
@@ -6290,6 +6311,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "option-ext"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
+
+[[package]]
 name = "ordered-float"
 version = "2.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6642,6 +6669,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 dependencies = [
  "camino",
+]
+
+[[package]]
+name = "pbjson"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8edd1efdd8ab23ba9cb9ace3d9987a72663d5d7c9f74fa00b51d6213645cf6c"
+dependencies = [
+ "base64",
+ "serde",
+]
+
+[[package]]
+name = "pbjson-build"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ed4d5c6ae95e08ac768883c8401cf0e8deb4e6e1d6a4e1fd3d2ec4f0ec63200"
+dependencies = [
+ "heck",
+ "itertools 0.14.0",
+ "prost 0.14.3",
+ "prost-types",
 ]
 
 [[package]]
@@ -7674,6 +7723,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_users"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
+dependencies = [
+ "getrandom 0.2.17",
+ "libredox",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "ref-cast"
 version = "1.0.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8611,15 +8671,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
-name = "slotmap"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdd58c3c93c3d278ca835519292445cb4b0d4dc59ccfdf7ceadaab3f8aeb4038"
-dependencies = [
- "version_check",
-]
-
-[[package]]
 name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9033,8 +9084,8 @@ dependencies = [
 
 [[package]]
 name = "temporalio-client"
-version = "0.1.0"
-source = "git+https://github.com/temporalio/sdk-core?rev=231e21c#231e21cadb8004197a5b1dba2ecb1313596cc34c"
+version = "0.4.0"
+source = "git+https://github.com/temporalio/sdk-core?rev=3a6efc35c0e9ba01261e1fafdd53069cefb935ae#3a6efc35c0e9ba01261e1fafdd53069cefb935ae"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -9051,9 +9102,8 @@ dependencies = [
  "hyper",
  "hyper-util",
  "parking_lot",
- "rand 0.9.4",
- "slotmap",
- "temporalio-common",
+ "rand 0.10.1",
+ "temporalio-common 0.4.0",
  "thiserror 2.0.18",
  "tokio",
  "tonic 0.14.5",
@@ -9084,6 +9134,41 @@ dependencies = [
  "tonic-prost-build",
  "tracing",
  "tracing-core",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "temporalio-common"
+version = "0.4.0"
+source = "git+https://github.com/temporalio/sdk-core?rev=3a6efc35c0e9ba01261e1fafdd53069cefb935ae#3a6efc35c0e9ba01261e1fafdd53069cefb935ae"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64",
+ "bon",
+ "crc32fast",
+ "derive_more",
+ "dirs",
+ "erased-serde",
+ "futures",
+ "parking_lot",
+ "pbjson",
+ "pbjson-build",
+ "prost 0.14.3",
+ "prost-types",
+ "prost-wkt",
+ "prost-wkt-types",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml 1.1.2+spec-1.1.0",
+ "tonic 0.14.5",
+ "tonic-prost",
+ "tonic-prost-build",
+ "tracing",
+ "tracing-core",
+ "tracing-subscriber",
  "url",
  "uuid",
 ]
@@ -9814,6 +9899,7 @@ dependencies = [
  "matchers",
  "nu-ansi-term",
  "once_cell",
+ "parking_lot",
  "regex-automata",
  "serde",
  "serde_json",
