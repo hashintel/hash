@@ -2,6 +2,33 @@
 
 High-level. Will refine after the open questions in [07-open-questions.md](./07-open-questions.md) are settled.
 
+## Phase 0 — Proof-of-concept spike (done)
+
+A thin slice landed alongside the existing code path to validate the core concepts before the full reorganisation. Files added (no existing files modified):
+
+- `src/core/handle.ts` — `PetrinautDocHandle`, `PetrinautPatch`, `DocChangeEvent`, `ReadableStore`, and `createJsonDocHandle` (Immer-backed).
+- `src/core/instance.ts` — `Petrinaut` type, `createPetrinaut`, `EventStream`, `definition` store, `patches` event stream, `mutate`, `dispose`.
+- `src/core/handle.test.ts` — 6 smoke tests covering handle lifecycle, mutations, patches, no-op skipping, and readonly-mode.
+- `src/react/use-store.ts` — `useStore` / `useStoreSelector` adapters over `useSyncExternalStore`.
+- `src/react/instance-context.ts` — `PetrinautInstanceContext`.
+- `src/react/use-petrinaut-instance.ts` — escape-hatch hook that throws if no `<PetrinautProvider>` is mounted.
+- `src/ui/petrinaut-next.tsx` — `<PetrinautNext handle={…}>` that creates a Core instance and bridges to the existing prop-shaped `<Petrinaut>` (no provider rewrite yet).
+- `src/petrinaut.stories.tsx` — two stories (`HandleSpike`, `HandleSpikeWithSir`) with an on-screen patch-log overlay.
+- `package.json` — `immer: 10.1.3` added to `dependencies`.
+
+**Validated:**
+
+- `useSyncExternalStore` works under React Compiler with zero `"use no memo"` opt-outs.
+- `createJsonDocHandle` round-trips: mutations → Immer patches → `PetrinautPatch[]` → subscribers in the editor + a story-level patch log.
+- The full editor (`EditorView`, all existing providers) renders unchanged when fed via the bridge.
+- Build, type-check, lint, and 462 unit tests all pass.
+
+**Issues surfaced (queued for later phases):**
+
+- `oxlint(unbound-method)` flags `store.get` and `instance.mutate` when passed as references. Spike used arrow-wrapping; Phase 2 should switch to `this: void` typing on Core methods to remove the wrapping. See [06-react-bindings.md](./06-react-bindings.md) §6.3.
+- `enablePatches()` from Immer must be called at `/core` module load — `handle.ts` does this; documented in [04-core-instance.md](./04-core-instance.md) §4.1.
+- No-op mutations don't emit (Immer returns an empty patch array). Subscribers may rely on "every event is a real change." Documented as a contract.
+
 ## Phase 1 — Reorganise without behaviour change
 
 1. Create `src/core/`, `src/react/`, `src/ui/` directories.
