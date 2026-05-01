@@ -76,7 +76,7 @@
     "eslint": "9.39.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   },
   "peerDependencies": {
     "@emotion/cache": "^11.14.0",

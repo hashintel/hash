@@ -34,6 +34,6 @@
     "rimraf": "6.1.3",
     "shx": "0.4.0",
     "tsx": "4.20.6",
-    "typescript": "5.9.3"
+    "typescript": "6.0.3"
   }
 }
