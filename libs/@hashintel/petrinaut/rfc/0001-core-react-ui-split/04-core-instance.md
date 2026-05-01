@@ -98,6 +98,29 @@ Internally uses Immer's `produceWithPatches` so plain-JSON consumers get patches
 
 For **Automerge**, no adapter is shipped (would require `@automerge/automerge-repo` as a peer dep). The docs include a 5-line wrapper consumers paste in; Automerge's `Patch` shape maps to `PetrinautPatch` via a small switch (`put` → `replace`, `del` → `remove`, `splice`/`insert` → multiple `add`).
 
+### Where patch conversion happens
+
+Conversion lives **at the handle adapter boundary, inbound only.** Core itself never converts; it only consumes `PetrinautPatch[]`.
+
+| Adapter | Direction | Where it lives | What it does |
+| ------- | --------- | -------------- | ------------ |
+| `createJsonDocHandle` | Immer → `PetrinautPatch` | `/core` (shipped) | Near-identity. Immer's `produceWithPatches` already emits `{ op, path, value }`; the adapter passes them through (or coerces the type). |
+| `fromAutomergeHandle` | Automerge → `PetrinautPatch` | Consumer code (documented snippet) | Switch on `action`: `put` → `replace`, `del` → `remove`, `splice`/`insert` → fan out into per-element `add`. Drops `inc`/`mark`/`unmark` (not used by SDCPN). |
+
+There is **no outbound direction in Core**. Core never needs to turn a `PetrinautPatch` back into an Immer or Automerge patch — the handle is the only thing that applies mutations, and it does so via `change(fn)`, not via patches. If a downstream consumer ever wants to re-apply patches against a separate Immer or Automerge doc (e.g. mirror the document somewhere else), that conversion is their problem and lives in their code.
+
+### `PetrinautPatch` is not a persistence or wire format
+
+`PetrinautPatch` is an **in-memory event payload only**. Do not:
+
+- write it to disk,
+- serialize it into telemetry / analytics with a versioned schema,
+- send it across a network boundary as a Petrinaut-defined protocol.
+
+Persistence and sync go through the **underlying handle**: `createJsonDocHandle` persists SDCPN snapshots; an Automerge handle persists Automerge's binary change log; future network sync uses the CRDT engine's native protocol (Automerge / Yjs sync messages), not raw `PetrinautPatch[]`.
+
+This is what lets us evolve the patch shape — including the eventual splice-on-string addition for text-range edits (Q1.c) — as a TypeScript-level breaking change with **zero on-disk migration**. Adding a new variant to the `op` union is caught by exhaustiveness checking on every consumer; consumers update; nothing on disk has to.
+
 ### Why the handle has its own subscribe shape
 
 `PetrinautDocHandle.subscribe` is **not** a `ReadableStore<SDCPN>`. The event carries optional `patches` and `source` fields that don't belong in a generic state-store interface. Internally Core constructs a `ReadableStore<SDCPN>` (`instance.definition`) on top of the handle, dropping `patches`/`source` for consumers that just want the value.
