@@ -4,9 +4,10 @@ export const styles = sva({
   slots: ["button", "loadingContainer", "loadingContent", "iconText"],
   base: {
     button: {
+      "--button-border-width": "1px",
       cursor: "pointer",
       display: "inline-block",
-      border: "1px solid",
+      border: "var(--button-border-width) solid",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
       "&:focus-visible": {
@@ -23,7 +24,7 @@ export const styles = sva({
       alignItems: "center",
       justifyContent: "center",
     },
-    loadingContent: { visibility: "hidden" },
+    loadingContent: { visibility: "hidden", display: "flex" },
     iconText: {},
   },
   variants: {
@@ -34,7 +35,7 @@ export const styles = sva({
           paddingY: "0",
           borderRadius: "md",
           textStyle: "xs",
-          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + 2px)]`,
+          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--button-border-width) * 2)]`,
         },
       },
       sm: {
@@ -43,7 +44,7 @@ export const styles = sva({
           paddingY: "0.5",
           borderRadius: "lg",
           textStyle: "sm",
-          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--spacing-0\\.5) * 2 + 2px)]`,
+          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--spacing-0\\.5) * 2 + var(--button-border-width) * 2)]`,
         },
       },
       md: {
@@ -52,7 +53,7 @@ export const styles = sva({
           paddingY: "1",
           borderRadius: "lg",
           textStyle: "base",
-          minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-1) * 2 + 2px)]`,
+          minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-1) * 2 + var(--button-border-width) * 2)]`,
         },
       },
       lg: {
@@ -61,7 +62,7 @@ export const styles = sva({
           paddingY: "2",
           borderRadius: "lg",
           textStyle: "base",
-          minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-2) * 2 + 2px)]`,
+          minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-2) * 2 + var(--button-border-width) * 2)]`,
         },
       },
     },
