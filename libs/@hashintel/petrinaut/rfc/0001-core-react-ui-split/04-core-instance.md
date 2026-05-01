@@ -54,6 +54,33 @@ export type DocChangeEvent = {
   source?: "local" | "remote";
 };
 
+export type HistoryEntry = {
+  timestamp: string;
+};
+
+export interface PetrinautHistory {
+  /** Apply the most recent inverse patches. Returns true if anything was undone. */
+  undo(): boolean;
+  /** Re-apply the most recently undone patches. Returns true if anything was redone. */
+  redo(): boolean;
+  /** Jump to an arbitrary point in history. Returns true if the index changed. */
+  goToIndex(index: number): boolean;
+  /** Drop the entire history (state stays at the current value). */
+  clear(): void;
+
+  readonly canUndo: ReadableStore<boolean>;
+  readonly canRedo: ReadableStore<boolean>;
+
+  /**
+   * Ordered timestamps of the history checkpoints. Index 0 is the initial
+   * state; index N is the state after the Nth retained mutation.
+   */
+  readonly entries: ReadableStore<readonly HistoryEntry[]>;
+
+  /** Position of the current state within {@link entries}. */
+  readonly currentIndex: ReadableStore<number>;
+}
+
 export interface PetrinautDocHandle {
   /** Stable id. Used for LSP document URIs, error reports, simulation-recording keys. */
   readonly id: DocumentId;
@@ -72,8 +99,41 @@ export interface PetrinautDocHandle {
 
   /** Subscribe to changes (local + remote). */
   subscribe(listener: (event: DocChangeEvent) => void): () => void;
+
+  /**
+   * Optional. Present on handles that track local history (Immer-backed,
+   * Automerge-backed, …). Read-only mirror handles omit it. See §4.1 "History".
+   */
+  readonly history?: PetrinautHistory;
 }
 ```
+
+### History (locked)
+
+Undo/redo lives on the handle, not as a separate host-implemented interface. Reasons:
+
+- An Immer-backed handle already has the data (`produceWithPatches` returns `[next, forward, inverse]`); the previous design was throwing the inverse patches away.
+- Automerge handles can implement `history` against their own time-travel API (`Doc.heads`).
+- Read-only / mirror handles simply omit `history`.
+- This removes today's pass-through `UndoRedoContextValue`. The host's job becomes "build/choose a handle"; it no longer wires history separately.
+
+`createJsonDocHandle` ships a default implementation:
+
+- Bounded stack (`historyLimit`, default 50) — older entries dropped to cap memory.
+- New mutation truncates the redo stack.
+- `goToIndex(n)` jumps to an arbitrary point (used by today's version-history dropdown).
+- `clear()` empties the stack but leaves the current state alone.
+- Each undo / redo / `goToIndex` emits a `DocChangeEvent` with the patches actually applied.
+- Pass `historyLimit: 0` to opt out — `handle.history` becomes `undefined`.
+
+### Coalescing — deferred
+
+Single-character edits in Monaco produce one `change` per keystroke, so naïve history would mean one undo per character. The current website's `useUndoRedo` debounces at 500 ms; the spike's handle does not. Two future shapes:
+
+- `handle.transaction(fn)` — group multiple `change` calls into one history entry.
+- `handle.change(fn, { coalesceWith: "monaco:transition-t1" })` — tag-based coalescing: merge with the previous entry if tags match.
+
+Most editors do both. Locking the API is a Phase 3 concern; for now the limit is "one change = one history entry."
 
 ### Why a handle, not a document or repo
 

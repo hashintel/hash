@@ -6,15 +6,21 @@ High-level. Will refine after the open questions in [07-open-questions.md](./07-
 
 A thin slice landed alongside the existing code path to validate the core concepts before the full reorganisation. Files added (no existing files modified):
 
-- `src/core/handle.ts` — `PetrinautDocHandle`, `PetrinautPatch`, `DocChangeEvent`, `ReadableStore`, and `createJsonDocHandle` (Immer-backed).
+- `src/core/handle.ts` — `PetrinautDocHandle`, `PetrinautPatch`, `DocChangeEvent`, `ReadableStore`, `PetrinautHistory`, `HistoryEntry`, and `createJsonDocHandle` (Immer-backed) with optional bounded history stack.
 - `src/core/instance.ts` — `Petrinaut` type, `createPetrinaut`, `EventStream`, `definition` store, `patches` event stream, `mutate`, `dispose`.
-- `src/core/handle.test.ts` — 6 smoke tests covering handle lifecycle, mutations, patches, no-op skipping, and readonly-mode.
+- `src/core/handle.test.ts` — 15 smoke tests covering handle lifecycle, mutations, patches, no-op skipping, readonly-mode, and the history sub-API (undo/redo/goToIndex/clear, limit enforcement, redo-stack truncation, change events on undo/redo).
 - `src/react/use-store.ts` — `useStore` / `useStoreSelector` adapters over `useSyncExternalStore`.
 - `src/react/instance-context.ts` — `PetrinautInstanceContext`.
 - `src/react/use-petrinaut-instance.ts` — escape-hatch hook that throws if no `<PetrinautProvider>` is mounted.
-- `src/ui/petrinaut-next.tsx` — `<PetrinautNext handle={…}>` that creates a Core instance and bridges to the existing prop-shaped `<Petrinaut>` (no provider rewrite yet).
+- `src/ui/petrinaut-next.tsx` — `<PetrinautNext handle={…}>` that creates a Core instance and bridges to the existing prop-shaped `<Petrinaut>`. Also bridges `handle.history` (when present) into the existing `UndoRedoContextValue` so the editor's top-bar undo/redo button, version-history dropdown, and Cmd/Ctrl+Z keyboard shortcut all work without consumer wiring.
 - `src/petrinaut.stories.tsx` — two stories (`HandleSpike`, `HandleSpikeWithSir`) with an on-screen patch-log overlay.
+- `src/main.ts` — re-exports `createJsonDocHandle`, `createPetrinaut`, `<PetrinautNext>`, and the new types so consumers of `@hashintel/petrinaut` can use the handle-driven path today.
 - `package.json` — `immer: 10.1.3` added to `dependencies`.
+
+**Downstream consumer updated in the same pass:**
+
+- `apps/petrinaut-website/src/main/app.tsx` — switched from `<Petrinaut>` (prop-shaped) to `<PetrinautNext handle={…}>` (handle-driven). Maintains a per-net `PetrinautDocHandle` cache; mirrors handle changes to localStorage via `handle.subscribe`.
+- `apps/petrinaut-website/src/main/app/use-undo-redo.ts` — **deleted.** Each handle owns its own history; the website-level history hook is no longer needed. Per-net history is preserved across net switches automatically.
 
 **Validated:**
 
