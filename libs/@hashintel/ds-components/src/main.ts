@@ -3,6 +3,7 @@ export { Badge, type BadgeProps } from "./components/Badge/badge";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { Checkbox, type CheckboxProps } from "./components/Checkbox/checkbox";
 export { Icon, type IconName, iconNames } from "./components/Icon/icon";
+export { LoadingSpinner } from "./components/Loading/loading-spinner";
 export {
   RadioGroup,
   type RadioGroupOption,

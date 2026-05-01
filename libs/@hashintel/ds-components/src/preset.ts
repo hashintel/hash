@@ -1,4 +1,5 @@
 import { defineGlobalStyles, definePreset } from "@pandacss/dev";
+import pandaPreset from "@pandacss/preset-panda";
 
 import { documentSurfaceStyles, fontPipelineCssVars } from "./preset/document";
 import { recipes, slotRecipes } from "./preset/recipes";
@@ -106,6 +107,33 @@ export function createPreset(options?: PresetOptions) {
       extend: {
         tokens,
         semanticTokens,
+        keyframes: {
+          ...pandaPreset.theme.keyframes,
+          fadeIn: {
+            from: { opacity: "0" },
+            to: { opacity: "1" },
+          },
+          fadeOut: {
+            from: { opacity: "1" },
+            to: { opacity: "0" },
+          },
+          rotateRight: {
+            from: { transform: "rotate(0deg)" },
+            to: { transform: "rotate(360deg)" },
+          },
+          rotateLeft: {
+            from: { transform: "rotate(360deg)" },
+            to: { transform: "rotate(0deg)" },
+          },
+          expand: {
+            from: { height: "0" },
+            to: { height: "var(--height)" },
+          },
+          collapse: {
+            from: { height: "var(--height)" },
+            to: { height: "0" },
+          },
+        },
         textStyles: {
           xs: {
             value: {
