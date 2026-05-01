@@ -1,20 +1,63 @@
 import type { ComponentType } from "react";
-import { createElement, useEffect, useId, useRef, useState } from "react";
+import { createElement, useId, useRef } from "react";
 import type { JSX } from "react/jsx-runtime";
 
-import { Filter } from "../components/filter";
+import type { CompositeMode } from "../components/filter-shell";
+import { FilterShell } from "../components/filter-shell";
+import {
+  generateMagnitudeTable,
+  generateSurfaceTiltTable,
+} from "../helpers/generate-table-values";
+import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
 import { convex } from "../helpers/surface-equations";
+import { calculateDisplacementMapRadius } from "../maps/displacement-radius";
+import { calculatePolarDistanceToBorderMap } from "../maps/polar-distance-to-border-map";
+
+/**
+ * Reference radius used to generate the hi-res polar field.
+ * The image is (REFERENCE_RADIUS * 2 + 1) = 513 pixels per side.
+ * This is computed once and reused for any actual radius.
+ */
+const REFERENCE_RADIUS = 256;
+
+/**
+ * Pre-computed hi-res geometric polar field at 513×513 pixels.
+ * Since the map encodes normalized values (border distance ratio + angle),
+ * the same image works for any actual radius.
+ */
+const hiResPolarMap = calculatePolarDistanceToBorderMap(REFERENCE_RADIUS);
+
+/**
+ * Pre-split 9-patch parts from the hi-res polar map.
+ * These are sliced at the reference resolution (256px corners)
+ * and can be positioned at any target radius in the SVG.
+ */
+const hiResParts = splitImageDataToParts({
+  imageData: hiResPolarMap,
+  cornerWidth: REFERENCE_RADIUS,
+  pixelRatio: 1,
+});
 
 type RefractionProps = {
   refraction: {
     radius: number;
     blur?: number;
-    glassThickness?: number;
-    bezelWidth?: number;
+    thickness?: number;
+    edgeSize?: number;
     refractiveIndex?: number;
-    specularOpacity?: number;
-    specularAngle?: number;
-    bezelHeightFn?: (x: number) => number;
+    edgeProfile?: (x: number) => number;
+    /**
+     * Compositing strategy for the polar map:
+     * - `"image"` (default): Single composite SVG, auto-sizes via objectBoundingBox.
+     * - `"parts"`: 9-patch feImage primitives, requires explicit sizing.
+     */
+    compositing?: CompositeMode;
+    /** Light direction in radians (0 = right, π/2 = down). Used by diffuse and specular effects. */
+    lightAngle?: number;
+    /** Strength of diffuse reflection shading [0,1]. 0 disables. */
+    diffuseIntensity?: number;
+    /** Whether to enable the specular rim highlight. Default true when lightAngle is set. */
+    specular?: boolean;
   };
 };
 
@@ -39,58 +82,46 @@ function createRefractiveComponent<
     } = props as P & RefractionProps & { ref?: React.Ref<HTMLElement> };
     const filterId = useId();
     const internalRef = useRef<HTMLElement>(null);
-    const [width, setWidth] = useState(0);
-    const [height, setHeight] = useState(0);
 
-    // If a ref is passed in props, use it; otherwise, use internalRef.
-    // If the passed ref is updated later, it will trigger a re-render.
     const elementRef = externalRef ?? internalRef;
 
-    // TODO: (FE-43) Remove ResizeObserver and rely on `objectBoundingBox` to automatically size the filter.
-    // This will removed the need of `useState` here.
-    useEffect(() => {
-      const element = elementRef.current;
-      if (!element) {
-        return;
-      }
+    const edgeSize = refraction.edgeSize ?? 0;
+    const radius = refraction.radius;
+    const clampedEdgeSize = Math.min(edgeSize, radius);
 
-      const resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const borderBox = entry.borderBoxSize[0];
+    const displacementRadius = calculateDisplacementMapRadius(
+      refraction.thickness ?? 70,
+      clampedEdgeSize,
+      refraction.edgeProfile ?? convex,
+      refraction.refractiveIndex ?? 1.5,
+    );
 
-          if (borderBox) {
-            setWidth(borderBox.inlineSize);
-            setHeight(borderBox.blockSize);
-          } else {
-            setWidth(entry.contentRect.width);
-            setHeight(entry.contentRect.height);
-          }
-        }
-      });
+    const maximumDisplacement = Math.max(...displacementRadius.map(Math.abs));
+    const ratioScale = clampedEdgeSize > 0 ? radius / clampedEdgeSize : 1;
+    const magnitudeTable = generateMagnitudeTable(
+      displacementRadius,
+      maximumDisplacement,
+      ratioScale,
+    );
 
-      resizeObserver.observe(element);
-
-      return () => {
-        resizeObserver.disconnect();
-      };
-    }, [elementRef]);
+    const edgeProfile = refraction.edgeProfile ?? convex;
+    const surfaceTiltTable = generateSurfaceTiltTable(edgeProfile, ratioScale);
 
     return (
       <>
-        <Filter
+        <FilterShell
           id={filterId}
-          scaleRatio={1} // Always 1 for now, could be animatable in the future
-          pixelRatio={6} // Always 6 for now, could be configurable in the future
-          width={width}
-          height={height}
-          radius={refraction.radius}
           blur={refraction.blur ?? 0}
-          glassThickness={refraction.glassThickness ?? 70}
-          bezelWidth={refraction.bezelWidth ?? 0}
-          refractiveIndex={refraction.refractiveIndex ?? 1.5}
-          specularOpacity={refraction.specularOpacity ?? 0}
-          specularAngle={refraction.specularAngle ?? 0}
-          bezelHeightFn={refraction.bezelHeightFn ?? convex}
+          scale={2 * maximumDisplacement}
+          magnitudeTable={magnitudeTable}
+          surfaceTiltTable={surfaceTiltTable}
+          parts={hiResParts}
+          cornerWidth={radius}
+          compositing={refraction.compositing}
+          elementRef={elementRef}
+          lightAngle={refraction.lightAngle}
+          diffuseIntensity={refraction.diffuseIntensity}
+          specular={refraction.specular}
         />
 
         {/* @ts-expect-error Need to fix types in this file */}

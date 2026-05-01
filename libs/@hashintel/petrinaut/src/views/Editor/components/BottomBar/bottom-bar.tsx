@@ -122,8 +122,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         refraction={{
           radius: 8,
           blur: 3,
-          bezelWidth: 20,
-          glassThickness: 100,
+          edgeSize: 20,
+          thickness: 100,
         }}
       >
         <div className={toolbarContainerStyle}>
@@ -142,8 +142,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         refraction={{
           radius: 8,
           blur: 3,
-          bezelWidth: 20,
-          glassThickness: 100,
+          edgeSize: 20,
+          thickness: 100,
         }}
       >
         <div className={toolbarContainerStyle}>

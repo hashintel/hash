@@ -1,11 +1,12 @@
-import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
+import { useEffect, useState } from "react";
+
+import type { Parts } from "../../helpers/split-imagedata-to-parts";
 
 type CompositePartsProps = {
-  imageData: ImageData;
+  parts: Parts;
   cornerWidth: number;
-  pixelRatio: number;
-  width: number;
-  height: number;
+  /** Ref to the element whose dimensions drive the filter layout. */
+  elementRef: React.RefObject<HTMLElement | null>;
   result: string;
   hideTop?: boolean;
   hideBottom?: boolean;
@@ -15,29 +16,50 @@ type CompositePartsProps = {
 
 /**
  * @private
- * Component that renders the 8 parts of an image and composites them together.
+ * Renders pre-split 9-patch parts as feImage primitives and composites them together.
  *
- * Used internally by the Filter component, for DisplacementMap and SpecularMap.
- *
- * @return {JSX.Element} Fragment containing all image parts for the refractive effect, along with compositing.
+ * Observes the referenced element's size via ResizeObserver to position
+ * parts at the correct pixel coordinates.
  */
 export const CompositeParts: React.FC<CompositePartsProps> = ({
-  imageData,
+  parts,
   cornerWidth,
-  width,
-  height,
-  pixelRatio,
+  elementRef,
   result,
   hideTop,
   hideBottom,
   hideLeft,
   hideRight,
 }) => {
-  const parts = splitImageDataToParts({
-    imageData,
-    cornerWidth,
-    pixelRatio,
-  });
+  const [width, setWidth] = useState(0);
+  const [height, setHeight] = useState(0);
+
+  useEffect(() => {
+    const element = elementRef.current;
+    if (!element) {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const borderBox = entry.borderBoxSize[0];
+
+        if (borderBox) {
+          setWidth(borderBox.inlineSize);
+          setHeight(borderBox.blockSize);
+        } else {
+          setWidth(entry.contentRect.width);
+          setHeight(entry.contentRect.height);
+        }
+      }
+    });
+
+    resizeObserver.observe(element);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [elementRef]);
 
   const widthMinusCorner = width - cornerWidth;
   const heightMinusCorner = height - cornerWidth;

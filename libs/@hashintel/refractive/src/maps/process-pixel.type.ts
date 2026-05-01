@@ -4,8 +4,8 @@ export type ProcessPixelFunction = (
   buffer: Uint8ClampedArray<ArrayBufferLike>,
   offset: number,
   distanceFromCenter: number,
-  distanceFromBorder: number,
-  distanceFromBorderRatio: number,
+  distanceToBorder: number,
+  distanceToBorderRatio: number,
   /**
    * Angle from center to pixel in radians.
    */
