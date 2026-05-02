@@ -20,6 +20,23 @@ export type {
   CreatePetrinautConfig,
   EventStream,
   Petrinaut as PetrinautInstance,
+  StartSimulationConfig,
 } from "./core/instance";
+export {
+  createWorkerTransport,
+  startSimulation,
+} from "./core/simulation";
+export type {
+  BackpressureConfig,
+  Simulation,
+  SimulationCompleteEvent,
+  SimulationConfig,
+  SimulationErrorEvent,
+  SimulationEvent,
+  SimulationFrameSummary,
+  SimulationState,
+  SimulationTransport,
+  WorkerFactory,
+} from "./core/simulation";
 export { PetrinautNext } from "./ui/petrinaut-next";
 export type { PetrinautNextProps } from "./ui/petrinaut-next";
