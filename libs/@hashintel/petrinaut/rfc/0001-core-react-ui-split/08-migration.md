@@ -46,14 +46,27 @@ A thin slice landed alongside the existing code path to validate the core concep
 
 ## Phase 2 — Build the Core instance
 
-1. Implement `createPetrinaut()` returning a thin façade over existing logic.
-2. Implement `subscribe + getSnapshot` stores backed by current state holders.
-3. Define `SimulationTransport` + `createWorkerTransport(createWorker)` + `createInlineTransport()` ([05-simulation.md](./05-simulation.md) §5.1).
-4. Add the `./core/simulation.worker` sub-entry in `package.json` `exports` ([05-simulation.md](./05-simulation.md) §5.2).
-5. Implement `instance.startSimulation(cfg)` returning a `Simulation` handle whose stores wrap the transport messages ([05-simulation.md](./05-simulation.md) §5.3 / §5.4).
-6. Wire `signal` / `dispose()` cancellation paths ([05-simulation.md](./05-simulation.md) §5.5).
+1. ~~Implement `createPetrinaut()` returning a thin façade over existing logic.~~ Done in Phase 0.
+2. ~~Implement `subscribe + getSnapshot` stores backed by current state holders.~~ Done in Phase 0.
+3. ~~Define `SimulationTransport` + `createWorkerTransport(createWorker)`~~ ([05-simulation.md](./05-simulation.md) §5.1) — done. `createInlineTransport()` deferred — interface is shape-compatible, can ship later without API change.
+4. Add the `./core/simulation.worker` sub-entry in `package.json` `exports` ([05-simulation.md](./05-simulation.md) §5.2). **Pending** — only relevant once `/core` is its own bundle (Phase 5).
+5. ~~Implement `instance.startSimulation(cfg)` returning a `Simulation` handle whose stores wrap the transport messages~~ ([05-simulation.md](./05-simulation.md) §5.3 / §5.4) — done.
+6. ~~Wire `signal` / `dispose()` cancellation paths~~ ([05-simulation.md](./05-simulation.md) §5.5) — done.
 7. Move playback frame loop out of `PlaybackProvider` into `instance.playback`. (`requestAnimationFrame` is browser-only — for non-browser consumers we expose a `tick()` method or accept a custom scheduler.)
 8. Move LSP wrapping out of `LanguageClientProvider` into `instance.lsp`.
+
+### Phase 2a — Simulation transport (done)
+
+Files added:
+
+- `src/core/simulation/transport.ts` — `SimulationTransport` interface, `createWorkerTransport(createWorker)`, `WorkerFactory`. Async-factory friendly: messages sent before worker boot are queued and flushed.
+- `src/core/simulation/simulation.ts` — `Simulation` interface, `startSimulation({ transport, config })` factory. Promise resolves on `ready`; rejects on init `error` or `AbortSignal` abort. `dispose()` is idempotent.
+- `src/core/simulation/index.ts` — barrel re-export.
+- `src/core/simulation/simulation.test.ts` — 7 unit tests with a manual transport.
+
+`createPetrinaut` gained `simulation.createWorker` config and `instance.{simulation, startSimulation}`. The existing `<SimulationProvider>` is **not yet replaced** — the existing prop-shaped `<Petrinaut>` continues to use `useSimulationWorker`. The `/react` bridge over `instance.simulation` is the next step.
+
+Public exports added in `main.ts`: `createWorkerTransport`, `startSimulation`, plus the `Simulation*` types and `SimulationTransport` / `WorkerFactory`.
 
 ## Phase 3 — React bindings
 

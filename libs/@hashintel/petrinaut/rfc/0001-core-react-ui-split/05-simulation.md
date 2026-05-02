@@ -101,3 +101,19 @@ Because frames are a stream, persisting a run is `sim.frames.subscribe(({latest}
 ## 5.7 `/react` shape
 
 `SimulationProvider` becomes a ~30-line bridge: read `instance.simulation` from `PetrinautInstanceContext`, expose its stores as React state via `useSyncExternalStore`, and republish through the existing `SimulationContext` so `/ui` doesn't change. `useSimulationStatus()` / `useSimulationFrames()` hooks live here.
+
+## 5.8 Phase 2 spike — landed
+
+A first cut of the patterns above ships in `src/core/simulation/`:
+
+- `transport.ts` — `SimulationTransport` interface and `createWorkerTransport(createWorker)`. Accepts a sync or async `Worker` factory; messages sent before the worker is ready are queued and flushed on boot.
+- `simulation.ts` — `startSimulation({ transport, config })` returning a `Simulation` handle (`status` + `frames` + `events` stores; `run`/`pause`/`reset`/`ack`/`setBackpressure`/`getFrame`/`dispose` actions). Resolves on `ready`; rejects on init `error` or `AbortSignal` abort. `dispose()` is idempotent and tears down the transport.
+- `index.ts` — barrel for `/core/simulation`.
+
+`createPetrinaut` gained `simulation.createWorker` config and `instance.{simulation, startSimulation}`. `startSimulation` snapshots `handle.doc()` at start time, builds a fresh transport via the configured factory, and stores the resulting handle on `instance.simulation`. Disposing the instance also disposes the active simulation.
+
+`createInlineTransport()` is **not yet implemented** — Phase 3 / follow-up. The `SimulationTransport` interface is designed to admit it without the rest of the API changing.
+
+`/react` and `/ui` are **not yet wired** to use `instance.simulation`. The existing `<SimulationProvider>` still drives `<Petrinaut>`'s simulation panel. That swap is the next step (and the part that lets us delete the old `useSimulationWorker` hook).
+
+7 unit tests cover: ready/init, init error, single + batch frame appends, complete event, control message round-trip, idempotent dispose, abort during init.
