@@ -79,6 +79,22 @@ Files added:
 
 Public exports added in `main.ts`: `createSimulation`, `createWorkerTransport`, plus the `Simulation*` types, `CreateSimulationConfig`, `SimulationTransport`, and `WorkerFactory`.
 
+### Phase 3a — Public hook surface (done)
+
+The 25-hook surface from [06-react-bindings.md](./06-react-bindings.md) §6.2, implemented as thin wrappers over the existing React contexts:
+
+- `src/react/hooks/use-document.ts` — `usePetrinautDefinition`, `usePetrinautDefinitionSelector`, `useMutate`, `useSetTitle`, `useTitle`, `useDocumentId`, `useDocumentState`, `useIsDocumentReady`, `usePetrinautPatches`.
+- `src/react/hooks/use-simulation.ts` — `useSimulationStatus`, `useSimulationFrameCount`, `useGetSimulationFrame`, `useSimulationActions`, `useSimulationParameters`, `useSimulationError`.
+- `src/react/hooks/use-playback.ts` — `usePlaybackState`, `usePlaybackFrameIndex`, `usePlaybackSpeed`, `usePlaybackMode`, `useCurrentFrame`, `useCurrentViewedFrame`, `usePlaybackActions`, `useIsViewOnlyAvailable`, `useIsComputeAvailable`.
+- `src/react/hooks/use-lsp.ts` — `useDiagnostics`, `useDiagnosticsForUri`, `useTotalDiagnosticsCount`, `useLspActions`.
+- `src/react/hooks/index.ts` — barrel; re-exports `useIsReadOnly`, `useNotifications`, `usePetrinautInstance`, `useStore`, `useStoreSelector`.
+
+Most hooks read from the existing React contexts (`SDCPNContext`, `SimulationContext`, `PlaybackContext`, `LanguageClientContext`). A few read from the Petrinaut instance directly (`useMutate`, `useDocumentState`, `useDocumentId` via instance, `usePetrinautPatches`).
+
+`this: void` retrofit applied to `Petrinaut` (`mutate`, `dispose`) and `Simulation` (`run`, `pause`, `reset`, `ack`, `setBackpressure`, `getFrame`, `dispose`) — same treatment LSP already had. Removes the `unbound-method` complaint when consumers pass methods as references.
+
+**What's deferred to Phase 3b**: replacing the existing per-feature provider stack (`<SDCPNProvider>`, `<MutationProvider>`, `<SimulationProvider>`, `<PlaybackProvider>`, `<LanguageClientProvider>`) with a single `<PetrinautProvider instance={…}>` that mounts all the bridges. Today's hooks work inside the existing prop-shaped `<Petrinaut>` (whether mounted directly or via `<PetrinautNext>`).
+
 ### Phase 2d — Playback timing model + provider rewire (done)
 
 Mirrors 2a/2b/2c — pure timing model lives in `/core`; React provider drives ticks and coordinates simulation lifecycle.

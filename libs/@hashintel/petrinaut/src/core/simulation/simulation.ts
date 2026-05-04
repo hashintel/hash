@@ -78,14 +78,14 @@ export interface Simulation {
   readonly frames: ReadableStore<SimulationFrameSummary>;
   readonly events: EventStream<SimulationEvent>;
 
-  run(): void;
-  pause(): void;
-  reset(): void;
-  ack(frameNumber: number): void;
-  setBackpressure(cfg: BackpressureConfig): void;
-  getFrame(index: number): SimulationFrame | null;
+  run(this: void): void;
+  pause(this: void): void;
+  reset(this: void): void;
+  ack(this: void, frameNumber: number): void;
+  setBackpressure(this: void, cfg: BackpressureConfig): void;
+  getFrame(this: void, index: number): SimulationFrame | null;
 
-  dispose(): void;
+  dispose(this: void): void;
 }
 
 function createReadableStore<T>(initial: T): ReadableStore<T> & {

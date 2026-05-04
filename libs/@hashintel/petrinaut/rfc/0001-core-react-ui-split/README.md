@@ -1,6 +1,6 @@
 # RFC 0001 — Petrinaut: Core / React / UI Split
 
-**Status:** Draft (iterating) — Phase 0 + Phase 2a/2b/2c/2d (simulation + LSP + playback decoupled, providers swapped) + simulation/lsp/playback Phase 1 reorg landed
+**Status:** Draft (iterating) — Phase 0 + Phase 2a/2b/2c/2d + Phase 3a (public hook surface) landed
 **Authors:** @cf
 **Created:** 2026-04-28
 **Last updated:** 2026-05-02
@@ -55,6 +55,7 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
 - Phase 2b landed: `<SimulationProvider>` swapped to call `createSimulation` directly. Old `useSimulationWorker` hook deleted. The legacy `SimulationContextValue` shape is preserved so `/ui` files don't change. See [08-migration.md](./08-migration.md) "Phase 2b".
 - Phase 2c landed: `LspTransport` interface, `createWorkerLspTransport(createWorker)`, **`createLanguageClient(config)`** standalone factory returning a `LanguageClient` handle (diagnostics store, fire-and-forget notifications, promise-returning RPCs, `dispose`). `<LanguageClientProvider>` swapped to use it; old `useLanguageClient` hook deleted. `LanguageClient` methods carry `this: void` — same retrofit recommended for `Petrinaut` and `Simulation`. LSP files moved into `core/lsp/` + `react/lsp/`. See [08-migration.md](./08-migration.md) "Phase 2c".
 - Phase 2d landed: pure playback timing model in `/core` — **`createPlayback(initial?)`** returning a `Playback` handle (state store + caller-driven `tick(currentTime, dt, totalFrames, simulationDone)`). Auto-pauses on reaching end when `simulationDone` or `mode === "viewOnly"`. `<PlaybackProvider>` rewritten as a thin bridge driving rAF + simulation coordination. Playback files moved into `core/playback/` + `react/playback/`. 18 new unit tests. See [08-migration.md](./08-migration.md) "Phase 2d".
+- Phase 3a landed: public hook surface in `src/react/hooks/` — `usePetrinautDefinition`, `useMutate`, `useDocumentState`, `useSimulationStatus`, `usePlaybackState`, `useDiagnostics`, `useLspActions`, etc. (~25 hooks across `use-document.ts`, `use-simulation.ts`, `use-playback.ts`, `use-lsp.ts`). `this: void` retrofit applied to `Petrinaut` and `Simulation` for clean method-reference passing. Phase 3b (collapsing the providers under a single `<PetrinautProvider instance={…}>`) deferred. See [08-migration.md](./08-migration.md) "Phase 3a".
 
 ## What this RFC does *not* cover
 

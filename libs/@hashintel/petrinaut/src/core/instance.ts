@@ -35,11 +35,11 @@ export type Petrinaut = {
   readonly patches: EventStream<PetrinautPatch[]>;
 
   /** Apply a mutation to the document via the underlying handle. No-op if read-only. */
-  mutate(fn: (draft: SDCPN) => void): void;
+  mutate(this: void, fn: (draft: SDCPN) => void): void;
 
   readonly readonly: boolean;
 
-  dispose(): void;
+  dispose(this: void): void;
 };
 
 export type CreatePetrinautConfig = {
