@@ -310,6 +310,37 @@ range!(
     pub struct InformationRange(InformationUnit)
 );
 
+impl InformationRange {
+    /// Multiplies this information range by a cardinality range, producing the total
+    /// information content.
+    ///
+    /// For non-negative integer ranges `[a, b] × [c, d] = [a*c, b*d]`.
+    /// Saturates to `Unbounded` on overflow.
+    #[must_use]
+    pub fn saturating_mul_cardinality(self, cardinality: Cardinality) -> Self {
+        if self.is_empty() || cardinality.is_empty() {
+            return Self::empty();
+        }
+
+        let min = InformationUnit::new(self.min.raw.saturating_mul(cardinality.min().raw));
+
+        let Some((units_max, cardinality_max)) =
+            Option::zip(self.inclusive_max(), cardinality.inclusive_max())
+        else {
+            return Self {
+                min,
+                max: Bound::Unbounded,
+            };
+        };
+
+        let max = units_max
+            .checked_mul(cardinality_max)
+            .map_or(Bound::Unbounded, Bound::Included);
+
+        Self { min, max }
+    }
+}
+
 range!(
     /// A range of possible cardinality (element count) values.
     ///
@@ -710,5 +741,89 @@ mod tests {
 
         assert_is_bottom_consistent::<SaturatingSemiring, InformationRange>(&semiring);
         assert_is_bottom_consistent::<SaturatingSemiring, Cardinality>(&semiring);
+    }
+
+    #[test]
+    fn saturating_mul_cardinality_exact() {
+        // [2, 3] * [4, 5] = [8, 15]
+        let units = InformationRange::new(
+            InformationUnit::new(2),
+            Bound::Included(InformationUnit::new(3)),
+        );
+        let card = Cardinality::new(Cardinal::new(4), Bound::Included(Cardinal::new(5)));
+
+        let result = units.saturating_mul_cardinality(card);
+
+        assert_eq!(
+            result,
+            InformationRange::new(
+                InformationUnit::new(8),
+                Bound::Included(InformationUnit::new(15))
+            )
+        );
+    }
+
+    #[test]
+    fn saturating_mul_cardinality_by_one_is_identity() {
+        let units = InformationRange::new(
+            InformationUnit::new(3),
+            Bound::Included(InformationUnit::new(7)),
+        );
+
+        assert_eq!(units.saturating_mul_cardinality(Cardinality::one()), units);
+    }
+
+    #[test]
+    fn saturating_mul_cardinality_empty_input() {
+        let empty = InformationRange::empty();
+        let card = Cardinality::new(Cardinal::new(5), Bound::Included(Cardinal::new(10)));
+
+        assert_eq!(
+            empty.saturating_mul_cardinality(card),
+            InformationRange::empty()
+        );
+
+        let units = InformationRange::new(
+            InformationUnit::new(3),
+            Bound::Included(InformationUnit::new(5)),
+        );
+
+        assert_eq!(
+            units.saturating_mul_cardinality(Cardinality::empty()),
+            InformationRange::empty()
+        );
+    }
+
+    #[test]
+    fn saturating_mul_cardinality_unbounded() {
+        let units = InformationRange::new(
+            InformationUnit::new(2),
+            Bound::Included(InformationUnit::new(3)),
+        );
+        let card = Cardinality::new(Cardinal::new(1), Bound::Unbounded);
+
+        let result = units.saturating_mul_cardinality(card);
+
+        assert_eq!(
+            result,
+            InformationRange::new(InformationUnit::new(2), Bound::Unbounded)
+        );
+    }
+
+    #[test]
+    fn saturating_mul_cardinality_overflow_to_unbounded() {
+        let units = InformationRange::new(
+            InformationUnit::new(u32::MAX),
+            Bound::Included(InformationUnit::new(u32::MAX)),
+        );
+        let card = Cardinality::new(Cardinal::new(2), Bound::Included(Cardinal::new(2)));
+
+        let result = units.saturating_mul_cardinality(card);
+
+        // min saturates, max overflows to Unbounded
+        assert_eq!(
+            result,
+            InformationRange::new(InformationUnit::new(u32::MAX), Bound::Unbounded)
+        );
     }
 }

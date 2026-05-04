@@ -215,6 +215,14 @@ impl Footprint {
         }
     }
 
+    #[must_use]
+    pub const fn one(units: Estimate<InformationRange>) -> Self {
+        Self {
+            units,
+            cardinality: Estimate::Constant(Cardinality::one()),
+        }
+    }
+
     /// A footprint that tracks dependency on a function parameter.
     ///
     /// Both units and cardinality are set to equal the parameter at `index`.
@@ -247,6 +255,70 @@ impl Footprint {
 
         let avg = min.midpoint(max);
         Some(avg)
+    }
+
+    /// Collapses this footprint into a total information estimate.
+    ///
+    /// Multiplies units by cardinality to produce a single information measure
+    /// representing the total information content. This is used when a value is
+    /// embedded as a field of a composite type, where the per-element vs. element-count
+    /// distinction is no longer relevant.
+    ///
+    /// For constant footprints the multiplication is exact. For affine units with
+    /// constant cardinality, coefficients are scaled by the cardinality upper bound
+    /// (over-approximation). When both are affine, element-wise coefficient
+    /// multiplication preserves same-parameter dependencies (under-approximation).
+    /// When only cardinality is affine, the result falls back to unbounded.
+    pub(crate) fn materialize(&self) -> Estimate<InformationRange> {
+        let Self { units, cardinality } = self;
+
+        // Cardinality of exactly 1: units already represents the total
+        if *cardinality == Estimate::Constant(Cardinality::one()) {
+            return units.clone();
+        }
+
+        match (units, cardinality) {
+            // Both constant: exact range multiplication.
+            (Estimate::Constant(units), Estimate::Constant(cardinality)) => {
+                Estimate::Constant(units.saturating_mul_cardinality(*cardinality))
+            }
+            // Affine units, constant cardinality: scale all terms by cardinality.
+            // Constant part is multiplied exactly. Coefficients are scaled by the
+            // cardinality upper bound, which is exact for point ranges and an
+            // over-approximation for wider ranges.
+            (Estimate::Affine(units_eq), Estimate::Constant(cardinality)) => {
+                let Some(cardinality_max) = cardinality.inclusive_max() else {
+                    // Unbounded cardinality: cannot bound the total
+                    return Estimate::Constant(InformationRange::full());
+                };
+
+                let scale = u16::try_from(cardinality_max.raw).unwrap_or(u16::MAX);
+
+                let mut result = units_eq.clone();
+                result.constant = result.constant.saturating_mul_cardinality(*cardinality);
+                for coefficient in &mut result.coefficients {
+                    *coefficient = coefficient.saturating_mul(scale);
+                }
+
+                Estimate::Affine(result)
+            }
+            // At least one side is affine: element-wise coefficient multiplication
+            // gives a linear under-approximation of the quadratic product. This
+            // preserves parameter dependency for the common case where both
+            // dimensions track the same parameter. When units is constant (all
+            // zero coefficients), the element-wise product correctly yields zero
+            // coefficients, leaving only the constant-times-constant term.
+            _ => {
+                let mut result = units.clone();
+                result.saturating_coeff_mul(cardinality);
+                let range = result
+                    .constant()
+                    .saturating_mul_cardinality(*cardinality.constant());
+                *result.constant_mut() = range;
+
+                result
+            }
+        }
     }
 
     /// Adds `other * coefficient` to this footprint (component-wise).
@@ -329,7 +401,7 @@ impl HasBottom<Footprint> for SaturatingSemiring {
 mod tests {
     #![expect(clippy::min_ident_chars)]
     use alloc::alloc::Global;
-    use core::ops::Bound;
+    use core::{iter, ops::Bound};
 
     use super::{BodyFootprint, BodyFootprintSemilattice};
     use crate::{
@@ -343,8 +415,8 @@ mod tests {
                 },
             },
             size_estimation::{
-                Cardinal, Cardinality, Footprint, InformationRange, InformationUnit,
-                estimate::Estimate,
+                AffineEquation, Cardinal, Cardinality, Footprint, InformationRange,
+                InformationUnit, estimate::Estimate,
             },
         },
     };
@@ -455,5 +527,93 @@ mod tests {
 
         assert_bounded_join_semilattice(&lattice, body_a, body_b, body_c);
         assert_is_bottom_consistent::<_, BodyFootprint<Global>>(&lattice);
+    }
+
+    #[test]
+    fn materialize_scalar_is_identity() {
+        // (units=1, cardinality=1) -> 1*1 = 1
+        let result = Footprint::scalar().materialize();
+        assert_eq!(result, Estimate::Constant(InformationRange::one()));
+    }
+
+    #[test]
+    fn materialize_constant_collection() {
+        // (units=1..=1, cardinality=5..=5) -> 1*5 = 5..=5
+        let footprint = Footprint {
+            units: Estimate::Constant(InformationRange::one()),
+            cardinality: Estimate::Constant(Cardinality::value(Cardinal::new(5))),
+        };
+
+        let result = footprint.materialize();
+
+        assert_eq!(
+            result,
+            Estimate::Constant(InformationRange::value(InformationUnit::new(5)))
+        );
+    }
+
+    #[test]
+    fn materialize_affine_units_constant_cardinality() {
+        // units = 2..=3 + 1*p0, cardinality = 5..=5
+        // expected: (2*5)..=(3*5) + 5*p0 = 10..=15 + 5*p0
+        let footprint = Footprint {
+            units: Estimate::Affine(AffineEquation {
+                coefficients: [1, 0].into_iter().collect(),
+                constant: InformationRange::new(
+                    InformationUnit::new(2),
+                    Bound::Included(InformationUnit::new(3)),
+                ),
+            }),
+            cardinality: Estimate::Constant(Cardinality::value(Cardinal::new(5))),
+        };
+
+        let result = footprint.materialize();
+
+        let Estimate::Affine(eq) = &result else {
+            panic!("expected Affine, got {result:?}");
+        };
+        assert_eq!(eq.coefficients.as_slice(), &[5, 0]);
+        assert_eq!(
+            eq.constant,
+            InformationRange::new(
+                InformationUnit::new(10),
+                Bound::Included(InformationUnit::new(15))
+            )
+        );
+    }
+
+    #[test]
+    fn materialize_constant_units_affine_cardinality() {
+        // units = 3..=3, cardinality = 0..0 + 1*p0
+        // Constant units with affine cardinality: coefficients are all zero,
+        // so the result is just constant * constant = 3..=3 * 0..0 = empty
+        let footprint = Footprint {
+            units: Estimate::Constant(InformationRange::value(InformationUnit::new(3))),
+            cardinality: Estimate::Affine(AffineEquation {
+                coefficients: iter::once(1).collect(),
+                constant: Cardinality::empty(),
+            }),
+        };
+
+        let result = footprint.materialize();
+
+        // Zero coefficients (0*1=0), constant 3*empty=empty
+        assert_eq!(*result.constant(), InformationRange::empty());
+        assert!(result.coefficients().iter().all(|&c| c == 0));
+    }
+
+    #[test]
+    fn materialize_both_affine_same_parameter() {
+        // Both depend on param 0: units = 0..0 + 1*p0, cardinality = 0..0 + 1*p0
+        // Element-wise: coeffs[0] = 1*1 = 1, constant = empty * empty = empty
+        let footprint = Footprint::coefficient(0, 2);
+
+        let result = footprint.materialize();
+
+        let Estimate::Affine(eq) = &result else {
+            panic!("expected Affine, got {result:?}");
+        };
+        assert_eq!(eq.coefficients.as_slice(), &[1, 0]);
+        assert_eq!(eq.constant, InformationRange::empty());
     }
 }

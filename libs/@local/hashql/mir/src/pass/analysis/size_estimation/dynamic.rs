@@ -17,6 +17,7 @@ use hashql_core::{
 use hashql_hir::node::operation::InputOp;
 
 use super::{
+    Cardinal, InformationRange,
     footprint::{BodyFootprint, BodyFootprintSemilattice, Footprint},
     r#static::StaticSizeEstimationCache,
 };
@@ -28,15 +29,19 @@ use crate::{
         local::{Local, LocalDecl, LocalSlice},
         location::Location,
         operand::Operand,
-        place::{Place, Projection, ProjectionKind},
-        rvalue::{Aggregate, Apply, ArgSlice, BinOp, Binary, Input, RValue, UnOp, Unary},
+        place::{FieldIndex, Place, Projection, ProjectionKind},
+        rvalue::{
+            Aggregate, AggregateKind, Apply, ArgSlice, BinOp, Binary, Input, RValue, UnOp, Unary,
+        },
         statement::{Assign, Statement, StatementKind},
     },
     def::{DefId, DefIdSlice},
     pass::analysis::{
         dataflow::{
             framework::{DataflowAnalysis, Direction},
-            lattice::{AdditiveMonoid as _, SaturatingSemiring},
+            lattice::{
+                AdditiveMonoid as _, HasBottom as _, JoinSemiLattice as _, SaturatingSemiring,
+            },
         },
         size_estimation::{
             AffineEquation, estimate::Estimate, range::Cardinality, r#static::StaticSizeEstimation,
@@ -80,6 +85,13 @@ impl Eval {
         match self {
             Self::Footprint(footprint) => footprint,
             &Self::Copy(local) => &domain.locals[local],
+        }
+    }
+
+    pub(crate) fn into_footprint<A: Allocator>(self, domain: &BodyFootprint<A>) -> Footprint {
+        match self {
+            Self::Footprint(footprint) => footprint,
+            Self::Copy(local) => domain.locals[local].clone(),
         }
     }
 }
@@ -204,6 +216,120 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
         self.lookup
     }
 
+    #[expect(
+        clippy::integer_division,
+        clippy::cast_possible_truncation,
+        clippy::integer_division_remainder_used
+    )]
+    fn eval_rvalue_aggregate<B: Allocator>(
+        &self,
+        domain: &BodyFootprint<B>,
+        aggregate: &Aggregate<'heap>,
+    ) -> Eval {
+        match aggregate {
+            Aggregate {
+                kind: AggregateKind::Struct { fields: _ } | AggregateKind::Tuple,
+                operands,
+            } => {
+                let mut units: Estimate<InformationRange> = SaturatingSemiring.zero();
+
+                for operand in operands {
+                    let eval = self.lookup.operand(domain, operand);
+                    let materialized = eval.into_footprint(domain).materialize();
+
+                    SaturatingSemiring.plus(&mut units, &materialized);
+                }
+
+                Eval::Footprint(Footprint::one(units))
+            }
+            Aggregate {
+                kind: AggregateKind::List,
+                operands,
+            } => {
+                let mut average: Estimate<InformationRange> = SaturatingSemiring.bottom();
+
+                for operand in operands {
+                    let eval = self.lookup.operand(domain, operand);
+                    let units = eval.into_footprint(domain).materialize();
+
+                    SaturatingSemiring.join(&mut average, &units);
+                }
+
+                Eval::Footprint(Footprint {
+                    units: average,
+                    cardinality: Estimate::Constant(Cardinality::value(Cardinal::new(
+                        operands.len() as u32,
+                    ))),
+                })
+            }
+            Aggregate {
+                kind: AggregateKind::Dict,
+                operands,
+            } => {
+                let mut average: Estimate<InformationRange> = SaturatingSemiring.bottom();
+                debug_assert!(operands.len() % 2 == 0);
+
+                for [key, value] in operands.iter().array_chunks::<2>() {
+                    let mut key_units = self
+                        .lookup
+                        .operand(domain, key)
+                        .into_footprint(domain)
+                        .materialize();
+                    let value_units = self
+                        .lookup
+                        .operand(domain, value)
+                        .into_footprint(domain)
+                        .materialize();
+
+                    key_units.saturating_mul_add(&value_units, 1);
+
+                    SaturatingSemiring.join(&mut average, &key_units);
+                }
+
+                Eval::Footprint(Footprint {
+                    units: average,
+                    cardinality: Estimate::Constant(Cardinality::value(Cardinal::new(
+                        (operands.len() / 2) as u32,
+                    ))),
+                })
+            }
+            Aggregate {
+                kind: AggregateKind::Closure,
+                operands,
+            } => {
+                debug_assert_eq!(operands.len(), 2);
+
+                let mut total = self
+                    .lookup
+                    .operand(domain, &operands[FieldIndex::FN_PTR])
+                    .into_footprint(domain)
+                    .materialize();
+                let env = self
+                    .lookup
+                    .operand(domain, &operands[FieldIndex::ENV])
+                    .into_footprint(domain)
+                    .materialize();
+                total.saturating_mul_add(&env, 1);
+
+                Eval::Footprint(Footprint::one(total))
+            }
+            Aggregate {
+                kind: AggregateKind::Opaque(_),
+                operands,
+            } => {
+                let mut total: Footprint = SaturatingSemiring.zero();
+
+                for operand in operands {
+                    let eval = self.lookup.operand(domain, operand);
+
+                    SaturatingSemiring.plus(&mut total, eval.as_ref(domain));
+                }
+
+                Eval::Footprint(total)
+            }
+        }
+    }
+
     /// Evaluates an rvalue to determine its footprint.
     fn eval_rvalue<B: Allocator>(&self, domain: &BodyFootprint<B>, rvalue: &RValue<'heap>) -> Eval {
         #[expect(clippy::match_same_arms, reason = "explicit case handling for clarity")]
@@ -228,17 +354,7 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
                 op: UnOp::BitNot | UnOp::Neg,
                 operand: _,
             }) => Eval::Footprint(Footprint::scalar()),
-            RValue::Aggregate(Aggregate { kind: _, operands }) => {
-                let mut total: Footprint = SaturatingSemiring.zero();
-
-                for operand in operands {
-                    let eval = self.lookup.operand(domain, operand);
-
-                    SaturatingSemiring.plus(&mut total, eval.as_ref(domain));
-                }
-
-                Eval::Footprint(total)
-            }
+            RValue::Aggregate(aggregate) => self.eval_rvalue_aggregate(domain, aggregate),
             RValue::Input(Input {
                 op: InputOp::Exists,
                 name: _,
