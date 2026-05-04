@@ -53,11 +53,18 @@ const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
   subscribe: () => () => {},
 };
 
-const EMPTY_FRAMES_STORE: ReadableStore<{
+/**
+ * Stable empty frame summary. Sharing the same object across `get()` calls
+ * is critical for `useSyncExternalStore` — returning a fresh object on each
+ * read triggers an infinite re-render loop.
+ */
+const EMPTY_FRAME_SUMMARY: {
   count: number;
   latest: SimulationFrame | null;
-}> = {
-  get: () => ({ count: 0, latest: null }),
+} = { count: 0, latest: null };
+
+const EMPTY_FRAMES_STORE: ReadableStore<typeof EMPTY_FRAME_SUMMARY> = {
+  get: () => EMPTY_FRAME_SUMMARY,
   subscribe: () => () => {},
 };
 
