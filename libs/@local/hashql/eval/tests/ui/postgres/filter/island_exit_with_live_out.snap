@@ -30,4 +30,4 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
 }
 ==================== Island (entry: bb0, target: postgres) =====================
 
-(ROW(NULL, 1, ARRAY[7]::int[], ARRAY[jsonb_build_object($1, jsonb_build_object($2, "entity_temporal_metadata_0_0_0"."web_id", $3, "entity_temporal_metadata_0_0_0"."entity_uuid", $4, "entity_temporal_metadata_0_0_0"."draft_id"), $4, "entity_temporal_metadata_0_0_0"."draft_id")]::jsonb[])::continuation)
+(ROW(NULL, 1, ARRAY[7]::int[], ARRAY[jsonb_build_object(($1::text), jsonb_build_object(($2::text), "entity_temporal_metadata_0_0_0"."web_id", ($3::text), "entity_temporal_metadata_0_0_0"."entity_uuid", ($4::text), "entity_temporal_metadata_0_0_0"."draft_id"), ($5::text), "entity_temporal_metadata_0_0_0"."entity_edition_id")]::jsonb[])::continuation)

@@ -19,16 +19,16 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
 }
 ===================================== SQL ======================================
 
-SELECT "entity_editions_0_0_1"."properties" AS "properties", jsonb_build_object($3, jsonb_build_object($4, "entity_temporal_metadata_0_0_0"."web_id", $5, "entity_temporal_metadata_0_0_0"."entity_uuid", $6, "entity_temporal_metadata_0_0_0"."draft_id"), $6, "entity_temporal_metadata_0_0_0"."draft_id") AS "record_id", jsonb_build_object($7, "entity_temporal_metadata_0_0_0"."decision_time", $8, "entity_temporal_metadata_0_0_0"."transaction_time") AS "temporal_versioning", "entity_is_of_type_ids_0_0_2"."entity_type_ids" AS "entity_type_ids", "entity_editions_0_0_1"."archived" AS "archived", "entity_editions_0_0_1"."confidence" AS "confidence", "entity_ids_0_0_3"."provenance" AS "provenance_inferred", "entity_editions_0_0_1"."provenance" AS "provenance_edition", "entity_editions_0_0_1"."property_metadata" AS "property_metadata", "entity_has_left_entity_0_0_4"."left_web_id" AS "left_entity_web_id", "entity_has_left_entity_0_0_4"."left_entity_uuid" AS "left_entity_uuid", "entity_has_right_entity_0_0_5"."right_web_id" AS "right_entity_web_id", "entity_has_right_entity_0_0_5"."right_entity_uuid" AS "right_entity_uuid", "entity_has_left_entity_0_0_4"."confidence" AS "left_entity_confidence", "entity_has_right_entity_0_0_5"."confidence" AS "right_entity_confidence", "entity_has_left_entity_0_0_4"."provenance" AS "left_entity_provenance", "entity_has_right_entity_0_0_5"."provenance" AS "right_entity_provenance"
+SELECT "entity_editions_0_0_1"."properties" AS "properties", jsonb_build_object(($3::text), jsonb_build_object(($4::text), "entity_temporal_metadata_0_0_0"."web_id", ($5::text), "entity_temporal_metadata_0_0_0"."entity_uuid", ($6::text), "entity_temporal_metadata_0_0_0"."draft_id"), ($7::text), "entity_temporal_metadata_0_0_0"."entity_edition_id") AS "record_id", jsonb_build_object(($8::text), jsonb_build_object(($9::text), (extract(epoch from lower("entity_temporal_metadata_0_0_0"."decision_time")) * 1000)::int8, ($10::text), CASE WHEN upper_inf("entity_temporal_metadata_0_0_0"."decision_time") THEN NULL ELSE (extract(epoch from upper("entity_temporal_metadata_0_0_0"."decision_time")) * 1000)::int8 END), ($11::text), jsonb_build_object(($9::text), (extract(epoch from lower("entity_temporal_metadata_0_0_0"."transaction_time")) * 1000)::int8, ($10::text), CASE WHEN upper_inf("entity_temporal_metadata_0_0_0"."transaction_time") THEN NULL ELSE (extract(epoch from upper("entity_temporal_metadata_0_0_0"."transaction_time")) * 1000)::int8 END)) AS "temporal_versioning", "entity_is_of_type_ids_0_0_2"."entity_type_ids" AS "entity_type_ids", "entity_editions_0_0_1"."archived" AS "archived", "entity_editions_0_0_1"."confidence" AS "confidence", "entity_ids_0_0_3"."provenance" AS "provenance_inferred", "entity_editions_0_0_1"."provenance" AS "provenance_edition", "entity_editions_0_0_1"."property_metadata" AS "property_metadata", "entity_has_left_entity_0_0_4"."left_web_id" AS "left_entity_web_id", "entity_has_left_entity_0_0_4"."left_entity_uuid" AS "left_entity_uuid", "entity_has_right_entity_0_0_5"."right_web_id" AS "right_entity_web_id", "entity_has_right_entity_0_0_5"."right_entity_uuid" AS "right_entity_uuid", "entity_has_left_entity_0_0_4"."confidence" AS "left_entity_confidence", "entity_has_right_entity_0_0_5"."confidence" AS "right_entity_confidence", "entity_has_left_entity_0_0_4"."provenance" AS "left_entity_provenance", "entity_has_right_entity_0_0_5"."provenance" AS "right_entity_provenance"
 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
 INNER JOIN "entity_editions" AS "entity_editions_0_0_1"
   ON "entity_editions_0_0_1"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
 INNER JOIN "entity_ids" AS "entity_ids_0_0_3"
   ON "entity_ids_0_0_3"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
  AND "entity_ids_0_0_3"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-LEFT OUTER JOIN LATERAL (SELECT jsonb_agg(jsonb_build_object($9, "b", $10, "v")) AS "entity_type_ids"
+LEFT OUTER JOIN LATERAL (SELECT jsonb_agg(jsonb_build_object(($12::text), "b", ($13::text), "v")) AS "entity_type_ids"
 FROM "entity_is_of_type_ids" AS "eit"
-CROSS JOIN UNNEST("eit"."base_urls", "eit"."versions") AS "u"("b", "v")
+CROSS JOIN UNNEST("eit"."base_urls", ("eit"."versions"::text[])) AS "u"("b", "v")
 WHERE "eit"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id") AS "entity_is_of_type_ids_0_0_2"
   ON TRUE
 LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_0_4"
@@ -37,7 +37,7 @@ LEFT OUTER JOIN "entity_has_left_entity" AS "entity_has_left_entity_0_0_4"
 LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_0_5"
   ON "entity_has_right_entity_0_0_5"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
  AND "entity_has_right_entity_0_0_5"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
-WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $1 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && ($1::tstzrange) AND "entity_temporal_metadata_0_0_0"."decision_time" && ($2::tstzrange)
 ================================== Parameters ==================================
 
 $1: TemporalAxis(Transaction)
@@ -46,7 +46,10 @@ $3: Symbol(entity_id)
 $4: Symbol(web_id)
 $5: Symbol(entity_uuid)
 $6: Symbol(draft_id)
-$7: Symbol(decision_time)
-$8: Symbol(transaction_time)
-$9: Symbol(base_url)
-$10: Symbol(version)
+$7: Symbol(edition_id)
+$8: Symbol(decision_time)
+$9: Symbol(start)
+$10: Symbol(end)
+$11: Symbol(transaction_time)
+$12: Symbol(base_url)
+$13: Symbol(version)

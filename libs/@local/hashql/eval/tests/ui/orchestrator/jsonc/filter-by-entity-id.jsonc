@@ -1,0 +1,14 @@
+// Filter by full EntityId input. Verifies EntityId struct decoding
+// (web_id, entity_uuid, draft_id) through the parameter binding path.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.record_id.entity_id",
+        ["input", "alice_id", "::graph::types::knowledge::entity::EntityId"]
+      ]
+    ]
+  ]
+]

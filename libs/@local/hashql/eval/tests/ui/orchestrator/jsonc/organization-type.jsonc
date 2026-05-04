@@ -1,0 +1,25 @@
+// Filter entities by entity_type_ids matching the Organization type.
+// Only the organization entity should survive.
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "temporal_axes", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.metadata.entity_type_ids",
+        { "#list": [
+          ["::graph::types::ontology::VersionedUrl", { "#struct": {
+            "base_url": ["::graph::types::ontology::BaseUrl",
+              ["::core::url::Url",
+                { "#literal": "https://blockprotocol.org/@alice/types/entity-type/organization/" }
+              ]
+            ],
+            "version": ["::graph::types::ontology::OntologyTypeVersion",
+              { "#literal": "1" }
+            ]
+          }}]
+        ]}
+      ]
+    ]
+  ]
+]

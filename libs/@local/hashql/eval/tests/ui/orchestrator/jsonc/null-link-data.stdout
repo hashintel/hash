@@ -1,0 +1,289 @@
+[
+  {
+    "link_data": null,
+    "metadata": {
+      "archived": false,
+      "confidence": null,
+      "entity_type_ids": [
+        {
+          "base_url": "https://blockprotocol.org/@alice/types/entity-type/person/",
+          "version": "1"
+        }
+      ],
+      "property_metadata": {
+        "value": {
+          "https://blockprotocol.org/@alice/types/property-type/name/": {
+            "metadata": {
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Alice"
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+            }
+          }
+        }
+      },
+      "provenance": {
+        "edition": {
+          "actorType": "user",
+          "createdById": "<uuid:0>",
+          "origin": {
+            "type": "api"
+          }
+        },
+        "inferred": {
+          "createdAtDecisionTime": "<timestamp>",
+          "createdAtTransactionTime": "<timestamp>",
+          "createdById": "<uuid:0>",
+          "firstNonDraftCreatedAtDecisionTime": "<timestamp>",
+          "firstNonDraftCreatedAtTransactionTime": "<timestamp>"
+        }
+      },
+      "record_id": {
+        "edition_id": "<uuid:1>",
+        "entity_id": {
+          "draft_id": null,
+          "entity_uuid": "<uuid:2>",
+          "web_id": "<uuid:0>"
+        }
+      },
+      "temporal_versioning": {
+        "decision_time": {
+          "end": null,
+          "start": <timestamp>
+        },
+        "transaction_time": {
+          "end": null,
+          "start": <timestamp>
+        }
+      }
+    },
+    "properties": {
+      "https://blockprotocol.org/@alice/types/property-type/name/": "Alice"
+    }
+  },
+  {
+    "link_data": null,
+    "metadata": {
+      "archived": false,
+      "confidence": null,
+      "entity_type_ids": [
+        {
+          "base_url": "https://blockprotocol.org/@alice/types/entity-type/person/",
+          "version": "1"
+        }
+      ],
+      "property_metadata": {
+        "value": {
+          "https://blockprotocol.org/@alice/types/property-type/age/": {
+            "metadata": {
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/number/": 42.0
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"
+            }
+          },
+          "https://blockprotocol.org/@alice/types/property-type/name/": {
+            "metadata": {
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Bob"
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+            }
+          }
+        }
+      },
+      "provenance": {
+        "edition": {
+          "actorType": "user",
+          "createdById": "<uuid:0>",
+          "origin": {
+            "type": "api"
+          }
+        },
+        "inferred": {
+          "createdAtDecisionTime": "<timestamp>",
+          "createdAtTransactionTime": "<timestamp>",
+          "createdById": "<uuid:0>",
+          "firstNonDraftCreatedAtDecisionTime": "<timestamp>",
+          "firstNonDraftCreatedAtTransactionTime": "<timestamp>"
+        }
+      },
+      "record_id": {
+        "edition_id": "<uuid:3>",
+        "entity_id": {
+          "draft_id": null,
+          "entity_uuid": "<uuid:4>",
+          "web_id": "<uuid:0>"
+        }
+      },
+      "temporal_versioning": {
+        "decision_time": {
+          "end": null,
+          "start": <timestamp>
+        },
+        "transaction_time": {
+          "end": null,
+          "start": <timestamp>
+        }
+      }
+    },
+    "properties": {
+      "https://blockprotocol.org/@alice/types/property-type/age/": 42.0,
+      "https://blockprotocol.org/@alice/types/property-type/name/": "Bob"
+    }
+  },
+  {
+    "link_data": null,
+    "metadata": {
+      "archived": false,
+      "confidence": null,
+      "entity_type_ids": [
+        {
+          "base_url": "https://blockprotocol.org/@alice/types/entity-type/organization/",
+          "version": "1"
+        }
+      ],
+      "property_metadata": {
+        "value": {
+          "https://blockprotocol.org/@alice/types/property-type/name/": {
+            "metadata": {
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "HASH, Ltd"
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+            }
+          }
+        }
+      },
+      "provenance": {
+        "edition": {
+          "actorType": "user",
+          "createdById": "<uuid:0>",
+          "origin": {
+            "type": "api"
+          }
+        },
+        "inferred": {
+          "createdAtDecisionTime": "<timestamp>",
+          "createdAtTransactionTime": "<timestamp>",
+          "createdById": "<uuid:0>",
+          "firstNonDraftCreatedAtDecisionTime": "<timestamp>",
+          "firstNonDraftCreatedAtTransactionTime": "<timestamp>"
+        }
+      },
+      "record_id": {
+        "edition_id": "<uuid:5>",
+        "entity_id": {
+          "draft_id": null,
+          "entity_uuid": "<uuid:6>",
+          "web_id": "<uuid:0>"
+        }
+      },
+      "temporal_versioning": {
+        "decision_time": {
+          "end": null,
+          "start": <timestamp>
+        },
+        "transaction_time": {
+          "end": null,
+          "start": <timestamp>
+        }
+      }
+    },
+    "properties": {
+      "https://blockprotocol.org/@alice/types/property-type/name/": "HASH, Ltd"
+    }
+  },
+  {
+    "link_data": null,
+    "metadata": {
+      "archived": false,
+      "confidence": null,
+      "entity_type_ids": [
+        {
+          "base_url": "https://blockprotocol.org/@alice/types/entity-type/person/",
+          "version": "1"
+        }
+      ],
+      "property_metadata": {
+        "value": {
+          "https://blockprotocol.org/@alice/types/property-type/name/": {
+            "metadata": {
+              "canonical": {
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/": "Alice"
+              },
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "originalDataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+            }
+          }
+        }
+      },
+      "provenance": {
+        "edition": {
+          "actorType": "user",
+          "createdById": "<uuid:0>",
+          "origin": {
+            "type": "api"
+          }
+        },
+        "inferred": {
+          "createdAtDecisionTime": "<timestamp>",
+          "createdAtTransactionTime": "<timestamp>",
+          "createdById": "<uuid:0>"
+        }
+      },
+      "record_id": {
+        "edition_id": "<uuid:7>",
+        "entity_id": {
+          "draft_id": "<uuid:8>",
+          "entity_uuid": "<uuid:9>",
+          "web_id": "<uuid:0>"
+        }
+      },
+      "temporal_versioning": {
+        "decision_time": {
+          "end": null,
+          "start": <timestamp>
+        },
+        "transaction_time": {
+          "end": null,
+          "start": <timestamp>
+        }
+      }
+    },
+    "properties": {
+      "https://blockprotocol.org/@alice/types/property-type/name/": "Alice"
+    }
+  }
+]
+---
+query executed: body 5, block bb0
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter accepted: body 4
+row accepted
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter accepted: body 4
+row accepted
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter accepted: body 4
+row accepted
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter accepted: body 4
+row accepted
+row received
+filter started: body 4
+island entered: body 4, island 0, target interpreter
+filter rejected: body 4
+row rejected

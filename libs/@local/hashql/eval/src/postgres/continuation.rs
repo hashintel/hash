@@ -45,6 +45,32 @@ impl ContinuationAlias {
     }
 }
 
+/// Continuation fields returned to the bridge in the `SELECT` list.
+///
+/// A subset of `ContinuationColumn` that excludes internal-only columns
+/// (`Entry` and `Filter`).
+/// Each variant corresponds to a column the bridge must decode to reconstruct
+/// island exit control flow and live-out locals.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum ContinuationField {
+    /// The target basic block id for island exits.
+    Block,
+    /// Array of local ids being transferred on island exit.
+    Locals,
+    /// Array of jsonb values corresponding to [`Self::Locals`].
+    Values,
+}
+
+impl From<ContinuationField> for ContinuationColumn {
+    fn from(value: ContinuationField) -> Self {
+        match value {
+            ContinuationField::Block => Self::Block,
+            ContinuationField::Locals => Self::Locals,
+            ContinuationField::Values => Self::Values,
+        }
+    }
+}
+
 /// All column names used within the continuation LATERAL subquery and the
 /// `continuation` composite type.
 ///
