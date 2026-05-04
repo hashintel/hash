@@ -21,7 +21,6 @@
     get_mut_unchecked,
     iter_array_chunks,
     iter_collect_into,
-    likely_unlikely,
     maybe_uninit_fill,
     maybe_uninit_uninit_array_transpose,
     option_into_flat_iter,
