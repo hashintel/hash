@@ -25,4 +25,8 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
 }
 ==================== Island (entry: bb0, target: postgres) =====================
 
-(ROW(COALESCE(((($1::jsonb))::boolean), FALSE), NULL, NULL, NULL)::continuation)
+(
+    ROW(
+        COALESCE(((($1::jsonb))::boolean), FALSE), NULL, NULL, NULL
+    )::continuation
+)

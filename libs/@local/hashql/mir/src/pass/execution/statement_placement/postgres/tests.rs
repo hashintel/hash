@@ -82,7 +82,7 @@ fn binary_unary_ops_supported() {
             y = load 20;
             sum = bin.+ x y;
             cond = bin.> sum 15;
-            neg_cond = un.! cond;
+            neg_cond = un.~ cond;
             return neg_cond;
         }
     });

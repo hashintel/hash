@@ -257,7 +257,7 @@ fn const_fold_unary_not() {
         decl result: Bool;
 
         bb0() {
-            result = un.! true;
+            result = un.~ true;
             return result;
         }
     });

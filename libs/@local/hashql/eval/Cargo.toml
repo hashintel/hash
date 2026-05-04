@@ -46,6 +46,8 @@ insta                          = { workspace = true }
 libtest-mimic                  = { workspace = true }
 regex                          = { workspace = true }
 similar-asserts                = { workspace = true }
+sqruff-lib                     = "0.37.3"
+sqruff-lib-core                = "0.37.3"
 testcontainers                 = { workspace = true, features = ["reusable-containers"] }
 testcontainers-modules         = { workspace = true, features = ["postgres"] }
 

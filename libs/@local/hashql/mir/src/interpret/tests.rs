@@ -508,7 +508,7 @@ fn unary_not_true() {
         decl result: Bool;
 
         bb0() {
-            result = un.! true;
+            result = un.~ true;
             return result;
         }
     });
@@ -527,7 +527,7 @@ fn unary_not_false() {
         decl result: Bool;
 
         bb0() {
-            result = un.! false;
+            result = un.~ false;
             return result;
         }
     });
@@ -881,7 +881,7 @@ fn nested_function_calls() {
         decl x: Bool, result: Bool;
 
         bb0() {
-            result = un.! x;
+            result = un.~ x;
             return result;
         }
     });
@@ -1430,26 +1430,6 @@ fn ice_binary_bitor_type_mismatch() {
     });
 
     let result = run_body(body).expect_err("should fail with binary bitor type mismatch");
-    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
-}
-
-#[test]
-fn ice_unary_not_type_mismatch() {
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
-    let body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, result: Int;
-
-        bb0() {
-            x = load 42;
-            result = un.! x;
-            return result;
-        }
-    });
-
-    let result = run_body(body).expect_err("should fail with unary not type mismatch");
     assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
 }
 

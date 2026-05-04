@@ -36,6 +36,8 @@ use hashql_mir::{
     pretty::TextFormatOptions,
 };
 use insta::{Settings, assert_snapshot};
+use sqruff_lib::core::{config::FluffConfig, linter::core::Linter};
+use sqruff_lib_core::dialects::init::DialectKind;
 
 use crate::{
     context::EvalContext,
@@ -179,6 +181,13 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
 
     let mut island_reports = Vec::new();
 
+    let mut linter_config = FluffConfig::default();
+    linter_config
+        .override_dialect(DialectKind::Postgres)
+        .expect("dialect should be loaded");
+    let linter = Linter::new(linter_config, None, None, false).expect("linter should be created");
+
+    #[expect(clippy::string_slice, reason = "Known to be valid codepoints")]
     for (island_id, entry_block) in postgres_islands {
         let island = &residual.islands[island_id];
 
@@ -195,10 +204,21 @@ fn compile_filter_islands<'heap>(fixture: &Fixture<'heap>, heap: &'heap Heap) ->
 
         let sql = expression.transpile_to_string();
 
+        let linted = linter
+            .lint_string(&format!("SELECT {sql}"), None, true)
+            .expect("should be valid SQL");
+
+        let fixed = linted.fix_string();
+        let fixed: String = fixed[7..]
+            .lines()
+            .map(|line| &line[4..])
+            .intersperse("\n")
+            .collect();
+
         island_reports.push(FilterIslandReport {
             entry_block,
             target: island.target(),
-            sql,
+            sql: fixed,
         });
     }
 
@@ -294,12 +314,22 @@ fn compile_full_query_with_mask<'heap>(
         "unexpected diagnostics from full compilation",
     );
 
+    let mut linter_config = FluffConfig::default();
+    linter_config
+        .override_dialect(DialectKind::Postgres)
+        .expect("dialect should be loaded");
+    let linter = Linter::new(linter_config, None, None, false).expect("linter should be created");
+
     let sql = prepared_query.transpile().to_string();
+    let linted = linter
+        .lint_string(&sql, None, true)
+        .expect("should be valid SQL");
+
     let parameters = format!("{}", prepared_query.parameters);
 
     QueryReport {
         body: format_body(fixture, heap),
-        sql,
+        sql: linted.fix_string(),
         parameters,
     }
 }
@@ -950,7 +980,7 @@ fn unary_not() {
 
         bb0() {
             x = input.load! "val";
-            result = un.! x;
+            result = un.~ x;
             return result;
         }
     });
@@ -1053,7 +1083,7 @@ fn temporal_decision_time_interval() {
     assert_snapshot!("temporal_decision_time_interval", report.to_string());
 }
 
-/// `BinOp::BitAnd` → `BinaryOperator::BitwiseAnd` with `::bigint` casts on both operands.
+/// `BinOp::BitAnd` on integers → `BinaryOperator::BitwiseAnd` with `::bigint` casts.
 #[test]
 fn binary_bitand_bigint_cast() {
     let heap = Heap::new();
@@ -1078,4 +1108,85 @@ fn binary_bitand_bigint_cast() {
     let settings = snapshot_settings();
     let _guard = settings.bind_to_scope();
     assert_snapshot!("binary_bitand_bigint_cast", report.to_string());
+}
+
+/// `BinOp::BitAnd` on booleans → `VariadicOperator::And` with `::boolean` casts.
+#[test]
+fn binary_bitand_boolean_and() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             x: Bool, y: Bool, result: Bool;
+
+        bb0() {
+            x = input.load! "a";
+            y = input.load! "b";
+            result = bin.& x y;
+            return result;
+        }
+    });
+
+    let fixture = Fixture::new(&heap, env, body);
+    let report = compile_filter_islands(&fixture, &heap);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("binary_bitand_boolean_and", report.to_string());
+}
+
+/// `BinOp::BitOr` on integers → `BinaryOperator::BitwiseOr` with `::bigint` casts.
+#[test]
+fn binary_bitor_bigint_cast() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             x: Int, y: Int, result: Int;
+
+        bb0() {
+            x = input.load! "a";
+            y = input.load! "b";
+            result = bin.| x y;
+            return result;
+        }
+    });
+
+    let fixture = Fixture::new(&heap, env, body);
+    let report = compile_filter_islands(&fixture, &heap);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("binary_bitor_bigint_cast", report.to_string());
+}
+
+/// `BinOp::BitOr` on booleans → `VariadicOperator::Or` with `::boolean` casts.
+#[test]
+fn binary_bitor_boolean_or() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?],
+             x: Bool, y: Bool, result: Bool;
+
+        bb0() {
+            x = input.load! "a";
+            y = input.load! "b";
+            result = bin.| x y;
+            return result;
+        }
+    });
+
+    let fixture = Fixture::new(&heap, env, body);
+    let report = compile_filter_islands(&fixture, &heap);
+
+    let settings = snapshot_settings();
+    let _guard = settings.bind_to_scope();
+    assert_snapshot!("binary_bitor_boolean_or", report.to_string());
 }
