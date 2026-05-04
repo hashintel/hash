@@ -335,7 +335,7 @@ async fn read_package_json(path: &Utf8Path) -> Result<PackageJson, Report<SyncTu
     match fs::read_to_string(path).await {
         Ok(contents) => serde_json::from_str(&contents)
             .change_context_lazy(|| SyncTurborepoError::ParseFile(path.to_owned())),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+        Err(err) if err.kind() == core::io::ErrorKind::NotFound => {
             tracing::info!("package.json does not exist at {path}, creating new one");
             Ok(PackageJson::default())
         }
@@ -461,7 +461,7 @@ async fn write_package_json_if_changed(
             return Ok(());
         }
         Ok(_) => {}
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Err(err) if err.kind() == core::io::ErrorKind::NotFound => {}
         Err(err) => {
             tracing::warn!("Failed to read {path} for change detection, overwriting: {err}");
         }

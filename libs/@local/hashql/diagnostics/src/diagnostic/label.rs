@@ -298,7 +298,7 @@ impl<S> Labels<S> {
     }
 
     #[cfg(feature = "render")]
-    pub(crate) fn as_slice(&self) -> &[Label<S>] {
+    pub(crate) const fn as_slice(&self) -> &[Label<S>] {
         &self.labels
     }
 
