@@ -155,7 +155,11 @@ The 17 external consumers (`monaco/*`, `views/Editor/**`, `petrinaut.tsx`) updat
 - subscribing to diagnostics via `useStore(client.diagnostics)`,
 - republishing through the existing `LanguageClientContext` shape so `/ui` and `monaco/` consumers don't change.
 
-**Public exports — known issue.** The dts bundler (`rolldown-plugin-dts`) emits "Duplicated export" errors for `vscode-languageserver-types` symbols (`DocumentUri`, `Position`, …) when `core/lsp` is re-exported from `main.ts` alongside the existing UI tree (which already pulls in `react/lsp` transitively). Workaround: LSP exports are **not** added to `main.ts` for now. The handle and types remain accessible via `@hashintel/petrinaut/core/lsp` once Phase 5 ships entry-point splitting; until then, internal code uses the subpath. Real fix is either making `core/lsp/worker/protocol.ts` not re-export upstream types (consumers import directly from `vscode-languageserver-types`), or configuring the dts bundler to dedupe — out of scope for this commit.
+**Public exports — known issue.** The dts bundler (`rolldown-plugin-dts`) emits "Duplicated export" errors for `vscode-languageserver-types` symbols (`DocumentUri`, `Position`, …) whenever those types are reachable through more than one path in the dependency graph. Tracked upstream as [sxzz/rolldown-plugin-dts#209](https://github.com/sxzz/rolldown-plugin-dts/issues/209) — open since 2026-03-19, no fix shipped.
+
+We removed `core/lsp/worker/protocol.ts`'s re-exports of upstream types (consumers now import directly from `vscode-languageserver-types`) — that's a clean-up regardless, but it is **not enough on its own** to fix the dts duplication, because the upstream types are still imported by both `core/lsp/language-client.ts` and `react/lsp/context.ts`, and both sit in `main.ts`'s dependency graph.
+
+LSP exports therefore remain absent from `main.ts`. Phase 5's per-entry bundling resolves this naturally: when `/core` becomes its own bundle, the upstream types only show up once in its dts.
 
 ### Phase 2b — `<SimulationProvider>` swap (done)
 

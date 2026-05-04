@@ -1,6 +1,5 @@
 import { use } from "react";
-
-import type { Diagnostic, DocumentUri } from "../../core/lsp/worker/protocol";
+import type { Diagnostic, DocumentUri } from "vscode-languageserver-types";
 import {
   LanguageClientContext,
   type LanguageClientContextValue,

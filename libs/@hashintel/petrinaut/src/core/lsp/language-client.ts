@@ -1,15 +1,12 @@
 import type {
-  ClientMessage,
   CompletionList,
   Diagnostic,
   DocumentUri,
   Hover,
-  MetricSessionParams,
   Position,
-  PublishDiagnosticsParams,
-  ScenarioSessionParams,
   SignatureHelp,
-} from "./worker/protocol";
+} from "vscode-languageserver-types";
+
 import type { ReadableStore } from "../handle";
 import type { SDCPN } from "../types/sdcpn";
 import {
@@ -17,6 +14,12 @@ import {
   type LspTransport,
   type LspWorkerFactory,
 } from "./transport";
+import type {
+  ClientMessage,
+  MetricSessionParams,
+  PublishDiagnosticsParams,
+  ScenarioSessionParams,
+} from "./worker/protocol";
 
 export type DiagnosticsSnapshot = {
   byUri: Map<DocumentUri, Diagnostic[]>;

@@ -45,31 +45,21 @@ Selection, current mode, panel layout, user settings — does any of this belong
 
 **Decided / superseded.** Simulation is now decoupled from the `Petrinaut` instance entirely — the question of "eager vs lazy spin-up on the instance" no longer applies. `createSimulation` is its own top-level function; consumers who don't need simulation never call it. See [05-simulation.md](./05-simulation.md) §5.1.
 
-## Q7. Notifications
+## Q7. ~~Notifications~~
 
-Are notifications part of core's output (semantic events the UI renders as toasts) or do they stay react-only?
+**Decided.** Notifications are core-output: semantic events on an `EventStream<Notification>`, rendered by `/ui` as toasts. Today's React-side `<NotificationsProvider>` will move to a thin bridge in Phase 3b once `<PetrinautProvider>` mounts the bridge stack from a Core instance.
 
-- **Recommendation:** core-output. Notifications are *what happened*; rendering them as toasts is a UI choice.
-- **Status:** open, but low risk.
+## Q8. ~~Error tracker~~
 
-## Q8. Error tracker
+**Removed for now.** The `ErrorTrackerContext` was published by the demo site but nothing inside the package consumed it — dead scaffolding. Left in place pending a real consumer (e.g. Core surfacing simulation/LSP worker exceptions through a host-provided tracker). When reintroduced, the interface lives in `/core` (pure) and the React Context lives in `/react`. See conversation thread in commit history for the rationale.
 
-Stays as a passed-in interface (`{ captureException, ... }`); core uses it directly, react keeps its existing context for UI components that want it.
+## Q9. ~~Package shape~~
 
-- **Status:** effectively decided — confirm and strike.
+**Decided.** One package with an `exports` map: `./core`, `./react`, `./ui`, plus the worker sub-entry `./core/simulation.worker`. Per-entry externals declared via the build's `external` config so `/core` consumers don't transitively pull React, Monaco, or `@xyflow/react`. To be implemented in Phase 5.
 
-## Q9. Package shape
+## Q10. ~~Examples & file-format purity~~
 
-One package with three entry points (`exports` map: `./core`, `./react`, `./ui`) vs three packages.
-
-- **Recommendation:** one package, `exports` map, with each entry's externals declared via the build's `external` config so `/core` consumers don't transitively pull React or Monaco.
-- **Status:** effectively decided — confirm and strike.
-
-## Q10. Examples & file-format purity
-
-Confirm `import-sdcpn` is fully pure (no implicit DOM use); confirm examples don't transitively import UI helpers.
-
-- **Status:** verification task during Phase 1, not a design choice.
+**Decided.** Verification task — not a design question. Will be performed during Phase 5 when the `/core` bundle is split out: any DOM / React import inside `/core/` files will fail the build's externals check. `examples/`, `validation/`, `lib/deep-equal.ts`, `clipboard/serialize.ts`, `clipboard/paste.ts`, `file-format/import-sdcpn.ts` are the candidates to grep for `react`, `document`, `window` imports.
 
 ---
 

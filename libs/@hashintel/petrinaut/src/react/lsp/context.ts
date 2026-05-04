@@ -1,14 +1,16 @@
 import { createContext } from "react";
-
 import type {
   CompletionList,
   Diagnostic,
   DocumentUri,
   Hover,
-  MetricSessionParams,
   Position,
-  ScenarioSessionParams,
   SignatureHelp,
+} from "vscode-languageserver-types";
+
+import type {
+  MetricSessionParams,
+  ScenarioSessionParams,
 } from "../../core/lsp/worker/protocol";
 
 export interface LanguageClientContextValue {

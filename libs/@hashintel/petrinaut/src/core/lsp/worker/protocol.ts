@@ -7,31 +7,22 @@
  *
  * Custom extensions:
  * - `sdcpn/didChange` for structural model changes (not per-document).
+ *
+ * Note: this module deliberately does **not** re-export upstream LSP types
+ * (`Diagnostic`, `Position`, `Hover`, …). Consumers import them directly from
+ * `vscode-languageserver-types`. Re-exporting them broke the `rolldown-plugin-dts`
+ * bundler with duplicate-export errors when both `/core/lsp` and `/react/lsp`
+ * appeared in the dts graph (upstream issue
+ * [sxzz/rolldown-plugin-dts#209](https://github.com/sxzz/rolldown-plugin-dts/issues/209)).
  */
 import type {
-  CompletionItem,
-  CompletionList,
   Diagnostic,
   DocumentUri,
-  Hover,
   Position,
-  SignatureHelp,
   TextDocumentIdentifier,
 } from "vscode-languageserver-types";
 
 import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
-
-// Re-export LSP types used by consumers
-export type {
-  CompletionItem,
-  CompletionList,
-  Diagnostic,
-  DocumentUri,
-  Hover,
-  Position,
-  SignatureHelp,
-  TextDocumentIdentifier,
-};
 
 /**
  * Parameters for `textDocument/publishDiagnostics` notification.
