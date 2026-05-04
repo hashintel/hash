@@ -1,0 +1,26 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inst_simplify/tests.rs
+assertion_line: 78
+expression: value
+---
+fn {closure@4294967040}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = true == 1
+
+        return %0
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = false
+
+        return %0
+    }
+}

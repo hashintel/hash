@@ -351,6 +351,17 @@ pub enum RuntimeError<'heap, E, A: Allocator> {
         limit: usize,
     },
 
+    /// Integer arithmetic overflowed the supported range.
+    ///
+    /// This is a user-facing error caused by an implementation limitation:
+    /// the interpreter uses 128-bit integers, but the language specifies
+    /// arbitrary-precision integers. Operations that produce results outside
+    /// the `i128` range fail here.
+    IntegerOverflow {
+        /// Description of the operation that overflowed (e.g., "addition").
+        operation: &'static str,
+    },
+
     /// Value has the wrong runtime type.
     ///
     /// This is an ICE: type checking should ensure values have the
@@ -423,6 +434,7 @@ impl<E, A: Allocator> RuntimeError<'_, E, A> {
             Self::OutOfRange { length, index } => out_of_range(span, length, index),
             Self::InputNotFound { name } => input_not_found(span, name),
             Self::RecursionLimitExceeded { limit } => recursion_limit_exceeded(span, limit),
+            Self::IntegerOverflow { operation } => integer_overflow(span, operation),
             Self::UnexpectedValueType { expected, actual } => {
                 unexpected_value_type(span, &expected, &actual)
             }
@@ -474,6 +486,7 @@ impl<'heap, A: Allocator> RuntimeError<'heap, !, A> {
             Self::RecursionLimitExceeded { limit } => {
                 RuntimeError::RecursionLimitExceeded { limit }
             }
+            Self::IntegerOverflow { operation } => RuntimeError::IntegerOverflow { operation },
             Self::UnexpectedValueType { expected, actual } => {
                 RuntimeError::UnexpectedValueType { expected, actual }
             }
@@ -804,6 +817,22 @@ fn recursion_limit_exceeded(span: SpanId, limit: usize) -> InterpretDiagnostic {
 
     diagnostic.add_message(Message::help(
         "consider refactoring to reduce recursion depth or increasing the limit",
+    ));
+
+    diagnostic
+}
+
+fn integer_overflow(span: SpanId, operation: &str) -> InterpretDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(InterpretDiagnosticCategory::RuntimeLimit, Severity::Error).primary(
+            Label::new(
+                span,
+                format!("integer {operation} produced a result outside the supported range"),
+            ),
+        );
+
+    diagnostic.add_message(Message::note(
+        "the interpreter currently supports integers up to 128 bits",
     ));
 
     diagnostic

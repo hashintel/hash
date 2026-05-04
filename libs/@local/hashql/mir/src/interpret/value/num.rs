@@ -11,20 +11,6 @@ use hashql_core::value::Float;
 use super::Int;
 use crate::macros::{forward_ref_binop, forward_ref_unop};
 
-/// A numeric value, either a floating-point number or an integer.
-///
-/// This is a subset of [`Value`] that encompasses all numeric variants, providing
-/// a unified type for operations that accept any numeric value.
-///
-/// [`Value`]: super::Value
-#[derive(Debug, Copy, Clone)]
-pub enum Numeric {
-    /// A floating-point number with total ordering semantics.
-    Num(Num),
-    /// An arbitrary-precision integer.
-    Int(Int),
-}
-
 /// A floating-point number value with total ordering semantics.
 ///
 /// Wraps an [`f64`] and implements [`Ord`] using [`f64::total_cmp`], which follows
@@ -136,14 +122,16 @@ impl PartialEq for Num {
 impl PartialEq<Int> for Num {
     #[inline]
     fn eq(&self, other: &Int) -> bool {
-        self.cmp_int(other) == cmp::Ordering::Equal
+        // Booleans and floating-point numbers are distinct types.
+        !other.is_bool() && self.cmp_int(other) == cmp::Ordering::Equal
     }
 }
 
 impl PartialEq<Num> for Int {
     #[inline]
     fn eq(&self, other: &Num) -> bool {
-        other.cmp_int(self) == cmp::Ordering::Equal
+        // Booleans and floating-point numbers are distinct types.
+        !self.is_bool() && other.cmp_int(self) == cmp::Ordering::Equal
     }
 }
 
@@ -159,6 +147,10 @@ impl PartialOrd for Num {
 impl PartialOrd<Int> for Num {
     #[inline]
     fn partial_cmp(&self, other: &Int) -> Option<cmp::Ordering> {
+        // Booleans and floating-point numbers are not orderable.
+        if other.is_bool() {
+            return None;
+        }
         Some(self.cmp_int(other))
     }
 }
@@ -166,6 +158,10 @@ impl PartialOrd<Int> for Num {
 impl PartialOrd<Num> for Int {
     #[inline]
     fn partial_cmp(&self, other: &Num) -> Option<cmp::Ordering> {
+        // Booleans and floating-point numbers are not orderable.
+        if self.is_bool() {
+            return None;
+        }
         Some(other.cmp_int(self).reverse())
     }
 }

@@ -258,8 +258,8 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             BinOp::BitAnd => return Some(lhs & rhs),
             BinOp::BitOr => return Some(lhs | rhs),
             // Comparisons produce booleans
-            BinOp::Eq => lhs.as_int() == rhs.as_int(),
-            BinOp::Ne => lhs.as_int() != rhs.as_int(),
+            BinOp::Eq => lhs == rhs,
+            BinOp::Ne => lhs != rhs,
             BinOp::Lt => lhs.as_int() < rhs.as_int(),
             BinOp::Lte => lhs.as_int() <= rhs.as_int(),
             BinOp::Gt => lhs.as_int() > rhs.as_int(),
@@ -270,10 +270,12 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
     }
 
     /// Evaluates a unary operation on a constant integer.
-    fn eval_un_op(op: UnOp, operand: Int) -> Int {
+    ///
+    /// Returns `None` if the operation overflows (only possible for negation of `i128::MIN`).
+    fn eval_un_op(op: UnOp, operand: Int) -> Option<Int> {
         match op {
-            UnOp::BitNot => !operand,
-            UnOp::Neg => Int::from(-operand.as_int()),
+            UnOp::BitNot => Some(!operand),
+            UnOp::Neg => operand.checked_neg(),
         }
     }
 
@@ -510,8 +512,9 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
         _: Location,
         Unary { op, operand }: &mut Unary<'heap>,
     ) -> Self::Result<()> {
-        if let OperandKind::Int(value) = self.try_eval(*operand) {
-            let result = Self::eval_un_op(*op, value);
+        if let OperandKind::Int(value) = self.try_eval(*operand)
+            && let Some(result) = Self::eval_un_op(*op, value)
+        {
             self.trampoline = Some(RValue::Load(Operand::Constant(Constant::Int(result))));
         }
 
