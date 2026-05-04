@@ -289,6 +289,7 @@ mod test {
         empty_comment("42\n//\n42") => "Empty comment should be skipped",
         comment_json_inside(r#"//"{"key": "value"}""#) => "JSON inside comment",
         comment_no_space_between("//abc") => "JSON inside comment without space",
+        consecutive_comments("// first\n// second\n42") => "Multiple consecutive line comments",
 
         // Multi line comments
         preceded_multiline_comment("/* This is a multi-line comment */42") => "Simple multi-line comment should be skipped",

@@ -3927,6 +3927,7 @@ dependencies = [
  "insta",
  "jsonptr",
  "logos",
+ "memchr",
  "rstest",
  "serde",
  "serde_json",

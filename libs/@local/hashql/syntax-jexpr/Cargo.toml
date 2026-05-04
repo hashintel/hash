@@ -22,6 +22,7 @@ text-size = { workspace = true, public = true }
 circular-buffer       = { workspace = true }
 hifijson              = { workspace = true, features = ["alloc"] }
 logos                 = { workspace = true, features = ["export_derive"] }
+memchr                = { workspace = true }
 simple-mermaid        = { workspace = true }
 unicode-ident         = { workspace = true }
 unicode-normalization = { workspace = true }
