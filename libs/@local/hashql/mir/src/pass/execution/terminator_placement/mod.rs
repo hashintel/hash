@@ -393,12 +393,8 @@ impl PopulateEdgeMatrix {
         terminator: &TerminatorKind,
     ) {
         match terminator {
-            TerminatorKind::Goto(_) => {
+            TerminatorKind::Goto(_) | TerminatorKind::SwitchInt(_) => {
                 self.add_goto_transitions(matrix);
-            }
-            TerminatorKind::SwitchInt(_) => {
-                // SwitchInt does not allow additional cross-backend transitions
-                // due to complexity of coordinating branches across backends.
             }
             TerminatorKind::GraphRead(_) => {
                 self.restrict_to_interpreter_only(matrix);
