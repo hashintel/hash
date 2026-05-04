@@ -6,7 +6,7 @@ import {
   type SignatureHelp,
 } from "vscode-languageserver-types";
 
-import { LanguageClientContext } from "../lsp/context";
+import { LanguageClientContext } from "../react/lsp/context";
 import { MonacoContext } from "./context";
 
 /** Extract documentation string from LSP MarkupContent or plain string. */

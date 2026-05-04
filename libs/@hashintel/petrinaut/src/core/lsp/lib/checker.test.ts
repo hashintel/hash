@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { SDCPN } from "../../core/types/sdcpn";
+import type { SDCPN } from "../../types/sdcpn";
 import { checkSDCPN } from "./checker";
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { createSDCPN } from "./helper/create-sdcpn";

@@ -79,6 +79,38 @@ Files added:
 
 Public exports added in `main.ts`: `createSimulation`, `createWorkerTransport`, plus the `Simulation*` types, `CreateSimulationConfig`, `SimulationTransport`, and `WorkerFactory`.
 
+### Phase 2c — LSP transport + LanguageClient (done)
+
+Same shape as 2a/2b, applied to the language-server worker:
+
+- `src/core/lsp/transport.ts` — `LspTransport` interface + `createWorkerLspTransport(createWorker)`. Async-factory friendly with message queueing.
+- `src/core/lsp/language-client.ts` — `createLanguageClient(config)` returning a `LanguageClient` handle: `diagnostics: ReadableStore<{ byUri, total }>`, fire-and-forget notifications (`initialize`, `notifySDCPNChanged`, `notifyDocumentChanged`, scenario / metric session methods), promise-returning RPCs (`requestCompletion`, `requestHover`, `requestSignatureHelp`), `dispose()`.
+- `src/core/lsp/index.ts` — barrel.
+
+`LanguageClient` methods are typed with `this: void` so consumers can pass them as references without `unbound-method` complaints. Worth retrofitting onto `Petrinaut` and `Simulation` in a follow-up; see [06-react-bindings.md](./06-react-bindings.md) §6.3 "Note".
+
+Phase 1 simulation pattern repeated for LSP:
+
+- `src/lsp/lib/` → `src/core/lsp/lib/` (checker, language-service host, virtual-files, document-URIs, position-utils, ts-to-lsp, helper/)
+- `src/lsp/worker/language-server.worker.ts` → `src/core/lsp/worker/`
+- `src/lsp/worker/protocol.ts` → `src/core/lsp/worker/`
+- `src/lsp/provider.tsx` → `src/react/lsp/` (rewritten to call `createLanguageClient`)
+- `src/lsp/context.ts` → `src/react/lsp/`
+- `src/lsp/worker/use-language-client.ts` — **deleted.** Replaced by `createLanguageClient`.
+- `src/lsp/` directory removed.
+
+The 17 external consumers (`monaco/*`, `views/Editor/**`, `petrinaut.tsx`) updated to the new paths via sed.
+
+`<LanguageClientProvider>` rewritten to use `useState` lazy-init for the client (React Compiler rejects ref writes during render). It still owns:
+
+- creating the worker via the existing `?worker&inline` import,
+- calling `client.initialize(sdcpn)` on first mount,
+- calling `client.notifySDCPNChanged(sdcpn)` on every subsequent SDCPN change,
+- subscribing to diagnostics via `useStore(client.diagnostics)`,
+- republishing through the existing `LanguageClientContext` shape so `/ui` and `monaco/` consumers don't change.
+
+**Public exports — known issue.** The dts bundler (`rolldown-plugin-dts`) emits "Duplicated export" errors for `vscode-languageserver-types` symbols (`DocumentUri`, `Position`, …) when `core/lsp` is re-exported from `main.ts` alongside the existing UI tree (which already pulls in `react/lsp` transitively). Workaround: LSP exports are **not** added to `main.ts` for now. The handle and types remain accessible via `@hashintel/petrinaut/core/lsp` once Phase 5 ships entry-point splitting; until then, internal code uses the subpath. Real fix is either making `core/lsp/worker/protocol.ts` not re-export upstream types (consumers import directly from `vscode-languageserver-types`), or configuring the dts bundler to dedupe — out of scope for this commit.
+
 ### Phase 2b — `<SimulationProvider>` swap (done)
 
 `src/simulation/provider.tsx` rewritten to call `createSimulation` instead of `useSimulationWorker`. The provider keeps its existing public `SimulationContextValue` shape — `/ui` files (the simulation panel, scenarios UI, etc.) are unchanged. Internally:

@@ -4,7 +4,7 @@ import type { editor as MonacoEditor } from "monaco-editor";
 import { type ReactNode, useRef, useState } from "react";
 
 import type { SDCPN } from "../core/types/sdcpn";
-import { LanguageClientProvider } from "../lsp/provider";
+import { LanguageClientProvider } from "../react/lsp/provider";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { CodeEditor } from "./code-editor";
 import { MonacoProvider } from "./provider";

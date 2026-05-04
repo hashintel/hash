@@ -3,7 +3,7 @@ import { Suspense, use, useEffect } from "react";
 import type { Hover } from "vscode-languageserver-types";
 import { MarkupKind, Position } from "vscode-languageserver-types";
 
-import { LanguageClientContext } from "../lsp/context";
+import { LanguageClientContext } from "../react/lsp/context";
 import { MonacoContext } from "./context";
 
 /** Extract display string from LSP Hover contents. */

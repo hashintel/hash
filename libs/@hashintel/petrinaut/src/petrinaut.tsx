@@ -16,7 +16,7 @@ import type {
   SDCPN,
   Transition,
 } from "./core/types/sdcpn";
-import { LanguageClientProvider } from "./lsp/provider";
+import { LanguageClientProvider } from "./react/lsp/provider";
 import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";

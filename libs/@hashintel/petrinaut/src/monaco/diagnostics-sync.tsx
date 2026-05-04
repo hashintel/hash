@@ -3,7 +3,7 @@ import { Suspense, use, useEffect, useRef } from "react";
 import type { Diagnostic } from "vscode-languageserver-types";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 
-import { LanguageClientContext } from "../lsp/context";
+import { LanguageClientContext } from "../react/lsp/context";
 import { MonacoContext } from "./context";
 
 const OWNER = "checker";

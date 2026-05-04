@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-import type { SDCPN } from "../../core/types/sdcpn";
+import type { SDCPN } from "../../types/sdcpn";
 import {
   createLanguageServiceHost,
   type LanguageServiceHostController,

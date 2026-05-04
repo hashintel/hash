@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { LanguageClientProvider } from "../../../../lsp/provider";
+import { LanguageClientProvider } from "../../../../react/lsp/provider";
 import { MonacoProvider } from "../../../../monaco/provider";
 import {
   SDCPNContext,

@@ -5,7 +5,7 @@ import type {
   Place,
   SDCPN,
   Transition,
-} from "../../../core/types/sdcpn";
+} from "../../../types/sdcpn";
 
 type PartialColor = Omit<Partial<Color>, "elements"> & {
   elements?: Array<Partial<Color["elements"][number]>>;

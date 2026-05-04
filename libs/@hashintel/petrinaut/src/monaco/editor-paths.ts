@@ -7,4 +7,4 @@ export {
   getMetricDocumentUri,
   getScenarioDocumentUri,
   parseDocumentUri,
-} from "../lsp/lib/document-uris";
+} from "../core/lsp/lib/document-uris";

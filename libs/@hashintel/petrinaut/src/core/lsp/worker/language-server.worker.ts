@@ -19,7 +19,7 @@ import {
   type SignatureInformation,
 } from "vscode-languageserver-types";
 
-import type { SDCPN } from "../../core/types/sdcpn";
+import type { SDCPN } from "../../types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";

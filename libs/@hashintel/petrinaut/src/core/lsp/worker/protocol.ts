@@ -19,7 +19,7 @@ import type {
   TextDocumentIdentifier,
 } from "vscode-languageserver-types";
 
-import type { SDCPN, ScenarioParameter } from "../../core/types/sdcpn";
+import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 
 // Re-export LSP types used by consumers
 export type {

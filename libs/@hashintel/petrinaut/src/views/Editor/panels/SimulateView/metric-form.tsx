@@ -4,7 +4,7 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Input } from "../../../../components/input";
 import { Section, SectionList } from "../../../../components/section";
-import { LanguageClientContext } from "../../../../lsp/context";
+import { LanguageClientContext } from "../../../../react/lsp/context";
 import { CodeEditor } from "../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../monaco/editor-paths";
 

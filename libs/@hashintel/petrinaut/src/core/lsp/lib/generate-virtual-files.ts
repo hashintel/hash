@@ -1,4 +1,4 @@
-import type { SDCPN, ScenarioParameter } from "../../core/types/sdcpn";
+import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 import type { VirtualFile } from "./create-language-service-host";
 import { getItemFilePath } from "./file-paths";
 

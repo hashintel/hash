@@ -1,6 +1,6 @@
 # RFC 0001 — Petrinaut: Core / React / UI Split
 
-**Status:** Draft (iterating) — Phase 0 spike + Phase 2a/2b (simulation decoupled into `createSimulation`, `<SimulationProvider>` swapped) + simulation Phase 1 reorg landed
+**Status:** Draft (iterating) — Phase 0 + Phase 2a/2b/2c (simulation + LSP decoupled into `createSimulation` / `createLanguageClient`, providers swapped) + simulation/lsp Phase 1 reorg landed
 **Authors:** @cf
 **Created:** 2026-04-28
 **Last updated:** 2026-05-02
@@ -53,6 +53,7 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
 - Phase 0 spike landed: `createJsonDocHandle` (with history), `createPetrinaut`, `useStore`, `<PetrinautNext>`, two Storybook stories, 15 smoke tests. Demo site (`apps/petrinaut-website`) migrated to the handle-driven path; per-net history preserved across switches. See [08-migration.md](./08-migration.md) Phase 0.
 - Phase 2a landed: `SimulationTransport` interface, `createWorkerTransport(createWorker)`, **`createSimulation(config)`** standalone factory returning a `Simulation` handle (status / frames / events stores, run/pause/reset/ack/setBackpressure/getFrame/dispose actions). Simulation is **decoupled** from the `Petrinaut` instance — it operates on a frozen SDCPN snapshot and the host owns its lifecycle. See [05-simulation.md](./05-simulation.md) §5.1, §5.8.
 - Phase 2b landed: `<SimulationProvider>` swapped to call `createSimulation` directly. Old `useSimulationWorker` hook deleted. The legacy `SimulationContextValue` shape is preserved so `/ui` files don't change. See [08-migration.md](./08-migration.md) "Phase 2b".
+- Phase 2c landed: `LspTransport` interface, `createWorkerLspTransport(createWorker)`, **`createLanguageClient(config)`** standalone factory returning a `LanguageClient` handle (diagnostics store, fire-and-forget notifications, promise-returning RPCs, `dispose`). `<LanguageClientProvider>` swapped to use it; old `useLanguageClient` hook deleted. `LanguageClient` methods carry `this: void` — same retrofit recommended for `Petrinaut` and `Simulation`. LSP files moved into `core/lsp/` + `react/lsp/`. See [08-migration.md](./08-migration.md) "Phase 2c".
 
 ## What this RFC does *not* cover
 

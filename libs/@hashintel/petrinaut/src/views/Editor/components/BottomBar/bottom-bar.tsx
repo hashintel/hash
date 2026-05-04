@@ -3,7 +3,7 @@ import { refractive } from "@hashintel/refractive";
 import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
-import { LanguageClientContext } from "../../../../lsp/context";
+import { LanguageClientContext } from "../../../../react/lsp/context";
 import {
   type CursorMode,
   EditorContext,

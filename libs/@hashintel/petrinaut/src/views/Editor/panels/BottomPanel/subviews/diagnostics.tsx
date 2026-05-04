@@ -5,7 +5,7 @@ import { TbArrowRight } from "react-icons/tb";
 import type { Diagnostic } from "vscode-languageserver-types";
 
 import type { SubView } from "../../../../../components/sub-view/types";
-import { LanguageClientContext } from "../../../../../lsp/context";
+import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";

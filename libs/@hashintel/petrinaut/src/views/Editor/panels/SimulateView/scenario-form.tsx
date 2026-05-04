@@ -16,7 +16,7 @@ import type {
   Place,
   ScenarioParameter,
 } from "../../../../core/types/sdcpn";
-import { LanguageClientContext } from "../../../../lsp/context";
+import { LanguageClientContext } from "../../../../react/lsp/context";
 import { CodeEditor } from "../../../../monaco/code-editor";
 import { getScenarioDocumentUri } from "../../../../monaco/editor-paths";
 import { NumberInput } from "../../../../components/number-input";

@@ -6,7 +6,7 @@ import { Button } from "../../../../components/button";
 import { Drawer } from "../../../../components/drawer";
 import { metricSchema } from "../../../../core/schemas/metric-schema";
 import type { Metric } from "../../../../core/types/sdcpn";
-import { LanguageClientContext } from "../../../../lsp/context";
+import { LanguageClientContext } from "../../../../react/lsp/context";
 import { compileMetric } from "../../../../core/simulation/compile-metric";
 import { MutationContext } from "../../../../state/mutation-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";

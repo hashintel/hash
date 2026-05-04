@@ -9,7 +9,7 @@ import type {
   Position,
   ScenarioSessionParams,
   SignatureHelp,
-} from "./worker/protocol";
+} from "../../core/lsp/worker/protocol";
 
 export interface LanguageClientContextValue {
   /** Per-URI diagnostics pushed from the language server. */
