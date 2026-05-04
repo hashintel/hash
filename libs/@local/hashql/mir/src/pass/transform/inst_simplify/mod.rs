@@ -258,8 +258,8 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             BinOp::BitAnd => return Some(lhs & rhs),
             BinOp::BitOr => return Some(lhs | rhs),
             // Comparisons produce booleans
-            BinOp::Eq => lhs.as_int() == rhs.as_int(),
-            BinOp::Ne => lhs.as_int() != rhs.as_int(),
+            BinOp::Eq => lhs == rhs,
+            BinOp::Ne => lhs != rhs,
             BinOp::Lt => lhs.as_int() < rhs.as_int(),
             BinOp::Lte => lhs.as_int() <= rhs.as_int(),
             BinOp::Gt => lhs.as_int() > rhs.as_int(),

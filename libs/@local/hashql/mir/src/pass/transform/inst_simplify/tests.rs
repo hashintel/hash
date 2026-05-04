@@ -246,6 +246,38 @@ fn const_fold_bit_or() {
     );
 }
 
+/// Tests that `Eq` uses size-aware comparison when folding constants.
+///
+/// `true` and `1` have the same numeric value but different sizes (1 bit vs
+/// 128 bits), so they must compare as not equal. If `Eq` used `as_int()`
+/// instead of the size-aware `==`, this would incorrectly fold to `true`.
+#[test]
+fn const_fold_eq_bool_vs_int() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl result: Bool;
+
+        bb0() {
+            result = bin.== true 1;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "const_fold_eq_bool_vs_int",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests constant folding for unary NOT.
 #[test]
 fn const_fold_unary_not() {
