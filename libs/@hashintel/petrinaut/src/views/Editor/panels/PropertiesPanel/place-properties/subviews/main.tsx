@@ -203,8 +203,8 @@ const PlaceMainContent: React.FC = () => {
           {place.colorId && (
             <div className={jumpButtonContainerStyle}>
               <Button
-                variant="secondary"
-                colorScheme="neutral"
+                variant="subtle"
+                tone="neutral"
                 size="xs"
                 onClick={() => {
                   if (place.colorId) {
@@ -214,7 +214,7 @@ const PlaceMainContent: React.FC = () => {
                     }
                   }
                 }}
-                iconRight={<TbArrowRight />}
+                suffix={<TbArrowRight />}
               >
                 Jump to Type
               </Button>
@@ -292,8 +292,8 @@ const PlaceMainContent: React.FC = () => {
                 {place.differentialEquationId && (
                   <div className={jumpButtonContainerStyle}>
                     <Button
-                      variant="secondary"
-                      colorScheme="neutral"
+                      variant="subtle"
+                      tone="neutral"
                       size="xs"
                       onClick={() => {
                         if (place.differentialEquationId) {
@@ -303,7 +303,7 @@ const PlaceMainContent: React.FC = () => {
                           });
                         }
                       }}
-                      iconRight={<TbArrowRight />}
+                      suffix={<TbArrowRight />}
                     >
                       Jump to Differential Equation
                     </Button>

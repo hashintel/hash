@@ -59,17 +59,12 @@ const CreateScenarioFooter = ({
   return (
     <Drawer.Footer>
       <ScenarioErrorDisplay count={totalErrorCount} firstMessage={firstError} />
-      <Button
-        variant="secondary"
-        colorScheme="neutral"
-        size="sm"
-        onClick={onClose}
-      >
+      <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
         Cancel
       </Button>
       <Button
-        variant="primary"
-        colorScheme="neutral"
+        variant="solid"
+        tone="neutral"
         size="sm"
         disabled={!canSave}
         tooltip={

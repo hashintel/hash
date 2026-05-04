@@ -237,16 +237,16 @@ const DiffEqMainContent: React.FC = () => {
             </div>
             <div className={confirmDialogButtonsStyle}>
               <Button
-                variant="secondary"
-                colorScheme="neutral"
+                variant="subtle"
+                tone="neutral"
                 size="sm"
                 onClick={cancelTypeChange}
               >
                 Cancel
               </Button>
               <Button
-                variant="primary"
-                colorScheme="brand"
+                variant="solid"
+                tone="brand"
                 size="sm"
                 onClick={confirmTypeChange}
               >

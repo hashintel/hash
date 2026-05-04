@@ -1,434 +1,230 @@
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
+/* eslint-disable react/destructuring-assignment, react/button-has-type, @typescript-eslint/prefer-nullish-coalescing */
+import { cx } from "@hashintel/ds-helpers/css";
+import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 
-export interface ButtonProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> {
-  /** The variant style of the button */
-  variant?: "primary" | "secondary" | "ghost" | "error";
-  /** The color scheme of the button */
-  colorScheme?: "brand" | "neutral" | "critical" | "subtle";
-  /** The size of the button */
-  size?: "xs" | "sm" | "md" | "lg";
-  /** Whether the button is in a loading state */
-  isLoading?: boolean;
-  /** Optional icon to display on the left */
-  iconLeft?: ReactNode;
-  /** Optional icon to display on the right */
-  iconRight?: ReactNode;
-  /** Button type */
+import type { FormInputSize } from "../../util/form-shared";
+import { Icon, type IconName } from "../Icon/icon";
+import { LoadingSpinner } from "../Loading/loading-spinner";
+import { styles } from "./button.recipe";
+
+export type Variant = "solid" | "subtle" | "ghost" | "link" | "linkSubtle";
+export type Tone = "neutral" | "brand" | "error"; // success, warning, etc
+
+type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
+  {
+    className?: string;
+    /** The overall style of the button */
+    variant?: Variant;
+    /** Sets the color treatment of the button for destructive actions. */
+    tone?: Tone;
+    /** The size (height) of the button */
+    size?: FormInputSize;
+    /** The shape of the button. Non default shapes should VERY rarely be used */
+    shape?: "default" | "round";
+    /** Whether the button is in a loading state */
+    loading?: boolean;
+    /** Whether the button is in a pressed/active state */
+    pressed?: boolean;
+    disabled?: boolean;
+    tabIndex?: number;
+    onClick?: React.ButtonHTMLAttributes<Element>["onClick"];
+    onMouseDown?: React.ButtonHTMLAttributes<Element>["onMouseDown"];
+    onMouseUp?: React.ButtonHTMLAttributes<Element>["onMouseUp"];
+    onMouseEnter?: React.ButtonHTMLAttributes<Element>["onMouseEnter"];
+    onMouseLeave?: React.ButtonHTMLAttributes<Element>["onMouseLeave"];
+    onKeyDown?: React.ButtonHTMLAttributes<Element>["onKeyDown"];
+    onFocus?: React.ButtonHTMLAttributes<Element>["onFocus"];
+    onBlur?: React.ButtonHTMLAttributes<Element>["onBlur"];
+  } & RequireAtLeastOne<{
+    tooltip?: string;
+    children?: React.ReactNode;
+  }> &
+    React.AriaAttributes;
+
+/** We support 2 apis for button icons, a simple api that maps directly to icon names
+ * or a more customizable api for more complex use cases */
+type ButtonIconProps = ExclusifyUnion<
+  | {
+      /** Optional icon to display */
+      iconName?: IconName;
+      /** Whether the icon should be on the left or right */
+      iconPosition?: "left" | "right";
+    }
+  | {
+      /** Optional element to include at the beginning of a button */
+      prefix?: React.ReactNode;
+      /** Optional element to include at the end of a button */
+      suffix?: React.ReactNode;
+    }
+>;
+
+type ButtonElementOnlyProps = {
+  /** Button type - defaults to "button" */
   type?: "button" | "submit" | "reset";
-}
+  href?: never;
+  target?: never;
+  download?: never;
+  ref?: React.Ref<HTMLButtonElement>;
+} & RequireAtLeastOne<{
+  onClick: React.ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
+  type: "submit" | "reset";
+}>;
 
-const LoadingSpinner = () => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={css({
-      animation: "spin 1s linear infinite",
-    })}
-  >
-    <path
-      d="M8 1.5V4.5M8 11.5V14.5M14.5 8H11.5M4.5 8H1.5M12.803 12.803L10.682 10.682M5.318 5.318L3.197 3.197M12.803 3.197L10.682 5.318M5.318 10.682L3.197 12.803"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+export type AnchorElementOnlyProps = {
+  href: string;
+  target?: "_blank";
+  download?: boolean;
+  type?: never;
+  ref?: React.Ref<HTMLAnchorElement>;
+};
 
-const buttonRecipe = cva({
-  base: {
-    position: "relative",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontFamily: "body",
-    fontWeight: "medium",
-    lineHeight: "none",
-    cursor: "pointer",
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-    _disabled: {
-      cursor: "not-allowed",
-      opacity: 0.4,
-    },
-  },
-  variants: {
-    variant: {
-      primary: {},
-      secondary: {},
-      ghost: {
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: "[transparent]",
-      },
-      error: {},
-    },
-    colorScheme: {
-      brand: {},
-      neutral: {},
-      critical: {},
-      subtle: {},
-    },
-    size: {
-      xs: {
-        height: "6",
-        paddingX: "2",
-        paddingY: "1.5",
-        fontSize: "xs",
-        borderRadius: "md",
-      },
-      sm: {
-        height: "7",
-        paddingX: "2",
-        paddingY: "1.5",
-        fontSize: "sm",
-        borderRadius: "lg",
-      },
-      md: {
-        height: "8",
-        paddingX: "2.5",
-        paddingY: "2",
-        fontSize: "sm",
-        borderRadius: "lg",
-      },
-      lg: {
-        height: "10",
-        paddingX: "3.5",
-        paddingY: "2.5",
-        fontSize: "base",
-        borderRadius: "xl",
-      },
-    },
-    isLoading: {
-      true: {
-        opacity: 0.4,
-        pointerEvents: "none",
-      },
-      false: {},
-    },
-  },
-  compoundVariants: [
-    // Primary + Brand
-    {
-      variant: "primary",
-      colorScheme: "brand",
-      css: {
-        backgroundColor: "blue.bg.solid",
-        color: "blue.fg.onSolid",
-        _hover: {
-          backgroundColor: "blue.bg.solid.hover",
-        },
-        _active: {
-          backgroundColor: "blue.bg.solid.active",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "blue.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Primary + Neutral
-    {
-      variant: "primary",
-      colorScheme: "neutral",
-      css: {
-        backgroundColor: "bg.solid",
-        color: "fg.onSolid",
-        _hover: {
-          backgroundColor: "bg.solid.hover",
-        },
-        _active: {
-          backgroundColor: "bg.solid.active",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "neutral.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Primary + Critical
-    {
-      variant: "primary",
-      colorScheme: "critical",
-      css: {
-        backgroundColor: "status.error.bg.solid",
-        color: "status.error.fg.onSolid",
-        _hover: {
-          backgroundColor: "status.error.bg.solid.hover",
-        },
-        _active: {
-          backgroundColor: "status.error.bg.solid.active",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "red.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Secondary + Brand
-    {
-      variant: "secondary",
-      colorScheme: "brand",
-      css: {
-        backgroundColor: "bg.subtle",
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: "blue.bg.solid",
-        color: "blue.fg.link",
-        _hover: {
-          backgroundColor: "blue.bg.subtle.hover",
-          borderColor: "blue.bg.solid.hover",
-          color: "blue.fg.link.hover",
-        },
-        _active: {
-          backgroundColor: "blue.bg.subtle.active",
-          borderColor: "blue.bg.solid.active",
-          color: "blue.fg.link.hover",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "blue.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Secondary + Neutral
-    {
-      variant: "secondary",
-      colorScheme: "neutral",
-      css: {
-        backgroundColor: "bg.subtle",
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: "bd.solid",
-        color: "fg.body",
-        _hover: {
-          backgroundColor: "bg.subtle.hover",
-          borderColor: "bd.solid.hover",
-        },
-        _active: {
-          backgroundColor: "bg.subtle.active",
-          borderColor: "bd.solid.hover",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "neutral.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Secondary + Critical
-    {
-      variant: "secondary",
-      colorScheme: "critical",
-      css: {
-        backgroundColor: "bg.subtle",
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: "status.error.bg.solid",
-        color: "status.error.fg.heading",
-        _hover: {
-          backgroundColor: "status.error.bg.subtle.hover",
-          borderColor: "status.error.bg.solid.hover",
-          color: "status.error.fg.heading",
-        },
-        _active: {
-          backgroundColor: "status.error.bg.subtle.active",
-          borderColor: "status.error.bg.solid.active",
-          color: "status.error.fg.heading",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "red.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Ghost + Brand
-    {
-      variant: "ghost",
-      colorScheme: "brand",
-      css: {
-        backgroundColor: "[transparent]",
-        color: "blue.fg.link",
-        _hover: {
-          backgroundColor: "blue.bg.subtle.hover",
-          borderColor: "blue.bd.solid",
-          color: "blue.fg.link.hover",
-        },
-        _active: {
-          backgroundColor: "blue.bg.subtle.active",
-          borderColor: "blue.bd.solid",
-          color: "blue.fg.link.hover",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "blue.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Ghost + Neutral
-    {
-      variant: "ghost",
-      colorScheme: "neutral",
-      css: {
-        backgroundColor: "[transparent]",
-        color: "fg.muted",
-        _hover: {
-          backgroundColor: "bg.subtle.hover",
-          borderColor: "bd.solid.hover",
-          color: "fg.heading",
-        },
-        _active: {
-          backgroundColor: "bg.subtle.active",
-          borderColor: "bd.solid.hover",
-          color: "fg.heading",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "neutral.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Ghost + Critical
-    {
-      variant: "ghost",
-      colorScheme: "critical",
-      css: {
-        backgroundColor: "[transparent]",
-        color: "status.error.fg.heading",
-        _hover: {
-          backgroundColor: "status.error.bg.subtle.hover",
-          borderColor: "status.error.bd.solid",
-          color: "status.error.fg.heading",
-        },
-        _active: {
-          backgroundColor: "status.error.bg.subtle.active",
-          borderColor: "status.error.bd.solid",
-          color: "status.error.fg.heading",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "red.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Error + Critical (solid red)
-    {
-      variant: "error",
-      colorScheme: "critical",
-      css: {
-        backgroundColor: "status.error.bg.solid",
-        color: "status.error.fg.onSolid",
-        _hover: {
-          backgroundColor: "status.error.bg.solid.hover",
-        },
-        _active: {
-          backgroundColor: "status.error.bg.solid.active",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "red.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-    // Error + Subtle (light bg, red text)
-    {
-      variant: "error",
-      colorScheme: "subtle",
-      css: {
-        backgroundColor: "status.error.bg.subtle",
-        color: "status.error.fg.heading",
-        _hover: {
-          backgroundColor: "status.error.bg.subtle.hover",
-        },
-        _active: {
-          backgroundColor: "status.error.bg.subtle.active",
-        },
-        _focusVisible: {
-          outline: "[2px solid]",
-          outlineColor: "red.s30",
-          outlineOffset: "[2px]",
-        },
-      },
-    },
-  ],
-  defaultVariants: {
-    variant: "primary",
-    colorScheme: "brand",
-    size: "md",
-    isLoading: false,
-  },
-});
+export type ButtonElementProps = ButtonElementOnlyProps &
+  SharedButtonProps<HTMLButtonElement> &
+  ButtonIconProps;
+export type AnchorElementProps = AnchorElementOnlyProps &
+  SharedButtonProps<HTMLAnchorElement> &
+  ButtonIconProps;
+export type ButtonProps = ButtonElementProps | AnchorElementProps;
 
-const contentGap = {
-  xs: "1",
-  sm: "1",
-  md: "1",
-  lg: "1.5",
-} as const;
+const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+  xs: "sm",
+  sm: "sm",
+  md: "md",
+  lg: "md",
+};
 
-export const Button: React.FC<ButtonProps> = ({
-  className,
-  children,
-  variant = "primary",
-  colorScheme = "brand",
-  size = "md",
-  isLoading = false,
-  iconLeft,
-  iconRight,
-  disabled,
-  ...props
-}) => {
-  const isDisabled = disabled ?? isLoading;
+const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
+  xs: "xs",
+  sm: "sm",
+  md: "md",
+  lg: "md",
+};
+
+export const Button = (props: ButtonProps) => {
+  const {
+    className,
+    variant,
+    tone,
+    size,
+    shape = "default",
+    loading,
+    pressed,
+    disabled,
+    tooltip,
+    children,
+    iconName,
+    iconPosition = "left",
+    prefix,
+    suffix,
+    href,
+    onClick,
+    onMouseDown,
+    onMouseUp,
+    onMouseEnter,
+    onMouseLeave,
+    onKeyDown,
+    onFocus,
+    onBlur,
+    ...rest
+  } = props;
+
+  const iconElement = iconName ? (
+    <Icon name={iconName} size={iconSizeMap[size ?? "md"]} />
+  ) : null;
+  const prefixContent =
+    prefix ?? (iconPosition === "left" ? iconElement : null);
+  const suffixContent =
+    suffix ?? (iconPosition === "right" ? iconElement : null);
+
+  const hasIcon = !!suffixContent || !!prefixContent;
+  const isIconOnly = hasIcon && !children;
+
+  const classes = styles({
+    size,
+    variant,
+    shape,
+    tone,
+    isLoading: loading,
+    isDisabled: disabled || loading,
+    isPressed: pressed,
+    hasIcon,
+    hasIconLeft: !!prefixContent,
+    hasIconRight: !!suffixContent,
+    isIconOnly,
+  });
+
+  let content = (
+    // Adds a zero-width space before suffix/prefix content so that even when there is no text alignment and height stay consistent
+    <>
+      {prefixContent ? "\u200B" : null}
+      {prefixContent}
+      {hasIcon && children ? (
+        <span className={classes.iconText}>{children}</span>
+      ) : (
+        children
+      )}
+      {suffixContent ? "\u200B" : null}
+      {suffixContent}
+    </>
+  );
+
+  if (loading) {
+    content = (
+      <>
+        <span className={classes.loadingContainer}>
+          <LoadingSpinner size={loadingSizeMap[size ?? "md"]} variant="bars" />
+        </span>
+        <span className={classes.loadingContent}>{content}</span>
+      </>
+    );
+  }
+
+  const sharedProps = {
+    className: cx(classes.button, className),
+    title: tooltip,
+    "aria-pressed": pressed,
+    "aria-busy": loading,
+    "aria-live": loading ? ("polite" as const) : undefined,
+    "aria-disabled": disabled || loading || undefined,
+    ...rest,
+  };
+
+  // We split this out so that we can type the events properly
+  const sharedEventHandlers = {
+    onClick,
+    onMouseDown,
+    onMouseUp,
+    onMouseEnter,
+    onMouseLeave,
+    onKeyDown,
+    onFocus,
+    onBlur,
+  };
+
+  if ("href" in props) {
+    return (
+      <a
+        {...sharedProps}
+        {...(sharedEventHandlers as React.DOMAttributes<HTMLAnchorElement>)}
+        ref={(props as AnchorElementOnlyProps).ref}
+        href={href}
+        target={props.target}
+        download={props.download || undefined}
+      >
+        {content}
+      </a>
+    );
+  }
 
   return (
     <button
-      type="button"
-      disabled={isDisabled}
-      className={cx(
-        buttonRecipe({ variant, colorScheme, size, isLoading }),
-        className,
-      )}
-      {...props}
+      {...sharedProps}
+      {...(sharedEventHandlers as React.DOMAttributes<HTMLButtonElement>)}
+      ref={(props as ButtonElementOnlyProps).ref}
+      type={(props as ButtonElementOnlyProps).type ?? "button"}
+      disabled={disabled || loading}
     >
-      {isLoading && (
-        <span
-          className={css({
-            position: "absolute",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          })}
-        >
-          <LoadingSpinner />
-        </span>
-      )}
-      <span
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: contentGap[size],
-          opacity: isLoading ? 0 : 1,
-        })}
-      >
-        {iconLeft && <span>{iconLeft}</span>}
-        {children}
-        {iconRight && <span>{iconRight}</span>}
-      </span>
+      {content}
     </button>
   );
 };

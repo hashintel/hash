@@ -195,19 +195,15 @@ export const CreateExperimentDrawer = ({
         </Drawer.Body>
       </Drawer.Card>
       <Drawer.Footer>
-        <Button
-          variant="secondary"
-          colorScheme="neutral"
-          size="sm"
-          onClick={onClose}
-        >
+        <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
           Cancel
         </Button>
         <Button
-          variant="primary"
-          colorScheme="neutral"
+          variant="solid"
+          tone="neutral"
           size="sm"
-          iconLeft={<TbPlayerPlay size={14} />}
+          prefix={<TbPlayerPlay size={14} />}
+          onClick={() => {}}
         >
           Play
         </Button>
