@@ -183,13 +183,10 @@ impl<T> Estimate<T> {
     where
         T: Clone,
     {
-        self.resize_coefficients(other.coefficients().len());
+        let other_coefficients = other.coefficients();
 
-        for (coeff, &other_coeff) in self
-            .coefficients_mut()
-            .iter_mut()
-            .zip(other.coefficients().iter())
-        {
+        for (index, coeff) in self.coefficients_mut().iter_mut().enumerate() {
+            let other_coeff = other_coefficients.get(index).copied().unwrap_or(0);
             *coeff = coeff.saturating_mul(other_coeff);
         }
     }

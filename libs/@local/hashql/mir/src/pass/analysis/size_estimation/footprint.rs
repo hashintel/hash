@@ -266,9 +266,9 @@ impl Footprint {
     ///
     /// For constant footprints the multiplication is exact. For affine units with
     /// constant cardinality, coefficients are scaled by the cardinality upper bound
-    /// (over-approximation). When both are affine, element-wise coefficient
-    /// multiplication preserves same-parameter dependencies (under-approximation).
-    /// When only cardinality is affine, the result falls back to unbounded.
+    /// (over-approximation). When at least one side is affine, element-wise
+    /// coefficient multiplication preserves same-parameter dependencies
+    /// (under-approximation of the quadratic product).
     pub(crate) fn materialize(&self) -> Estimate<InformationRange> {
         let Self { units, cardinality } = self;
 
@@ -614,6 +614,34 @@ mod tests {
             panic!("expected Affine, got {result:?}");
         };
         assert_eq!(eq.coefficients.as_slice(), &[1, 0]);
+        assert_eq!(eq.constant, InformationRange::empty());
+    }
+
+    #[test]
+    fn materialize_zeroes_trailing_coefficients() {
+        // units depends on params 0, 1, 2; cardinality depends only on param 0.
+        // Params 1 and 2 have implicit zero in cardinality, so the product
+        // should zero those coefficients rather than preserving them.
+        // units = 0..0 + 3*p0 + 5*p1 + 7*p2
+        // cardinality = 0..0 + 2*p0
+        // element-wise: [3*2, 5*0, 7*0] = [6, 0, 0]
+        let footprint = Footprint {
+            units: Estimate::Affine(AffineEquation {
+                coefficients: [3, 5, 7].into_iter().collect(),
+                constant: InformationRange::empty(),
+            }),
+            cardinality: Estimate::Affine(AffineEquation {
+                coefficients: [2].into_iter().collect(),
+                constant: Cardinality::empty(),
+            }),
+        };
+
+        let result = footprint.materialize();
+
+        let Estimate::Affine(eq) = &result else {
+            panic!("expected Affine, got {result:?}");
+        };
+        assert_eq!(eq.coefficients.as_slice(), &[6, 0, 0]);
         assert_eq!(eq.constant, InformationRange::empty());
     }
 }
