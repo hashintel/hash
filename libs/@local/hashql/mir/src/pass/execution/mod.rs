@@ -39,7 +39,6 @@ pub use self::{
     island::{
         Island, IslandId, IslandVec,
         graph::{ExecIsland, IslandEdge, IslandGraph, IslandKind, IslandNode},
-        schedule::{IslandSchedule, ScheduledIsland},
     },
     placement::error::PlacementDiagnosticCategory,
     target::TargetId,
