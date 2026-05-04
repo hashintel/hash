@@ -631,7 +631,7 @@ mod tests {
                 constant: InformationRange::empty(),
             }),
             cardinality: Estimate::Affine(AffineEquation {
-                coefficients: [2].into_iter().collect(),
+                coefficients: iter::once(2).collect(),
                 constant: Cardinality::empty(),
             }),
         };
