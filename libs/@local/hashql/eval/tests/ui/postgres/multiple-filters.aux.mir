@@ -1,5 +1,5 @@
-thunk {thunk#2}() -> ::graph::TimeAxis {
-    let %0: ::graph::TimeAxis
+thunk {thunk#2}() -> ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes {
+    let %0: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %0 = input LOAD time_axis
@@ -56,7 +56,7 @@ thunk {thunk#7}() -> List<::graph::types::knowledge::entity::Entity> {
     let %0: List<::graph::types::knowledge::entity::Entity>
     let %1: ()
     let %2: ()
-    let %3: ::graph::TimeAxis
+    let %3: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
 
     bb0(): {
         %3 = input LOAD time_axis

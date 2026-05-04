@@ -2,7 +2,7 @@ use crate::{
     heap::Heap,
     module::{
         StandardLibrary,
-        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::option},
+        std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::types::option},
     },
     symbol::Symbol,
 };
@@ -31,7 +31,7 @@ impl<'heap> StandardLibraryModule<'heap> for EntityType {
             .expect_newtype(heap.intern_symbol("WebId"));
         let entity_type_metadata_ty = lib.ty.opaque(
             "::graph::types::ontology::entity_type::EntityTypeMetadata",
-            lib.ty.r#struct([("web_id", option(lib, web_id.id))]),
+            lib.ty.r#struct([("web_id", option(&lib.ty, web_id.id))]),
         );
         def.push(
             heap.intern_symbol("EntityTypeMetadata"),

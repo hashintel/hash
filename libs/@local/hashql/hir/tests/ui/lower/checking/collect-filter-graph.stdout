@@ -57,7 +57,7 @@
                         edition: ?,
                         inferred: ?
                     ),
-                    record_id: ::graph::types::knowledge::entity::EntityRecordId(
+                    record_id: ::graph::types::knowledge::entity::RecordId(
                         edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                         entity_id: ::graph::types::knowledge::entity::EntityId(
                             draft_id: ::core::option::None(Null)
@@ -66,9 +66,17 @@
                             web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                         )
                     ),
-                    temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                        decision_time: ?,
-                        transaction_time: ?
+                    temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                        decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                            end: ::graph::temporal::UnboundedTemporalBound(Null)
+                            | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                            start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                        )),
+                        transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                            end: ::graph::temporal::UnboundedTemporalBound(Null)
+                            | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                            start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                        ))
                     )
                 ),
                 properties: ?
@@ -127,7 +135,7 @@
 │                          edition: ?,
 │                          inferred: ?
 │                      ),
-│                      record_id: ::graph::types::knowledge::entity::EntityRecordId(
+│                      record_id: ::graph::types::knowledge::entity::RecordId(
 │                          edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
 │                          entity_id: ::graph::types::knowledge::entity::EntityId(
 │                              draft_id: ::core::option::None(Null)
@@ -136,9 +144,17 @@
 │                              web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │                          )
 │                      ),
-│                      temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-│                          decision_time: ?,
-│                          transaction_time: ?
+│                      temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+│                          decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+│                              end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                              | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                              start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                          )),
+│                          transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+│                              end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                              | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                              start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                          ))
 │                      )
 │                  ),
 │                  properties: ?
@@ -188,7 +204,7 @@
                edition: ?,
                inferred: ?
            ),
-           record_id: ::graph::types::knowledge::entity::EntityRecordId(
+           record_id: ::graph::types::knowledge::entity::RecordId(
                edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                entity_id: ::graph::types::knowledge::entity::EntityId(
                    draft_id: ::core::option::None(Null)
@@ -197,9 +213,17 @@
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                )
            ),
-           temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-               decision_time: ?,
-               transaction_time: ?
+           temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+               decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                   end: ::graph::temporal::UnboundedTemporalBound(Null)
+                   | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                   start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               )),
+               transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                   end: ::graph::temporal::UnboundedTemporalBound(Null)
+                   | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                   start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               ))
            )
        ),
        properties: ?
@@ -246,7 +270,7 @@
                        edition: ?,
                        inferred: ?
                    ),
-                   record_id: ::graph::types::knowledge::entity::EntityRecordId(
+                   record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
                            draft_id: ::core::option::None(Null)
@@ -255,9 +279,17 @@
                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                        )
                    ),
-                   temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                       decision_time: ?,
-                       transaction_time: ?
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
                    )
                ),
                properties: ?
@@ -302,7 +334,7 @@
                    edition: ?,
                    inferred: ?
                ),
-               record_id: ::graph::types::knowledge::entity::EntityRecordId(
+               record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
@@ -311,9 +343,17 @@
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    )
                ),
-               temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                   decision_time: ?,
-                   transaction_time: ?
+               temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                   decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   )),
+                   transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   ))
                )
            ),
            properties: ?
@@ -360,7 +400,7 @@
 │                      edition: ?,
 │                      inferred: ?
 │                  ),
-│                  record_id: ::graph::types::knowledge::entity::EntityRecordId(
+│                  record_id: ::graph::types::knowledge::entity::RecordId(
 │                      edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
 │                      entity_id: ::graph::types::knowledge::entity::EntityId(
 │                          draft_id: ::core::option::None(Null)
@@ -369,9 +409,17 @@
 │                          web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │                      )
 │                  ),
-│                  temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-│                      decision_time: ?,
-│                      transaction_time: ?
+│                  temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+│                      decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+│                          end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                          | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                          start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                      )),
+│                      transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+│                          end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                          | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                          start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                      ))
 │                  )
 │              ),
 │              properties: ?
@@ -423,7 +471,7 @@
                    edition: ?,
                    inferred: ?
                ),
-               record_id: ::graph::types::knowledge::entity::EntityRecordId(
+               record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
@@ -432,9 +480,17 @@
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    )
                ),
-               temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                   decision_time: ?,
-                   transaction_time: ?
+               temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                   decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   )),
+                   transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   ))
                )
            ),
            properties: ?
@@ -482,7 +538,7 @@
                        edition: ?,
                        inferred: ?
                    ),
-                   record_id: ::graph::types::knowledge::entity::EntityRecordId(
+                   record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
                            draft_id: ::core::option::None(Null)
@@ -491,9 +547,17 @@
                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                        )
                    ),
-                   temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                       decision_time: ?,
-                       transaction_time: ?
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
                    )
                ),
                properties: ?
@@ -538,7 +602,7 @@
                        edition: ?,
                        inferred: ?
                    ),
-                   record_id: ::graph::types::knowledge::entity::EntityRecordId(
+                   record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
                            draft_id: ::core::option::None(Null)
@@ -547,9 +611,17 @@
                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                        )
                    ),
-                   temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                       decision_time: ?,
-                       transaction_time: ?
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
                    )
                ),
                properties: ?
@@ -595,7 +667,7 @@
                        edition: ?,
                        inferred: ?
                    ),
-                   record_id: ::graph::types::knowledge::entity::EntityRecordId(
+                   record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
                            draft_id: ::core::option::None(Null)
@@ -604,9 +676,17 @@
                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                        )
                    ),
-                   temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                       decision_time: ?,
-                       transaction_time: ?
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
                    )
                ),
                properties: ?
@@ -653,7 +733,7 @@
                    edition: ?,
                    inferred: ?
                ),
-               record_id: ::graph::types::knowledge::entity::EntityRecordId(
+               record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
@@ -662,9 +742,17 @@
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    )
                ),
-               temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                   decision_time: ?,
-                   transaction_time: ?
+               temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                   decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   )),
+                   transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   ))
                )
            ),
            properties: ?
@@ -672,7 +760,28 @@
    )
 
 ┌─ ::graph::head::entities
-└→ (::graph::TimeAxis(:)) ->
+└→ (
+       ::graph::temporal::PinnedTransactionTimeTemporalAxes(
+           pinned: ::graph::temporal::TransactionTime(::graph::temporal::Timestamp(Integer)),
+           variable: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       )
+       | ::graph::temporal::PinnedDecisionTimeTemporalAxes(
+           pinned: ::graph::temporal::DecisionTime(::graph::temporal::Timestamp(Integer)),
+           variable: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       )
+   ) ->
        ::graph::Graph(
            'marker: ::graph::types::knowledge::entity::Entity(
                encodings: ::graph::types::knowledge::entity::EntityEncodings(
@@ -712,7 +821,7 @@
                        edition: ?,
                        inferred: ?
                    ),
-                   record_id: ::graph::types::knowledge::entity::EntityRecordId(
+                   record_id: ::graph::types::knowledge::entity::RecordId(
                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                        entity_id: ::graph::types::knowledge::entity::EntityId(
                            draft_id: ::core::option::None(Null)
@@ -721,9 +830,17 @@
                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                        )
                    ),
-                   temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                       decision_time: ?,
-                       transaction_time: ?
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
                    )
                ),
                properties: ?
@@ -731,10 +848,49 @@
        )
 
 ┌─ ::graph::tmp::decision_time_now()
-└→ ::graph::TimeAxis(:)
+└→ ::graph::temporal::PinnedTransactionTimeTemporalAxes(
+       pinned: ::graph::temporal::TransactionTime(::graph::temporal::Timestamp(Integer)),
+       variable: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+           end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+           start: ::graph::temporal::UnboundedTemporalBound(Null)
+           | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+       ))
+   )
+   | ::graph::temporal::PinnedDecisionTimeTemporalAxes(
+       pinned: ::graph::temporal::DecisionTime(::graph::temporal::Timestamp(Integer)),
+       variable: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+           end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+           start: ::graph::temporal::UnboundedTemporalBound(Null)
+           | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+       ))
+   )
 
 ┌─ ::graph::tmp::decision_time_now
-└→ () -> ::graph::TimeAxis(:)
+└→ () ->
+       (::graph::temporal::PinnedTransactionTimeTemporalAxes(
+           pinned: ::graph::temporal::TransactionTime(::graph::temporal::Timestamp(Integer)),
+           variable: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       )
+       | ::graph::temporal::PinnedDecisionTimeTemporalAxes(
+           pinned: ::graph::temporal::DecisionTime(::graph::temporal::Timestamp(Integer)),
+           variable: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       ))
 
 ┌─ (
 │      vertex:0: ::graph::types::knowledge::entity::Entity(
@@ -775,7 +931,7 @@
 │                  edition: ?,
 │                  inferred: ?
 │              ),
-│              record_id: ::graph::types::knowledge::entity::EntityRecordId(
+│              record_id: ::graph::types::knowledge::entity::RecordId(
 │                  edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
 │                  entity_id: ::graph::types::knowledge::entity::EntityId(
 │                      draft_id: ::core::option::None(Null)
@@ -784,9 +940,17 @@
 │                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │                  )
 │              ),
-│              temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-│                  decision_time: ?,
-│                  transaction_time: ?
+│              temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+│                  decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+│                      end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                      | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                      start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                  )),
+│                  transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+│                      end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                      | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                      start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                  ))
 │              )
 │          ),
 │          properties: ?
@@ -837,7 +1001,7 @@
                    edition: ?,
                    inferred: ?
                ),
-               record_id: ::graph::types::knowledge::entity::EntityRecordId(
+               record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
@@ -846,9 +1010,17 @@
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    )
                ),
-               temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-                   decision_time: ?,
-                   transaction_time: ?
+               temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                   decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   )),
+                   transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   ))
                )
            ),
            properties: ?
@@ -881,7 +1053,7 @@
    )
 
 ┌─ vertex:0.metadata.record_id
-└→ ::graph::types::knowledge::entity::EntityRecordId(
+└→ ::graph::types::knowledge::entity::RecordId(
        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
        entity_id: ::graph::types::knowledge::entity::EntityId(
            draft_id: ::core::option::None(Null)
@@ -905,7 +1077,7 @@
            edition: ?,
            inferred: ?
        ),
-       record_id: ::graph::types::knowledge::entity::EntityRecordId(
+       record_id: ::graph::types::knowledge::entity::RecordId(
            edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
            entity_id: ::graph::types::knowledge::entity::EntityId(
                draft_id: ::core::option::None(Null)
@@ -914,9 +1086,17 @@
                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
            )
        ),
-       temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-           decision_time: ?,
-           transaction_time: ?
+       temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+           decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           )),
+           transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
        )
    )
 
@@ -957,7 +1137,7 @@
                edition: ?,
                inferred: ?
            ),
-           record_id: ::graph::types::knowledge::entity::EntityRecordId(
+           record_id: ::graph::types::knowledge::entity::RecordId(
                edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                entity_id: ::graph::types::knowledge::entity::EntityId(
                    draft_id: ::core::option::None(Null)
@@ -966,9 +1146,17 @@
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                )
            ),
-           temporal_versioning: ::graph::types::knowledge::entity::EntityTemporalMetadata(
-               decision_time: ?,
-               transaction_time: ?
+           temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+               decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                   end: ::graph::temporal::UnboundedTemporalBound(Null)
+                   | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                   start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               )),
+               transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                   end: ::graph::temporal::UnboundedTemporalBound(Null)
+                   | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                   start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               ))
            )
        ),
        properties: ?

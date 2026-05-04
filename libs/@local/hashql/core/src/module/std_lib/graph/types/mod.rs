@@ -8,9 +8,9 @@ use crate::{
     symbol::Symbol,
 };
 
-pub(in crate::module::std_lib) mod knowledge;
-pub(in crate::module::std_lib) mod ontology;
-pub(in crate::module::std_lib) mod principal;
+pub mod knowledge;
+pub mod ontology;
+pub mod principal;
 
 pub(in crate::module::std_lib) struct Types {
     _dependencies: (),
