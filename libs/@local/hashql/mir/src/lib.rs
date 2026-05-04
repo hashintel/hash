@@ -16,6 +16,7 @@
     allocator_api,
     binary_heap_drain_sorted,
     clone_from_ref,
+    const_convert,
     const_type_name,
     get_mut_unchecked,
     iter_array_chunks,
@@ -23,9 +24,8 @@
     likely_unlikely,
     maybe_uninit_fill,
     step_trait,
-    try_trait_v2,
     temporary_niche_types,
-    const_convert,
+    try_trait_v2,
     variant_count,
 )]
 #![cfg_attr(test, feature(
