@@ -3782,12 +3782,15 @@ name = "hash-temporal-client"
 version = "0.0.0"
 dependencies = [
  "error-stack",
+ "opentelemetry",
  "serde",
  "serde_json",
  "simple-mermaid",
  "temporalio-client",
  "temporalio-common",
  "thiserror 2.0.18",
+ "tracing",
+ "tracing-opentelemetry",
  "type-system",
  "url",
  "uuid",

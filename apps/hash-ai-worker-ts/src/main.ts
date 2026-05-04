@@ -1,4 +1,8 @@
-/* eslint-disable import/first */
+/* eslint-disable import/first, import/order, simple-import-sort/imports */
+
+// Must be the first import so OTEL auto-instrumentations can patch
+// http / grpc / Sentry's own monkey-patches before they apply.
+import { otelSetup } from "./instrument.js";
 
 import * as Sentry from "@sentry/node";
 
@@ -12,9 +16,16 @@ Sentry.init({
     process.env.ENVIRONMENT ||
     (process.env.NODE_ENV === "production" ? "production" : "development"),
   tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
+  // Sentry registers its own global `NodeTracerProvider` by default.
+  // Letting it run after `registerOpenTelemetry` would replace the
+  // provider that the OTEL workflow client interceptor (set up in
+  // `createTemporalClient`) holds via `trace.getTracer(...)`, breaking
+  // caller → workflow → activity context propagation. With this flag
+  // Sentry shares our provider so its spans flow through the same
+  // OTLP pipeline.
+  skipOpenTelemetrySetup: !!otelSetup,
 });
 
-import * as http from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,11 +33,9 @@ import { fileURLToPath } from "node:url";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { createCommonFlowActivities } from "@local/hash-backend-utils/flows";
-import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
-import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
+import type { WorkflowSource } from "@local/hash-backend-utils/temporal/worker-bootstrap";
+import { runWorker } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import type { WorkerOptions } from "@temporalio/worker";
-import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 
@@ -43,137 +52,75 @@ export const monorepoRootDir = path.resolve(__dirname, "../../..");
 
 config({ silent: true, path: monorepoRootDir });
 
-const TEMPORAL_HOST = new URL(
-  process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost",
-).hostname;
-const TEMPORAL_PORT = process.env.HASH_TEMPORAL_SERVER_PORT
-  ? parseInt(process.env.HASH_TEMPORAL_SERVER_PORT, 10)
-  : 7233;
-
-const createHealthCheckServer = () => {
-  const server = http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health") {
-      res.setHeader("Content-Type", "application/json");
-      res.writeHead(200);
-      res.end(
-        JSON.stringify({
-          msg: "worker healthy",
-        }),
-      );
-      return;
-    }
-    res.writeHead(404);
-    res.end("");
-  });
-
-  return server;
-};
-
-const workflowOptions: Partial<WorkerOptions> =
+const workflowSource: WorkflowSource =
   process.env.NODE_ENV === "production"
     ? {
-        workflowBundle: {
-          codePath: require.resolve("../dist/workflow-bundle.js"),
-        },
+        kind: "bundle",
+        bundle: { codePath: require.resolve("../dist/workflow-bundle.js") },
       }
     : {
-        bundlerOptions: {
-          webpackConfigHook: (webpackConfig) => {
-            return {
-              ...webpackConfig,
-              resolve: {
-                ...webpackConfig.resolve,
-                plugins: [
-                  ...((webpackConfig.plugins as [] | undefined) ?? []),
-                  /**
-                   * Because we run TypeScript directly in development, we need to use the 'paths' in the base tsconfig.json
-                   * This tells TypeScript where to resolve the imports from, overwriting the 'exports' in local dependencies' package.jsons,
-                   * which refer to the transpiled JavaScript code. This plugin converts the 'paths' to webpack 'alias'.
-                   */
-                  new TsconfigPathsPlugin({
-                    configFile:
-                      "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-                  }),
-                ],
-              },
-            };
-          },
-        },
+        kind: "path",
         workflowsPath: require.resolve("./workflows"),
+        bundlerOptions: {
+          webpackConfigHook: (webpackConfig) => ({
+            ...webpackConfig,
+            resolve: {
+              ...webpackConfig.resolve,
+              plugins: [
+                ...((webpackConfig.plugins as [] | undefined) ?? []),
+                /**
+                 * We run TypeScript directly in development, so the 'paths' in
+                 * the base tsconfig.json need to be honoured to override the
+                 * 'exports' in local dependencies' package.jsons (which point
+                 * at transpiled JavaScript). This plugin converts the 'paths'
+                 * to webpack 'alias'.
+                 */
+                new TsconfigPathsPlugin({
+                  configFile:
+                    "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+                }),
+              ],
+            },
+          }),
+        },
       };
 
 async function run() {
-  logger.info("Starting AI worker...");
-
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   });
-
   logger.info("Created Graph client");
 
   const vaultClient = await createVaultClient({ logger });
-
   if (!vaultClient) {
     throw new Error("Failed to create Vault client, check preceding logs.");
   }
-
   logger.info("Created Vault client");
 
-  const connection = await NativeConnection.connect({
-    address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
-  });
-  logger.info("Created Temporal connection");
-
-  const worker = await Worker.create({
-    ...workflowOptions,
+  await runWorker({
+    serviceName: "AI worker",
+    taskQueue: "ai",
+    healthCheckPort: 4100,
     activities: {
-      ...createAiActivities({
-        graphApiClient,
-      }),
-      ...createGraphActivities({
-        graphApiClient,
-      }),
+      ...createAiActivities({ graphApiClient }),
+      ...createGraphActivities({ graphApiClient }),
       ...createFlowActivities({ vaultClient }),
       ...createCommonFlowActivities({ graphApiClient }),
     },
-    connection,
-    /**
-     * The maximum time that may elapse between heartbeats being processed by the server.
-     * The default maxHeartbeatThrottleInterval is 60s.
-     * Throttling is also capped at 80% of the heartbeatTimeout set when proxying an activity.
-     */
-    maxHeartbeatThrottleInterval: "10 seconds",
-    namespace: "HASH",
-    taskQueue: "ai",
-    sinks: { ...defaultSinks(), ...sentrySinks() },
-    interceptors: {
-      workflowModules: [
-        require.resolve(
-          "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
-        ),
-      ],
-      activityInbound: [(ctx) => new SentryActivityInboundInterceptor(ctx)],
+    workflowSource,
+    workerOptions: {
+      /**
+       * Maximum interval between heartbeats being processed by the server.
+       * Default `maxHeartbeatThrottleInterval` is 60s; throttling is also
+       * capped at 80% of `heartbeatTimeout` set when proxying an activity.
+       */
+      maxHeartbeatThrottleInterval: "10 seconds",
     },
+    otelSetup,
+    logger,
   });
-
-  const httpServer = createHealthCheckServer();
-  const port = 4100;
-  httpServer.listen({ host: "0.0.0.0", port });
-
-  logger.info(`HTTP server listening on port ${port}`);
-
-  await worker.run();
 }
-
-process.on("SIGINT", () => {
-  logger.info("Received SIGINT, exiting...");
-  process.exit(1);
-});
-process.on("SIGTERM", () => {
-  logger.info("Received SIGTERM, exiting...");
-  process.exit(1);
-});
 
 run().catch((error: unknown) => {
   logger.error("Error running worker", { error });

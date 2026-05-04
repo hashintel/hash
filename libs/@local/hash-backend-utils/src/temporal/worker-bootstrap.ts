@@ -1,0 +1,354 @@
+/**
+ * Shared bootstrap for HASH Temporal workers. Both
+ * `hash-ai-worker-ts` and `hash-integration-worker` enter through
+ * `runWorker`, supplying per-service deltas (service name, task queue,
+ * port, activities, workflow bundle path) as options.
+ *
+ * `Sentry.init` stays in each worker's `main.ts` because ESM import
+ * ordering requires it before the rest of the imports — that cannot
+ * be reproduced from a helper module. Everything from `Runtime.install`
+ * onwards is centralised here.
+ */
+import * as http from "node:http";
+import { createRequire } from "node:module";
+
+import type {
+  ActivityInterceptorsFactory,
+  WorkerOptions,
+  WorkflowBundleOption,
+} from "@temporalio/worker";
+import {
+  DefaultLogger,
+  defaultSinks,
+  NativeConnection,
+  Runtime,
+  Worker,
+} from "@temporalio/worker";
+
+import type { Logger } from "../logger.js";
+import type { OpenTelemetrySetup } from "../opentelemetry.js";
+import {
+  OpenTelemetryActivityInboundInterceptor,
+  OpenTelemetryActivityOutboundInterceptor,
+} from "./interceptors/activities/opentelemetry.js";
+import { SentryActivityInboundInterceptor } from "./interceptors/activities/sentry.js";
+import { sentrySinks } from "./sinks/sentry.js";
+import { makeV2WorkflowSink } from "./workflow-span-adapter.js";
+
+const require = createRequire(import.meta.url);
+
+/**
+ * Adapter that pipes Temporal SDK logs (both Rust core and Node-side
+ * worker events) through the application logger, keeping them in the
+ * same JSON format and log-level scheme as the rest of the worker
+ * output. Lives here rather than in `temporal.ts` so the API server's
+ * import of `createTemporalClient` does not pull in `@temporalio/worker`
+ * (which bundles native Rust core bindings).
+ */
+const createTemporalSdkLogger = (logger: Logger): DefaultLogger =>
+  // DefaultLogger filters at INFO, so TRACE / DEBUG paths only fire
+  // when the level is bumped at the call site.
+  new DefaultLogger("INFO", ({ level, message, meta }) => {
+    switch (level) {
+      case "TRACE":
+      case "DEBUG":
+        logger.debug(message, meta);
+        return;
+      case "INFO":
+        logger.info(message, meta);
+        return;
+      case "WARN":
+        logger.warn(message, meta);
+        return;
+      case "ERROR":
+        logger.error(message, meta);
+        return;
+      default:
+        logger.warn(`Unknown Temporal SDK log level: ${level as string}`, {
+          message,
+          meta,
+        });
+    }
+  });
+
+const TEMPORAL_DEFAULT_PORT = 7233;
+
+const getTemporalAddress = (): string => {
+  const host = new URL(
+    process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost",
+  ).hostname;
+  const port = process.env.HASH_TEMPORAL_SERVER_PORT
+    ? parseInt(process.env.HASH_TEMPORAL_SERVER_PORT, 10)
+    : TEMPORAL_DEFAULT_PORT;
+  return `${host}:${port}`;
+};
+
+const createHealthCheckServer = (): http.Server =>
+  http.createServer((req, res) => {
+    if (req.method === "GET" && req.url === "/health") {
+      res.setHeader("Content-Type", "application/json");
+      res.writeHead(200);
+      res.end(JSON.stringify({ msg: "worker healthy" }));
+      return;
+    }
+    res.writeHead(404);
+    res.end("");
+  });
+
+/**
+ * Source of workflow code passed to `Worker.create`.
+ *
+ * - `bundle` — a prebuilt webpack bundle (`workflowBundle.codePath`),
+ *   produced by the per-worker `bundle-workflow-code.ts` script. Used
+ *   in production builds.
+ * - `path` — a TypeScript entry-point that the worker bundles in-process
+ *   (`workflowsPath`), with optional `bundlerOptions` for things like
+ *   `tsconfig-paths-webpack-plugin`. Used in development.
+ */
+export type WorkflowSource =
+  | { kind: "bundle"; bundle: WorkflowBundleOption }
+  | {
+      kind: "path";
+      workflowsPath: string;
+      bundlerOptions?: WorkerOptions["bundlerOptions"];
+    };
+
+/**
+ * Per-worker tuning passed straight through to `Worker.create`. Add
+ * keys here as needed; helper-owned wiring stays inaccessible.
+ */
+export type ExtraWorkerOptions = Pick<
+  WorkerOptions,
+  "maxHeartbeatThrottleInterval"
+>;
+
+export interface RunWorkerOptions {
+  /**
+   * Logged once at startup and used as `service.name` for OTEL traces /
+   * logs / metrics. The Temporal worker identity stays at the SDK default
+   * (`pid@hostname`) so multiple replicas remain distinguishable in the
+   * Temporal UI.
+   */
+  serviceName: string;
+  /** Temporal task queue this worker pulls work from. */
+  taskQueue: string;
+  /** Port the health-check server listens on. */
+  healthCheckPort: number;
+  /**
+   * Activities object passed to `Worker.create({ activities })`. The
+   * caller assembles this from per-worker activity factories.
+   */
+  activities: WorkerOptions["activities"];
+  /** Where the workflow code lives. See {@link WorkflowSource}. */
+  workflowSource: WorkflowSource;
+  /**
+   * Additional `Worker.create` options for per-worker tuning (e.g.
+   * `maxHeartbeatThrottleInterval`).
+   */
+  workerOptions?: ExtraWorkerOptions;
+  /** OTEL setup handle from `instrument.ts`; `undefined` disables OTEL wiring. */
+  otelSetup: OpenTelemetrySetup | undefined;
+  /** Application logger shared with the rest of the worker. */
+  logger: Logger;
+}
+
+const expandWorkflowSource = (
+  source: WorkflowSource,
+): Pick<
+  WorkerOptions,
+  "workflowBundle" | "workflowsPath" | "bundlerOptions"
+> => {
+  switch (source.kind) {
+    case "bundle":
+      return { workflowBundle: source.bundle };
+    case "path":
+      return {
+        workflowsPath: source.workflowsPath,
+        bundlerOptions: source.bundlerOptions,
+      };
+  }
+};
+
+/**
+ * Boot a HASH Temporal worker. Installs the Temporal SDK runtime
+ * telemetry (when OTEL is configured), connects to the Temporal server,
+ * builds the activity interceptor chain, registers the workflow + sink
+ * wiring, starts a health-check HTTP server, and finally enters
+ * `worker.run()`. Returns once the worker has drained on SIGTERM/SIGINT.
+ */
+export async function runWorker(opts: RunWorkerOptions): Promise<void> {
+  const { logger, otelSetup } = opts;
+
+  logger.info(`Starting ${opts.serviceName}...`);
+
+  // Install signal handlers up-front so a SIGTERM during the
+  // potentially-slow startup phase (NativeConnection.connect, workflow
+  // bundle compile, Worker.create) doesn't terminate the process via
+  // the Node default — we'd lose the OTEL flush. The handler captures a
+  // reference to `worker` once it's set; until then the linear cleanup
+  // path below handles flush+exit when `workerRunPromise` (also unset
+  // pre-Worker.create) is replaced by a sentinel that resolves
+  // immediately on signal during startup.
+  let worker: Worker | undefined;
+  let shuttingDown = false;
+  const onSignal = (signal: NodeJS.Signals) => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    logger.info(`Received ${signal}, exiting...`);
+    if (worker) {
+      try {
+        worker.shutdown();
+      } catch (error) {
+        logger.error("Worker shutdown trigger failed", { error });
+      }
+    }
+    // If the worker hasn't been created yet, do nothing more here:
+    // `runWorker` is still in startup and the early-exit branch below
+    // will fall through to the linear cleanup path when control
+    // returns from whichever `await` is pending.
+  };
+  process.on("SIGINT", onSignal);
+  process.on("SIGTERM", onSignal);
+
+  // Temporal SDK runtime telemetry: emits SDK-internal metrics (worker
+  // slot utilisation, sticky cache hits, polling latency, activity /
+  // workflow execution latency) directly to OTLP, and forwards Rust
+  // core logs through the Node-side logger so they share the
+  // application's log pipeline. Must run before any Connection /
+  // Worker is created. Separate channel from the per-activity user-code
+  // spans the interceptors below produce.
+  if (otelSetup) {
+    Runtime.install({
+      logger: createTemporalSdkLogger(logger),
+      telemetryOptions: {
+        metrics: {
+          otel: {
+            url: otelSetup.endpoint,
+            metricsExportInterval: "30s",
+          },
+        },
+        logging: { forward: { level: "INFO" } },
+      },
+    });
+  }
+
+  const connection = await NativeConnection.connect({
+    address: getTemporalAddress(),
+  });
+  logger.info("Created Temporal connection");
+
+  // OTEL interceptor must precede Sentry: `composeInterceptors` builds
+  // the chain right-to-left so index 0 is outermost. The OTEL inbound
+  // half extracts the trace context that the workflow's outbound OTEL
+  // interceptor injected via `scheduleActivity`, re-establishing the
+  // parent before any other interceptor opens a span. The outbound half
+  // stamps `trace_id` / `span_id` / `trace_flags` onto activity log
+  // lines so Loki ↔ Tempo correlation works.
+  const activityInterceptors: ActivityInterceptorsFactory[] = [];
+  if (otelSetup) {
+    activityInterceptors.push((ctx) => ({
+      inbound: new OpenTelemetryActivityInboundInterceptor(ctx),
+      outbound: new OpenTelemetryActivityOutboundInterceptor(ctx),
+    }));
+  }
+  activityInterceptors.push((ctx) => ({
+    inbound: new SentryActivityInboundInterceptor(ctx),
+  }));
+
+  worker = await Worker.create({
+    ...opts.workerOptions,
+    ...expandWorkflowSource(opts.workflowSource),
+    activities: opts.activities,
+    connection,
+    namespace: "HASH",
+    taskQueue: opts.taskQueue,
+    sinks: {
+      ...defaultSinks(),
+      ...sentrySinks(),
+      ...(otelSetup ? { exporter: makeV2WorkflowSink(otelSetup) } : {}),
+    },
+    interceptors: {
+      workflowModules: [
+        require.resolve(
+          "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
+        ),
+        require.resolve(
+          "@local/hash-backend-utils/temporal/interceptors/workflows/opentelemetry",
+        ),
+      ],
+      activity: activityInterceptors,
+    },
+  });
+
+  const httpServer = createHealthCheckServer();
+  httpServer.on("error", (error) =>
+    logger.error("Health-check server error", { error }),
+  );
+  await new Promise<void>((resolve, reject) => {
+    const onError = (error: Error) => {
+      httpServer.removeListener("error", onError);
+      reject(error);
+    };
+    httpServer.once("error", onError);
+    httpServer.listen({ host: "0.0.0.0", port: opts.healthCheckPort }, () => {
+      httpServer.removeListener("error", onError);
+      logger.info(`HTTP server listening on port ${opts.healthCheckPort}`);
+      resolve();
+    });
+  });
+
+  // `worker.run()` resolves once the SDK has fully drained in-flight
+  // activities after `worker.shutdown()` is called. If a signal already
+  // arrived during startup, skip running entirely and fall through to
+  // the cleanup path below.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const workerRunPromise = shuttingDown ? Promise.resolve() : worker.run();
+
+  let exitCode = 0;
+  let workerError: unknown;
+  try {
+    await workerRunPromise;
+  } catch (error) {
+    workerError = error;
+    exitCode = 1;
+    // `shuttingDown` is mutated in the signal-handler closure; TS narrows
+    // it to the initial `false` here so the conditional looks dead to
+    // eslint.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    logger.error(shuttingDown ? "Worker drain failed" : "Worker run failed", {
+      error,
+    });
+  }
+
+  // `http.Server.close()` reports failures via the optional callback,
+  // not synchronously, so a `try`/`catch` around the bare call would be
+  // dead. Pass a callback to log close failures and let the OTEL flush
+  // below give the listening socket time to release before exit.
+  httpServer.close((error) => {
+    if (error) {
+      logger.error("Health-check server close failed", { error });
+    }
+  });
+  try {
+    await otelSetup?.shutdown();
+  } catch (error) {
+    logger.error("Failed to flush OpenTelemetry", { error });
+    exitCode = 1;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (shuttingDown) {
+    // Signal-driven exit: `main.ts` has nothing to do after `run()`
+    // returns, so terminate explicitly with the chosen exit code.
+    process.exit(exitCode);
+  }
+  if (workerError) {
+    // The catch block stored whatever the SDK threw; rethrow the same
+    // value so the caller sees the original.
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    throw workerError;
+  }
+  // Clean worker exit: return; `main.ts` has no further work.
+}
