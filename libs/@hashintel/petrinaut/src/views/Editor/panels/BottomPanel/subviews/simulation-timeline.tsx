@@ -11,7 +11,7 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { useElementSize } from "../../../../../hooks/use-element-size";
 import { useLatest } from "../../../../../hooks/use-latest";
 import { useStableCallback } from "../../../../../hooks/use-stable-callback";
-import { PlaybackContext } from "../../../../../playback/context";
+import { PlaybackContext } from "../../../../../react/playback/context";
 import {
   type CompiledMetric,
   compileMetric,

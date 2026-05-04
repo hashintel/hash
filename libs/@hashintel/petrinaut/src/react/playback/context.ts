@@ -1,49 +1,26 @@
 import { createContext } from "react";
 
+import {
+  formatPlaybackSpeed,
+  PLAYBACK_SPEEDS,
+  type PlaybackSpeed,
+  type PlaybackState,
+  type PlayMode,
+} from "../../core/playback";
 import type {
   SimulationFrame,
   SimulationFrameState,
-} from "../react/simulation/context";
+} from "../simulation/context";
 
-/**
- * Current state of the playback lifecycle.
- */
-export type PlaybackState = "Stopped" | "Playing" | "Paused";
-
-/**
- * Play mode determines how simulation computation is handled during playback.
- * - `viewOnly`: Only plays existing frames, no computation. Available when simulation is Complete or Error.
- * - `computeBuffer`: Computes minimally, only when less than 100 frames are available ahead.
- * - `computeMax`: Computes as fast as possible while playing.
- */
-export type PlayMode = "viewOnly" | "computeBuffer" | "computeMax";
-
-/**
- * Available playback speed multipliers.
- * Infinity represents "Max" speed (as fast as possible).
- */
-export type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number];
-
-/**
- * All available playback speeds for UI iteration.
- */
-export const PLAYBACK_SPEEDS = [
-  1,
-  2,
-  5,
-  10,
-  30,
-  60,
-  120,
-  Number.POSITIVE_INFINITY,
-] as const;
-
-/**
- * Format a playback speed for display.
- */
-export function formatPlaybackSpeed(speed: PlaybackSpeed): string {
-  return speed === Number.POSITIVE_INFINITY ? "Max" : `${speed}x`;
-}
+// Re-export the locked enums/helpers so existing UI consumers don't need to
+// know they live in /core now.
+export {
+  formatPlaybackSpeed,
+  PLAYBACK_SPEEDS,
+  type PlaybackSpeed,
+  type PlaybackState,
+  type PlayMode,
+};
 
 /**
  * The combined playback context containing both state and actions.

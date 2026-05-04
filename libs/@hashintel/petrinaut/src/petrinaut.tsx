@@ -19,7 +19,7 @@ import type {
 import { LanguageClientProvider } from "./react/lsp/provider";
 import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
-import { PlaybackProvider } from "./playback/provider";
+import { PlaybackProvider } from "./react/playback/provider";
 import { SimulationProvider } from "./react/simulation/provider";
 import { EditorProvider } from "./state/editor-provider";
 import { MutationProvider } from "./state/mutation-provider";

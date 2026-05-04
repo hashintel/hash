@@ -3,7 +3,7 @@ import { use, useMemo } from "react";
 import type { SpreadsheetColumn } from "../../../../../../../components/spreadsheet";
 import { Spreadsheet } from "../../../../../../../components/spreadsheet";
 import type { Color } from "../../../../../../../core/types/sdcpn";
-import { PlaybackContext } from "../../../../../../../playback/context";
+import { PlaybackContext } from "../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 
 /**

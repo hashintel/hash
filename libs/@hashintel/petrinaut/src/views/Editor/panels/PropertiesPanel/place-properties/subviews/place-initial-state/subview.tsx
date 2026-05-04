@@ -6,7 +6,7 @@ import { TbTrash } from "react-icons/tb";
 import { NumberInput } from "../../../../../../../components/number-input";
 import type { SubView } from "../../../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { PlaybackContext } from "../../../../../../../playback/context";
+import { PlaybackContext } from "../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { usePlacePropertiesContext } from "../../context";
 import { InitialStateEditor } from "./initial-state-editor";

@@ -2,7 +2,7 @@ import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
 import { hexToHsl } from "../../../lib/hsl-color";
-import { PlaybackContext } from "../../../playback/context";
+import { PlaybackContext } from "../../../react/playback/context";
 import { EditorContext } from "../../../state/editor-context";
 import { generateArcId, SDCPNContext } from "../../../state/sdcpn-context";
 import { UserSettingsContext } from "../../../state/user-settings-context";

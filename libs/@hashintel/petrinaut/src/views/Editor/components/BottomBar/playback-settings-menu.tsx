@@ -16,7 +16,7 @@ import {
   PLAYBACK_SPEEDS,
   PlaybackContext,
   type PlaybackSpeed,
-} from "../../../../playback/context";
+} from "../../../../react/playback/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { ToolbarButton } from "./toolbar-button";
 

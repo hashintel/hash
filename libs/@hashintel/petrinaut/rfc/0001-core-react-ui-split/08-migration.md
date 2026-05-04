@@ -79,6 +79,36 @@ Files added:
 
 Public exports added in `main.ts`: `createSimulation`, `createWorkerTransport`, plus the `Simulation*` types, `CreateSimulationConfig`, `SimulationTransport`, and `WorkerFactory`.
 
+### Phase 2d — Playback timing model + provider rewire (done)
+
+Mirrors 2a/2b/2c — pure timing model lives in `/core`; React provider drives ticks and coordinates simulation lifecycle.
+
+New in `/core`:
+
+- `src/core/playback/playback.ts` — `createPlayback(initial?)` returning a `Playback` handle:
+  - `state: ReadableStore<{ playState, frameIndex, speed, mode }>`
+  - actions: `play / pause / stop / setFrameIndex / setSpeed / setMode / resetTiming / dispose` (all `this: void`-typed)
+  - `tick({ currentTime, dt, totalFrames, simulationDone })` — caller drives the loop. Returns `{ frameIndex, advanced, reachedEnd }`. Auto-pauses on reaching the end when `simulationDone` or `mode === "viewOnly"`.
+- Pure helpers: `getPlayModeBackpressure(mode)`, `formatPlaybackSpeed(speed)`, the `PLAYBACK_SPEEDS` constant, and the `PlaybackState` / `PlayMode` / `PlaybackSpeed` enums — all moved out of `react/playback/context.ts`.
+- `src/core/playback/index.ts` — barrel.
+- `src/core/playback/playback.test.ts` — 18 unit tests covering speed/mode/state transitions, tick advancement, max-speed jump, auto-pause behaviour, no-op-when-not-Playing, dispose idempotency, resetTiming.
+
+Phase 1 reorg of playback files:
+
+- `src/playback/{provider.tsx, provider.test.tsx, context.ts, README.md}` → `src/react/playback/`
+- `src/playback/` directory removed.
+
+`<PlaybackProvider>` rewritten as a bridge:
+
+- Holds the core `Playback` via `useState` lazy-init.
+- `useStore(playback.state)` for snapshot subscription.
+- Drives the `requestAnimationFrame` loop, calling `playback.tick(...)` with the current dt / totalFrames / simulationDone.
+- Coordinates simulation lifecycle: `play()` initialises the sim if NotRun, runs it; `pause()` / `stop()` pause it; `setPlayMode()` runs/pauses appropriately; backpressure ack logic stays here.
+- `currentFrame` (the actual frame data) is fetched in React from `getFrame(frameIndex)` — Core doesn't hold frame data.
+- Republishes through the existing `PlaybackContext` shape so `/ui` consumers don't change.
+
+The 11 external consumers (`views/SDCPN/**`, `views/Editor/**`, `petrinaut.tsx`) updated to the new `react/playback/` path. The `react/playback/context.ts` re-exports `PlaybackState`, `PlayMode`, `PlaybackSpeed`, `PLAYBACK_SPEEDS`, `formatPlaybackSpeed` from `core/playback` for back-compat.
+
 ### Phase 2c — LSP transport + LanguageClient (done)
 
 Same shape as 2a/2b, applied to the language-server worker:

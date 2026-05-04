@@ -5,7 +5,7 @@ import {
   PlaybackContext,
   type PlaybackSpeed,
   type PlayMode,
-} from "../../../../playback/context";
+} from "../../../../react/playback/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
 
