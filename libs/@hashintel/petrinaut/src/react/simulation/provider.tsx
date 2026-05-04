@@ -14,9 +14,9 @@ import { createSimulationWorker } from "../../core/simulation/worker/create-simu
 import { deriveDefaultParameterValues } from "../../hooks/use-default-parameter-values";
 import { useLatest } from "../../hooks/use-latest";
 import { useStableCallback } from "../../hooks/use-stable-callback";
-import { useNotifications } from "../../notifications/notifications-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useStore } from "../use-store";
+import { SimulationToaster, type SimulationToast } from "./toaster";
 import {
   type InitialMarking,
   SimulationContext,
@@ -94,27 +94,8 @@ function mapCoreState(status: CoreSimulationState | null): SimulationState {
   }
 }
 
-/**
- * Internal component that subscribes to simulation state changes
- * and shows notifications when appropriate.
- */
-const SimulationStateNotifier: React.FC = () => {
-  const { notify } = useNotifications();
-  const { state } = use(SimulationContext);
-  const previousStateRef = useRef<SimulationState | null>(null);
-
-  useEffect(() => {
-    const previousState = previousStateRef.current;
-    previousStateRef.current = state;
-
-    // Notify when simulation completes
-    if (state === "Complete" && previousState !== "Complete") {
-      notify({ message: "Simulation complete" });
-    }
-  }, [state, notify]);
-
-  return null;
-};
+const TOAST_DURATION_MS = 3000;
+const TOAST_FADE_OUT_MS = 200;
 
 type SimulationProviderProps = React.PropsWithChildren;
 
@@ -141,6 +122,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [errorItemId, setErrorItemId] = useState<string | null>(null);
 
+  // Transient toasts surfaced from the simulation events stream. Replaces the
+  // old standalone `<NotificationsProvider>` system — see Q7 in
+  // 07-open-questions.md.
+  const [toasts, setToasts] = useState<SimulationToast[]>([]);
+  const nextToastIdRef = useRef(0);
+
   // Subscribe to the active simulation's stores. EMPTY_*_STORE provides a
   // stable fallback so hook order doesn't change when no sim is active.
   const coreStatus = useStore(simulation?.status ?? EMPTY_STATUS_STORE);
@@ -158,6 +145,24 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       if (event.type === "error") {
         setError(event.message);
         setErrorItemId(event.itemId);
+      } else {
+        const id = nextToastIdRef.current++;
+        setToasts((prev) => [
+          ...prev,
+          { id, message: "Simulation complete", exiting: false },
+        ]);
+        // Start exit animation just before removal.
+        setTimeout(() => {
+          setToasts((prev) =>
+            prev.map((toast) =>
+              toast.id === id ? { ...toast, exiting: true } : toast,
+            ),
+          );
+        }, TOAST_DURATION_MS - TOAST_FADE_OUT_MS);
+        // Remove once the exit animation finishes.
+        setTimeout(() => {
+          setToasts((prev) => prev.filter((toast) => toast.id !== id));
+        }, TOAST_DURATION_MS);
       }
     });
     return off;
@@ -485,8 +490,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   return (
     <SimulationContext.Provider value={contextValue}>
-      <SimulationStateNotifier />
       {children}
+      <SimulationToaster toasts={toasts} />
     </SimulationContext.Provider>
   );
 };

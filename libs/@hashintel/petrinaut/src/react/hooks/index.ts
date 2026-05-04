@@ -57,9 +57,6 @@ export {
 // Re-export the existing read-only hook from its current location.
 export { useIsReadOnly } from "../../state/use-is-read-only";
 
-// Re-export the notifications hook.
-export { useNotifications } from "../../notifications/notifications-context";
-
 // Instance access + low-level store adapter.
 export { usePetrinautInstance } from "../use-petrinaut-instance";
 export { useStore, useStoreSelector } from "../use-store";

@@ -18,7 +18,6 @@ import type {
 } from "./core/types/sdcpn";
 import { LanguageClientProvider } from "./react/lsp/provider";
 import { MonacoProvider } from "./monaco/provider";
-import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./react/playback/provider";
 import { SimulationProvider } from "./react/simulation/provider";
 import { EditorProvider } from "./state/editor-provider";
@@ -124,31 +123,29 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   ...rest
 }) => {
   return (
-    <NotificationsProvider>
-      <UndoRedoContext value={undoRedo ?? null}>
-        <SDCPNProvider {...rest}>
-          <LanguageClientProvider key={rest.petriNetId}>
-            <MonacoProvider>
-              <SimulationProvider>
-                <PlaybackProvider>
-                  <UserSettingsProvider>
-                    <EditorProvider>
-                      <MutationProvider
-                        mutatePetriNetDefinition={mutatePetriNetDefinition}
-                      >
-                        <EditorView
-                          hideNetManagementControls={hideNetManagementControls}
-                          viewportActions={viewportActions}
-                        />
-                      </MutationProvider>
-                    </EditorProvider>
-                  </UserSettingsProvider>
-                </PlaybackProvider>
-              </SimulationProvider>
-            </MonacoProvider>
-          </LanguageClientProvider>
-        </SDCPNProvider>
-      </UndoRedoContext>
-    </NotificationsProvider>
+    <UndoRedoContext value={undoRedo ?? null}>
+      <SDCPNProvider {...rest}>
+        <LanguageClientProvider key={rest.petriNetId}>
+          <MonacoProvider>
+            <SimulationProvider>
+              <PlaybackProvider>
+                <UserSettingsProvider>
+                  <EditorProvider>
+                    <MutationProvider
+                      mutatePetriNetDefinition={mutatePetriNetDefinition}
+                    >
+                      <EditorView
+                        hideNetManagementControls={hideNetManagementControls}
+                        viewportActions={viewportActions}
+                      />
+                    </MutationProvider>
+                  </EditorProvider>
+                </UserSettingsProvider>
+              </PlaybackProvider>
+            </SimulationProvider>
+          </MonacoProvider>
+        </LanguageClientProvider>
+      </SDCPNProvider>
+    </UndoRedoContext>
   );
 };

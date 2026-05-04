@@ -47,7 +47,9 @@ Selection, current mode, panel layout, user settings — does any of this belong
 
 ## Q7. ~~Notifications~~
 
-**Decided.** Notifications are core-output: semantic events on an `EventStream<Notification>`, rendered by `/ui` as toasts. Today's React-side `<NotificationsProvider>` will move to a thin bridge in Phase 3b once `<PetrinautProvider>` mounts the bridge stack from a Core instance.
+**Decided — folded into `simulation.events`.** The standalone `NotificationsProvider` / `useNotifications` system has been removed. Its only producer was "Simulation complete" — a single toast triggered when the simulation finished. That signal is already on the Core simulation handle's `events: EventStream<SimulationEvent>` stream; the React provider now subscribes to it directly and renders toasts via `<SimulationToaster>` inline. No parallel notification infrastructure needed today.
+
+If a future use case introduces non-simulation notifications (LSP type-check failed, scenario imported, etc.), the right shape is to surface those via the same pattern — domain handle exposes an event stream, React provider renders a toaster — not to reinstate a generic notifications system.
 
 ## Q8. ~~Error tracker~~
 
