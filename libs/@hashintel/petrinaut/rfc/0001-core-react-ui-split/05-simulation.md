@@ -193,6 +193,6 @@ Decoupling: `createPetrinaut` does **not** take a simulation config. The instanc
 
 `createInlineTransport()` is **not yet implemented** — Phase 3 / follow-up. The `SimulationTransport` interface is designed to admit it without the rest of the API changing.
 
-`/react` and `/ui` are **not yet wired** to use `createSimulation`. The existing `<SimulationProvider>` still drives `<Petrinaut>`'s simulation panel via `useSimulationWorker`. That swap is the next step (and the part that lets us delete the old `useSimulationWorker` hook).
+**`<SimulationProvider>` swap landed (Phase 2b).** `src/simulation/provider.tsx` now calls `createSimulation` instead of `useSimulationWorker`. The provider holds a `Simulation | null` in React state, subscribes to its `status` and `frames` stores via `useStore`, and forwards `run` / `pause` / `reset` / `ack` / `setBackpressure` to the active handle. Setup state (parameter values, initial marking, scenarios, dt, maxTime) stays React-side as before — these are inputs to `createSimulation`, not Core concerns. The old `useSimulationWorker` hook + its test (`src/simulation/worker/use-simulation-worker.{ts,test.ts}`) are deleted.
 
 8 unit tests cover both flavours: ready/init via mock transport, init error, single + batch frame appends, complete event, control message round-trip, idempotent dispose, abort during init, plus a fake-`Worker` test for the `createWorker` factory route.

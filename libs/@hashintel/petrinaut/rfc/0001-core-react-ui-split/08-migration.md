@@ -68,7 +68,19 @@ Files added:
 
 Public exports added in `main.ts`: `createSimulation`, `createWorkerTransport`, plus the `Simulation*` types, `CreateSimulationConfig`, `SimulationTransport`, and `WorkerFactory`.
 
-The existing `<SimulationProvider>` is **not yet replaced** — the existing prop-shaped `<Petrinaut>` continues to use `useSimulationWorker`. The `/react` bridge that calls `createSimulation` and republishes through `SimulationContext` is the next step.
+### Phase 2b — `<SimulationProvider>` swap (done)
+
+`src/simulation/provider.tsx` rewritten to call `createSimulation` instead of `useSimulationWorker`. The provider keeps its existing public `SimulationContextValue` shape — `/ui` files (the simulation panel, scenarios UI, etc.) are unchanged. Internally:
+
+- A `Simulation | null` is held in React state. Disposed on unmount, on `petriNetId` change, on `reset()`, and before each new `initialize()`.
+- `status` and `frames.count` come from `useStore(simulation.status)` / `useStore(simulation.frames)` with stable empty-store fallbacks when no simulation is active.
+- `error` / `errorItemId` are captured from `simulation.events` (the core handle no longer republishes the message via stores; it fires once on transition).
+- The legacy `SimulationState` shape ("NotRun" | "Paused" | "Running" | "Complete" | "Error") is reconstructed from the new `CoreSimulationState` ("Initializing" | "Ready" | "Running" | "Paused" | "Complete" | "Error") + the presence of a handle.
+- `getFrame` / `getAllFrames` / `getFramesInRange` read from `simulation.getFrame(i)` and the `frames.count` store. Promise-wrapped to preserve the existing async signature.
+
+`useSimulationWorker` hook + its test file deleted (`src/simulation/worker/use-simulation-worker.{ts,test.ts}`). The hook's `WorkerStatus` type and the React glue around it are no longer needed — the engine talks to the main thread purely through the `Simulation` handle.
+
+`create-simulation-worker.ts` is kept as the default `WorkerFactory` used by the provider; its `?worker&inline` import is the existing browser-side bundling path.
 
 ## Phase 3 — React bindings
 

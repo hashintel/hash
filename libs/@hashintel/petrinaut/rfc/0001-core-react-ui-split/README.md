@@ -1,6 +1,6 @@
 # RFC 0001 — Petrinaut: Core / React / UI Split
 
-**Status:** Draft (iterating) — Phase 0 spike + Phase 2a (simulation decoupled into `createSimulation`) landed
+**Status:** Draft (iterating) — Phase 0 spike + Phase 2a/2b (simulation decoupled into `createSimulation`, `<SimulationProvider>` swapped) landed
 **Authors:** @cf
 **Created:** 2026-04-28
 **Last updated:** 2026-05-02
@@ -51,7 +51,8 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
 - Patches: Petrinaut-defined minimal `PetrinautPatch` type (Immer-shaped: array path, `op: add | remove | replace`). Adds `immer` (~14 KB) as a `/core` dep. Patches are in-memory only, never persisted. See [04-core-instance.md](./04-core-instance.md) §4.1.
 - Undo/redo lives on the handle as an optional `history` field. `createJsonDocHandle` ships a default Immer-based implementation; the host's `UndoRedoContextValue` pass-through goes away. Coalescing of typing-bursts is a deferred follow-up. See [04-core-instance.md](./04-core-instance.md) §4.1 "History (locked)".
 - Phase 0 spike landed: `createJsonDocHandle` (with history), `createPetrinaut`, `useStore`, `<PetrinautNext>`, two Storybook stories, 15 smoke tests. Demo site (`apps/petrinaut-website`) migrated to the handle-driven path; per-net history preserved across switches. See [08-migration.md](./08-migration.md) Phase 0.
-- Phase 2a landed: `SimulationTransport` interface, `createWorkerTransport(createWorker)`, **`createSimulation(config)`** standalone factory returning a `Simulation` handle (status / frames / events stores, run/pause/reset/ack/setBackpressure/getFrame/dispose actions). Simulation is **decoupled** from the `Petrinaut` instance — it operates on a frozen SDCPN snapshot and the host owns its lifecycle. `/react` bridge + `<SimulationProvider>` swap is the next step. See [05-simulation.md](./05-simulation.md) §5.1, §5.8.
+- Phase 2a landed: `SimulationTransport` interface, `createWorkerTransport(createWorker)`, **`createSimulation(config)`** standalone factory returning a `Simulation` handle (status / frames / events stores, run/pause/reset/ack/setBackpressure/getFrame/dispose actions). Simulation is **decoupled** from the `Petrinaut` instance — it operates on a frozen SDCPN snapshot and the host owns its lifecycle. See [05-simulation.md](./05-simulation.md) §5.1, §5.8.
+- Phase 2b landed: `<SimulationProvider>` swapped to call `createSimulation` directly. Old `useSimulationWorker` hook deleted. The legacy `SimulationContextValue` shape is preserved so `/ui` files don't change. See [08-migration.md](./08-migration.md) "Phase 2b".
 
 ## What this RFC does *not* cover
 

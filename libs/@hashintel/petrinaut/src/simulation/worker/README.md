@@ -49,29 +49,24 @@ The worker blocks computation until it receives an `ack` message, then computes 
 
 ---
 
-# useSimulationWorker Hook
+## Consuming this worker from main-thread code
 
-React hook wrapping WebWorker communication.
+The previous `useSimulationWorker` React hook has been removed. Main-thread code now uses the standalone `createSimulation` factory from `/core` (see [`../../../rfc/0001-core-react-ui-split/05-simulation.md`](../../../rfc/0001-core-react-ui-split/05-simulation.md)):
 
-## Status
+```ts
+import { createSimulation } from "@hashintel/petrinaut";
 
-```typescript
-type WorkerStatus = 'idle' | 'initializing' | 'ready' | 'running' | 'paused' | 'complete' | 'error';
+const sim = await createSimulation({
+  sdcpn,
+  initialMarking,
+  parameterValues,
+  seed,
+  dt,
+  maxTime,
+  createWorker: () => new Worker(/* … */),
+});
+
+sim.run();
 ```
 
-```text
-idle → initializing → ready → running ⇄ paused
-                         ↓         ↓
-                      complete   error
-```
-
-## Actions
-
-| Action            | Description                         |
-| ----------------- | ----------------------------------- |
-| `initialize`      | Send init message, returns Promise  |
-| `start`           | Begin/resume computing              |
-| `pause`           | Pause computation                   |
-| `stop` / `reset`  | Stop and discard simulation         |
-| `setBackpressure` | Reconfigure backpressure at runtime |
-| `ack`             | Acknowledge frames (backpressure)   |
+The default `createWorker` factory used inside `<SimulationProvider>` lives in `./create-simulation-worker.ts`. It returns a `Promise<Worker>` that imports the worker module via Vite's `?worker&inline` syntax.
