@@ -261,10 +261,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
 
-    // Dispose any in-flight simulation before starting a new one.
+    // Dispose any in-flight simulation before starting a new one. Update both
+    // the ref (synchronous, so callers in the same tick see `null` not the
+    // disposed handle) and the React state (so subscribers re-render).
     const previous = simulationRef.current;
     if (previous) {
       previous.dispose();
+      simulationRef.current = null;
       setSimulation(null);
     }
     setError(null);
@@ -289,6 +292,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       createWorker: createSimulationWorker,
     });
 
+    // Write the ref synchronously *before* setSimulation so a same-tick
+    // caller (e.g. PlaybackProvider's `play()` chains `runSimulation()`
+    // immediately after `await initialize(...)`) sees the new handle.
+    // setSimulation also schedules a re-render so useStore subscribers
+    // pick up the new stores.
+    simulationRef.current = sim;
     setSimulation(sim);
   };
 
