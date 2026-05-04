@@ -1,7 +1,7 @@
 import type {
   PetrinautReactFlowInstance,
   NodeType,
-} from "../views/SDCPN/reactflow-types";
+} from "../ui/views/SDCPN/reactflow-types";
 
 type Viewport = {
   x: number;

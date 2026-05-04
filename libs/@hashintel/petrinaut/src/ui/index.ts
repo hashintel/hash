@@ -11,5 +11,5 @@ export type { PetrinautNextProps } from "./petrinaut-next";
 // Today the existing prop-shaped <Petrinaut> still lives at src/petrinaut.tsx.
 // Re-exported here so `/ui` consumers get the opinionated editor too. Phase 4
 // will move the file proper into /ui.
-export { Petrinaut, isSDCPNEqual } from "../petrinaut";
-export type { PetrinautProps } from "../petrinaut";
+export { Petrinaut, isSDCPNEqual } from "./petrinaut";
+export type { PetrinautProps } from "./petrinaut";

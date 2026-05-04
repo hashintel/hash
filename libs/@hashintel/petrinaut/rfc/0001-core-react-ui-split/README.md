@@ -1,6 +1,6 @@
 # RFC 0001 — Petrinaut: Core / React / UI Split
 
-**Status:** Draft (iterating) — Phase 0 + Phase 2a/2b/2c/2d + Phase 3a + **Phase 5 (`exports` map + multi-entry bundles)** landed
+**Status:** Draft (iterating) — Phase 0 + 2a/2b/2c/2d + 3a + 5 + **Phase 4 (UI relocation)** landed
 **Authors:** @cf
 **Created:** 2026-04-28
 **Last updated:** 2026-05-05

@@ -8,7 +8,7 @@ import type {
 } from "../core/handle";
 import { createPetrinaut, type Petrinaut as Instance } from "../core/instance";
 import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
-import { Petrinaut } from "../petrinaut";
+import { Petrinaut } from "./petrinaut";
 import { PetrinautInstanceContext } from "../react/instance-context";
 import { useStore } from "../react/use-store";
 import type { UndoRedoContextValue } from "../state/undo-redo-context";

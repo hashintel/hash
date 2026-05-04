@@ -79,6 +79,47 @@ Files added:
 
 Public exports added in `main.ts`: `createSimulation`, `createWorkerTransport`, plus the `Simulation*` types, `CreateSimulationConfig`, `SimulationTransport`, and `WorkerFactory`.
 
+### Phase 4 — UI relocation (done)
+
+The visual editor and its supporting subsystems moved from flat `src/` into `src/ui/`:
+
+| From | To | Files |
+| ---- | -- | ----- |
+| `src/monaco/` | `src/ui/monaco/` | 9 |
+| `src/views/` | `src/ui/views/` | 88 |
+| `src/components/` | `src/ui/components/` | 30 |
+| `src/resize/` | `src/ui/resize/` | 1 |
+| `src/constants/` | `src/ui/constants/` | 4 |
+| `src/petrinaut.tsx` | `src/ui/petrinaut.tsx` | 1 |
+| `src/petrinaut.stories.tsx` | `src/ui/petrinaut.stories.tsx` | 1 |
+| `src/petrinaut-story-provider.tsx` | `src/ui/petrinaut-story-provider.tsx` | 1 |
+| `src/index.css` | `src/ui/index.css` | 1 |
+| `src/fontsource.d.ts` | `src/ui/fontsource.d.ts` | 1 |
+
+All 137 files moved via `git mv` (history preserved).
+
+**Import-path fix-ups** applied via two perl passes:
+
+1. Inside files now under `src/ui/`, paths to non-moved dirs (`core`, `react`, `state`, `clipboard`, `lib`, `examples`, `validation`, `file-format`, `hooks`, `error-tracker`, `types`) got one extra `../` because they're now one level deeper. Two false positives — `views/SDCPN/hooks/` and `views/Editor/lib/` are nested directories with the same name as top-level dirs — manually reverted in three transition-node files.
+2. Files outside `/ui/` referencing the moved dirs (e.g. `state/mutation-provider.tsx` referring to `views/SDCPN/styles/styling`) had `ui/` inserted into the path.
+3. Top-level config files (`panda.config.shared.ts`) updated by hand.
+4. Two pre-existing files in `src/ui/` (`petrinaut-next.tsx`, `index.ts`) had their `../core/...` etc. paths un-deepened — they were already at the correct depth and shouldn't have been touched by the bulk pass.
+
+**Verified**: yarn lint:tsc + yarn lint:eslint clean; yarn build succeeds; 485 unit tests pass.
+
+**Layer rule status**: spot-checked that `/ui` files don't import `/core` *values* directly. They do import `/core` *types* (e.g. `SDCPN`, `PetrinautDocHandle`, `Diagnostic`), which is fine — type-only imports don't create runtime dependencies. The "no `/ui` → `/core` value imports" rule is honored. A formal audit (e.g. an eslint plugin enforcing layer direction) is a future cleanup, not blocking.
+
+**Pending Phase 1 moves** (no forcing function — done as a single tidiness commit later if desired):
+
+- `src/state/` → `src/react/state/`
+- `src/hooks/` → split between `src/core/` (pure) and `src/react/hooks/`
+- `src/clipboard/` → split between `src/core/clipboard/` (pure) and `src/ui/clipboard/` (DOM)
+- `src/file-format/` → split between `src/core/file-format/` (import) and `src/ui/file-format/` (export)
+- `src/lib/` → split between `src/core/lib/` (deep-equal etc.) and `src/ui/lib/` (layout, viewport)
+- `src/examples/` → `src/core/examples/`
+- `src/validation/` → `src/core/validation/`
+- `src/error-tracker/` — leave per the RFC's earlier decision
+
 ### Phase 5 — Public entry points (done)
 
 The headline deliverable: `@hashintel/petrinaut/core`, `/react`, `/ui` are now real subpath imports backed by separate bundles.

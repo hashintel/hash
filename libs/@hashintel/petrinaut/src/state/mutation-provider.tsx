@@ -6,7 +6,7 @@ import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
-} from "../views/SDCPN/styles/styling";
+} from "../ui/views/SDCPN/styles/styling";
 import { MutationContext, type MutationContextValue } from "./mutation-context";
 import { generateArcId, SDCPNContext } from "./sdcpn-context";
 import { useIsReadOnly } from "./use-is-read-only";

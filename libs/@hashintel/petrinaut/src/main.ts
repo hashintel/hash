@@ -1,6 +1,6 @@
 export type { ErrorTracker } from "./error-tracker/error-tracker.context";
 export { ErrorTrackerContext } from "./error-tracker/error-tracker.context";
-export * from "./petrinaut";
+export * from "./ui/petrinaut";
 
 // Phase 0 spike: handle-driven entry path. See rfc/0001-core-react-ui-split.
 export { createJsonDocHandle } from "./core/handle";
