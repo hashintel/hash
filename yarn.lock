@@ -527,6 +527,7 @@ __metadata:
   resolution: "@apps/hash-frontend@workspace:apps/hash-frontend"
   dependencies:
     "@apollo/client": "npm:3.10.5"
+    "@ark-ui/react": "npm:5.26.2"
     "@blockprotocol/core": "npm:0.1.4"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/hook": "npm:0.1.8"

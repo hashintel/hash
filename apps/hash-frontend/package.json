@@ -11,6 +11,7 @@
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "next dev",
     "fix:eslint": "eslint --fix .",
+    "fix:format": "biome format --write",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "next start",
@@ -20,6 +21,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.10.5",
+    "@ark-ui/react": "5.26.2",
     "@blockprotocol/core": "0.1.4",
     "@blockprotocol/graph": "workspace:*",
     "@blockprotocol/hook": "0.1.8",
