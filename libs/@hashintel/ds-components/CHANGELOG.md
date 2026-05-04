@@ -1,5 +1,18 @@
 # @hashintel/ds-components
 
+## 0.2.0
+
+### Minor Changes
+
+- [#8670](https://github.com/hashintel/hash/pull/8670) [`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa) Thanks [@lunelson](https://github.com/lunelson)! - Expose preset-owned `tokens` and `semanticTokens` from `@hashintel/ds-components/tokens` in place of the old `./theme` export, and add generated `@hashintel/ds-helpers/recipes` exports for recipe consumers.
+
+### Patch Changes
+
+- [#8661](https://github.com/hashintel/hash/pull/8661) [`79eda1e`](https://github.com/hashintel/hash/commit/79eda1e27e9a6b2959a68e59f9a25791639f5770) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Adds the Icon component
+
+- Updated dependencies [[`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa)]:
+  - @hashintel/ds-helpers@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes
