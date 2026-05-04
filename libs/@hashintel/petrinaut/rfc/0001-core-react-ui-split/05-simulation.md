@@ -54,6 +54,63 @@ type CreateSimulationConfig = SimulationConfig &
 
 When you pass a `transport`, ownership transfers to the simulation — `simulation.dispose()` calls `transport.terminate()`. Build a fresh transport per simulation.
 
+### Transport matrix
+
+| Environment | Off-thread? | Recommended path | Status |
+| ----------- | :---------: | ---------------- | :----: |
+| Browser, fast | ✅ | `createWorkerTransport(() => new Worker(...))` | 🟢 |
+| Browser, simple / tests | ❌ | `createInlineTransport()` | 🟡 |
+| Node `worker_threads` | ✅ | Custom `SimulationTransport` (see snippet below) — *or* `web-worker` polyfill + `createWorkerTransport` | 🟢 (DIY) |
+| Node, simple / tests | ❌ | `createInlineTransport()` | 🟡 |
+| Bun / Deno workers | ✅ | Custom `SimulationTransport`, or use the runtime's built-in browser-`Worker`-shim with `createWorkerTransport` | 🟢 (DIY) |
+| Edge / process pools / IPC | ✅ | Custom `SimulationTransport` over whatever message-passing primitive you have | 🟢 (DIY) |
+
+`/core` ships only `createWorkerTransport` (browser-shaped) and the planned `createInlineTransport`. Other environments are DIY because the message-passing API differs between runtimes (browser `addEventListener` vs Node `EventEmitter`, etc.) and importing `node:worker_threads` from `/core` would compromise the browser bundle. Writing a transport is ~10 lines.
+
+### Example: Node `worker_threads`
+
+```ts
+import { Worker } from "node:worker_threads";
+import type {
+  SimulationTransport,
+  ToMainMessage,
+  ToWorkerMessage,
+} from "@hashintel/petrinaut/core";
+
+export function createNodeWorkerTransport(
+  scriptPath: string | URL,
+): SimulationTransport {
+  const worker = new Worker(scriptPath);
+  return {
+    send: (msg: ToWorkerMessage) => worker.postMessage(msg),
+    onMessage: (listener: (msg: ToMainMessage) => void) => {
+      worker.on("message", listener);
+      return () => worker.off("message", listener);
+    },
+    terminate: () => {
+      void worker.terminate();
+    },
+  };
+}
+
+// usage
+const sim = await createSimulation({
+  transport: createNodeWorkerTransport(new URL("./sim.worker.mjs", import.meta.url)),
+  sdcpn: net,
+  initialMarking: new Map(),
+  parameterValues: {},
+  seed: 42,
+  dt: 0.01,
+  maxTime: 10,
+});
+```
+
+The same pattern adapts to Bun (`new globalThis.Worker(...)`), Deno (`new Worker(...)`), or any other message-passing primitive. The `SimulationTransport` interface is small enough that it's easier to wrap than to abstract over.
+
+### Why we don't ship a Node helper
+
+`createNodeWorkerTransport` would need either a sub-entry like `@hashintel/petrinaut/core/node` (to keep `node:worker_threads` out of the browser bundle) or conditional bundler logic. Both add weight for code that's ten lines for a consumer to write. We'll revisit if a real internal consumer needs Node off-thread sim — until then, document the snippet.
+
 ## 5.3 Worker bundling — caller-provided factory (Option A)
 
 `/core` does **not** import the worker via Vite-specific syntax. Consumers pass a `Worker` factory:

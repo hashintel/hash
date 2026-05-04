@@ -341,14 +341,58 @@ sim.frames.subscribe(({ latest }) => {
 
 🟡 **Planned:** `createInlineTransport()` (synchronous, no worker, no DOM) and `createRecordedTransport(frames)` (replay against a saved tape). The `SimulationTransport` interface is shape-compatible with both; they ship later without API change.
 
-### 11.4.5 Headless-headless (no Worker available)
+### 11.4.5 Off-thread on the server (Node / Bun / Deno)
 
-🟡 **Planned.** Until `createInlineTransport()` lands, simulating in Node/Deno requires either:
+🟢 **Shipped (DIY transport).** `createWorkerTransport` is shaped for the browser Web Worker API; Node's `worker_threads.Worker` is `EventEmitter`-shaped. Different API, same idea — and the `SimulationTransport` interface is small enough that wrapping the runtime's worker is ~10 lines:
 
-- The `web-worker` polyfill (already a dep of this package) — works for many cases.
-- A custom `SimulationTransport` that drives the simulator on the calling thread via the modules in `src/simulation/simulator/*`.
+```ts
+import { Worker } from "node:worker_threads";
+import { createSimulation } from "@hashintel/petrinaut/core";
+import type {
+  SimulationTransport,
+  ToMainMessage,
+  ToWorkerMessage,
+} from "@hashintel/petrinaut/core";
 
-Once `createInlineTransport()` ships, the recommended pattern is `createSimulation({ sdcpn, transport: createInlineTransport(), … })` with no Worker involved.
+const worker = new Worker(new URL("./sim.worker.mjs", import.meta.url));
+const transport: SimulationTransport = {
+  send: (msg: ToWorkerMessage) => worker.postMessage(msg),
+  onMessage: (listener: (msg: ToMainMessage) => void) => {
+    worker.on("message", listener);
+    return () => worker.off("message", listener);
+  },
+  terminate: () => {
+    void worker.terminate();
+  },
+};
+
+const sim = await createSimulation({
+  transport,
+  sdcpn: net,
+  initialMarking: new Map(),
+  parameterValues: {},
+  seed: 42,
+  dt: 0.01,
+  maxTime: 10,
+});
+```
+
+The same shape works for Bun, Deno, edge runtimes, or process pools over IPC — wrap whatever message-passing primitive you have in the three-method `SimulationTransport` interface. See [05-simulation.md](./05-simulation.md) §5.2 "Transport matrix" for the full breakdown.
+
+Alternative path: the [`web-worker`](https://www.npmjs.com/package/web-worker) package is already a `petrinaut` dep and exposes the browser `Worker` API on top of `node:worker_threads`. With it, you can use `createWorkerTransport` directly in Node:
+
+```ts
+import Worker from "web-worker";
+const sim = await createSimulation({
+  createWorker: () =>
+    new Worker(new URL("./sim.worker.mjs", import.meta.url), { type: "module" }),
+  /* … */
+});
+```
+
+### 11.4.6 Headless-headless (no off-thread at all)
+
+🟡 **Planned:** `createInlineTransport()` runs the simulator on the calling thread — no worker involved. Useful for tests, small SDCPNs, deterministic snapshots. Once it ships, the recommended pattern is `createSimulation({ sdcpn, transport: createInlineTransport(), … })`.
 
 ---
 
