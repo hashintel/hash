@@ -1,0 +1,33 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
+    let %2: ?
+    let %3: ?
+    let %4: ?
+    let %5: ?
+    let %6: () -> ?
+    let %7: ?
+
+    bb0(): {
+        %2 = %1.metadata.record_id
+        %3 = %1.metadata.temporal_versioning
+        %4 = %1.properties
+        %5 = input LOAD b
+
+        goto -> bb1(%2)
+    }
+
+    bb1(%7): {
+        %6 = ({def@99} as FnPtr)
+        %7 = apply %6
+
+        return %7
+    }
+}
+==================== Island (entry: bb0, target: postgres) =====================
+
+(ROW(NULL, 1, ARRAY[7]::int[], ARRAY[jsonb_build_object($1, jsonb_build_object($2, "entity_temporal_metadata_0_0_0"."web_id", $3, "entity_temporal_metadata_0_0_0"."entity_uuid", $4, "entity_temporal_metadata_0_0_0"."draft_id"), $4, "entity_temporal_metadata_0_0_0"."draft_id")]::jsonb[])::continuation)

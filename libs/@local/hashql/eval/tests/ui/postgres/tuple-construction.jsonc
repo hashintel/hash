@@ -1,0 +1,20 @@
+//@ run: pass
+//@ description: Tuple aggregate from entity fields - AggregateKind::Tuple → jsonb_build_array
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        { "#tuple": [
+          "vertex.metadata.record_id.entity_id.entity_uuid",
+          "vertex.metadata.record_id.entity_id.web_id"
+        ]},
+        { "#tuple": [
+          ["input", "u", "::graph::types::knowledge::entity::EntityUuid"],
+          ["input", "w", "::graph::types::principal::actor_group::web::WebId"]
+        ]}
+      ]
+    ]
+  ]
+]

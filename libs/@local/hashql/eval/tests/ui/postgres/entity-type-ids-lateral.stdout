@@ -1,0 +1,20 @@
+════ SQL ═══════════════════════════════════════════════════════════════════════
+
+SELECT ("continuation_2_0"."row")."block" AS "continuation_2_0_block", ("continuation_2_0"."row")."locals" AS "continuation_2_0_locals", ("continuation_2_0"."row")."values" AS "continuation_2_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+LEFT OUTER JOIN LATERAL (SELECT jsonb_agg(jsonb_build_object($4, "b", $5, "v")) AS "entity_type_ids"
+FROM "entity_is_of_type_ids" AS "eit"
+CROSS JOIN UNNEST("eit"."base_urls", "eit"."versions") AS "u"("b", "v")
+WHERE "eit"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id") AS "entity_is_of_type_ids_0_0_1"
+  ON TRUE
+CROSS JOIN LATERAL (SELECT (ROW((("entity_is_of_type_ids_0_0_1"."entity_type_ids" = $3)::boolean), NULL, NULL, NULL)::continuation) AS "row"
+OFFSET 0) AS "continuation_2_0"
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $1 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ("continuation_2_0"."row")."filter" IS NOT FALSE
+
+════ Parameters ════════════════════════════════════════════════════════════════
+
+$1: TemporalAxis(Transaction)
+$2: TemporalAxis(Decision)
+$3: Input(expected_types)
+$4: Symbol(base_url)
+$5: Symbol(version)

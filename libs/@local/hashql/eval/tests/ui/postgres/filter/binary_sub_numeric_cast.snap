@@ -1,0 +1,22 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
+    let %2: Integer
+    let %3: Integer
+    let %4: Integer
+
+    bb0(): {
+        %2 = input LOAD a
+        %3 = input LOAD b
+        %4 = %2 - %3
+
+        return %4
+    }
+}
+==================== Island (entry: bb0, target: postgres) =====================
+
+(ROW((((($1)::numeric) - (($2)::numeric))::boolean), NULL, NULL, NULL)::continuation)

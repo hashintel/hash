@@ -1,0 +1,22 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: ?
+    let %3: ?
+    let %4: Boolean
+
+    bb0(): {
+        %2 = %1.link_data.left_entity_id.entity_uuid
+        %3 = input LOAD id
+        %4 = %2 == %3
+
+        return %4
+    }
+}
+==================== Island (entry: bb0, target: postgres) =====================
+
+(ROW((("entity_has_left_entity_0_0_1"."left_entity_uuid" = $1)::boolean), NULL, NULL, NULL)::continuation)

@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
+    let %2: (Integer, Integer)
+    let %3: Integer
+
+    bb0(): {
+        %2 = (10, 20)
+        %3 = %2.0
+
+        return %3
+    }
+}
+==================== Island (entry: bb0, target: postgres) =====================
+
+(ROW(((jsonb_extract_path(jsonb_build_array(10, 20), ((0)::text)))::boolean), NULL, NULL, NULL)::continuation)

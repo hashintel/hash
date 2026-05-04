@@ -208,6 +208,7 @@ pub enum PostgresType {
     Numeric,
     Int,
     BigInt,
+    Boolean,
 }
 
 impl Transpile for PostgresType {
@@ -225,6 +226,7 @@ impl Transpile for PostgresType {
             Self::Numeric => fmt.write_str("numeric"),
             Self::Int => fmt.write_str("int"),
             Self::BigInt => fmt.write_str("bigint"),
+            Self::Boolean => fmt.write_str("boolean"),
         }
     }
 }
