@@ -26,7 +26,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
 ================ Terminator Edges ================
 
 bb0:
-  edge[0]:I->I=0P->I=2P->P=0E->I=2
-  edge[1]:I->I=0P->I=0E->I=0E->E=0
+  edge[0]:I->I=0P->I=10P->P=0E->I=6
+  edge[1]:I->I=0P->I=8E->I=4E->E=0
 bb1:
 bb2:
