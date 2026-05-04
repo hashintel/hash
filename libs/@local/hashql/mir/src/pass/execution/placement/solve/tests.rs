@@ -1031,7 +1031,7 @@ fn backward_pass_keeps_assignment_when_csp_fails() {
     let PlacementRegionKind::Cyclic(cyclic) = kind else {
         panic!("expected cyclic region for bb1");
     };
-    let result_kind = solver.adjust_cyclic(&body, scc_region_id, cyclic);
+    let (_, result_kind) = solver.adjust_cyclic(&body, scc_region_id, cyclic);
     solver.condensation[scc_region_id].kind = result_kind;
 
     // Targets must be unchanged — adjust_cyclic kept the existing assignment
