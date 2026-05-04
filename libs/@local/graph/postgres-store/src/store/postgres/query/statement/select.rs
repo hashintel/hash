@@ -22,6 +22,7 @@ pub struct SelectStatement {
     #[builder(default)]
     pub group_by_expression: GroupByExpression,
     pub limit: Option<usize>,
+    pub offset: Option<usize>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -82,6 +83,11 @@ impl Transpile for SelectStatement {
             write!(fmt, "LIMIT {limit}")?;
         }
 
+        if let Some(offset) = self.offset {
+            fmt.write_char('\n')?;
+            write!(fmt, "OFFSET {offset}")?;
+        }
+
         Ok(())
     }
 }
@@ -117,7 +123,8 @@ mod tests {
     use uuid::Uuid;
 
     use crate::store::postgres::query::{
-        Distinctness, PostgresRecord, SelectCompiler, test_helper::trim_whitespace,
+        Distinctness, PostgresRecord, SelectCompiler, SelectExpression, SelectStatement,
+        Transpile as _, test_helper::trim_whitespace,
     };
 
     #[track_caller]
@@ -1277,6 +1284,20 @@ mod tests {
                 &Embedding::from(vec![0.0; 1536]),
                 &Real::from_natural(5, -1),
             ],
+        );
+    }
+
+    #[test]
+    fn transpile_offset() {
+        let statement = SelectStatement::builder()
+            .selects(vec![SelectExpression::Asterisk(None)])
+            .limit(10)
+            .offset(20)
+            .build();
+
+        assert_eq!(
+            trim_whitespace(&statement.transpile_to_string()),
+            "SELECT * LIMIT 10 OFFSET 20"
         );
     }
 

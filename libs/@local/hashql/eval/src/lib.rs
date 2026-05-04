@@ -10,7 +10,7 @@
     never_type,
 
     // Library Features
-    iterator_try_collect,
+    iterator_try_collect
 )]
 
 extern crate alloc;
