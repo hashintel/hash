@@ -23,15 +23,14 @@ use core::{
     error::Error,
     fmt::{self, Display},
     hash::{Hash, Hasher},
-    hint,
     num::{NonZero, TryFromIntError},
-    ops::{Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Sub},
+    ops::{Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Sub},
 };
 
 use hashql_core::value::{Integer, Primitive};
 
 use crate::{
-    interpret::value::{Num, Numeric},
+    interpret::value::Num,
     macros::{forward_ref_binop, forward_ref_op_assign, forward_ref_unop},
 };
 
@@ -61,8 +60,8 @@ const INT_BITS: NonZero<u8> = NonZero::new(128).unwrap();
 /// assert_eq!(n.size(), 128);
 /// assert_eq!(n.as_int(), 42);
 ///
-/// // Bool provenance is metadata, not identity: from(true) == from(1)
-/// assert_eq!(Int::from(true), Int::from(1_i32));
+/// // Booleans and integers are distinct types
+/// assert_ne!(Int::from(true), Int::from(1_i32));
 /// ```
 // Uses `#[repr(packed)]` to avoid alignment padding, which would duplicate size, same as
 // rust-lang's ScalarInt.
@@ -254,6 +253,19 @@ impl Int {
         }
     }
 
+    /// Checked integer negation. Returns `None` on overflow.
+    ///
+    /// Only `i128::MIN` overflows, since its negation exceeds `i128::MAX`.
+    /// Always produces a 128-bit result (arithmetic promotes booleans).
+    #[inline]
+    #[must_use]
+    pub const fn checked_neg(self) -> Option<Self> {
+        match self.as_int().checked_neg() {
+            Some(result) => Some(Self::from_i128(result)),
+            None => None,
+        }
+    }
+
     /// Converts this integer to [`f32`].
     ///
     /// This may lose precision for values that cannot be exactly represented
@@ -310,7 +322,7 @@ impl Display for Int {
 impl PartialEq for Int {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.as_int() == other.as_int()
+        self.size == other.size && self.as_int() == other.as_int()
     }
 }
 
@@ -326,13 +338,16 @@ impl PartialOrd for Int {
 impl Ord for Int {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.as_int().cmp(&other.as_int())
+        self.size
+            .cmp(&other.size)
+            .then_with(|| self.as_int().cmp(&other.as_int()))
     }
 }
 
 impl Hash for Int {
     #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
+        self.size.hash(state);
         self.as_int().hash(state);
     }
 }
@@ -499,39 +514,6 @@ impl Not for Int {
     }
 }
 
-impl Neg for Int {
-    type Output = Numeric;
-
-    #[expect(clippy::cast_precision_loss, clippy::float_arithmetic)]
-    fn neg(self) -> Self::Output {
-        let value = self.as_int();
-        let (result, overflow) = value.overflowing_neg();
-
-        if hint::unlikely(overflow) {
-            // Only i128::MIN overflows: return i128::MAX + 1 as float.
-            Numeric::Num(Num::from((i128::MAX as f64) + 1.0))
-        } else {
-            Numeric::Int(Self::from_i128(result))
-        }
-    }
-}
-
-impl Add for Int {
-    type Output = Numeric;
-
-    #[expect(clippy::float_arithmetic)]
-    fn add(self, rhs: Self) -> Self::Output {
-        let (lhs, rhs_val) = (self.as_int(), rhs.as_int());
-        let (result, overflow) = lhs.overflowing_add(rhs_val);
-
-        if hint::unlikely(overflow) {
-            Numeric::Num(Num::from(self.as_f64() + rhs.as_f64()))
-        } else {
-            Numeric::Int(Self::from_i128(result))
-        }
-    }
-}
-
 impl Add<Num> for Int {
     type Output = Num;
 
@@ -539,22 +521,6 @@ impl Add<Num> for Int {
     #[expect(clippy::float_arithmetic)]
     fn add(self, rhs: Num) -> Self::Output {
         Num::from(self.as_f64() + rhs.as_f64())
-    }
-}
-
-impl Sub for Int {
-    type Output = Numeric;
-
-    #[expect(clippy::float_arithmetic)]
-    fn sub(self, rhs: Self) -> Self::Output {
-        let (lhs, rhs_val) = (self.as_int(), rhs.as_int());
-        let (result, overflow) = lhs.overflowing_sub(rhs_val);
-
-        if hint::unlikely(overflow) {
-            Numeric::Num(Num::from(self.as_f64() - rhs.as_f64()))
-        } else {
-            Numeric::Int(Self::from_i128(result))
-        }
     }
 }
 
@@ -636,10 +602,7 @@ impl BitXorAssign for Int {
 }
 
 forward_ref_unop!(impl Not::not for Int);
-forward_ref_unop!(impl Neg::neg for Int);
-forward_ref_binop!(impl Add<Int>::add for Int);
 forward_ref_binop!(impl Add<Num>::add for Int);
-forward_ref_binop!(impl Sub<Int>::sub for Int);
 forward_ref_binop!(impl Sub<Num>::sub for Int);
 forward_ref_binop!(impl BitOr<Int>::bitor for Int);
 forward_ref_binop!(impl BitAnd<Int>::bitand for Int);
@@ -658,7 +621,7 @@ mod tests {
 
     use core::hash::BuildHasher as _;
 
-    use crate::interpret::value::{Int, Numeric};
+    use crate::interpret::value::Int;
 
     #[test]
     fn layout() {
@@ -682,12 +645,12 @@ mod tests {
     }
 
     #[test]
-    fn bool_int_equality_is_numeric() {
-        // Bool provenance (size) does not affect equality — only the numeric value matters.
-        // The type checker prevents comparing bools with ints; at the value level,
-        // same numeric content means same value.
-        assert_eq!(Int::from(true), Int::from(1_i32));
-        assert_eq!(Int::from(false), Int::from(0_i32));
+    fn bool_and_int_are_distinct_types() {
+        // Booleans and integers are distinct types in HashQL. Even when they
+        // carry the same numeric value, they compare unequal because the size
+        // (1 bit vs 128 bits) encodes the type distinction.
+        assert_ne!(Int::from(true), Int::from(1_i32));
+        assert_ne!(Int::from(false), Int::from(0_i32));
     }
 
     #[test]
@@ -729,22 +692,26 @@ mod tests {
     }
 
     #[test]
-    fn equality_is_numeric() {
+    fn equality_respects_size() {
         assert_eq!(Int::from(true), Int::from(true));
         assert_eq!(Int::from(42_i64), Int::from(42_i64));
-        assert_eq!(Int::from(true), Int::from(1_i64));
-        assert_eq!(Int::from(false), Int::from(0_i64));
+
+        // Same numeric value, different size: not equal.
+        assert_ne!(Int::from(true), Int::from(1_i64));
+        assert_ne!(Int::from(false), Int::from(0_i64));
     }
 
     #[test]
-    fn ordering_is_numeric() {
-        // Ordering is purely by numeric value, size is not considered.
-        assert_eq!(
-            Int::from(true).cmp(&Int::from(1_i32)),
-            core::cmp::Ordering::Equal
-        );
-        assert!(Int::from(false) < Int::from(1_i32));
-        assert!(Int::from(true) > Int::from(0_i32));
+    fn ordering_separates_bools_from_ints() {
+        use core::cmp::Ordering;
+
+        // Bools (size=1) sort before ints (size=128).
+        assert_eq!(Int::from(true).cmp(&Int::from(1_i32)), Ordering::Less);
+        assert_eq!(Int::from(false).cmp(&Int::from(0_i32)), Ordering::Less);
+
+        // Within the same size, ordering is by value.
+        assert!(Int::from(false) < Int::from(true));
+        assert!(Int::from(0_i32) < Int::from(1_i32));
     }
 
     #[test]
@@ -762,55 +729,66 @@ mod tests {
     }
 
     #[test]
-    fn add_ints() {
-        let result = Int::from(2_i64) + Int::from(3_i64);
-        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 5 && int.size() == 128));
+    fn checked_add_success() {
+        let result = Int::from(2_i64).checked_add(Int::from(3_i64));
+        let int = result.expect("should not overflow");
+        assert_eq!(int.as_int(), 5);
+        assert_eq!(int.size(), 128);
     }
 
     #[test]
-    fn add_bools_promotes() {
-        let result = Int::from(true) + Int::from(true);
-        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 2 && int.size() == 128));
+    fn checked_add_bools_promotes() {
+        let result = Int::from(true).checked_add(Int::from(true));
+        let int = result.expect("should not overflow");
+        assert_eq!(int.as_int(), 2);
+        assert_eq!(int.size(), 128);
     }
 
     #[test]
-    fn sub_ints() {
-        let result = Int::from(5_i64) - Int::from(3_i64);
-        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 2 && int.size() == 128));
+    fn checked_add_overflow_returns_none() {
+        assert_eq!(Int::from(i128::MAX).checked_add(Int::from(1_i32)), None);
     }
 
     #[test]
-    fn neg_positive() {
-        let result = -Int::from(42_i64);
-        assert!(matches!(result, Numeric::Int(int) if int.as_int() == -42));
+    fn checked_sub_success() {
+        let result = Int::from(5_i64).checked_sub(Int::from(3_i64));
+        let int = result.expect("should not overflow");
+        assert_eq!(int.as_int(), 2);
+        assert_eq!(int.size(), 128);
     }
 
     #[test]
-    fn neg_negative() {
-        let result = -Int::from(-100_i64);
-        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 100));
+    fn checked_sub_overflow_returns_none() {
+        assert_eq!(Int::from(i128::MIN).checked_sub(Int::from(1_i32)), None);
     }
 
     #[test]
-    fn neg_zero() {
-        let result = -Int::from(0_i64);
-        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 0));
+    fn checked_neg_positive() {
+        let result = Int::from(42_i64).checked_neg();
+        assert_eq!(result.expect("should not overflow").as_int(), -42);
     }
 
     #[test]
-    fn neg_i128_max() {
-        let result = -Int::from(i128::MAX);
-        assert!(matches!(result, Numeric::Int(int) if int.as_int() == -i128::MAX));
+    fn checked_neg_negative() {
+        let result = Int::from(-100_i64).checked_neg();
+        assert_eq!(result.expect("should not overflow").as_int(), 100);
     }
 
     #[test]
-    fn neg_i128_min_overflows_to_float() {
-        let result = -Int::from(i128::MIN);
-        let Numeric::Num(num) = result else {
-            panic!("expected Numeric::Num for -i128::MIN, got {result:?}");
-        };
-        let expected = -(i128::MIN as f64);
-        assert_eq!(num.as_f64(), expected);
+    fn checked_neg_zero() {
+        let result = Int::from(0_i64).checked_neg();
+        assert_eq!(result.expect("should not overflow").as_int(), 0);
+    }
+
+    #[test]
+    fn checked_neg_i128_max() {
+        let result = Int::from(i128::MAX).checked_neg();
+        assert_eq!(result.expect("should not overflow").as_int(), -i128::MAX);
+    }
+
+    #[test]
+    fn checked_neg_i128_min_overflows() {
+        assert_eq!(Int::from(i128::MIN).checked_neg(), None);
     }
 
     #[test]
@@ -848,24 +826,29 @@ mod tests {
     }
 
     #[test]
-    fn eq_ord_transitivity_with_num() {
-        use core::cmp::Ordering;
-
+    fn num_int_cross_type_equality() {
         use crate::interpret::value::Num;
 
-        let bool_one = Int::from(true);
-        let int_one = Int::from(1_i32);
-        let num_one = Num::from(1.0);
+        // Integer and Number share a numeric domain (Integer <: Number).
+        assert_eq!(Int::from(1_i32), Num::from(1.0));
+        assert_eq!(Num::from(42.0), Int::from(42_i32));
 
-        // Transitivity: bool_one == num_one, num_one == int_one, therefore bool_one == int_one
-        assert_eq!(bool_one, num_one);
-        assert_eq!(num_one, int_one);
-        assert_eq!(bool_one, int_one);
+        // Booleans are not a subtype of Number, so they never equal a Num.
+        assert_ne!(Int::from(true), Num::from(1.0));
+        assert_ne!(Num::from(0.0), Int::from(false));
+    }
 
-        // Ord consistency
-        assert_eq!(num_one.cmp_int(&bool_one), Ordering::Equal);
-        assert_eq!(num_one.cmp_int(&int_one), Ordering::Equal);
-        assert_eq!(bool_one.cmp(&int_one), Ordering::Equal);
+    #[test]
+    fn num_int_cross_type_ordering() {
+        use crate::interpret::value::Num;
+
+        // Integer and Number are orderable.
+        assert!(Int::from(1_i32) < Num::from(1.5));
+        assert!(Num::from(2.5) < Int::from(3_i32));
+
+        // Booleans and Numbers are not orderable.
+        assert_eq!(Int::from(true).partial_cmp(&Num::from(1.0)), None);
+        assert_eq!(Num::from(0.0).partial_cmp(&Int::from(false)), None);
     }
 
     #[test]
@@ -874,14 +857,21 @@ mod tests {
 
         let build = FastHasher::default();
 
-        // Equal values must have equal hashes
+        // Equal values must have equal hashes.
         assert_eq!(
             build.hash_one(Int::from(true)),
-            build.hash_one(Int::from(1_i32))
+            build.hash_one(Int::from(true))
         );
         assert_eq!(
-            build.hash_one(Int::from(false)),
-            build.hash_one(Int::from(0_i32))
+            build.hash_one(Int::from(42_i32)),
+            build.hash_one(Int::from(42_i64))
+        );
+
+        // Different types must have different hashes (not guaranteed but
+        // extremely likely for a good hash function).
+        assert_ne!(
+            build.hash_one(Int::from(true)),
+            build.hash_one(Int::from(1_i32))
         );
     }
 

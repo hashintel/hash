@@ -51,7 +51,7 @@ pub use self::{
     dict::Dict,
     int::{Int, TryFromIntegerError, TryFromPrimitiveError},
     list::List,
-    num::{Num, Numeric},
+    num::Num,
     opaque::Opaque,
     ptr::Ptr,
     str::Str,
@@ -431,16 +431,6 @@ impl<'heap, A: Allocator> From<&Constant<'heap>> for Value<'heap, A> {
     }
 }
 
-impl<A: Allocator> From<Numeric> for Value<'_, A> {
-    #[inline]
-    fn from(value: Numeric) -> Self {
-        match value {
-            Numeric::Int(int) => Self::Integer(int),
-            Numeric::Num(num) => Self::Number(num),
-        }
-    }
-}
-
 impl<A: Allocator> PartialEq for Value<'_, A> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
@@ -482,8 +472,10 @@ impl<A: Allocator> Ord for Value<'_, A> {
             (Value::Integer(this), Value::Integer(other)) => this.cmp(other),
             (Value::Number(this), Value::Number(other)) => this.cmp(other),
 
-            (Value::Integer(this), Value::Number(other)) => other.cmp_int(this).reverse(),
-            (Value::Number(this), Value::Integer(other)) => this.cmp_int(other),
+            (Value::Integer(this), Value::Number(other)) if !this.is_bool() => {
+                other.cmp_int(this).reverse()
+            }
+            (Value::Number(this), Value::Integer(other)) if !other.is_bool() => this.cmp_int(other),
 
             (Value::String(this), Value::String(other)) => this.cmp(other),
             (Value::Pointer(this), Value::Pointer(other)) => this.cmp(other),
@@ -560,33 +552,40 @@ impl<'value, 'heap, A: Allocator> From<&'value Value<'heap, A>>
 
 #[cfg(test)]
 mod tests {
-    #![expect(clippy::min_ident_chars)]
     use core::cmp::Ordering;
 
     use super::{Int, Num, Value};
 
     #[test]
-    fn value_eq_transitivity_bool_num_int() {
-        // Regression test: Value::Eq must be transitive across Integer/Number variants.
-        // Previously, Integer(from(true)) == Number(1.0) and Number(1.0) == Integer(from(1)),
-        // but Integer(from(true)) != Integer(from(1)) — violating transitivity.
-        let a: Value = Value::Integer(Int::from(true));
-        let b: Value = Value::Number(Num::from(1.0));
-        let c: Value = Value::Integer(Int::from(1_i32));
+    fn value_eq_bool_num_int_are_distinct() {
+        let bool_val: Value = Value::Integer(Int::from(true));
+        let num_val: Value = Value::Number(Num::from(1.0));
+        let int_val: Value = Value::Integer(Int::from(1_i32));
 
-        assert_eq!(a, b, "bool-int == num");
-        assert_eq!(b, c, "num == int");
-        assert_eq!(a, c, "bool-int == int (transitivity)");
+        // Number and Integer share a numeric domain.
+        assert_eq!(num_val, int_val);
+
+        // Boolean is a distinct type from both.
+        assert_ne!(bool_val, num_val);
+        assert_ne!(bool_val, int_val);
     }
 
     #[test]
-    fn value_ord_transitivity_bool_num_int() {
-        let a: Value = Value::Integer(Int::from(true));
-        let b: Value = Value::Number(Num::from(1.0));
-        let c: Value = Value::Integer(Int::from(1_i32));
+    fn value_ord_bool_num_int_consistent() {
+        let bool_val: Value = Value::Integer(Int::from(true));
+        let num_val: Value = Value::Number(Num::from(1.0));
+        let int_val: Value = Value::Integer(Int::from(1_i32));
 
-        assert_eq!(a.cmp(&b), Ordering::Equal);
-        assert_eq!(b.cmp(&c), Ordering::Equal);
-        assert_eq!(a.cmp(&c), Ordering::Equal);
+        // Number(1.0) == Integer(1) in ordering.
+        assert_eq!(num_val.cmp(&int_val), Ordering::Equal);
+
+        // Bool sorts before Number (discriminant: Integer < Number).
+        assert_eq!(bool_val.cmp(&num_val), Ordering::Less);
+
+        // Bool sorts before Int (size: 1 < 128).
+        assert_eq!(bool_val.cmp(&int_val), Ordering::Less);
+
+        // Transitivity: bool < num, num == int, therefore bool < int.
+        assert!(bool_val < int_val);
     }
 }

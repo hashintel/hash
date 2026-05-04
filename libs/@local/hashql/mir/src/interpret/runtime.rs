@@ -513,10 +513,15 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
 
         match op {
             BinOp::Add => match (lhs.as_ref(), rhs.as_ref()) {
-                (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::from(lhs + rhs)),
-                (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs + rhs)),
-                (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(lhs + rhs)),
-                (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs + rhs)),
+                (Value::Integer(lhs), Value::Integer(rhs)) => lhs
+                    .checked_add(*rhs)
+                    .map(Value::Integer)
+                    .ok_or(RuntimeError::IntegerOverflow {
+                        operation: "addition",
+                    }),
+                (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(*lhs + *rhs)),
+                (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(*lhs + *rhs)),
+                (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(*lhs + *rhs)),
                 _ => {
                     cold_path();
 
@@ -532,10 +537,15 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 }
             },
             BinOp::Sub => match (lhs.as_ref(), rhs.as_ref()) {
-                (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::from(lhs - rhs)),
-                (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs - rhs)),
-                (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(lhs - rhs)),
-                (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs - rhs)),
+                (Value::Integer(lhs), Value::Integer(rhs)) => lhs
+                    .checked_sub(*rhs)
+                    .map(Value::Integer)
+                    .ok_or(RuntimeError::IntegerOverflow {
+                        operation: "subtraction",
+                    }),
+                (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(*lhs - *rhs)),
+                (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(*lhs - *rhs)),
+                (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(*lhs - *rhs)),
                 _ => {
                     cold_path();
 
@@ -623,7 +633,13 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 }
             },
             UnOp::Neg => match operand.as_ref() {
-                Value::Integer(int) => Ok((-int).into()),
+                Value::Integer(int) => {
+                    int.checked_neg()
+                        .map(Value::Integer)
+                        .ok_or(RuntimeError::IntegerOverflow {
+                            operation: "negation",
+                        })
+                }
                 Value::Number(number) => Ok(Value::Number(-number)),
                 Value::Unit
                 | Value::String(_)

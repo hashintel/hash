@@ -302,6 +302,34 @@ fn const_fold_unary_neg() {
     );
 }
 
+/// Tests that negation of `i128::MIN` is not folded (returns `None` from `checked_neg`).
+#[test]
+fn const_fold_neg_overflow() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = un.neg (-0x8000_0000_0000_0000_0000_0000_0000_0000);
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "const_fold_neg_overflow",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests identity simplification for addition with zero on the right (x + 0 => x).
 #[test]
 fn identity_add_zero() {
