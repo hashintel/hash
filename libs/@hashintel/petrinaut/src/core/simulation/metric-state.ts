@@ -1,6 +1,6 @@
-import type { Color, Place } from "../core/types/sdcpn";
+import type { Color, Place } from "../types/sdcpn";
 import type { MetricState } from "./compile-metric";
-import type { SimulationFrame } from "./context";
+import type { SimulationFrame } from "./types";
 
 /**
  * Reshape a raw `SimulationFrame` into the `MetricState` shape exposed to

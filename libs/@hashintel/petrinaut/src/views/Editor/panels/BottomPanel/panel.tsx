@@ -18,7 +18,7 @@ import {
   BOTTOM_PANEL_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-import { SimulationContext } from "../../../../simulation/context";
+import { SimulationContext } from "../../../../react/simulation/context";
 import {
   type BottomPanelTab,
   EditorContext,

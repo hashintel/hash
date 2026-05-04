@@ -5,8 +5,8 @@
  * part of the public SimulationContext API.
  */
 
-import type { Color, Place, SDCPN, Transition } from "../../core/types/sdcpn";
-import type { SimulationFrame } from "../context";
+import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
+import type { SimulationFrame } from "../types";
 import type { RuntimeDistribution } from "./distribution";
 
 /**
@@ -96,4 +96,4 @@ export type {
   SimulationFrame,
   SimulationFrameState_Place,
   SimulationFrameState_Transition,
-} from "../context";
+} from "../types";

@@ -7,7 +7,7 @@ import type { Diagnostic } from "vscode-languageserver-types";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { LanguageClientContext } from "../../../../../lsp/context";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
-import { SimulationContext } from "../../../../../simulation/context";
+import { SimulationContext } from "../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import type { SelectionItemType } from "../../../../../state/selection";

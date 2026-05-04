@@ -19,8 +19,8 @@ import {
 } from "../../../../../../../hooks/use-default-parameter-values";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaybackContext } from "../../../../../../../playback/context";
-import { SimulationContext } from "../../../../../../../simulation/context";
-import { compileVisualizer } from "../../../../../../../simulation/simulator/compile-visualizer";
+import { SimulationContext } from "../../../../../../../react/simulation/context";
+import { compileVisualizer } from "../../../../../../../core/simulation/simulator/compile-visualizer";
 import { EditorContext } from "../../../../../../../state/editor-context";
 import { usePlacePropertiesContext } from "../../context";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";

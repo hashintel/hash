@@ -1,4 +1,4 @@
-import type { ID } from "../../core/types/sdcpn";
+import type { ID } from "../../types/sdcpn";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
 import type { SimulationFrame, SimulationInstance } from "./types";

@@ -1,21 +1,22 @@
 import { use, useEffect, useRef, useState } from "react";
 
+import type { ReadableStore } from "../../core/handle";
 import {
   createSimulation,
   type Simulation,
   type SimulationState as CoreSimulationState,
-} from "../core/simulation";
-import type { ReadableStore } from "../core/handle";
-import { useStore } from "../react/use-store";
-import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
-import { useLatest } from "../hooks/use-latest";
-import { useStableCallback } from "../hooks/use-stable-callback";
-import { useNotifications } from "../notifications/notifications-context";
-import { SDCPNContext } from "../state/sdcpn-context";
+} from "../../core/simulation";
 import {
   compileScenario,
   type CompiledScenarioResult,
-} from "./compile-scenario";
+} from "../../core/simulation/compile-scenario";
+import { createSimulationWorker } from "../../core/simulation/worker/create-simulation-worker";
+import { deriveDefaultParameterValues } from "../../hooks/use-default-parameter-values";
+import { useLatest } from "../../hooks/use-latest";
+import { useStableCallback } from "../../hooks/use-stable-callback";
+import { useNotifications } from "../../notifications/notifications-context";
+import { SDCPNContext } from "../../state/sdcpn-context";
+import { useStore } from "../use-store";
 import {
   type InitialMarking,
   SimulationContext,
@@ -23,7 +24,6 @@ import {
   type SimulationFrame,
   type SimulationState,
 } from "./context";
-import { createSimulationWorker } from "./worker/create-simulation-worker";
 
 /**
  * Internal state for the simulation provider.

@@ -8,7 +8,7 @@
  * @see ../ARCHITECTURE.md for system overview
  */
 
-import { SDCPNItemError } from "../../core/errors";
+import { SDCPNItemError } from "../../errors";
 import { buildSimulation } from "../simulator/build-simulation";
 import { computeNextFrame } from "../simulator/compute-next-frame";
 import type { SimulationInstance } from "../simulator/types";

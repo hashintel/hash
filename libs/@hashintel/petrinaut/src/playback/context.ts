@@ -3,7 +3,7 @@ import { createContext } from "react";
 import type {
   SimulationFrame,
   SimulationFrameState,
-} from "../simulation/context";
+} from "../react/simulation/context";
 
 /**
  * Current state of the playback lifecycle.

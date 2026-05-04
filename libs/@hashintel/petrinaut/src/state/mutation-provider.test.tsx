@@ -9,7 +9,7 @@ import type { SDCPN } from "../core/types/sdcpn";
 import {
   SimulationContext,
   type SimulationContextValue,
-} from "../simulation/context";
+} from "../react/simulation/context";
 import {
   EditorContext,
   type EditorContextValue,

@@ -17,7 +17,7 @@ import {
   PlaybackContext,
   type PlaybackSpeed,
 } from "../../../../playback/context";
-import { SimulationContext } from "../../../../simulation/context";
+import { SimulationContext } from "../../../../react/simulation/context";
 import { ToolbarButton } from "./toolbar-button";
 
 const contentWidthStyle = css({

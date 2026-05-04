@@ -4,7 +4,7 @@ import type { SpreadsheetColumn } from "../../../../../../../components/spreadsh
 import { Spreadsheet } from "../../../../../../../components/spreadsheet";
 import type { Color } from "../../../../../../../core/types/sdcpn";
 import { PlaybackContext } from "../../../../../../../playback/context";
-import { SimulationContext } from "../../../../../../../simulation/context";
+import { SimulationContext } from "../../../../../../../react/simulation/context";
 
 /**
  * InitialStateEditor - A component for editing initial tokens in a place

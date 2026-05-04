@@ -1,7 +1,4 @@
-import type {
-  ToMainMessage,
-  ToWorkerMessage,
-} from "../../simulation/worker/messages";
+import type { ToMainMessage, ToWorkerMessage } from "./worker/messages";
 
 /**
  * Protocol-level abstraction over the simulation worker. Decouples the

@@ -7,7 +7,7 @@ import {
   SimulationContext,
   type SimulationFrame,
   type SimulationFrameState,
-} from "../simulation/context";
+} from "../react/simulation/context";
 import {
   PlaybackContext,
   type PlaybackContextValue,

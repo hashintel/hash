@@ -7,7 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { SDCPN } from "../../core/types/sdcpn";
+import type { SDCPN } from "../../types/sdcpn";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 // Store messages posted by worker

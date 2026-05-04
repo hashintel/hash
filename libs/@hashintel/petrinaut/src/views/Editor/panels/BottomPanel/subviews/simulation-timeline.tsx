@@ -15,12 +15,12 @@ import { PlaybackContext } from "../../../../../playback/context";
 import {
   type CompiledMetric,
   compileMetric,
-} from "../../../../../simulation/compile-metric";
+} from "../../../../../core/simulation/compile-metric";
 import {
   SimulationContext,
   type SimulationFrame,
-} from "../../../../../simulation/context";
-import { buildMetricState } from "../../../../../simulation/metric-state";
+} from "../../../../../react/simulation/context";
+import { buildMetricState } from "../../../../../core/simulation/metric-state";
 import {
   EditorContext,
   type TimelineChartType,

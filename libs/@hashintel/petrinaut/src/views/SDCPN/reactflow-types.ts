@@ -1,6 +1,6 @@
 import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
 
-import type { SimulationFrameState_Transition } from "../../simulation/context";
+import type { SimulationFrameState_Transition } from "../../react/simulation/context";
 
 //
 // Specific types for ReactFlow nodes, arcs, and instance.

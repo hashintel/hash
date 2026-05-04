@@ -37,12 +37,23 @@ A thin slice landed alongside the existing code path to validate the core concep
 
 ## Phase 1 — Reorganise without behaviour change
 
-1. Create `src/core/`, `src/react/`, `src/ui/` directories.
-2. Move pure modules (validation, file-format/import, clipboard/serialize, examples, lib/deep-equal, simulation/simulator, simulation/compile-scenario, simulation/worker, lsp/worker) under `src/core/...`. No API change yet.
-3. Move all `views/`, `components/`, `monaco/`, `notifications/` (rendering parts), `resize/`, etc. under `src/ui/`.
-4. Move providers, contexts, and hooks into `src/react/`.
-5. Update internal imports.
-6. Confirm tests + build still pass.
+Done incrementally, alongside subsystem-by-subsystem work:
+
+1. ✅ `src/core/`, `src/react/`, `src/ui/` directories created (Phase 0).
+2. **Simulation subsystem moved (done):**
+   - `src/simulation/simulator/` → `src/core/simulation/simulator/`
+   - `src/simulation/worker/` → `src/core/simulation/worker/`
+   - `src/simulation/compile-scenario.{ts,test.ts}` → `src/core/simulation/`
+   - `src/simulation/compile-metric.{ts,test.ts}` → `src/core/simulation/`
+   - `src/simulation/metric-state.ts` → `src/core/simulation/`
+   - `src/simulation/sandbox.ts` → `src/core/simulation/`
+   - `src/simulation/README.md` → `src/core/simulation/`
+   - `src/simulation/context.ts` split: pure types (`SimulationFrame`, `InitialMarking`, `SimulationFrameState_*`, `SimulationFrameState`) extracted to `src/core/simulation/types.ts`; React glue (`SimulationContext`, `SimulationContextValue`, legacy `SimulationState` enum) → `src/react/simulation/context.ts`.
+   - `src/simulation/provider.tsx` → `src/react/simulation/provider.tsx`.
+   - All ~22 consumer files updated to the new paths. `src/simulation/` directory removed.
+3. **Pending:** validation, file-format/import, clipboard/serialize, examples, lib/deep-equal, lsp/worker still in old locations. To be moved when their subsystems get worked on.
+4. **Pending:** `views/`, `components/`, `monaco/`, `notifications/` (rendering parts), `resize/` → `src/ui/`. Mechanical move; deferred until `/ui` becomes a separate bundle.
+5. **Pending:** providers, contexts, and hooks → `src/react/`. Same — moves alongside subsystem work.
 
 ## Phase 2 — Build the Core instance
 

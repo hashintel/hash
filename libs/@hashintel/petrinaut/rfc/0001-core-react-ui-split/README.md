@@ -1,6 +1,6 @@
 # RFC 0001 — Petrinaut: Core / React / UI Split
 
-**Status:** Draft (iterating) — Phase 0 spike + Phase 2a/2b (simulation decoupled into `createSimulation`, `<SimulationProvider>` swapped) landed
+**Status:** Draft (iterating) — Phase 0 spike + Phase 2a/2b (simulation decoupled into `createSimulation`, `<SimulationProvider>` swapped) + simulation Phase 1 reorg landed
 **Authors:** @cf
 **Created:** 2026-04-28
 **Last updated:** 2026-05-02

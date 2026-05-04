@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SimulationFrame } from "../../simulation/context";
-import type {
-  ToMainMessage,
-  ToWorkerMessage,
-} from "../../simulation/worker/messages";
+import type { SimulationFrame } from "./types";
+import type { ToMainMessage, ToWorkerMessage } from "./worker/messages";
 import type { SDCPN } from "../types/sdcpn";
 import { createSimulation, type SimulationFrameSummary } from "./simulation";
 import type { SimulationTransport } from "./transport";

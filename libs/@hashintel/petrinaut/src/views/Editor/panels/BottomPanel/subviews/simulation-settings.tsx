@@ -9,7 +9,7 @@ import { Slider } from "../../../../../components/slider";
 import { Switch } from "../../../../../components/switch";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
-import { SimulationContext } from "../../../../../simulation/context";
+import { SimulationContext } from "../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../state/editor-context";
 import { SDCPNContext } from "../../../../../state/sdcpn-context";
 import { CreateScenarioDrawer } from "../../SimulateView/create-scenario-drawer";

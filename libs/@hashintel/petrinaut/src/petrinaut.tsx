@@ -20,7 +20,7 @@ import { LanguageClientProvider } from "./lsp/provider";
 import { MonacoProvider } from "./monaco/provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
-import { SimulationProvider } from "./simulation/provider";
+import { SimulationProvider } from "./react/simulation/provider";
 import { EditorProvider } from "./state/editor-provider";
 import { MutationProvider } from "./state/mutation-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";

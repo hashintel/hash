@@ -4,8 +4,8 @@
  * @see ./README.md for detailed protocol documentation
  */
 
-import type { SDCPN } from "../../core/types/sdcpn";
-import type { SimulationFrame } from "../context";
+import type { SDCPN } from "../../types/sdcpn";
+import type { SimulationFrame } from "../types";
 
 //
 // Main Thread → Worker Messages

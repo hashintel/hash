@@ -1,4 +1,3 @@
-import type { InitialMarking, SimulationFrame } from "../../simulation/context";
 import type { ReadableStore } from "../handle";
 import type { EventStream } from "../instance";
 import type { SDCPN } from "../types/sdcpn";
@@ -7,6 +6,7 @@ import {
   type SimulationTransport,
   type WorkerFactory,
 } from "./transport";
+import type { InitialMarking, SimulationFrame } from "./types";
 
 export type SimulationState =
   | "Initializing"

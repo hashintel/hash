@@ -9,7 +9,7 @@ import {
   SimulationContext,
   type SimulationContextValue,
   type SimulationFrame,
-} from "../simulation/context";
+} from "../react/simulation/context";
 import { PlaybackContext, type PlaybackContextValue } from "./context";
 import { PlaybackProvider } from "./provider";
 

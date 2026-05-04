@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { SimulationContext } from "../simulation/context";
+import { SimulationContext } from "../react/simulation/context";
 import { EditorContext } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
 

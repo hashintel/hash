@@ -4,7 +4,7 @@ import { IoMdPause, IoMdPlay } from "react-icons/io";
 import { MdRotateLeft } from "react-icons/md";
 
 import { PlaybackContext } from "../../../../playback/context";
-import { SimulationContext } from "../../../../simulation/context";
+import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
 import { ToolbarButton } from "./toolbar-button";
