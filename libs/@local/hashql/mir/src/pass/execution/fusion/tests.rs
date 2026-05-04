@@ -1,6 +1,7 @@
 //! Tests for basic block fusion.
 #![expect(clippy::min_ident_chars)]
 
+use alloc::alloc::Global;
 use core::assert_matches;
 use std::{io::Write as _, path::PathBuf};
 
@@ -26,11 +27,8 @@ use crate::{
     pretty::TextFormatOptions,
 };
 
-fn make_targets<'heap>(
-    heap: &'heap Heap,
-    assignments: &[TargetId],
-) -> BasicBlockVec<TargetId, &'heap Heap> {
-    let mut targets = BasicBlockVec::with_capacity_in(assignments.len(), heap);
+fn make_targets(assignments: &[TargetId]) -> BasicBlockVec<TargetId, Global> {
+    let mut targets = BasicBlockVec::with_capacity_in(assignments.len(), Global);
     for &target in assignments {
         targets.push(target);
     }
@@ -42,7 +40,7 @@ fn assert_fusion<'heap>(
     name: &'static str,
     context: &MirContext<'_, 'heap>,
     body: &Body<'heap>,
-    targets: &BasicBlockVec<TargetId, &'heap Heap>,
+    targets: &BasicBlockVec<TargetId, Global>,
 ) {
     let formatter = Formatter::new(context.heap);
     let type_formatter = TypeFormatter::new(&formatter, context.env, TypeFormatterOptions::terse());
@@ -94,7 +92,7 @@ fn fusable_into_same_target_goto() {
         }
     });
 
-    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
+    let targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
 
     let result = fusable_into(&body, &targets, BasicBlockId::new(1));
     assert_eq!(result, Some(BasicBlockId::new(0)));
@@ -119,7 +117,7 @@ fn fusable_into_different_targets() {
         }
     });
 
-    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Postgres]);
+    let targets = make_targets(&[TargetId::Interpreter, TargetId::Postgres]);
 
     let result = fusable_into(&body, &targets, BasicBlockId::new(1));
     assert_eq!(result, None);
@@ -151,15 +149,12 @@ fn fusable_into_multiple_predecessors() {
         }
     });
 
-    let targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-        ],
-    );
+    let targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+    ]);
 
     // bb3 has two predecessors — not fusable
     let result = fusable_into(&body, &targets, BasicBlockId::new(3));
@@ -184,7 +179,7 @@ fn fusable_into_goto_with_args() {
         }
     });
 
-    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
+    let targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
 
     // The Goto carries an argument — not fusable even though targets match.
     let result = fusable_into(&body, &targets, BasicBlockId::new(1));
@@ -212,7 +207,7 @@ fn fusable_into_target_has_params() {
         }
     });
 
-    let targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
+    let targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
 
     let result = fusable_into(&body, &targets, BasicBlockId::new(1));
     assert_eq!(result, None);
@@ -241,7 +236,7 @@ fn fuse_no_changes_needed() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut targets = make_targets(&heap, &[TargetId::Interpreter]);
+    let mut targets = make_targets(&[TargetId::Interpreter]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -276,7 +271,7 @@ fn fuse_two_same_target_blocks() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
+    let mut targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -320,10 +315,7 @@ fn fuse_chain_of_three() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut targets = make_targets(
-        &heap,
-        &[TargetId::Postgres, TargetId::Postgres, TargetId::Postgres],
-    );
+    let mut targets = make_targets(&[TargetId::Postgres, TargetId::Postgres, TargetId::Postgres]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -365,14 +357,11 @@ fn fuse_preserves_different_targets() {
     };
 
     // bb0 and bb1 are Interpreter, bb2 is Postgres — bb2 cannot fuse into bb1
-    let mut targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Postgres,
-        ],
-    );
+    let mut targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Postgres,
+    ]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -423,15 +412,12 @@ fn fuse_partial_chain() {
     };
 
     // bb0-bb1 are Interpreter, bb2-bb3 are Postgres
-    let mut targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Postgres,
-            TargetId::Postgres,
-        ],
-    );
+    let mut targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Postgres,
+        TargetId::Postgres,
+    ]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -479,15 +465,12 @@ fn fuse_updates_branch_references() {
     };
 
     // bb0 and bb1 same target — fusable. bb2 and bb3 are leaves.
-    let mut targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-        ],
-    );
+    let mut targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+    ]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -535,15 +518,12 @@ fn fuse_does_not_fuse_join_points() {
     };
 
     // All same target, but bb3 has 2 predecessors — not fusable
-    let mut targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-        ],
-    );
+    let mut targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+    ]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -577,7 +557,7 @@ fn fuse_goto_with_args_not_fused() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut targets = make_targets(&heap, &[TargetId::Interpreter, TargetId::Interpreter]);
+    let mut targets = make_targets(&[TargetId::Interpreter, TargetId::Interpreter]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -637,17 +617,14 @@ fn fuse_diamond_non_monotonic_rpo() {
 
     // bb2 and bb3 same target (bb3 fuses into bb2), bb1 and bb4 same target (bb4 fuses
     // into bb1). bb5 has two predecessors — not fusable.
-    let mut targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Postgres,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Postgres,
-            TargetId::Interpreter,
-        ],
-    );
+    let mut targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Postgres,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Postgres,
+        TargetId::Interpreter,
+    ]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 
@@ -704,15 +681,12 @@ fn fuse_backward_chain() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut targets = make_targets(
-        &heap,
-        &[
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-            TargetId::Interpreter,
-        ],
-    );
+    let mut targets = make_targets(&[
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+        TargetId::Interpreter,
+    ]);
 
     BasicBlockFusion::new().fuse(&mut body, &mut targets);
 

@@ -10,6 +10,7 @@ use hashql_core::id::{Id, IdArray, bit_vec::FiniteBitSet};
 /// estimation during placement. The interpreter is evaluated last so it can incorporate traversal
 /// costs computed by the other backends.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Id)]
+#[id(const)]
 pub enum TargetId {
     /// In-process evaluator that supports all MIR operations.
     ///

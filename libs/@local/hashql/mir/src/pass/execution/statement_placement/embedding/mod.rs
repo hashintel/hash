@@ -9,14 +9,9 @@ use super::{
 use crate::{
     body::{Body, Source, local::Local, operand::Operand, place::Place, rvalue::RValue},
     context::MirContext,
-    pass::{
-        execution::{
-            Cost, VertexType,
-            cost::{StatementCostVec, TraversalCostVec},
-            statement_placement::common::entity_projection_access,
-            storage::Access,
-        },
-        transform::Traversals,
+    pass::execution::{
+        Cost, VertexType, cost::StatementCostVec,
+        statement_placement::common::entity_projection_access, traversal::Access,
     },
     visit::Visitor as _,
 };
@@ -24,34 +19,33 @@ use crate::{
 #[cfg(test)]
 mod tests;
 
-fn is_supported_place<'heap>(
-    context: &MirContext<'_, 'heap>,
-    body: &Body<'heap>,
-    domain: &DenseBitSet<Local>,
-    place: &Place<'heap>,
-) -> bool {
-    // For GraphReadFilter bodies, local 1 is the filter argument (vertex). Check if the
-    // projection path maps to an Embedding-accessible field.
-    if matches!(body.source, Source::GraphReadFilter(_)) && place.local.as_usize() == 1 {
-        let decl = &body.local_decls[place.local];
-        let Some(vertex_type) = VertexType::from_local(context.env, decl) else {
-            unimplemented!("lookup for declared type")
-        };
-
-        match vertex_type {
-            VertexType::Entity => {
-                return matches!(
-                    entity_projection_access(&place.projections),
-                    Some(Access::Embedding(_))
-                );
-            }
-        }
-    }
-
-    domain.contains(place.local)
+struct EmbeddingSupported {
+    vertex: VertexType,
 }
 
-struct EmbeddingSupported;
+impl EmbeddingSupported {
+    fn is_supported_place<'heap>(
+        &self,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        place: &Place<'heap>,
+    ) -> bool {
+        // For GraphReadFilter bodies, local 1 is the filter argument (vertex). Check if the
+        // projection path maps to an Embedding-accessible field.
+        if matches!(body.source, Source::GraphReadFilter(_)) && place.local == Local::VERTEX {
+            match self.vertex {
+                VertexType::Entity => {
+                    return matches!(
+                        entity_projection_access(&place.projections),
+                        Some(Access::Embedding(_))
+                    );
+                }
+            }
+        }
+
+        domain.contains(place.local)
+    }
+}
 
 impl<'heap> Supported<'heap> for EmbeddingSupported {
     fn is_supported_rvalue(
@@ -73,13 +67,13 @@ impl<'heap> Supported<'heap> for EmbeddingSupported {
 
     fn is_supported_operand(
         &self,
-        context: &MirContext<'_, 'heap>,
+        _: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         domain: &DenseBitSet<Local>,
         operand: &Operand<'heap>,
     ) -> bool {
         match operand {
-            Operand::Place(place) => is_supported_place(context, body, domain, place),
+            Operand::Place(place) => self.is_supported_place(body, domain, place),
             Operand::Constant(_) => false,
         }
     }
@@ -110,23 +104,22 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
+        vertex: VertexType,
         alloc: A,
-    ) -> (TraversalCostVec<A>, StatementCostVec<A>) {
-        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());
-        let traversal_costs = TraversalCostVec::new_in(body, traversals, alloc);
+    ) -> StatementCostVec<A> {
+        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
 
         match body.source {
             Source::GraphReadFilter(_) => {}
             Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
-                return (traversal_costs, statement_costs);
+                return statement_costs;
             }
         }
 
         let dispatchable = SupportedAnalysis {
             body,
             context,
-            supported: &EmbeddingSupported,
+            supported: &EmbeddingSupported { vertex },
             initialize_boundary: OnceValue::new(
                 |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
                     match body.source {
@@ -155,12 +148,11 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             cost: self.statement_cost,
 
             statement_costs,
-            traversal_costs,
 
-            supported: &EmbeddingSupported,
+            supported: &EmbeddingSupported { vertex },
         };
         visitor.visit_body(body);
 
-        (visitor.traversal_costs, visitor.statement_costs)
+        visitor.statement_costs
     }
 }

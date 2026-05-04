@@ -29,8 +29,8 @@ use crate::{
         },
         execution::{
             Cost,
-            cost::{StatementCostVec, TraversalCostVec},
-            storage::{Access, EntityPath},
+            cost::StatementCostVec,
+            traversal::{Access, EntityPath},
         },
     },
     visit::Visitor,
@@ -276,7 +276,6 @@ pub(crate) struct CostVisitor<'ctx, 'env, 'heap, S, A: Allocator> {
     pub cost: Cost,
 
     pub statement_costs: StatementCostVec<A>,
-    pub traversal_costs: TraversalCostVec<A>,
 
     pub supported: S,
 }
@@ -304,12 +303,6 @@ where
                     self.body.local_decls[lhs.local].r#type,
                 ))
                 .then_some(self.cost);
-
-                if let Some(cost) = cost
-                    && lhs.projections.is_empty()
-                {
-                    self.traversal_costs.insert(lhs.local, cost);
-                }
 
                 self.statement_costs[location] = cost;
             }
