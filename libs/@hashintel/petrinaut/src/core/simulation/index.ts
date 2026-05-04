@@ -1,6 +1,7 @@
 export {
-  startSimulation,
+  createSimulation,
   type BackpressureConfig,
+  type CreateSimulationConfig,
   type Simulation,
   type SimulationCompleteEvent,
   type SimulationConfig,

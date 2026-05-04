@@ -1,9 +1,11 @@
 # 04 — Core instance API
 
-The Core needs to express:
+The Core instance owns "the live document":
 
-- **Inputs** (commands flowing in): mutate definition, run/pause/reset simulation, set playback speed/frame, ack frames, paste from clipboard, etc.
-- **Outputs** (events/state flowing out): current SDCPN, simulation status + frame stream, playback frame index, LSP diagnostics, validation errors, notifications.
+- **Inputs** (commands flowing in): mutate definition, paste from clipboard, undo/redo via the handle, etc.
+- **Outputs** (events/state flowing out): current SDCPN, patches, future LSP diagnostics, future notifications.
+
+**Simulation does not live on the instance.** A simulation operates on a frozen SDCPN snapshot and has no need for the live document. It is constructed by `createSimulation` standalone — see [05-simulation.md](./05-simulation.md). Playback state belongs to whoever's driving the visualisation (today the React layer; future Core surface).
 
 ## 4.1 Construction (locked)
 
@@ -15,15 +17,12 @@ import type { PetrinautDocHandle, ErrorTracker } from "@hashintel/petrinaut/core
 
 const instance = createPetrinaut({
   document: PetrinautDocHandle;
-
-  simulation?: {
-    createWorker: () => Worker; // see 05-simulation.md
-  };
-
   readonly?: boolean;
   errorTracker?: ErrorTracker;
 });
 ```
+
+The instance config is deliberately minimal. **Simulation is not configured here** — it's built standalone via `createSimulation`. See [05-simulation.md](./05-simulation.md) and §11.4.
 
 ### Handle interface
 
@@ -252,22 +251,7 @@ type Petrinaut = {
   mutate: (fn: (draft: SDCPN) => void) => void; // delegates to handle.change
   setTitle: (title: string) => void;
 
-  // --- Simulation (lazy — see 05-simulation.md) ---
-  simulation: ReadableStore<Simulation | null>;
-  startSimulation: (cfg: SimulationConfig) => Promise<Simulation>;
-
-  // --- Playback ---
-  playback: {
-    state: ReadableStore<{ playState: PlayState; frameIndex: number; speed: number; mode: PlayMode }>;
-    play: () => void;
-    pause: () => void;
-    stop: () => void;
-    setSpeed: (s: number) => void;
-    setFrameIndex: (i: number) => void;
-    setMode: (m: PlayMode) => void;
-  };
-
-  // --- LSP (see 04.5) ---
+  // --- LSP (planned — see §4.5) ---
   lsp: {
     diagnostics: ReadableStore<{ byUri: Map<DocumentUri, Diagnostic[]>; total: number }>;
     notifyDocumentChanged: (uri: DocumentUri, text: string) => void;
@@ -285,16 +269,16 @@ type Petrinaut = {
   // --- Lifecycle ---
   dispose: () => void;
 };
-
-type ReadableStore<T> = {
-  get: () => T;
-  subscribe: (l: (value: T) => void) => () => void;
-};
-
-type EventStream<T> = {
-  subscribe: (l: (event: T) => void) => () => void;
-};
 ```
+
+### Not on the instance
+
+These are intentionally outside the `Petrinaut` type:
+
+- **Simulation.** Operates on a frozen SDCPN snapshot; no need for the live document. Built via `createSimulation({ sdcpn, ... })`. The host owns the resulting `Simulation` handle and its lifecycle. Multiple simulations can coexist against one document.
+- **Playback.** Frame-loop timing belongs to whoever drives the visualisation. Today the React layer (`PlaybackProvider`); a future Core helper might package the rAF loop, but it would still take a `Simulation`, not an instance.
+- **Editor / UI state.** Selection, panels, modes — purely React.
+- **Undo/redo.** Lives on the handle (see §4.1 "History"), not on the instance.
 
 ## 4.4 Instantiation patterns
 
@@ -342,11 +326,37 @@ import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 ### D. Headless simulation (the new use case the split unlocks)
 
-```ts
-const handle = createJsonDocHandle({ initial: net });
-const instance = createPetrinaut({ document: handle });
+The simulation is constructed standalone — no need for a `Petrinaut` instance if all you want to do is run an SDCPN.
 
-const sim = await instance.startSimulation({ seed: 42, dt: 0.01, maxTime: 100 });
+```ts
+import { createSimulation } from "@hashintel/petrinaut/core";
+
+const sim = await createSimulation({
+  sdcpn: net,
+  initialMarking: new Map(),
+  parameterValues: {},
+  seed: 42,
+  dt: 0.01,
+  maxTime: 100,
+  createWorker: () => new Worker(/* … */),
+});
+
 const off = sim.frames.subscribe(({ latest }) => recordFrame(latest));
 sim.run();
 ```
+
+If you already have an instance (for live editing), the SDCPN is a `handle.doc()` away:
+
+```ts
+const sim = await createSimulation({
+  sdcpn: instance.handle.doc()!,
+  initialMarking: new Map(),
+  parameterValues: {},
+  seed: 42,
+  dt: 0.01,
+  maxTime: 100,
+  createWorker: () => new Worker(/* … */),
+});
+```
+
+The simulation is independent of the instance and outlives it. Disposing the instance does **not** dispose the simulation; the host owns the simulation's lifecycle. Multiple simulations can coexist against one document (parameter sweeps, scenario comparison).

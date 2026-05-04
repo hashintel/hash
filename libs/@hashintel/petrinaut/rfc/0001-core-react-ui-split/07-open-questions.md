@@ -41,12 +41,9 @@ Selection, current mode, panel layout, user settings — does any of this belong
 
 **Decided.** `/core` accepts a caller-provided `createWorker` factory; the worker source is exposed as a `./core/simulation.worker` sub-entry that consumers resolve via `new URL(..., import.meta.url)`. `/ui` supplies a default factory so most consumers don't see this. See [05-simulation.md](./05-simulation.md) §5.2.
 
-## Q6. Lazy subsystems
+## Q6. ~~Lazy subsystems~~
 
-Does `createPetrinaut` spin up the simulation worker eagerly, or lazily when `startSimulation()` is called?
-
-- **Recommendation:** lazy. Headless consumers that only mutate a definition shouldn't pay the cost.
-- **Status:** effectively decided in [05-simulation.md](./05-simulation.md) §5.3 — confirm and strike.
+**Decided / superseded.** Simulation is now decoupled from the `Petrinaut` instance entirely — the question of "eager vs lazy spin-up on the instance" no longer applies. `createSimulation` is its own top-level function; consumers who don't need simulation never call it. See [05-simulation.md](./05-simulation.md) §5.1.
 
 ## Q7. Notifications
 

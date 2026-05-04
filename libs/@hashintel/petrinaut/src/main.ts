@@ -20,14 +20,14 @@ export type {
   CreatePetrinautConfig,
   EventStream,
   Petrinaut as PetrinautInstance,
-  StartSimulationConfig,
 } from "./core/instance";
 export {
+  createSimulation,
   createWorkerTransport,
-  startSimulation,
 } from "./core/simulation";
 export type {
   BackpressureConfig,
+  CreateSimulationConfig,
   Simulation,
   SimulationCompleteEvent,
   SimulationConfig,

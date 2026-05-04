@@ -3,15 +3,6 @@ import type {
   PetrinautPatch,
   ReadableStore,
 } from "./handle";
-import {
-  startSimulation as createSimulation,
-  type Simulation,
-  type SimulationConfig,
-} from "./simulation";
-import {
-  createWorkerTransport,
-  type WorkerFactory,
-} from "./simulation/transport";
 import type { SDCPN } from "./types/sdcpn";
 
 const EMPTY_SDCPN: SDCPN = {
@@ -27,22 +18,17 @@ export type EventStream<T> = {
 };
 
 /**
- * Configuration for {@link Petrinaut.startSimulation}. The document's current
- * SDCPN snapshot is captured at start time; subsequent mutations don't affect
- * the running simulation.
+ * The live document instance. Owns the handle, mutations, and patch stream.
+ *
+ * **Simulation does not live here.** A simulation runs against a frozen SDCPN
+ * snapshot and has no need for the live document. To run one, call
+ * {@link createSimulation} directly with `instance.handle.doc()` (or any other
+ * SDCPN value). The host owns the simulation's lifecycle.
  */
-export type StartSimulationConfig = Omit<SimulationConfig, "sdcpn"> & {
-  /**
-   * Override the worker factory for this run. Defaults to the factory the
-   * instance was created with, or the bundled default.
-   */
-  createWorker?: WorkerFactory;
-};
-
 export type Petrinaut = {
   readonly handle: PetrinautDocHandle;
 
-  /** Current SDCPN snapshot store. Falls back to {@link EMPTY_SDCPN} until the handle is ready. */
+  /** Current SDCPN snapshot store. Falls back to an empty SDCPN until the handle is ready. */
   readonly definition: ReadableStore<SDCPN>;
 
   /** Patch event stream. Only fires for handles that produce patches. */
@@ -53,27 +39,12 @@ export type Petrinaut = {
 
   readonly readonly: boolean;
 
-  /** Currently active simulation, if any. */
-  readonly simulation: ReadableStore<Simulation | null>;
-  /**
-   * Spin up a new simulation against the document's current SDCPN snapshot.
-   * Disposes any existing simulation first. Resolves once the worker is ready.
-   */
-  startSimulation(config: StartSimulationConfig): Promise<Simulation>;
-
   dispose(): void;
 };
 
 export type CreatePetrinautConfig = {
   document: PetrinautDocHandle;
   readonly?: boolean;
-  simulation?: {
-    /**
-     * How to construct the simulation web worker. Required if any consumer
-     * calls {@link Petrinaut.startSimulation} without an override.
-     */
-    createWorker?: WorkerFactory;
-  };
 };
 
 function createDefinitionStore(
@@ -124,81 +95,13 @@ function createPatchStream(
   };
 }
 
-function createSimulationStore(): ReadableStore<Simulation | null> & {
-  set(next: Simulation | null): void;
-} {
-  let current: Simulation | null = null;
-  const listeners = new Set<(value: Simulation | null) => void>();
-  return {
-    get: () => current,
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    set(next) {
-      if (Object.is(next, current)) {
-        return;
-      }
-      current = next;
-      for (const listener of listeners) {
-        listener(current);
-      }
-    },
-  };
-}
-
 export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
-  const { document: handle, readonly = false, simulation: simConfig } = config;
+  const { document: handle, readonly = false } = config;
 
   const disposers: Array<() => void> = [];
 
   const definition = createDefinitionStore(handle);
   const patches = createPatchStream(handle);
-  const simulationStore = createSimulationStore();
-
-  const defaultCreateWorker = simConfig?.createWorker;
-
-  async function start(opts: StartSimulationConfig): Promise<Simulation> {
-    const previous = simulationStore.get();
-    if (previous) {
-      previous.dispose();
-      simulationStore.set(null);
-    }
-
-    const createWorker = opts.createWorker ?? defaultCreateWorker;
-    if (!createWorker) {
-      throw new Error(
-        "startSimulation: no worker factory available. Pass `simulation.createWorker` to createPetrinaut, or `createWorker` on the start call.",
-      );
-    }
-
-    const transport = createWorkerTransport(createWorker);
-
-    const sdcpn = handle.doc();
-    if (!sdcpn) {
-      transport.terminate();
-      throw new Error(
-        "startSimulation: document handle is not ready (handle.doc() returned undefined).",
-      );
-    }
-
-    const sim = await createSimulation({
-      transport,
-      config: {
-        sdcpn,
-        initialMarking: opts.initialMarking,
-        parameterValues: opts.parameterValues,
-        seed: opts.seed,
-        dt: opts.dt,
-        maxTime: opts.maxTime,
-        backpressure: opts.backpressure,
-        signal: opts.signal,
-      },
-    });
-
-    simulationStore.set(sim);
-    return sim;
-  }
 
   return {
     handle,
@@ -211,14 +114,7 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
       handle.change(fn);
     },
     readonly,
-    simulation: simulationStore,
-    startSimulation: start,
     dispose() {
-      const sim = simulationStore.get();
-      if (sim) {
-        sim.dispose();
-        simulationStore.set(null);
-      }
       for (const dispose of disposers) {
         dispose();
       }

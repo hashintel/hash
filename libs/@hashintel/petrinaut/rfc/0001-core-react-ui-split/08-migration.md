@@ -60,13 +60,15 @@ A thin slice landed alongside the existing code path to validate the core concep
 Files added:
 
 - `src/core/simulation/transport.ts` — `SimulationTransport` interface, `createWorkerTransport(createWorker)`, `WorkerFactory`. Async-factory friendly: messages sent before worker boot are queued and flushed.
-- `src/core/simulation/simulation.ts` — `Simulation` interface, `startSimulation({ transport, config })` factory. Promise resolves on `ready`; rejects on init `error` or `AbortSignal` abort. `dispose()` is idempotent.
+- `src/core/simulation/simulation.ts` — `Simulation` interface, **`createSimulation(config)`** factory. Accepts either a `createWorker: WorkerFactory` or a pre-built `transport: SimulationTransport` (discriminated union). Promise resolves on `ready`; rejects on init `error` or `AbortSignal` abort. `dispose()` is idempotent and tears down the transport.
 - `src/core/simulation/index.ts` — barrel re-export.
-- `src/core/simulation/simulation.test.ts` — 7 unit tests with a manual transport.
+- `src/core/simulation/simulation.test.ts` — 8 unit tests covering both flavours (mock transport + fake-`Worker` factory route).
 
-`createPetrinaut` gained `simulation.createWorker` config and `instance.{simulation, startSimulation}`. The existing `<SimulationProvider>` is **not yet replaced** — the existing prop-shaped `<Petrinaut>` continues to use `useSimulationWorker`. The `/react` bridge over `instance.simulation` is the next step.
+**Decoupled from `createPetrinaut`.** Simulations operate on a frozen SDCPN snapshot — they don't need the live document. So `createPetrinaut` does **not** take a simulation config, and the `Petrinaut` instance has no `simulation` field. To run a simulation, call `createSimulation({ sdcpn, ... })` directly (passing `instance.handle.doc()` if you have an instance, or any other SDCPN value). Multiple simulations can coexist against one document.
 
-Public exports added in `main.ts`: `createWorkerTransport`, `startSimulation`, plus the `Simulation*` types and `SimulationTransport` / `WorkerFactory`.
+Public exports added in `main.ts`: `createSimulation`, `createWorkerTransport`, plus the `Simulation*` types, `CreateSimulationConfig`, `SimulationTransport`, and `WorkerFactory`.
+
+The existing `<SimulationProvider>` is **not yet replaced** — the existing prop-shaped `<Petrinaut>` continues to use `useSimulationWorker`. The `/react` bridge that calls `createSimulation` and republishes through `SimulationContext` is the next step.
 
 ## Phase 3 — React bindings
 

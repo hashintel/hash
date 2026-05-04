@@ -2,7 +2,11 @@ import type { InitialMarking, SimulationFrame } from "../../simulation/context";
 import type { ReadableStore } from "../handle";
 import type { EventStream } from "../instance";
 import type { SDCPN } from "../types/sdcpn";
-import type { SimulationTransport } from "./transport";
+import {
+  createWorkerTransport,
+  type SimulationTransport,
+  type WorkerFactory,
+} from "./transport";
 
 export type SimulationState =
   | "Initializing"
@@ -19,6 +23,11 @@ export type BackpressureConfig = {
   batchSize?: number;
 };
 
+/**
+ * Common per-run config shared by both transport modes. The simulation runs
+ * against the {@link sdcpn} snapshot and never reads it again, so subsequent
+ * mutations to the source document don't affect a running simulation.
+ */
 export type SimulationConfig = {
   sdcpn: SDCPN;
   initialMarking: InitialMarking;
@@ -31,6 +40,19 @@ export type SimulationConfig = {
   /** Optional cancellation. Aborting tears down the simulation. */
   signal?: AbortSignal;
 };
+
+/**
+ * Top-level config for {@link createSimulation}. Provide exactly one of:
+ *
+ * - `createWorker`: a `Worker` factory; the function builds a transport for you.
+ * - `transport`: a pre-built {@link SimulationTransport}; ownership transfers
+ *   to the simulation (it will be terminated on `simulation.dispose()`).
+ */
+export type CreateSimulationConfig = SimulationConfig &
+  (
+    | { createWorker: WorkerFactory; transport?: never }
+    | { transport: SimulationTransport; createWorker?: never }
+  );
 
 export type SimulationCompleteEvent = {
   type: "complete";
@@ -105,15 +127,25 @@ function createEventStream<T>(): EventStream<T> & { emit(event: T): void } {
 }
 
 /**
- * Start a simulation against a transport. Resolves with the live {@link Simulation}
+ * Build and start a simulation. Resolves with the live {@link Simulation}
  * handle once the worker reports `ready`. Rejects (and disposes) if the worker
  * errors during initialization, or if `signal` aborts before init completes.
+ *
+ * Either pass a `createWorker` factory (the function builds a transport) or a
+ * pre-built `transport` (ownership transfers to the simulation; it'll be
+ * terminated on `dispose()`).
+ *
+ * The simulation runs against the `sdcpn` snapshot and is independent of any
+ * `Petrinaut` instance — pass `instance.handle.doc()` (or any other SDCPN
+ * value) and you're done.
  */
-export function startSimulation(opts: {
-  config: SimulationConfig;
-  transport: SimulationTransport;
-}): Promise<Simulation> {
-  const { config, transport } = opts;
+export function createSimulation(
+  config: CreateSimulationConfig,
+): Promise<Simulation> {
+  const transport: SimulationTransport =
+    "transport" in config && config.transport !== undefined
+      ? config.transport
+      : createWorkerTransport(config.createWorker);
 
   const status = createReadableStore<SimulationState>("Initializing");
   const frameSummary = createReadableStore<SimulationFrameSummary>({

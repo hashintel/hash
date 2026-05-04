@@ -3,11 +3,19 @@
 ## Imports after the split
 
 ```ts
-// Headless engine
+// Headless engine — live document
 import { createPetrinaut, createJsonDocHandle } from "@hashintel/petrinaut/core";
 import type {
   SDCPN, Place, Transition,
   PetrinautDocHandle, PetrinautPatch, DocChangeEvent, DocumentId,
+  /* … */
+} from "@hashintel/petrinaut/core";
+
+// Headless engine — simulation (standalone; not tied to an instance)
+import { createSimulation, createWorkerTransport } from "@hashintel/petrinaut/core";
+import type {
+  Simulation, CreateSimulationConfig, SimulationConfig,
+  SimulationTransport, WorkerFactory,
   /* … */
 } from "@hashintel/petrinaut/core";
 

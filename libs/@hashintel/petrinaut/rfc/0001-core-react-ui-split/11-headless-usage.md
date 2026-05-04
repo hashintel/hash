@@ -15,6 +15,7 @@ Status callouts:
 import {
   createJsonDocHandle,
   createPetrinaut,
+  createSimulation,
 } from "@hashintel/petrinaut/core"; // (today: re-exported from "@hashintel/petrinaut")
 
 const handle = createJsonDocHandle({ initial: emptySDCPN });
@@ -30,17 +31,19 @@ const off = instance.definition.subscribe((sdcpn) => {
   console.log(`Now ${sdcpn.places.length} place(s)`);
 });
 
-// run a simulation (browser-side; needs a Worker factory)
-const sim = await instance.startSimulation({
+// run a simulation — standalone, not on the instance
+const sim = await createSimulation({
+  sdcpn: instance.handle.doc()!, // or any other SDCPN value
   initialMarking: new Map(),
   parameterValues: {},
   seed: 42,
   dt: 0.01,
   maxTime: 10,
+  createWorker: () => new Worker(/* … */),
 });
 sim.run();
 
-// later
+// later — host owns each lifecycle independently
 sim.dispose();
 instance.dispose();
 off();
@@ -54,11 +57,12 @@ off();
 function createPetrinaut(config: {
   document: PetrinautDocHandle;
   readonly?: boolean;
-  simulation?: { createWorker?: () => Worker | Promise<Worker> };
 }): Petrinaut;
 ```
 
 🟢 **Shipped.** Returns a stateful `Petrinaut` instance bound to a single document handle. Core never owns the document — it's the host's responsibility to provide a handle via one of the patterns below.
+
+> **Simulation is not configured here.** A simulation is built standalone via `createSimulation` (§11.4). The instance only manages live-document concerns: definition, patches, mutate, future LSP.
 
 ### 11.2.1 With `createJsonDocHandle` (in-memory, the common case)
 
@@ -225,37 +229,31 @@ For multi-step changes, just call `change` once with all of them — they're a s
 
 ## 11.4 Running a simulation
 
-### 11.4.1 The high-level path
+A simulation is **standalone** — it doesn't live on a `Petrinaut` instance. It runs against a frozen SDCPN snapshot and outlives any instance you happen to have. Multiple simulations can coexist against one document.
 
-🟢 **Shipped.** Browser only (needs a `Worker`):
+### 11.4.1 With a `Worker` factory (the common case)
+
+🟢 **Shipped.** Browser-side, the function builds a transport for you:
 
 ```ts
-import {
-  createJsonDocHandle,
-  createPetrinaut,
-} from "@hashintel/petrinaut/core";
+import { createSimulation } from "@hashintel/petrinaut/core";
 
-const instance = createPetrinaut({
-  document: createJsonDocHandle({ initial: net }),
-  simulation: {
-    createWorker: () =>
-      new Worker(
-        // Today: use the bundled worker URL via your bundler's resolution.
-        // Once Phase 5 lands, this becomes a `./core/simulation.worker` sub-entry.
-        new URL("./worker.js", import.meta.url),
-        { type: "module" },
-      ),
-  },
-});
-
-const sim = await instance.startSimulation({
-  initialMarking: new Map(), // empty = all places start with zero tokens
+const sim = await createSimulation({
+  sdcpn: someSDCPN,                  // any SDCPN value; from a handle, file, fixture, …
+  initialMarking: new Map(),         // empty = all places start with zero tokens
   parameterValues: {},
   seed: 42,
   dt: 0.01,
   maxTime: 10,
   backpressure: { maxFramesAhead: 40, batchSize: 10 },
-  signal: abortController.signal, // optional
+  signal: abortController.signal,    // optional cancellation
+  createWorker: () =>
+    new Worker(
+      // Today: use the bundled worker URL via your bundler's resolution.
+      // Once Phase 5 lands, this becomes a `./core/simulation.worker` sub-entry.
+      new URL("./worker.js", import.meta.url),
+      { type: "module" },
+    ),
 });
 
 sim.run();
@@ -274,42 +272,47 @@ sim.events.subscribe((e) => {
   }
 });
 
-await new Promise((r) => sim.events.subscribe((e) => e.type === "complete" && r(undefined)));
-
 off();
 sim.dispose();
 ```
 
-`startSimulation` snapshots `handle.doc()` once, at start time. Mutations to the document after that point don't affect the running simulation.
+If you have a `Petrinaut` instance:
 
-### 11.4.2 The lower-level path
+```ts
+const sim = await createSimulation({
+  sdcpn: instance.handle.doc()!,
+  /* …rest of config… */
+});
+```
 
-🟢 **Shipped.** Skip `createPetrinaut` entirely:
+The simulation captures the SDCPN snapshot once. Mutations to the source document after that don't affect the running simulation.
+
+### 11.4.2 With a pre-built transport
+
+🟢 **Shipped.** When you want explicit control over the transport (custom worker pool, polyfill, recorded replay), pass it directly:
 
 ```ts
 import {
+  createSimulation,
   createWorkerTransport,
-  startSimulation,
 } from "@hashintel/petrinaut/core";
 
 const transport = createWorkerTransport(() => new Worker(/* … */));
 
-const sim = await startSimulation({
+const sim = await createSimulation({
   transport,
-  config: {
-    sdcpn: someSDCPN,
-    initialMarking: new Map(),
-    parameterValues: {},
-    seed: 42,
-    dt: 0.01,
-    maxTime: 10,
-  },
+  sdcpn: someSDCPN,
+  initialMarking: new Map(),
+  parameterValues: {},
+  seed: 42,
+  dt: 0.01,
+  maxTime: 10,
 });
 
 sim.run();
 ```
 
-Useful when you don't have a document handle (just a static SDCPN) or want to swap in a custom transport. Tests in `src/core/simulation/simulation.test.ts` use a manual transport for exactly this reason.
+**Ownership transfers to the simulation:** `sim.dispose()` calls `transport.terminate()`. Build a fresh transport per simulation. This is the path the unit tests in `src/core/simulation/simulation.test.ts` use with a manual transport for full control.
 
 ### 11.4.3 Frame consumption
 
@@ -345,7 +348,7 @@ sim.frames.subscribe(({ latest }) => {
 - The `web-worker` polyfill (already a dep of this package) — works for many cases.
 - A custom `SimulationTransport` that drives the simulator on the calling thread via the modules in `src/simulation/simulator/*`.
 
-Once `createInlineTransport()` ships, the recommended pattern is `createPetrinaut({ ..., simulation: { createWorker: undefined } })` with a fall-back path that uses inline.
+Once `createInlineTransport()` ships, the recommended pattern is `createSimulation({ sdcpn, transport: createInlineTransport(), … })` with no Worker involved.
 
 ---
 
@@ -438,14 +441,16 @@ process.on("beforeExit", off);
 
 ```ts
 const instance = createPetrinaut({ document: handle });
-const sim = await instance.startSimulation(cfg);
+const sim = await createSimulation({ sdcpn: handle.doc()!, /* … */ });
 
-// Tear down the simulation only:
+// Tear down the simulation:
 sim.dispose();
 
-// Tear down the entire instance (also disposes any active simulation):
+// Tear down the instance:
 instance.dispose();
 ```
+
+The instance and the simulation are **independent lifecycles**. Disposing the instance does *not* dispose any simulations you spawned — they're standalone (§5.1). Disposing the simulation does not affect the instance. The host owns both.
 
 Disposal is **idempotent** — safe to call twice. The handle itself is owned by the host; Core does not call any teardown on it (e.g. it doesn't close localStorage adapters or detach Automerge listeners).
 
@@ -506,10 +511,10 @@ This script is the canonical motivator for the headless surface — every part o
 | Capability | Status |
 | ---------- | :----: |
 | `createJsonDocHandle` (with history) | 🟢 |
-| `createPetrinaut` (document + readonly + simulation factory) | 🟢 |
+| `createPetrinaut` (document + readonly) | 🟢 |
 | `instance.mutate` / `instance.definition` / `instance.patches` | 🟢 |
-| `instance.startSimulation` / `instance.simulation` store | 🟢 |
-| `createWorkerTransport` / `startSimulation` low-level | 🟢 |
+| `createSimulation` (standalone, with `createWorker` or `transport`) | 🟢 |
+| `createWorkerTransport` (build a transport for explicit reuse) | 🟢 |
 | Automerge handle adapter | 🟡 (pasted snippet, not shipped) |
 | `createInlineTransport` / `createRecordedTransport` | 🟡 |
 | `instance.lsp.*` (headless type-checking) | 🟡 |

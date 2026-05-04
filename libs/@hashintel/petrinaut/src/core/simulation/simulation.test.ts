@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { SimulationFrame } from "../../simulation/context";
 import type {
   ToMainMessage,
   ToWorkerMessage,
 } from "../../simulation/worker/messages";
-import type { SimulationFrame } from "../../simulation/context";
 import type { SDCPN } from "../types/sdcpn";
-import { startSimulation } from "./simulation";
+import { createSimulation, type SimulationFrameSummary } from "./simulation";
 import type { SimulationTransport } from "./transport";
 
 const empty = (): SDCPN => ({
@@ -61,19 +61,17 @@ function makeMockTransport() {
   };
 }
 
-describe("startSimulation", () => {
+describe("createSimulation (transport flavour)", () => {
   it("resolves once the worker reports ready", async () => {
     const mock = makeMockTransport();
-    const promise = startSimulation({
+    const promise = createSimulation({
       transport: mock.transport,
-      config: {
-        sdcpn: empty(),
-        initialMarking: new Map(),
-        parameterValues: {},
-        seed: 1,
-        dt: 0.01,
-        maxTime: null,
-      },
+      sdcpn: empty(),
+      initialMarking: new Map(),
+      parameterValues: {},
+      seed: 1,
+      dt: 0.01,
+      maxTime: null,
     });
 
     expect(mock.sent[0]?.type).toBe("init");
@@ -87,16 +85,14 @@ describe("startSimulation", () => {
 
   it("rejects on init error and tears down", async () => {
     const mock = makeMockTransport();
-    const promise = startSimulation({
+    const promise = createSimulation({
       transport: mock.transport,
-      config: {
-        sdcpn: empty(),
-        initialMarking: new Map(),
-        parameterValues: {},
-        seed: 1,
-        dt: 0.01,
-        maxTime: null,
-      },
+      sdcpn: empty(),
+      initialMarking: new Map(),
+      parameterValues: {},
+      seed: 1,
+      dt: 0.01,
+      maxTime: null,
     });
 
     mock.simulate({ type: "error", message: "boom", itemId: null });
@@ -106,22 +102,20 @@ describe("startSimulation", () => {
 
   it("appends single-frame and batch-frame messages to the frame summary", async () => {
     const mock = makeMockTransport();
-    const promise = startSimulation({
+    const promise = createSimulation({
       transport: mock.transport,
-      config: {
-        sdcpn: empty(),
-        initialMarking: new Map(),
-        parameterValues: {},
-        seed: 1,
-        dt: 0.01,
-        maxTime: null,
-      },
+      sdcpn: empty(),
+      initialMarking: new Map(),
+      parameterValues: {},
+      seed: 1,
+      dt: 0.01,
+      maxTime: null,
     });
     mock.simulate({ type: "ready", initialFrameCount: 0 });
     const sim = await promise;
 
     const seen: number[] = [];
-    sim.frames.subscribe((s) => seen.push(s.count));
+    sim.frames.subscribe((s: SimulationFrameSummary) => seen.push(s.count));
 
     mock.simulate({ type: "frame", frame: makeFrame(0) });
     mock.simulate({
@@ -139,16 +133,14 @@ describe("startSimulation", () => {
 
   it("emits a complete event when the worker finishes", async () => {
     const mock = makeMockTransport();
-    const promise = startSimulation({
+    const promise = createSimulation({
       transport: mock.transport,
-      config: {
-        sdcpn: empty(),
-        initialMarking: new Map(),
-        parameterValues: {},
-        seed: 1,
-        dt: 0.01,
-        maxTime: null,
-      },
+      sdcpn: empty(),
+      initialMarking: new Map(),
+      parameterValues: {},
+      seed: 1,
+      dt: 0.01,
+      maxTime: null,
     });
     mock.simulate({ type: "ready", initialFrameCount: 0 });
     const sim = await promise;
@@ -170,16 +162,14 @@ describe("startSimulation", () => {
 
   it("forwards control messages over the transport", async () => {
     const mock = makeMockTransport();
-    const promise = startSimulation({
+    const promise = createSimulation({
       transport: mock.transport,
-      config: {
-        sdcpn: empty(),
-        initialMarking: new Map(),
-        parameterValues: {},
-        seed: 1,
-        dt: 0.01,
-        maxTime: null,
-      },
+      sdcpn: empty(),
+      initialMarking: new Map(),
+      parameterValues: {},
+      seed: 1,
+      dt: 0.01,
+      maxTime: null,
     });
     mock.simulate({ type: "ready", initialFrameCount: 0 });
     const sim = await promise;
@@ -197,16 +187,14 @@ describe("startSimulation", () => {
 
   it("dispose() terminates the transport and is idempotent", async () => {
     const mock = makeMockTransport();
-    const promise = startSimulation({
+    const promise = createSimulation({
       transport: mock.transport,
-      config: {
-        sdcpn: empty(),
-        initialMarking: new Map(),
-        parameterValues: {},
-        seed: 1,
-        dt: 0.01,
-        maxTime: null,
-      },
+      sdcpn: empty(),
+      initialMarking: new Map(),
+      parameterValues: {},
+      seed: 1,
+      dt: 0.01,
+      maxTime: null,
     });
     mock.simulate({ type: "ready", initialFrameCount: 0 });
     const sim = await promise;
@@ -220,22 +208,77 @@ describe("startSimulation", () => {
     const mock = makeMockTransport();
     const ctrl = new AbortController();
 
-    const promise = startSimulation({
+    const promise = createSimulation({
       transport: mock.transport,
-      config: {
-        sdcpn: empty(),
-        initialMarking: new Map(),
-        parameterValues: {},
-        seed: 1,
-        dt: 0.01,
-        maxTime: null,
-        signal: ctrl.signal,
-      },
+      sdcpn: empty(),
+      initialMarking: new Map(),
+      parameterValues: {},
+      seed: 1,
+      dt: 0.01,
+      maxTime: null,
+      signal: ctrl.signal,
     });
 
     ctrl.abort();
 
     await expect(promise).rejects.toThrow(/abort/i);
     expect(mock.isTerminated()).toBe(true);
+  });
+});
+
+describe("createSimulation (createWorker flavour)", () => {
+  it("builds a transport from the factory and routes messages through it", async () => {
+    // Stand-in Worker — captures postMessage and lets us trigger 'message' events.
+    type WorkerMessageHandler = (event: MessageEvent<ToMainMessage>) => void;
+
+    const sentToWorker: ToWorkerMessage[] = [];
+    let messageHandler: WorkerMessageHandler | null = null;
+    let terminated = false;
+
+    const fakeWorker = {
+      postMessage(message: ToWorkerMessage) {
+        sentToWorker.push(message);
+      },
+      addEventListener(type: string, handler: WorkerMessageHandler) {
+        if (type === "message") {
+          messageHandler = handler;
+        }
+      },
+      removeEventListener() {},
+      terminate() {
+        terminated = true;
+      },
+    } as unknown as Worker;
+
+    const promise = createSimulation({
+      createWorker: () => fakeWorker,
+      sdcpn: empty(),
+      initialMarking: new Map(),
+      parameterValues: {},
+      seed: 1,
+      dt: 0.01,
+      maxTime: null,
+    });
+
+    // Yield so the createWorkerTransport's promise resolves and the
+    // queued init message gets flushed.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(sentToWorker.find((m) => m.type === "init")).toBeDefined();
+
+    // Simulate the worker reporting ready.
+    expect(messageHandler).not.toBeNull();
+    const handler = messageHandler as unknown as WorkerMessageHandler;
+    handler(
+      new MessageEvent<ToMainMessage>("message", {
+        data: { type: "ready", initialFrameCount: 0 },
+      }),
+    );
+
+    const sim = await promise;
+    expect(sim.status.get()).toBe("Ready");
+
+    sim.dispose();
+    expect(terminated).toBe(true);
   });
 });

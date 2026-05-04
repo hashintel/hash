@@ -62,11 +62,19 @@ useSetTitle(): (title: string) => void;
 usePetrinautPatches(handler: (patches: PetrinautPatch[]) => void): void;
 
 // ─── Simulation ───────────────────────────────────────────────────────────
+// Simulations are NOT on the Petrinaut instance — see 05-simulation.md §5.1.
+// The bridge provider holds the active `Simulation | null` in React state,
+// exposes its stores via these hooks, and forwards control calls.
 useSimulation(): Simulation | null;          // current handle, or null if no run started
-useSimulationStatus(): SimulationState;      // "NotRun" | "Paused" | "Running" | "Complete" | "Error"
+useSimulationStatus(): SimulationState;      // "Initializing" | "Ready" | "Running" | "Paused" | "Complete" | "Error"
 useSimulationFrameCount(): number;
 useSimulationLatestFrame(): SimulationFrame | null;
-useStartSimulation(): (cfg: SimulationConfig) => Promise<Simulation>;
+/**
+ * Returns a stable wrapper that builds the SimulationConfig from the
+ * provider's setup state (parameterValues, initialMarking, …) and calls
+ * `createSimulation` with the configured `createWorker`.
+ */
+useStartSimulation(): (overrides?: Partial<SimulationConfig>) => Promise<Simulation>;
 useSimulationActions(): {                    // null-safe wrappers over the active sim
   run: () => void;
   pause: () => void;
