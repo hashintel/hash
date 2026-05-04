@@ -10,7 +10,7 @@ fn {graph::read::filter@11}(%0: (::graph::types::knowledge::entity::EntityUuid,)
 
 fn {graph::read::filter@27}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
     bb0(): {                                                                    // interpreter
-        return 1
+        return true
     }
 }
 

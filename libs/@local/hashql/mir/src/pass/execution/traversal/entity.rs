@@ -6,6 +6,7 @@ use hashql_core::{
         bit_vec::{BitRelations as _, FiniteBitSet},
     },
     symbol::{ConstantSymbol, Symbol, sym},
+    r#type::{TypeBuilder, TypeId, environment::Environment},
 };
 
 use super::{
@@ -227,6 +228,127 @@ impl EntityPath {
             Self::LeftEntityProvenance => sym::left_entity_provenance,
             Self::RightEntityProvenance => sym::right_entity_provenance,
         }
+    }
+
+    /// The sequence of struct field names from the entity root to this path's position
+    /// in the type hierarchy.
+    ///
+    /// Each element corresponds to a field name in a nested struct. For example,
+    /// [`WebId`](Self::WebId) returns `[metadata, record_id, entity_id, web_id]`,
+    /// meaning the resolution walks: `Entity` → `metadata` field → `EntityMetadata` →
+    /// `record_id` field → `EntityRecordId` → `entity_id` field → `EntityId` → `web_id` field.
+    ///
+    /// Used by [`Self::resolve_type`] to navigate the entity type structure.
+    #[must_use]
+    pub const fn field_path(self) -> &'static [Symbol<'static>] {
+        match self {
+            Self::Properties => &[sym::properties],
+            Self::Vectors => &[sym::encodings, sym::vectors],
+            Self::RecordId => &[sym::metadata, sym::record_id],
+            Self::EntityId => &[sym::metadata, sym::record_id, sym::entity_id],
+            Self::WebId => &[sym::metadata, sym::record_id, sym::entity_id, sym::web_id],
+            Self::EntityUuid => &[
+                sym::metadata,
+                sym::record_id,
+                sym::entity_id,
+                sym::entity_uuid,
+            ],
+            Self::DraftId => &[sym::metadata, sym::record_id, sym::entity_id, sym::draft_id],
+            Self::EditionId => &[sym::metadata, sym::record_id, sym::edition_id],
+            Self::TemporalVersioning => &[sym::metadata, sym::temporal_versioning],
+            Self::DecisionTime => &[sym::metadata, sym::temporal_versioning, sym::decision_time],
+            Self::TransactionTime => &[
+                sym::metadata,
+                sym::temporal_versioning,
+                sym::transaction_time,
+            ],
+            Self::EntityTypeIds => &[sym::metadata, sym::entity_type_ids],
+            Self::Archived => &[sym::metadata, sym::archived],
+            Self::Confidence => &[sym::metadata, sym::confidence],
+            Self::ProvenanceInferred => &[sym::metadata, sym::provenance, sym::inferred],
+            Self::ProvenanceEdition => &[sym::metadata, sym::provenance, sym::edition],
+            Self::PropertyMetadata => &[sym::metadata, sym::properties],
+            Self::LeftEntityWebId => &[sym::link_data, sym::left_entity_id, sym::web_id],
+            Self::LeftEntityUuid => &[sym::link_data, sym::left_entity_id, sym::entity_uuid],
+            Self::RightEntityWebId => &[sym::link_data, sym::right_entity_id, sym::web_id],
+            Self::RightEntityUuid => &[sym::link_data, sym::right_entity_id, sym::entity_uuid],
+            Self::LeftEntityConfidence => &[sym::link_data, sym::left_entity_confidence],
+            Self::RightEntityConfidence => &[sym::link_data, sym::right_entity_confidence],
+            Self::LeftEntityProvenance => &[sym::link_data, sym::left_entity_provenance],
+            Self::RightEntityProvenance => &[sym::link_data, sym::right_entity_provenance],
+        }
+    }
+
+    /// Returns the type of this path.
+    ///
+    /// Every path except [`Properties`](Self::Properties) has a fixed type that does not
+    /// depend on the entity being queried. This method is a convenience for callers that
+    /// know the path is not `Properties`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if called on [`Properties`](Self::Properties), which has no fixed type.
+    pub fn expect_type(self, env: &Environment<'_>) -> TypeId {
+        self.resolve_type(env)
+            .expect("called `expect_type` on `Properties`, which has no fixed type")
+    }
+
+    /// Returns the type of this path, or `None` for [`Properties`](Self::Properties).
+    ///
+    /// Every path except `Properties` has a fixed type determined by the entity schema —
+    /// it doesn't depend on which `Entity<T>` is being queried. `Properties` returns `None`
+    /// because its type is the generic `T` parameter, which varies per entity type.
+    ///
+    /// Types are constructed from the canonical factory functions in the standard library,
+    /// ensuring they match the definitions registered by the module system.
+    pub fn resolve_type(self, env: &Environment<'_>) -> Option<TypeId> {
+        use hashql_core::module::std_lib::{
+            core::option::types as option,
+            graph::{
+                temporal::types as temporal,
+                types::{
+                    knowledge::entity::types as entity, ontology::types as ontology,
+                    principal::actor_group::web::types as web,
+                },
+            },
+        };
+
+        let ty = TypeBuilder::synthetic(env);
+
+        let r#type = match self {
+            Self::Properties => return None,
+            Self::Vectors => ty.unknown(),
+            Self::RecordId => entity::record_id(&ty, None),
+            Self::EntityId => entity::entity_id(&ty, None),
+            Self::WebId | Self::LeftEntityWebId | Self::RightEntityWebId => web::web_id(&ty, None),
+            Self::EntityUuid | Self::LeftEntityUuid | Self::RightEntityUuid => {
+                entity::entity_uuid(&ty, None)
+            }
+            Self::DraftId => entity::draft_id(&ty, None),
+            Self::EditionId => entity::entity_edition_id(&ty, None),
+            Self::TemporalVersioning => entity::temporal_metadata(&ty, None),
+            Self::DecisionTime => {
+                let interval = temporal::left_closed_temporal_interval(&ty);
+                temporal::decision_time(&ty, interval)
+            }
+            Self::TransactionTime => {
+                let interval = temporal::left_closed_temporal_interval(&ty);
+                temporal::transaction_time(&ty, interval)
+            }
+            Self::EntityTypeIds => ty.list(ontology::versioned_url(&ty, None)),
+            Self::Archived => ty.boolean(),
+            Self::Confidence | Self::LeftEntityConfidence | Self::RightEntityConfidence => {
+                option::option(&ty, entity::confidence(&ty))
+            }
+            Self::ProvenanceInferred => entity::inferred_entity_provenance(&ty),
+            Self::ProvenanceEdition => entity::entity_edition_provenance(&ty),
+            Self::PropertyMetadata => entity::property_object_metadata(&ty),
+            Self::LeftEntityProvenance | Self::RightEntityProvenance => {
+                entity::property_provenance(&ty)
+            }
+        };
+
+        Some(r#type)
     }
 
     /// Returns the set of execution targets that natively serve this path.

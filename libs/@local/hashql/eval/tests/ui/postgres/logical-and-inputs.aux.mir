@@ -35,7 +35,7 @@ thunk {thunk#4}() -> Boolean {
     }
 
     bb2(): {
-        return 0
+        return false
     }
 }
 
@@ -56,7 +56,7 @@ fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity
     }
 
     bb2(): {                                                                    // postgres
-        return 0
+        return false
     }
 }
 

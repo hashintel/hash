@@ -19,7 +19,7 @@ fn {graph::read::filter@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entit
     let %5: (Boolean,)
 
     bb0(): {
-        switchInt(1) -> [0: bb3(), 1: bb1()]
+        switchInt(true) -> [0: bb3(), 1: bb1()]
     }
 
     bb1(): {

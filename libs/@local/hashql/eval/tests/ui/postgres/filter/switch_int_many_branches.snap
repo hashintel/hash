@@ -15,23 +15,23 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
     }
 
     bb1(): {
-        return 1
+        return true
     }
 
     bb2(): {
-        return 0
+        return false
     }
 
     bb3(): {
-        return 1
+        return true
     }
 
     bb4(): {
-        return 0
+        return false
     }
 
     bb5(): {
-        return 1
+        return true
     }
 }
 ==================== Island (entry: bb0, target: postgres) =====================

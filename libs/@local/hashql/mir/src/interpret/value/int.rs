@@ -1,8 +1,30 @@
+//! Finite-precision integer constants for the HashQL MIR.
+//!
+//! [`Int`] represents compile-time integer and boolean values with size tracking.
+//! Values carry their bit-width: 1 bit for booleans, 128 bits for integers.
+//! This allows serialization to distinguish `true`/`false` from `0`/`1` without
+//! external type information — critical for round-tripping through formats like jsonb
+//! that have distinct boolean and number representations.
+//!
+//! # Size Invariants
+//!
+//! Only two sizes are valid:
+//! - **1 bit**: boolean values (`0` or `1`)
+//! - **128 bits**: integer values (full [`i128`] range)
+//!
+//! # Arithmetic Promotion
+//!
+//! All arithmetic operations produce 128-bit results, even when both operands are booleans.
+//! Bitwise boolean operations (`BitAnd`, `BitOr`, `BitXor`) preserve the 1-bit size when
+//! both operands are booleans.
+
 use core::{
+    cmp, debug_assert_matches,
     error::Error,
     fmt::{self, Display},
+    hash::{Hash, Hasher},
     hint,
-    num::TryFromIntError,
+    num::{NonZero, TryFromIntError},
     ops::{Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Sub},
 };
 
@@ -13,60 +35,127 @@ use crate::{
     macros::{forward_ref_binop, forward_ref_op_assign, forward_ref_unop},
 };
 
+/// Bit-width for boolean values.
+const BOOL_BITS: NonZero<u8> = NonZero::new(1).unwrap();
+
+/// Bit-width for integer values.
+const INT_BITS: NonZero<u8> = NonZero::new(128).unwrap();
+
 /// A finite-precision integer constant in the MIR.
 ///
-/// Unlike Rust, HashQL cannot differentiate between signed and unsigned integers at the type
-/// level, so all values are stored as signed [`i128`].
-///
-/// # Conversion Methods
-///
-/// **Range-checked conversions** (`as_i8`, `as_u8`, `as_i16`, etc.) return [`Some`] only if
-/// the value fits in the target type's range.
-///
-/// **Unchecked conversions** (`as_int`, `as_uint`) return the raw value without range checks.
+/// Stores an [`i128`] value alongside its bit-width. The width distinguishes booleans
+/// (1 bit, values `0` or `1`) from integers (128 bits, full [`i128`] range).
 ///
 /// # Examples
 ///
 /// ```
 /// use hashql_mir::interpret::value::Int;
 ///
-/// // Values that fit in the target range succeed
-/// let small = Int::from(42_i64);
-/// assert_eq!(small.as_i8(), Some(42));
-/// assert_eq!(small.as_i16(), Some(42));
+/// // Booleans are 1-bit integers
+/// let t = Int::from(true);
+/// assert_eq!(t.size(), 1);
+/// assert_eq!(t.as_bool(), Some(true));
 ///
-/// // Values outside the target range return None
-/// let large = Int::from(1000_i64);
-/// assert_eq!(large.as_i8(), None); // 1000 > i8::MAX
-/// assert_eq!(large.as_i16(), Some(1000));
+/// // Integers are 128-bit
+/// let n = Int::from(42_i64);
+/// assert_eq!(n.size(), 128);
+/// assert_eq!(n.as_int(), 42);
 ///
-/// // Unsigned conversions require non-negative values
-/// let negative = Int::from(-1_i8);
-/// assert_eq!(negative.as_i8(), Some(-1));
-/// assert_eq!(negative.as_u8(), None);
-///
-/// // Raw value access always succeeds
-/// assert_eq!(large.as_int(), 1000);
+/// // Bool provenance is metadata, not identity: from(true) == from(1)
+/// assert_eq!(Int::from(true), Int::from(1_i32));
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+// Uses `#[repr(packed)]` to avoid alignment padding, which would duplicate size, same as
+// rust-lang's ScalarInt.
+#[derive(Copy, Clone)]
+#[repr(Rust, packed)]
 pub struct Int {
+    /// The raw integer value.
+    ///
+    /// For booleans (size == 1), only `0` and `1` are valid.
+    /// For integers (size == 128), any `i128` value is valid.
     value: i128,
+
+    /// Bit-width of the value: `1` for booleans, `128` for integers.
+    size: NonZero<u8>,
 }
 
-#[expect(
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss
-)]
 impl Int {
+    /// Boolean constant `false`.
+    pub const FALSE: Self = Self {
+        value: 0,
+        size: BOOL_BITS,
+    };
+    /// Integer constant `1`.
+    pub const ONE: Self = Self {
+        value: 1,
+        size: INT_BITS,
+    };
+    /// Boolean constant `true`.
+    pub const TRUE: Self = Self {
+        value: 1,
+        size: BOOL_BITS,
+    };
+    /// Integer constant `0`.
+    pub const ZERO: Self = Self {
+        value: 0,
+        size: INT_BITS,
+    };
+
+    /// Creates a boolean `Int` from a `bool`.
     #[inline]
-    const fn from_value_unchecked(value: i128) -> Self {
-        Self { value }
+    const fn from_bool(value: bool) -> Self {
+        Self {
+            value: value as i128,
+            size: BOOL_BITS,
+        }
     }
 
-    /// Converts this integer to a boolean if the value is 0 or 1.
+    /// Creates a 128-bit integer `Int` from an `i128`.
+    #[inline]
+    const fn from_i128(value: i128) -> Self {
+        Self {
+            value,
+            size: INT_BITS,
+        }
+    }
+
+    /// Validates the internal invariants in debug builds.
     ///
-    /// Returns `Some(false)` for 0, `Some(true)` for 1, or [`None`] for any other value.
+    /// - `size` must be 1 or 128
+    /// - If `size == 1`, value must be 0 or 1
+    #[expect(
+        clippy::inline_always,
+        reason = "mirrors rustc's check_data pattern — cheap assertion, always inlined"
+    )]
+    #[inline(always)]
+    fn check_data(self) {
+        let value = self.value;
+        let size = self.size.get();
+
+        debug_assert_matches!(size, 1 | 128, "Int size must be 1 or 128, got {size}");
+        debug_assert!(
+            size == 128 || matches!(value, 0 | 1),
+            "Bool Int must have value 0 or 1, got {value}"
+        );
+    }
+
+    /// Returns the bit-width of this value: `1` for booleans, `128` for integers.
+    #[inline]
+    #[must_use]
+    pub const fn size(self) -> u8 {
+        self.size.get()
+    }
+
+    /// Returns `true` if this value has boolean width (1 bit).
+    #[inline]
+    #[must_use]
+    pub const fn is_bool(self) -> bool {
+        self.size.get() == 1
+    }
+
+    /// Converts this value to a `bool` if it has boolean width.
+    ///
+    /// Returns `None` for 128-bit integers, even if the value is 0 or 1.
     ///
     /// # Examples
     ///
@@ -75,320 +164,41 @@ impl Int {
     ///
     /// assert_eq!(Int::from(true).as_bool(), Some(true));
     /// assert_eq!(Int::from(false).as_bool(), Some(false));
-    /// assert_eq!(Int::from(1_i32).as_bool(), Some(true));
-    /// assert_eq!(Int::from(0_i64).as_bool(), Some(false));
     ///
-    /// // Values other than 0 or 1 return None
-    /// assert_eq!(Int::from(2_i8).as_bool(), None);
-    /// assert_eq!(Int::from(-1_i8).as_bool(), None);
+    /// // Integer 1 is NOT a bool — different size
+    /// assert_eq!(Int::from(1_i32).as_bool(), None);
     /// ```
     #[inline]
     #[must_use]
     pub const fn as_bool(self) -> Option<bool> {
+        if !self.is_bool() {
+            return None;
+        }
+
         match self.value {
             0 => Some(false),
             1 => Some(true),
-            _ => None,
+            _ => {
+                // The check_data invariant guarantees boolean values are 0 or 1. This branch is
+                // unreachable in valid programs.
+                unreachable!()
+            }
         }
     }
 
-    /// Converts this integer to [`i8`] if the value fits in the range `-128..=127`.
+    /// Returns the value as a signed `i128`.
+    ///
+    /// For booleans, returns `0` or `1`. For integers, returns the raw value.
+    /// This always succeeds regardless of the bit-width.
     ///
     /// # Examples
     ///
     /// ```
     /// use hashql_mir::interpret::value::Int;
     ///
-    /// assert_eq!(Int::from(42_i8).as_i8(), Some(42));
-    /// assert_eq!(Int::from(42_i64).as_i8(), Some(42));
-    /// assert_eq!(Int::from(-128_i32).as_i8(), Some(-128));
-    /// assert_eq!(Int::from(127_u8).as_i8(), Some(127));
-    ///
-    /// // Value out of i8 range returns None
-    /// assert_eq!(Int::from(128_i32).as_i8(), None);
-    /// assert_eq!(Int::from(-129_i32).as_i8(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_i8(self) -> Option<i8> {
-        if self.value >= i8::MIN as i128 && self.value <= i8::MAX as i128 {
-            Some(self.value as i8)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`u8`] if the value fits in the range `0..=255`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(42_i8).as_u8(), Some(42));
-    /// assert_eq!(Int::from(255_u8).as_u8(), Some(255));
-    /// assert_eq!(Int::from(200_i64).as_u8(), Some(200));
-    ///
-    /// // Negative or too large values return None
-    /// assert_eq!(Int::from(-1_i8).as_u8(), None);
-    /// assert_eq!(Int::from(256_i32).as_u8(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_u8(self) -> Option<u8> {
-        if self.value >= 0 && self.value <= u8::MAX as i128 {
-            Some(self.value as u8)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`i16`] if the value fits in the range `-32768..=32767`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(1000_i16).as_i16(), Some(1000));
-    /// assert_eq!(Int::from(1000_i64).as_i16(), Some(1000));
-    /// assert_eq!(Int::from(-1000_i32).as_i16(), Some(-1000));
-    ///
-    /// // Value out of i16 range returns None
-    /// assert_eq!(Int::from(40000_i64).as_i16(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_i16(self) -> Option<i16> {
-        if self.value >= i16::MIN as i128 && self.value <= i16::MAX as i128 {
-            Some(self.value as i16)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`u16`] if the value fits in the range `0..=65535`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(1000_i16).as_u16(), Some(1000));
-    /// assert_eq!(Int::from(65535_u16).as_u16(), Some(65535));
-    /// assert_eq!(Int::from(50000_i64).as_u16(), Some(50000));
-    ///
-    /// // Negative or too large values return None
-    /// assert_eq!(Int::from(-1_i16).as_u16(), None);
-    /// assert_eq!(Int::from(70000_i64).as_u16(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_u16(self) -> Option<u16> {
-        if self.value >= 0 && self.value <= u16::MAX as i128 {
-            Some(self.value as u16)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`i32`] if the value fits in the [`i32`] range.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(100_000_i32).as_i32(), Some(100_000));
-    /// assert_eq!(Int::from(100_000_i64).as_i32(), Some(100_000));
-    /// assert_eq!(Int::from(-100_000_i64).as_i32(), Some(-100_000));
-    ///
-    /// // Value out of i32 range returns None
-    /// assert_eq!(Int::from(3_000_000_000_i64).as_i32(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_i32(self) -> Option<i32> {
-        if self.value >= i32::MIN as i128 && self.value <= i32::MAX as i128 {
-            Some(self.value as i32)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`u32`] if the value fits in the [`u32`] range.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(100_000_i32).as_u32(), Some(100_000));
-    /// assert_eq!(Int::from(3_000_000_000_u32).as_u32(), Some(3_000_000_000));
-    /// assert_eq!(Int::from(100_000_i64).as_u32(), Some(100_000));
-    ///
-    /// // Negative or too large values return None
-    /// assert_eq!(Int::from(-1_i32).as_u32(), None);
-    /// assert_eq!(Int::from(5_000_000_000_i64).as_u32(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_u32(self) -> Option<u32> {
-        if self.value >= 0 && self.value <= u32::MAX as i128 {
-            Some(self.value as u32)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`i64`] if the value fits in the [`i64`] range.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(10_000_000_000_i64).as_i64(), Some(10_000_000_000));
-    /// assert_eq!(
-    ///     Int::from(-10_000_000_000_i64).as_i64(),
-    ///     Some(-10_000_000_000)
-    /// );
-    /// assert_eq!(Int::from(100_i32).as_i64(), Some(100));
-    ///
-    /// // Value out of i64 range returns None
-    /// assert_eq!(Int::from(10_000_000_000_000_000_000_u64).as_i64(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_i64(self) -> Option<i64> {
-        if self.value >= i64::MIN as i128 && self.value <= i64::MAX as i128 {
-            Some(self.value as i64)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`u64`] if the value fits in the [`u64`] range.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(10_000_000_000_i64).as_u64(), Some(10_000_000_000));
-    /// assert_eq!(Int::from(100_i32).as_u64(), Some(100));
-    ///
-    /// // Negative or too large values return None
-    /// assert_eq!(Int::from(-1_i64).as_u64(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_u64(self) -> Option<u64> {
-        if self.value >= 0 && self.value <= u64::MAX as i128 {
-            Some(self.value as u64)
-        } else {
-            None
-        }
-    }
-
-    /// Returns the value as [`i128`].
-    ///
-    /// This always succeeds since the internal representation is [`i128`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(i128::MAX).as_i128(), i128::MAX);
-    /// assert_eq!(Int::from(i128::MIN).as_i128(), i128::MIN);
-    /// assert_eq!(Int::from(42_i8).as_i128(), 42);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_i128(self) -> i128 {
-        self.value
-    }
-
-    /// Converts this integer to [`u128`] if the value is non-negative.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(i128::MAX).as_u128(), Some(i128::MAX as u128));
-    /// assert_eq!(Int::from(42_i8).as_u128(), Some(42));
-    ///
-    /// // Negative values return None
-    /// assert_eq!(Int::from(-1_i128).as_u128(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_u128(self) -> Option<u128> {
-        if self.value >= 0 {
-            Some(self.value as u128)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`isize`] if the value fits in the platform's [`isize`] range.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(42_isize).as_isize(), Some(42));
-    /// assert_eq!(Int::from(-42_i32).as_isize(), Some(-42));
-    /// assert_eq!(Int::from(1000_i64).as_isize(), Some(1000));
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_isize(self) -> Option<isize> {
-        if self.value >= isize::MIN as i128 && self.value <= isize::MAX as i128 {
-            Some(self.value as isize)
-        } else {
-            None
-        }
-    }
-
-    /// Converts this integer to [`usize`] if the value fits in the platform's [`usize`] range.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(42_usize).as_usize(), Some(42));
-    /// assert_eq!(Int::from(1000_i64).as_usize(), Some(1000));
-    ///
-    /// // Negative values return None
-    /// assert_eq!(Int::from(-1_isize).as_usize(), None);
-    /// ```
-    #[inline]
-    #[must_use]
-    pub const fn as_usize(self) -> Option<usize> {
-        if self.value >= 0 && self.value <= usize::MAX as i128 {
-            Some(self.value as usize)
-        } else {
-            None
-        }
-    }
-
-    /// Returns the raw signed value.
-    ///
-    /// This always succeeds and returns the internal [`i128`] representation directly.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(42_i8).as_int(), 42);
-    /// assert_eq!(Int::from(-1_i64).as_int(), -1);
-    /// assert_eq!(Int::from(i128::MAX).as_int(), i128::MAX);
+    /// assert_eq!(Int::from(42_i64).as_int(), 42);
+    /// assert_eq!(Int::from(-1_i128).as_int(), -1);
+    /// assert_eq!(Int::from(true).as_int(), 1);
     /// ```
     #[inline]
     #[must_use]
@@ -396,59 +206,64 @@ impl Int {
         self.value
     }
 
-    /// Returns the raw value reinterpreted as unsigned.
+    /// Returns the value reinterpreted as unsigned `u128`.
     ///
-    /// This performs a direct bit-cast from [`i128`] to [`u128`], preserving the
-    /// two's complement representation. For negative values, this produces the
-    /// corresponding unsigned value with the sign bit set.
-    ///
-    /// This is primarily useful for operations like [`SwitchInt`] that work with
-    /// unsigned discriminant values.
-    ///
-    /// [`SwitchInt`]: crate::body::terminator::SwitchInt
-    ///
-    /// # Sign Overflow Behavior
-    ///
-    /// Negative signed values wrap around to large unsigned values:
-    /// - `-1_i8` becomes `u128::MAX` (all bits set)
-    /// - `-128_i8` becomes `u128::MAX - 127`
-    ///
-    /// This is intentional and matches Rust's `as` cast semantics for signed-to-unsigned
-    /// conversions.
+    /// For booleans, returns `0` or `1`. For integers, performs a two's complement
+    /// bit-cast (negative values wrap to large unsigned values).
     ///
     /// # Examples
     ///
     /// ```
     /// use hashql_mir::interpret::value::Int;
     ///
-    /// // Positive values convert directly
-    /// assert_eq!(Int::from(42_i8).as_uint(), 42);
-    ///
-    /// // Negative values wrap (two's complement)
-    /// assert_eq!(Int::from(-1_i8).as_uint(), u128::MAX);
+    /// assert_eq!(Int::from(42_i64).as_uint(), 42);
+    /// assert_eq!(Int::from(true).as_uint(), 1);
     /// assert_eq!(Int::from(-1_i128).as_uint(), u128::MAX);
     /// ```
     #[inline]
     #[must_use]
+    #[expect(
+        clippy::cast_sign_loss,
+        reason = "intentional two's complement reinterpretation"
+    )]
     pub const fn as_uint(self) -> u128 {
-        self.value as u128
+        self.as_int() as u128
+    }
+
+    /// Checked integer addition. Returns `None` on overflow.
+    ///
+    /// Always produces a 128-bit result (arithmetic promotes booleans).
+    #[inline]
+    #[must_use]
+    pub const fn checked_add(self, rhs: Self) -> Option<Self> {
+        match self.as_int().checked_add(rhs.as_int()) {
+            Some(result) => Some(Self::from_i128(result)),
+            None => None,
+        }
+    }
+
+    /// Checked integer subtraction. Returns `None` on overflow.
+    ///
+    /// Always produces a 128-bit result (arithmetic promotes booleans).
+    #[inline]
+    #[must_use]
+    pub const fn checked_sub(self, rhs: Self) -> Option<Self> {
+        match self.as_int().checked_sub(rhs.as_int()) {
+            Some(result) => Some(Self::from_i128(result)),
+            None => None,
+        }
     }
 
     /// Converts this integer to [`f32`].
     ///
     /// This may lose precision for values that cannot be exactly represented
     /// as a 32-bit floating point number.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(42_i32).as_f32(), 42.0_f32);
-    /// assert_eq!(Int::from(-1_i8).as_f32(), -1.0_f32);
-    /// ```
     #[inline]
     #[must_use]
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "intentional lossy conversion to float"
+    )]
     pub const fn as_f32(self) -> f32 {
         self.as_int() as f32
     }
@@ -457,58 +272,104 @@ impl Int {
     ///
     /// This may lose precision for values that cannot be exactly represented
     /// as a 64-bit floating point number.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hashql_mir::interpret::value::Int;
-    ///
-    /// assert_eq!(Int::from(42_i64).as_f64(), 42.0_f64);
-    /// assert_eq!(Int::from(-1_i8).as_f64(), -1.0_f64);
-    /// ```
     #[inline]
     #[must_use]
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "intentional lossy conversion to float"
+    )]
     pub const fn as_f64(self) -> f64 {
         self.as_int() as f64
     }
 }
 
-impl Display for Int {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.value, fmt)
+impl fmt::Debug for Int {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let this = *self;
+        this.check_data();
+
+        match this.as_bool() {
+            Some(value) => f.debug_tuple("Bool").field(&value).finish(),
+            None => f.debug_tuple("Int").field(&this.as_int()).finish(),
+        }
     }
 }
 
-macro_rules! impl_from {
-    ($($ty:ty),*) => {
-        $(impl_from!(@impl $ty);)*
-    };
+impl Display for Int {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let this = *self;
+        this.check_data();
 
-    (@impl $ty:ty) => {
-        impl const From<$ty> for Int {
-            #[inline]
-            fn from(value: $ty) -> Self {
-                Self::from_value_unchecked(i128::from(value))
-            }
+        match this.as_bool() {
+            Some(value) => Display::fmt(&value, f),
+            None => Display::fmt(&this.as_int(), f),
         }
+    }
+}
+
+impl PartialEq for Int {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.as_int() == other.as_int()
+    }
+}
+
+impl Eq for Int {}
+
+impl PartialOrd for Int {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Int {
+    #[inline]
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.as_int().cmp(&other.as_int())
+    }
+}
+
+impl Hash for Int {
+    #[inline]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_int().hash(state);
+    }
+}
+
+impl const From<bool> for Int {
+    #[inline]
+    fn from(value: bool) -> Self {
+        Self::from_bool(value)
+    }
+}
+
+macro_rules! impl_from_int {
+    ($($ty:ty),*) => {
+        $(
+            impl const From<$ty> for Int {
+                #[inline]
+                fn from(value: $ty) -> Self {
+                    Self::from_i128(i128::from(value))
+                }
+            }
+        )*
     };
 }
 
-impl_from!(bool, u8, u16, u32, u64, i8, i16, i32, i64, i128);
+impl_from_int!(u8, u16, u32, u64, i8, i16, i32, i64, i128);
 
-// `usize` and `isize` cannot use the macro because `i128::from()` doesn't accept
-// platform-dependent types.
 impl const From<usize> for Int {
     #[inline]
     fn from(value: usize) -> Self {
-        Self::from_value_unchecked(value as i128)
+        Self::from_i128(value as i128)
     }
 }
 
 impl const From<isize> for Int {
     #[inline]
     fn from(value: isize) -> Self {
-        Self::from_value_unchecked(value as i128)
+        Self::from_i128(value as i128)
     }
 }
 
@@ -518,7 +379,7 @@ impl const TryFrom<u128> for Int {
     #[inline]
     fn try_from(value: u128) -> Result<Self, Self::Error> {
         match i128::try_from(value) {
-            Ok(value) => Ok(Self::from_value_unchecked(value)),
+            Ok(value) => Ok(Self::from_i128(value)),
             Err(error) => Err(error),
         }
     }
@@ -545,7 +406,7 @@ impl TryFrom<Integer<'_>> for Int {
     fn try_from(value: Integer<'_>) -> Result<Self, Self::Error> {
         value
             .as_i128()
-            .map(From::from)
+            .map(Self::from_i128)
             .ok_or(TryFromIntegerError(()))
     }
 }
@@ -602,7 +463,7 @@ impl<'heap> TryFrom<Primitive<'heap>> for Int {
 
     fn try_from(value: Primitive<'heap>) -> Result<Self, Self::Error> {
         match value {
-            Primitive::Boolean(bool) => Ok(bool.into()),
+            Primitive::Boolean(bool) => Ok(Self::from_bool(bool)),
             Primitive::Integer(integer) => {
                 integer.try_into().map_err(|_err| TryFromPrimitiveError {
                     kind: TryFromPrimitiveErrorKind::OutOfRange,
@@ -622,9 +483,19 @@ impl<'heap> TryFrom<Primitive<'heap>> for Int {
 impl Not for Int {
     type Output = Self;
 
+    /// Boolean NOT for 1-bit values, bitwise NOT for 128-bit values.
+    ///
+    /// For booleans: `!true == false`, `!false == true`.
+    /// For integers: flips all 128 bits (two's complement: `!x == -(x + 1)`).
     #[inline]
     fn not(self) -> Self::Output {
-        Self::from_value_unchecked(!self.as_int())
+        if self.is_bool() {
+            // Boolean NOT: flip the single bit
+            Self::from_bool(self.as_int() == 0)
+        } else {
+            // Bitwise NOT on full 128-bit value
+            Self::from_i128(!self.as_int())
+        }
     }
 }
 
@@ -633,14 +504,14 @@ impl Neg for Int {
 
     #[expect(clippy::cast_precision_loss, clippy::float_arithmetic)]
     fn neg(self) -> Self::Output {
-        let (value, overflow) = self.as_int().overflowing_neg();
+        let value = self.as_int();
+        let (result, overflow) = value.overflowing_neg();
 
-        if overflow {
-            // There's only a single reason why this overflowed: the value was i128::MIN, in this
-            // case we return `i128::MAX + 1` as a Num.
+        if hint::unlikely(overflow) {
+            // Only i128::MIN overflows: return i128::MAX + 1 as float.
             Numeric::Num(Num::from((i128::MAX as f64) + 1.0))
         } else {
-            Numeric::Int(Self::from_value_unchecked(value))
+            Numeric::Int(Self::from_i128(result))
         }
     }
 }
@@ -650,12 +521,13 @@ impl Add for Int {
 
     #[expect(clippy::float_arithmetic)]
     fn add(self, rhs: Self) -> Self::Output {
-        let (value, overflow) = self.as_int().overflowing_add(rhs.as_int());
+        let (lhs, rhs_val) = (self.as_int(), rhs.as_int());
+        let (result, overflow) = lhs.overflowing_add(rhs_val);
 
         if hint::unlikely(overflow) {
             Numeric::Num(Num::from(self.as_f64() + rhs.as_f64()))
         } else {
-            Numeric::Int(Self::from_value_unchecked(value))
+            Numeric::Int(Self::from_i128(result))
         }
     }
 }
@@ -675,12 +547,13 @@ impl Sub for Int {
 
     #[expect(clippy::float_arithmetic)]
     fn sub(self, rhs: Self) -> Self::Output {
-        let (value, overflow) = self.as_int().overflowing_sub(rhs.as_int());
+        let (lhs, rhs_val) = (self.as_int(), rhs.as_int());
+        let (result, overflow) = lhs.overflowing_sub(rhs_val);
 
         if hint::unlikely(overflow) {
             Numeric::Num(Num::from(self.as_f64() - rhs.as_f64()))
         } else {
-            Numeric::Int(Self::from_value_unchecked(value))
+            Numeric::Int(Self::from_i128(result))
         }
     }
 }
@@ -695,19 +568,32 @@ impl Sub<Num> for Int {
     }
 }
 
+/// Returns `BOOL_BITS` if both operands are bools, `INT_BITS` otherwise.
+#[inline]
+const fn bitwise_result_size(lhs: Int, rhs: Int) -> NonZero<u8> {
+    if lhs.is_bool() && rhs.is_bool() {
+        BOOL_BITS
+    } else {
+        INT_BITS
+    }
+}
+
 impl BitOr for Int {
     type Output = Self;
 
     #[inline]
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self::from_value_unchecked(self.as_int() | rhs.as_int())
+        Self {
+            value: self.as_int() | rhs.as_int(),
+            size: bitwise_result_size(self, rhs),
+        }
     }
 }
 
 impl BitOrAssign for Int {
     #[inline]
     fn bitor_assign(&mut self, rhs: Self) {
-        self.value |= rhs.value;
+        *self = *self | rhs;
     }
 }
 
@@ -716,14 +602,17 @@ impl BitAnd for Int {
 
     #[inline]
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self::from_value_unchecked(self.as_int() & rhs.as_int())
+        Self {
+            value: self.as_int() & rhs.as_int(),
+            size: bitwise_result_size(self, rhs),
+        }
     }
 }
 
 impl BitAndAssign for Int {
     #[inline]
     fn bitand_assign(&mut self, rhs: Self) {
-        self.value &= rhs.value;
+        *self = *self & rhs;
     }
 }
 
@@ -732,14 +621,17 @@ impl BitXor for Int {
 
     #[inline]
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self::from_value_unchecked(self.as_int() ^ rhs.as_int())
+        Self {
+            value: self.as_int() ^ rhs.as_int(),
+            size: bitwise_result_size(self, rhs),
+        }
     }
 }
 
 impl BitXorAssign for Int {
     #[inline]
     fn bitxor_assign(&mut self, rhs: Self) {
-        self.value ^= rhs.value;
+        *self = *self ^ rhs;
     }
 }
 
@@ -764,46 +656,256 @@ mod tests {
         clippy::float_cmp
     )]
 
+    use core::hash::BuildHasher as _;
+
     use crate::interpret::value::{Int, Numeric};
 
     #[test]
+    fn layout() {
+        assert_eq!(size_of::<Int>(), 17);
+        assert_eq!(align_of::<Int>(), 1);
+    }
+
+    #[test]
+    fn from_bool_preserves_size() {
+        assert_eq!(Int::from(true).size(), 1);
+        assert_eq!(Int::from(false).size(), 1);
+    }
+
+    #[test]
+    fn from_integer_preserves_size() {
+        assert_eq!(Int::from(0_i32).size(), 128);
+        assert_eq!(Int::from(1_i32).size(), 128);
+        assert_eq!(Int::from(42_i64).size(), 128);
+        assert_eq!(Int::from(i128::MAX).size(), 128);
+        assert_eq!(Int::from(i128::MIN).size(), 128);
+    }
+
+    #[test]
+    fn bool_int_equality_is_numeric() {
+        // Bool provenance (size) does not affect equality — only the numeric value matters.
+        // The type checker prevents comparing bools with ints; at the value level,
+        // same numeric content means same value.
+        assert_eq!(Int::from(true), Int::from(1_i32));
+        assert_eq!(Int::from(false), Int::from(0_i32));
+    }
+
+    #[test]
+    fn as_bool_only_for_bools() {
+        assert_eq!(Int::from(true).as_bool(), Some(true));
+        assert_eq!(Int::from(false).as_bool(), Some(false));
+
+        // Integer 1 is NOT a bool
+        assert_eq!(Int::from(1_i32).as_bool(), None);
+        assert_eq!(Int::from(0_i32).as_bool(), None);
+    }
+
+    #[test]
+    fn as_int_works_for_all() {
+        assert_eq!(Int::from(42_i64).as_int(), 42);
+        assert_eq!(Int::from(-1_i128).as_int(), -1);
+        assert_eq!(Int::from(i128::MAX).as_int(), i128::MAX);
+        assert_eq!(Int::from(true).as_int(), 1);
+        assert_eq!(Int::from(false).as_int(), 0);
+    }
+
+    #[test]
+    fn as_uint_works_for_all() {
+        assert_eq!(Int::from(42_i64).as_uint(), 42);
+        assert_eq!(Int::from(true).as_uint(), 1);
+        assert_eq!(Int::from(-1_i128).as_uint(), u128::MAX);
+    }
+
+    #[test]
+    fn display_bool() {
+        assert_eq!(format!("{}", Int::from(true)), "true");
+        assert_eq!(format!("{}", Int::from(false)), "false");
+    }
+
+    #[test]
+    fn display_int() {
+        assert_eq!(format!("{}", Int::from(42_i64)), "42");
+        assert_eq!(format!("{}", Int::from(-1_i128)), "-1");
+    }
+
+    #[test]
+    fn equality_is_numeric() {
+        assert_eq!(Int::from(true), Int::from(true));
+        assert_eq!(Int::from(42_i64), Int::from(42_i64));
+        assert_eq!(Int::from(true), Int::from(1_i64));
+        assert_eq!(Int::from(false), Int::from(0_i64));
+    }
+
+    #[test]
+    fn ordering_is_numeric() {
+        // Ordering is purely by numeric value, size is not considered.
+        assert_eq!(
+            Int::from(true).cmp(&Int::from(1_i32)),
+            core::cmp::Ordering::Equal
+        );
+        assert!(Int::from(false) < Int::from(1_i32));
+        assert!(Int::from(true) > Int::from(0_i32));
+    }
+
+    #[test]
+    fn constants() {
+        assert_eq!(Int::FALSE, Int::from(false));
+        assert_eq!(Int::TRUE, Int::from(true));
+        assert_eq!(Int::ZERO, Int::from(0_i32));
+        assert_eq!(Int::ONE, Int::from(1_i32));
+
+        // Constants have correct sizes
+        assert!(Int::FALSE.is_bool());
+        assert!(Int::TRUE.is_bool());
+        assert!(!Int::ZERO.is_bool());
+        assert!(!Int::ONE.is_bool());
+    }
+
+    #[test]
+    fn add_ints() {
+        let result = Int::from(2_i64) + Int::from(3_i64);
+        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 5 && int.size() == 128));
+    }
+
+    #[test]
+    fn add_bools_promotes() {
+        let result = Int::from(true) + Int::from(true);
+        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 2 && int.size() == 128));
+    }
+
+    #[test]
+    fn sub_ints() {
+        let result = Int::from(5_i64) - Int::from(3_i64);
+        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 2 && int.size() == 128));
+    }
+
+    #[test]
     fn neg_positive() {
-        let int = Int::from(42_i64);
-        let result = -int;
-        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(-42)));
+        let result = -Int::from(42_i64);
+        assert!(matches!(result, Numeric::Int(int) if int.as_int() == -42));
     }
 
     #[test]
     fn neg_negative() {
-        let int = Int::from(-100_i64);
-        let result = -int;
-        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(100)));
+        let result = -Int::from(-100_i64);
+        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 100));
     }
 
     #[test]
     fn neg_zero() {
-        let int = Int::from(0_i64);
-        let result = -int;
-        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(0)));
+        let result = -Int::from(0_i64);
+        assert!(matches!(result, Numeric::Int(int) if int.as_int() == 0));
     }
 
     #[test]
     fn neg_i128_max() {
-        let int = Int::from(i128::MAX);
-        let result = -int;
+        let result = -Int::from(i128::MAX);
         assert!(matches!(result, Numeric::Int(int) if int.as_int() == -i128::MAX));
     }
 
     #[test]
     fn neg_i128_min_overflows_to_float() {
-        let int = Int::from(i128::MIN);
-        let result = -int;
-
+        let result = -Int::from(i128::MIN);
         let Numeric::Num(num) = result else {
             panic!("expected Numeric::Num for -i128::MIN, got {result:?}");
         };
-
         let expected = -(i128::MIN as f64);
         assert_eq!(num.as_f64(), expected);
+    }
+
+    #[test]
+    fn bitand_bools_stays_bool() {
+        let result = Int::from(true) & Int::from(false);
+        assert_eq!(result.size(), 1);
+        assert_eq!(result.as_bool(), Some(false));
+    }
+
+    #[test]
+    fn bitor_bools_stays_bool() {
+        let result = Int::from(false) | Int::from(true);
+        assert_eq!(result.size(), 1);
+        assert_eq!(result.as_bool(), Some(true));
+    }
+
+    #[test]
+    fn bitxor_bools_stays_bool() {
+        let result = Int::from(true) ^ Int::from(true);
+        assert_eq!(result.size(), 1);
+        assert_eq!(result.as_bool(), Some(false));
+    }
+
+    #[test]
+    fn bitand_mixed_promotes_to_int() {
+        let result = Int::from(true) & Int::from(1_i32);
+        assert_eq!(result.size(), 128);
+        assert_eq!(result.as_int(), 1);
+    }
+
+    #[test]
+    fn not_bool() {
+        assert_eq!(!Int::from(true), Int::from(false));
+        assert_eq!(!Int::from(false), Int::from(true));
+    }
+
+    #[test]
+    fn eq_ord_transitivity_with_num() {
+        use core::cmp::Ordering;
+
+        use crate::interpret::value::Num;
+
+        let bool_one = Int::from(true);
+        let int_one = Int::from(1_i32);
+        let num_one = Num::from(1.0);
+
+        // Transitivity: bool_one == num_one, num_one == int_one, therefore bool_one == int_one
+        assert_eq!(bool_one, num_one);
+        assert_eq!(num_one, int_one);
+        assert_eq!(bool_one, int_one);
+
+        // Ord consistency
+        assert_eq!(num_one.cmp_int(&bool_one), Ordering::Equal);
+        assert_eq!(num_one.cmp_int(&int_one), Ordering::Equal);
+        assert_eq!(bool_one.cmp(&int_one), Ordering::Equal);
+    }
+
+    #[test]
+    fn hash_consistent_with_eq() {
+        use hashql_core::collections::FastHasher;
+
+        let build = FastHasher::default();
+
+        // Equal values must have equal hashes
+        assert_eq!(
+            build.hash_one(Int::from(true)),
+            build.hash_one(Int::from(1_i32))
+        );
+        assert_eq!(
+            build.hash_one(Int::from(false)),
+            build.hash_one(Int::from(0_i32))
+        );
+    }
+
+    #[test]
+    fn try_from_primitive_bool() {
+        use hashql_core::value::Primitive;
+
+        let int = Int::try_from(Primitive::Boolean(true)).expect("should be able to convert bool");
+        assert_eq!(int.size(), 1);
+        assert_eq!(int.as_bool(), Some(true));
+    }
+
+    #[test]
+    fn try_from_primitive_integer() {
+        use hashql_core::{
+            heap::Heap,
+            value::{Integer, Primitive},
+        };
+
+        let heap = Heap::new();
+        let integer = Integer::new_unchecked(heap.intern_symbol("42"));
+        let int =
+            Int::try_from(Primitive::Integer(integer)).expect("should be able to convert integer");
+        assert_eq!(int.size(), 128);
+        assert_eq!(int.as_int(), 42);
     }
 }

@@ -11,7 +11,7 @@ fn {closure@4294967040}() -> Integer {
     let %5: Integer
 
     bb0(): {
-        %0 = 1
+        %0 = true
 
         switchInt(%0) -> [0: bb1(), 1: bb2()]
     }

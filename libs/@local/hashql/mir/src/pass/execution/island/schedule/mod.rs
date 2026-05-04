@@ -84,8 +84,9 @@ impl<A: Allocator> IslandGraph<A> {
     /// strictly lower levels. Islands at the same level have no direct dependencies and
     /// can execute concurrently.
     #[expect(clippy::cast_possible_truncation)]
-    pub fn schedule_in<S>(&self, scratch: S, alloc: A) -> IslandSchedule<A>
+    pub fn schedule_in<S, B>(&self, scratch: S, alloc: B) -> IslandSchedule<B>
     where
+        B: Allocator,
         S: Allocator + Clone,
     {
         let node_count = self.node_count();
