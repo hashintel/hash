@@ -621,10 +621,10 @@ mod tests {
     fn materialize_zeroes_trailing_coefficients() {
         // units depends on params 0, 1, 2; cardinality depends only on param 0.
         // Params 1 and 2 have implicit zero in cardinality, so the product
-        // should zero those coefficients rather than preserving them.
+        // should drop those coefficients rather than preserving them.
         // units = 0..0 + 3*p0 + 5*p1 + 7*p2
         // cardinality = 0..0 + 2*p0
-        // element-wise: [3*2, 5*0, 7*0] = [6, 0, 0]
+        // element-wise: [3*2] = [6] (trailing terms truncated)
         let footprint = Footprint {
             units: Estimate::Affine(AffineEquation {
                 coefficients: [3, 5, 7].into_iter().collect(),
@@ -641,7 +641,7 @@ mod tests {
         let Estimate::Affine(eq) = &result else {
             panic!("expected Affine, got {result:?}");
         };
-        assert_eq!(eq.coefficients.as_slice(), &[6, 0, 0]);
+        assert_eq!(eq.coefficients.as_slice(), &[6]);
         assert_eq!(eq.constant, InformationRange::empty());
     }
 }
