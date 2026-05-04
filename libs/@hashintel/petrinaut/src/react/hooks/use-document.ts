@@ -80,7 +80,12 @@ export function usePetrinautPatches(
 ): void {
   const instance = usePetrinautInstance();
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+
+  // Sync the latest handler in an effect (not during render) — React Compiler
+  // rejects ref writes in render bodies.
+  useEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
 
   useEffect(() => {
     return instance.patches.subscribe((patches) => {

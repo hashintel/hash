@@ -2,7 +2,7 @@ import { SDCPNItemError } from "../../errors";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
-} from "../../../hooks/use-default-parameter-values";
+} from "../../parameter-values";
 import { compileUserCode } from "./compile-user-code";
 import type {
   DifferentialEquationFn,

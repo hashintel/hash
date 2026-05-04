@@ -79,6 +79,43 @@ Files added:
 
 Public exports added in `main.ts`: `createSimulation`, `createWorkerTransport`, plus the `Simulation*` types, `CreateSimulationConfig`, `SimulationTransport`, and `WorkerFactory`.
 
+### Phase 5 — Public entry points (done)
+
+The headline deliverable: `@hashintel/petrinaut/core`, `/react`, `/ui` are now real subpath imports backed by separate bundles.
+
+**Per-entry barrels** in `src/`:
+
+- `src/core/index.ts` — re-exports the headless surface: handle / instance / simulation / lsp / playback factories + types, `parameter-values` utilities, `SDCPNItemError`, domain types.
+- `src/react/index.ts` — re-exports the React bindings: `<PetrinautInstanceContext>`, `usePetrinautInstance`, `useStore`, `useStoreSelector`, plus the full hook surface from `react/hooks/`.
+- `src/ui/index.ts` — re-exports `<PetrinautNext>` and (via re-export from `src/petrinaut.tsx`) the existing `<Petrinaut>` editor + `isSDCPNEqual`.
+- `src/main.ts` — back-compat barrel; left unchanged so existing consumers (the website) keep working without import-path edits.
+
+**`package.json` `exports` map** with four entries: `.`, `./core`, `./react`, `./ui`, plus `./package.json` for tooling.
+
+**Multi-entry build config** in `vite.config.ts`:
+
+- `lib.entry` is now an object mapping each alias (`main`, `core`, `react`, `ui`) to its entry file.
+- `lib.fileName` template emits `${entryName}.js` for each.
+- The `dts` plugin emits per-entry `.d.ts` bundles (current quirk: filenames come out as `core.d.d.ts` instead of `core.d.ts` — cosmetic; the `exports` map points at the actual paths).
+
+**Externals tightened**: `vscode-languageserver-types` added to the `external` list. This is what unblocks the multi-entry build — when the upstream namespace-merged types are externalised, [sxzz/rolldown-plugin-dts#209](https://github.com/sxzz/rolldown-plugin-dts/issues/209) "Duplicated export" errors disappear because the plugin no longer tries to inline the upstream `.d.ts` into multiple bundles. LSP types now ship as `import type { … } from "vscode-languageserver-types"` in the consumer's resolved type tree, which matches how every other LSP-using library handles it.
+
+**Phase 5 prep audit** (the only forced cleanup):
+
+- `core/simulation/simulator/build-simulation.ts` was importing `deriveDefaultParameterValues` and `mergeParameterValues` from `hooks/use-default-parameter-values.ts` — a layer leak (`/core` reaching into `/hooks`). Extracted the pure functions into `src/core/parameter-values.ts`. The hook file now re-exports from there for back-compat.
+
+**Bundle sanity check**:
+
+- `dist/core.js` (4 KB stub + chunks): no `import "react"`. Confirms `/core` is genuinely React-free.
+- `dist/react.js`: imports React; expected.
+- `dist/ui.js`: imports React, Monaco, `@xyflow/react`; expected.
+
+**Not yet done** (deferred to Phase 4 or later):
+
+- The website (`apps/petrinaut-website`) still imports from `@hashintel/petrinaut` (the default `.` entry). It works via back-compat. Switching it to `/ui` is a one-line change but not required.
+- The legacy `<Petrinaut>` editor still lives at `src/petrinaut.tsx`. Phase 4 moves it (and `views/`, `components/`, `monaco/`, `resize/`) into `src/ui/` properly.
+- The remaining "no-forcing-function" Phase 1 moves (`examples/`, `validation/`, `clipboard/` split, `file-format/` split, `lib/` split, `constants/`, `state/`) — still pending.
+
 ### Phase 3a — Public hook surface (done)
 
 The 25-hook surface from [06-react-bindings.md](./06-react-bindings.md) §6.2, implemented as thin wrappers over the existing React contexts:
