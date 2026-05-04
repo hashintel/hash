@@ -339,6 +339,28 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
         Some(I::from_u32(self.store.trailing_zeros()))
     }
 
+    /// Returns `true` if `self` is a superset of `other` (contains all bits set in `other`).
+    #[inline]
+    #[must_use]
+    pub const fn is_superset(&self, other: &Self) -> bool
+    where
+        T: [const] FiniteBitSetIntegral,
+    {
+        // `other` is a subset of `self` iff `other & self == other`
+        other.store & self.store == other.store
+    }
+
+    /// Returns `true` if `self` is a subset of `other` (all bits set in `self` are also set in
+    /// `other`).
+    #[inline]
+    #[must_use]
+    pub const fn is_subset(&self, other: &Self) -> bool
+    where
+        T: [const] FiniteBitSetIntegral,
+    {
+        other.is_superset(self)
+    }
+
     /// Returns an iterator over the indices of set bits.
     #[inline]
     pub fn iter(&self) -> FiniteBitIter<I, T> {
@@ -861,6 +883,84 @@ mod tests {
         set.negate(6);
 
         assert_eq!(set, original);
+    }
+
+    #[test]
+    fn is_superset_of_subset() {
+        let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(5), 8);
+
+        let mut b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        b.insert(TestId::from_usize(1));
+        b.insert(TestId::from_usize(3));
+
+        assert!(a.is_superset(&b));
+        assert!(!b.is_superset(&a));
+    }
+
+    #[test]
+    fn is_subset_of_superset() {
+        let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        a.insert(TestId::from_usize(2));
+        a.insert(TestId::from_usize(4));
+
+        let mut b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        b.insert_range(TestId::from_usize(0)..=TestId::from_usize(7), 8);
+
+        assert!(a.is_subset(&b));
+        assert!(!b.is_subset(&a));
+    }
+
+    #[test]
+    fn empty_is_subset_of_everything() {
+        let empty: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+
+        let mut full: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        full.insert_range(TestId::from_usize(0)..=TestId::from_usize(7), 8);
+
+        assert!(empty.is_subset(&full));
+        assert!(empty.is_subset(&empty));
+        assert!(full.is_superset(&empty));
+    }
+
+    #[test]
+    fn equal_sets_are_both_subset_and_superset() {
+        let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        a.insert(TestId::from_usize(1));
+        a.insert(TestId::from_usize(5));
+
+        let b = a;
+
+        assert!(a.is_subset(&b));
+        assert!(a.is_superset(&b));
+    }
+
+    #[test]
+    fn disjoint_sets_are_not_subsets() {
+        let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        a.insert(TestId::from_usize(0));
+        a.insert(TestId::from_usize(1));
+
+        let mut b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        b.insert(TestId::from_usize(6));
+        b.insert(TestId::from_usize(7));
+
+        assert!(!a.is_subset(&b));
+        assert!(!a.is_superset(&b));
+        assert!(!b.is_subset(&a));
+        assert!(!b.is_superset(&a));
+    }
+
+    #[test]
+    fn overlapping_sets_are_not_subsets() {
+        let mut a: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        a.insert_range(TestId::from_usize(0)..=TestId::from_usize(3), 8);
+
+        let mut b: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        b.insert_range(TestId::from_usize(2)..=TestId::from_usize(5), 8);
+
+        assert!(!a.is_subset(&b));
+        assert!(!a.is_superset(&b));
     }
 
     #[test]

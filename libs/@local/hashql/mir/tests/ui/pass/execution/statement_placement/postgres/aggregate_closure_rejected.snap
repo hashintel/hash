@@ -12,6 +12,6 @@ fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Boolean {
         %3 = closure(({def@42} as FnPtr), %2)
         %4 = true                                                               // cost: 4
 
-        return %4
+        return %4                                                               // cost: 4
     }
 }

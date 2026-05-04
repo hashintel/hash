@@ -15,13 +15,13 @@ use insta::{Settings, assert_snapshot};
 
 use super::StatementPlacement;
 use crate::{
-    body::{Body, local::Local, location::Location, statement::Statement},
+    body::{Body, local::Local, location::Location, statement::Statement, terminator::Terminator},
     builder::body,
     context::MirContext,
     intern::Interner,
     pass::execution::{
         VertexType,
-        cost::StatementCostVec,
+        cost::{StatementCostVec, TerminatorCostVec},
         statement_placement::{
             EmbeddingStatementPlacement, InterpreterStatementPlacement, PostgresStatementPlacement,
         },
@@ -31,7 +31,8 @@ use crate::{
 
 /// Annotation provider that displays statement costs as trailing comments.
 struct CostAnnotations<'costs, A: Allocator> {
-    costs: &'costs StatementCostVec<A>,
+    statement_costs: &'costs StatementCostVec<A>,
+    terminator_costs: &'costs TerminatorCostVec<A>,
 }
 
 impl<A: Allocator> TextFormatAnnotations for CostAnnotations<'_, A> {
@@ -39,13 +40,27 @@ impl<A: Allocator> TextFormatAnnotations for CostAnnotations<'_, A> {
         = impl Display
     where
         Self: 'this;
+    type TerminatorAnnotation<'this, 'heap>
+        = impl Display
+    where
+        Self: 'this;
 
     fn annotate_statement<'heap>(
         &self,
         location: Location,
-        _statement: &Statement<'heap>,
+        _: &Statement<'heap>,
     ) -> Option<Self::StatementAnnotation<'_, 'heap>> {
-        let cost = self.costs.get(location)?;
+        let cost = self.statement_costs.get(location)?;
+
+        Some(core::fmt::from_fn(move |fmt| write!(fmt, "cost: {cost}")))
+    }
+
+    fn annotate_terminator<'heap>(
+        &self,
+        location: Location,
+        _: &Terminator<'heap>,
+    ) -> Option<Self::TerminatorAnnotation<'_, 'heap>> {
+        let cost = self.terminator_costs.of(location.block)?;
 
         Some(core::fmt::from_fn(move |fmt| write!(fmt, "cost: {cost}")))
     }
@@ -58,13 +73,14 @@ pub(crate) fn assert_placement<'heap, A: Allocator>(
     snapshot_subdir: &str,
     body: &Body<'heap>,
     context: &MirContext<'_, 'heap>,
-    statement_costs: &StatementCostVec<A>,
+    (statement_costs, terminator_costs): &(StatementCostVec<A>, TerminatorCostVec<A>),
 ) {
     let formatter = Formatter::new(context.heap);
     let type_formatter = TypeFormatter::new(&formatter, context.env, TypeFormatterOptions::terse());
 
     let annotations = CostAnnotations {
-        costs: statement_costs,
+        statement_costs,
+        terminator_costs,
     };
 
     let mut text_format = TextFormatOptions {
@@ -100,13 +116,19 @@ pub(crate) fn run_placement<'heap>(
     context: &MirContext<'_, 'heap>,
     placement: &mut impl StatementPlacement<'heap, &'heap Heap>,
     body: Body<'heap>,
-) -> (Body<'heap>, StatementCostVec<&'heap Heap>) {
+) -> (
+    Body<'heap>,
+    (
+        StatementCostVec<&'heap Heap>,
+        TerminatorCostVec<&'heap Heap>,
+    ),
+) {
     let vertex = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
         .unwrap_or_else(|| unimplemented!("lookup for declared type"));
 
-    let statement_costs = placement.statement_placement_in(context, &body, vertex, context.heap);
+    let costs = placement.statement_placement_in(context, &body, vertex, context.heap);
 
-    (body, statement_costs)
+    (body, costs)
 }
 
 // =============================================================================
@@ -148,11 +170,17 @@ fn non_graph_read_filter_returns_empty() {
     let mut embedding = EmbeddingStatementPlacement::new_in(Global);
 
     let vertex = VertexType::Entity;
-    let postgres_statement = postgres.statement_placement_in(&context, &body, vertex, &heap);
-    let interpreter_statement = interpreter.statement_placement_in(&context, &body, vertex, &heap);
-    let embedding_statement = embedding.statement_placement_in(&context, &body, vertex, &heap);
+    let (postgres_statements, postgres_terminators) =
+        postgres.statement_placement_in(&context, &body, vertex, &heap);
+    let (interpreter_statements, interpreter_terminators) =
+        interpreter.statement_placement_in(&context, &body, vertex, &heap);
+    let (embedding_statements, embedding_terminators) =
+        embedding.statement_placement_in(&context, &body, vertex, &heap);
 
-    assert!(postgres_statement.all_unassigned());
-    assert!(interpreter_statement.all_unassigned());
-    assert!(embedding_statement.all_unassigned());
+    assert!(postgres_statements.all_unassigned());
+    assert!(postgres_terminators.all_unassigned());
+    assert!(interpreter_statements.all_unassigned());
+    assert!(interpreter_terminators.all_unassigned());
+    assert!(embedding_statements.all_unassigned());
+    assert!(embedding_terminators.all_unassigned());
 }

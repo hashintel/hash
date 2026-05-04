@@ -19,7 +19,7 @@ use crate::{
         place::Projection,
         rvalue::RValue,
         statement::{Assign, Statement, StatementKind},
-        terminator::TerminatorKind,
+        terminator::{Terminator, TerminatorKind},
     },
     context::MirContext,
     pass::{
@@ -29,7 +29,7 @@ use crate::{
         },
         execution::{
             Cost,
-            cost::StatementCostVec,
+            cost::{StatementCostVec, TerminatorCostVec},
             traversal::{Access, EntityPath},
         },
     },
@@ -73,6 +73,14 @@ pub(crate) trait Supported<'heap> {
         operand: &Operand<'heap>,
     ) -> bool;
 
+    fn is_supported_terminator(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        terminator: &Terminator<'heap>,
+    ) -> bool;
+
     /// Checks whether a type can be unambiguously deserialized after crossing a backend boundary.
     ///
     /// Returns `true` by default. Targets that serialize values to a lossy format (e.g., jsonb)
@@ -95,6 +103,16 @@ where
         rvalue: &RValue<'heap>,
     ) -> bool {
         T::is_supported_rvalue(self, context, body, domain, rvalue)
+    }
+
+    fn is_supported_terminator(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        terminator: &Terminator<'heap>,
+    ) -> bool {
+        T::is_supported_terminator(self, context, body, domain, terminator)
     }
 
     fn is_supported_operand(
@@ -276,6 +294,7 @@ pub(crate) struct CostVisitor<'ctx, 'env, 'heap, S, A: Allocator> {
     pub cost: Cost,
 
     pub statement_costs: StatementCostVec<A>,
+    pub terminator_costs: TerminatorCostVec<A>,
 
     pub supported: S,
 }
@@ -309,6 +328,25 @@ where
             StatementKind::StorageDead(_) | StatementKind::StorageLive(_) | StatementKind::Nop => {
                 self.statement_costs[location] = Some(cost!(0));
             }
+        }
+
+        Ok(())
+    }
+
+    fn visit_terminator(
+        &mut self,
+        location: Location,
+        terminator: &Terminator<'heap>,
+    ) -> Self::Result {
+        let is_supported = self.supported.is_supported_terminator(
+            self.context,
+            self.body,
+            self.dispatchable,
+            terminator,
+        );
+
+        if is_supported {
+            self.terminator_costs.insert(location.block, self.cost);
         }
 
         Ok(())

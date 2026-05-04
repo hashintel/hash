@@ -69,7 +69,7 @@ use crate::{
         Body,
         basic_block::{BasicBlockId, BasicBlockSlice},
     },
-    pass::execution::{target::TargetBitSet, terminator_placement::TerminatorCostVec},
+    pass::execution::{target::TargetBitSet, terminator_placement::TerminatorTransitionCostVec},
 };
 
 /// Deduplicated worklist of directed arcs `(x, y)`.
@@ -111,13 +111,13 @@ impl<A: Allocator> PairWorkQueue<A> {
 
 /// AC-3 arc consistency enforcer over per-block target domains.
 ///
-/// Operates on mutable [`TargetBitSet`] domains and [`TerminatorCostVec`] transition matrices.
-/// After [`run_in`](Self::run_in), every surviving target in a block's domain has at least one
-/// compatible transition partner across each incident CFG edge, and the matrices are pruned to
-/// match the narrowed domains.
+/// Operates on mutable [`TargetBitSet`] domains and [`TerminatorTransitionCostVec`] transition
+/// matrices. After [`run_in`](Self::run_in), every surviving target in a block's domain has at
+/// least one compatible transition partner across each incident CFG edge, and the matrices are
+/// pruned to match the narrowed domains.
 pub(crate) struct ArcConsistency<'ctx, A: Allocator> {
     pub blocks: &'ctx mut BasicBlockSlice<TargetBitSet>,
-    pub terminators: &'ctx mut TerminatorCostVec<A>,
+    pub terminators: &'ctx mut TerminatorTransitionCostVec<A>,
 }
 
 impl<A: Allocator> ArcConsistency<'_, A> {

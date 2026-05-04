@@ -1,12 +1,15 @@
 //! Cost tracking for execution planning.
 //!
-//! Two levels of cost representation:
+//! Three levels of cost representation:
 //!
 //! - **Per-statement**: [`StatementCostVec`] records the [`Cost`] of each statement on a given
 //!   target. Produced by the statement placement pass and consumed by [`BasicBlockCostAnalysis`].
 //!
-//! - **Per-block**: [`BasicBlockCostVec`] aggregates statement costs and adds a path transfer
-//!   premium for non-origin backends. This is what the placement solver operates on.
+//! - **Per-terminator**: [`TerminatorCostVec`] records the [`Cost`] of each block's terminator on a
+//!   given target. Produced alongside statement costs during placement analysis.
+//!
+//! - **Per-block**: [`BasicBlockCostVec`] aggregates statement and terminator costs and adds a path
+//!   transfer premium for non-origin backends. This is what the placement solver operates on.
 
 use alloc::alloc::Global;
 use core::{
@@ -17,10 +20,16 @@ use core::{
 };
 use std::f32;
 
+use hashql_core::id::Id as _;
+
 pub(crate) use self::analysis::{BasicBlockCostAnalysis, BasicBlockCostVec};
 use super::block_partitioned_vec::BlockPartitionedVec;
 use crate::{
-    body::{basic_block::BasicBlockId, basic_blocks::BasicBlocks, location::Location},
+    body::{
+        basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockVec},
+        basic_blocks::BasicBlocks,
+        location::Location,
+    },
     macros::{forward_ref_binop, forward_ref_op_assign},
     pass::analysis::size_estimation::InformationUnit,
 };
@@ -323,6 +332,93 @@ impl Sum for ApproxCost {
 impl Sum<Cost> for ApproxCost {
     fn sum<I: Iterator<Item = Cost>>(iter: I) -> Self {
         iter.fold(Self::ZERO, Add::add)
+    }
+}
+
+/// Per-block cost of executing the terminator on a given target.
+///
+/// Each block has exactly one terminator. A `None` cost indicates the target cannot execute that
+/// terminator (the terminator's operands are not supported on the target). One instance exists per
+/// target inside `TargetArray<TerminatorCostVec>`.
+#[derive(Debug)]
+pub(crate) struct TerminatorCostVec<A: Allocator = Global>(BasicBlockVec<Option<Cost>, A>);
+
+impl<A: Allocator + Clone> TerminatorCostVec<A> {
+    /// Creates an empty cost vector with capacity reserved for one slot per block.
+    pub(crate) fn new_in(blocks: &BasicBlocks, alloc: A) -> Self {
+        Self(BasicBlockVec::with_capacity_in(blocks.len(), alloc))
+    }
+
+    /// Creates a cost vector from a slice of optional cost values.
+    #[cfg(test)]
+    pub(crate) fn from_costs(costs: &[Option<Cost>], alloc: A) -> Self {
+        let mut vec = BasicBlockVec::from_elem_in(None, costs.len(), alloc);
+        for (i, cost) in costs.iter().enumerate() {
+            vec[BasicBlockId::from_usize(i)] = *cost;
+        }
+        Self(vec)
+    }
+}
+
+impl<A: Allocator> TerminatorCostVec<A> {
+    /// Returns `true` if no terminators have assigned costs.
+    #[cfg(test)]
+    pub(crate) fn all_unassigned(&self) -> bool {
+        self.0.iter().all(Option::is_none)
+    }
+
+    /// Returns the cost for the terminator in `block`, or `None` if the target cannot execute it.
+    pub(crate) fn of(&self, block: BasicBlockId) -> Option<Cost> {
+        self.0.lookup(block).copied()
+    }
+
+    pub(crate) fn insert(&mut self, block: BasicBlockId, cost: Cost) {
+        self.0.insert(block, cost);
+    }
+
+    /// Remaps terminator costs after block splitting.
+    ///
+    /// For each original block, the original terminator cost is placed on the last block
+    /// of its region (which holds the original terminator after splitting). All preceding
+    /// blocks in the region received synthesized `Goto` terminators and get zero cost.
+    ///
+    /// Operates in-place by extending the vec, then shuffling entries from back to front
+    /// to avoid overwriting unprocessed entries.
+    pub(crate) fn remap(&mut self, regions: &BasicBlockSlice<(core::num::NonZero<usize>, bool)>) {
+        let mut new_length = BasicBlockId::START;
+        for (_, (region_len, _)) in regions.iter_enumerated() {
+            new_length.increment_by(region_len.get());
+        }
+
+        // Extend to the new size. New slots are initialized to `None`.
+        self.0.fill_until(new_length.minus(1), || None);
+
+        // Walk regions in reverse so we never overwrite an unprocessed original entry.
+        let mut write = new_length;
+        for (original, (region_len, _)) in regions.iter_enumerated().rev() {
+            let original_cost = self.0[original];
+
+            // The last block in the region holds the original terminator.
+            write.decrement_by(1);
+            self.0[write] = original_cost;
+
+            // Preceding blocks have synthesized Goto terminators: zero cost.
+            for _ in 1..region_len.get() {
+                write.decrement_by(1);
+                self.0[write] = Some(cost!(0));
+            }
+        }
+
+        debug_assert_eq!(write, BasicBlockId::START);
+    }
+
+    /// Returns the approximate cost for the terminator in `block`, or zero if unassigned.
+    pub(crate) fn approx(&self, block: BasicBlockId) -> ApproxCost {
+        debug_assert!(self.0.contains(block));
+        self.0
+            .lookup(block)
+            .copied()
+            .map_or(ApproxCost::ZERO, ApproxCost::from)
     }
 }
 
