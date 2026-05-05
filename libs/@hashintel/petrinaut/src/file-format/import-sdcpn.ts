@@ -1,9 +1,9 @@
-import type { SDCPN } from "../core/types/sdcpn";
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,
   sdcpnFileSchema,
-} from "./types";
+} from "../core/file-format/types";
+import type { SDCPN } from "../core/types/sdcpn";
 
 type SDCPNWithTitle = SDCPN & { title: string };
 

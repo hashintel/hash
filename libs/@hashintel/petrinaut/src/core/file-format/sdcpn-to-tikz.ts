@@ -1,4 +1,4 @@
-import type { SDCPN } from "../../../../core/types/sdcpn";
+import type { SDCPN } from "../types/sdcpn";
 
 /**
  * The closest pair of nodes will be at least this far apart in the output,
@@ -78,7 +78,17 @@ function computeScale(allNodes: { x: number; y: number }[]): {
   return { scale: Math.min(scaleFromMinDist, scaleFromMaxSize), minX, minY };
 }
 
-function generateTikZ(sdcpn: SDCPN, title: string): string {
+/**
+ * Pure conversion: SDCPN → TikZ/LaTeX source string.
+ *
+ * Renders places as circles, transitions as filled bars, and arcs as directed
+ * edges. Arc weights are labelled when not equal to 1. Visual x/y positions
+ * are preserved (scaled to fit ~{@link MAX_DIAGRAM_SIZE_CM} cm).
+ *
+ * No DOM, no I/O — callers are responsible for delivering the output (browser
+ * download, clipboard write, file save, …).
+ */
+export function sdcpnToTikZ(sdcpn: SDCPN, title: string): string {
   const allNodes = [...sdcpn.places, ...sdcpn.transitions];
 
   if (allNodes.length === 0) {
@@ -185,35 +195,4 @@ function generateTikZ(sdcpn: SDCPN, title: string): string {
   lines.push("");
 
   return lines.join("\n");
-}
-
-/**
- * Exports the Petri net structure as a standalone TikZ/LaTeX document.
- *
- * Renders places as circles, transitions as filled bars, and arcs as
- * directed edges. Arc weights are labelled when not equal to 1.
- * Visual x/y positions are preserved (scaled to fit ~{@link MAX_DIAGRAM_SIZE_CM} cm).
- */
-export function exportTikZ({
-  petriNetDefinition,
-  title,
-}: {
-  petriNetDefinition: SDCPN;
-  title: string;
-}): void {
-  const tikzSource = generateTikZ(petriNetDefinition, title);
-
-  const blob = new Blob([tikzSource], { type: "application/x-tex" });
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-
-  link.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${new Date().toISOString().replace(/:/g, "-")}.tex`;
-
-  document.body.appendChild(link);
-  link.click();
-
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }
