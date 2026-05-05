@@ -135,6 +135,13 @@ export function createPreset(options?: PresetOptions) {
           },
         },
         textStyles: {
+          xxs: {
+            value: {
+              fontSize: "{fontSizes.xxs}",
+              lineHeight: "calc(1em * 1.6 * var(--leading-factor, 1))",
+              letterSpacing: "0.01em",
+            },
+          },
           xs: {
             value: {
               fontSize: "{fontSizes.xs}",

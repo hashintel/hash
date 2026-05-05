@@ -1666,6 +1666,11 @@
         "type": "fontSize",
         "resolvedType": "FLOAT"
       },
+      "xxs": {
+        "value": 10,
+        "type": "fontSize",
+        "resolvedType": "FLOAT"
+      },
       "xs": {
         "value": 12,
         "type": "fontSize",

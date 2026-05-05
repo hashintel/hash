@@ -30,6 +30,15 @@ export const styles = sva({
   },
   variants: {
     size: {
+      xxs: {
+        button: {
+          paddingX: "2",
+          paddingY: "[1px]",
+          borderRadius: "md",
+          textStyle: "xxs",
+          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--button-border-width) * 2)]`,
+        },
+      },
       xs: {
         button: {
           paddingX: "2",
@@ -160,6 +169,20 @@ export const styles = sva({
     },
   },
   compoundVariants: [
+    {
+      size: "xxs",
+      hasIconLeft: true,
+      css: {
+        iconText: { marginLeft: "1" },
+      },
+    },
+    {
+      size: "xxs",
+      hasIconRight: true,
+      css: {
+        iconText: { marginRight: "1" },
+      },
+    },
     {
       size: "xs",
       hasIconLeft: true,

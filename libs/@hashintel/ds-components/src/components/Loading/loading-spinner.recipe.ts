@@ -7,6 +7,7 @@ export const styles = cva({
   },
   variants: {
     size: {
+      xxs: { "--loading-spinner-size": "8px" },
       xs: { "--loading-spinner-size": "12px" },
       sm: { "--loading-spinner-size": "16px" },
       md: { "--loading-spinner-size": "24px" },

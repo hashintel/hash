@@ -87,6 +87,7 @@ export type AnchorElementProps = AnchorElementOnlyProps &
 export type ButtonProps = ButtonElementProps | AnchorElementProps;
 
 const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+  xxs: "xs",
   xs: "sm",
   sm: "sm",
   md: "md",
@@ -94,6 +95,7 @@ const iconSizeMap: Record<FormInputSize, FormInputSize> = {
 };
 
 const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
+  xxs: "xs",
   xs: "xs",
   sm: "sm",
   md: "md",
