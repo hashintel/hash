@@ -32,8 +32,20 @@ export type NodePosition = {
  * This is a pure function that takes an SDCPN as input and returns the calculated positions.
  * It does not mutate any state or trigger side effects.
  *
+ * ## Design note: layout-stable dimensions
+ *
+ * `dimensions` should be **stable across the user's visualization choice**
+ * (compact vs. classic). Layout output must not depend on rendering mode —
+ * otherwise toggling `compactNodes` would shift every node and visually
+ * scramble the graph. Today `runAutoLayout` and the import flow both pass
+ * whichever rendering dimensions are active, which is a known leak. The
+ * intended fix is to feed a `layoutNodeDimensions` (per-axis max of compact
+ * and classic) here instead — see the design note in
+ * `ui/views/SDCPN/node-dimensions.ts`.
+ *
  * @param sdcpn - The SDCPN to layout
- * @param dims - Node dimensions for places and transitions
+ * @param dimensions - Node dimensions for places and transitions; should be
+ *   layout-stable (independent of rendering mode), see note above.
  * @returns A promise that resolves to a map of node IDs to their calculated positions
  */
 export const calculateGraphLayout = async (

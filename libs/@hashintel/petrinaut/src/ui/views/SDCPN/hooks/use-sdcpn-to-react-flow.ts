@@ -5,7 +5,7 @@ import { hexToHsl } from "../../../../lib/hsl-color";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
-} from "../../../../lib/node-dimensions";
+} from "../node-dimensions";
 import { PlaybackContext } from "../../../../react/playback/context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import {

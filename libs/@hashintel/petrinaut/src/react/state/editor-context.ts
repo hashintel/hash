@@ -4,7 +4,7 @@ import {
   DEFAULT_BOTTOM_PANEL_HEIGHT,
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
-} from "../../lib/panel-defaults";
+} from "./panel-defaults";
 import type { SelectionItem, SelectionMap } from "./selection";
 
 export type DraggingStateByNodeId = Record<

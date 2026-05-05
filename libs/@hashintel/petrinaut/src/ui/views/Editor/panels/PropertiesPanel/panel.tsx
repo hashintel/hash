@@ -7,7 +7,7 @@ import {
   MIN_PROPERTIES_PANEL_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../../lib/panel-defaults";
+import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../../react/state/panel-defaults";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";

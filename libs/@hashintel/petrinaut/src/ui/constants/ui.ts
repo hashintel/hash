@@ -21,14 +21,14 @@ export const PANEL_MARGIN = 0;
 export const RESIZE_HANDLE_SIZE = 5;
 export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2) - 1;
 
-// Left Sidebar (DEFAULT_LEFT_SIDEBAR_WIDTH lives in /lib/panel-defaults)
+// Left Sidebar (DEFAULT_LEFT_SIDEBAR_WIDTH lives in react/state/panel-defaults)
 export const MIN_LEFT_SIDEBAR_WIDTH = 220;
 export const MAX_LEFT_SIDEBAR_WIDTH = 500;
 
-// Properties Panel — right side (DEFAULT_PROPERTIES_PANEL_WIDTH in /lib/panel-defaults)
+// Properties Panel — right side (DEFAULT_PROPERTIES_PANEL_WIDTH in react/state/panel-defaults)
 export const MIN_PROPERTIES_PANEL_WIDTH = 250;
 export const MAX_PROPERTIES_PANEL_WIDTH = 800;
 
-// Bottom Panel (DEFAULT_BOTTOM_PANEL_HEIGHT in /lib/panel-defaults)
+// Bottom Panel (DEFAULT_BOTTOM_PANEL_HEIGHT in react/state/panel-defaults)
 export const MIN_BOTTOM_PANEL_HEIGHT = 100;
 export const MAX_BOTTOM_PANEL_HEIGHT = 600;

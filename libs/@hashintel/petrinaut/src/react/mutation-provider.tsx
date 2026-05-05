@@ -2,18 +2,12 @@ import { use, type ReactNode } from "react";
 
 import { pasteFromClipboard } from "../clipboard/clipboard";
 import type { MutateSDCPN, SDCPN } from "../core/types/sdcpn";
-import { calculateGraphLayout } from "../lib/calculate-graph-layout";
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "../lib/node-dimensions";
 import {
   MutationContext,
   type MutationContextValue,
 } from "./state/mutation-context";
 import { generateArcId, SDCPNContext } from "./state/sdcpn-context";
 import { useIsReadOnly } from "./state/use-is-read-only";
-import { UserSettingsContext } from "./state/user-settings-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 
 /**
@@ -26,13 +20,8 @@ export const MutationProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const instance = usePetrinautInstance();
-  const { petriNetDefinition, readonly } = use(SDCPNContext);
-  const { compactNodes } = use(UserSettingsContext);
+  const { readonly } = use(SDCPNContext);
   const isReadOnly = useIsReadOnly();
-
-  const dimensions = compactNodes
-    ? compactNodeDimensions
-    : classicNodeDimensions;
 
   const mutatePetriNetDefinition: MutateSDCPN = (fn) => {
     instance.mutate(fn);
@@ -487,45 +476,6 @@ export const MutationProvider: React.FC<{ children: ReactNode }> = ({
           for (let i = sdcpn.parameters.length - 1; i >= 0; i--) {
             if (parameterIds.has(sdcpn.parameters[i]!.id)) {
               sdcpn.parameters.splice(i, 1);
-            }
-          }
-        }
-      });
-    },
-    async layoutGraph() {
-      if (isReadOnly) {
-        return;
-      }
-
-      const sdcpn = petriNetDefinition;
-
-      if (sdcpn.places.length === 0 && sdcpn.transitions.length === 0) {
-        return;
-      }
-
-      const positions = await calculateGraphLayout(sdcpn, dimensions);
-
-      guardedMutate((sdcpnToMutate) => {
-        for (const place of sdcpnToMutate.places) {
-          const position = positions[place.id];
-          if (position) {
-            if (place.x !== position.x) {
-              place.x = position.x;
-            }
-            if (place.y !== position.y) {
-              place.y = position.y;
-            }
-          }
-        }
-
-        for (const transition of sdcpnToMutate.transitions) {
-          const position = positions[transition.id];
-          if (position) {
-            if (transition.x !== position.x) {
-              transition.x = position.x;
-            }
-            if (transition.y !== position.y) {
-              transition.y = position.y;
             }
           }
         }

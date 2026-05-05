@@ -18,11 +18,11 @@ import { PortalContainerContext } from "../../../react/state/portal-container-co
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import type { ViewportAction } from "../../../types/viewport-action";
+import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
-} from "../../../lib/node-dimensions";
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
+} from "../SDCPN/node-dimensions";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
@@ -32,6 +32,7 @@ import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
+import { runAutoLayout } from "./run-auto-layout";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -107,7 +108,7 @@ export const EditorView = ({
     title,
     setTitle,
   } = use(SDCPNContext);
-  const { layoutGraph } = use(MutationContext);
+  const { commitNodePositions } = use(MutationContext);
 
   // Get editor context
   const {
@@ -122,6 +123,14 @@ export const EditorView = ({
 
   const { compactNodes } = use(UserSettingsContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+
+  async function handleLayout() {
+    await runAutoLayout({
+      sdcpn: petriNetDefinition,
+      dimensions: dims,
+      commitNodePositions,
+    });
+  }
 
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -264,7 +273,7 @@ export const EditorView = ({
     {
       id: "layout",
       label: "Layout",
-      onClick: layoutGraph,
+      onClick: handleLayout,
     },
     ...(!hideNetManagementControls
       ? [
