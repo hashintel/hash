@@ -15,7 +15,7 @@ import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { validateEntityName } from "../../../../../../../validation/entity-name";
+import { validateEntityName } from "../../../../../../../core/validation/entity-name";
 import { usePlacePropertiesContext } from "../context";
 
 const errorMessageStyle = css({

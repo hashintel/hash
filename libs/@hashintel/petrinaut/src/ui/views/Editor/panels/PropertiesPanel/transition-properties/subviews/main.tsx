@@ -14,7 +14,7 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { MutationContext } from "../../../../../../../react/state/mutation-context";
-import { validateDisplayName } from "../../../../../../../validation/display-name";
+import { validateDisplayName } from "../../../../../../../core/validation/display-name";
 import { useTransitionPropertiesContext } from "../context";
 
 const errorMessageStyle = css({

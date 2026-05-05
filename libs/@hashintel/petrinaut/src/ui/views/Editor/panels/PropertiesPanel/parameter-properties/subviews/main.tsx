@@ -7,7 +7,7 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { ParameterIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { validateVariableName } from "../../../../../../../validation/variable-name";
+import { validateVariableName } from "../../../../../../../core/validation/variable-name";
 import { useParameterPropertiesContext } from "../context";
 
 const errorMessageStyle = css({
