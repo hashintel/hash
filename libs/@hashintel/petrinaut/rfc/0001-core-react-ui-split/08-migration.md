@@ -117,7 +117,7 @@ All 137 files moved via `git mv` (history preserved).
 - `src/hooks/` → split between `src/core/` (pure) and `src/react/hooks/`
 - `src/clipboard/` → split between `src/core/clipboard/` (pure) and `src/ui/clipboard/` (DOM)
 - `src/file-format/` → split between `src/core/file-format/` (import) and `src/ui/file-format/` (export)
-- `src/examples/` → `src/core/examples/`
+- `src/examples/` — **stay at root for now** (decision: 2026-05-05). The 6 SDCPN samples will eventually move out of the editor's "Load example" submenu, ship as a separate `@hashintel/petrinaut/examples` subpath export, and surface in the demo site via per-example read-only routes (e.g. `/examples/sir-model`). Skip during the Phase 1 sweep; revisit when that flow lands.
 - `src/validation/` — alive (`validate*` functions consumed by Properties Panel); export surface trimmed (schemas + result-type aliases unexported). Still at top level; could move to `src/core/validation/` if we want layer enforcement.
 - `src/error-tracker/` — leave per the RFC's earlier decision
 
