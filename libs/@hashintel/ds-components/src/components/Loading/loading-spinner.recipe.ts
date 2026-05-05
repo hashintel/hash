@@ -17,7 +17,7 @@ export const styles = cva({
         animation: "rotateLeft 1.1s infinite linear",
       },
       bars: {
-        animation: "rotateLeft 1.0s steps(12) infinite",
+        animation: "rotateRight 1.0s steps(12) infinite",
       },
     },
   },

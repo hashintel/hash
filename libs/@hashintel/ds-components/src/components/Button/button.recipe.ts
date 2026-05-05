@@ -7,6 +7,7 @@ export const styles = sva({
       "--button-border-width": "1px",
       cursor: "pointer",
       display: "inline-block",
+      fontWeight: "medium",
       border: "var(--button-border-width) solid",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
@@ -370,12 +371,12 @@ export const styles = sva({
       tone: "neutral",
       css: {
         button: {
-          background: "white",
-          borderColor: "neutral.s60",
+          background: "neutral.a00",
+          borderColor: "neutral.a60",
           color: "neutral.s120",
           "&:not([aria-disabled=true]):hover": {
-            background: "neutral.s20",
-            borderColor: "neutral.s70",
+            background: "neutral.a20",
+            borderColor: "neutral.a70",
           },
         },
       },
@@ -386,7 +387,7 @@ export const styles = sva({
       isPressed: true,
       css: {
         button: {
-          background: "neutral.s05",
+          background: "neutral.a05",
           color: "neutral.s115",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
         },
@@ -398,8 +399,8 @@ export const styles = sva({
       isDisabled: true,
       css: {
         button: {
-          background: "neutral.s20",
-          borderColor: "neutral.s50",
+          background: "neutral.a20",
+          borderColor: "neutral.a50",
           color: "neutral.s80",
         },
       },
@@ -410,12 +411,12 @@ export const styles = sva({
       tone: "brand",
       css: {
         button: {
-          background: "blue.s20",
-          borderColor: "blue.s60",
+          background: "blue.a20",
+          borderColor: "blue.a60",
           color: "blue.s90",
           "&:not([aria-disabled=true]):hover": {
-            background: "blue.s30",
-            borderColor: "blue.s70",
+            background: "blue.a30",
+            borderColor: "blue.a70",
           },
         },
       },
@@ -427,7 +428,7 @@ export const styles = sva({
       css: {
         button: {
           color: "blue.s85",
-          background: "blue.s25",
+          background: "blue.a25",
           boxShadow: "[inset 0 2px 4px rgba(0,0,0,0.05)]",
         },
       },
@@ -438,8 +439,8 @@ export const styles = sva({
       isDisabled: true,
       css: {
         button: {
-          background: "blue.s20",
-          borderColor: "blue.s40",
+          background: "blue.a20",
+          borderColor: "blue.a40",
           color: "blue.s70",
         },
       },
@@ -450,12 +451,12 @@ export const styles = sva({
       tone: "error",
       css: {
         button: {
-          background: "red.s20",
-          borderColor: "red.s60",
+          background: "red.a20",
+          borderColor: "red.a60",
           color: "red.s90",
           "&:not([aria-disabled=true]):hover": {
-            background: "red.s25",
-            borderColor: "red.s70",
+            background: "red.a25",
+            borderColor: "red.a70",
           },
         },
       },
@@ -477,8 +478,8 @@ export const styles = sva({
       isDisabled: true,
       css: {
         button: {
-          background: "red.s15",
-          borderColor: "red.s30",
+          background: "red.a15",
+          borderColor: "red.a30",
           color: "red.s70",
         },
       },
