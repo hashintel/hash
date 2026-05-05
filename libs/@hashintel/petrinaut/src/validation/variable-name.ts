@@ -9,7 +9,7 @@ import { z } from "zod";
  */
 const LOWER_SNAKE_CASE_REGEX = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/;
 
-export const variableNameSchema = z
+const variableNameSchema = z
   .string()
   .trim()
   .check(
@@ -23,19 +23,17 @@ export const variableNameSchema = z
   )
   .describe("Lower snake_case variable name for parameters");
 
-export type VariableName = z.infer<typeof variableNameSchema>;
-
-export type VariableNameValidationError = {
+type VariableNameValidationError = {
   valid: false;
   error: string;
 };
 
-export type VariableNameValidationSuccess = {
+type VariableNameValidationSuccess = {
   valid: true;
   name: string;
 };
 
-export type VariableNameValidationResult =
+type VariableNameValidationResult =
   | VariableNameValidationSuccess
   | VariableNameValidationError;
 

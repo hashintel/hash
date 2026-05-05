@@ -9,7 +9,7 @@ import { z } from "zod";
  */
 const PASCAL_CASE_REGEX = /^[A-Z][a-zA-Z]*\d*$/;
 
-export const entityNameSchema = z
+const entityNameSchema = z
   .string()
   .trim()
   .check(
@@ -23,19 +23,17 @@ export const entityNameSchema = z
   )
   .describe("PascalCase entity name for places and transitions");
 
-export type EntityName = z.infer<typeof entityNameSchema>;
-
-export type EntityNameValidationError = {
+type EntityNameValidationError = {
   valid: false;
   error: string;
 };
 
-export type EntityNameValidationSuccess = {
+type EntityNameValidationSuccess = {
   valid: true;
   name: string;
 };
 
-export type EntityNameValidationResult =
+type EntityNameValidationResult =
   | EntityNameValidationSuccess
   | EntityNameValidationError;
 

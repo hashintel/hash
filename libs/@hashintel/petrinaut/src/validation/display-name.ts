@@ -8,7 +8,7 @@ import { z } from "zod";
  * Valid:   "Quality Check", "Start Production", "My Transition 2"
  * Invalid: "", "   "
  */
-export const displayNameSchema = z
+const displayNameSchema = z
   .string()
   .trim()
   .check(
@@ -18,9 +18,7 @@ export const displayNameSchema = z
   )
   .describe("Non-empty display name");
 
-export type DisplayName = z.infer<typeof displayNameSchema>;
-
-export type DisplayNameValidationResult =
+type DisplayNameValidationResult =
   | { valid: true; name: string }
   | { valid: false; error: string };
 
