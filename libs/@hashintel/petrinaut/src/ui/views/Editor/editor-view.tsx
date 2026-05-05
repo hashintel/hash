@@ -17,7 +17,7 @@ import { MutationContext } from "../../../react/state/mutation-context";
 import { PortalContainerContext } from "../../../react/state/portal-container-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
-import type { ViewportAction } from "../../../types/viewport-action";
+import type { ViewportAction } from "../../types/viewport-action";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import {
   classicNodeDimensions,

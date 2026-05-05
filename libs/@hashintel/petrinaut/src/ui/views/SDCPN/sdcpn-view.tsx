@@ -19,7 +19,7 @@ import { MutationContext } from "../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
-import type { ViewportAction } from "../../../types/viewport-action";
+import type { ViewportAction } from "../../types/viewport-action";
 import { Arc } from "./components/arc";
 import { ClassicPlaceNode } from "./components/classic-place-node";
 import { ClassicTransitionNode } from "./components/classic-transition-node";

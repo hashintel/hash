@@ -13,4 +13,4 @@ export { isSDCPNEqual } from "../core/lib/deep-equal";
 
 // Viewport action — shape consumers use to add custom buttons to the
 // viewport-controls panel. Lives in /ui because it carries `React.ReactNode`.
-export type { ViewportAction } from "../types/viewport-action";
+export type { ViewportAction } from "./types/viewport-action";

@@ -15,7 +15,7 @@ export type {
   SDCPN,
   Transition,
 } from "./core/types/sdcpn";
-export type { ViewportAction } from "./types/viewport-action";
+export type { ViewportAction } from "./ui/types/viewport-action";
 
 // SDCPN deep-equality helper (also exported from `/ui`).
 export { isSDCPNEqual } from "./core/lib/deep-equal";

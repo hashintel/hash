@@ -13,7 +13,7 @@ import type { WorkerFactory } from "../core/simulation";
 import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
 import type { NetManagement } from "../react/net-management-context";
 import { PetrinautProvider } from "../react/petrinaut-provider";
-import type { ViewportAction } from "../types/viewport-action";
+import type { ViewportAction } from "./types/viewport-action";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
 

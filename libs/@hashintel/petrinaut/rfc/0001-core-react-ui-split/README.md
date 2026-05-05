@@ -1,6 +1,6 @@
 # RFC 0001 — Petrinaut: Core / React / UI Split
 
-**Status:** Draft (iterating) — Phase 0 + 2a/2b/2c/2d + 3a + 3b + 4 + 5 landed; post-3b polish (legacy retirement, rename, layer-direction lint, /lib + state moves, host-controlled workers) landed
+**Status:** Draft (iterating) — Phase 0 + 2a/2b/2c/2d + 3a + 3b + 4 + 5 landed; post-3b polish (legacy retirement + rename, layer-direction lint, host-controlled workers) landed; Phase 1 layout sweep complete (every top-level dir now lives under `/core/`, `/react/`, or `/ui/` apart from the intentional `/examples/` and `/error-tracker/`)
 **Authors:** @cf
 **Created:** 2026-04-28
 **Last updated:** 2026-05-05
@@ -60,12 +60,22 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
 - Post-3b polish landed (compounding the work above into a single coherent shape):
   - **Legacy `<Petrinaut>` adapter retired** along with `useEphemeralHandle`. `<PetrinautNext>` was renamed to `<Petrinaut>` (file `petrinaut-next.tsx → petrinaut.tsx`) and is now the sole editor entry. SDCPN domain types and `isSDCPNEqual` re-exported explicitly from `main.ts` so external consumers are unaffected.
   - **Layer-direction lint rule** in `.oxlintrc.json`: `/core/**` may not import from `/react` or `/ui`; `/react/**` may not import from `/ui`. Probed with deliberate violations to confirm both directions trigger.
-  - **`src/state/` → `src/react/state/`**, **`src/lib/` split** (deep-equal → `/core/lib`; calculate-graph-layout / hsl-color / snap-position-to-grid / split-pascal-case / viewport → `/ui/lib`), **`get-connections` + ARC IDs + Selection types extracted into `/core`**. After these the layer rule passes cleanly with no exceptions.
-  - **`MutationContext.layoutGraph` removed** — composing layout + commit-positions is now `runAutoLayout` in `/ui`, where the visual node dimensions belong.
-  - **`/validation` export surface trimmed** (schemas + result-type aliases unexported per knip).
+  - **`MutationContext.layoutGraph` and `pasteEntities` removed** — both were `/react→/ui` leaks (one needed visual node dimensions, the other called `pasteFromClipboard`). Composing the right primitives in `/ui` (`runAutoLayout` for the layout button; inline `pasteFromClipboard(instance.mutate)` in the keyboard-shortcuts handler) keeps `/react` clean.
   - **Host-controlled workers**: `simulationWorkerFactory` + `lspWorkerFactory` props on `<Petrinaut>` (plumbed through `<PetrinautProvider>` to the bridges). Hosts can replace the bundled inlined-blob defaults when their bundler can't handle them. `<LanguageClientProvider>` now creates the `LanguageClient` in a `useEffect` rather than `useState`'s lazy initializer — fixes a StrictMode dev-time leak where two LSP clients were created and `initialize` went to the orphaned one. See [08-migration.md](./08-migration.md) "Phase 3b polish" + [06-react-bindings.md](./06-react-bindings.md) §6.4.1.
   - **CSS exports**: `vite.config.ts` `cssFileName: "main"` so the bundle lands at `dist/main.css`; `package.json` `exports` exposes `./styles.css` and `./dist/main.css`.
+  - **`/validation` export surface trimmed** (schemas + result-type aliases unexported per knip).
   - **Consumer migration**: `apps/petrinaut-website` fully on subpath imports (`/core`, `/react`, `/ui`); `apps/hash-frontend` stays on the back-compat barrel (older `moduleResolution`) but its editor wrapper migrated from the legacy prop-shape to the handle-based API.
+
+- **Phase 1 layout sweep** landed across a series of `git mv` commits. Every top-level dir except `/core/`, `/react/`, `/ui/`, `/examples/`, and `/error-tracker/` is gone:
+  - `src/state/` → `src/react/state/` (+ pure pieces extracted to `/core`: `arc-id.ts`, `types/selection.ts`, `lib/get-connections.ts`).
+  - `src/lib/` split — pure (`deep-equal`) into `/core/lib/`; UI-bound (`calculate-graph-layout`, `hsl-color`, `snap-position-to-grid`, `split-pascal-case`, `viewport`) into `/ui/lib/`.
+  - `src/file-format/` split — pure conversion (`serialize-sdcpn`, `parse-sdcpn-file`, `sdcpn-to-tikz`, `types`, `remove-visual-info`) into `/core/file-format/`; browser-bound import/export wrappers into `/ui/file-io/` (deliberately renamed — the `/ui` side does file I/O, not format definition). New `/ui/lib/download-blob.ts` exposes a generic `downloadBlob` + `timestampedFilename` so future format exporters don't duplicate the DOM plumbing.
+  - `src/clipboard/` split — pure (`serialize`, `paste`, `deduplicate-name`, `types`) into `/core/clipboard/`; the `navigator.clipboard.readText/writeText` wrappers into `/ui/clipboard/`.
+  - `src/hooks/` → `src/react/hooks/` — folds the 4 utility hooks (`use-default-parameter-values`, `use-element-size`, `use-latest`, `use-stable-callback`) next to the public hook surface from Phase 3a.
+  - `src/validation/` → `src/core/validation/` — pure zod-based validators.
+  - `src/types/viewport-action.ts` → `src/ui/types/viewport-action.ts` — UI-shaped type carrying `React.ReactNode`.
+  - `src/examples/` stays at root (decision: 2026-05-05 — will become its own `@hashintel/petrinaut/examples` subpath export with per-example demo-site routes; revisit when that flow lands).
+  - `src/error-tracker/` stays at root per the RFC's earlier decision.
 
 ## What this RFC does *not* cover
 

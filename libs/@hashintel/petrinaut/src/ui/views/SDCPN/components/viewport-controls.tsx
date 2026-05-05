@@ -12,7 +12,7 @@ import {
 import { IconButton } from "../../../components/icon-button";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { EditorContext } from "../../../../react/state/editor-context";
-import type { ViewportAction } from "../../../../types/viewport-action";
+import type { ViewportAction } from "../../../types/viewport-action";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
 const BASE_OFFSET = 12;
