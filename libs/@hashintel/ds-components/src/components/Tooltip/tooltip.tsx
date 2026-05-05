@@ -1,35 +1,12 @@
 import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 import type { RequireExactlyOne } from "type-fest";
+
+import { contentStyles, positionerStyles } from "./tooltip.recipe";
 
 type Direction = "bottom" | "top" | "left" | "right";
 type Position = Direction | `${Direction}-${"start" | "end"}`;
-
-const positionerStyles = css({
-  zIndex: "[1500]",
-});
-
-const contentBaseStyles = css({
-  borderRadius: "[6px]",
-  px: "[8px]",
-  py: "[4px]",
-  fontSize: "[13px]",
-  lineHeight: "[1.4]",
-  maxWidth: "[300px]",
-  wordWrap: "break-word",
-});
-
-const darkContentStyles = css({
-  backgroundColor: "[rgba(33, 33, 33, 0.92)]",
-  color: "[#fff]",
-});
-
-const lightContentStyles = css({
-  backgroundColor: "[#fff]",
-  color: "[rgba(0, 0, 0, 0.87)]",
-  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
-});
 
 function getPositioningOffset(
   position: Position | undefined,
@@ -53,11 +30,11 @@ export const Tooltip = ({
   className,
   children,
   content,
-  position,
+  position = "bottom",
   variant = "dark",
   disableTooltip,
-  openDelayMs,
-  closeDelayMs,
+  openDelayMs = 300,
+  closeDelayMs = 150,
   offsetX,
   offsetY,
   onOpen,
@@ -104,10 +81,7 @@ export const Tooltip = ({
     <ArkTooltip.Root
       openDelay={openDelayMs}
       closeDelay={closeDelayMs}
-      positioning={{
-        placement: position,
-        ...(offset && { offset }),
-      }}
+      positioning={{ placement: position, ...(offset && { offset }) }}
       onOpenChange={
         onOpen || onClose
           ? ({ open }) => {
@@ -126,11 +100,7 @@ export const Tooltip = ({
       <Portal>
         <ArkTooltip.Positioner className={positionerStyles}>
           <ArkTooltip.Content
-            className={cx(
-              contentBaseStyles,
-              variant === "dark" ? darkContentStyles : lightContentStyles,
-              className,
-            )}
+            className={cx(contentStyles({ variant }), className)}
           >
             {content}
           </ArkTooltip.Content>
