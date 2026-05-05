@@ -13,16 +13,15 @@ Core never owns the document. It is given a **handle** to one — produced by th
 
 ```ts
 import { createPetrinaut } from "@hashintel/petrinaut/core";
-import type { PetrinautDocHandle, ErrorTracker } from "@hashintel/petrinaut/core";
+import type { PetrinautDocHandle } from "@hashintel/petrinaut/core";
 
 const instance = createPetrinaut({
-  document: PetrinautDocHandle;
-  readonly?: boolean;
-  errorTracker?: ErrorTracker;
+  document: handle,        // PetrinautDocHandle
+  readonly: false,         // optional, defaults to false
 });
 ```
 
-The instance config is deliberately minimal. **Simulation is not configured here** — it's built standalone via `createSimulation`. See [05-simulation.md](./05-simulation.md) and §11.4.
+The instance config is deliberately minimal. **Simulation is not configured here** — it's built standalone via `createSimulation`. **LSP is also separate** — `createLanguageClient` is its own factory. **Error tracking** lives on the `/react` side (`<ErrorTrackerContext.Provider>` from `@hashintel/petrinaut/react`); Core doesn't take an `errorTracker` because it has typed error channels (`simulation.events`, `lsp.diagnostics`, `handle.state`) for everything legitimately observable. See [05-simulation.md](./05-simulation.md).
 
 ### Handle interface
 
@@ -240,45 +239,42 @@ type EventStream<T> = {
 | Signals (`@preact/signals-core`) | Push-pull model; less idiomatic outside React-likes. |
 | Listener-as-ping (React `useSyncExternalStore` shape) | Slightly cheaper for React, but worse ergonomics for non-React consumers who'd then have to chase a `get()` after every notification. |
 
-## 4.3 Sketch of the surface
+## 4.3 The surface
 
 ```ts
 type Petrinaut = {
   // --- Document (derived from the handle) ---
-  handle: PetrinautDocHandle;            // the handle Core was constructed with
-  definition: ReadableStore<SDCPN>;      // post-`whenReady` snapshot store, sourced from `handle`
-  patches: EventStream<PetrinautPatch[]>; // emitted only by handles that produce them
-  mutate: (fn: (draft: SDCPN) => void) => void; // delegates to handle.change
-  setTitle: (title: string) => void;
+  readonly handle: PetrinautDocHandle;          // the handle Core was constructed with
+  readonly definition: ReadableStore<SDCPN>;    // current snapshot store, sourced from `handle`
+  readonly patches: EventStream<PetrinautPatch[]>; // only fires for handles that produce them
 
-  // --- LSP (planned — see §4.5) ---
-  lsp: {
-    diagnostics: ReadableStore<{ byUri: Map<DocumentUri, Diagnostic[]>; total: number }>;
-    notifyDocumentChanged: (uri: DocumentUri, text: string) => void;
-    initializeScenarioSession: (params: ScenarioSessionParams) => void;
-    updateScenarioSession: (params: ScenarioSessionParams) => void;
-    killScenarioSession: (sessionId: string) => void;
-    requestCompletion: (uri: DocumentUri, position: Position) => Promise<CompletionList>;
-    requestHover: (uri: DocumentUri, position: Position) => Promise<Hover | null>;
-    requestSignatureHelp: (uri: DocumentUri, position: Position) => Promise<SignatureHelp | null>;
-  };
+  // --- Mutation ---
+  mutate(fn: (draft: SDCPN) => void): void;      // delegates to handle.change; no-op if readonly
 
-  // --- Notifications (output stream) ---
-  notifications: EventStream<Notification>;
+  // --- Config echo ---
+  readonly readonly: boolean;
 
   // --- Lifecycle ---
-  dispose: () => void;
+  dispose(): void;
 };
 ```
+
+That's it. Earlier drafts of this RFC sketched a much wider surface (`setTitle`, an `lsp` block, a `notifications` stream); each ended up belonging elsewhere — see "Not on the instance" below.
+
+`mutate` and `dispose` carry `this: void` so consumers can pass them as method references without `unbound-method` complaints. Same retrofit was applied to `Simulation` and `LanguageClient`.
 
 ### Not on the instance
 
 These are intentionally outside the `Petrinaut` type:
 
-- **Simulation.** Operates on a frozen SDCPN snapshot; no need for the live document. Built via `createSimulation({ sdcpn, ... })`. The host owns the resulting `Simulation` handle and its lifecycle. Multiple simulations can coexist against one document.
+- **Simulation.** Operates on a frozen SDCPN snapshot; no need for the live document. Built via `createSimulation({ sdcpn, ... })`. The host owns the resulting `Simulation` handle and its lifecycle. Multiple simulations can coexist against one document. See [05-simulation.md](./05-simulation.md).
+- **LSP.** Built standalone via `createLanguageClient({ createWorker })` from `@hashintel/petrinaut/core/lsp`. Returns a `LanguageClient` handle with `diagnostics: ReadableStore<DiagnosticsSnapshot>`, `notifyDocumentChanged`, `requestCompletion` / `requestHover` / `requestSignatureHelp`, scenario / metric session methods, and `dispose`. The React side wires it up through `<LanguageClientProvider>`; the host can also call it directly for headless use.
+- **Notifications.** Folded into `simulation.events` (one-shot `complete` / `error` events the React layer surfaces as toasts). There is no separate notifications channel on the instance.
+- **Title.** Net title is a host-management concern, not a document field. Lives in `NetManagement` (`{ title, setTitle, existingNets, createNewNet, loadPetriNet }`) provided by the host through `<PetrinautProvider netManagement={…}>`. See [06-react-bindings.md](./06-react-bindings.md) §6.1.
 - **Playback.** Frame-loop timing belongs to whoever drives the visualisation. Today the React layer (`PlaybackProvider`); a future Core helper might package the rAF loop, but it would still take a `Simulation`, not an instance.
 - **Editor / UI state.** Selection, panels, modes — purely React.
 - **Undo/redo.** Lives on the handle (see §4.1 "History"), not on the instance.
+- **Error tracking.** `ErrorTrackerContext` lives in `/react` (host plugs Sentry / Datadog in via the provider). Core has typed error channels (`simulation.events`, `lsp.diagnostics`, `handle.state`); a generic capture callback would duplicate them.
 
 ## 4.4 Instantiation patterns
 
