@@ -22,21 +22,17 @@ export const Default: Story = () => (
     <div>
       <h3 style={{ marginBottom: 12 }}>Light variant</h3>
       <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-        <Tooltip content="Button tooltip" variant="light" describeChild={false}>
+        <Tooltip content="Button tooltip" variant="light">
           <Button variant="secondary" colorScheme="neutral" size="sm">
             Hover me
           </Button>
         </Tooltip>
 
-        <Tooltip
-          content="More information"
-          variant="light"
-          describeChild={false}
-        >
+        <Tooltip content="More information" variant="light">
           <Icon name="info" />
         </Tooltip>
 
-        <Tooltip content={richContent} variant="light" describeChild={false}>
+        <Tooltip content={richContent} variant="light">
           Rich content
         </Tooltip>
       </div>
@@ -45,21 +41,17 @@ export const Default: Story = () => (
     <div>
       <h3 style={{ marginBottom: 12 }}>Dark variant</h3>
       <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-        <Tooltip content="Button tooltip" variant="dark" describeChild={false}>
+        <Tooltip content="Button tooltip" variant="dark">
           <Button variant="secondary" colorScheme="neutral" size="sm">
             Hover me
           </Button>
         </Tooltip>
 
-        <Tooltip
-          content="More information"
-          variant="dark"
-          describeChild={false}
-        >
+        <Tooltip content="More information" variant="dark">
           <Icon name="info" />
         </Tooltip>
 
-        <Tooltip content={richContent} variant="dark" describeChild={false}>
+        <Tooltip content={richContent} variant="dark">
           Rich content
         </Tooltip>
       </div>
@@ -104,12 +96,7 @@ export const AllPositions: Story = () => (
         // eslint-disable-next-line react/jsx-key
         <div />
       ) : (
-        <Tooltip
-          key={position}
-          content={position}
-          position={position}
-          describeChild={false}
-        >
+        <Tooltip key={position} content={position} position={position}>
           <Button
             variant="secondary"
             colorScheme="neutral"
