@@ -1,7 +1,7 @@
 import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { cx } from "@hashintel/ds-helpers/css";
-import { useEffect, useRef } from "react";
+import { useCallback } from "react";
 
 import {
   contentStyles,
@@ -82,32 +82,47 @@ export const Tooltip = ({
   onOpen?: () => void;
   onClose?: () => void;
 }) => {
-  const triggerRef = useRef<HTMLSpanElement>(null);
-
   // If the child is not focusable, add a tabindex to the wrapper element to focus it.
   // When the child becomes focusable or the tooltip is disabled, clean up so the
   // wrapper doesn't remain an unexpected tab stop.
-  useEffect(() => {
-    const wrapper = triggerRef.current;
-    if (!wrapper) {
-      return;
-    }
+  //
+  // Uses a callback ref so DOM mutations happen during commit without reading
+  // ref.current during render (which the React Compiler forbids) since ark-ui seems to
+  // try and read triggerRef.current when rendering it as the trigger element.
+  const triggerRef = useCallback(
+    (node: HTMLSpanElement | null) => {
+      // Intentionally capture `children` — the callback must re-run whenever
+      // children changes because the focusability check inspects the DOM.
+      void children;
 
-    const triggerEl = wrapper.firstElementChild as HTMLElement | null;
-    const needsFocus =
-      !disableTooltip &&
-      ((!triggerEl && wrapper.textContent) ||
-        (triggerEl && !isDomFocusable(triggerEl)));
+      if (!node) {
+        return;
+      }
 
-    if (needsFocus) {
-      wrapper.tabIndex = 0;
-    } else {
-      wrapper.removeAttribute("tabindex");
-    }
-  }, [children, disableTooltip]);
+      const wrapper = node;
+      const triggerEl = wrapper.firstElementChild as HTMLElement | null;
+      const needsFocus =
+        !disableTooltip &&
+        ((!triggerEl && wrapper.textContent) ||
+          (triggerEl && !isDomFocusable(triggerEl)));
+
+      if (needsFocus) {
+        wrapper.tabIndex = 0;
+      } else {
+        wrapper.removeAttribute("tabindex");
+      }
+    },
+    [children, disableTooltip],
+  );
+
+  const wrappedChildren = (
+    <span ref={triggerRef} className={cx(triggerStyles, className)}>
+      {children}
+    </span>
+  );
 
   if (disableTooltip) {
-    return <span className={cx(triggerStyles, className)}>{children}</span>;
+    return wrappedChildren;
   }
 
   const offset = getPositioningOffset(position, gapX, gapY);
@@ -131,11 +146,7 @@ export const Tooltip = ({
       unmountOnExit
       lazyMount
     >
-      <ArkTooltip.Trigger asChild>
-        <span ref={triggerRef} className={cx(triggerStyles, className)}>
-          {children}
-        </span>
-      </ArkTooltip.Trigger>
+      <ArkTooltip.Trigger asChild>{wrappedChildren}</ArkTooltip.Trigger>
       <Portal>
         <ArkTooltip.Positioner className={positionerStyles}>
           <ArkTooltip.Content className={contentStyles({ variant })}>
