@@ -5,24 +5,26 @@ import { act, renderHook } from "@testing-library/react";
 import { type ReactNode, use } from "react";
 import { describe, expect, test, vi } from "vitest";
 
+import type { Petrinaut } from "../core/instance";
 import type { SDCPN } from "../core/types/sdcpn";
-import {
-  SimulationContext,
-  type SimulationContextValue,
-} from "../react/simulation/context";
 import {
   EditorContext,
   type EditorContextValue,
   initialEditorState,
-} from "./editor-context";
-import { MutationContext } from "./mutation-context";
-import { MutationProvider } from "./mutation-provider";
-import { SDCPNContext, type SDCPNContextValue } from "./sdcpn-context";
+} from "../state/editor-context";
+import { MutationContext } from "../state/mutation-context";
+import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import {
   defaultUserSettings,
   UserSettingsContext,
   type UserSettingsContextValue,
-} from "./user-settings-context";
+} from "../state/user-settings-context";
+import { PetrinautInstanceContext } from "./instance-context";
+import { MutationProvider } from "./mutation-provider";
+import {
+  SimulationContext,
+  type SimulationContextValue,
+} from "./simulation/context";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -136,8 +138,9 @@ type WrapperOptions = {
 };
 
 /**
- * Creates a wrapper that provides all required contexts for MutationProvider.
- * Returns the wrapper and a ref to the latest SDCPN state (after mutations).
+ * Mounts every context the new bridge {@link MutationProvider} reads — most
+ * importantly a stub {@link Petrinaut} instance whose `mutate` is the spied
+ * function under test.
  */
 function createWrapper(options: WrapperOptions = {}) {
   const {
@@ -147,13 +150,21 @@ function createWrapper(options: WrapperOptions = {}) {
     simulationState = "NotRun",
   } = options;
 
-  // Track mutations via immer-style produce pattern
   let currentSdcpn = structuredClone(initialSdcpn);
   const mutateFn = vi.fn((fn: (sdcpn: SDCPN) => void) => {
     const draft = structuredClone(currentSdcpn);
     fn(draft);
     currentSdcpn = draft;
   });
+
+  const fakeInstance = {
+    handle: { id: "test-net" },
+    definition: { get: () => currentSdcpn, subscribe: () => () => {} },
+    patches: { subscribe: () => () => {} },
+    mutate: mutateFn,
+    readonly,
+    dispose: () => {},
+  } as unknown as Petrinaut;
 
   const sdcpnContextValue: SDCPNContextValue = {
     createNewNet: () => {},
@@ -178,17 +189,17 @@ function createWrapper(options: WrapperOptions = {}) {
   };
 
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <SDCPNContext.Provider value={sdcpnContextValue}>
-      <SimulationContext.Provider value={simulationContextValue}>
-        <UserSettingsContext.Provider value={DEFAULT_USER_SETTINGS}>
-          <EditorContext.Provider value={editorContextValue}>
-            <MutationProvider mutatePetriNetDefinition={mutateFn}>
-              {children}
-            </MutationProvider>
-          </EditorContext.Provider>
-        </UserSettingsContext.Provider>
-      </SimulationContext.Provider>
-    </SDCPNContext.Provider>
+    <PetrinautInstanceContext value={fakeInstance}>
+      <SDCPNContext.Provider value={sdcpnContextValue}>
+        <SimulationContext.Provider value={simulationContextValue}>
+          <UserSettingsContext.Provider value={DEFAULT_USER_SETTINGS}>
+            <EditorContext.Provider value={editorContextValue}>
+              <MutationProvider>{children}</MutationProvider>
+            </EditorContext.Provider>
+          </UserSettingsContext.Provider>
+        </SimulationContext.Provider>
+      </SDCPNContext.Provider>
+    </PetrinautInstanceContext>
   );
 
   return { Wrapper, mutateFn, getSdcpn: () => currentSdcpn };
@@ -202,7 +213,7 @@ function useMutations() {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("MutationProvider", () => {
+describe("MutationProvider (instance bridge)", () => {
   describe("when not readonly", () => {
     test("addPlace mutates SDCPN", () => {
       const { Wrapper, mutateFn, getSdcpn } = createWrapper();

@@ -8,6 +8,14 @@ export { PetrinautInstanceContext } from "./instance-context";
 export { usePetrinautInstance } from "./use-petrinaut-instance";
 export { useStore, useStoreSelector } from "./use-store";
 
+// --- Provider unification ---
+export { PetrinautProvider } from "./petrinaut-provider";
+export type { PetrinautProviderProps } from "./petrinaut-provider";
+export {
+  NetManagementContext,
+  type NetManagement,
+} from "./net-management-context";
+
 // --- Public hook surface ---
 export * from "./hooks";
 

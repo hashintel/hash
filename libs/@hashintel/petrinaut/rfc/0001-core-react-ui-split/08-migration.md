@@ -173,6 +173,40 @@ Most hooks read from the existing React contexts (`SDCPNContext`, `SimulationCon
 
 **What's deferred to Phase 3b**: replacing the existing per-feature provider stack (`<SDCPNProvider>`, `<MutationProvider>`, `<SimulationProvider>`, `<PlaybackProvider>`, `<LanguageClientProvider>`) with a single `<PetrinautProvider instance={…}>` that mounts all the bridges. Today's hooks work inside the existing prop-shaped `<Petrinaut>` (whether mounted directly or via `<PetrinautNext>`).
 
+### Phase 3b — Provider unification (done)
+
+`<PetrinautProvider>` is the single React entry point for mounting every bridge against a Core instance, and the legacy prop-shaped `<Petrinaut>` is now a thin adapter on top of it.
+
+- `src/react/petrinaut-provider.tsx` — `<PetrinautProvider instance netManagement>`. Composes (top-down):
+  - `PetrinautInstanceContext` (host for `usePetrinautInstance`)
+  - `NetManagementContext` (host-owned: `title / setTitle / existingNets / createNewNet / loadPetriNet`)
+  - `UndoRedoContext` — **only mounted when `instance.handle.history` is defined**, fed via `useHandleHistoryAsUndoRedo`. When absent, the outer `UndoRedoContext` (e.g. one wrapped by the legacy `<Petrinaut>` adapter) shows through unchanged.
+  - `SDCPNProvider` (bridge)
+  - `LanguageClientProvider` (bridge; keyed by `instance.handle.id` so a net switch fully resets the LSP worker)
+  - `SimulationProvider`, `PlaybackProvider` (bridges)
+  - `UserSettingsProvider`, `EditorProvider` (UI-state, unchanged)
+  - `MutationProvider` (bridge)
+- `src/react/sdcpn-provider.tsx` — new bridge. Reads `usePetrinautInstance()` + `use(NetManagementContext)`, subscribes to `instance.definition` via `useStore`, republishes through the existing `SDCPNContext` shape (no signature changes for `/ui` consumers).
+- `src/react/mutation-provider.tsx` — new bridge. Delegates writes to `instance.mutate`. No `mutatePetriNetDefinition` prop; everything is read from the instance.
+- `src/react/net-management-context.ts` — new context for host-owned net actions / metadata. Single shape (`NetManagement`) so the SDCPN bridge can compose it with Core-derived values without splitting the consumer-facing context.
+- `src/react/use-handle-history-as-undo-redo.ts` — extracted from `petrinaut-next.tsx`.
+- `src/react/use-ephemeral-handle.ts` — adapter that turns prop-driven `{ petriNetId, petriNetDefinition, mutatePetriNetDefinition }` into a stable `PetrinautDocHandle`. The handle has no `history`; the legacy `<Petrinaut>` wraps `<PetrinautNext>` in `<UndoRedoContext value={undoRedo ?? null}>` so the prop-supplied `undoRedo` shows through.
+- `src/react/mutation-provider.test.tsx` — moved from `src/state/`, ported to mount `PetrinautInstanceContext` over a stub instance whose `mutate` is the spied function. 14 tests covering not-readonly mutations, readonly enforcement, and cascading deletes.
+
+`<PetrinautNext>` was rewritten to skip the legacy prop-shaped `<Petrinaut>` entirely: it creates the Core instance and renders `<PetrinautProvider>` + `<MonacoProvider>` + `<EditorView>` directly. Side-effect imports (fonts, `@xyflow/react/dist/style.css`, `index.css`) moved with it.
+
+The legacy `<Petrinaut>` (`src/ui/petrinaut.tsx`) is now a thin adapter: it builds an ephemeral handle from its props, wraps `<PetrinautNext>` in `<UndoRedoContext>` for the `undoRedo` prop, and delegates the rest. Its public prop shape is unchanged. As a consequence, Phase 3a hooks (`useMutate`, `usePetrinautDefinition`, …) now work inside the legacy `<Petrinaut>` too — there's a real `PetrinautInstanceContext` above them.
+
+The duplicated prop-driven providers in `src/state/` are gone:
+
+- `src/state/sdcpn-provider.tsx` — **deleted**.
+- `src/state/mutation-provider.tsx` — **deleted**.
+- `src/state/mutation-provider.test.tsx` — **deleted** (replaced by the ported version under `src/react/`).
+
+`<PetrinautProvider>`, `NetManagement`, and `NetManagementContext` are exported from the `/react` public surface.
+
+Verified: `yarn lint:tsc` clean, `yarn lint:eslint` clean, 485 unit tests pass, library build succeeds.
+
 ### Phase 2d — Playback timing model + provider rewire (done)
 
 Mirrors 2a/2b/2c — pure timing model lives in `/core`; React provider drives ticks and coordinates simulation lifecycle.

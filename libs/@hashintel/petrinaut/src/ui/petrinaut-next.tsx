@@ -1,18 +1,19 @@
+import "@fontsource-variable/inter";
+import "@fontsource-variable/inter-tight";
+import "@fontsource-variable/jetbrains-mono";
+import "@xyflow/react/dist/style.css";
+import "./index.css";
+
 import { type FunctionComponent, useEffect, useMemo } from "react";
 
-import type {
-  HistoryEntry,
-  PetrinautDocHandle,
-  PetrinautHistory,
-  ReadableStore,
-} from "../core/handle";
+import type { PetrinautDocHandle } from "../core/handle";
 import { createPetrinaut, type Petrinaut as Instance } from "../core/instance";
 import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
-import { Petrinaut } from "./petrinaut";
-import { PetrinautInstanceContext } from "../react/instance-context";
-import { useStore } from "../react/use-store";
-import type { UndoRedoContextValue } from "../state/undo-redo-context";
+import type { NetManagement } from "../react/net-management-context";
+import { PetrinautProvider } from "../react/petrinaut-provider";
 import type { ViewportAction } from "../types/viewport-action";
+import { MonacoProvider } from "./monaco/provider";
+import { EditorView } from "./views/Editor/editor-view";
 
 export type PetrinautNextProps = {
   handle: PetrinautDocHandle;
@@ -28,50 +29,13 @@ export type PetrinautNextProps = {
 
 const noop = () => {};
 
-function constStore<T>(value: T): ReadableStore<T> {
-  return {
-    get: () => value,
-    subscribe: () => () => {},
-  };
-}
-
-const EMPTY_BOOL_STORE = constStore(false);
-const EMPTY_ENTRIES_STORE = constStore<readonly HistoryEntry[]>([]);
-const EMPTY_INDEX_STORE = constStore(0);
-
-function useHandleHistoryAsUndoRedo(
-  history: PetrinautHistory | undefined,
-): UndoRedoContextValue | undefined {
-  const canUndo = useStore(history?.canUndo ?? EMPTY_BOOL_STORE);
-  const canRedo = useStore(history?.canRedo ?? EMPTY_BOOL_STORE);
-  const entries = useStore(history?.entries ?? EMPTY_ENTRIES_STORE);
-  const currentIndex = useStore(history?.currentIndex ?? EMPTY_INDEX_STORE);
-
-  if (!history) {
-    return undefined;
-  }
-
-  return {
-    canUndo,
-    canRedo,
-    history: entries.map((e) => ({ timestamp: e.timestamp })),
-    currentIndex,
-    undo: () => {
-      history.undo();
-    },
-    redo: () => {
-      history.redo();
-    },
-    goToIndex: (index: number) => {
-      history.goToIndex(index);
-    },
-  };
-}
-
 /**
- * Spike: a handle-driven entry point that creates a Core instance and bridges it
- * to the existing prop-shaped <Petrinaut>. Lives in /ui because it mounts UI;
- * once the full bridge stack lands in /react, this wrapper goes away.
+ * Handle-driven entry point. Creates a Core {@link Instance} from the given
+ * handle, mounts {@link PetrinautProvider} to wire every bridge, and renders
+ * the editor.
+ *
+ * Net-management concerns (title, switching) are passed alongside the handle
+ * because they're not part of Core — they live in the host app.
  */
 export const PetrinautNext: FunctionComponent<PetrinautNextProps> = ({
   handle,
@@ -91,29 +55,22 @@ export const PetrinautNext: FunctionComponent<PetrinautNextProps> = ({
 
   useEffect(() => () => instance.dispose(), [instance]);
 
-  const definition = useStore(instance.definition);
-  const undoRedo = useHandleHistoryAsUndoRedo(handle.history);
-
-  const mutate = (fn: (draft: SDCPN) => void) => {
-    instance.mutate(fn);
+  const netManagement: NetManagement = {
+    title,
+    setTitle,
+    existingNets,
+    createNewNet,
+    loadPetriNet,
   };
 
   return (
-    <PetrinautInstanceContext value={instance}>
-      <Petrinaut
-        existingNets={existingNets}
-        createNewNet={createNewNet}
-        hideNetManagementControls={hideNetManagementControls}
-        loadPetriNet={loadPetriNet}
-        petriNetId={handle.id}
-        petriNetDefinition={definition}
-        mutatePetriNetDefinition={mutate}
-        readonly={readonly}
-        setTitle={setTitle}
-        title={title}
-        undoRedo={undoRedo}
-        viewportActions={viewportActions}
-      />
-    </PetrinautInstanceContext>
+    <PetrinautProvider instance={instance} netManagement={netManagement}>
+      <MonacoProvider>
+        <EditorView
+          hideNetManagementControls={hideNetManagementControls}
+          viewportActions={viewportActions}
+        />
+      </MonacoProvider>
+    </PetrinautProvider>
   );
 };

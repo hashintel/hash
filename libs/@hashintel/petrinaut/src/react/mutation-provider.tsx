@@ -1,25 +1,31 @@
-import { use } from "react";
+import { use, type ReactNode } from "react";
 
 import { pasteFromClipboard } from "../clipboard/clipboard";
 import type { MutateSDCPN, SDCPN } from "../core/types/sdcpn";
 import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 import {
+  MutationContext,
+  type MutationContextValue,
+} from "../state/mutation-context";
+import { generateArcId, SDCPNContext } from "../state/sdcpn-context";
+import { useIsReadOnly } from "../state/use-is-read-only";
+import { UserSettingsContext } from "../state/user-settings-context";
+import {
   classicNodeDimensions,
   compactNodeDimensions,
 } from "../ui/views/SDCPN/styles/styling";
-import { MutationContext, type MutationContextValue } from "./mutation-context";
-import { generateArcId, SDCPNContext } from "./sdcpn-context";
-import { useIsReadOnly } from "./use-is-read-only";
-import { UserSettingsContext } from "./user-settings-context";
+import { usePetrinautInstance } from "./use-petrinaut-instance";
 
-type MutationProviderProps = React.PropsWithChildren<{
-  mutatePetriNetDefinition: MutateSDCPN;
-}>;
-
-export const MutationProvider: React.FC<MutationProviderProps> = ({
-  mutatePetriNetDefinition,
+/**
+ * Bridge: provides the legacy {@link MutationContext} surface, delegating all
+ * writes to the Core instance's `mutate`. Read-only checks honour the editor
+ * mode (which lives in `EditorContext`) — only `readonly` blocks scenario
+ * mutations.
+ */
+export const MutationProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  const instance = usePetrinautInstance();
   const { petriNetDefinition, readonly } = use(SDCPNContext);
   const { compactNodes } = use(UserSettingsContext);
   const isReadOnly = useIsReadOnly();
@@ -28,11 +34,15 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     ? compactNodeDimensions
     : classicNodeDimensions;
 
+  const mutatePetriNetDefinition: MutateSDCPN = (fn) => {
+    instance.mutate(fn);
+  };
+
   function guardedMutate(fn: (sdcpn: SDCPN) => void): void {
     if (isReadOnly) {
       return;
     }
-    mutatePetriNetDefinition(fn);
+    instance.mutate(fn);
   }
 
   /**
@@ -43,7 +53,7 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     if (readonly) {
       return;
     }
-    mutatePetriNetDefinition(fn);
+    instance.mutate(fn);
   }
 
   const value: MutationContextValue = {
@@ -225,7 +235,6 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
             break;
           }
         }
-        // Clear dangling colorId references
         for (const place of sdcpn.places) {
           if (place.colorId === typeId) {
             place.colorId = null;
@@ -261,7 +270,6 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
             break;
           }
         }
-        // Clear dangling differentialEquationId references
         for (const place of sdcpn.places) {
           if (place.differentialEquationId === equationId) {
             place.differentialEquationId = null;
@@ -360,7 +368,6 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
     },
     deleteItemsByIds(items) {
       guardedMutate((sdcpn) => {
-        // Partition selection by type for targeted deletion
         const placeIds = new Set<string>();
         const transitionIds = new Set<string>();
         const arcIds = new Set<string>();
@@ -391,9 +398,6 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
           }
         }
 
-        // Transitions need special handling: we always iterate them when places,
-        // transitions, or arcs are being deleted, because arcs live inside transitions
-        // and deleting a place must cascade to remove its connected arcs.
         const hasCanvasDeletes =
           placeIds.size > 0 || transitionIds.size > 0 || arcIds.size > 0;
 
@@ -451,7 +455,6 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
               sdcpn.types.splice(i, 1);
             }
           }
-          // Clear dangling colorId references on places and equations
           for (const place of sdcpn.places) {
             if (place.colorId && typeIds.has(place.colorId)) {
               place.colorId = null;
@@ -470,7 +473,6 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
               sdcpn.differentialEquations.splice(i, 1);
             }
           }
-          // Clear dangling differentialEquationId references on places
           for (const place of sdcpn.places) {
             if (
               place.differentialEquationId &&

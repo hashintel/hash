@@ -1,9 +1,3 @@
-import "@fontsource-variable/inter";
-import "@fontsource-variable/inter-tight";
-import "@fontsource-variable/jetbrains-mono";
-import "@xyflow/react/dist/style.css";
-import "./index.css";
-
 import { type FunctionComponent } from "react";
 
 import type {
@@ -16,20 +10,13 @@ import type {
   SDCPN,
   Transition,
 } from "../core/types/sdcpn";
-import { LanguageClientProvider } from "../react/lsp/provider";
-import { MonacoProvider } from "./monaco/provider";
-import { PlaybackProvider } from "../react/playback/provider";
-import { SimulationProvider } from "../react/simulation/provider";
-import { EditorProvider } from "../state/editor-provider";
-import { MutationProvider } from "../state/mutation-provider";
-import { SDCPNProvider } from "../state/sdcpn-provider";
+import { useEphemeralHandle } from "../react/use-ephemeral-handle";
 import {
   UndoRedoContext,
   type UndoRedoContextValue,
 } from "../state/undo-redo-context";
-import { UserSettingsProvider } from "../state/user-settings-provider";
 import type { ViewportAction } from "../types/viewport-action";
-import { EditorView } from "./views/Editor/editor-view";
+import { PetrinautNext } from "./petrinaut-next";
 
 export { isSDCPNEqual } from "../lib/deep-equal";
 
@@ -115,37 +102,49 @@ export type PetrinautProps = {
   viewportActions?: ViewportAction[];
 };
 
+/**
+ * Prop-driven editor entry. Internally an adapter on top of {@link PetrinautNext}:
+ * builds an ephemeral {@link PetrinautDocHandle} from the document props so the
+ * editor flows through the standard handle-based pipeline, and wraps
+ * `<PetrinautNext>` in an `<UndoRedoContext>` to honour the prop-supplied
+ * `undoRedo` (which the new pipeline normally derives from `handle.history`,
+ * absent here).
+ *
+ * Prefer {@link PetrinautNext} for new integrations.
+ */
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
-  hideNetManagementControls,
+  petriNetId,
+  petriNetDefinition,
   mutatePetriNetDefinition,
+  readonly,
   undoRedo,
+  hideNetManagementControls,
   viewportActions,
-  ...rest
+  title,
+  setTitle,
+  existingNets,
+  createNewNet,
+  loadPetriNet,
 }) => {
+  const handle = useEphemeralHandle({
+    petriNetId,
+    petriNetDefinition,
+    mutatePetriNetDefinition,
+  });
+
   return (
     <UndoRedoContext value={undoRedo ?? null}>
-      <SDCPNProvider {...rest}>
-        <LanguageClientProvider key={rest.petriNetId}>
-          <MonacoProvider>
-            <SimulationProvider>
-              <PlaybackProvider>
-                <UserSettingsProvider>
-                  <EditorProvider>
-                    <MutationProvider
-                      mutatePetriNetDefinition={mutatePetriNetDefinition}
-                    >
-                      <EditorView
-                        hideNetManagementControls={hideNetManagementControls}
-                        viewportActions={viewportActions}
-                      />
-                    </MutationProvider>
-                  </EditorProvider>
-                </UserSettingsProvider>
-              </PlaybackProvider>
-            </SimulationProvider>
-          </MonacoProvider>
-        </LanguageClientProvider>
-      </SDCPNProvider>
+      <PetrinautNext
+        handle={handle}
+        readonly={readonly}
+        hideNetManagementControls={hideNetManagementControls}
+        viewportActions={viewportActions}
+        title={title}
+        setTitle={setTitle}
+        existingNets={existingNets}
+        createNewNet={createNewNet}
+        loadPetriNet={loadPetriNet}
+      />
     </UndoRedoContext>
   );
 };
