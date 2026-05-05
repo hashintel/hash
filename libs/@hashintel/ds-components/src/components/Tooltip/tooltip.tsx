@@ -12,6 +12,21 @@ import {
 
 type Direction = "bottom" | "top" | "left" | "right";
 type Position = Direction | `${Direction}-${"start" | "end"}`;
+type Delay = "fast" | "medium" | "slow" | "none";
+
+const openDelayMsMap = {
+  none: 0,
+  fast: 200,
+  medium: 500,
+  slow: 1000,
+};
+
+const closeDelayMsMap = {
+  none: 0,
+  fast: 100,
+  medium: 200,
+  slow: 300,
+};
 
 function isDomFocusable(el: HTMLElement): boolean {
   if (el.tabIndex < 0) {
@@ -39,8 +54,8 @@ export const Tooltip = ({
   position = "bottom",
   variant = "dark",
   disableTooltip,
-  openDelayMs = 300,
-  closeDelayMs = 150,
+  openDelay = "medium",
+  closeDelay = "medium",
   gapX = 8,
   gapY = 8,
   onOpen,
@@ -58,9 +73,9 @@ export const Tooltip = ({
   /** Whether to disable the tooltip */
   disableTooltip?: boolean;
   /** How long before the the tooltip is opened on hover/focus */
-  openDelayMs?: number;
+  openDelay?: Delay;
   /** How long before the the tooltip is opened when leaving hover/focus */
-  closeDelayMs?: number;
+  closeDelay?: Delay;
   /** The X distance the tooltip will be from the trigger in px */
   gapX?: number;
   /** The Y distance the tooltip will be from the trigger in px */
@@ -112,8 +127,8 @@ export const Tooltip = ({
 
   return (
     <ArkTooltip.Root
-      openDelay={openDelayMs}
-      closeDelay={closeDelayMs}
+      openDelay={openDelayMsMap[openDelay]}
+      closeDelay={closeDelayMsMap[closeDelay]}
       positioning={{ placement: position, offset }}
       onOpenChange={
         onOpen || onClose
