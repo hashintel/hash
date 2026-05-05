@@ -5,7 +5,7 @@ import { createJsonDocHandle } from "../core/handle";
 import type { SDCPN } from "../core/types/sdcpn";
 import { sirModel } from "../examples/sir-model";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
-import { PetrinautNext } from "../ui/petrinaut-next";
+import { Petrinaut } from "../ui/petrinaut";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -78,7 +78,7 @@ const HandleSpikeRender = ({
 
   return (
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
-      <PetrinautNext
+      <Petrinaut
         handle={handle}
         title={title}
         setTitle={setTitle}

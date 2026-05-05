@@ -208,6 +208,8 @@ The duplicated prop-driven providers in `src/state/` are gone:
 
 Verified: `yarn lint:tsc` clean, `yarn lint:eslint` clean, 485 unit tests pass, library build succeeds.
 
+**Post-retirement rename.** With the legacy editor gone, the "Next" suffix on the surviving entry was misleading — it implied an old-vs-new split that no longer exists. The component and its props were renamed `PetrinautNext → Petrinaut` and `PetrinautNextProps → PetrinautProps`, and the file `src/ui/petrinaut-next.tsx → src/ui/petrinaut.tsx`. All internal call sites (`/main.ts`, `/ui/index.ts`, story provider, stories, `usePetrinautInstance` error message, `useMutate` JSDoc) and the demo site (`apps/petrinaut-website/src/main/app.tsx`) were updated in the same change. Earlier sections of this document reference the old name historically; that's intentional — the chronology stays accurate.
+
 ### Phase 2d — Playback timing model + provider rewire (done)
 
 Mirrors 2a/2b/2c — pure timing model lives in `/core`; React provider drives ticks and coordinates simulation lifecycle.

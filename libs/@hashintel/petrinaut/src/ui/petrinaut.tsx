@@ -15,7 +15,7 @@ import type { ViewportAction } from "../types/viewport-action";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
 
-export type PetrinautNextProps = {
+export type PetrinautProps = {
   handle: PetrinautDocHandle;
   title?: string;
   setTitle?: (title: string) => void;
@@ -37,7 +37,7 @@ const noop = () => {};
  * Net-management concerns (title, switching) are passed alongside the handle
  * because they're not part of Core — they live in the host app.
  */
-export const PetrinautNext: FunctionComponent<PetrinautNextProps> = ({
+export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   handle,
   title = "Untitled",
   setTitle = noop,

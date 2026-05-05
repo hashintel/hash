@@ -3,7 +3,7 @@ import type {
   PetrinautDocHandle,
   SDCPN,
 } from "@hashintel/petrinaut";
-import { createJsonDocHandle, PetrinautNext } from "@hashintel/petrinaut";
+import { createJsonDocHandle, Petrinaut } from "@hashintel/petrinaut";
 import { produce } from "immer";
 import { useEffect, useRef, useState } from "react";
 
@@ -162,7 +162,7 @@ export const DevApp = () => {
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
-      <PetrinautNext
+      <Petrinaut
         handle={handle}
         existingNets={existingNets}
         createNewNet={createNewNet}

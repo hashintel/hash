@@ -56,8 +56,8 @@ export type {
   SimulationTransport,
   WorkerFactory,
 } from "./core/simulation";
-export { PetrinautNext } from "./ui/petrinaut-next";
-export type { PetrinautNextProps } from "./ui/petrinaut-next";
+export { Petrinaut } from "./ui/petrinaut";
+export type { PetrinautProps } from "./ui/petrinaut";
 
 // LSP exports are deliberately NOT in main.ts — see 08-migration.md "Phase 2c"
 // known issue. The dts bundler duplicates `vscode-languageserver-types` symbols

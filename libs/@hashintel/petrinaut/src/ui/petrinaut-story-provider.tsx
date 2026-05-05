@@ -2,7 +2,7 @@ import { type ReactNode, useRef, useState } from "react";
 
 import { createJsonDocHandle, type PetrinautDocHandle } from "../core/handle";
 import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
-import { PetrinautNext } from "./petrinaut-next";
+import { Petrinaut } from "./petrinaut";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -20,7 +20,7 @@ type StoredNet = {
 };
 
 /**
- * Self-contained wrapper around {@link PetrinautNext} that manages a small
+ * Self-contained wrapper around {@link Petrinaut} that manages a small
  * in-memory net registry, mirroring the shape of the demo-site's `DevApp`.
  *
  * Intended for Storybook stories — owns one handle per net id (via a ref
@@ -109,7 +109,7 @@ export const PetrinautStoryProvider = ({
 
   return (
     <>
-      <PetrinautNext
+      <Petrinaut
         handle={handle}
         existingNets={existingNets}
         createNewNet={createNewNet}
