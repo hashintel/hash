@@ -9,6 +9,7 @@ import * as ScrollArea from "./scroll-area";
 export const App = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: 200,
     getScrollElement: () => scrollRef.current,
