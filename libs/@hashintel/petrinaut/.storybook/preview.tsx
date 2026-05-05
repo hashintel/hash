@@ -1,4 +1,4 @@
-import "../src/index.css";
+import "../src/ui/index.css";
 
 import type { Preview } from "@storybook/react-vite";
 import { useRef } from "react";
