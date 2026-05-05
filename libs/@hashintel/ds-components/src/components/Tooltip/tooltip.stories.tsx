@@ -17,45 +17,32 @@ const richContent = (
   </div>
 );
 
+const variants = ["light", "dark"] as const;
+
 export const Default: Story = () => (
   <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
-    <div>
-      <h3 style={{ marginBottom: 12 }}>Light variant</h3>
-      <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-        <Tooltip content="Button tooltip" variant="light">
-          <Button variant="secondary" colorScheme="neutral" size="sm">
-            Hover me
-          </Button>
-        </Tooltip>
+    {variants.map((variant) => (
+      <div key={variant}>
+        <h3 style={{ marginBottom: 12 }}>
+          {variant.charAt(0).toUpperCase() + variant.slice(1)} variant
+        </h3>
+        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+          <Tooltip content="Button tooltip" variant={variant}>
+            <Button variant="secondary" colorScheme="neutral" size="sm">
+              Hover me
+            </Button>
+          </Tooltip>
 
-        <Tooltip content="More information" variant="light">
-          <Icon name="info" />
-        </Tooltip>
+          <Tooltip content="More information" variant={variant}>
+            <Icon name="info" />
+          </Tooltip>
 
-        <Tooltip content={richContent} variant="light">
-          Rich content
-        </Tooltip>
+          <Tooltip content={richContent} variant={variant}>
+            Rich content
+          </Tooltip>
+        </div>
       </div>
-    </div>
-
-    <div>
-      <h3 style={{ marginBottom: 12 }}>Dark variant</h3>
-      <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-        <Tooltip content="Button tooltip" variant="dark">
-          <Button variant="secondary" colorScheme="neutral" size="sm">
-            Hover me
-          </Button>
-        </Tooltip>
-
-        <Tooltip content="More information" variant="dark">
-          <Icon name="info" />
-        </Tooltip>
-
-        <Tooltip content={richContent} variant="dark">
-          Rich content
-        </Tooltip>
-      </div>
-    </div>
+    ))}
   </div>
 );
 Default.parameters = {
