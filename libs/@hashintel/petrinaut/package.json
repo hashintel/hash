@@ -31,6 +31,7 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "prepublishOnly": "turbo run build",
+    "profile:build": "node scripts/characterize-build-output.mjs",
     "test:unit": "vitest"
   },
   "dependencies": {
