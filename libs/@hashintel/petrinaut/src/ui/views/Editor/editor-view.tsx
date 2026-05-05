@@ -18,12 +18,12 @@ import { PortalContainerContext } from "../../../react/state/portal-container-co
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import type { ViewportAction } from "../../../types/viewport-action";
-import { UserSettingsContext } from "../../../react/state/user-settings-context";
-import { SDCPNView } from "../SDCPN/sdcpn-view";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
-} from "../SDCPN/styles/styling";
+} from "../../../lib/node-dimensions";
+import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";

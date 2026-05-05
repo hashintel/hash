@@ -1,13 +1,3 @@
-export const compactNodeDimensions = {
-  place: { width: 180, height: 48 },
-  transition: { width: 180, height: 48 },
-};
-
-export const classicNodeDimensions = {
-  place: { width: 130, height: 130 },
-  transition: { width: 160, height: 80 },
-};
-
 /**
  * Opacity of the white overlay used to lighten nodes that are not part of
  * the current selection or its connected neighbours.

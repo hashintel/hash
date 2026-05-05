@@ -21,17 +21,14 @@ export const PANEL_MARGIN = 0;
 export const RESIZE_HANDLE_SIZE = 5;
 export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2) - 1;
 
-// Left Sidebar
-export const DEFAULT_LEFT_SIDEBAR_WIDTH = 320;
+// Left Sidebar (DEFAULT_LEFT_SIDEBAR_WIDTH lives in /lib/panel-defaults)
 export const MIN_LEFT_SIDEBAR_WIDTH = 220;
 export const MAX_LEFT_SIDEBAR_WIDTH = 500;
 
-// Properties Panel (right side)
-export const DEFAULT_PROPERTIES_PANEL_WIDTH = 450;
+// Properties Panel — right side (DEFAULT_PROPERTIES_PANEL_WIDTH in /lib/panel-defaults)
 export const MIN_PROPERTIES_PANEL_WIDTH = 250;
 export const MAX_PROPERTIES_PANEL_WIDTH = 800;
 
-// Bottom Panel
-export const DEFAULT_BOTTOM_PANEL_HEIGHT = 180;
+// Bottom Panel (DEFAULT_BOTTOM_PANEL_HEIGHT in /lib/panel-defaults)
 export const MIN_BOTTOM_PANEL_HEIGHT = 100;
 export const MAX_BOTTOM_PANEL_HEIGHT = 600;

@@ -4,16 +4,16 @@ import { pasteFromClipboard } from "../clipboard/clipboard";
 import type { MutateSDCPN, SDCPN } from "../core/types/sdcpn";
 import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 import {
+  classicNodeDimensions,
+  compactNodeDimensions,
+} from "../lib/node-dimensions";
+import {
   MutationContext,
   type MutationContextValue,
 } from "./state/mutation-context";
 import { generateArcId, SDCPNContext } from "./state/sdcpn-context";
 import { useIsReadOnly } from "./state/use-is-read-only";
 import { UserSettingsContext } from "./state/user-settings-context";
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "../ui/views/SDCPN/styles/styling";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 
 /**
