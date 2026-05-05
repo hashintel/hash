@@ -6,6 +6,7 @@ import { Icon, iconNames } from "../Icon/icon";
 import {
   Button as ButtonComponent,
   type ButtonElementProps,
+  iconSizeMap,
   type Tone,
   type Variant,
 } from "./button";
@@ -224,8 +225,8 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
               {...(args as any)}
               variant={variant}
               size={size}
-              prefix={<Icon name="plus" size="sm" />}
-              suffix={<Icon name="arrowRight" size="sm" />}
+              prefix={<Icon name="plus" size={iconSizeMap[size]} />}
+              suffix={<Icon name="arrowRight" size={iconSizeMap[size]} />}
               onClick={() => {}}
             >
               Both Icons
@@ -242,8 +243,8 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
               {...(args as any)}
               variant={variant}
               size={size}
-              prefix={<Icon name="plus" size="sm" />}
-              suffix={<Icon name="arrowRight" size="sm" />}
+              prefix={<Icon name="plus" size={iconSizeMap[size]} />}
+              suffix={<Icon name="arrowRight" size={iconSizeMap[size]} />}
               onClick={() => {}}
               tooltip="Icon only with prefix and suffix"
             >

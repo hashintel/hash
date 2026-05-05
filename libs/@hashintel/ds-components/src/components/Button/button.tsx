@@ -86,11 +86,11 @@ export type AnchorElementProps = AnchorElementOnlyProps &
   ButtonIconProps;
 export type ButtonProps = ButtonElementProps | AnchorElementProps;
 
-const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
-  xs: "sm",
+  xs: "xs",
   sm: "sm",
-  md: "md",
+  md: "sm",
   lg: "md",
 };
 
@@ -139,7 +139,10 @@ export const Button = (props: ButtonProps) => {
     suffix ?? (iconPosition === "right" ? iconElement : null);
 
   const hasIcon = !!suffixContent || !!prefixContent;
-  const isIconOnly = hasIcon && !children;
+  const isIconOnly =
+    ((!!suffixContent && !prefixContent) ||
+      (!!prefixContent && !suffixContent)) &&
+    !children;
 
   const classes = styles({
     size,

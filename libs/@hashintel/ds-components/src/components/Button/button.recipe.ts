@@ -36,7 +36,7 @@ export const styles = sva({
           paddingY: "[1px]",
           borderRadius: "md",
           textStyle: "xxs",
-          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--button-border-width) * 2)]`,
+          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + 1px * 2 + var(--button-border-width) * 2)]`,
         },
       },
       xs: {
@@ -240,6 +240,13 @@ export const styles = sva({
       },
     },
     // ── Icon-only (square) ──
+    {
+      size: "xxs",
+      isIconOnly: true,
+      css: {
+        button: { paddingX: "0" },
+      },
+    },
     {
       size: "xs",
       isIconOnly: true,
