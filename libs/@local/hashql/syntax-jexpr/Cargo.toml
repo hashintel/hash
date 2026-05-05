@@ -27,7 +27,7 @@ unicode-ident         = { workspace = true }
 unicode-normalization = { workspace = true }
 unicode-properties    = { workspace = true, features = ["general-category"] }
 url                   = { workspace = true }
-winnow                = { workspace = true, features = ["std"] }
+winnow                = { workspace = true, features = ["std", "parser", "ascii"] }
 
 [dev-dependencies]
 hashql-diagnostics = { workspace = true, features = ["render"] }
