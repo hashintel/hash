@@ -127,6 +127,7 @@ export const Button = (props: ButtonProps) => {
     onKeyDown,
     onFocus,
     onBlur,
+    tabIndex,
     ...rest
   } = props;
 
@@ -187,6 +188,7 @@ export const Button = (props: ButtonProps) => {
   const sharedProps = {
     className: cx(classes.button, className),
     title: tooltip,
+    tabIndex,
     "aria-pressed": pressed,
     "aria-busy": loading,
     "aria-live": loading ? ("polite" as const) : undefined,
@@ -207,14 +209,20 @@ export const Button = (props: ButtonProps) => {
   };
 
   if ("href" in props) {
+    const isInactive = disabled || loading;
+
     return (
       <a
         {...sharedProps}
-        {...(sharedEventHandlers as React.DOMAttributes<HTMLAnchorElement>)}
+        {...(isInactive
+          ? {}
+          : (sharedEventHandlers as React.DOMAttributes<HTMLAnchorElement>))}
         ref={(props as AnchorElementOnlyProps).ref}
-        href={href}
-        target={props.target}
-        download={props.download || undefined}
+        href={isInactive ? undefined : href}
+        role={isInactive ? "link" : undefined}
+        target={isInactive ? undefined : props.target}
+        download={isInactive ? undefined : props.download || undefined}
+        tabIndex={isInactive ? -1 : props.tabIndex}
       >
         {content}
       </a>
