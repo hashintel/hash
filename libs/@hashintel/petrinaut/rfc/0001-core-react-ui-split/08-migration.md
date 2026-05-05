@@ -195,13 +195,14 @@ Most hooks read from the existing React contexts (`SDCPNContext`, `SimulationCon
 
 `<PetrinautNext>` was rewritten to skip the legacy prop-shaped `<Petrinaut>` entirely: it creates the Core instance and renders `<PetrinautProvider>` + `<MonacoProvider>` + `<EditorView>` directly. Side-effect imports (fonts, `@xyflow/react/dist/style.css`, `index.css`) moved with it.
 
-The legacy `<Petrinaut>` (`src/ui/petrinaut.tsx`) is now a thin adapter: it builds an ephemeral handle from its props, wraps `<PetrinautNext>` in `<UndoRedoContext>` for the `undoRedo` prop, and delegates the rest. Its public prop shape is unchanged. As a consequence, Phase 3a hooks (`useMutate`, `usePetrinautDefinition`, …) now work inside the legacy `<Petrinaut>` too — there's a real `PetrinautInstanceContext` above them.
+The legacy `<Petrinaut>` (`src/ui/petrinaut.tsx`) was briefly kept as a thin adapter — building an ephemeral handle from its props and wrapping `<PetrinautNext>` in `<UndoRedoContext>` — to preserve back-compat. **It has since been retired entirely** along with the supporting `src/react/use-ephemeral-handle.ts`. The only internal caller (`petrinaut-story-provider.tsx`) was migrated to `<PetrinautNext>` + `createJsonDocHandle` (one handle per net id, kept in a ref map so per-net history survives switching). The demo site (`apps/petrinaut-website`) was already on `<PetrinautNext>`. SDCPN domain types and `isSDCPNEqual` that the legacy file used to re-export (`Color`, `MinimalNetMetadata`, `MutateSDCPN`, `Place`, `SDCPN`, `Transition`, `ViewportAction`, …) are now re-exported explicitly from `main.ts`, so external consumers are unaffected.
 
 The duplicated prop-driven providers in `src/state/` are gone:
 
 - `src/state/sdcpn-provider.tsx` — **deleted**.
 - `src/state/mutation-provider.tsx` — **deleted**.
 - `src/state/mutation-provider.test.tsx` — **deleted** (replaced by the ported version under `src/react/`).
+- `src/ui/petrinaut.tsx`, `src/react/use-ephemeral-handle.ts` — **deleted** (post-Phase 3b).
 
 `<PetrinautProvider>`, `NetManagement`, and `NetManagementContext` are exported from the `/react` public surface.
 

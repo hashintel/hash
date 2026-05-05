@@ -1,6 +1,24 @@
 export type { ErrorTracker } from "./error-tracker/error-tracker.context";
 export { ErrorTrackerContext } from "./error-tracker/error-tracker.context";
-export * from "./ui/petrinaut";
+
+// SDCPN domain types (previously re-exported via the legacy `<Petrinaut>`
+// barrel). Kept on the back-compat surface so downstream consumers don't
+// need to switch import paths in the same change that retired the legacy
+// editor entry.
+export type {
+  Color,
+  DifferentialEquation,
+  MinimalNetMetadata,
+  MutateSDCPN,
+  Parameter,
+  Place,
+  SDCPN,
+  Transition,
+} from "./core/types/sdcpn";
+export type { ViewportAction } from "./types/viewport-action";
+
+// SDCPN deep-equality helper (also exported from `/ui`).
+export { isSDCPNEqual } from "./lib/deep-equal";
 
 // Phase 0 spike: handle-driven entry path. See rfc/0001-core-react-ui-split.
 export { createJsonDocHandle } from "./core/handle";
