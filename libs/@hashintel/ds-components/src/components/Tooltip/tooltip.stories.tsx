@@ -33,23 +33,11 @@ export const Default: Story = () => (
           variant="light"
           describeChild={false}
         >
-          <button
-            type="button"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 4,
-            }}
-          >
-            <Icon name="info" />
-          </button>
+          <Icon name="info" />
         </Tooltip>
 
         <Tooltip content={richContent} variant="light" describeChild={false}>
-          <Button variant="ghost" colorScheme="neutral" size="sm">
-            Rich content
-          </Button>
+          Rich content
         </Tooltip>
       </div>
     </div>
@@ -68,23 +56,11 @@ export const Default: Story = () => (
           variant="dark"
           describeChild={false}
         >
-          <button
-            type="button"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 4,
-            }}
-          >
-            <Icon name="info" />
-          </button>
+          <Icon name="info" />
         </Tooltip>
 
         <Tooltip content={richContent} variant="dark" describeChild={false}>
-          <Button variant="ghost" colorScheme="neutral" size="sm">
-            Rich content
-          </Button>
+          Rich content
         </Tooltip>
       </div>
     </div>

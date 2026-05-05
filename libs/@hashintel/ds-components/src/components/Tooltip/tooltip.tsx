@@ -67,6 +67,15 @@ export const Tooltip = ({
   }
 
   const offset = getPositioningOffset(position, gapX, gapY);
+  const wrappedChildren =
+    typeof children === "string" ||
+    typeof children === "number" ||
+    typeof children === "boolean" ||
+    typeof children === "bigint" ? (
+      <span>{children}</span>
+    ) : (
+      children
+    );
 
   return (
     <ArkTooltip.Root
@@ -87,7 +96,7 @@ export const Tooltip = ({
       unmountOnExit
       lazyMount
     >
-      <ArkTooltip.Trigger asChild>{children}</ArkTooltip.Trigger>
+      <ArkTooltip.Trigger asChild>{wrappedChildren}</ArkTooltip.Trigger>
       <Portal>
         <ArkTooltip.Positioner className={positionerStyles}>
           <ArkTooltip.Content
