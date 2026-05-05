@@ -8,7 +8,7 @@ import type {
   Place,
   Scenario,
   Transition,
-} from "../core/types/sdcpn";
+} from "../../core/types/sdcpn";
 import type { SelectionMap } from "./selection";
 
 export type MutationHelperFunctions = {

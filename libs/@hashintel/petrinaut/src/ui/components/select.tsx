@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { FaChevronDown } from "react-icons/fa6";
 
-import { usePortalContainerRef } from "../../state/portal-container-context";
+import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import { withTooltip } from "./hoc/with-tooltip";
 
 // -- Helpers ------------------------------------------------------------------

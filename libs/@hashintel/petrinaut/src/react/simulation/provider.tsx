@@ -14,7 +14,7 @@ import { createSimulationWorker } from "../../core/simulation/worker/create-simu
 import { deriveDefaultParameterValues } from "../../hooks/use-default-parameter-values";
 import { useLatest } from "../../hooks/use-latest";
 import { useStableCallback } from "../../hooks/use-stable-callback";
-import { SDCPNContext } from "../../state/sdcpn-context";
+import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
 import { SimulationToaster, type SimulationToast } from "./toaster";
 import {

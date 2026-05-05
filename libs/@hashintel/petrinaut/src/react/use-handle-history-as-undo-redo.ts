@@ -3,7 +3,7 @@ import type {
   PetrinautHistory,
   ReadableStore,
 } from "../core/handle";
-import type { UndoRedoContextValue } from "../state/undo-redo-context";
+import type { UndoRedoContextValue } from "./state/undo-redo-context";
 import { useStore } from "./use-store";
 
 function constStore<T>(value: T): ReadableStore<T> {

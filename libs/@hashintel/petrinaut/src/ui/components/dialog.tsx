@@ -4,7 +4,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ComponentProps, ReactNode } from "react";
 import { TbX } from "react-icons/tb";
 
-import { usePortalContainerRef } from "../../state/portal-container-context";
+import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import {
   Body,
   Card as PanelCard,

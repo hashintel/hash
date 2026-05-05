@@ -2,11 +2,11 @@ import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { use } from "react";
 
 import { snapPositionToGrid } from "../../../../lib/snap-position-to-grid";
-import { EditorContext } from "../../../../state/editor-context";
-import { MutationContext } from "../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../state/sdcpn-context";
-import type { SelectionMap } from "../../../../state/selection";
-import { UserSettingsContext } from "../../../../state/user-settings-context";
+import { EditorContext } from "../../../../react/state/editor-context";
+import { MutationContext } from "../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import type { SelectionMap } from "../../../../react/state/selection";
+import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 
 /**
  * A hook that provides a callback to apply ReactFlow node changes to the SDCPN store.

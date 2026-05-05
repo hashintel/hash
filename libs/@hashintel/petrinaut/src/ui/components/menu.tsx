@@ -3,7 +3,7 @@ import { Portal } from "@ark-ui/react/portal";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 
-import { usePortalContainerRef } from "../../state/portal-container-context";
+import { usePortalContainerRef } from "../../react/state/portal-container-context";
 
 // -- Styles (Figma: Menu component) ------------------------------------------
 

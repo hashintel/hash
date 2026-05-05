@@ -4,13 +4,13 @@ import { copySelectionToClipboard } from "../../../../../clipboard/clipboard";
 import type {
   CursorMode,
   EditorState,
-} from "../../../../../state/editor-context";
-import { EditorContext } from "../../../../../state/editor-context";
-import { MutationContext } from "../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
-import type { SelectionItem } from "../../../../../state/selection";
-import { UndoRedoContext } from "../../../../../state/undo-redo-context";
-import { useIsReadOnly } from "../../../../../state/use-is-read-only";
+} from "../../../../../react/state/editor-context";
+import { EditorContext } from "../../../../../react/state/editor-context";
+import { MutationContext } from "../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import type { SelectionItem } from "../../../../../react/state/selection";
+import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];

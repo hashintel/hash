@@ -6,7 +6,7 @@ import type {
   PetrinautPatch,
 } from "../../core/handle";
 import type { SDCPN } from "../../core/types/sdcpn";
-import { SDCPNContext } from "../../state/sdcpn-context";
+import { SDCPNContext } from "../state/sdcpn-context";
 import { usePetrinautInstance } from "../use-petrinaut-instance";
 import { useStore } from "../use-store";
 

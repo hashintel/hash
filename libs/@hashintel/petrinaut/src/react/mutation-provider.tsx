@@ -6,10 +6,10 @@ import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 import {
   MutationContext,
   type MutationContextValue,
-} from "../state/mutation-context";
-import { generateArcId, SDCPNContext } from "../state/sdcpn-context";
-import { useIsReadOnly } from "../state/use-is-read-only";
-import { UserSettingsContext } from "../state/user-settings-context";
+} from "./state/mutation-context";
+import { generateArcId, SDCPNContext } from "./state/sdcpn-context";
+import { useIsReadOnly } from "./state/use-is-read-only";
+import { UserSettingsContext } from "./state/user-settings-context";
 import {
   classicNodeDimensions,
   compactNodeDimensions,

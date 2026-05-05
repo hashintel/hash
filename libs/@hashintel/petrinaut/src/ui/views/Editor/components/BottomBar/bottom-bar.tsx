@@ -8,7 +8,7 @@ import {
   type CursorMode,
   EditorContext,
   type EditorState,
-} from "../../../../../state/editor-context";
+} from "../../../../../react/state/editor-context";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
 import { ToolbarButton } from "./toolbar-button";

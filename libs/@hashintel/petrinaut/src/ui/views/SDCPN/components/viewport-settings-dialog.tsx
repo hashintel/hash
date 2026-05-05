@@ -5,8 +5,8 @@ import { Button } from "../../../components/button";
 import { Dialog } from "../../../components/dialog";
 import { Select } from "../../../components/select";
 import { Switch } from "../../../components/switch";
-import type { ArcRendering } from "../../../../state/user-settings-context";
-import { UserSettingsContext } from "../../../../state/user-settings-context";
+import type { ArcRendering } from "../../../../react/state/user-settings-context";
+import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 
 const rowStyle = css({
   display: "grid",

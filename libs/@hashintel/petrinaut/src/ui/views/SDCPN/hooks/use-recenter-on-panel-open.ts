@@ -5,8 +5,8 @@ import {
   recenterToFitViewport,
   getViewportRect,
 } from "../../../../lib/viewport";
-import { EditorContext } from "../../../../state/editor-context";
-import { parseArcId } from "../../../../state/selection";
+import { EditorContext } from "../../../../react/state/editor-context";
+import { parseArcId } from "../../../../react/state/selection";
 
 const RE_CENTER_PADDING = 20;
 

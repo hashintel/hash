@@ -11,14 +11,14 @@ import {
   EditorContext,
   type EditorContextValue,
   initialEditorState,
-} from "../state/editor-context";
-import { MutationContext } from "../state/mutation-context";
-import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
+} from "./state/editor-context";
+import { MutationContext } from "./state/mutation-context";
+import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
 import {
   defaultUserSettings,
   UserSettingsContext,
   type UserSettingsContextValue,
-} from "../state/user-settings-context";
+} from "./state/user-settings-context";
 import { PetrinautInstanceContext } from "./instance-context";
 import { MutationProvider } from "./mutation-provider";
 import {

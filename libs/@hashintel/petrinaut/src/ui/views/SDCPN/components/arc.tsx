@@ -8,8 +8,8 @@ import {
 } from "@xyflow/react";
 import { type CSSProperties, use, useEffect, useRef } from "react";
 
-import { EditorContext } from "../../../../state/editor-context";
-import { UserSettingsContext } from "../../../../state/user-settings-context";
+import { EditorContext } from "../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { ArcEdgeType } from "../reactflow-types";
 

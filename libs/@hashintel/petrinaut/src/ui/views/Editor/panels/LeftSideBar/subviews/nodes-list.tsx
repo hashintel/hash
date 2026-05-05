@@ -5,7 +5,7 @@ import {
   PlaceFilledIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { SDCPNContext } from "../../../../../../state/sdcpn-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { createFilterableListSubView } from "./filterable-list-sub-view";
 
 interface NodeItem {

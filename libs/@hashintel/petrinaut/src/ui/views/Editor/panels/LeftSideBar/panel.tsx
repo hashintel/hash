@@ -11,8 +11,8 @@ import {
   LEFT_SIDEBAR_SUBVIEWS,
   LEFT_SIDEBAR_TREE_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-import { EditorContext } from "../../../../../state/editor-context";
-import { UserSettingsContext } from "../../../../../state/user-settings-context";
+import { EditorContext } from "../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { searchSubView } from "./subviews/search-panel";
 
 const glassPanelBaseStyle = css({

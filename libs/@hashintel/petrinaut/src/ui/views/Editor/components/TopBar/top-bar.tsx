@@ -11,8 +11,8 @@ import { Menu, type MenuItem } from "../../../../components/menu";
 import {
   EditorContext,
   type EditorState,
-} from "../../../../../state/editor-context";
-import { UndoRedoContext } from "../../../../../state/undo-redo-context";
+} from "../../../../../react/state/editor-context";
+import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
 import { VersionHistoryButton } from "./version-history-button";

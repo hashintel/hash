@@ -14,11 +14,11 @@ import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
 } from "../../../core/default-codes";
-import { EditorContext } from "../../../state/editor-context";
-import { MutationContext } from "../../../state/mutation-context";
-import { SDCPNContext } from "../../../state/sdcpn-context";
-import { useIsReadOnly } from "../../../state/use-is-read-only";
-import { UserSettingsContext } from "../../../state/user-settings-context";
+import { EditorContext } from "../../../react/state/editor-context";
+import { MutationContext } from "../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useIsReadOnly } from "../../../react/state/use-is-read-only";
+import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import type { ViewportAction } from "../../../types/viewport-action";
 import { Arc } from "./components/arc";
 import { ClassicPlaceNode } from "./components/classic-place-node";

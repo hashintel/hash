@@ -7,10 +7,10 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { DifferentialEquationIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../../core/default-codes";
-import { EditorContext } from "../../../../../../state/editor-context";
-import { MutationContext } from "../../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../../state/sdcpn-context";
-import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { MutationContext } from "../../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import {
   RowMenu,
   createFilterableListSubView,

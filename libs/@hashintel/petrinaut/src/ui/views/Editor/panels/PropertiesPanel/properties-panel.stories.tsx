@@ -12,7 +12,7 @@ import { MonacoProvider } from "../../../../monaco/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
-} from "../../../../../state/sdcpn-context";
+} from "../../../../../react/state/sdcpn-context";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { ParameterProperties } from "./parameter-properties/main";
 import { PlaceProperties } from "./place-properties/main";

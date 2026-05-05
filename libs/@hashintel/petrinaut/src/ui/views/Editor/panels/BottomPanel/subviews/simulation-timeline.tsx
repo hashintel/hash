@@ -25,8 +25,8 @@ import {
   EditorContext,
   type TimelineChartType,
   type TimelineView,
-} from "../../../../../../state/editor-context";
-import { SDCPNContext } from "../../../../../../state/sdcpn-context";
+} from "../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { CreateMetricDrawer } from "../../SimulateView/create-metric-drawer";
 import { ViewMetricDrawer } from "../../SimulateView/view-metric-drawer";
 

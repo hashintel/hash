@@ -5,7 +5,7 @@ import { MonacoProvider } from "../../../../monaco/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
-} from "../../../../../state/sdcpn-context";
+} from "../../../../../react/state/sdcpn-context";
 import { CreateScenarioForm } from "./create-scenario-drawer";
 
 // -- Stub data ----------------------------------------------------------------

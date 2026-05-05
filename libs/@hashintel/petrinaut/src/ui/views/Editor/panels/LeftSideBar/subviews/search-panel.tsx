@@ -13,9 +13,9 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { EditorContext } from "../../../../../../state/editor-context";
-import { SDCPNContext } from "../../../../../../state/sdcpn-context";
-import type { SelectionItem } from "../../../../../../state/selection";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import type { SelectionItem } from "../../../../../../react/state/selection";
 
 // -- Styles -------------------------------------------------------------------
 

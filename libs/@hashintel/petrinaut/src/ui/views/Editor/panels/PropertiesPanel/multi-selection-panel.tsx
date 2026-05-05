@@ -7,12 +7,12 @@ import { IconButton } from "../../../../components/icon-button";
 import type { SubView } from "../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
-import { EditorContext } from "../../../../../state/editor-context";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import type {
   SelectionItem,
   SelectionMap,
-} from "../../../../../state/selection";
-import { useIsReadOnly } from "../../../../../state/use-is-read-only";
+} from "../../../../../react/state/selection";
+import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 
 const containerStyle = css({
   display: "flex",

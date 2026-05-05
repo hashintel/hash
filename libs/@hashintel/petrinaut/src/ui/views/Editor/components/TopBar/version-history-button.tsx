@@ -3,7 +3,7 @@ import { LuCheck, LuHistory } from "react-icons/lu";
 
 import { IconButton } from "../../../../components/icon-button";
 import { Menu, type MenuItem } from "../../../../components/menu";
-import { UndoRedoContext } from "../../../../../state/undo-redo-context";
+import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);

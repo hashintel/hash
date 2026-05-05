@@ -14,7 +14,7 @@ import { useEphemeralHandle } from "../react/use-ephemeral-handle";
 import {
   UndoRedoContext,
   type UndoRedoContextValue,
-} from "../state/undo-redo-context";
+} from "../react/state/undo-redo-context";
 import type { ViewportAction } from "../types/viewport-action";
 import { PetrinautNext } from "./petrinaut-next";
 
@@ -31,7 +31,7 @@ export type {
   Transition,
 };
 
-export type { UndoRedoContextValue as UndoRedoProps } from "../state/undo-redo-context";
+export type { UndoRedoContextValue as UndoRedoProps } from "../react/state/undo-redo-context";
 export type { ViewportAction } from "../types/viewport-action";
 
 export type PetrinautProps = {

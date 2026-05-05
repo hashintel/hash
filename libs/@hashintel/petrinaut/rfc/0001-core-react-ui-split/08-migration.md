@@ -111,7 +111,7 @@ All 137 files moved via `git mv` (history preserved).
 
 **Pending Phase 1 moves** (no forcing function — done as a single tidiness commit later if desired):
 
-- `src/state/` → `src/react/state/`
+- ~~`src/state/` → `src/react/state/`~~ — done (post-Phase 3b). All 13 files (`*-context.ts`, `*-provider.tsx`, `selection.ts`, the `use-*` hooks) moved via `git mv`. Imports rewritten across 67 consumer files via perl. Two pre-existing `state/ → ui/constants/ui` type-only imports survived the move and now read `react/state/* → ui/constants/ui` — flagged for the layer-direction audit but not blocking. `portal-container-context.tsx` could later peel off into `/ui` (its consumers are all `/ui`), but it travels with the rest of `/state` for now.
 - `src/hooks/` → split between `src/core/` (pure) and `src/react/hooks/`
 - `src/clipboard/` → split between `src/core/clipboard/` (pure) and `src/ui/clipboard/` (DOM)
 - `src/file-format/` → split between `src/core/file-format/` (import) and `src/ui/file-format/` (export)

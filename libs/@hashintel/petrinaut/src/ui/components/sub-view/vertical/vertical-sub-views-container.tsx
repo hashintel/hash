@@ -3,7 +3,7 @@ import React, { Fragment, use, useEffect, useRef, useState } from "react";
 import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
-import { UserSettingsContext } from "../../../../state/user-settings-context";
+import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { InfoIconTooltip } from "../../tooltip";
 import type { SubView } from "../types";
 

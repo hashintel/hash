@@ -6,7 +6,7 @@ import { TbCircleFilled, TbMathFunction } from "react-icons/tb";
 import { hexToHsl } from "../../../../lib/hsl-color";
 import { PlaybackContext } from "../../../../react/playback/context";
 import { SimulationContext } from "../../../../react/simulation/context";
-import { EditorContext } from "../../../../state/editor-context";
+import { EditorContext } from "../../../../react/state/editor-context";
 import type { PlaceNodeType } from "../reactflow-types";
 import {
   iconBadgeStyle,

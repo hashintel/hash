@@ -8,11 +8,11 @@ import {
   MIN_PROPERTIES_PANEL_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import { EditorContext } from "../../../../../state/editor-context";
-import { MutationContext } from "../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
-import { usePanelTarget } from "../../../../../state/use-selection";
-import { UserSettingsContext } from "../../../../../state/user-settings-context";
+import { EditorContext } from "../../../../../react/state/editor-context";
+import { MutationContext } from "../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { usePanelTarget } from "../../../../../react/state/use-selection";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { ArcProperties } from "./arc-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { MultiSelectionPanel } from "./multi-selection-panel";

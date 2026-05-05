@@ -12,9 +12,9 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { Switch } from "../../../../../../components/switch";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { EditorContext } from "../../../../../../../state/editor-context";
-import { MutationContext } from "../../../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../../../state/sdcpn-context";
+import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { MutationContext } from "../../../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { validateEntityName } from "../../../../../../../validation/entity-name";
 import { usePlacePropertiesContext } from "../context";
 

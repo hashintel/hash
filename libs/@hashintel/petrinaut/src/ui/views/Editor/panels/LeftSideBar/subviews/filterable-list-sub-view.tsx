@@ -11,11 +11,11 @@ import type {
   SubView,
   SubViewResizeConfig,
 } from "../../../../../components/sub-view/types";
-import { EditorContext } from "../../../../../../state/editor-context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import type {
   SelectionItem,
   SelectionMap,
-} from "../../../../../../state/selection";
+} from "../../../../../../react/state/selection";
 
 const listContainerStyle = css({
   display: "flex",

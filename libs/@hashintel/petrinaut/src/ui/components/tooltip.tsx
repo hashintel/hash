@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { FaInfoCircle } from "react-icons/fa";
 import { LuInfo } from "react-icons/lu";
 
-import { usePortalContainerRef } from "../../state/portal-container-context";
+import { usePortalContainerRef } from "../../react/state/portal-container-context";
 
 const tooltipContentStyle = css({
   backgroundColor: "neutral.s120",

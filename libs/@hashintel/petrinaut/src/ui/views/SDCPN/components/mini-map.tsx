@@ -5,7 +5,7 @@ import { use } from "react";
 
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { hexToHsl } from "../../../../lib/hsl-color";
-import { EditorContext } from "../../../../state/editor-context";
+import { EditorContext } from "../../../../react/state/editor-context";
 import type { NodeType } from "../reactflow-types";
 
 const miniMapClassName = css({

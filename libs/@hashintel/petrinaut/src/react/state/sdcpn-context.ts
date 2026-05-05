@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
+import type { MinimalNetMetadata, SDCPN } from "../../core/types/sdcpn";
 
 export const ARC_ID_PREFIX = "$A_";
 export type ArcIdPrefix = typeof ARC_ID_PREFIX;

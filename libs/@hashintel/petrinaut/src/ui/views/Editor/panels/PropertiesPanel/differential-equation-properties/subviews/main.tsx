@@ -18,7 +18,7 @@ import {
 } from "../../../../../../../core/default-codes";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
-import { useIsReadOnly } from "../../../../../../../state/use-is-read-only";
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useDiffEqPropertiesContext } from "../context";
 
 const colorDotStyle = css({

@@ -4,7 +4,7 @@ import {
   DEFAULT_BOTTOM_PANEL_HEIGHT,
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
-} from "../ui/constants/ui";
+} from "../../ui/constants/ui";
 import type {
   BottomPanelTab,
   CursorMode,

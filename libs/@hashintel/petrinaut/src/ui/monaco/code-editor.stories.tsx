@@ -8,7 +8,7 @@ import { LanguageClientProvider } from "../../react/lsp/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
-} from "../../state/sdcpn-context";
+} from "../../react/state/sdcpn-context";
 import { CodeEditor } from "./code-editor";
 import { MonacoProvider } from "./provider";
 

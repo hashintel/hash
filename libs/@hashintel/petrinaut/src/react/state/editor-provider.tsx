@@ -8,7 +8,7 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
-import { getNodeConnections } from "../lib/get-connections";
+import { getNodeConnections } from "../../lib/get-connections";
 import { SDCPNContext } from "./sdcpn-context";
 import type { SelectionItem, SelectionMap } from "./selection";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";

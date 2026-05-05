@@ -3,7 +3,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { type ReactNode, use } from "react";
 import { FaChevronUp } from "react-icons/fa6";
 
-import { UserSettingsContext } from "../../state/user-settings-context";
+import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { IconButton } from "./icon-button";
 import { InfoIconTooltip } from "./tooltip";
 

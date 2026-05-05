@@ -8,8 +8,8 @@ import { metricSchema } from "../../../../../core/schemas/metric-schema";
 import type { Metric } from "../../../../../core/types/sdcpn";
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { compileMetric } from "../../../../../core/simulation/compile-metric";
-import { MutationContext } from "../../../../../state/mutation-context";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { MutationContext } from "../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import {
   MetricFormBody,
   type MetricFormInstance,

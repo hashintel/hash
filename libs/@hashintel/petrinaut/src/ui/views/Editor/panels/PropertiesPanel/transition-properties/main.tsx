@@ -7,7 +7,7 @@ import type {
   Place,
   Transition,
 } from "../../../../../../core/types/sdcpn";
-import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
+import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { TransitionPropertiesProvider } from "./context";
 import { transitionMainContentSubView } from "./subviews/main";
 import { transitionFiringTimeSubView } from "./subviews/transition-firing-time/subview";

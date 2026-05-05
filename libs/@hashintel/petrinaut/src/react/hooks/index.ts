@@ -55,7 +55,7 @@ export {
 } from "./use-lsp";
 
 // Re-export the existing read-only hook from its current location.
-export { useIsReadOnly } from "../../state/use-is-read-only";
+export { useIsReadOnly } from "../state/use-is-read-only";
 
 // Instance access + low-level store adapter.
 export { usePetrinautInstance } from "../use-petrinaut-instance";

@@ -22,8 +22,8 @@ import { SimulationContext } from "../../../../../react/simulation/context";
 import {
   type BottomPanelTab,
   EditorContext,
-} from "../../../../../state/editor-context";
-import { UserSettingsContext } from "../../../../../state/user-settings-context";
+} from "../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 
 const glassPanelBaseStyle = css({
   position: "absolute",

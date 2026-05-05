@@ -10,7 +10,7 @@ import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { generateDefaultTransitionKernelCode } from "../../../../../../../../core/default-codes";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
-import { EditorContext } from "../../../../../../../../state/editor-context";
+import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { useTransitionPropertiesContext } from "../../context";
 
 const aiMenuItemStyle = css({

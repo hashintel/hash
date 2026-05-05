@@ -3,7 +3,7 @@ import type { NodeProps } from "@xyflow/react";
 import { use, useEffect, useRef } from "react";
 import { TbBolt, TbLambda, TbSquareFilled } from "react-icons/tb";
 
-import { EditorContext } from "../../../../state/editor-context";
+import { EditorContext } from "../../../../react/state/editor-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { TransitionNodeType } from "../reactflow-types";
 import {

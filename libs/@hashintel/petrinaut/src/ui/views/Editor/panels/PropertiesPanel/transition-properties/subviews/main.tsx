@@ -13,7 +13,7 @@ import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { MutationContext } from "../../../../../../../state/mutation-context";
+import { MutationContext } from "../../../../../../../react/state/mutation-context";
 import { validateDisplayName } from "../../../../../../../validation/display-name";
 import { useTransitionPropertiesContext } from "../context";
 

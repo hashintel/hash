@@ -11,9 +11,9 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import type { SDCPN } from "../../../../../../core/types/sdcpn";
-import { EditorContext } from "../../../../../../state/editor-context";
-import { parseArcId } from "../../../../../../state/selection";
-import { useIsReadOnly } from "../../../../../../state/use-is-read-only";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { parseArcId } from "../../../../../../react/state/selection";
+import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 
 const containerStyle = css({
   display: "flex",

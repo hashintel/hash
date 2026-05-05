@@ -7,7 +7,7 @@ import { hexToHsl } from "../../../../lib/hsl-color";
 import { splitPascalCase } from "../../../../lib/split-pascal-case";
 import { PlaybackContext } from "../../../../react/playback/context";
 import { SimulationContext } from "../../../../react/simulation/context";
-import { EditorContext } from "../../../../state/editor-context";
+import { EditorContext } from "../../../../react/state/editor-context";
 import type { PlaceNodeType } from "../reactflow-types";
 import { handleStyling } from "../styles/styling";
 

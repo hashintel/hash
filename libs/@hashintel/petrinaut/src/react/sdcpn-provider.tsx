@@ -4,7 +4,7 @@ import {
   ARC_ID_PREFIX,
   SDCPNContext,
   type SDCPNContextValue,
-} from "../state/sdcpn-context";
+} from "./state/sdcpn-context";
 import { NetManagementContext } from "./net-management-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 import { useStore } from "./use-store";

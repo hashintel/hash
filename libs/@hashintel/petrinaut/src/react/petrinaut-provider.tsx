@@ -1,9 +1,9 @@
 import { type ReactNode } from "react";
 
 import type { Petrinaut } from "../core/instance";
-import { EditorProvider } from "../state/editor-provider";
-import { UndoRedoContext } from "../state/undo-redo-context";
-import { UserSettingsProvider } from "../state/user-settings-provider";
+import { EditorProvider } from "./state/editor-provider";
+import { UndoRedoContext } from "./state/undo-redo-context";
+import { UserSettingsProvider } from "./state/user-settings-provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
 import { MutationProvider } from "./mutation-provider";

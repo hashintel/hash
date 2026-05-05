@@ -11,7 +11,7 @@ import type {
   Scenario,
   ScenarioParameter,
 } from "../../../../../core/types/sdcpn";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 
 // -- Styles -------------------------------------------------------------------
 

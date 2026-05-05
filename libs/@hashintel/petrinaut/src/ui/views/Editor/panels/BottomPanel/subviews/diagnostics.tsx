@@ -8,9 +8,9 @@ import type { SubView } from "../../../../../components/sub-view/types";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { SimulationContext } from "../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../state/editor-context";
-import { SDCPNContext } from "../../../../../../state/sdcpn-context";
-import type { SelectionItemType } from "../../../../../../state/selection";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import type { SelectionItemType } from "../../../../../../react/state/selection";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",

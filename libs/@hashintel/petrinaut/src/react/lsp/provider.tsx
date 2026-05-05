@@ -2,7 +2,7 @@ import { use, useEffect, useState } from "react";
 
 import { createLanguageClient } from "../../core/lsp";
 import { useStore } from "../use-store";
-import { SDCPNContext } from "../../state/sdcpn-context";
+import { SDCPNContext } from "../state/sdcpn-context";
 import { LanguageClientContext } from "./context";
 
 /** Dynamically import and instantiate the language server worker (inlined as blob URL). */

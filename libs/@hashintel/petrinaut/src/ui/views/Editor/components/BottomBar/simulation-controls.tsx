@@ -5,7 +5,7 @@ import { MdRotateLeft } from "react-icons/md";
 
 import { PlaybackContext } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../state/editor-context";
+import { EditorContext } from "../../../../../react/state/editor-context";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";

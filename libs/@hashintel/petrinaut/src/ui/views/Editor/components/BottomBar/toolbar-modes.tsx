@@ -7,8 +7,8 @@ import { Menu, type MenuItem } from "../../../../components/menu";
 import type {
   CursorMode,
   EditorState,
-} from "../../../../../state/editor-context";
-import { useIsReadOnly } from "../../../../../state/use-is-read-only";
+} from "../../../../../react/state/editor-context";
+import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 

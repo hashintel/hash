@@ -12,8 +12,8 @@ import type { Metric, Scenario } from "../../../../../core/types/sdcpn";
 import {
   EditorContext,
   type SimulateViewMode,
-} from "../../../../../state/editor-context";
-import { SDCPNContext } from "../../../../../state/sdcpn-context";
+} from "../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import { CreateMetricDrawer } from "./create-metric-drawer";
 import { CreateScenarioDrawer } from "./create-scenario-drawer";
