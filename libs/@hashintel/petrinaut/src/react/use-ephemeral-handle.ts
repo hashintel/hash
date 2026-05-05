@@ -14,7 +14,7 @@ const READY_STATE_STORE: ReadableStore<DocHandleState> = {
   subscribe: () => () => {},
 };
 
-export type EphemeralHandleProps = {
+type EphemeralHandleProps = {
   petriNetId: string | null;
   petriNetDefinition: SDCPN;
   mutatePetriNetDefinition: MutateSDCPN;

@@ -431,7 +431,7 @@ export type ScenarioFormInstance = ReturnType<typeof useScenarioForm>;
  * Generates a unique session ID, initializes on mount, updates on structural
  * changes, and kills on unmount.
  */
-export function useScenarioLspSession({
+function useScenarioLspSession({
   scenarioParams,
   parameterOverrides,
   initialTokenCounts,
@@ -520,7 +520,7 @@ interface ScenarioFormSectionsProps {
 
 let nextKey = 0;
 
-export const ScenarioFormSections = ({
+const ScenarioFormSections = ({
   state,
   callbacks,
   parameters,

@@ -88,60 +88,6 @@ const TabButton: React.FC<TabButtonProps> = ({
   );
 };
 
-interface HorizontalTabsContainerProps {
-  /** Array of subviews to display as tabs */
-  subViews: SubView[];
-  /** ID of the currently active tab */
-  activeTabId: string;
-  /** Callback when a tab is selected */
-  onTabChange: (tabId: string) => void;
-}
-
-/**
- * Container that displays subviews as horizontal tabs.
- *
- * This component returns both the tabs header and the content area as separate
- * parts that can be composed into the parent layout.
- */
-export const HorizontalTabsContainer: React.FC<
-  HorizontalTabsContainerProps
-> = ({ subViews, activeTabId, onTabChange }) => {
-  const activeSubView =
-    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
-
-  if (!activeSubView) {
-    return null;
-  }
-
-  const Component = activeSubView.component;
-
-  return (
-    <>
-      {/* Tab Header */}
-      <div className={tabsContainerStyle} role="tablist">
-        {subViews.map((subView) => (
-          <TabButton
-            key={subView.id}
-            subView={subView}
-            isActive={activeTabId === subView.id}
-            onClick={() => onTabChange(subView.id)}
-          />
-        ))}
-      </div>
-
-      {/* Content */}
-      <div
-        id={`tabpanel-${activeTabId}`}
-        className={contentStyle({ padded: !activeSubView.noPadding })}
-        role="tabpanel"
-        aria-labelledby={`tab-${activeTabId}`}
-      >
-        <Component />
-      </div>
-    </>
-  );
-};
-
 /**
  * Renders just the tab bar portion of the horizontal tabs.
  * Useful when you need to compose the tabs header separately from the content.

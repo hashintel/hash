@@ -3,12 +3,6 @@ import type { SelectionMap } from "../state/selection";
 import { pastePayloadIntoSDCPN } from "./paste";
 import { parseClipboardPayload, serializeSelection } from "./serialize";
 
-export { deduplicateName } from "./deduplicate-name";
-export { pastePayloadIntoSDCPN } from "./paste";
-export { parseClipboardPayload, serializeSelection } from "./serialize";
-export type { ClipboardPayload } from "./types";
-export { CLIPBOARD_FORMAT_VERSION } from "./types";
-
 /**
  * Copy the current selection to the system clipboard.
  */

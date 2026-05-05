@@ -185,7 +185,7 @@ interface MetricFormSectionsProps {
   metricSessionId?: string;
 }
 
-export const MetricFormSections = ({
+const MetricFormSections = ({
   state,
   callbacks,
   idPrefix = "",

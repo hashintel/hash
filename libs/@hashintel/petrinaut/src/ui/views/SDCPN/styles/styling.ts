@@ -8,9 +8,6 @@ export const classicNodeDimensions = {
   transition: { width: 160, height: 80 },
 };
 
-/** @deprecated Use compactNodeDimensions or classicNodeDimensions */
-export const nodeDimensions = compactNodeDimensions;
-
 /**
  * Opacity of the white overlay used to lighten nodes that are not part of
  * the current selection or its connected neighbours.

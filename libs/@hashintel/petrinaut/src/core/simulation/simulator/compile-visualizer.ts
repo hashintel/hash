@@ -93,6 +93,3 @@ export function compileVisualizer(code: string): VisualizerComponent {
     throw new Error(`Failed to compile visualizer code: ${errorMessage}`);
   }
 }
-
-// Export createElement for use by compiled code if needed
-export { createElement };

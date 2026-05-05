@@ -14,7 +14,7 @@
  * ```
  */
 
-export interface HslColor {
+interface HslColor {
   /** Hue (0-360) */
   h: number;
   /** Saturation (0-100) */
@@ -47,7 +47,7 @@ export interface HslColor {
  * @param s - Saturation (0-100)
  * @param l - Lightness (0-100)
  */
-export function hsl(h: number, s: number, l: number): HslColor {
+function hsl(h: number, s: number, l: number): HslColor {
   const clamp = (val: number, min: number, max: number) =>
     Math.min(max, Math.max(min, val));
 
@@ -81,7 +81,7 @@ export function hsl(h: number, s: number, l: number): HslColor {
  * @param g - Green (0-255)
  * @param b - Blue (0-255)
  */
-export function rgbToHsl(r: number, g: number, b: number): HslColor {
+function rgbToHsl(r: number, g: number, b: number): HslColor {
   const rNorm = r / 255;
   const gNorm = g / 255;
   const bNorm = b / 255;
