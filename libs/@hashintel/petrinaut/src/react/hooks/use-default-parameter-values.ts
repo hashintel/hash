@@ -4,8 +4,8 @@ import {
   type DefaultParameterValues,
   deriveDefaultParameterValues,
   mergeParameterValues,
-} from "../core/parameter-values";
-import { SDCPNContext } from "../react/state/sdcpn-context";
+} from "../../core/parameter-values";
+import { SDCPNContext } from "../state/sdcpn-context";
 
 // Re-export the pure utilities for back-compat with existing import sites.
 // The canonical home is `@hashintel/petrinaut/core/parameter-values`.

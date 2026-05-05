@@ -7,8 +7,8 @@ import {
   type PlaybackSpeed,
   type PlayMode,
 } from "../../core/playback";
-import { useLatest } from "../../hooks/use-latest";
-import { useStableCallback } from "../../hooks/use-stable-callback";
+import { useLatest } from "../hooks/use-latest";
+import { useStableCallback } from "../hooks/use-stable-callback";
 import {
   SimulationContext,
   type SimulationFrame,

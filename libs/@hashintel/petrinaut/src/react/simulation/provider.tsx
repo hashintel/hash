@@ -12,9 +12,9 @@ import {
   type CompiledScenarioResult,
 } from "../../core/simulation/compile-scenario";
 import { createSimulationWorker } from "../../core/simulation/worker/create-simulation-worker";
-import { deriveDefaultParameterValues } from "../../hooks/use-default-parameter-values";
-import { useLatest } from "../../hooks/use-latest";
-import { useStableCallback } from "../../hooks/use-stable-callback";
+import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
+import { useLatest } from "../hooks/use-latest";
+import { useStableCallback } from "../hooks/use-stable-callback";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
 import { SimulationToaster, type SimulationToast } from "./toaster";

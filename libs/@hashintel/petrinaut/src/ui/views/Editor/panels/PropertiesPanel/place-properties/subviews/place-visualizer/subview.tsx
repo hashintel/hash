@@ -16,7 +16,7 @@ import {
 import {
   mergeParameterValues,
   useDefaultParameterValues,
-} from "../../../../../../../../hooks/use-default-parameter-values";
+} from "../../../../../../../../react/hooks/use-default-parameter-values";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";

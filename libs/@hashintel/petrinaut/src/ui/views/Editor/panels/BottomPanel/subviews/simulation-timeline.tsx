@@ -8,9 +8,9 @@ import { IconButton } from "../../../../../components/icon-button";
 import { SegmentGroup } from "../../../../../components/segment-group";
 import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
-import { useElementSize } from "../../../../../../hooks/use-element-size";
-import { useLatest } from "../../../../../../hooks/use-latest";
-import { useStableCallback } from "../../../../../../hooks/use-stable-callback";
+import { useElementSize } from "../../../../../../react/hooks/use-element-size";
+import { useLatest } from "../../../../../../react/hooks/use-latest";
+import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../../react/playback/context";
 import {
   type CompiledMetric,
