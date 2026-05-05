@@ -1,8 +1,7 @@
 import { use, type ReactNode } from "react";
 
-import { pasteFromClipboard } from "../clipboard/clipboard";
 import { generateArcId } from "../core/arc-id";
-import type { MutateSDCPN, SDCPN } from "../core/types/sdcpn";
+import type { SDCPN } from "../core/types/sdcpn";
 import {
   MutationContext,
   type MutationContextValue,
@@ -23,10 +22,6 @@ export const MutationProvider: React.FC<{ children: ReactNode }> = ({
   const instance = usePetrinautInstance();
   const { readonly } = use(SDCPNContext);
   const isReadOnly = useIsReadOnly();
-
-  const mutatePetriNetDefinition: MutateSDCPN = (fn) => {
-    instance.mutate(fn);
-  };
 
   function guardedMutate(fn: (sdcpn: SDCPN) => void): void {
     if (isReadOnly) {
@@ -481,12 +476,6 @@ export const MutationProvider: React.FC<{ children: ReactNode }> = ({
           }
         }
       });
-    },
-    async pasteEntities() {
-      if (isReadOnly) {
-        return null;
-      }
-      return pasteFromClipboard(mutatePetriNetDefinition);
     },
     commitNodePositions(commits) {
       guardedMutate((sdcpn) => {

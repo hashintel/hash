@@ -1,5 +1,5 @@
-import type { SDCPN } from "../core/types/sdcpn";
-import type { SelectionMap } from "../core/types/selection";
+import type { SDCPN } from "../types/sdcpn";
+import type { SelectionMap } from "../types/selection";
 import {
   CLIPBOARD_FORMAT_VERSION,
   type ClipboardPayload,

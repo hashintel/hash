@@ -392,18 +392,6 @@ describe("MutationProvider (instance bridge)", () => {
       expect(mutateFn).not.toHaveBeenCalled();
     });
 
-    test("pasteEntities returns null when readonly", async () => {
-      const { Wrapper } = createWrapper({ readonly: true });
-      const { result } = renderHook(useMutations, { wrapper: Wrapper });
-
-      let pasteResult: unknown;
-      await act(async () => {
-        pasteResult = await result.current.pasteEntities();
-      });
-
-      expect(pasteResult).toBeNull();
-    });
-
     test("commitNodePositions no-ops when readonly", () => {
       const sdcpn = makeSDCPN({
         places: [

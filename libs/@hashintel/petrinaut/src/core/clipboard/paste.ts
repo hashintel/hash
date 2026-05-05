@@ -1,6 +1,6 @@
 import { v4 as generateUuid } from "uuid";
 
-import type { SDCPN } from "../core/types/sdcpn";
+import type { SDCPN } from "../types/sdcpn";
 import { deduplicateName } from "./deduplicate-name";
 import type { ClipboardPayload } from "./types";
 

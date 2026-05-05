@@ -1,6 +1,7 @@
 import { use, useEffect, useEffectEvent } from "react";
 
-import { copySelectionToClipboard } from "../../../../../clipboard/clipboard";
+import type { SelectionItem } from "../../../../../core/types/selection";
+import { usePetrinautInstance } from "../../../../../react/use-petrinaut-instance";
 import type {
   CursorMode,
   EditorState,
@@ -8,9 +9,12 @@ import type {
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import type { SelectionItem } from "../../../../../core/types/selection";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
+import {
+  copySelectionToClipboard,
+  pasteFromClipboard,
+} from "../../../../clipboard/clipboard";
 
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
@@ -31,7 +35,8 @@ export function useKeyboardShortcuts(
     searchInputRef,
   } = use(EditorContext);
   const { petriNetDefinition, petriNetId } = use(SDCPNContext);
-  const { deleteItemsByIds, pasteEntities } = use(MutationContext);
+  const { deleteItemsByIds } = use(MutationContext);
+  const instance = usePetrinautInstance();
   const isReadonly = useIsReadOnly();
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
@@ -105,7 +110,7 @@ export function useKeyboardShortcuts(
 
       if (key === "v" && !isReadonly) {
         event.preventDefault();
-        void pasteEntities().then((newItemIds) => {
+        void pasteFromClipboard(instance.mutate).then((newItemIds) => {
           if (newItemIds && newItemIds.length > 0) {
             setSelection(
               new Map(

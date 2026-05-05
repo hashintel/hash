@@ -76,7 +76,6 @@ export type MutationHelperFunctions = {
   updateMetric: (metricId: string, updateFn: (metric: Metric) => void) => void;
   removeMetric: (metricId: string) => void;
   deleteItemsByIds: (items: SelectionMap) => void;
-  pasteEntities: () => Promise<Array<{ type: string; id: string }> | null>;
   commitNodePositions: (
     commits: Array<{
       id: string;
@@ -117,7 +116,6 @@ const DEFAULT_CONTEXT_VALUE: MutationContextValue = {
   updateMetric: () => {},
   removeMetric: () => {},
   deleteItemsByIds: () => {},
-  pasteEntities: async () => null,
   commitNodePositions: () => {},
 };
 

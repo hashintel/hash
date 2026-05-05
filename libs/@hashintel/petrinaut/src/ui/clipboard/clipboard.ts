@@ -1,7 +1,10 @@
-import type { SDCPN } from "../core/types/sdcpn";
-import type { SelectionMap } from "../core/types/selection";
-import { pastePayloadIntoSDCPN } from "./paste";
-import { parseClipboardPayload, serializeSelection } from "./serialize";
+import type { SDCPN } from "../../core/types/sdcpn";
+import type { SelectionMap } from "../../core/types/selection";
+import { pastePayloadIntoSDCPN } from "../../core/clipboard/paste";
+import {
+  parseClipboardPayload,
+  serializeSelection,
+} from "../../core/clipboard/serialize";
 
 /**
  * Copy the current selection to the system clipboard.
