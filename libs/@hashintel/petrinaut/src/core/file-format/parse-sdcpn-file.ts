@@ -1,9 +1,9 @@
+import type { SDCPN } from "../types/sdcpn";
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,
   sdcpnFileSchema,
-} from "../core/file-format/types";
-import type { SDCPN } from "../core/types/sdcpn";
+} from "./types";
 
 type SDCPNWithTitle = SDCPN & { title: string };
 
@@ -60,7 +60,9 @@ const fillMissingVisualInfo = (sdcpn: {
   }) as SDCPNWithTitle;
 
 /**
- * Parses raw JSON data into an SDCPN, handling versioned, legacy, and old pre-2025-11-28 formats.
+ * Parses raw JSON data into an SDCPN, handling versioned, legacy, and old
+ * pre-2025-11-28 formats. Pure — no DOM, no I/O. Callers (e.g. the `/ui`
+ * file-picker wrapper) are responsible for sourcing the data.
  */
 export const parseSDCPNFile = (data: unknown): ImportResult => {
   // Try the versioned format first
@@ -111,45 +113,3 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
     error: `Invalid SDCPN file: ${legacy.error.issues.map((i) => i.message).join(", ")}`,
   };
 };
-
-/**
- * Opens a file picker dialog and reads an SDCPN JSON file.
- * Returns a promise that resolves with the import result, or null if the user cancelled.
- */
-export function importSDCPN(): Promise<ImportResult | null> {
-  return new Promise((resolve) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-
-    input.onchange = (event) => {
-      const file = (event.target as HTMLInputElement).files?.[0];
-      if (!file) {
-        resolve(null);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const content = ev.target?.result as string;
-          const loadedData: unknown = JSON.parse(content);
-          resolve(parseSDCPNFile(loadedData));
-        } catch (error) {
-          resolve({
-            ok: false,
-            error: `Error reading file: ${error instanceof Error ? error.message : String(error)}`,
-          });
-        }
-      };
-
-      reader.onerror = () => {
-        resolve({ ok: false, error: "Failed to read file" });
-      };
-
-      reader.readAsText(file);
-    };
-
-    input.click();
-  });
-}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseSDCPNFile } from "./import-sdcpn";
+import { parseSDCPNFile } from "./parse-sdcpn-file";
 
 const minimalPlace = {
   id: "p1",
