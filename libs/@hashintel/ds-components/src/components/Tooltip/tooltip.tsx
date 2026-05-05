@@ -1,12 +1,27 @@
 import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { cx } from "@hashintel/ds-helpers/css";
+import { useEffect, useRef } from "react";
 import type { RequireExactlyOne } from "type-fest";
 
-import { contentStyles, positionerStyles } from "./tooltip.recipe";
+import {
+  contentStyles,
+  positionerStyles,
+  triggerStyles,
+} from "./tooltip.recipe";
 
 type Direction = "bottom" | "top" | "left" | "right";
 type Position = Direction | `${Direction}-${"start" | "end"}`;
+
+function isDomFocusable(el: HTMLElement): boolean {
+  if (el.tabIndex < 0) {
+    return false;
+  }
+  if ("disabled" in el && (el as HTMLButtonElement).disabled) {
+    return false;
+  }
+  return true;
+}
 
 function getPositioningOffset(position: Position, gapX: number, gapY: number) {
   const direction = position.split("-")[0] ?? "bottom";
@@ -62,20 +77,38 @@ export const Tooltip = ({
       describeChild?: false;
     }
 >) => {
+  const triggerRef = useRef<HTMLSpanElement>(null);
+
+  // If the child is not focusable, add a tabindex to the wrapper element to focus it
+  useEffect(() => {
+    if (disableTooltip) {
+      return;
+    }
+
+    const triggerEl = triggerRef.current
+      ?.firstElementChild as HTMLElement | null;
+
+    // If the trigger element is plain text
+    if (triggerRef.current && !triggerEl && triggerRef.current.textContent) {
+      triggerRef.current.tabIndex = 0;
+      // Or if the trigger element is not focusable
+    } else if (triggerRef.current && triggerEl && !isDomFocusable(triggerEl)) {
+      triggerRef.current.tabIndex = 0;
+      triggerRef.current.role = "button";
+    }
+  }, [children, disableTooltip]);
+
+  const wrappedChildren = (
+    <span ref={triggerRef} className={cx(triggerStyles, className)}>
+      {children}
+    </span>
+  );
+
   if (disableTooltip) {
-    return children;
+    return wrappedChildren;
   }
 
   const offset = getPositioningOffset(position, gapX, gapY);
-  const wrappedChildren =
-    typeof children === "string" ||
-    typeof children === "number" ||
-    typeof children === "boolean" ||
-    typeof children === "bigint" ? (
-      <span>{children}</span>
-    ) : (
-      children
-    );
 
   return (
     <ArkTooltip.Root
@@ -99,9 +132,7 @@ export const Tooltip = ({
       <ArkTooltip.Trigger asChild>{wrappedChildren}</ArkTooltip.Trigger>
       <Portal>
         <ArkTooltip.Positioner className={positionerStyles}>
-          <ArkTooltip.Content
-            className={cx(contentStyles({ variant }), className)}
-          >
+          <ArkTooltip.Content className={contentStyles({ variant })}>
             {content}
           </ArkTooltip.Content>
         </ArkTooltip.Positioner>
