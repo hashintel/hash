@@ -17,8 +17,8 @@ export {
 } from "./net-management-context";
 
 // --- Error tracker DI ---
-export { ErrorTrackerContext } from "../error-tracker/error-tracker.context";
-export type { ErrorTracker } from "../error-tracker/error-tracker.context";
+export { ErrorTrackerContext } from "./error-tracker-context";
+export type { ErrorTracker } from "./error-tracker-context";
 
 // --- Public hook surface ---
 export * from "./hooks";

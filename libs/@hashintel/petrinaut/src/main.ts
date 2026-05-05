@@ -1,5 +1,5 @@
-export type { ErrorTracker } from "./error-tracker/error-tracker.context";
-export { ErrorTrackerContext } from "./error-tracker/error-tracker.context";
+export type { ErrorTracker } from "./react/error-tracker-context";
+export { ErrorTrackerContext } from "./react/error-tracker-context";
 
 // SDCPN domain types (previously re-exported via the legacy `<Petrinaut>`
 // barrel). Kept on the back-compat surface so downstream consumers don't

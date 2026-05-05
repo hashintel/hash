@@ -1,6 +1,6 @@
 # RFC 0001 — Petrinaut: Core / React / UI Split
 
-**Status:** Draft (iterating) — Phase 0 + 2a/2b/2c/2d + 3a + 3b + 4 + 5 landed; post-3b polish (legacy retirement + rename, layer-direction lint, host-controlled workers) landed; Phase 1 layout sweep complete (every top-level dir now lives under `/core/`, `/react/`, or `/ui/` apart from the intentional `/examples/` and `/error-tracker/`)
+**Status:** Draft (iterating) — Phase 0 + 2a/2b/2c/2d + 3a + 3b + 4 + 5 landed; post-3b polish (legacy retirement + rename, layer-direction lint, host-controlled workers) landed; Phase 1 layout sweep complete (every top-level dir now lives under `/core/`, `/react/`, or `/ui/` apart from the intentional `/examples/`)
 **Authors:** @cf
 **Created:** 2026-04-28
 **Last updated:** 2026-05-05
@@ -66,7 +66,7 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
   - **`/validation` export surface trimmed** (schemas + result-type aliases unexported per knip).
   - **Consumer migration**: `apps/petrinaut-website` fully on subpath imports (`/core`, `/react`, `/ui`); `apps/hash-frontend` stays on the back-compat barrel (older `moduleResolution`) but its editor wrapper migrated from the legacy prop-shape to the handle-based API.
 
-- **Phase 1 layout sweep** landed across a series of `git mv` commits. Every top-level dir except `/core/`, `/react/`, `/ui/`, `/examples/`, and `/error-tracker/` is gone:
+- **Phase 1 layout sweep** landed across a series of `git mv` commits. Every top-level dir except `/core/`, `/react/`, `/ui/`, and `/examples/` is gone:
   - `src/state/` → `src/react/state/` (+ pure pieces extracted to `/core`: `arc-id.ts`, `types/selection.ts`, `lib/get-connections.ts`).
   - `src/lib/` split — pure (`deep-equal`) into `/core/lib/`; UI-bound (`calculate-graph-layout`, `hsl-color`, `snap-position-to-grid`, `split-pascal-case`, `viewport`) into `/ui/lib/`.
   - `src/file-format/` split — pure conversion (`serialize-sdcpn`, `parse-sdcpn-file`, `sdcpn-to-tikz`, `types`, `remove-visual-info`) into `/core/file-format/`; browser-bound import/export wrappers into `/ui/file-io/` (deliberately renamed — the `/ui` side does file I/O, not format definition). New `/ui/lib/download-blob.ts` exposes a generic `downloadBlob` + `timestampedFilename` so future format exporters don't duplicate the DOM plumbing.
@@ -75,7 +75,7 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
   - `src/validation/` → `src/core/validation/` — pure zod-based validators.
   - `src/types/viewport-action.ts` → `src/ui/types/viewport-action.ts` — UI-shaped type carrying `React.ReactNode`.
   - `src/examples/` stays at root (decision: 2026-05-05 — will become its own `@hashintel/petrinaut/examples` subpath export with per-example demo-site routes; revisit when that flow lands).
-  - `src/error-tracker/` stays at root per the RFC's earlier decision.
+  - `src/error-tracker/error-tracker.context.ts` → `src/react/error-tracker-context.ts` — `ErrorTracker` is a React context (host plugs Sentry / Datadog in via the provider), so `/react` is the layer-correct home. Considered placing it in `/core` so the simulation worker / handle could call it directly, but rejected: `/core` already has typed error channels (`simulation.events`, `lsp.diagnostics`, `handle.state`) for everything observable, and a generic capture callback would duplicate them. The wiring-fix (actually using it from worker error paths and React error boundaries) is folded into FE-694.
 
 ## What this RFC does *not* cover
 
