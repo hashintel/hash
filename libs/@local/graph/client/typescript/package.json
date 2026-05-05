@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@openapitools/openapi-generator-cli": "2.31.1",
-    "axios": "1.15.0"
+    "axios": "1.15.2"
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
