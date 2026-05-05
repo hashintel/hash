@@ -5,6 +5,7 @@ import {
   createSimulation,
   type Simulation,
   type SimulationState as CoreSimulationState,
+  type WorkerFactory,
 } from "../../core/simulation";
 import {
   compileScenario,
@@ -97,15 +98,29 @@ function mapCoreState(status: CoreSimulationState | null): SimulationState {
 const TOAST_DURATION_MS = 3000;
 const TOAST_FADE_OUT_MS = 200;
 
-type SimulationProviderProps = React.PropsWithChildren;
+type SimulationProviderProps = React.PropsWithChildren<{
+  /**
+   * Factory that produces the simulation worker. Hosts can plug in their own
+   * worker bundling — e.g. via Vite's `?worker` directive against the package
+   * sub-entry — instead of relying on the inlined-blob worker that ships with
+   * the library. When omitted, falls back to `createSimulationWorker` (which
+   * uses `?worker&inline` against the worker source) — fine for the storybook
+   * dev server and for consumers that bundle the package from source, but can
+   * fail in cases where the host bundler doesn't re-process the inlined
+   * blob URL (e.g. some production builds against the dist output).
+   */
+  workerFactory?: WorkerFactory;
+}>;
 
 export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   children,
+  workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
   const { petriNetId, petriNetDefinition } = sdcpnContext;
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
+  const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
 
   // Configuration state (not managed by the simulation handle)
   const [stateValues, setStateValues] =
@@ -263,6 +278,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxFramesAhead,
     batchSize,
   }) => {
+    // eslint-disable-next-line no-console
+    console.log("[sim:provider] initialize() called", {
+      seed,
+      dt,
+      maxFramesAhead,
+      batchSize,
+      hasPrevious: !!simulationRef.current,
+      usingHostFactory: !!workerFactory,
+    });
+
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
 
@@ -294,7 +319,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         maxFramesAhead !== undefined || batchSize !== undefined
           ? { maxFramesAhead, batchSize }
           : undefined,
-      createWorker: createSimulationWorker,
+      createWorker: workerFactoryRef.current,
     });
 
     // Write the ref synchronously *before* setSimulation so a same-tick
@@ -304,13 +329,23 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // pick up the new stores.
     simulationRef.current = sim;
     setSimulation(sim);
+    // eslint-disable-next-line no-console
+    console.log("[sim:provider] initialize() resolved, sim ref set");
   };
 
   const run: SimulationContextValue["run"] = () => {
+    // eslint-disable-next-line no-console
+    console.log("[sim:provider] run() called", {
+      hasSim: !!simulationRef.current,
+    });
     simulationRef.current?.run();
   };
 
   const pause: SimulationContextValue["pause"] = () => {
+    // eslint-disable-next-line no-console
+    console.log("[sim:provider] pause() called", {
+      hasSim: !!simulationRef.current,
+    });
     simulationRef.current?.pause();
   };
 

@@ -30,29 +30,67 @@ export function createWorkerTransport(
   let terminated = false;
   const queued: ToWorkerMessage[] = [];
 
-  void Promise.resolve(createWorker()).then((w) => {
-    if (terminated) {
-      w.terminate();
-      return;
-    }
-    worker = w;
-    w.addEventListener("message", (event: MessageEvent<ToMainMessage>) => {
-      for (const listener of listeners) {
-        listener(event.data);
+  // eslint-disable-next-line no-console
+  console.log("[sim] createWorkerTransport: invoking factory");
+  void Promise.resolve(createWorker()).then(
+    (w) => {
+      if (terminated) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[sim] worker booted after transport already terminated, terminating worker",
+        );
+        w.terminate();
+        return;
       }
-    });
-    for (const message of queued) {
-      w.postMessage(message);
-    }
-    queued.length = 0;
-  });
+      // eslint-disable-next-line no-console
+      console.log("[sim] worker constructed", {
+        queuedCount: queued.length,
+      });
+      worker = w;
+      w.addEventListener("message", (event: MessageEvent<ToMainMessage>) => {
+        // eslint-disable-next-line no-console
+        console.log("[sim] worker → main", event.data.type, event.data);
+        for (const listener of listeners) {
+          listener(event.data);
+        }
+      });
+      w.addEventListener("error", (event) => {
+        // eslint-disable-next-line no-console
+        console.error("[sim] worker error event", event);
+      });
+      w.addEventListener("messageerror", (event) => {
+        // eslint-disable-next-line no-console
+        console.error("[sim] worker messageerror event", event);
+      });
+      for (const message of queued) {
+        // eslint-disable-next-line no-console
+        console.log("[sim] flushing queued message", message.type);
+        w.postMessage(message);
+      }
+      queued.length = 0;
+    },
+    (error) => {
+      // eslint-disable-next-line no-console
+      console.error("[sim] worker factory rejected", error);
+    },
+  );
 
   return {
     send(message) {
       if (worker) {
+        // eslint-disable-next-line no-console
+        console.log("[sim] main → worker", message.type);
         worker.postMessage(message);
       } else if (!terminated) {
+        // eslint-disable-next-line no-console
+        console.log("[sim] queueing message (worker not ready)", message.type);
         queued.push(message);
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "[sim] dropped message (transport terminated)",
+          message.type,
+        );
       }
     },
     onMessage(listener) {
@@ -63,6 +101,8 @@ export function createWorkerTransport(
       if (terminated) {
         return;
       }
+      // eslint-disable-next-line no-console
+      console.log("[sim] transport.terminate() called");
       terminated = true;
       worker?.terminate();
       worker = null;

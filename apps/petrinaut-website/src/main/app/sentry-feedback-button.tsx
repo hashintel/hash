@@ -1,4 +1,4 @@
-import type { ViewportAction } from "@hashintel/petrinaut";
+import type { ViewportAction } from "@hashintel/petrinaut/ui";
 import * as Sentry from "@sentry/react";
 import { MdBugReport } from "react-icons/md";
 

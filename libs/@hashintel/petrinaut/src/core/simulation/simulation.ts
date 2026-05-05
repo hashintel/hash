@@ -169,6 +169,14 @@ export function createSimulation(
     });
   }
 
+  // eslint-disable-next-line no-console
+  console.log("[sim] createSimulation: starting", {
+    sdcpnPlaces: config.sdcpn.places.length,
+    sdcpnTransitions: config.sdcpn.transitions.length,
+    seed: config.seed,
+    dt: config.dt,
+  });
+
   return new Promise<Simulation>((resolve, reject) => {
     let settled = false;
     let handle: Simulation;
@@ -176,6 +184,8 @@ export function createSimulation(
     const off = transport.onMessage((message) => {
       switch (message.type) {
         case "ready": {
+          // eslint-disable-next-line no-console
+          console.log("[sim] handle saw ready → status=Ready, resolving");
           status.set("Ready");
           if (!settled) {
             settled = true;
@@ -240,15 +250,25 @@ export function createSimulation(
 
       run() {
         if (disposed) {
+          // eslint-disable-next-line no-console
+          console.warn("[sim] handle.run() ignored — disposed");
           return;
         }
+        // eslint-disable-next-line no-console
+        console.log(
+          "[sim] handle.run() → optimistic status=Running + sending start",
+        );
         status.set("Running");
         transport.send({ type: "start" });
       },
       pause() {
         if (disposed) {
+          // eslint-disable-next-line no-console
+          console.warn("[sim] handle.pause() ignored — disposed");
           return;
         }
+        // eslint-disable-next-line no-console
+        console.log("[sim] handle.pause() → sending pause");
         transport.send({ type: "pause" });
         // Confirmation comes via the "paused" message.
       },
@@ -284,6 +304,8 @@ export function createSimulation(
         if (disposed) {
           return;
         }
+        // eslint-disable-next-line no-console
+        console.log("[sim] handle.dispose() called");
         disposed = true;
         config.signal?.removeEventListener("abort", onAbort);
         off();
@@ -296,6 +318,8 @@ export function createSimulation(
       },
     };
 
+    // eslint-disable-next-line no-console
+    console.log("[sim] sending init message");
     transport.send({
       type: "init",
       sdcpn: config.sdcpn,

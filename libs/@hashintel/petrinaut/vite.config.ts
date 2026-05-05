@@ -19,6 +19,10 @@ export default defineConfig(({ command }) => ({
         ui: "src/ui/index.ts",
       },
       fileName: (_format, entryName) => `${entryName}.js`,
+      // Emit the bundled CSS as `main.css` so the package.json `style` field
+      // and the `./styles.css` / `./dist/main.css` exports resolve. Without
+      // this vite uses the package name (`petrinaut.css`).
+      cssFileName: "main",
       formats: ["es"],
     },
     rolldownOptions: {

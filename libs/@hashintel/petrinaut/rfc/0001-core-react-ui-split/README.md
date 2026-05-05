@@ -1,6 +1,6 @@
 # RFC 0001 — Petrinaut: Core / React / UI Split
 
-**Status:** Draft (iterating) — Phase 0 + 2a/2b/2c/2d + 3a + **3b (provider unification)** + 4 + 5 landed
+**Status:** Draft (iterating) — Phase 0 + 2a/2b/2c/2d + 3a + 3b + 4 + 5 landed; post-3b polish (legacy retirement, rename, layer-direction lint, /lib + state moves, host-controlled workers) landed
 **Authors:** @cf
 **Created:** 2026-04-28
 **Last updated:** 2026-05-05
@@ -57,6 +57,15 @@ Layer dependency direction: **`ui` → `react` → `core`**, never the reverse, 
 - Phase 2d landed: pure playback timing model in `/core` — **`createPlayback(initial?)`** returning a `Playback` handle (state store + caller-driven `tick(currentTime, dt, totalFrames, simulationDone)`). Auto-pauses on reaching end when `simulationDone` or `mode === "viewOnly"`. `<PlaybackProvider>` rewritten as a thin bridge driving rAF + simulation coordination. Playback files moved into `core/playback/` + `react/playback/`. 18 new unit tests. See [08-migration.md](./08-migration.md) "Phase 2d".
 - Phase 3a landed: public hook surface in `src/react/hooks/` — `usePetrinautDefinition`, `useMutate`, `useDocumentState`, `useSimulationStatus`, `usePlaybackState`, `useDiagnostics`, `useLspActions`, etc. (~25 hooks across `use-document.ts`, `use-simulation.ts`, `use-playback.ts`, `use-lsp.ts`). `this: void` retrofit applied to `Petrinaut` and `Simulation` for clean method-reference passing. See [08-migration.md](./08-migration.md) "Phase 3a".
 - Phase 3b landed: `<PetrinautProvider instance netManagement>` in `/react` mounts every bridge over a Core instance. New bridges: `react/sdcpn-provider.tsx`, `react/mutation-provider.tsx`. `NetManagementContext` (new) holds host-owned title/switching actions. `useHandleHistoryAsUndoRedo` extracted from `<PetrinautNext>`. `<PetrinautNext>` rewritten to use `<PetrinautProvider>` directly, skipping the legacy prop-shaped `<Petrinaut>`. Legacy `<Petrinaut>` is now a thin adapter on top of `<PetrinautNext>` (ephemeral handle synthesised from props, `undoRedo` prop wrapped as outer `UndoRedoContext`); the duplicated `state/sdcpn-provider.tsx` + `state/mutation-provider.tsx` are deleted. See [08-migration.md](./08-migration.md) "Phase 3b".
+- Post-3b polish landed (compounding the work above into a single coherent shape):
+  - **Legacy `<Petrinaut>` adapter retired** along with `useEphemeralHandle`. `<PetrinautNext>` was renamed to `<Petrinaut>` (file `petrinaut-next.tsx → petrinaut.tsx`) and is now the sole editor entry. SDCPN domain types and `isSDCPNEqual` re-exported explicitly from `main.ts` so external consumers are unaffected.
+  - **Layer-direction lint rule** in `.oxlintrc.json`: `/core/**` may not import from `/react` or `/ui`; `/react/**` may not import from `/ui`. Probed with deliberate violations to confirm both directions trigger.
+  - **`src/state/` → `src/react/state/`**, **`src/lib/` split** (deep-equal → `/core/lib`; calculate-graph-layout / hsl-color / snap-position-to-grid / split-pascal-case / viewport → `/ui/lib`), **`get-connections` + ARC IDs + Selection types extracted into `/core`**. After these the layer rule passes cleanly with no exceptions.
+  - **`MutationContext.layoutGraph` removed** — composing layout + commit-positions is now `runAutoLayout` in `/ui`, where the visual node dimensions belong.
+  - **`/validation` export surface trimmed** (schemas + result-type aliases unexported per knip).
+  - **Host-controlled workers**: `simulationWorkerFactory` + `lspWorkerFactory` props on `<Petrinaut>` (plumbed through `<PetrinautProvider>` to the bridges). Hosts can replace the bundled inlined-blob defaults when their bundler can't handle them. `<LanguageClientProvider>` now creates the `LanguageClient` in a `useEffect` rather than `useState`'s lazy initializer — fixes a StrictMode dev-time leak where two LSP clients were created and `initialize` went to the orphaned one. See [08-migration.md](./08-migration.md) "Phase 3b polish" + [06-react-bindings.md](./06-react-bindings.md) §6.4.1.
+  - **CSS exports**: `vite.config.ts` `cssFileName: "main"` so the bundle lands at `dist/main.css`; `package.json` `exports` exposes `./styles.css` and `./dist/main.css`.
+  - **Consumer migration**: `apps/petrinaut-website` fully on subpath imports (`/core`, `/react`, `/ui`); `apps/hash-frontend` stays on the back-compat barrel (older `moduleResolution`) but its editor wrapper migrated from the legacy prop-shape to the handle-based API.
 
 ## What this RFC does *not* cover
 

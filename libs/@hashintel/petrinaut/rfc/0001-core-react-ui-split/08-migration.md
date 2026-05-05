@@ -211,6 +211,29 @@ Verified: `yarn lint:tsc` clean, `yarn lint:eslint` clean, 485 unit tests pass, 
 
 **Post-retirement rename.** With the legacy editor gone, the "Next" suffix on the surviving entry was misleading — it implied an old-vs-new split that no longer exists. The component and its props were renamed `PetrinautNext → Petrinaut` and `PetrinautNextProps → PetrinautProps`, and the file `src/ui/petrinaut-next.tsx → src/ui/petrinaut.tsx`. All internal call sites (`/main.ts`, `/ui/index.ts`, story provider, stories, `usePetrinautInstance` error message, `useMutate` JSDoc) and the demo site (`apps/petrinaut-website/src/main/app.tsx`) were updated in the same change. Earlier sections of this document reference the old name historically; that's intentional — the chronology stays accurate.
 
+### Phase 3b polish — host-controlled workers + StrictMode fix (done)
+
+Two issues turned up while migrating the demo site to subpath imports:
+
+- The demo (production-style consumer of `@hashintel/petrinaut`'s dist) couldn't load the simulation / LSP workers reliably. The `?worker&inline` blob URLs that ship in dist load in some host bundler setups but not others, so the package needs to let hosts plug in their own worker construction.
+- React StrictMode's dev-only re-invocation of `useState` lazy initializers was creating two LSP clients per mount: one orphan (leaks a worker) and one live one whose `initialize` message had been queued on the orphan's transport. Result: no diagnostics and no error surfaced.
+
+Both addressed:
+
+- `<SimulationProvider>` and `<LanguageClientProvider>` now accept an optional `workerFactory` prop. When provided, it replaces the bundled `createSimulationWorker` / `createLanguageServerWorker` defaults. The prop is plumbed through `<PetrinautProvider>` (`simulationWorkerFactory`, `lspWorkerFactory`) and `<Petrinaut>` (`/ui`) so hosts can supply factories at the editor entry. Storybook's source-built path keeps using the defaults.
+- `<LanguageClientProvider>` was rewritten to construct the `LanguageClient` inside a `useEffect` (with cleanup) rather than in `useState`'s lazy initializer. Each StrictMode cycle's client is now disposed individually; only the survivor receives `initialize`. Diagnostics flow correctly even with React's dev double-invocation.
+
+Side fixes captured in the same change set:
+
+- `vite.config.ts` adds `cssFileName: "main"` so the bundled CSS lands at `dist/main.css` (matching the `style` field), instead of vite's package-name default `dist/petrinaut.css`.
+- `package.json` `exports` adds `./styles.css` (preferred) and `./dist/main.css` (back-compat for hash-frontend's existing import).
+- `/ui` re-exports `ViewportAction`; `/react` re-exports `ErrorTrackerContext` + `ErrorTracker`. Both were previously only on the `main.ts` back-compat barrel; making them available on the per-layer surfaces is what unblocked the demo's switch to subpath imports.
+- Diagnostic instrumentation: `[sim]` / `[sim:worker]` / `[sim:provider]` / `[playback]` / `[lsp]` console logs added at the worker boundary, the simulation handle, and the React provider edges. Useful for tracing init/start/pause flows in dev; safe to leave in for now (filterable in DevTools, no production impact beyond the existing ESLint `no-console` rule, which is suppressed at each call).
+
+**Consumer migration.** `apps/petrinaut-website` is fully on subpath imports (`@hashintel/petrinaut/core` for the handle / domain types, `/react` for `ErrorTrackerContext`, `/ui` for `Petrinaut` + `ViewportAction`). `apps/hash-frontend` stayed on the `@hashintel/petrinaut` back-compat barrel because its `tsconfig.moduleResolution` doesn't support subpath imports — a tsconfig change there would cascade to the rest of the app. Its editor wrapper migrated from the legacy prop-shaped API to the handle-based one (creates a `PetrinautDocHandle` per loaded net, mirrors `handle.doc()` into a snapshot for the existing save/load logic).
+
+`apps/petrinaut-website/src/main/app.tsx` (`DevApp`) gained a `"use no memo"` directive — same intentional ref-during-render pattern as `<PetrinautStoryProvider>`. The React Compiler was treating `setStoredSDCPNsRef.current = setStoredSDCPNs` as a critical error.
+
 ### Phase 2d — Playback timing model + provider rewire (done)
 
 Mirrors 2a/2b/2c — pure timing model lives in `/core`; React provider drives ticks and coordinates simulation lifecycle.

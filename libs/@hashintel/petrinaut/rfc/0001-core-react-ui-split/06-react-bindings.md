@@ -200,6 +200,12 @@ export type PetrinautProps = {
   readonly?: boolean;
   hideNetManagementControls?: boolean;
   viewportActions?: ViewportAction[];
+
+  // Optional host-supplied worker factories. When provided, they replace the
+  // bundled inlined-blob defaults — see "Host-controlled workers" below.
+  simulationWorkerFactory?: WorkerFactory;
+  lspWorkerFactory?: LspWorkerFactory;
+
   // …other UI props…
 };
 
@@ -222,6 +228,28 @@ export const Petrinaut: FC<PetrinautProps> = (props) => {
 ```
 
 The existing context API to child components stays roughly the same — only the *source* of context values changes (from local React state to the Core instance). That keeps the diff inside `views/` and `components/` close to zero.
+
+### 6.4.1 Host-controlled workers (locked)
+
+Both the simulation and the language-server workers ship inlined as blob URLs out of the box (via Vite's `?worker&inline` directive against the worker source files). That works for source-built consumers — Storybook, the dev server, anyone vendoring the package. It can fail for consumers that pull the published dist through a host bundler that mishandles the inlined worker (esbuild pre-bundling rewriting dynamic imports, CSPs that block `blob:` URLs, etc.).
+
+For those cases, `<Petrinaut>` exposes optional factory props:
+
+```tsx
+type WorkerFactory = () => Worker | Promise<Worker>;
+type LspWorkerFactory = WorkerFactory;
+
+<Petrinaut
+  handle={handle}
+  simulationWorkerFactory={hostSupplied}
+  lspWorkerFactory={hostSupplied}
+  …
+/>
+```
+
+The factories are plumbed through `<PetrinautProvider>` to `<SimulationProvider>` / `<LanguageClientProvider>`. When omitted, the providers fall back to `createSimulationWorker` / `createLanguageServerWorker` (the bundled inlined-blob defaults).
+
+`<LanguageClientProvider>` creates the language client inside a `useEffect` (with cleanup that calls `client.dispose()`), not in `useState`'s lazy initializer. This is required for React StrictMode dev: a lazy init would run twice — leaving one of the two clients orphaned (with a leaked worker) and the other one without an `initialize` message ever delivered. The effect-driven pattern lets each StrictMode mount cycle's client be cleaned up individually; only the survivor receives `initialize`.
 
 ## 6.5 React Compiler interaction
 

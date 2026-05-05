@@ -41,6 +41,8 @@
       "types": "./dist/ui.d.d.ts",
       "default": "./dist/ui.js"
     },
+    "./styles.css": "./dist/main.css",
+    "./dist/main.css": "./dist/main.css",
     "./package.json": "./package.json"
   },
   "scripts": {

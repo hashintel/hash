@@ -1,9 +1,8 @@
 import { type ReactNode } from "react";
 
 import type { Petrinaut } from "../core/instance";
-import { EditorProvider } from "./state/editor-provider";
-import { UndoRedoContext } from "./state/undo-redo-context";
-import { UserSettingsProvider } from "./state/user-settings-provider";
+import type { LspWorkerFactory } from "../core/lsp/transport";
+import type { WorkerFactory } from "../core/simulation";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
 import { MutationProvider } from "./mutation-provider";
@@ -14,6 +13,9 @@ import {
 import { PlaybackProvider } from "./playback/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { SimulationProvider } from "./simulation/provider";
+import { EditorProvider } from "./state/editor-provider";
+import { UndoRedoContext } from "./state/undo-redo-context";
+import { UserSettingsProvider } from "./state/user-settings-provider";
 import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
 
 export type PetrinautProviderProps = {
@@ -21,6 +23,20 @@ export type PetrinautProviderProps = {
   instance: Petrinaut;
   /** Host-owned net-management actions and metadata (title, switching, …). */
   netManagement: NetManagement;
+  /**
+   * Optional simulation worker factory. When provided, the SimulationProvider
+   * uses it instead of the bundled inlined-blob default. Hosts that consume
+   * the published dist (rather than building from source) should pass their
+   * own factory — e.g. via Vite's `?worker` directive — to avoid load-time
+   * issues with the inlined worker.
+   */
+  simulationWorkerFactory?: WorkerFactory;
+  /**
+   * Optional language-server worker factory. Same shape as
+   * `simulationWorkerFactory` — provided when the host needs to bundle the
+   * LSP worker themselves rather than relying on the inlined-blob default.
+   */
+  lspWorkerFactory?: LspWorkerFactory;
   children: ReactNode;
 };
 
@@ -33,6 +49,8 @@ export type PetrinautProviderProps = {
 export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   instance,
   netManagement,
+  simulationWorkerFactory,
+  lspWorkerFactory,
   children,
 }) => {
   const handleHistoryUndoRedo = useHandleHistoryAsUndoRedo(
@@ -43,8 +61,11 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   // and its in-flight diagnostics.
   const inner = (
     <SDCPNProvider>
-      <LanguageClientProvider key={instance.handle.id}>
-        <SimulationProvider>
+      <LanguageClientProvider
+        key={instance.handle.id}
+        workerFactory={lspWorkerFactory}
+      >
+        <SimulationProvider workerFactory={simulationWorkerFactory}>
           <PlaybackProvider>
             <UserSettingsProvider>
               <EditorProvider>

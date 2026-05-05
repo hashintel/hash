@@ -16,6 +16,10 @@ export {
   type NetManagement,
 } from "./net-management-context";
 
+// --- Error tracker DI ---
+export { ErrorTrackerContext } from "../error-tracker/error-tracker.context";
+export type { ErrorTracker } from "../error-tracker/error-tracker.context";
+
 // --- Public hook surface ---
 export * from "./hooks";
 

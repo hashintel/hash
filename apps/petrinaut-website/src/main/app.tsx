@@ -2,8 +2,9 @@ import type {
   MinimalNetMetadata,
   PetrinautDocHandle,
   SDCPN,
-} from "@hashintel/petrinaut";
-import { createJsonDocHandle, Petrinaut } from "@hashintel/petrinaut";
+} from "@hashintel/petrinaut/core";
+import { createJsonDocHandle } from "@hashintel/petrinaut/core";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 import { produce } from "immer";
 import { useEffect, useRef, useState } from "react";
 
@@ -21,6 +22,8 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.differentialEquations.length === 0;
 
 export const DevApp = () => {
+  "use no memo"; // getOrCreateHandle lazy-initialises a ref-held Map during render, and we mirror setStoredSDCPNs into a ref synchronously — both intentional ref-during-render writes the React Compiler treats as critical errors.
+
   const sentryFeedbackAction = useSentryFeedbackAction();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
 

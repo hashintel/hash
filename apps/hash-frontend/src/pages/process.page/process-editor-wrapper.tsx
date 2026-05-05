@@ -2,11 +2,14 @@ import "@hashintel/petrinaut/dist/main.css";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
-import type { SDCPN } from "@hashintel/petrinaut";
-import { Petrinaut } from "@hashintel/petrinaut";
+import {
+  createJsonDocHandle,
+  Petrinaut,
+  type PetrinautDocHandle,
+  type SDCPN,
+} from "@hashintel/petrinaut";
 import { Box, Stack } from "@mui/material";
-import { produce } from "immer";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
 import {
@@ -14,30 +17,46 @@ import {
   useProcessSaveAndLoad,
 } from "./process-editor-wrapper/use-process-save-and-load";
 
+const emptySDCPN: SDCPN = {
+  places: [],
+  transitions: [],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+};
+
 export const ProcessEditorWrapper = () => {
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
   const [title, setTitle] = useState<string>("Process");
 
-  const [petriNetDefinition, setPetriNetDefinition] = useState<SDCPN>({
-    places: [],
-    transitions: [],
-    types: [],
-    differentialEquations: [],
-    parameters: [],
-  });
-
-  const mutatePetriNetDefinition = useCallback(
-    (mutationFn: (petriNetDefinition: SDCPN) => void) => {
-      setPetriNetDefinition((netDefinition) => {
-        const updatedNetDefinition = produce(netDefinition, (draft) => {
-          mutationFn(draft);
-        });
-
-        return updatedNetDefinition;
-      });
-    },
-    [setPetriNetDefinition],
+  /**
+   * The handle is the source of truth for the current net's document. A
+   * fresh handle is created when the user loads a different persisted net
+   * or asks for a new empty one — this naturally resets undo/redo history.
+   */
+  const [handle, setHandle] = useState<PetrinautDocHandle>(() =>
+    createJsonDocHandle({ initial: emptySDCPN }),
   );
+
+  /**
+   * Mirror of the handle's current document, kept in React state so the
+   * save/load logic can read it as a plain SDCPN (for `isDirty` checks and
+   * persisting to the graph). Updated synchronously when the handle changes
+   * via `handle.subscribe`.
+   */
+  const [petriNetDefinition, setPetriNetDefinition] = useState<SDCPN>(
+    () => handle.doc() ?? emptySDCPN,
+  );
+  useEffect(() => {
+    setPetriNetDefinition(handle.doc() ?? emptySDCPN);
+    return handle.subscribe((event) => {
+      setPetriNetDefinition(event.next);
+    });
+  }, [handle]);
+
+  const setPetriNet = useCallback((sdcpn: SDCPN) => {
+    setHandle(createJsonDocHandle({ initial: sdcpn }));
+  }, []);
 
   const [switchTargetPendingConfirmation, setSwitchTargetPendingConfirmation] =
     useState<PersistedNet | null>(null);
@@ -54,7 +73,7 @@ export const ProcessEditorWrapper = () => {
   } = useProcessSaveAndLoad({
     petriNet: petriNetDefinition,
     selectedNetId,
-    setPetriNet: setPetriNetDefinition,
+    setPetriNet,
     setSelectedNetId,
     setTitle,
     title,
@@ -68,13 +87,12 @@ export const ProcessEditorWrapper = () => {
       petriNetDefinition: SDCPN;
       title: string;
     }) => {
-      setPetriNetDefinition(newPetriNetDefinition);
-
+      setPetriNet(newPetriNetDefinition);
       setSelectedNetId(null);
       setUserEditable(true);
       setTitle(newTitle);
     },
-    [setSelectedNetId, setUserEditable, setTitle],
+    [setPetriNet, setSelectedNetId, setUserEditable, setTitle],
   );
 
   const loadNetFromId = useCallback(
@@ -134,13 +152,11 @@ export const ProcessEditorWrapper = () => {
 
       <Box sx={{ height: "100%" }}>
         <Petrinaut
+          handle={handle}
           createNewNet={createNewNet}
           existingNets={existingNetOptions}
           hideNetManagementControls={false}
           loadPetriNet={(id) => loadNetFromId(id as EntityId)}
-          petriNetDefinition={petriNetDefinition}
-          petriNetId={selectedNetId}
-          mutatePetriNetDefinition={mutatePetriNetDefinition}
           readonly={!userEditable}
           setTitle={setTitle}
           title={title}
