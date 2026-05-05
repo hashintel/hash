@@ -106,14 +106,8 @@ export const Tooltip = ({
     }
   }, [children, disableTooltip]);
 
-  const wrappedChildren = (
-    <span ref={triggerRef} className={cx(triggerStyles, className)}>
-      {children}
-    </span>
-  );
-
   if (disableTooltip) {
-    return wrappedChildren;
+    return <span className={cx(triggerStyles, className)}>{children}</span>;
   }
 
   const offset = getPositioningOffset(position, gapX, gapY);
@@ -137,7 +131,11 @@ export const Tooltip = ({
       unmountOnExit
       lazyMount
     >
-      <ArkTooltip.Trigger asChild>{wrappedChildren}</ArkTooltip.Trigger>
+      <ArkTooltip.Trigger asChild>
+        <span ref={triggerRef} className={cx(triggerStyles, className)}>
+          {children}
+        </span>
+      </ArkTooltip.Trigger>
       <Portal>
         <ArkTooltip.Positioner className={positionerStyles}>
           <ArkTooltip.Content className={contentStyles({ variant })}>
