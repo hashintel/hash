@@ -2,13 +2,21 @@ use alloc::{borrow::Cow, sync::Arc};
 
 use hashql_core::span::{TextRange, TextSize};
 use hifijson::{SliceLexer, str::LexAlloc as _};
-use logos::Lexer;
+use logos::{Lexer, Skip};
 
 use super::{Number, error::LexerError, token_kind::TokenKind};
 
 fn ptr_offset(start: *const u8, current: *const u8) -> usize {
     debug_assert!(current >= start);
     current as usize - start as usize
+}
+
+pub(crate) fn parse_comment<'source>(lexer: &mut Lexer<'source, TokenKind<'source>>) -> Skip {
+    let slice = lexer.remainder();
+    let position = memchr::memchr(b'\n', slice).map_or(slice.len(), |index| index + 1);
+    lexer.bump(position);
+
+    Skip
 }
 
 #[expect(
