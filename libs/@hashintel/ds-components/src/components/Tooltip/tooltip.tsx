@@ -94,22 +94,25 @@ export const Tooltip = ({
 >) => {
   const triggerRef = useRef<HTMLSpanElement>(null);
 
-  // If the child is not focusable, add a tabindex to the wrapper element to focus it
+  // If the child is not focusable, add a tabindex to the wrapper element to focus it.
+  // When the child becomes focusable or the tooltip is disabled, clean up so the
+  // wrapper doesn't remain an unexpected tab stop.
   useEffect(() => {
-    if (disableTooltip) {
+    const wrapper = triggerRef.current;
+    if (!wrapper) {
       return;
     }
 
-    const triggerEl = triggerRef.current
-      ?.firstElementChild as HTMLElement | null;
+    const triggerEl = wrapper.firstElementChild as HTMLElement | null;
+    const needsFocus =
+      !disableTooltip &&
+      ((!triggerEl && wrapper.textContent) ||
+        (triggerEl && !isDomFocusable(triggerEl)));
 
-    // If the trigger element is plain text
-    if (triggerRef.current && !triggerEl && triggerRef.current.textContent) {
-      triggerRef.current.tabIndex = 0;
-      // Or if the trigger element is not focusable
-    } else if (triggerRef.current && triggerEl && !isDomFocusable(triggerEl)) {
-      triggerRef.current.tabIndex = 0;
-      triggerRef.current.role = "button";
+    if (needsFocus) {
+      wrapper.tabIndex = 0;
+    } else {
+      wrapper.removeAttribute("tabindex");
     }
   }, [children, disableTooltip]);
 
