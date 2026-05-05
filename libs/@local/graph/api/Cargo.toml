@@ -53,6 +53,7 @@ type-system                    = { workspace = true, features = ["utoipa"] }
 clap = { workspace = true, optional = true, features = ["derive", "env"] }
 
 # Private third-party dependencies
+base16ct                           = { workspace = true }
 bytes                              = { workspace = true }
 derive-where                       = { workspace = true }
 derive_more                        = { workspace = true, features = ["display", "error"] }
