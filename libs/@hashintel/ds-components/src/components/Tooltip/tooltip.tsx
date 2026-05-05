@@ -8,21 +8,12 @@ import { contentStyles, positionerStyles } from "./tooltip.recipe";
 type Direction = "bottom" | "top" | "left" | "right";
 type Position = Direction | `${Direction}-${"start" | "end"}`;
 
-function getPositioningOffset(
-  position: Position | undefined,
-  offsetX: number | undefined,
-  offsetY: number | undefined,
-) {
-  if (offsetX === undefined && offsetY === undefined) {
-    return undefined;
-  }
-
-  const direction = position?.split("-")[0] ?? "bottom";
+function getPositioningOffset(position: Position, gapX: number, gapY: number) {
+  const direction = position.split("-")[0] ?? "bottom";
   const isVertical = direction === "top" || direction === "bottom";
 
   return {
-    mainAxis: isVertical ? offsetY : offsetX,
-    crossAxis: isVertical ? offsetX : offsetY,
+    mainAxis: isVertical ? gapY : gapX,
   };
 }
 
@@ -35,8 +26,8 @@ export const Tooltip = ({
   disableTooltip,
   openDelayMs = 300,
   closeDelayMs = 150,
-  offsetX,
-  offsetY,
+  gapX = 8,
+  gapY = 8,
   onOpen,
   onClose,
 }: {
@@ -56,9 +47,9 @@ export const Tooltip = ({
   /** How long before the the tooltip is opened when leaving hover/focus */
   closeDelayMs?: number;
   /** The X distance the tooltip will be from the trigger in px */
-  offsetX?: number;
+  gapX?: number;
   /** The Y distance the tooltip will be from the trigger in px */
-  offsetY?: number;
+  gapY?: number;
   onOpen?: () => void;
   onClose?: () => void;
 } & RequireExactlyOne<
@@ -75,13 +66,13 @@ export const Tooltip = ({
     return children;
   }
 
-  const offset = getPositioningOffset(position, offsetX, offsetY);
+  const offset = getPositioningOffset(position, gapX, gapY);
 
   return (
     <ArkTooltip.Root
       openDelay={openDelayMs}
       closeDelay={closeDelayMs}
-      positioning={{ placement: position, ...(offset && { offset }) }}
+      positioning={{ placement: position, offset }}
       onOpenChange={
         onOpen || onClose
           ? ({ open }) => {
