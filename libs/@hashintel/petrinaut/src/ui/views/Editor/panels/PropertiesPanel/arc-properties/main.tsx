@@ -12,7 +12,7 @@ import { VerticalSubViewsContainer } from "../../../../../components/sub-view/ve
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import type { SDCPN } from "../../../../../../core/types/sdcpn";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { parseArcId } from "../../../../../../react/state/selection";
+import { parseArcId } from "../../../../../../core/types/selection";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 
 const containerStyle = css({

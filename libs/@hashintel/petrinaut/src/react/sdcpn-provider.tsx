@@ -1,11 +1,8 @@
 import { use, type ReactNode } from "react";
 
-import {
-  ARC_ID_PREFIX,
-  SDCPNContext,
-  type SDCPNContextValue,
-} from "./state/sdcpn-context";
+import { ARC_ID_PREFIX } from "../core/arc-id";
 import { NetManagementContext } from "./net-management-context";
+import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 import { useStore } from "./use-store";
 

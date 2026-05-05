@@ -10,7 +10,7 @@ import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import type { SelectionItemType } from "../../../../../../react/state/selection";
+import type { SelectionItemType } from "../../../../../../core/types/selection";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",

@@ -4,7 +4,7 @@ import { getNodesBounds } from "@xyflow/react";
 import type {
   PetrinautReactFlowInstance,
   NodeType,
-} from "../ui/views/SDCPN/reactflow-types";
+} from "../views/SDCPN/reactflow-types";
 
 const reactFlow = { getNodesBounds } as PetrinautReactFlowInstance;
 

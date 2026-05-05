@@ -1,4 +1,14 @@
-import { ARC_ID_PREFIX, ARC_ID_SEPARATOR } from "./sdcpn-context";
+import { ARC_ID_PREFIX, ARC_ID_SEPARATOR } from "../arc-id";
+
+/**
+ * Selection types describe SDCPN entities the user might select, plus the
+ * synthetic "arc" tag for arcs (which aren't first-class SDCPN entities — see
+ * `core/arc-id.ts`).
+ *
+ * The *types* live in `/core` because they're SDCPN-shaped. The current
+ * selection *state* (a `SelectionMap` held by the editor) lives in
+ * `/react/state/editor-context`.
+ */
 
 export type SelectionItemType =
   | "place"

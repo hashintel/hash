@@ -15,7 +15,7 @@ import {
 } from "../../../../../constants/entity-icons";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import type { SelectionItem } from "../../../../../../react/state/selection";
+import type { SelectionItem } from "../../../../../../core/types/selection";
 
 // -- Styles -------------------------------------------------------------------
 

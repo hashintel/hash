@@ -9,4 +9,4 @@ export type { PetrinautProps } from "./petrinaut";
 
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).
-export { isSDCPNEqual } from "../lib/deep-equal";
+export { isSDCPNEqual } from "../core/lib/deep-equal";

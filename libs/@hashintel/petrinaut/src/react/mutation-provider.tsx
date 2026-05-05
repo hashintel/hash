@@ -1,12 +1,13 @@
 import { use, type ReactNode } from "react";
 
 import { pasteFromClipboard } from "../clipboard/clipboard";
+import { generateArcId } from "../core/arc-id";
 import type { MutateSDCPN, SDCPN } from "../core/types/sdcpn";
 import {
   MutationContext,
   type MutationContextValue,
 } from "./state/mutation-context";
-import { generateArcId, SDCPNContext } from "./state/sdcpn-context";
+import { SDCPNContext } from "./state/sdcpn-context";
 import { useIsReadOnly } from "./state/use-is-read-only";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 

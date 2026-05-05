@@ -9,7 +9,7 @@ import type {
   Scenario,
   Transition,
 } from "../../core/types/sdcpn";
-import type { SelectionMap } from "./selection";
+import type { SelectionMap } from "../../core/types/selection";
 
 export type MutationHelperFunctions = {
   addPlace: (place: Place) => void;

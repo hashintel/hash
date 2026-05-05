@@ -9,7 +9,7 @@ import { use, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import { SNAP_GRID_SIZE } from "../../constants/ui";
-import { snapPositionToGrid } from "../../../lib/snap-position-to-grid";
+import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,

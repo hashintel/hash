@@ -1,5 +1,5 @@
 import type { SDCPN } from "../core/types/sdcpn";
-import type { SelectionMap } from "../react/state/selection";
+import type { SelectionMap } from "../core/types/selection";
 import { pastePayloadIntoSDCPN } from "./paste";
 import { parseClipboardPayload, serializeSelection } from "./serialize";
 

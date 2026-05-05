@@ -1,11 +1,11 @@
 import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { use } from "react";
 
-import { snapPositionToGrid } from "../../../../lib/snap-position-to-grid";
+import { snapPositionToGrid } from "../../../lib/snap-position-to-grid";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { MutationContext } from "../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
-import type { SelectionMap } from "../../../../react/state/selection";
+import type { SelectionMap } from "../../../../core/types/selection";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 
 /**

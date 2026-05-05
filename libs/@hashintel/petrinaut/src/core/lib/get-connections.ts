@@ -1,6 +1,6 @@
-import type { Transition } from "../core/types/sdcpn";
-import { generateArcId } from "../react/state/sdcpn-context";
-import type { SelectionMap } from "../react/state/selection";
+import { generateArcId } from "../arc-id";
+import type { Transition } from "../types/sdcpn";
+import type { SelectionMap } from "../types/selection";
 
 /**
  * Given a list of transitions and a set of selected item IDs,

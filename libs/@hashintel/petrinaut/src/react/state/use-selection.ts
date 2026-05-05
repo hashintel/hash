@@ -1,7 +1,7 @@
 import { use, useMemo } from "react";
 
 import { EditorContext } from "./editor-context";
-import type { PanelTarget } from "./selection";
+import type { PanelTarget } from "../../core/types/selection";
 
 export function usePanelTarget(): PanelTarget {
   const { selection } = use(EditorContext);

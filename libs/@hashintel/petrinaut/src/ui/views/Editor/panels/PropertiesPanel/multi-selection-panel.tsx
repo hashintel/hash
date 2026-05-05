@@ -11,7 +11,7 @@ import { EditorContext } from "../../../../../react/state/editor-context";
 import type {
   SelectionItem,
   SelectionMap,
-} from "../../../../../react/state/selection";
+} from "../../../../../core/types/selection";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 
 const containerStyle = css({

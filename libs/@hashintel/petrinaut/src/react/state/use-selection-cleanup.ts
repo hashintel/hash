@@ -1,8 +1,9 @@
 import { use, useEffect } from "react";
 
+import { generateArcId } from "../../core/arc-id";
+import type { SelectionMap } from "../../core/types/selection";
 import { EditorContext } from "./editor-context";
-import { generateArcId, SDCPNContext } from "./sdcpn-context";
-import type { SelectionMap } from "./selection";
+import { SDCPNContext } from "./sdcpn-context";
 
 /**
  * Reactively removes stale IDs from the selection when items are deleted from the SDCPN.

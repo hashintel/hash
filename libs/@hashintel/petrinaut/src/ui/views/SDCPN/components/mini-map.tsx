@@ -4,7 +4,7 @@ import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
 import { use } from "react";
 
 import { PANEL_MARGIN } from "../../../constants/ui";
-import { hexToHsl } from "../../../../lib/hsl-color";
+import { hexToHsl } from "../../../lib/hsl-color";
 import { EditorContext } from "../../../../react/state/editor-context";
 import type { NodeType } from "../reactflow-types";
 

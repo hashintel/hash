@@ -15,7 +15,7 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import type {
   SelectionItem,
   SelectionMap,
-} from "../../../../../../react/state/selection";
+} from "../../../../../../core/types/selection";
 
 const listContainerStyle = css({
   display: "flex",

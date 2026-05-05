@@ -11,7 +11,7 @@ import { sirModel } from "../../../examples/sir-model";
 import { supplyChainStochasticSDCPN } from "../../../examples/supply-chain-stochastic";
 import { exportSDCPN } from "../../../file-format/export-sdcpn";
 import { importSDCPN } from "../../../file-format/import-sdcpn";
-import { calculateGraphLayout } from "../../../lib/calculate-graph-layout";
+import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import { EditorContext } from "../../../react/state/editor-context";
 import { MutationContext } from "../../../react/state/mutation-context";
 import { PortalContainerContext } from "../../../react/state/portal-container-context";

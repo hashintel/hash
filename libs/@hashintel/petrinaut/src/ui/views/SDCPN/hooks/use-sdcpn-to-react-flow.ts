@@ -1,17 +1,15 @@
 import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
-import { hexToHsl } from "../../../../lib/hsl-color";
+import { hexToHsl } from "../../../lib/hsl-color";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
 } from "../node-dimensions";
 import { PlaybackContext } from "../../../../react/playback/context";
+import { generateArcId } from "../../../../core/arc-id";
 import { EditorContext } from "../../../../react/state/editor-context";
-import {
-  generateArcId,
-  SDCPNContext,
-} from "../../../../react/state/sdcpn-context";
+import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import type {
   NodeType,

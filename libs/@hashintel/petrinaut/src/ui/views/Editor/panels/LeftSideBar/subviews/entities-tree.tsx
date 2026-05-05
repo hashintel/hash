@@ -14,7 +14,7 @@ import {
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import type { SelectionItem } from "../../../../../../react/state/selection";
+import type { SelectionItem } from "../../../../../../core/types/selection";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { DifferentialEquationsSectionHeaderAction } from "./differential-equations-list";
 import {

@@ -1,5 +1,7 @@
 import { use, useRef, useState } from "react";
 
+import { getNodeConnections } from "../../core/lib/get-connections";
+import type { SelectionItem, SelectionMap } from "../../core/types/selection";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
@@ -8,9 +10,7 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
-import { getNodeConnections } from "../../lib/get-connections";
 import { SDCPNContext } from "./sdcpn-context";
-import type { SelectionItem, SelectionMap } from "./selection";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
 
