@@ -3449,6 +3449,143 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             }))
     }
 
+    async fn get_user_id_by_email(
+        &self,
+        email: &str,
+    ) -> Result<Option<UserId>, Report<GetActorError>> {
+        let rows = self
+            .as_client()
+            .query(
+                "
+                SELECT DISTINCT user_actor.id
+                FROM user_actor
+                JOIN entity_temporal_metadata ON user_actor.id = entity_temporal_metadata.entity_uuid
+                JOIN entity_editions ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
+                WHERE entity_temporal_metadata.decision_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND EXISTS (
+                      SELECT 1
+                      FROM jsonb_array_elements_text(
+                          entity_editions.properties -> 'https://hash.ai/@h/types/property-type/email/'
+                      ) AS stored_email
+                      WHERE LOWER(stored_email) = LOWER($1)
+                  )",
+                &[&email],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(GetActorError)?;
+
+        match rows.as_slice() {
+            [] => Ok(None),
+            [row] => Ok(Some(UserId::new(row.get::<_, Uuid>(0)))),
+            rows => Err(Report::new(GetActorError).attach(format!(
+                "expected at most one user for email {email:?}, found {}",
+                rows.len()
+            ))),
+        }
+    }
+
+    async fn get_user_kratos_identity_id(
+        &self,
+        user_id: UserId,
+    ) -> Result<Option<String>, Report<GetActorError>> {
+        let rows = self
+            .as_client()
+            .query(
+                "
+                SELECT entity_editions.properties \
+                 ->> 'https://hash.ai/@h/types/property-type/kratos-identity-id/'
+                FROM entity_temporal_metadata
+                JOIN entity_editions
+                  ON entity_temporal_metadata.entity_edition_id = \
+                     entity_editions.entity_edition_id
+                WHERE entity_temporal_metadata.entity_uuid = $1
+                  AND entity_temporal_metadata.decision_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND entity_temporal_metadata.draft_id IS NULL",
+                &[&user_id],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(GetActorError)?;
+
+        match rows.as_slice() {
+            [] => Ok(None),
+            [row] => Ok(row.get::<_, Option<String>>(0)),
+            rows => Err(Report::new(GetActorError).attach(format!(
+                "expected at most one user entity for {user_id}, found {}",
+                rows.len()
+            ))),
+        }
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn get_user_emails(&self, user_id: UserId) -> Result<Vec<String>, Report<GetActorError>> {
+        let rows = self
+            .as_client()
+            .query(
+                "
+                SELECT entity_editions.properties \
+                  -> 'https://hash.ai/@h/types/property-type/email/'
+                FROM entity_temporal_metadata
+                JOIN entity_editions
+                  ON entity_temporal_metadata.entity_edition_id = \
+                     entity_editions.entity_edition_id
+                WHERE entity_temporal_metadata.entity_uuid = $1
+                  AND entity_temporal_metadata.decision_time @> now()
+                  AND entity_temporal_metadata.transaction_time @> now()
+                  AND entity_temporal_metadata.draft_id IS NULL",
+                &[&user_id],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(GetActorError)?;
+
+        match rows.as_slice() {
+            [] => Ok(Vec::new()),
+            [row] => {
+                let Some(emails) = row.get::<_, Option<serde_json::Value>>(0) else {
+                    return Ok(Vec::new());
+                };
+                let serde_json::Value::Array(arr) = emails else {
+                    return Err(Report::new(GetActorError).attach(format!(
+                        "expected email property to be an array for {user_id}"
+                    )));
+                };
+                arr.iter()
+                    .map(|entry| {
+                        entry.as_str().map(String::from).ok_or_else(|| {
+                            Report::new(GetActorError).attach(format!(
+                                "expected email array entry to be a string for {user_id}, got \
+                                 {entry}"
+                            ))
+                        })
+                    })
+                    .collect()
+            }
+            rows => Err(Report::new(GetActorError).attach(format!(
+                "expected at most one user entity for {user_id}, found {}",
+                rows.len()
+            ))),
+        }
+    }
+
     async fn get_machine_by_id(
         &self,
         _actor_id: ActorEntityUuid,
@@ -3805,11 +3942,12 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
                 "
                 SELECT
                     web.id,
+                    web.shortname,
                     array_remove(array_agg(role.id), NULL)
                 FROM web
                 LEFT OUTER JOIN role ON web.id = role.actor_group_id
-                WHERE web.shortname = $1
-                GROUP BY web.id
+                WHERE web.shortname = LOWER(TRIM($1))
+                GROUP BY web.id, web.shortname
                 ",
                 &[&shortname],
             )
@@ -3822,10 +3960,10 @@ impl<C: AsClient> AccountStore for PostgresStore<C> {
             .await
             .change_context(WebRetrievalError)?
             .map(|row| {
-                let role_ids = row.get::<_, Vec<WebRoleId>>(1);
+                let role_ids = row.get::<_, Vec<WebRoleId>>(2);
                 Web {
                     id: row.get(0),
-                    shortname: Some(shortname.to_owned()),
+                    shortname: row.get(1),
                     roles: role_ids.into_iter().collect(),
                 }
             }))
@@ -4012,6 +4150,19 @@ where
         self.as_client()
             .client()
             .simple_query("DELETE FROM action;")
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(DeletionError)?;
+        // Remove leftover entity_ids tombstones (from Purge scope) before deleting webs,
+        // because entity_ids has a FK on web.
+        self.as_client()
+            .client()
+            .simple_query("DELETE FROM entity_ids;")
             .instrument(tracing::info_span!(
                 "DELETE",
                 otel.kind = "client",

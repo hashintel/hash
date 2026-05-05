@@ -34,11 +34,12 @@ async fn removes_entity_ids_row() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -50,6 +51,7 @@ async fn removes_entity_ids_row() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -76,11 +78,12 @@ async fn satellite_tables_cleaned() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -92,6 +95,7 @@ async fn satellite_tables_cleaned() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -163,11 +167,12 @@ async fn entity_with_history() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -179,6 +184,7 @@ async fn entity_with_history() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -208,11 +214,12 @@ async fn double_deletion_is_noop() {
     let summary1 = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -224,17 +231,19 @@ async fn double_deletion_is_noop() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
     let summary2 = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -246,6 +255,7 @@ async fn double_deletion_is_noop() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -269,11 +279,12 @@ async fn entity_reuse_after_erase() {
 
     api.store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -350,11 +361,12 @@ async fn promoted_draft_only_entity() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(base_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -366,6 +378,7 @@ async fn promoted_draft_only_entity() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -419,11 +432,12 @@ async fn erase_partial_draft_preserves_entity_ids() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Erase,
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -435,6 +449,7 @@ async fn erase_partial_draft_preserves_entity_ids() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 1,
+            links_archived: 0,
         }
     );
 

@@ -2,6 +2,7 @@ import { useMutation } from "@apollo/client";
 import type { WebId } from "@blockprotocol/type-system";
 import { Select, TextField } from "@hashintel/design-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { validateDisplayName } from "@local/hash-graph-sdk/user-entity-restrictions";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -317,7 +318,22 @@ export const UserProfileInfoForm: FunctionComponent<{
           placeholder="Enter your preferred name"
           required
           error={touchedFields.displayName && !!errors.displayName}
-          {...register("displayName", { required: true })}
+          helperText={
+            touchedFields.displayName ? errors.displayName?.message : undefined
+          }
+          {...register("displayName", {
+            required: "Display name is required",
+            validate: validateDisplayName,
+            onBlur: (event) => {
+              const trimmed = (event.target.value as string).trim();
+              if (trimmed !== event.target.value) {
+                setValue("displayName", trimmed, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+              }
+            },
+          })}
         />
         <TextField
           fullWidth

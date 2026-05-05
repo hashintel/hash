@@ -10,7 +10,6 @@ export const entityTypedef = gql`
   scalar EntityPermissionsMap
   scalar EntityQueryCursor
   scalar EntityRecordId
-  scalar EntityRelationAndSubject
   scalar EntityValidationReport
   scalar QueryEntitiesRequest
   scalar QueryEntitiesResponse
@@ -38,7 +37,7 @@ export const entityTypedef = gql`
   }
 
   input LinkedEntityDefinition {
-    destinationAccountId: AccountId!
+    destinationAccountId: WebId!
     linkEntityTypeId: VersionedUrl!
     """
     The index of the link (if any)
@@ -78,12 +77,12 @@ export const entityTypedef = gql`
   }
 
   type AccountGroupAuthorizationSubject {
-    accountGroupId: AccountGroupId!
+    accountGroupId: ActorGroupEntityUuid!
     relation: AccountGroupAuthorizationSubjectRelation
   }
 
   type AccountAuthorizationSubject {
-    accountId: AccountId!
+    accountId: ActorEntityUuid!
   }
 
   type PublicAuthorizationSubject {
@@ -216,10 +215,6 @@ export const entityTypedef = gql`
       Whether the created entity should be a draft
       """
       draft: Boolean
-      """
-      Set the permission relations on the entity
-      """
-      relationships: [EntityRelationAndSubject!]
     ): Entity!
 
     """

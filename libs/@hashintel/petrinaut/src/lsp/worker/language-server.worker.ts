@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 /**
  * Language Server WebWorker — runs TypeScript validation off the main thread.
  *
@@ -24,11 +23,17 @@ import type { SDCPN } from "../../core/types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
+import type {
+  MetricSessionData,
+  ScenarioSessionData,
+} from "../lib/generate-virtual-files";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 import type {
   ClientMessage,
+  MetricSessionParams,
   PublishDiagnosticsParams,
+  ScenarioSessionParams,
   ServerMessage,
 } from "./protocol";
 
@@ -37,6 +42,12 @@ import type {
 // ---------------------------------------------------------------------------
 
 let server: SDCPNLanguageServer | null = null;
+
+/** Active scenario editing sessions (sessionId → session data). */
+const scenarioSessions = new Map<string, ScenarioSessionData>();
+
+/** Active metric editing sessions (sessionId → session data). */
+const metricSessions = new Map<string, MetricSessionData>();
 
 function respond(id: number, result: unknown): void {
   self.postMessage({
@@ -76,11 +87,104 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
     },
   );
 
+  // Include diagnostics for all active scenario sessions
+  for (const [, session] of scenarioSessions) {
+    const scenarioFiles = server.getScenarioFileNames(session.sessionId);
+    for (const filePath of scenarioFiles) {
+      // Skip defs files — only check code files
+      if (filePath.endsWith("/defs.d.ts")) {
+        continue;
+      }
+      const uri = filePathToUri(filePath);
+      if (!uri) {
+        continue;
+      }
+      const userContent = server.getUserContent(filePath) ?? "";
+      const semanticDiags = server.getSemanticDiagnostics(filePath);
+      const syntacticDiags = server.getSyntacticDiagnostics(filePath);
+      const allDiags = [...syntacticDiags, ...semanticDiags];
+      params.push({
+        uri,
+        diagnostics: allDiags.map((diag) =>
+          serializeDiagnostic(diag, userContent),
+        ),
+      });
+    }
+  }
+
+  // Include diagnostics for all active metric sessions
+  for (const [, session] of metricSessions) {
+    const metricFiles = server.getMetricFileNames(session.sessionId);
+    for (const filePath of metricFiles) {
+      // Skip defs files — only check code files
+      if (filePath.endsWith("/defs.d.ts")) {
+        continue;
+      }
+      const uri = filePathToUri(filePath);
+      if (!uri) {
+        continue;
+      }
+      const userContent = server.getUserContent(filePath) ?? "";
+      const semanticDiags = server.getSemanticDiagnostics(filePath);
+      const syntacticDiags = server.getSyntacticDiagnostics(filePath);
+      const allDiags = [...syntacticDiags, ...semanticDiags];
+      params.push({
+        uri,
+        diagnostics: allDiags.map((diag) =>
+          serializeDiagnostic(diag, userContent),
+        ),
+      });
+    }
+  }
+
   self.postMessage({
     jsonrpc: "2.0",
     method: "textDocument/publishDiagnostics",
     params,
   } satisfies ServerMessage);
+}
+
+/** Convert protocol params to internal session data. */
+function toSessionData(params: ScenarioSessionParams): ScenarioSessionData {
+  return {
+    sessionId: params.sessionId,
+    scenarioParameters: params.scenarioParameters,
+    parameterOverrides: params.parameterOverrides,
+    initialState: params.initialState,
+    initialStateCode: params.initialStateCode,
+    initialStateAsCode: params.initialStateAsCode,
+  };
+}
+
+/** Sync scenario session files and publish diagnostics. */
+function syncScenarioSession(
+  sessionData: ScenarioSessionData,
+  sdcpn: SDCPN,
+): void {
+  if (!server) {
+    return;
+  }
+  scenarioSessions.set(sessionData.sessionId, sessionData);
+  server.syncScenarioFiles(sdcpn, sessionData);
+  publishAllDiagnostics(sdcpn);
+}
+
+/** Convert protocol params to internal metric session data. */
+function toMetricSessionData(params: MetricSessionParams): MetricSessionData {
+  return {
+    sessionId: params.sessionId,
+    code: params.code,
+  };
+}
+
+/** Sync metric session files and publish diagnostics. */
+function syncMetricSession(sessionData: MetricSessionData, sdcpn: SDCPN): void {
+  if (!server) {
+    return;
+  }
+  metricSessions.set(sessionData.sessionId, sessionData);
+  server.syncMetricFiles(sdcpn, sessionData);
+  publishAllDiagnostics(sdcpn);
 }
 
 // ---------------------------------------------------------------------------
@@ -89,6 +193,16 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
 
 /** Cache the last SDCPN for re-running diagnostics after single-file changes. */
 let lastSDCPN: SDCPN | null = null;
+
+/**
+ * Scenario sessions queued before the SDCPN `initialize` message arrives.
+ * In React, child effects fire before parent effects, so `temp/scenario/initialize`
+ * can arrive before the SDCPN `initialize`. We queue them and replay after init.
+ */
+let pendingScenarioInits: ScenarioSessionData[] = [];
+
+/** Same queueing strategy for metric sessions. */
+let pendingMetricInits: MetricSessionData[] = [];
 
 self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
   try {
@@ -100,6 +214,18 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
         lastSDCPN = sdcpn;
         server = new SDCPNLanguageServer();
         server.syncFiles(sdcpn);
+        // Replay scenario sessions that arrived before SDCPN init
+        for (const session of pendingScenarioInits) {
+          scenarioSessions.set(session.sessionId, session);
+          server.syncScenarioFiles(sdcpn, session);
+        }
+        pendingScenarioInits = [];
+        // Replay metric sessions that arrived before SDCPN init
+        for (const session of pendingMetricInits) {
+          metricSessions.set(session.sessionId, session);
+          server.syncMetricFiles(sdcpn, session);
+        }
+        pendingMetricInits = [];
         publishAllDiagnostics(sdcpn);
         break;
       }
@@ -109,6 +235,14 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
         lastSDCPN = sdcpn;
         server ??= new SDCPNLanguageServer();
         server.syncFiles(sdcpn);
+        // Re-sync all scenario sessions since SDCPN types may have changed
+        for (const session of scenarioSessions.values()) {
+          server.syncScenarioFiles(sdcpn, session);
+        }
+        // Re-sync all metric sessions since SDCPN types may have changed
+        for (const session of metricSessions.values()) {
+          server.syncMetricFiles(sdcpn, session);
+        }
         publishAllDiagnostics(sdcpn);
         break;
       }
@@ -124,6 +258,88 @@ self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
           if (lastSDCPN) {
             publishAllDiagnostics(lastSDCPN);
           }
+        }
+        break;
+      }
+
+      case "temp/scenario/initialize": {
+        const sessionData = toSessionData(data.params);
+        if (!lastSDCPN) {
+          // Queue — will be replayed when SDCPN `initialize` arrives
+          pendingScenarioInits.push(sessionData);
+          break;
+        }
+        syncScenarioSession(sessionData, lastSDCPN);
+        break;
+      }
+
+      case "temp/scenario/didChange": {
+        const sessionData = toSessionData(data.params);
+        if (!lastSDCPN) {
+          // Update queued session data or add new entry
+          const idx = pendingScenarioInits.findIndex(
+            (s) => s.sessionId === sessionData.sessionId,
+          );
+          if (idx >= 0) {
+            pendingScenarioInits[idx] = sessionData;
+          } else {
+            pendingScenarioInits.push(sessionData);
+          }
+          break;
+        }
+        syncScenarioSession(sessionData, lastSDCPN);
+        break;
+      }
+
+      case "temp/scenario/kill": {
+        const { sessionId } = data.params;
+        scenarioSessions.delete(sessionId);
+        pendingScenarioInits = pendingScenarioInits.filter(
+          (s) => s.sessionId !== sessionId,
+        );
+        server?.removeScenarioSession(sessionId);
+        if (lastSDCPN) {
+          publishAllDiagnostics(lastSDCPN);
+        }
+        break;
+      }
+
+      case "temp/metric/initialize": {
+        const sessionData = toMetricSessionData(data.params);
+        if (!lastSDCPN) {
+          pendingMetricInits.push(sessionData);
+          break;
+        }
+        syncMetricSession(sessionData, lastSDCPN);
+        break;
+      }
+
+      case "temp/metric/didChange": {
+        const sessionData = toMetricSessionData(data.params);
+        if (!lastSDCPN) {
+          const idx = pendingMetricInits.findIndex(
+            (s) => s.sessionId === sessionData.sessionId,
+          );
+          if (idx >= 0) {
+            pendingMetricInits[idx] = sessionData;
+          } else {
+            pendingMetricInits.push(sessionData);
+          }
+          break;
+        }
+        syncMetricSession(sessionData, lastSDCPN);
+        break;
+      }
+
+      case "temp/metric/kill": {
+        const { sessionId } = data.params;
+        metricSessions.delete(sessionId);
+        pendingMetricInits = pendingMetricInits.filter(
+          (s) => s.sessionId !== sessionId,
+        );
+        server?.removeMetricSession(sessionId);
+        if (lastSDCPN) {
+          publishAllDiagnostics(lastSDCPN);
         }
         break;
       }

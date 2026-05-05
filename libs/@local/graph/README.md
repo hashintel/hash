@@ -14,7 +14,6 @@ Each crate has a `hash-graph-` prefix and the following crates are part of the H
 - `sdk`: The SDK for interacting with the graph in a more user-friendly way. It provides a high-level interface to interact with the graph.
 - `store`: Declaration for the store interface which is used to interact with the graph.
 - `temporal-versioning`: Temporal versioning is used to store the history of the graph. This crate provides the types and accompanying functionality which is needed to store the history of the graph.
-- `test-server`: Utility functions which are used to test the graph. It provides an interface which should not be used in production as data might be lost.
 - `type-fetcher`: To avoid that the graph has to communicate with the web directy, the type-fetcher is used as an intermediate layer to fetch the types from the web and send it to the graph.
 - `types`: Contains the type which the graph is using to represent the data. It builds on top of the [`type-system`] crate.
 - `validation`: A validation layer which is responsible for validating the data that is being inserted into the graph.

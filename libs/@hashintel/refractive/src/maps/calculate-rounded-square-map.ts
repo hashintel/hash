@@ -1,5 +1,3 @@
-import { createImageData } from "canvas";
-
 import { calculateCircleMap } from "./calculate-circle-map";
 import type { ProcessPixelFunction } from "./process-pixel.type";
 
@@ -73,7 +71,7 @@ export function calculateRoundedSquareMap(props: {
 
   const width = Math.round(props.width);
   const height = Math.round(props.height);
-  const imageData = createImageData(width, height);
+  const imageData = new ImageData(width, height);
 
   // Fill buffer with base color
   new Uint32Array(imageData.data.buffer).fill(fillColor);
@@ -81,7 +79,7 @@ export function calculateRoundedSquareMap(props: {
   const radius = Math.min(props.radius, width / 2, height / 2);
   const cornerWidth = Math.max(
     radius,
-    Math.min(props.maximumDistanceToBorder ?? 0, width / 2, height / 2),
+    Math.min(props.maximumDistanceToBorder, width / 2, height / 2),
   );
 
   const widthBetweenCorners = width - cornerWidth * 2;

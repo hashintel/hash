@@ -1,5 +1,9 @@
 import { use, useEffect, useRef, useState } from "react";
 
+import {
+  compileScenario,
+  type CompiledScenarioResult,
+} from "./compile-scenario";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
@@ -24,6 +28,9 @@ import {
 type SimulationStateValues = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
+  selectedScenarioId: string | null;
+  /** User-editable scenario parameter values (identifier → string value). */
+  scenarioParameterValues: Record<string, string>;
   dt: number;
   maxTime: number | null;
 };
@@ -31,6 +38,8 @@ type SimulationStateValues = {
 const INITIAL_STATE_VALUES: SimulationStateValues = {
   parameterValues: {},
   initialMarking: new Map(),
+  selectedScenarioId: null,
+  scenarioParameterValues: {},
   dt: 0.01,
   maxTime: null,
 };
@@ -109,6 +118,40 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Actions
   //
 
+  const setSelectedScenarioId: SimulationContextValue["setSelectedScenarioId"] =
+    (scenarioId) => {
+      setStateValues((prev) => {
+        // Initialize scenario parameter values from the scenario's defaults
+        const scenarioParameterValues: Record<string, string> = {};
+        if (scenarioId) {
+          const sc = petriNetDefinition.scenarios?.find(
+            (s) => s.id === scenarioId,
+          );
+          if (sc) {
+            for (const sp of sc.scenarioParameters) {
+              scenarioParameterValues[sp.identifier] = String(sp.default);
+            }
+          }
+        }
+        return {
+          ...prev,
+          selectedScenarioId: scenarioId,
+          scenarioParameterValues,
+        };
+      });
+    };
+
+  const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] =
+    (identifier, value) => {
+      setStateValues((prev) => ({
+        ...prev,
+        scenarioParameterValues: {
+          ...prev.scenarioParameterValues,
+          [identifier]: value,
+        },
+      }));
+    };
+
   const setInitialMarking: SimulationContextValue["setInitialMarking"] = (
     placeId,
     marking,
@@ -153,12 +196,14 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // Update local dt
     setStateValues((prev) => ({ ...prev, dt }));
 
-    // Delegate to worker (maxTime is immutable once set at initialization)
-    // Returns a promise that resolves when initialization is complete
+    // Use effective values (scenario-overridden when a scenario is active)
+    // instead of raw stateValues which don't include the compiled output.
     return workerActions.initialize({
       sdcpn,
-      initialMarking: currentState.initialMarking,
-      parameterValues: currentState.parameterValues,
+      // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+      initialMarking: effectiveInitialMarkingRef.current,
+      // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+      parameterValues: effectiveParameterValuesRef.current,
       seed,
       dt,
       maxTime: currentState.maxTime,
@@ -238,18 +283,87 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const simulationState = mapWorkerStatusToSimulationState(workerState.status);
   const totalFrames = workerState.frames.length;
 
+  // Compile scenario when one is selected — computed during render.
+  // React Compiler will memoize based on inputs.
+  let compiledScenarioResult: CompiledScenarioResult | null = null;
+  if (stateValues.selectedScenarioId) {
+    const selectedScenario = petriNetDefinition.scenarios?.find(
+      (s) => s.id === stateValues.selectedScenarioId,
+    );
+    if (selectedScenario) {
+      // Build a scenario with user-tweaked parameter values
+      const tweakedScenario = {
+        ...selectedScenario,
+        scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
+          ...sp,
+          default: Number(
+            stateValues.scenarioParameterValues[sp.identifier] ?? sp.default,
+          ),
+        })),
+      };
+      const outcome = compileScenario(
+        tweakedScenario,
+        petriNetDefinition.parameters,
+        petriNetDefinition.places,
+        petriNetDefinition.types,
+      );
+      if (outcome.ok) {
+        compiledScenarioResult = outcome.result;
+        // eslint-disable-next-line no-console
+        console.log("[Scenario] compiled", compiledScenarioResult);
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn("[Scenario] compilation errors", outcome.errors);
+      }
+    }
+  }
+
+  // When a scenario is compiled, override parameterValues and initialMarking
+  // with the scenario's resolved output.
+  let effectiveParameterValues = stateValues.parameterValues;
+  let effectiveInitialMarking = stateValues.initialMarking;
+
+  if (compiledScenarioResult) {
+    effectiveParameterValues = compiledScenarioResult.parameterValues;
+
+    // Merge compiled scenario initial state on top of manual markings.
+    // Places defined in the scenario override manual state; places not
+    // mentioned keep their existing manual markings (e.g. colored places
+    // configured via the spreadsheet).
+    const mergedMarking: InitialMarking = new Map(stateValues.initialMarking);
+    for (const [placeId, marking] of Object.entries(
+      compiledScenarioResult.initialState,
+    )) {
+      mergedMarking.set(placeId, {
+        values: new Float64Array(marking.values),
+        count: marking.count,
+      });
+    }
+    effectiveInitialMarking = mergedMarking;
+  }
+
+  // Keep refs to effective values so `initialize` uses scenario-overridden
+  // values instead of raw stateValues (which don't include compiled output).
+  const effectiveParameterValuesRef = useLatest(effectiveParameterValues);
+  const effectiveInitialMarkingRef = useLatest(effectiveInitialMarking);
+
   const contextValue: SimulationContextValue = {
     state: simulationState,
     error: workerState.error,
     errorItemId: workerState.errorItemId,
-    parameterValues: stateValues.parameterValues,
-    initialMarking: stateValues.initialMarking,
+    parameterValues: effectiveParameterValues,
+    initialMarking: effectiveInitialMarking,
+    selectedScenarioId: stateValues.selectedScenarioId,
+    scenarioParameterValues: stateValues.scenarioParameterValues,
+    compiledScenarioResult,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
     totalFrames,
     getFrame: useStableCallback(getFrame),
     getAllFrames: useStableCallback(getAllFrames),
     getFramesInRange: useStableCallback(getFramesInRange),
+    setSelectedScenarioId: useStableCallback(setSelectedScenarioId),
+    setScenarioParameterValue: useStableCallback(setScenarioParameterValue),
     setInitialMarking: useStableCallback(setInitialMarking),
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),

@@ -1,5 +1,11 @@
 # @hashintel/refractive
 
+## 0.0.3
+
+### Patch Changes
+
+- [#8581](https://github.com/hashintel/hash/pull/8581) [`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d) Thanks [@CiaranMn](https://github.com/CiaranMn)! - change equation export casing, e.g. LIP -> lip
+
 ## 0.0.2
 
 ### Patch Changes

@@ -2,7 +2,6 @@ import type { ElkNode } from "elkjs";
 import ELK from "elkjs";
 
 import type { SDCPN } from "../core/types/sdcpn";
-import { nodeDimensions } from "../views/SDCPN/styles/styling";
 
 /**
  * @see https://eclipse.dev/elk/documentation/tooldevelopers
@@ -34,10 +33,15 @@ export type NodePosition = {
  * It does not mutate any state or trigger side effects.
  *
  * @param sdcpn - The SDCPN to layout
- * @returns A promise that resolves to an array of node positions
+ * @param dims - Node dimensions for places and transitions
+ * @returns A promise that resolves to a map of node IDs to their calculated positions
  */
 export const calculateGraphLayout = async (
   sdcpn: SDCPN,
+  dimensions: {
+    place: { width: number; height: number };
+    transition: { width: number; height: number };
+  },
 ): Promise<Record<string, NodePosition>> => {
   if (sdcpn.places.length === 0) {
     return {};
@@ -47,13 +51,13 @@ export const calculateGraphLayout = async (
   const elkNodes: ElkNode["children"] = [
     ...sdcpn.places.map((place) => ({
       id: place.id,
-      width: place.width ?? nodeDimensions.place.width,
-      height: place.height ?? nodeDimensions.place.height,
+      width: dimensions.place.width,
+      height: dimensions.place.height,
     })),
     ...sdcpn.transitions.map((transition) => ({
       id: transition.id,
-      width: transition.width ?? nodeDimensions.transition.width,
-      height: transition.height ?? nodeDimensions.transition.height,
+      width: dimensions.transition.width,
+      height: dimensions.transition.height,
     })),
   ];
 
@@ -87,15 +91,22 @@ export const calculateGraphLayout = async (
 
   const updatedElements = await elk.layout(graph);
 
+  const placeIds = new Set(sdcpn.places.map((place) => place.id));
+
   /**
-   * ELK inserts the calculated position as a root 'x' and 'y'.
+   * ELK returns top-left positions, but the SDCPN store uses center
+   * coordinates, so we offset by half the node dimensions.
    */
   const positionsByNodeId: Record<string, NodePosition> = {};
   for (const child of updatedElements.children ?? []) {
     if (child.x !== undefined && child.y !== undefined) {
+      const nodeDimensions = placeIds.has(child.id)
+        ? dimensions.place
+        : dimensions.transition;
+
       positionsByNodeId[child.id] = {
-        x: child.x,
-        y: child.y,
+        x: child.x + nodeDimensions.width / 2,
+        y: child.y + nodeDimensions.height / 2,
       };
     }
   }

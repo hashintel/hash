@@ -1,4 +1,3 @@
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { backOff } from "exponential-backoff";
 
 import type { QueryGenerateInverseArgs, ResolverFn } from "../../api-types.gen";
@@ -79,10 +78,11 @@ export const generateInverseResolver: ResolverFn<
     );
 
     return responseMessage;
-  } catch (err) {
-    graphQLContext.logger.error(
-      `Failed to generate inverse relationship for '${relationship}': ${stringifyError(err)}`,
-    );
+  } catch (error) {
+    graphQLContext.logger.error("Failed to generate inverse relationship", {
+      relationship,
+      error,
+    });
     throw Error.internal(
       `Failed to generate inverse relationship for ${relationship}`,
     );

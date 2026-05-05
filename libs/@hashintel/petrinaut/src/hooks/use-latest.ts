@@ -25,6 +25,7 @@ import { useRef } from "react";
  * @returns A ref object whose `.current` property is always the latest value
  */
 export function useLatest<T>(value: T): React.RefObject<T> {
+  "use no memo"; // Intentionally writes ref during render — incompatible with React Compiler
   const ref = useRef(value);
 
   // Update synchronously during render (not in effect) so the ref is

@@ -92,7 +92,7 @@ async fn test_root_sorting(
                         paths: sorting_paths.clone(),
                         cursor: Option::take(&mut cursor),
                     },
-                    limit: Some(chunk_size),
+                    limit: chunk_size,
                     conversions: Vec::new(),
                     include_count: true,
                     include_entity_types: None,

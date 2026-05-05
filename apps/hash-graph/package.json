@@ -5,8 +5,8 @@
   "description": "The entity-graph query-layer for the HASH datastore",
   "license": "AGPL-3",
   "scripts": {
-    "build:docker": "docker buildx build --build-arg PROFILE=production --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --file docker/Dockerfile ../../ --load",
-    "build:docker:dev": "docker buildx build --build-arg PROFILE=dev --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --file docker/Dockerfile ../../ --load",
+    "build:docker": "docker buildx build --build-arg PROFILE=release --tag hash-graph --file docker/Dockerfile ../../ --load",
+    "build:docker:dev": "docker buildx build --build-arg PROFILE=dev --tag hash-graph --file docker/Dockerfile ../../ --load",
     "compile": "cargo build --bin hash-graph --all-features",
     "compile:release": "cargo build --bin hash-graph --all-features --release",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
@@ -29,7 +29,6 @@
     "@rust/hash-graph-authorization": "workspace:*",
     "@rust/hash-graph-postgres-store": "workspace:*",
     "@rust/hash-graph-store": "workspace:*",
-    "@rust/hash-graph-test-server": "workspace:*",
     "@rust/hash-graph-type-fetcher": "workspace:*",
     "@rust/hash-telemetry": "workspace:*",
     "@rust/hash-temporal-client": "workspace:*"

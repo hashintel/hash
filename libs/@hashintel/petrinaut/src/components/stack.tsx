@@ -1,10 +1,11 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, ReactNode, Ref } from "react";
 
 export interface StackProps {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
+  ref?: Ref<HTMLDivElement>;
   /**
    * The direction to stack items
    * @default "column"
@@ -32,6 +33,7 @@ export const Stack: React.FC<StackProps> = ({
   children,
   className,
   style,
+  ref,
   direction = "column",
   gap,
   align,
@@ -56,7 +58,7 @@ export const Stack: React.FC<StackProps> = ({
   };
 
   return (
-    <div className={combinedClassName} style={inlineStyle}>
+    <div ref={ref} className={combinedClassName} style={inlineStyle}>
       {children}
     </div>
   );

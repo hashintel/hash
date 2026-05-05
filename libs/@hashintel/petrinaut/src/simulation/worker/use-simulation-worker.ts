@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { SDCPN } from "../../core/types/sdcpn";
 import type { InitialMarking, SimulationFrame } from "../context";
+import { createSimulationWorker } from "./create-simulation-worker";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 /**
@@ -127,84 +128,97 @@ export function useSimulationWorker(): {
 
   // Initialize worker on mount
   useEffect(() => {
-    const worker = new Worker(
-      new URL("./simulation.worker.ts", import.meta.url),
-      { type: "module" },
-    );
+    let terminated = false;
 
-    worker.onmessage = (event: MessageEvent<ToMainMessage>) => {
-      const message = event.data;
-
-      switch (message.type) {
-        case "ready":
-          setState((prev) => ({
-            ...prev,
-            status: prev.status === "initializing" ? "ready" : prev.status,
-          }));
-          // Resolve pending initialization promise
-          if (pendingInitRef.current) {
-            pendingInitRef.current.resolve();
-            pendingInitRef.current = null;
-          }
-          break;
-
-        case "frame":
-          setState((prev) => ({
-            ...prev,
-            frames: [...prev.frames, message.frame],
-          }));
-          break;
-
-        case "frames":
-          setState((prev) => ({
-            ...prev,
-            frames: [...prev.frames, ...message.frames],
-          }));
-          break;
-
-        case "complete":
-          setState((prev) => ({
-            ...prev,
-            status: "complete",
-          }));
-          break;
-
-        case "paused":
-          setState((prev) => ({
-            ...prev,
-            status: "paused",
-          }));
-          break;
-
-        case "error":
-          setState((prev) => ({
-            ...prev,
-            status: "error",
-            error: message.message,
-            errorItemId: message.itemId,
-          }));
-          // Reject pending initialization promise if this error occurred during init
-          if (pendingInitRef.current) {
-            pendingInitRef.current.reject(new Error(message.message));
-            pendingInitRef.current = null;
-          }
-          break;
+    void createSimulationWorker().then((worker) => {
+      if (terminated) {
+        worker.terminate();
+        return;
       }
-    };
 
-    worker.onerror = (error) => {
-      setState((prev) => ({
-        ...prev,
-        status: "error",
-        error: error.message || "Worker error",
-        errorItemId: null,
-      }));
-    };
+      worker.addEventListener(
+        "message",
+        (event: MessageEvent<ToMainMessage>) => {
+          const message = event.data;
 
-    workerRef.current = worker;
+          switch (message.type) {
+            case "ready":
+              setState((prev) => ({
+                ...prev,
+                status: prev.status === "initializing" ? "ready" : prev.status,
+              }));
+              // Resolve pending initialization promise
+              if (pendingInitRef.current) {
+                pendingInitRef.current.resolve();
+                pendingInitRef.current = null;
+              }
+              break;
+
+            case "frame":
+              setState((prev) => ({
+                ...prev,
+                frames: [...prev.frames, message.frame],
+              }));
+              break;
+
+            case "frames":
+              setState((prev) => ({
+                ...prev,
+                frames: [...prev.frames, ...message.frames],
+              }));
+              break;
+
+            case "complete":
+              setState((prev) => ({
+                ...prev,
+                status: "complete",
+              }));
+              break;
+
+            case "paused":
+              setState((prev) => ({
+                ...prev,
+                status: "paused",
+              }));
+              break;
+
+            case "error":
+              setState((prev) => ({
+                ...prev,
+                status: "error",
+                error: message.message,
+                errorItemId: message.itemId,
+              }));
+              // Reject pending initialization promise if this error occurred during init
+              if (pendingInitRef.current) {
+                pendingInitRef.current.reject(new Error(message.message));
+                pendingInitRef.current = null;
+              }
+              break;
+          }
+        },
+      );
+
+      worker.addEventListener("error", (error) => {
+        setState((prev) => ({
+          ...prev,
+          status: "error",
+          error: error.message || "Worker error",
+          errorItemId: null,
+        }));
+      });
+
+      workerRef.current = worker;
+    });
 
     return () => {
-      worker.terminate();
+      terminated = true;
+      workerRef.current?.terminate();
+      // Reject any pending initialization promise on teardown
+      if (pendingInitRef.current) {
+        pendingInitRef.current.reject(new Error("Worker terminated"));
+        pendingInitRef.current = null;
+      }
     };
   }, []);
 

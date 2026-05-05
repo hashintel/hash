@@ -15,9 +15,7 @@
 #![cfg_attr(test, feature(async_fn_track_caller))]
 #![feature(
     // Language Features
-    associated_type_defaults,
     exhaustive_patterns,
-    never_type,
 )]
 
 pub mod codec;

@@ -194,7 +194,9 @@ export const deduplicateEntities = async (params: {
       });
     }
 
-    logger.error(`Error deduplicating entities: ${llmResponse.status}`);
+    logger.error("Error deduplicating entities", {
+      status: llmResponse.status,
+    });
 
     await sleep(2_000);
 

@@ -33,7 +33,6 @@ import {
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
-import { stringify } from "../../shared/stringify.js";
 import { createCheckpoint } from "./checkpoints.js";
 import { createInitialPlan } from "./coordinating-agent/create-initial-plan.js";
 import { processCompleteToolCall } from "./coordinating-agent/process-complete-tool-call.js";
@@ -583,8 +582,10 @@ export const runCoordinatingAgent: AiFlowActionActivity<
     })),
   );
 
-  logger.debug(`Proposed Entities: ${stringify(allProposedEntities)}`);
-  logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
+  logger.debug("Proposed entities", {
+    allProposedEntities,
+    fileEntityProposals,
+  });
 
   logProgress([
     {

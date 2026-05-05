@@ -1,4 +1,3 @@
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
@@ -309,7 +308,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
       metadata,
     });
   } catch (error) {
-    logger.error(`OpenAI API error: ${stringifyError(error)}`);
+    logger.error("OpenAI API error", { error });
 
     if (isActivityCancelled()) {
       return {

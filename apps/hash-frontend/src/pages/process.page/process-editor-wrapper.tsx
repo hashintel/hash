@@ -100,6 +100,7 @@ export const ProcessEditorWrapper = () => {
       .map((net) => ({
         netId: net.entityId,
         title: net.title,
+        lastUpdated: net.lastUpdated,
       }));
   }, [persistedNets, selectedNetId]);
 

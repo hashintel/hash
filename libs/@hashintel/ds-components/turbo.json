@@ -5,17 +5,54 @@
     "build": {
       "outputs": ["dist/**"]
     },
-    "codegen": {
-      "outputs": ["styled-system/**"]
+    "build:buildinfo": {
+      "dependsOn": ["codegen"],
+      "outputs": ["dist/panda.buildinfo.json"]
     },
-    "storybook": {
-      "cache": false,
+    "build:ladle": {
+      "dependsOn": ["codegen"],
+      "outputs": [".build/ladle/**"]
+    },
+    "build:lib": {
+      "dependsOn": ["codegen"],
+      "outputs": ["dist/**"]
+    },
+    "codegen": {
       "dependsOn": ["^build"],
+      "outputs": [
+        "src/preset/theme/**/*.gen.ts",
+        "../ds-helpers/styled-system/**"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": ["codegen"],
       "persistent": true
     },
-    "storybook:build": {
-      "dependsOn": ["^build"],
-      "outputs": ["storybook-static/**"]
+    "dev:ladle": {
+      "cache": false,
+      "dependsOn": ["codegen"],
+      "persistent": true
+    },
+    "lint:eslint": {
+      "dependsOn": ["codegen", "@local/eslint#build"],
+      "env": ["CHECK_TEMPORARILY_DISABLED_RULES"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["codegen"]
+    },
+    "preview:ladle": {
+      "dependsOn": ["build:ladle"]
+    },
+    "test:snapshots": {
+      "dependsOn": ["build:ladle"]
+    },
+    "test:snapshots:update": {
+      "dependsOn": ["build:ladle"]
+    },
+    "test:unit": {
+      "dependsOn": ["build:buildinfo"],
+      "env": ["TEST_COVERAGE"]
     }
   }
 }

@@ -42,13 +42,14 @@ async fn draft_only_entity_promoted_to_full_delete() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(base_id),
                 include_drafts: true,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -60,6 +61,7 @@ async fn draft_only_entity_promoted_to_full_delete() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -118,13 +120,14 @@ async fn draft_of_published_entity_preserves_published() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -136,6 +139,7 @@ async fn draft_of_published_entity_preserves_published() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 1,
+            links_archived: 0,
         }
     );
 
@@ -185,13 +189,14 @@ async fn include_drafts_false_skips_drafts() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(base_id),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -203,6 +208,7 @@ async fn include_drafts_false_skips_drafts() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -284,13 +290,14 @@ async fn partial_draft_match_not_promoted() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id_1),
                 include_drafts: true,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -302,6 +309,7 @@ async fn partial_draft_match_not_promoted() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 1,
+            links_archived: 0,
         }
     );
 
@@ -364,13 +372,14 @@ async fn published_and_draft_matched_becomes_full_delete() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -382,6 +391,7 @@ async fn published_and_draft_matched_becomes_full_delete() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -438,7 +448,7 @@ async fn mixed_full_and_draft_targets() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -448,6 +458,7 @@ async fn mixed_full_and_draft_targets() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -459,6 +470,7 @@ async fn mixed_full_and_draft_targets() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 1,
+            links_archived: 0,
         }
     );
 
@@ -524,13 +536,14 @@ async fn empty_target_guards() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Error,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -542,6 +555,7 @@ async fn empty_target_guards() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 1,
+            links_archived: 0,
         }
     );
 
@@ -608,13 +622,14 @@ async fn draft_link_entity_edge_survives() {
     let summary1 = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_link_entity_id),
                 include_drafts: true,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -626,6 +641,7 @@ async fn draft_link_entity_edge_survives() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 1,
+            links_archived: 0,
         }
     );
 
@@ -639,13 +655,14 @@ async fn draft_link_entity_edge_survives() {
     let summary2 = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(link_entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -657,6 +674,7 @@ async fn draft_link_entity_edge_survives() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -738,7 +756,7 @@ async fn summary_counts_draft_ids_not_entities() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(draft_entity_id_1),
@@ -748,6 +766,7 @@ async fn summary_counts_draft_ids_not_entities() {
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::live_only_axes(),
                 decision_time: None,
             },
         )
@@ -759,6 +778,7 @@ async fn summary_counts_draft_ids_not_entities() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 2,
+            links_archived: 0,
         }
     );
 

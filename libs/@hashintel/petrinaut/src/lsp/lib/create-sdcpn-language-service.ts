@@ -6,239 +6,38 @@ import {
   type LanguageServiceHostController,
   type VirtualFile,
 } from "./create-language-service-host";
-import { getItemFilePath } from "./file-paths";
+import {
+  generateMetricSessionFiles,
+  generateScenarioSessionFiles,
+  generateVirtualFiles,
+  type MetricSessionData,
+  type ScenarioSessionData,
+} from "./generate-virtual-files";
 
 /**
- * Sanitizes a color ID to be a valid TypeScript identifier.
- * Removes all characters that are not valid suffixes for TypeScript identifiers
- * (keeps only letters, digits, and underscores).
- */
-function sanitizeColorId(colorId: string): string {
-  return colorId.replace(/[^a-zA-Z0-9_]/g, "");
-}
-
-/**
- * Maps SDCPN element types to TypeScript types
- */
-function toTsType(type: "real" | "integer" | "boolean"): string {
-  return type === "boolean" ? "boolean" : "number";
-}
-
-/**
- * Generates virtual files for all SDCPN entities
- */
-function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
-  const files = new Map<string, VirtualFile>();
-
-  // Build lookup maps for places and types
-  const placeById = new Map(sdcpn.places.map((place) => [place.id, place]));
-  const colorById = new Map(sdcpn.types.map((color) => [color.id, color]));
-
-  // Generate parameters type definition
-  const parametersProperties = sdcpn.parameters
-    .map((param) => `  "${param.variableName}": ${toTsType(param.type)};`)
-    .join("\n");
-
-  files.set(getItemFilePath("parameters-defs"), {
-    content: `export type Parameters = {\n${parametersProperties}\n};`,
-  });
-
-  // Generate type definitions for each color
-  for (const color of sdcpn.types) {
-    const sanitizedColorId = sanitizeColorId(color.id);
-    const properties = color.elements
-      .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
-      .join("\n");
-
-    files.set(getItemFilePath("color-defs", { colorId: color.id }), {
-      content: `export type Color_${sanitizedColorId} = {\n${properties}\n}`,
-    });
-  }
-
-  // Generate files for each differential equation
-  for (const de of sdcpn.differentialEquations) {
-    const sanitizedColorId = sanitizeColorId(de.colorId);
-    const deDefsPath = getItemFilePath("differential-equation-defs", {
-      id: de.id,
-    });
-    const deCodePath = getItemFilePath("differential-equation-code", {
-      id: de.id,
-    });
-    const parametersDefsPath = getItemFilePath("parameters-defs");
-    const colorDefsPath = getItemFilePath("color-defs", {
-      colorId: de.colorId,
-    });
-
-    // Type definitions file
-    files.set(deDefsPath, {
-      content: [
-        `import type { Parameters } from "${parametersDefsPath}";`,
-        `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`,
-        ``,
-        `type Tokens = Array<Color_${sanitizedColorId}>;`,
-        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Tokens) => void;`,
-      ].join("\n"),
-    });
-
-    // User code file with injected declarations
-    files.set(deCodePath, {
-      prefix: [
-        `import type { Dynamics } from "${deDefsPath}";`,
-        // TODO: Directly wrap user code in Dynamics call to remove need for user to write it.
-        `declare const Dynamics: Dynamics;`,
-        "",
-      ].join("\n"),
-      content: de.code,
-    });
-  }
-
-  // Generate files for each transition
-  for (const transition of sdcpn.transitions) {
-    const parametersDefsPath = getItemFilePath("parameters-defs");
-    const lambdaDefsPath = getItemFilePath("transition-lambda-defs", {
-      transitionId: transition.id,
-    });
-    const lambdaCodePath = getItemFilePath("transition-lambda-code", {
-      transitionId: transition.id,
-    });
-    const kernelDefsPath = getItemFilePath("transition-kernel-defs", {
-      transitionId: transition.id,
-    });
-    const kernelCodePath = getItemFilePath("transition-kernel-code", {
-      transitionId: transition.id,
-    });
-
-    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs
-    const inputTypeImports: string[] = [];
-    const inputTypeProperties: string[] = [];
-
-    for (const arc of transition.inputArcs) {
-      const place = placeById.get(arc.placeId);
-      if (!place?.colorId) {
-        continue;
-      }
-      const color = colorById.get(place.colorId);
-      if (!color) {
-        continue;
-      }
-
-      const sanitizedColorId = sanitizeColorId(color.id);
-      const colorDefsPath = getItemFilePath("color-defs", {
-        colorId: color.id,
-      });
-      // Only add import if not already present (multiple arcs may share the same color)
-      const importStatement = `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`;
-      if (!inputTypeImports.includes(importStatement)) {
-        inputTypeImports.push(importStatement);
-      }
-      const tokenTuple = Array.from({ length: arc.weight })
-        .fill(`Color_${sanitizedColorId}`)
-        .join(", ");
-      inputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
-    }
-
-    // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs
-    const outputTypeImports: string[] = [];
-    const outputTypeProperties: string[] = [];
-
-    for (const arc of transition.outputArcs) {
-      const place = placeById.get(arc.placeId);
-      if (!place?.colorId) {
-        continue;
-      }
-      const color = colorById.get(place.colorId);
-      if (!color) {
-        continue;
-      }
-
-      const sanitizedColorId = sanitizeColorId(color.id);
-      const colorDefsPath = getItemFilePath("color-defs", {
-        colorId: color.id,
-      });
-      // Only add import if not already present from input arcs or previous output arcs
-      const importStatement = `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`;
-      if (
-        !inputTypeImports.includes(importStatement) &&
-        !outputTypeImports.includes(importStatement)
-      ) {
-        outputTypeImports.push(importStatement);
-      }
-      const tokenTuple = Array.from({ length: arc.weight })
-        .fill(`Color_${sanitizedColorId}`)
-        .join(", ");
-      outputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
-    }
-
-    const allImports = [...inputTypeImports, ...outputTypeImports];
-    const inputType =
-      inputTypeProperties.length > 0
-        ? `{\n${inputTypeProperties.join("\n")}\n}`
-        : "Record<string, never>";
-    const outputType =
-      outputTypeProperties.length > 0
-        ? `{\n${outputTypeProperties.join("\n")}\n}`
-        : "Record<string, never>";
-    const lambdaReturnType =
-      transition.lambdaType === "predicate" ? "boolean" : "number";
-
-    // Lambda definitions file
-    files.set(lambdaDefsPath, {
-      content: [
-        `import type { Parameters } from "${parametersDefsPath}";`,
-        ...allImports,
-        ``,
-        `export type Input = ${inputType};`,
-        `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
-      ].join("\n"),
-    });
-
-    // Lambda code file
-    files.set(lambdaCodePath, {
-      prefix: [
-        `import type { Lambda } from "${lambdaDefsPath}";`,
-        `declare const Lambda: Lambda;`,
-        "",
-      ].join("\n"),
-      content: transition.lambdaCode,
-    });
-
-    // TransitionKernel definitions file
-    files.set(kernelDefsPath, {
-      content: [
-        `import type { Parameters } from "${parametersDefsPath}";`,
-        ...allImports,
-        ``,
-        `export type Input = ${inputType};`,
-        `export type Output = ${outputType};`,
-        `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
-      ].join("\n"),
-    });
-
-    // TransitionKernel code file
-    files.set(kernelCodePath, {
-      prefix: [
-        `import type { TransitionKernel } from "${kernelDefsPath}";`,
-        `declare const TransitionKernel: TransitionKernel;`,
-        "",
-      ].join("\n"),
-      content: transition.transitionKernelCode,
-    });
-  }
-
-  return files;
-}
-
-/**
- * Adjusts diagnostic positions to account for injected prefix
+ * Adjusts diagnostic positions to account for injected prefix and suffix.
+ * Diagnostics in the suffix area are clamped to the end of user content.
  */
 function adjustDiagnostics<T extends ts.Diagnostic>(
   diagnostics: readonly T[],
   prefixLength: number,
+  contentLength?: number,
 ): T[] {
-  return diagnostics.map((diag) => ({
-    ...diag,
-    start: diag.start !== undefined ? diag.start - prefixLength : undefined,
-  }));
+  return diagnostics.map((diag) => {
+    let start =
+      diag.start !== undefined ? diag.start - prefixLength : undefined;
+    let { length } = diag;
+
+    if (start !== undefined && contentLength !== undefined) {
+      if (start >= contentLength) {
+        // Diagnostic is in suffix area — clamp to end of content
+        start = Math.max(0, contentLength > 0 ? contentLength - 1 : 0);
+        length = contentLength > 0 ? 1 : 0;
+      }
+    }
+
+    return { ...diag, start, length };
+  });
 }
 
 /**
@@ -262,13 +61,16 @@ export class SDCPNLanguageServer {
    * Sync virtual files to match the given SDCPN model.
    * Diffs against the current state: adds new files, updates changed files,
    * removes files that no longer exist.
+   *
+   * Files under `/_temp/` are managed separately (e.g., scenario sessions)
+   * and are not removed by this method.
    */
   syncFiles(sdcpn: SDCPN): void {
     const newFiles = generateVirtualFiles(sdcpn);
 
-    // Remove files that no longer exist
+    // Remove files that no longer exist (skip temp files managed separately)
     for (const existingName of this.controller.getFileNames()) {
-      if (!newFiles.has(existingName)) {
+      if (!newFiles.has(existingName) && !existingName.startsWith("/_temp/")) {
         this.controller.removeFile(existingName);
       }
     }
@@ -287,6 +89,112 @@ export class SDCPNLanguageServer {
         }
       }
     }
+  }
+
+  /**
+   * Sync virtual files for a scenario editing session.
+   * Updates content from the session data (form state is the source of truth).
+   */
+  syncScenarioFiles(sdcpn: SDCPN, session: ScenarioSessionData): void {
+    const sessionPrefix = `/_temp/scenarios/${session.sessionId}/`;
+    const newFiles = generateScenarioSessionFiles(sdcpn, session);
+
+    // Remove scenario files that no longer exist for this session
+    for (const existingName of this.controller.getFileNames()) {
+      if (
+        existingName.startsWith(sessionPrefix) &&
+        !newFiles.has(existingName)
+      ) {
+        this.controller.removeFile(existingName);
+      }
+    }
+
+    // Add or update files
+    for (const [name, newFile] of newFiles) {
+      if (!this.controller.hasFile(name)) {
+        this.controller.addFile(name, newFile);
+      } else {
+        const existing = this.controller.getFile(name)!;
+        if (
+          existing.content !== newFile.content ||
+          existing.prefix !== newFile.prefix ||
+          existing.suffix !== newFile.suffix
+        ) {
+          this.controller.updateFile(name, newFile);
+        }
+      }
+    }
+  }
+
+  /** Remove all virtual files for a scenario session. */
+  removeScenarioSession(sessionId: string): void {
+    const sessionPrefix = `/_temp/scenarios/${sessionId}/`;
+    for (const name of this.controller.getFileNames()) {
+      if (name.startsWith(sessionPrefix)) {
+        this.controller.removeFile(name);
+      }
+    }
+  }
+
+  /** Get all file paths that belong to a scenario session. */
+  getScenarioFileNames(sessionId: string): string[] {
+    const sessionPrefix = `/_temp/scenarios/${sessionId}/`;
+    return this.controller
+      .getFileNames()
+      .filter((name) => name.startsWith(sessionPrefix));
+  }
+
+  /**
+   * Sync virtual files for a metric editing session.
+   * Updates content from the session data (form state is the source of truth).
+   */
+  syncMetricFiles(sdcpn: SDCPN, session: MetricSessionData): void {
+    const sessionPrefix = `/_temp/metrics/${session.sessionId}/`;
+    const newFiles = generateMetricSessionFiles(sdcpn, session);
+
+    // Remove metric files that no longer exist for this session
+    for (const existingName of this.controller.getFileNames()) {
+      if (
+        existingName.startsWith(sessionPrefix) &&
+        !newFiles.has(existingName)
+      ) {
+        this.controller.removeFile(existingName);
+      }
+    }
+
+    // Add or update files
+    for (const [name, newFile] of newFiles) {
+      if (!this.controller.hasFile(name)) {
+        this.controller.addFile(name, newFile);
+      } else {
+        const existing = this.controller.getFile(name)!;
+        if (
+          existing.content !== newFile.content ||
+          existing.prefix !== newFile.prefix ||
+          existing.suffix !== newFile.suffix
+        ) {
+          this.controller.updateFile(name, newFile);
+        }
+      }
+    }
+  }
+
+  /** Remove all virtual files for a metric session. */
+  removeMetricSession(sessionId: string): void {
+    const sessionPrefix = `/_temp/metrics/${sessionId}/`;
+    for (const name of this.controller.getFileNames()) {
+      if (name.startsWith(sessionPrefix)) {
+        this.controller.removeFile(name);
+      }
+    }
+  }
+
+  /** Get all file paths that belong to a metric session. */
+  getMetricFileNames(sessionId: string): string[] {
+    const sessionPrefix = `/_temp/metrics/${sessionId}/`;
+    return this.controller
+      .getFileNames()
+      .filter((name) => name.startsWith(sessionPrefix));
   }
 
   /** Update only the user content of a single file (e.g., when the user types in an editor). */
@@ -311,15 +219,17 @@ export class SDCPNLanguageServer {
   getSemanticDiagnostics(fileName: string): ts.Diagnostic[] {
     const entry = this.controller.getFile(fileName);
     const prefixLength = entry?.prefix?.length ?? 0;
+    const contentLength = entry?.suffix ? entry.content.length : undefined;
     const diagnostics = this.service.getSemanticDiagnostics(fileName);
-    return adjustDiagnostics(diagnostics, prefixLength);
+    return adjustDiagnostics(diagnostics, prefixLength, contentLength);
   }
 
   getSyntacticDiagnostics(fileName: string): ts.Diagnostic[] {
     const entry = this.controller.getFile(fileName);
     const prefixLength = entry?.prefix?.length ?? 0;
+    const contentLength = entry?.suffix ? entry.content.length : undefined;
     const diagnostics = this.service.getSyntacticDiagnostics(fileName);
-    return adjustDiagnostics(diagnostics, prefixLength);
+    return adjustDiagnostics(diagnostics, prefixLength, contentLength);
   }
 
   getCompletionsAtPosition(

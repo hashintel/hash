@@ -7,11 +7,7 @@
   "scripts": {
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-type-fetcher --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
-    "lint:clippy": "just clippy",
-    "start": "../../../../target/release/hash-graph type-fetcher",
-    "start:healthcheck": "../../../../target/release/hash-graph type-fetcher --healthcheck --wait --timeout 1200 --logging-console-level=warn",
-    "start:test": "../../../../target/debug/hash-graph type-fetcher",
-    "start:test:healthcheck": "../../../../target/debug/hash-graph type-fetcher --healthcheck --wait --timeout 300 --logging-console-level=warn"
+    "lint:clippy": "just clippy"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "workspace:*",

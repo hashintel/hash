@@ -7,7 +7,6 @@
     // Language Features
     coverage_attribute,
     exhaustive_patterns,
-    if_let_guard,
     never_type,
 
     // Library Features

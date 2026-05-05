@@ -1,9 +1,10 @@
 import { gql } from "@apollo/client";
 
 export const getFlowRunsQuery = gql`
-  query getFlowRuns($offset: Int, $limit: Int) {
-    getFlowRuns(offset: $offset, limit: $limit) {
+  query getFlowRuns($cursor: String, $limit: Int) {
+    getFlowRuns(cursor: $cursor, limit: $limit) {
       totalCount
+      nextCursor
       flowRuns {
         name
         flowDefinitionId

@@ -13,10 +13,7 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "emitDeclarationOnly": true,
     "isolatedModules": true
   },
-  "include": ["src", "demo-site"],
-  "exclude": ["demo-site/dist/**/*"]
+  "include": ["src", ".storybook"]
 }

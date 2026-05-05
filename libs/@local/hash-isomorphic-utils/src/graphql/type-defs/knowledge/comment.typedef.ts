@@ -1,7 +1,7 @@
 import { gql } from "graphql-tag";
 
 export const commentTypedef = gql`
-  scalar EntityTemporalVersioningMetadata
+  scalar EntityTemporalMetadata
 
   type Comment {
     """
@@ -17,7 +17,7 @@ export const commentTypedef = gql`
     """
     Version information of when the comment was last edited
     """
-    textUpdatedAt: EntityTemporalVersioningMetadata!
+    textUpdatedAt: EntityTemporalMetadata!
 
     """
     Text contents of the comment

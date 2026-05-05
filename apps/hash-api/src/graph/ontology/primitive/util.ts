@@ -1,11 +1,9 @@
 import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { getWebById } from "@local/hash-graph-sdk/principal/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import { getOrgById } from "../../knowledge/system-types/org";
-import { getUser } from "../../knowledge/system-types/user";
 
 export const isExternalTypeId = (typeId: VersionedUrl) =>
   !typeId.startsWith(frontendUrl) &&
@@ -19,27 +17,19 @@ export const getWebShortname: ImpureGraphFunction<
     accountOrAccountGroupId: WebId;
   },
   Promise<string>
-> = async (ctx, authentication, params) => {
-  const namespace = (
-    (await getUser(ctx, authentication, {
-      entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId,
-        params.accountOrAccountGroupId,
-      ),
-    })) ??
-    (await getOrgById(ctx, authentication, {
-      entityId: entityIdFromComponents(
-        params.accountOrAccountGroupId,
-        params.accountOrAccountGroupId,
-      ),
-    }).catch(() => undefined))
-  )?.shortname;
-
-  if (!namespace) {
-    throw new Error(
-      `failed to get namespace for owner: ${params.accountOrAccountGroupId}`,
-    );
-  }
-
-  return namespace;
-};
+> = (ctx, authentication, params) =>
+  getWebById(ctx.graphApi, authentication, params.accountOrAccountGroupId).then(
+    (web) => {
+      if (!web) {
+        throw new Error(
+          `failed to get web for id: ${params.accountOrAccountGroupId}`,
+        );
+      }
+      if (!web.shortname) {
+        throw new Error(
+          `Shortname is not set for web: ${params.accountOrAccountGroupId}`,
+        );
+      }
+      return web.shortname;
+    },
+  );

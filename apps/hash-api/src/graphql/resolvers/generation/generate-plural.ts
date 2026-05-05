@@ -1,4 +1,3 @@
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { backOff } from "exponential-backoff";
 
 import type { QueryGeneratePluralArgs, ResolverFn } from "../../api-types.gen";
@@ -71,10 +70,11 @@ export const generatePluralResolver: ResolverFn<
     );
 
     return responseMessage;
-  } catch (err) {
-    graphQLContext.logger.error(
-      `Failed to generate plural for '${singular}': ${stringifyError(err)}`,
-    );
+  } catch (error) {
+    graphQLContext.logger.error("Failed to generate plural", {
+      singular,
+      error,
+    });
     throw Error.internal(`Failed to generate plural for '${singular}'`);
   }
 };

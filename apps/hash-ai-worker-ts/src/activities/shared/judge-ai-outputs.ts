@@ -366,7 +366,7 @@ export const judgeAiOutputs = async ({
   }
 
   if (errors.length) {
-    logger.error(`Errors in judge-ai-outputs: ${errors.join("\n")}`);
+    logger.error("Errors in judge-ai-outputs", { errors });
     return judgeAiOutputs({
       exchangeToReview,
       judgeModel,

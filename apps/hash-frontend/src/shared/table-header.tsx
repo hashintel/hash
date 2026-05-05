@@ -49,7 +49,7 @@ import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-butto
 import { ExportToCsvButton } from "./table-header/export-to-csv-button";
 import { TableHeaderButton } from "./table-header/table-header-button";
 
-export const tableHeaderHeight = 50;
+export const tableHeaderHeight = 52;
 
 const CheckboxFilter: FunctionComponent<{
   label: string;

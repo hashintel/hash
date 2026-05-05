@@ -140,7 +140,7 @@ const getKratosIdentityIdByEmail = async (
     });
     return identities.length > 0 ? identities[0]!.id : null;
   } catch (error) {
-    logger.warn(`Failed to lookup Kratos identity by email ${email}: ${error}`);
+    logger.warn("Failed to lookup Kratos identity", { email, error });
     return null;
   }
 };
@@ -264,7 +264,7 @@ export const getUser: ImpureGraphFunction<
               systemPropertyTypes.shortname.propertyTypeBaseUrl,
             ],
           },
-          { parameter: knownShortname },
+          { parameter: knownShortname?.trim().toLowerCase() },
         ],
       };
     }
@@ -430,7 +430,7 @@ export const createUser: ImpureGraphFunction<
       ...(shortname !== undefined
         ? {
             "https://hash.ai/@h/types/property-type/shortname/": {
-              value: shortname,
+              value: shortname.trim().toLowerCase(),
               metadata: {
                 dataTypeId:
                   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",

@@ -28,23 +28,23 @@
     "@local/hash-graph-sdk": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
     "@local/status": "workspace:*",
-    "@sentry/node": "10.27.0",
+    "@sentry/node": "10.42.0",
     "@temporalio/activity": "1.12.1",
     "@temporalio/worker": "1.12.1",
     "@temporalio/workflow": "1.12.1",
     "agentkeepalive": "4.6.0",
-    "axios": "1.13.5",
+    "axios": "1.15.0",
     "cache-manager": "5.7.6",
     "dotenv-flow": "3.3.0",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
-    "uuid": "13.0.0"
+    "uuid": "14.0.0"
   },
   "devDependencies": {
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@types/dotenv-flow": "3.3.3",
-    "eslint": "9.39.3",
+    "eslint": "9.39.4",
     "rimraf": "6.1.3",
     "typescript": "5.9.3",
     "wait-on": "9.0.1"

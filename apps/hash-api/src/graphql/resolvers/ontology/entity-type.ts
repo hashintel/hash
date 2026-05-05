@@ -122,21 +122,6 @@ export const updateEntityTypesResolver: ResolverFn<
       entityTypeUpdates: params.updates.map((update) => ({
         entityTypeId: update.entityTypeId,
         schema: update.updatedEntityType,
-        relationships: [
-          {
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: "updateFromWeb",
-            },
-          },
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
       })),
     },
   );

@@ -9,7 +9,7 @@ export const orgTypedef = gql`
   }
 
   type MinimalGqlUser {
-    accountId: AccountId!
+    accountId: ActorEntityUuid!
     displayName: String!
     shortname: String!
   }

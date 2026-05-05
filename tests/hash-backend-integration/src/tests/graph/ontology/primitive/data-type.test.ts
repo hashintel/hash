@@ -25,7 +25,7 @@ import {
 import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,

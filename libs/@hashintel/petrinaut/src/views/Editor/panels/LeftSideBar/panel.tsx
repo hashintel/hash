@@ -1,216 +1,163 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
-import { use } from "react";
-import {
-  TbLayoutSidebarLeftCollapse,
-  TbLayoutSidebarRightCollapse,
-} from "react-icons/tb";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { use, useMemo } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
-import type { MenuItem } from "../../../../components/menu";
-import { ProportionalSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import {
-  LEFT_SIDEBAR_SUBVIEWS,
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
-  PANEL_MARGIN,
 } from "../../../../constants/ui";
+import {
+  LEFT_SIDEBAR_SUBVIEWS,
+  LEFT_SIDEBAR_TREE_SUBVIEWS,
+} from "../../../../constants/ui-subviews";
 import { EditorContext } from "../../../../state/editor-context";
-import { FloatingTitle } from "./floating-title";
-import { HamburgerMenu } from "./hamburger-menu";
+import { UserSettingsContext } from "../../../../state/user-settings-context";
+import { searchSubView } from "./subviews/search-panel";
 
-const outerContainerStyle = cva({
-  base: {
-    position: "absolute",
-    zIndex: 1000,
-    display: "flex",
-  },
-  variants: {
-    isOpen: {
-      true: {
-        top: "[0]",
-        left: "[0]",
-        bottom: "[0]",
-        height: "[100%]",
-      },
-      false: {
-        bottom: "[auto]",
-        height: "[auto]",
-      },
-    },
-  },
+const glassPanelBaseStyle = css({
+  position: "absolute",
+  zIndex: 1002,
+  top: "0",
+  left: "0",
+  bottom: "0",
+  borderRightWidth: "thin",
+  boxSizing: "border-box",
 });
 
-const panelContentStyle = cva({
-  base: {
-    display: "flex",
-  },
-  variants: {
-    isOpen: {
-      true: {
-        height: "[100%]",
-        padding: "[16px]",
-        paddingBottom: "[0]",
-        flexDirection: "column",
-        gap: "[4px]",
-        alignItems: "stretch",
-      },
-      false: {
-        height: "auto",
-        width: "auto",
-        padding: "[8px 12px]",
-        flexDirection: "row",
-        gap: "[8px]",
-        alignItems: "center",
-      },
-    },
-  },
-});
-
-const headerStyle = cva({
-  base: {
-    display: "flex",
-  },
-  variants: {
-    isOpen: {
-      true: {
-        flexDirection: "column",
-        gap: "[12px]",
-        paddingBottom: "[12px]",
-        marginBottom: "[12px]",
-        borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
-        alignItems: "stretch",
-      },
-      false: {
-        flexDirection: "row",
-        gap: "[8px]",
-        paddingBottom: "[0]",
-        borderBottom: "none",
-        alignItems: "center",
-      },
-    },
-  },
-});
-
-const headerInnerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
-});
-
-const titleContainerStyle = cva({
+const panelStyle = cva({
   base: {},
   variants: {
-    isOpen: {
-      true: {
-        flex: "[1]",
-        minWidth: "[0]",
-      },
+    open: {
+      true: {},
       false: {
-        flex: "[0 0 auto]",
-        minWidth: "[120px]",
+        transform: "translateX(-100%)",
+        pointerEvents: "none",
+      },
+    },
+    animating: {
+      true: {
+        transition:
+          "[width 150ms ease-in-out, opacity 150ms ease-in-out, height 150ms ease-in-out, top 150ms ease-in-out, left 150ms ease-in-out, right 150ms ease-in-out, bottom 150ms ease-in-out, transform 150ms ease-in-out]",
       },
     },
   },
 });
 
-const toggleButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "1",
-  background: "[rgba(255, 255, 255, 0.5)]",
-  borderRadius: "sm",
-  cursor: "pointer",
-  flexShrink: 0,
-  width: "[28px]",
-  height: "[28px]",
-  _hover: {
-    backgroundColor: "[rgba(255, 255, 255, 0.8)]",
-  },
+const contentWrapperStyle = css({
+  position: "relative",
+  height: "full",
+  overflow: "hidden",
 });
 
-interface LeftSideBarProps {
-  hideNetManagementControls: boolean;
-  menuItems: MenuItem[];
-  title: string;
-  onTitleChange: (value: string) => void;
-}
+const contentLayerStyle = cva({
+  base: {
+    position: "absolute",
+    inset: "0",
+    display: "flex",
+    flexDirection: "column",
+    transition: "[opacity 120ms ease-in-out, transform 120ms ease-in-out]",
+  },
+  variants: {
+    active: {
+      true: {
+        opacity: "1",
+        transform: "none",
+        pointerEvents: "auto",
+      },
+      false: {
+        opacity: "0",
+        pointerEvents: "none",
+        visibility: "hidden",
+      },
+    },
+    direction: {
+      forward: {},
+      backward: {},
+    },
+  },
+  compoundVariants: [
+    {
+      active: false,
+      direction: "forward",
+      css: { transform: "translateX(-8px)" },
+    },
+    {
+      active: false,
+      direction: "backward",
+      css: { transform: "translateX(8px)" },
+    },
+  ],
+});
 
 /**
- * LeftSideBar displays the menu, title, and tools.
- * When collapsed: shows a horizontal bar with menu, title, and toggle button.
- * When open: shows the full sidebar with tools and content.
- * Resizable from the right edge when open.
+ * LeftSideBar displays tools and content panels.
+ * Visibility is controlled by the TopBar's sidebar toggle.
+ * Resizable from the right edge.
  */
-export const LeftSideBar: React.FC<LeftSideBarProps> = ({
-  hideNetManagementControls,
-  menuItems,
-  title,
-  onTitleChange,
-}) => {
+export const LeftSideBar: React.FC = () => {
   const {
     isLeftSidebarOpen: isOpen,
-    setLeftSidebarOpen,
     leftSidebarWidth,
     setLeftSidebarWidth,
+    isPanelAnimating,
+    isSearchOpen,
   } = use(EditorContext);
 
+  const { keepPanelsMounted, useEntitiesTreeView } = use(UserSettingsContext);
+
+  // The sidebar is visible when explicitly opened OR when search is active
+  const isVisible = isOpen || isSearchOpen;
+
+  const sidebarSubViews = useEntitiesTreeView
+    ? LEFT_SIDEBAR_TREE_SUBVIEWS
+    : LEFT_SIDEBAR_SUBVIEWS;
+
+  const searchSubViews = useMemo(() => [searchSubView], []);
+
+  if (!isVisible && !isPanelAnimating && !keepPanelsMounted) {
+    return null;
+  }
+
   return (
-    <div
-      className={outerContainerStyle({ isOpen })}
-      style={{
-        padding: PANEL_MARGIN,
-        ...(isOpen ? {} : { top: PANEL_MARGIN, left: PANEL_MARGIN }),
+    <GlassPanel
+      className={cx(
+        glassPanelBaseStyle,
+        panelStyle({ open: isVisible, animating: isPanelAnimating }),
+      )}
+      style={{ width: leftSidebarWidth }}
+      resizable={{
+        edge: "right",
+        size: leftSidebarWidth,
+        onResize: setLeftSidebarWidth,
+        minSize: MIN_LEFT_SIDEBAR_WIDTH,
+        maxSize: MAX_LEFT_SIDEBAR_WIDTH,
       }}
     >
-      <GlassPanel
-        style={isOpen ? { width: leftSidebarWidth } : undefined}
-        contentClassName={panelContentStyle({ isOpen })}
-        resizable={
-          isOpen
-            ? {
-                edge: "right",
-                size: leftSidebarWidth,
-                onResize: setLeftSidebarWidth,
-                minSize: MIN_LEFT_SIDEBAR_WIDTH,
-                maxSize: MAX_LEFT_SIDEBAR_WIDTH,
-              }
-            : undefined
-        }
-      >
-        {/* Header with Menu, Title, and Toggle button */}
-        <div className={headerStyle({ isOpen })}>
-          <div className={headerInnerStyle}>
-            <HamburgerMenu menuItems={menuItems} />
-            <div className={titleContainerStyle({ isOpen })}>
-              {!hideNetManagementControls && (
-                <FloatingTitle
-                  value={title}
-                  onChange={onTitleChange}
-                  placeholder="Process"
-                />
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setLeftSidebarOpen(!isOpen)}
-              aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
-              className={toggleButtonStyle}
-            >
-              {isOpen ? (
-                <TbLayoutSidebarLeftCollapse size={18} />
-              ) : (
-                <TbLayoutSidebarRightCollapse size={18} />
-              )}
-            </button>
-          </div>
+      <div className={contentWrapperStyle}>
+        <div
+          className={contentLayerStyle({
+            active: !isSearchOpen,
+            direction: "forward",
+          })}
+        >
+          <VerticalSubViewsContainer
+            name="left-sidebar"
+            subViews={sidebarSubViews}
+          />
         </div>
-
-        {/* Content sections - only visible when open */}
-        {isOpen && (
-          <ProportionalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
-        )}
-      </GlassPanel>
-    </div>
+        <div
+          className={contentLayerStyle({
+            active: isSearchOpen,
+            direction: "backward",
+          })}
+        >
+          <VerticalSubViewsContainer
+            name="left-sidebar-search"
+            subViews={searchSubViews}
+          />
+        </div>
+      </div>
+    </GlassPanel>
   );
 };

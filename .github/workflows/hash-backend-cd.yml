@@ -25,7 +25,7 @@ env:
   APP_CLUSTER_NAME: h-stage-euc1-app
   APP_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-app-deploy
   APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
-  APP_GRAPH_TEST_SERVICE_NAME: h-stage-euc1-app-graph-test
+  APP_GRAPH_ADMIN_SERVICE_NAME: h-stage-euc1-app-graph-admin
   APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
   APP_API_SERVICE_NAME: h-stage-euc1-app-api
   WORKER_CLUSTER_NAME: h-stage-euc1-worker
@@ -78,8 +78,6 @@ jobs:
           IMAGE_NAME: ${{ github.repository }}/graph
           IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
-          BUILD_ARGS: |
-            ENABLE_TEST_SERVER=yes
 
   build-api:
     name: Build and push HASH api image
@@ -322,7 +320,7 @@ jobs:
           ECS_SERVICE_NAME: ${{ env.APP_GRAPH_SERVICE_NAME }}
           ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
 
-      - name: Redeploy graph-test staging service
+      - name: Redeploy graph-admin staging service
         uses: ./.github/actions/redeploy-ecs-service
         with:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
@@ -330,7 +328,7 @@ jobs:
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.APP_CLUSTER_NAME }}
-          ECS_SERVICE_NAME: ${{ env.APP_GRAPH_TEST_SERVICE_NAME }}
+          ECS_SERVICE_NAME: ${{ env.APP_GRAPH_ADMIN_SERVICE_NAME }}
           ROLE_ARN: ${{ env.APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy type-fetcher staging service

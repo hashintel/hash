@@ -1,0 +1,13 @@
+import { Alert } from "./alert";
+
+export const App = () => {
+  return (
+    <Alert.Root>
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>This is a title</Alert.Title>
+        <Alert.Description>This is a description</Alert.Description>
+      </Alert.Content>
+    </Alert.Root>
+  );
+};

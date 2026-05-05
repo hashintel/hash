@@ -120,7 +120,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
    docker run hello-world
    ```
 
-6. If you need to test or develop AI-related features, you will need to create an `.env.local` file in the repository root with the following values:
+6. You will need to create an `.env.local` file in the repository root with the following values (Note: if you are not using AI-related features, dummy values are sufficient):
 
    ```sh
    OPENAI_API_KEY=your-open-ai-api-key                                      # required for most AI features
@@ -171,6 +171,8 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
    - `alice@example.com`, `bob@example.com` – regular users
    - `admin@example.com` – an admin
+  
+  Note: seeding only runs when `NODE_ENV=development`, start the Graph API separately using `yarn start:graph` then launch the app using `yarn dev` in a separate terminal to start it in development environment.
 
 ##### Running the browser plugin
 
@@ -240,7 +242,6 @@ This repository's contents is divided across several primary sections:
 - [**`/apps`**](/apps) contains the primary code powering our runnable [applications](https://github.com/hashintel/hash/tree/main/apps#applications)
   - The HASH application itself is divided into various different services which can be found in this directory.
 - [**`/blocks`**](/blocks) contains our public _Block Protocol_ [blocks](https://github.com/hashintel/hash/tree/main/blocks#blocks)
-- [**`/content`**](/content) contains our publicly-editable website [content](https://github.com/hashintel/hash/tree/main/content#content) (e.g. glossary definitions, user docs)
 - [**`/infra`**](/infra) houses deployment scripts, utilities and other [infrastructure](https://github.com/hashintel/hash/tree/main/infra#infrastructure) useful in running our apps
 - [**`/libs`**](/libs) contains [libraries](https://github.com/hashintel/hash/tree/main/libs#libraries) including npm packages and Rust crates
 - [**`/tests`**](/tests) contains end-to-end and integration tests that span across one or more apps, blocks or libs

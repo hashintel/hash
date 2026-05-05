@@ -34,7 +34,9 @@ DROP TABLE team;
 
 DROP TRIGGER web_prevent_delete_trigger ON web;
 DROP TRIGGER web_register_trigger ON web;
+DROP TRIGGER web_normalize_shortname_trigger ON web;
 DROP FUNCTION register_web();
+DROP FUNCTION normalize_web_shortname();
 DROP TABLE web;
 
 -- Drop actor group triggers

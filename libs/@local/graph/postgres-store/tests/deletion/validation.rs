@@ -43,9 +43,10 @@ async fn decision_time_exceeds_transaction_time() {
     let err = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
+                temporal_axes: crate::live_only_axes(),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
@@ -106,9 +107,10 @@ async fn decision_time_in_past_succeeds() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
+                temporal_axes: crate::axes_at_decision_time(one_hour_ago),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
@@ -124,6 +126,7 @@ async fn decision_time_in_past_succeeds() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -152,9 +155,10 @@ async fn decision_time_defaults_to_transaction_time() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
+                temporal_axes: crate::live_only_axes(),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
@@ -170,6 +174,7 @@ async fn decision_time_defaults_to_transaction_time() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -207,13 +212,14 @@ async fn decision_time_before_creation_finds_nothing() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
                 },
+                temporal_axes: crate::axes_at_decision_time(past_time),
                 decision_time: Some(past_time),
             },
         )
@@ -225,6 +231,7 @@ async fn decision_time_before_creation_finds_nothing() {
         DeletionSummary {
             full_entities: 0,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 
@@ -310,9 +317,10 @@ async fn past_decision_time_deletes_all_editions() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id,
+            api.account_id.into(),
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
+                temporal_axes: crate::axes_at_decision_time(one_hour_ago),
                 include_drafts: false,
                 scope: DeletionScope::Purge {
                     link_behavior: LinkDeletionBehavior::Ignore,
@@ -328,6 +336,7 @@ async fn past_decision_time_deletes_all_editions() {
         DeletionSummary {
             full_entities: 1,
             draft_deletions: 0,
+            links_archived: 0,
         }
     );
 

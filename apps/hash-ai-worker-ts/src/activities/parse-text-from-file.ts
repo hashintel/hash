@@ -21,7 +21,9 @@ type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 const officeParserTextParsingFunction: TextParsingFunction = async (
   fileBuffer,
 ) => {
-  const text = await officeParser.parseOfficeAsync(fileBuffer);
+  const text = await officeParser
+    .parseOffice(fileBuffer)
+    .then((ast) => ast.toText());
 
   return text;
 };

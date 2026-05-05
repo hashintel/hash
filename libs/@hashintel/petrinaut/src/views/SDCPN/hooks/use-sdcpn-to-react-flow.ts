@@ -1,14 +1,20 @@
+import { MarkerType } from "@xyflow/react";
 import { use } from "react";
-import { MarkerType } from "reactflow";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { PlaybackContext } from "../../../playback/context";
 import { EditorContext } from "../../../state/editor-context";
 import { generateArcId, SDCPNContext } from "../../../state/sdcpn-context";
+import { UserSettingsContext } from "../../../state/user-settings-context";
 import type {
   NodeType,
   PetrinautReactFlowDefinitionObject,
 } from "../reactflow-types";
+import {
+  classicNodeDimensions,
+  compactNodeDimensions,
+  NOT_SELECTED_CONNECTION_OVERLAY_OPACITY,
+} from "../styles/styling";
 
 /**
  * Converts SDCPN state to ReactFlow format (nodes and edges), and combines
@@ -22,8 +28,19 @@ import type {
  */
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { draggingStateByNodeId, selectedItemIds } = use(EditorContext);
+  const {
+    draggingStateByNodeId,
+    isSelected,
+    isNotSelectedConnection,
+    isNotHoveredConnection,
+    hoveredItem,
+  } = use(EditorContext);
   const { currentViewedFrame } = use(PlaybackContext);
+  const { compactNodes } = use(UserSettingsContext);
+
+  const dimensions = compactNodes
+    ? compactNodeDimensions
+    : classicNodeDimensions;
 
   const nodes: NodeType[] = [];
 
@@ -43,10 +60,14 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       position: draggingState?.dragging
         ? draggingState.position
         : { x: place.x, y: place.y },
-      width: place.width ?? 80,
-      height: place.height ?? 80,
+      width: dimensions.place.width,
+      height: dimensions.place.height,
+      measured: {
+        width: dimensions.place.width,
+        height: dimensions.place.height,
+      },
       dragging: draggingState?.dragging ?? false,
-      selected: selectedItemIds.has(place.id),
+      selected: isSelected(place.id),
       data: {
         label: place.name,
         type: "place",
@@ -67,10 +88,14 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       position: draggingState?.dragging
         ? draggingState.position
         : { x: transition.x, y: transition.y },
-      width: transition.width ?? 60,
-      height: transition.height ?? 60,
+      width: dimensions.transition.width,
+      height: dimensions.transition.height,
+      measured: {
+        width: dimensions.transition.width,
+        height: dimensions.transition.height,
+      },
       dragging: draggingState?.dragging ?? false,
-      selected: selectedItemIds.has(transition.id),
+      selected: isSelected(transition.id),
       data: {
         label: transition.name,
         type: "transition",
@@ -98,16 +123,22 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       const placeType = place?.colorId
         ? petriNetDefinition.types.find((type) => type.id === place.colorId)
         : null;
-      const arcColor = placeType?.displayColor
+      let arcColor = placeType?.displayColor
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
+
+      const notSelectedConnection =
+        isNotHoveredConnection(arcId) ||
+        (!hoveredItem && isNotSelectedConnection(arcId));
+      if (notSelectedConnection)
+        arcColor = `color-mix(in oklab, white ${NOT_SELECTED_CONNECTION_OVERLAY_OPACITY * 100}%, ${arcColor})`;
 
       arcs.push({
         id: arcId,
         source: inputArc.placeId,
         target: transition.id,
         type: "default" as const,
-        selected: selectedItemIds.has(arcId),
+        selected: isSelected(arcId),
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: arcColor,
@@ -120,6 +151,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: inputArc.weight,
+          arcType: inputArc.type,
           frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });
@@ -139,16 +171,22 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       const placeType = place?.colorId
         ? petriNetDefinition.types.find((type) => type.id === place.colorId)
         : null;
-      const arcColor = placeType?.displayColor
+      let arcColor = placeType?.displayColor
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
         : "#777";
+
+      const notSelectedConnection =
+        isNotHoveredConnection(arcId) ||
+        (!hoveredItem && isNotSelectedConnection(arcId));
+      if (notSelectedConnection)
+        arcColor = `color-mix(in oklab, white ${NOT_SELECTED_CONNECTION_OVERLAY_OPACITY * 100}%, ${arcColor})`;
 
       arcs.push({
         id: arcId,
         source: transition.id,
         target: outputArc.placeId,
         type: "default" as const,
-        selected: selectedItemIds.has(arcId),
+        selected: isSelected(arcId),
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: arcColor,
@@ -161,6 +199,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: outputArc.weight,
+          arcType: "standard" as const,
           frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });

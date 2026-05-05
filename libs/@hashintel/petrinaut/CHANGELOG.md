@@ -1,5 +1,70 @@
 # @hashintel/petrinaut
 
+## 0.0.13
+
+### Patch Changes
+
+- [#8618](https://github.com/hashintel/hash/pull/8618) [`dae70b5`](https://github.com/hashintel/hash/commit/dae70b532abfc74158e6452f3e739f1baf8140f0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add support for inhibitor arcs
+
+- [#8611](https://github.com/hashintel/hash/pull/8611) [`21327f5`](https://github.com/hashintel/hash/commit/21327f52ad732b3e348b5e7421f6ed514295d417) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Let minZoom be dynamically based on the size of the net
+
+- [#8637](https://github.com/hashintel/hash/pull/8637) [`e02b330`](https://github.com/hashintel/hash/commit/e02b33016bf187ac1838827e477e68cea9d7922c) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - recenter offscreen selected items when drawer is opened
+
+- [#8623](https://github.com/hashintel/hash/pull/8623) [`ae168f5`](https://github.com/hashintel/hash/commit/ae168f540900a5fa938c557e82b6aa3f80d6fef0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Improve text wrapping for long text in nodes
+
+- [#8609](https://github.com/hashintel/hash/pull/8609) [`b12a1d2`](https://github.com/hashintel/hash/commit/b12a1d2e9cdeff8d20c8472b3cafa83fca5070ea) Thanks [@kube](https://github.com/kube)! - Add Scenarios: reusable simulation configurations with parameter overrides and initial state expressions
+
+## 0.0.12
+
+### Patch Changes
+
+- [#8590](https://github.com/hashintel/hash/pull/8590) [`4a60112`](https://github.com/hashintel/hash/commit/4a6011241720a9c5d8a7f0e7f49f15b50eaad228) Thanks [@CiaranMn](https://github.com/CiaranMn)! - better scoping of styles, font loading
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [[`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d), [`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d)]:
+  - @hashintel/refractive@0.0.3
+  - @hashintel/ds-helpers@0.1.2
+  - @hashintel/ds-components@0.1.2
+
+## 0.0.10
+
+### Patch Changes
+
+- [#8570](https://github.com/hashintel/hash/pull/8570) [`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Fix dependency references
+
+- Updated dependencies [[`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236)]:
+  - @hashintel/ds-components@0.1.1
+  - @hashintel/ds-helpers@0.1.1
+
+## 0.0.9
+
+### Patch Changes
+
+- [#8300](https://github.com/hashintel/hash/pull/8300) [`2b711ad`](https://github.com/hashintel/hash/commit/2b711adc178483069b02a349fb5822d6ecc735af) Thanks [@kube](https://github.com/kube)! - Add LSP-based language service layer for Monaco code editors with diagnostics, completions, hover, and signature help
+
+- [#8533](https://github.com/hashintel/hash/pull/8533) [`feb318b`](https://github.com/hashintel/hash/commit/feb318b85398afca507a5ddee5414520f236b1e6) Thanks [@kube](https://github.com/kube)! - Add copy/paste, select all, and escape-to-deselect keyboard shortcuts
+
+- [#8439](https://github.com/hashintel/hash/pull/8439) [`9741121`](https://github.com/hashintel/hash/commit/9741121865f41557780d3bab873690a8074cad7f) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add TikZ export format
+
+- [#8285](https://github.com/hashintel/hash/pull/8285) [`673ece2`](https://github.com/hashintel/hash/commit/673ece205d7622936980bf744574654026aad1c3) Thanks [@kube](https://github.com/kube)! - Fix read-only tooltips to always show during simulation mode
+
+- [#8472](https://github.com/hashintel/hash/pull/8472) [`15ebcfe`](https://github.com/hashintel/hash/commit/15ebcfe3e9d51bcd88802fc41001f63cbe70b085) Thanks [@kube](https://github.com/kube)! - Visual appearance improvements
+
+- [#8463](https://github.com/hashintel/hash/pull/8463) [`a9fe023`](https://github.com/hashintel/hash/commit/a9fe0235430bc71f0275f2954e9728cb3b410915) Thanks [@kube](https://github.com/kube)! - Add probability distribution support to transition kernels (`Distribution.Gaussian`, `Distribution.Uniform`, `Distribution.Lognormal`)
+
+- [#8523](https://github.com/hashintel/hash/pull/8523) [`44fe283`](https://github.com/hashintel/hash/commit/44fe283ffb14e378b516fc7295f9133bb9d397d6) Thanks [@kube](https://github.com/kube)! - Add multi-selection support with keyboard shortcuts, refactor selection logic, migrate to @xyflow/react v12
+
+- [#8295](https://github.com/hashintel/hash/pull/8295) [`4b22f76`](https://github.com/hashintel/hash/commit/4b22f7608491fe10a8b90753fe0cc47f99dbd296) Thanks [@kube](https://github.com/kube)! - Add configurable simulation playback speed and maximum run time
+
+- [#8505](https://github.com/hashintel/hash/pull/8505) [`f6971b7`](https://github.com/hashintel/hash/commit/f6971b7c5730bad6094e21c1b849283fcb818325) Thanks [@kube](https://github.com/kube)! - Add optional undo/redo support with version history UI, keyboard shortcuts (Cmd|Ctrl+Z / Cmd|Ctrl+Shift+Z), and drag debouncing
+
+- Updated dependencies [[`76aed29`](https://github.com/hashintel/hash/commit/76aed2967634fd5b15de428b053c4cdad92c1102), [`15ebcfe`](https://github.com/hashintel/hash/commit/15ebcfe3e9d51bcd88802fc41001f63cbe70b085), [`7ddaecb`](https://github.com/hashintel/hash/commit/7ddaecbc0f2b3ea1daff6ea584a3d9f418a3da53)]:
+  - @hashintel/ds-helpers@0.1.0
+  - @hashintel/ds-components@0.1.0
+
 ## 0.0.8
 
 ### Patch Changes

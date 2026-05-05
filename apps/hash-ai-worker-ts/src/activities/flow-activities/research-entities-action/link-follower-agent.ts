@@ -666,7 +666,7 @@ export const linkFollowerAgent = async (params: {
     if (nextToolCall.name === "exploreLinks") {
       const { links } = nextToolCall.input;
 
-      logger.debug(`Exploring additional links: ${stringify(links)}`);
+      logger.debug("Exploring additional links", { links });
 
       resourcesToExplore.push(...links);
     } else {

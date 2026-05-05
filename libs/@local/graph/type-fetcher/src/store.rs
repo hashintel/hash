@@ -1023,6 +1023,24 @@ where
         self.store.get_user_by_id(actor_id, id).await
     }
 
+    async fn get_user_id_by_email(
+        &self,
+        email: &str,
+    ) -> Result<Option<UserId>, Report<GetActorError>> {
+        self.store.get_user_id_by_email(email).await
+    }
+
+    async fn get_user_kratos_identity_id(
+        &self,
+        user_id: UserId,
+    ) -> Result<Option<String>, Report<GetActorError>> {
+        self.store.get_user_kratos_identity_id(user_id).await
+    }
+
+    async fn get_user_emails(&self, user_id: UserId) -> Result<Vec<String>, Report<GetActorError>> {
+        self.store.get_user_emails(user_id).await
+    }
+
     async fn get_machine_by_id(
         &self,
         actor_id: ActorEntityUuid,
@@ -1675,7 +1693,7 @@ where
 
     async fn delete_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: AuthenticatedActor,
         params: DeleteEntitiesParams<'_>,
     ) -> Result<DeletionSummary, Report<DeletionError>> {
         self.store.delete_entities(actor_id, params).await

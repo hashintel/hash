@@ -5,7 +5,9 @@ import type {
   Diagnostic,
   DocumentUri,
   Hover,
+  MetricSessionParams,
   Position,
+  ScenarioSessionParams,
   SignatureHelp,
 } from "./worker/protocol";
 
@@ -28,6 +30,18 @@ export interface LanguageClientContextValue {
     uri: DocumentUri,
     position: Position,
   ) => Promise<SignatureHelp | null>;
+  /** Initialize a temporary scenario editing session. */
+  initializeScenarioSession: (params: ScenarioSessionParams) => void;
+  /** Update a scenario editing session. */
+  updateScenarioSession: (params: ScenarioSessionParams) => void;
+  /** Kill a scenario editing session. */
+  killScenarioSession: (sessionId: string) => void;
+  /** Initialize a temporary metric editing session. */
+  initializeMetricSession: (params: MetricSessionParams) => void;
+  /** Update a metric editing session. */
+  updateMetricSession: (params: MetricSessionParams) => void;
+  /** Kill a metric editing session. */
+  killMetricSession: (sessionId: string) => void;
 }
 
 const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
@@ -37,6 +51,12 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
   requestCompletion: () => Promise.resolve({ isIncomplete: false, items: [] }),
   requestHover: () => Promise.resolve(null),
   requestSignatureHelp: () => Promise.resolve(null),
+  initializeScenarioSession: () => {},
+  updateScenarioSession: () => {},
+  killScenarioSession: () => {},
+  initializeMetricSession: () => {},
+  updateMetricSession: () => {},
+  killMetricSession: () => {},
 };
 
 export const LanguageClientContext = createContext<LanguageClientContextValue>(

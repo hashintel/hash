@@ -1,5 +1,35 @@
 # @hashintel/ds-components
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [[`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d), [`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d)]:
+  - @hashintel/refractive@0.0.3
+  - @hashintel/ds-helpers@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- [#8570](https://github.com/hashintel/hash/pull/8570) [`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Fix dependency references
+
+- Updated dependencies [[`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236)]:
+  - @hashintel/ds-helpers@0.1.1
+
+## 0.1.0
+
+### Minor Changes
+
+- [#8360](https://github.com/hashintel/hash/pull/8360) [`76aed29`](https://github.com/hashintel/hash/commit/76aed2967634fd5b15de428b053c4cdad92c1102) Thanks [@lunelson](https://github.com/lunelson)! - Revamp design token system: Radix-based color generation with semantic bg/fg/bd token structure, expanded 00–120 color scales with OKLCH interpolation, runtime-scalable spacing/radii/line-height via CSS variable factors, and extended conditions.
+
+### Patch Changes
+
+- [#8472](https://github.com/hashintel/hash/pull/8472) [`15ebcfe`](https://github.com/hashintel/hash/commit/15ebcfe3e9d51bcd88802fc41001f63cbe70b085) Thanks [@kube](https://github.com/kube)! - Update Button and Switch components
+
+- Updated dependencies [[`76aed29`](https://github.com/hashintel/hash/commit/76aed2967634fd5b15de428b053c4cdad92c1102), [`7ddaecb`](https://github.com/hashintel/hash/commit/7ddaecbc0f2b3ea1daff6ea584a3d9f418a3da53)]:
+  - @hashintel/ds-helpers@0.1.0
+
 ## 0.0.4
 
 ### Patch Changes

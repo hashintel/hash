@@ -1,4 +1,3 @@
-/* eslint-disable id-length */
 /* eslint-disable no-param-reassign */
 import { calculateRoundedSquareMap } from "./calculate-rounded-square-map";
 

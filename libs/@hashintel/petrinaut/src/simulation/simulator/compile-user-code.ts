@@ -1,5 +1,7 @@
 import * as Babel from "@babel/standalone";
 
+import { distributionRuntimeCode } from "./distribution";
+
 /**
  * Strips TypeScript type annotations from code to make it executable JavaScript.
  * Uses Babel standalone (browser-compatible) to properly parse and transform TypeScript code.
@@ -77,6 +79,7 @@ export function compileUserCode<T extends unknown[] = unknown[]>(
 
     // Create an executable module-like environment
     const executableCode = `
+      ${distributionRuntimeCode}
       ${mockConstructor}
       let __default_export__;
       ${sanitizedCode.replace(/export\s+default\s+/, "__default_export__ = ")}
@@ -84,7 +87,7 @@ export function compileUserCode<T extends unknown[] = unknown[]>(
     `;
 
     // Use Function constructor to create and execute the module
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func, @typescript-eslint/no-unsafe-call
+    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
     const compiledFunction = new Function(executableCode)() as (
       ...args: T
     ) => unknown;

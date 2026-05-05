@@ -26,12 +26,17 @@ pub enum QueryEntitiesError {
 
 impl Error for QueryEntitiesError {}
 
+const fn default_limit() -> usize {
+    1000
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct QueryEntitiesInputs {
     #[serde(default)]
     pub user_catalog: Option<String>,
-    pub limit: Option<usize>,
+    #[serde(default = "default_limit")]
+    pub limit: usize,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

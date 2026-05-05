@@ -107,7 +107,7 @@ export const shortnameIsRestricted: PureGraphFunction<
   { shortname: string },
   boolean
 > = ({ shortname }): boolean => {
-  return RESTRICTED_SHORTNAMES.includes(shortname);
+  return RESTRICTED_SHORTNAMES.includes(shortname.toLowerCase());
 };
 
 // TODO: Depending on the approached chosen outlined in `get*ByShortname` functions, this function may be changed

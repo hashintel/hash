@@ -2,7 +2,7 @@ use core::{error::Error, iter};
 use std::collections::HashMap;
 
 use error_stack::Report;
-use rand::{Rng, distr::Distribution};
+use rand::{Rng, RngExt as _, distr::Distribution};
 use type_system::ontology::{
     VersionedUrl, entity_type::schema::EntityTypeReference, json_schema::OneOfSchema,
     property_type::schema::PropertyValueArray,

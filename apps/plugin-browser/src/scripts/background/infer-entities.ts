@@ -31,26 +31,34 @@ const setExternalInputRequestsValue = getSetFromLocalStorageValue(
   "externalInputRequests",
 );
 
-const getCookieString = async () => {
+const getApiOriginUrl = async () => {
   const apiOrigin = await getFromLocalStorage("apiOrigin");
+  return apiOrigin ?? API_ORIGIN;
+};
 
-  const cookies = await browser.cookies
-    .getAll({
-      url: apiOrigin ?? API_ORIGIN,
-    })
-    .then((options) =>
-      options.filter(
-        (option) =>
-          option.name.startsWith("csrf_token_") ||
-          option.name === "ory_kratos_session",
-      ),
-    );
+const isLoggedIn = async (): Promise<boolean> => {
+  const cookies = await browser.cookies.getAll({
+    url: await getApiOriginUrl(),
+    name: "ory_kratos_session",
+  });
+  return cookies.length > 0;
+};
 
-  if (cookies.length < 2) {
+/** Build the cookie header for WebSocket requests (needs both CSRF and session). */
+const buildWebsocketCookieString = async () => {
+  const url = await getApiOriginUrl();
+  const allCookies = await browser.cookies.getAll({ url });
+  const relevant = allCookies.filter(
+    (cookie) =>
+      cookie.name.startsWith("csrf_token_") ||
+      cookie.name === "ory_kratos_session",
+  );
+
+  if (relevant.length < 2) {
     throw new Error("No session cookies available to use in websocket request");
   }
 
-  return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
+  return relevant.map((cookie) => `${cookie.name}=${cookie.value}`).join(";");
 };
 
 const maxConcurrentRequests = 3;
@@ -88,8 +96,18 @@ const enqueueTask = (task: () => Promise<void>) => {
 };
 
 const waitForConnection = async (socket: WebSocket) => {
-  while (socket.readyState !== socket.OPEN) {
+  const timeout = 10_000;
+  const start = Date.now();
+  while (socket.readyState === socket.CONNECTING) {
+    if (Date.now() - start > timeout) {
+      throw new Error("WebSocket connection timed out");
+    }
     await sleep(200);
+  }
+  if (socket.readyState !== socket.OPEN) {
+    throw new Error(
+      `WebSocket is ${socket.readyState === socket.CLOSING ? "closing" : "closed"}`,
+    );
   }
 };
 
@@ -105,14 +123,18 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
   const newWs = new WebSocket(websocketUrl);
 
   const externalRequestPoll = setInterval(() => {
-    void getCookieString().then((cookie) =>
-      newWs.send(
-        JSON.stringify({
-          cookie,
-          type: "check-for-external-input-requests",
-        } satisfies CheckForExternalInputRequestsWebsocketRequestMessage),
-      ),
-    );
+    void buildWebsocketCookieString()
+      .then((cookie) =>
+        newWs.send(
+          JSON.stringify({
+            cookie,
+            type: "check-for-external-input-requests",
+          } satisfies CheckForExternalInputRequestsWebsocketRequestMessage),
+        ),
+      )
+      .catch(() => {
+        // No session cookies — skip this poll tick.
+      });
   }, 20_000);
 
   newWs.addEventListener("open", () => {
@@ -127,9 +149,10 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
     onClose();
   });
 
-  newWs.addEventListener("error", () => {
+  newWs.addEventListener("error", (event) => {
     console.error(
       "WebSocket error encountered. Closing and attempting to reconnect...",
+      event,
     );
     newWs.close();
   });
@@ -139,7 +162,13 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
 
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (event: MessageEvent<string>) => {
-      const message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
+      let message: InferenceWebsocketServerMessage;
+      try {
+        message = JSON.parse(event.data) as InferenceWebsocketServerMessage;
+      } catch {
+        console.error("Malformed WebSocket message");
+        return;
+      }
 
       const { workflowId, payload } = message;
       if (payload.type === "get-urls-html-content") {
@@ -169,7 +198,7 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
         enqueueTask(async () => {
           const webPages = await getWebsiteContent(payload.data.urls);
 
-          const cookie = await getCookieString();
+          const cookie = await buildWebsocketCookieString();
 
           newWs.send(
             JSON.stringify({
@@ -209,6 +238,13 @@ const reconnectWebSocket = async () => {
   reconnecting = true;
 
   try {
+    if (!(await isLoggedIn())) {
+      // User isn't logged in — don't open a doomed connection that the
+      // server will kill after 5 s. Retry later; a user action like
+      // opening the popup will trigger getWebSocket() once cookies exist.
+      return;
+    }
+
     console.log("Reconnecting WebSocket...");
     ws = await createWebSocket({ onClose: reconnectWebSocket });
     console.log("WebSocket reconnected successfully.");
@@ -218,9 +254,7 @@ const reconnectWebSocket = async () => {
       void reconnectWebSocket();
     }, 3_000);
   } finally {
-    if (ws) {
-      reconnecting = false;
-    }
+    reconnecting = false;
   }
 };
 
@@ -251,7 +285,7 @@ const sendInferEntitiesMessage = async (
 ) => {
   const socket = await getWebSocket();
 
-  const cookie = await getCookieString();
+  const cookie = await buildWebsocketCookieString();
 
   socket.send(
     JSON.stringify({
@@ -268,7 +302,7 @@ export const cancelInferEntities = async ({
 }: {
   flowRunId: string;
 }) => {
-  const cookie = await getCookieString();
+  const cookie = await buildWebsocketCookieString();
 
   const socket = await getWebSocket();
 
@@ -383,10 +417,17 @@ export const inferEntities = async (
 };
 
 /**
- * Keep a persist websocket connection because we use it to get sent input requests from the API
+ * Keep a persistent websocket connection because we use it to get sent
+ * input requests from the API. If no session cookies are available yet
+ * (user not logged in), defer until they appear so we don't open
+ * connections that the server will immediately kill.
  */
-const init = () => {
-  void getWebSocket();
+const init = async () => {
+  if (await isLoggedIn()) {
+    void getWebSocket();
+  }
+  // If no cookies, the WebSocket will be created on demand when
+  // getWebSocket() is called by a user action (e.g. inferEntities).
 };
 
-init();
+void init();

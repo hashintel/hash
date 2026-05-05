@@ -45,6 +45,6 @@ impl Display for SubsystemDescriptor {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let &Self { id, version } = self;
 
-        write!(fmt, "{id}@{version}",)
+        write!(fmt, "{id}@{version}")
     }
 }

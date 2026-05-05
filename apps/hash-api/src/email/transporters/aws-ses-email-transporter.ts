@@ -42,8 +42,8 @@ export class AwsSesEmailTransporter implements EmailTransporter {
         html,
       })
       .then(() => undefined)
-      .catch((err) => {
-        logger.error(`Error sending email: ${err as string}`);
+      .catch((error) => {
+        logger.error("Error sending email", { error });
       });
   }
 }

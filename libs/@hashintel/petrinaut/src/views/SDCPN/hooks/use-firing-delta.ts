@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
  * Hook to track the previous firingCount and compute the delta.
  */
 export function useFiringDelta(firingCount: number | null): number | null {
+  "use no memo"; // Intentionally reads ref during render — incompatible with React Compiler
   const prevFiringCountRef = useRef<number | null>(null);
 
   useEffect(() => {

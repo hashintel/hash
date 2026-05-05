@@ -8,7 +8,6 @@
     arbitrary_self_types,
     associated_type_defaults,
     coverage_attribute,
-    if_let_guard,
     impl_trait_in_assoc_type,
     macro_metavar_expr,
     macro_metavar_expr_concat,
@@ -17,15 +16,11 @@
 
     // Library Features
     allocator_api,
-    assert_matches,
     binary_heap_into_iter_sorted,
     clone_from_ref,
     const_cmp,
-    const_ops,
     const_trait_impl,
-    debug_closure_helpers,
     extend_one,
-    formatting_options,
     get_disjoint_mut_helpers,
     iter_intersperse,
     iter_map_windows,

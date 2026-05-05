@@ -26,7 +26,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import type { TraversalPath } from "@rust/hash-graph-store/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph, restoreSnapshot } from "../test-server";
+import { resetGraph, restoreSnapshot } from "../admin-server";
 import { createTestImpureGraphContext } from "../util";
 
 const createRequest = ({

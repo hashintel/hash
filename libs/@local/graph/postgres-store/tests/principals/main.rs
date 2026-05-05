@@ -1,7 +1,3 @@
-#![feature(
-    // Library Features
-    assert_matches,
-)]
 #![expect(clippy::panic_in_result_fn, clippy::missing_panics_doc)]
 
 extern crate alloc;

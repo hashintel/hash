@@ -290,7 +290,10 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
 
         // Update caller cost: remove Apply costs and add callee costs.
         // This ensures subsequent callers see the true accumulated cost.
-        self.costs.properties[body].cost -= (targets.len() as f32) * self.config.cost.rvalue_apply;
+        self.costs.properties[body].cost = (targets.len() as f32).mul_add(
+            -self.config.cost.rvalue_apply,
+            self.costs.properties[body].cost,
+        );
         for target in targets {
             debug_assert_eq!(target.caller, body);
 

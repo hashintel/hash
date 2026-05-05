@@ -283,6 +283,7 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
   const {
     flowRuns: unfilteredFlowRuns,
     totalCount,
+    nextCursor,
     loading,
     pagination,
   } = useFlowRunsContext();
@@ -447,70 +448,70 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
           setSort={setSort}
         />
       </Box>
-      {pagination && totalCount > 0 && (
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ px: 1, py: 1.5 }}
-        >
-          <Typography
-            sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
+      {pagination &&
+        (flowRunRows.length > 0 || pagination.previousCursors.length > 0) && (
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ px: 1, py: 1.5 }}
           >
-            Showing{" "}
-            <strong>{pagination.page * pagination.rowsPerPage + 1}</strong> to{" "}
-            <strong>
-              {Math.min(
-                (pagination.page + 1) * pagination.rowsPerPage,
-                totalCount,
+            <Typography
+              sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
+            >
+              Showing <strong>{flowRunRows.length}</strong> result
+              {flowRunRows.length !== 1 ? "s" : ""}
+              {totalCount > 0 && (
+                <>
+                  {" "}
+                  of ~<strong>{totalCount}</strong> total
+                </>
               )}
-            </strong>{" "}
-            of <strong>{totalCount}</strong>
-          </Typography>
-          <Stack direction="row" gap={2}>
-            {pagination.page > 0 && (
-              <Typography
-                component="button"
-                onClick={() => pagination.onPageChange(pagination.page - 1)}
-                sx={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: ({ palette }) => palette.blue[70],
-                  cursor: "pointer",
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
-                }}
-              >
-                Previous page
-              </Typography>
-            )}
-            {(pagination.page + 1) * pagination.rowsPerPage < totalCount && (
-              <Typography
-                component="button"
-                onClick={() => pagination.onPageChange(pagination.page + 1)}
-                sx={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: ({ palette }) => palette.blue[70],
-                  cursor: "pointer",
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
-                }}
-              >
-                Next page
-              </Typography>
-            )}
+            </Typography>
+            <Stack direction="row" gap={2}>
+              {pagination.previousCursors.length > 0 && (
+                <Typography
+                  component="button"
+                  onClick={() => pagination.onPreviousPage()}
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: ({ palette }) => palette.blue[70],
+                    cursor: "pointer",
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                >
+                  Previous page
+                </Typography>
+              )}
+              {nextCursor && (
+                <Typography
+                  component="button"
+                  onClick={() => pagination.onNextPage(nextCursor)}
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: ({ palette }) => palette.blue[70],
+                    cursor: "pointer",
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                >
+                  Next page
+                </Typography>
+              )}
+            </Stack>
           </Stack>
-        </Stack>
-      )}
+        )}
     </Box>
   );
 };

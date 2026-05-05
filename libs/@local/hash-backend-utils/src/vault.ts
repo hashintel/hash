@@ -393,9 +393,7 @@ export const createVaultClient = async ({
         secretMountPath,
       });
     } catch (error) {
-      logger.error(
-        `Failed to login to Vault via IAM: ${stringifyError(error)}`,
-      );
+      logger.error("Failed to login to Vault via IAM", { error });
 
       return undefined;
     }

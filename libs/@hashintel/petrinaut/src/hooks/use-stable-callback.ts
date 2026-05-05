@@ -23,6 +23,7 @@ import { useCallback, useEffect, useRef } from "react";
 export function useStableCallback<T extends (...args: never[]) => unknown>(
   callback: T,
 ): T {
+  "use no memo"; // useCallback with `as T` cast is not an inline function expression — incompatible with React Compiler
   const ref = useRef(callback);
 
   useEffect(() => {

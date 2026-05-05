@@ -22,12 +22,37 @@ export const LOCAL_FILE_UPLOAD_PATH =
 
 export const GRAPHQL_PATH = "/graphql";
 
+const parseCorsOrigins = (value: string): string[] =>
+  value
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const defaultCorsOrigins: corsMiddleware.CorsOptions["origin"] = [
+  /^https:\/\/[a-z\d][a-z\d.-]*\.stage\.hash\.ai$/,
+  "https://hash.ai",
+  frontendUrl,
+];
+
+/**
+ * HASH_CORS_ORIGIN_OVERRIDE: when set, completely replaces the default CORS
+ * origin list. Useful for self-hosted deployments that don't need hash.ai origins.
+ *
+ * HASH_CORS_ADDITIONAL_ORIGINS: appends extra origins to the default list.
+ *
+ * Both accept comma-separated origin strings.
+ */
+const corsOrigins: corsMiddleware.CorsOptions["origin"] = process.env
+  .HASH_CORS_ORIGIN_OVERRIDE
+  ? parseCorsOrigins(process.env.HASH_CORS_ORIGIN_OVERRIDE)
+  : [
+      ...defaultCorsOrigins,
+      ...parseCorsOrigins(process.env.HASH_CORS_ADDITIONAL_ORIGINS ?? ""),
+    ];
+
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,
-  origin: [
-    /^https:\/\/[a-z\d][a-z\d-]*-hashintel\.vercel\.app$/,
-    /^https:\/\/[a-z\d][a-z\d.-]*\.stage\.hash\.ai$/,
-    "https://hash.ai",
-    frontendUrl,
-  ],
+  methods: ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"],
+  maxAge: 1800,
+  origin: corsOrigins,
 };

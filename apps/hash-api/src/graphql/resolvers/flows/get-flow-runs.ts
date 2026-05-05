@@ -10,7 +10,11 @@ import type { GraphQLContext } from "../../context";
 import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
 export const getFlowRunsResolver: ResolverFn<
-  { flowRuns: FlowRun[] | SparseFlowRun[]; totalCount: number },
+  {
+    flowRuns: FlowRun[] | SparseFlowRun[];
+    totalCount: number;
+    nextCursor: string | null;
+  },
   Record<string, never>,
   Pick<GraphQLContext, "authentication" | "dataSources" | "temporal">,
   QueryGetFlowRunsArgs
@@ -19,14 +23,14 @@ export const getFlowRunsResolver: ResolverFn<
 
   const { authentication, dataSources, temporal } = context;
 
-  const { flowDefinitionIds, executionStatus, offset, limit } = args;
+  const { flowDefinitionIds, executionStatus, cursor, limit } = args;
 
   return await getFlowRuns({
     authentication,
     filters: {
       flowDefinitionIds,
       executionStatus,
-      offset,
+      cursor,
       limit,
     },
     graphApiClient: dataSources.graphApi,

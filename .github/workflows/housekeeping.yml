@@ -1,0 +1,71 @@
+name: Housekeeping
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/housekeeping.yml"
+      - ".github/renovate.json"
+  schedule:
+    - cron: "0/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      repoCache:
+        description: "Reset or disable the cache?"
+        type: choice
+        default: enabled
+        options:
+          - enabled
+          - disabled
+          - reset
+      logLevel:
+        description: "Override default log level"
+        type: choice
+        default: info
+        options:
+          - "debug"
+          - "info"
+          - "warn"
+          - "error"
+      overrideSchedule:
+        description: "Override all schedules"
+        type: boolean
+        default: false
+      dryRun:
+        description: "Dry run mode"
+        type: choice
+        default: disabled
+        options:
+          - disabled
+          - extract
+          - lookup
+          - full
+
+permissions:
+  actions: read
+  contents: write
+  id-token: write
+
+jobs:
+  validate:
+    name: Validate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Validate Renovate config
+        run: jq empty .github/renovate.json
+
+      - name: Validate workflow
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 .github/workflows/housekeeping.yml
+
+  renovate:
+    name: Dependencies
+    uses: hashintel/.github/.github/workflows/housekeeping-dependencies.yml@a0df113e5602f3b721bf306bf6050ee2a0866956
+    with:
+      repoCache: ${{ inputs.repoCache || 'enabled' }}
+      logLevel: ${{ inputs.logLevel || 'info' }}
+      overrideSchedule: ${{ inputs.overrideSchedule || false }}
+      dryRun: ${{ inputs.dryRun || 'disabled' }}
+    secrets: inherit

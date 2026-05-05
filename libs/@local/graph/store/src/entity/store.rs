@@ -195,7 +195,7 @@ pub struct QueryEntitiesParams<'a> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub sorting: EntityQuerySorting<'static>,
     pub conversions: Vec<QueryConversion<'a>>,
-    pub limit: Option<usize>,
+    pub limit: usize,
     pub include_drafts: bool,
     pub include_count: bool,
     pub include_entity_types: Option<IncludeEntityTypeOption>,
@@ -550,18 +550,82 @@ pub enum DeletionScope {
 pub enum LinkDeletionBehavior {
     Ignore,
     Error,
-    // Cascade,
+    Archive,
 }
 
+/// Parameters for the `/entities/delete` admin API endpoint.
+///
+/// # Examples
+///
+/// Purge all entities of a specific type, erroring if any links remain:
+///
+/// ```
+/// # use serde::Deserialize as _;
+/// # use hash_graph_store::entity::DeleteEntitiesParams;
+/// let json = serde_json::json!({
+///     "filter": {
+///         "all": [
+///             {
+///                 "equal": [
+///                     { "path": ["type(inheritanceDepth = 0)", "baseUrl"] },
+///                     { "parameter": "https://hash.ai/@hash/types/entity-type/user/" }
+///                 ]
+///             },
+///             {
+///                 "equal": [
+///                     { "path": ["type(inheritanceDepth = 0)", "version"] },
+///                     { "parameter": 1 }
+///                 ]
+///             }
+///         ]
+///     },
+///     "temporalAxes": {
+///         "pinned": { "axis": "transactionTime", "timestamp": null },
+///         "variable": {
+///             "axis": "decisionTime",
+///             "interval": { "start": { "kind": "unbounded" }, "end": null }
+///         }
+///     },
+///     "includeDrafts": false,
+///     "scope": "purge",
+///     "linkBehavior": "error"
+/// });
+/// let params = DeleteEntitiesParams::deserialize(&json).unwrap();
+/// ```
+///
+/// Erase all entities (including drafts) — typically used for database resets:
+///
+/// ```
+/// # use serde::Deserialize as _;
+/// # use hash_graph_store::entity::DeleteEntitiesParams;
+/// let json = serde_json::json!({
+///     "filter": { "all": [] },
+///     "temporalAxes": {
+///         "pinned": { "axis": "transactionTime", "timestamp": null },
+///         "variable": {
+///             "axis": "decisionTime",
+///             "interval": { "start": { "kind": "unbounded" }, "end": null }
+///         }
+///     },
+///     "includeDrafts": true,
+///     "scope": "erase"
+/// });
+/// let params = DeleteEntitiesParams::deserialize(&json).unwrap();
+/// ```
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteEntitiesParams<'a> {
     #[serde(borrow)]
     pub filter: Filter<'a, Entity>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(flatten)]
     pub scope: DeletionScope,
+    /// Decision time at which the deletion is recorded in provenance.
+    ///
+    /// Defaults to the current time when `None`. Must not exceed the current transaction time.
+    /// This is independent of `temporal_axes`, which controls entity *finding*.
     #[serde(default)]
     pub decision_time: Option<Timestamp<DecisionTime>>,
 }
@@ -575,6 +639,8 @@ pub struct DeletionSummary {
     pub full_entities: usize,
     /// Number of draft-only deletions performed.
     pub draft_deletions: usize,
+    /// Number of link entities archived during deletion.
+    pub links_archived: u64,
 }
 
 /// Describes the API of a store implementation for [Entities].
@@ -721,7 +787,7 @@ pub trait EntityStore {
     /// [`Filter::for_entity_by_entity_id`]: crate::filter::Filter::for_entity_by_entity_id
     fn delete_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: AuthenticatedActor,
         params: DeleteEntitiesParams<'_>,
     ) -> impl Future<Output = Result<DeletionSummary, Report<DeletionError>>> + Send;
 

@@ -13,8 +13,10 @@ mod island;
 mod placement;
 mod splitting;
 mod statement_placement;
+pub mod storage;
 mod target;
 mod terminator_placement;
+mod vertex;
 
 use core::{alloc::Allocator, assert_matches};
 
@@ -25,6 +27,7 @@ pub use self::{
     island::{Island, IslandId, IslandVec},
     placement::error::PlacementDiagnosticCategory,
     target::TargetId,
+    vertex::VertexType,
 };
 use self::{
     fusion::BasicBlockFusion,

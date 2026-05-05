@@ -484,12 +484,33 @@ export const EntitiesVisualizer: FunctionComponent<{
   const currentlyDisplayedColumnsRef = useRef<SizedGridColumn[] | null>(null);
   const currentlyDisplayedRowsRef = useRef<EntitiesTableRow[] | null>(null);
 
+  const contentTopRef = useRef<HTMLDivElement>(null);
+  const [contentTop, setContentTop] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = contentTopRef.current;
+    if (!el) {
+      return;
+    }
+
+    const measure = () => {
+      setContentTop(el.getBoundingClientRect().top);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(document.documentElement);
+    return () => observer.disconnect();
+  }, []);
+
   const tableHeight =
     maxHeight ??
-    `min(600px, calc(100vh - (${
-      // The magic number accounts for the page header
-      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + tableHeaderHeight
-    }px + ${theme.spacing(5)} + ${theme.spacing(5)})))`;
+    `min(600px, calc(100vh - ${
+      contentTop != null
+        ? `${contentTop}px - ${theme.spacing(5)}`
+        : `(${HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + tableHeaderHeight}px + ${theme.spacing(5)} + ${theme.spacing(5)})`
+    }))`;
 
   const isPrimaryEntity = useCallback(
     (entity: { metadata: Pick<HashEntity["metadata"], "entityTypeIds"> }) =>
@@ -562,6 +583,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             : undefined
         }
       />
+      <Box ref={contentTopRef} />
       {!subgraph || !closedMultiEntityTypesRootMap ? (
         <Stack
           alignItems="center"

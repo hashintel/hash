@@ -6,7 +6,6 @@
     // Language Features
     impl_trait_in_assoc_type,
     never_type,
-    type_alias_impl_trait,
 )]
 
 extern crate alloc;

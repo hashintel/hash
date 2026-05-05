@@ -41,6 +41,7 @@ export type PersistedNet = {
   title: string;
   definition: SDCPN;
   userEditable: boolean;
+  lastUpdated: string;
 };
 
 type UseProcessSaveAndLoadParams = {

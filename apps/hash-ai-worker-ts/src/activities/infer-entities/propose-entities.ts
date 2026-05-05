@@ -173,7 +173,7 @@ export const proposeEntities = async (params: {
           },
         ];
 
-  logger.debug(`Next messages to model: ${stringify(messages)}`);
+  logger.debug("Next messages to model", { messages });
 
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();

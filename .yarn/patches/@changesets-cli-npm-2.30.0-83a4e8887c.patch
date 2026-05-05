@@ -1,0 +1,28 @@
+diff --git a/dist/changesets-cli.cjs.js b/dist/changesets-cli.cjs.js
+index 577f752a6ba6cb2d8ac7c4740818c7db23fcccfc..91f18f1163421dde2e542f8a2321fbb56ffcb478 100644
+--- a/dist/changesets-cli.cjs.js
++++ b/dist/changesets-cli.cjs.js
+@@ -1162,7 +1162,8 @@ async function status(cwd, {
+   if (changedPackages.length > 0 && changesets.length === 0) {
+     logger.error("Some packages have been changed but no changesets were found. Run `changeset add` to resolve this error.");
+     logger.error("If this change doesn't need a release, run `changeset add --empty`.");
+-    process.exit(1);
++    // Prevent CI failures in Renovate PRs that immediately follow ‘Version Packages’
++    // process.exit(1);
+   }
+   if (output) {
+     await fs__default["default"].writeFile(path__default["default"].resolve(cwd, output), JSON.stringify(releasePlan, undefined, 2));
+diff --git a/dist/changesets-cli.esm.js b/dist/changesets-cli.esm.js
+index 1c568a79190bf5fa05ed75799570b9c8eb902cdb..b8ec75415a5e6485b22e9089b5e682a9cdd9e62f 100644
+--- a/dist/changesets-cli.esm.js
++++ b/dist/changesets-cli.esm.js
+@@ -1125,7 +1125,8 @@ async function status(cwd, {
+   if (changedPackages.length > 0 && changesets.length === 0) {
+     error("Some packages have been changed but no changesets were found. Run `changeset add` to resolve this error.");
+     error("If this change doesn't need a release, run `changeset add --empty`.");
+-    process.exit(1);
++    // Prevent CI failures in Renovate PRs that immediately follow ‘Version Packages’
++    // process.exit(1);
+   }
+   if (output) {
+     await fs.writeFile(path.resolve(cwd, output), JSON.stringify(releasePlan, undefined, 2));

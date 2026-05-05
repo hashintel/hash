@@ -1,6 +1,7 @@
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
+  createOrg,
   getOrgByShortname,
   updateOrgName,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
@@ -9,7 +10,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestOrg } from "../../../util";
 
 const logger = new Logger({
@@ -63,6 +64,37 @@ describe("Org", () => {
 
     const fetchedOrg = await getOrgByShortname(graphContext, authentication, {
       shortname,
+    });
+
+    expect(fetchedOrg).toEqual(createdOrg);
+  });
+
+  it("can get an org by its shortname with different casing", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    const fetchedOrg = await getOrgByShortname(graphContext, authentication, {
+      shortname: shortname.toUpperCase(),
+    });
+
+    expect(fetchedOrg).toEqual(createdOrg);
+  });
+
+  it("cannot create an org with a shortname differing only in case", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    await expect(
+      createOrg(graphContext, authentication, {
+        name: "Case test org",
+        shortname: shortname.toUpperCase(),
+      }),
+    ).rejects.toThrowError("already exists");
+  });
+
+  it("can get an org by its shortname with leading/trailing whitespace", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    const fetchedOrg = await getOrgByShortname(graphContext, authentication, {
+      shortname: `  ${shortname}  `,
     });
 
     expect(fetchedOrg).toEqual(createdOrg);

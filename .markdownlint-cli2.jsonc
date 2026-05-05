@@ -31,6 +31,8 @@
     "node_modules/**",
     "target/**",
     "**/_temp/**",
-    "**/_ai/**"
+    "**/_ai/**",
+    "libs/@hashintel/ds-components/**",
+    "libs/@hashintel/ds-helpers/**"
   ]
 }

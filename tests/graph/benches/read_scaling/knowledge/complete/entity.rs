@@ -257,7 +257,7 @@ pub fn bench_get_entity_by_id(
                                     paths: Vec::new(),
                                     cursor: None,
                                 },
-                                limit: None,
+                                limit: 1000,
                                 conversions: Vec::new(),
                                 include_count: false,
                                 include_entity_types: None,

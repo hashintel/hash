@@ -227,7 +227,7 @@ impl<A: Allocator> InlineHeuristics<'_, '_, A> {
         }
 
         // Subtract size penalty: larger functions need more bonuses to be profitable.
-        score -= target_cost * self.config.size_penalty_factor;
+        score = target_cost.mul_add(-self.config.size_penalty_factor, score);
 
         score
     }

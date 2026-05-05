@@ -11,22 +11,33 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import {
   createUser,
   getUser,
+  getUserOrgMemberships,
   isUserMemberOfOrg,
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
+import {
+  currentTimeInstantTemporalAxes,
+  fullDecisionTimeAxis,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolDataTypes,
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { StatusCode } from "@local/status";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { deleteUser, resetGraph } from "../../../admin-server";
 import {
   createTestImpureGraphContext,
   createTestOrg,
@@ -63,6 +74,8 @@ describe("User model class", () => {
   });
 
   let createdUser: User;
+  let orgEntityId: EntityId;
+  let membershipLinkEntityId: EntityId;
 
   it("can create a user", async () => {
     const authentication = { actorId: systemAccountId };
@@ -130,6 +143,48 @@ describe("User model class", () => {
     expect(fetchedUser).toEqual(createdUser);
   });
 
+  it("can get a user by its shortname with different casing", async () => {
+    const authentication = { actorId: createdUser.accountId };
+
+    const fetchedUser = await getUser(graphContext, authentication, {
+      shortname: shortname.toUpperCase(),
+    });
+
+    expect(fetchedUser).not.toBeNull();
+    expect(fetchedUser).toEqual(createdUser);
+  });
+
+  it("cannot create a user with a shortname differing only in case", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    const identity = await createKratosIdentity({
+      traits: {
+        emails: ["case-test-user@example.com"],
+      },
+      verifyEmails: true,
+    });
+
+    await expect(
+      createUser(graphContext, authentication, {
+        emails: ["case-test-user@example.com"],
+        kratosIdentityId: identity.id,
+        shortname: shortname.toUpperCase(),
+        displayName: "Case Test",
+      }),
+    ).rejects.toThrowError("already exists");
+  });
+
+  it("can get a user by its shortname with leading/trailing whitespace", async () => {
+    const authentication = { actorId: createdUser.accountId };
+
+    const fetchedUser = await getUser(graphContext, authentication, {
+      shortname: `  ${shortname}  `,
+    });
+
+    expect(fetchedUser).not.toBeNull();
+    expect(fetchedUser).toEqual(createdUser);
+  });
+
   it("can get a user by its kratos identity id", async () => {
     const authentication = { actorId: createdUser.accountId };
 
@@ -172,6 +227,19 @@ describe("User model class", () => {
         orgEntityUuid,
       }),
     ).toBe(true);
+
+    // Save for deletion tests: the is-member-of link lives in the org's web
+    orgEntityId = testOrg.entity.metadata.recordId.entityId;
+    const memberships = await getUserOrgMemberships(
+      graphContext,
+      authentication,
+      {
+        userEntityId: createdUser.entity.metadata.recordId.entityId,
+      },
+    );
+    expect(memberships).toHaveLength(1);
+    membershipLinkEntityId =
+      memberships[0]!.linkEntity.metadata.recordId.entityId;
   });
 
   it("can read the user-web roles", async () => {
@@ -321,12 +389,159 @@ describe("User model class", () => {
     ).toBe("administrator");
   });
 
+  describe("deletion via admin API", () => {
+    it("can delete a user by ID", async () => {
+      const status = await deleteUser({
+        userId: createdUser.accountId,
+      });
+      expect(status.code).toBe(StatusCode.Ok);
+    });
+
+    it("deleted user is no longer in the graph", async () => {
+      const fetchedUser = await getUser(
+        graphContext,
+        { actorId: systemAccountId },
+        { kratosIdentityId: createdUser.kratosIdentityId },
+      );
+
+      expect(fetchedUser).toBeNull();
+    });
+
+    it("Kratos identity is deleted after user deletion by ID", async () => {
+      await expect(
+        kratosIdentityApi.getIdentity({
+          id: createdUser.kratosIdentityId,
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("org entity is still live after user deletion", async () => {
+      const { entities } = await queryEntities(
+        graphContext,
+        { actorId: systemAccountId },
+        {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["uuid"] },
+                  {
+                    parameter: extractEntityUuidFromEntityId(orgEntityId),
+                  },
+                ],
+              },
+              {
+                equal: [
+                  { path: ["webId"] },
+                  {
+                    parameter: extractWebIdFromEntityId(orgEntityId),
+                  },
+                ],
+              },
+              { equal: [{ path: ["archived"] }, { parameter: false }] },
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
+        },
+      );
+      expect(entities).toHaveLength(1);
+    });
+
+    it("org membership link is no longer live after user deletion", async () => {
+      const { entities } = await queryEntities(
+        graphContext,
+        { actorId: systemAccountId },
+        {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["uuid"] },
+                  {
+                    parameter: extractEntityUuidFromEntityId(
+                      membershipLinkEntityId,
+                    ),
+                  },
+                ],
+              },
+              {
+                equal: [
+                  { path: ["webId"] },
+                  {
+                    parameter: extractWebIdFromEntityId(membershipLinkEntityId),
+                  },
+                ],
+              },
+              { equal: [{ path: ["archived"] }, { parameter: false }] },
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
+        },
+      );
+      expect(entities).toHaveLength(0);
+    });
+
+    it("org membership link has archived provenance", async () => {
+      const { entities } = await queryEntities(
+        graphContext,
+        { actorId: systemAccountId },
+        {
+          filter: {
+            all: [
+              {
+                equal: [
+                  { path: ["uuid"] },
+                  {
+                    parameter: extractEntityUuidFromEntityId(
+                      membershipLinkEntityId,
+                    ),
+                  },
+                ],
+              },
+              {
+                equal: [
+                  { path: ["webId"] },
+                  {
+                    parameter: extractWebIdFromEntityId(membershipLinkEntityId),
+                  },
+                ],
+              },
+            ],
+          },
+          temporalAxes: fullDecisionTimeAxis,
+          includeDrafts: false,
+          includePermissions: false,
+        },
+      );
+
+      expect(entities.length).toBe(1);
+      const archivedLink = entities[entities.length - 1]!;
+      expect(
+        archivedLink.metadata.provenance.edition.archivedById,
+      ).toBeDefined();
+    });
+
+    it("can delete a user by email", async () => {
+      const status = await deleteUser({
+        email: allowListedEmail,
+      });
+      expect(status.code).toBe(StatusCode.Ok);
+    });
+
+    it("Kratos identity is deleted after user deletion by email", async () => {
+      await expect(
+        kratosIdentityApi.getIdentity({
+          id: incompleteUser.kratosIdentityId,
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
   afterAll(async () => {
-    await kratosIdentityApi.deleteIdentity({
-      id: createdUser.kratosIdentityId,
-    });
-    await kratosIdentityApi.deleteIdentity({
-      id: incompleteUser.kratosIdentityId,
-    });
+    await resetGraph();
   });
 });

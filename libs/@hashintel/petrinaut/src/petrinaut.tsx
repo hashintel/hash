@@ -1,5 +1,10 @@
-import "reactflow/dist/style.css";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/inter-tight";
+import "@fontsource-variable/jetbrains-mono";
+import "@xyflow/react/dist/style.css";
 import "./index.css";
+
+import { type FunctionComponent } from "react";
 
 import type {
   Color,
@@ -17,7 +22,14 @@ import { NotificationsProvider } from "./notifications/notifications-provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SimulationProvider } from "./simulation/provider";
 import { EditorProvider } from "./state/editor-provider";
+import { MutationProvider } from "./state/mutation-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
+import {
+  UndoRedoContext,
+  type UndoRedoContextValue,
+} from "./state/undo-redo-context";
+import { UserSettingsProvider } from "./state/user-settings-provider";
+import type { ViewportAction } from "./types/viewport-action";
 import { EditorView } from "./views/Editor/editor-view";
 
 export { isSDCPNEqual } from "./lib/deep-equal";
@@ -32,6 +44,9 @@ export type {
   SDCPN,
   Transition,
 };
+
+export type { UndoRedoContextValue as UndoRedoProps } from "./state/undo-redo-context";
+export type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   /**
@@ -89,29 +104,51 @@ export type PetrinautProps = {
    * The title of the net which is currently loaded.
    */
   title: string;
+  /**
+   * Optional undo/redo support. When provided, the editor will show
+   * undo/redo buttons in the top bar and register keyboard shortcuts.
+   */
+  undoRedo?: UndoRedoContextValue;
+  /**
+   * Optional additional action buttons to render in the viewport controls panel,
+   * after the built-in buttons.
+   */
+  viewportActions?: ViewportAction[];
 };
 
-export const Petrinaut = ({
+export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   hideNetManagementControls,
+  mutatePetriNetDefinition,
+  undoRedo,
+  viewportActions,
   ...rest
-}: PetrinautProps) => {
+}) => {
   return (
     <NotificationsProvider>
-      <SDCPNProvider {...rest}>
-        <LanguageClientProvider key={rest.petriNetId}>
-          <MonacoProvider>
-            <SimulationProvider>
-              <PlaybackProvider>
-                <EditorProvider>
-                  <EditorView
-                    hideNetManagementControls={hideNetManagementControls}
-                  />
-                </EditorProvider>
-              </PlaybackProvider>
-            </SimulationProvider>
-          </MonacoProvider>
-        </LanguageClientProvider>
-      </SDCPNProvider>
+      <UndoRedoContext value={undoRedo ?? null}>
+        <SDCPNProvider {...rest}>
+          <LanguageClientProvider key={rest.petriNetId}>
+            <MonacoProvider>
+              <SimulationProvider>
+                <PlaybackProvider>
+                  <UserSettingsProvider>
+                    <EditorProvider>
+                      <MutationProvider
+                        mutatePetriNetDefinition={mutatePetriNetDefinition}
+                      >
+                        <EditorView
+                          hideNetManagementControls={hideNetManagementControls}
+                          viewportActions={viewportActions}
+                        />
+                      </MutationProvider>
+                    </EditorProvider>
+                  </UserSettingsProvider>
+                </PlaybackProvider>
+              </SimulationProvider>
+            </MonacoProvider>
+          </LanguageClientProvider>
+        </SDCPNProvider>
+      </UndoRedoContext>
     </NotificationsProvider>
   );
 };

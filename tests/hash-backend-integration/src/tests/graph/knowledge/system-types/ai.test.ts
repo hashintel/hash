@@ -4,7 +4,7 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import { getAiByIdentifier } from "@local/hash-graph-sdk/principal/actor";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext } from "../../../util";
 
 const logger = new Logger({

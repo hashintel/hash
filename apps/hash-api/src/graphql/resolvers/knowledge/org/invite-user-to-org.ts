@@ -27,6 +27,7 @@ import type {
   InvitationViaShortname,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import dedent from "dedent";
+import sanitizeHtml from "sanitize-html";
 
 import type { EmailTransporter } from "../../../../email/transporters";
 import { createEntity } from "../../../../graph/knowledge/primitive/entity";
@@ -58,11 +59,16 @@ const sendOrgEmailInvitationToEmailAddress = async (params: {
   const { org, invitationId, emailAddress, emailTransporter, isSignedUpUser } =
     params;
 
+  const sanitizedOrgName = sanitizeHtml(org.orgName, {
+    allowedTags: [],
+    allowedAttributes: {},
+  });
+
   let html: string;
 
   if (isSignedUpUser) {
     html = dedent`
-      <p>You've been invited to join the <strong>${org.orgName}</strong> organization in HASH.</p>
+      <p>You've been invited to join the <strong>${sanitizedOrgName}</strong> organization in HASH.</p>
       <p>To join the organization or decline the invitation, <a href="${frontendUrl}/invites">click here</a>.</p>
     `;
   } else {
@@ -72,7 +78,7 @@ const sendOrgEmailInvitationToEmailAddress = async (params: {
     }).toString();
 
     html = dedent`
-      <p>You've been invited to join the <strong>${org.orgName}</strong> organization in the HASH platform.</p>
+      <p>You've been invited to join the <strong>${sanitizedOrgName}</strong> organization in the HASH platform.</p>
       <p>To set up your HASH account and join the organization <a href="${frontendUrl}/signup?${queryParams}">click here</a>.</p>
     `;
   }

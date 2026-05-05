@@ -4,6 +4,7 @@
  */
 
 export type SDCPNFileType =
+  | "sdcpn-lib-defs"
   | "parameters-defs"
   | "color-defs"
   | "differential-equation-defs"
@@ -11,9 +12,16 @@ export type SDCPNFileType =
   | "transition-lambda-defs"
   | "transition-lambda-code"
   | "transition-kernel-defs"
-  | "transition-kernel-code";
+  | "transition-kernel-code"
+  | "scenario-session-defs"
+  | "scenario-param-override-code"
+  | "scenario-initial-state-code"
+  | "scenario-initial-state-full-code"
+  | "metric-session-defs"
+  | "metric-code";
 
 type FilePathParams = {
+  "sdcpn-lib-defs": Record<string, never>;
   "parameters-defs": Record<string, never>;
   "color-defs": { colorId: string };
   "differential-equation-defs": { id: string };
@@ -22,6 +30,12 @@ type FilePathParams = {
   "transition-lambda-code": { transitionId: string };
   "transition-kernel-defs": { transitionId: string };
   "transition-kernel-code": { transitionId: string };
+  "scenario-session-defs": { sessionId: string };
+  "scenario-param-override-code": { sessionId: string; paramId: string };
+  "scenario-initial-state-code": { sessionId: string; placeId: string };
+  "scenario-initial-state-full-code": { sessionId: string };
+  "metric-session-defs": { sessionId: string };
+  "metric-code": { sessionId: string };
 };
 
 /**
@@ -40,6 +54,9 @@ export const getItemFilePath = <T extends SDCPNFileType>(
   const params = args[0];
 
   switch (fileType) {
+    case "sdcpn-lib-defs":
+      return "/sdcpn-lib.d.ts";
+
     case "parameters-defs":
       return "/parameters/defs.d.ts";
 
@@ -80,6 +97,39 @@ export const getItemFilePath = <T extends SDCPNFileType>(
       const { transitionId } =
         params as FilePathParams["transition-kernel-code"];
       return `/transitions/${transitionId}/kernel/code.ts`;
+    }
+
+    case "scenario-session-defs": {
+      const { sessionId } = params as FilePathParams["scenario-session-defs"];
+      return `/_temp/scenarios/${sessionId}/defs.d.ts`;
+    }
+
+    case "scenario-param-override-code": {
+      const { sessionId, paramId } =
+        params as FilePathParams["scenario-param-override-code"];
+      return `/_temp/scenarios/${sessionId}/param_overrides/${paramId}/code.ts`;
+    }
+
+    case "scenario-initial-state-code": {
+      const { sessionId, placeId } =
+        params as FilePathParams["scenario-initial-state-code"];
+      return `/_temp/scenarios/${sessionId}/initial_state/${placeId}/code.ts`;
+    }
+
+    case "scenario-initial-state-full-code": {
+      const { sessionId } =
+        params as FilePathParams["scenario-initial-state-full-code"];
+      return `/_temp/scenarios/${sessionId}/initial_state_code/code.ts`;
+    }
+
+    case "metric-session-defs": {
+      const { sessionId } = params as FilePathParams["metric-session-defs"];
+      return `/_temp/metrics/${sessionId}/defs.d.ts`;
+    }
+
+    case "metric-code": {
+      const { sessionId } = params as FilePathParams["metric-code"];
+      return `/_temp/metrics/${sessionId}/code.ts`;
     }
 
     default:

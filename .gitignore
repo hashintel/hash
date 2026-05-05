@@ -40,6 +40,7 @@ bower_components
 # Tests
 **/playwright-report/
 **/test-results/
+tests/**/.auth/
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 **/build/Release
@@ -137,6 +138,9 @@ feed.rss
 # Application data
 **/var
 seed-users.json
+**/mastra.db
+**/mastra.db-shm
+**/mastra.db-wal
 
 # Block Protocol
 .blockprotocolrc
@@ -172,6 +176,9 @@ out/
 **/_trash/
 **/_scratch/
 **/_holding/
+
+# brunch
+**/.brunch/
 
 # Jujutsu
 .jj/

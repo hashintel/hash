@@ -111,6 +111,13 @@ export const createApolloClient = (params?: {
       };
 
   return new ApolloClient({
+    // Apollo's query deduplication collapses in-flight queries with the
+    // same (query, variables) into a single network request, ignoring
+    // `context` (which carries per-request auth cookies). On the server
+    // this singleton is shared across concurrent SSR requests, so two
+    // users' identical queries get deduplicated and one receives the
+    // other's authenticated data. Safe in the browser (single user).
+    queryDeduplication: params?.isBrowser ?? false,
     cache: new InMemoryCache({
       possibleTypes: possibleTypes.possibleTypes,
       typePolicies: {

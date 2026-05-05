@@ -1,9 +1,20 @@
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
+import { deleteUserByEmail } from "./delete-user";
 import { getKratosVerificationCode } from "./get-kratos-verification-code";
 
-const defaultPassword = "some-complex-pw-1ab2";
+/**
+ * `deleteUserByEmail` intentionally preserves the user's web principal so
+ * entity types created under it remain valid for other webs that reference
+ * them. The orphan principal holds onto the old shortname, so re-runs must
+ * pick a fresh one to avoid a "shortname already taken" error.
+ */
+const uniqueShortname = (base: string): string => {
+  const suffix = `${Date.now()}${Math.floor(Math.random() * 1_000)}`;
+  const maxBaseLength = 24 - suffix.length;
+  return `${base.slice(0, maxBaseLength)}${suffix}`;
+};
 
 /**
  * Fill in the signup form and submit it.
@@ -11,17 +22,11 @@ const defaultPassword = "some-complex-pw-1ab2";
  */
 export const registerUser = async (
   page: Page,
-  { email, password = defaultPassword }: { email: string; password?: string },
+  { email, password }: { email: string; password: string },
 ) => {
-  const registrationFlowReady = page.waitForResponse(
-    (response) =>
-      response.request().method() === "GET" &&
-      response.url().includes("/auth/self-service/registration/browser"),
-    { timeout: 15_000 },
-  );
+  await page.goto("/signup", { waitUntil: "networkidle" });
 
-  await page.goto("/signup");
-  await registrationFlowReady;
+  await expect(page).toHaveURL(/\/signup/, { timeout: 5_000 });
 
   await page.fill('[placeholder="Enter your email address"]', email);
   await page.fill('[type="password"]', password);
@@ -84,22 +89,29 @@ export const completeSignup = async (
 };
 
 /**
- * Full flow: register a user, verify email, and complete signup.
+ * Full signup flow: register, verify email, and complete the account page.
+ *
+ * Deletes any Kratos identity left over from a previous run before
+ * registering, and randomises the shortname via {@link uniqueShortname}.
  */
 export const createUserAndCompleteSignup = async (
   page: Page,
   {
     email,
     shortname,
-    displayName = shortname,
-    password = defaultPassword,
+    displayName,
+    password,
   }: {
     email: string;
     shortname: string;
     displayName?: string;
-    password?: string;
+    password: string;
   },
 ) => {
+  await deleteUserByEmail(email);
+
+  const runShortname = uniqueShortname(shortname);
+
   const { emailDispatchTimestamp } = await registerUser(page, {
     email,
     password,
@@ -110,7 +122,10 @@ export const createUserAndCompleteSignup = async (
     afterTimestamp: emailDispatchTimestamp,
   });
 
-  await completeSignup(page, { shortname, displayName });
+  await completeSignup(page, {
+    shortname: runShortname,
+    displayName: displayName ?? runShortname,
+  });
 
   return { email, password };
 };

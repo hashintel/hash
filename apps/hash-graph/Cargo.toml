@@ -16,11 +16,10 @@ error-stack               = { workspace = true }
 harpc-codec               = { workspace = true, features = ["json"] }
 harpc-server              = { workspace = true }
 hash-codec                = { workspace = true }
-hash-graph-api            = { workspace = true }
+hash-graph-api            = { workspace = true, features = ["clap"] }
 hash-graph-authorization  = { workspace = true }
 hash-graph-postgres-store = { workspace = true, features = ["clap"] }
 hash-graph-store          = { workspace = true }
-hash-graph-test-server    = { workspace = true, optional = true }
 hash-graph-type-fetcher   = { workspace = true }
 hash-telemetry            = { workspace = true, features = ["clap"] }
 hash-temporal-client      = { workspace = true }
@@ -31,6 +30,7 @@ axum = { workspace = true }
 clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = { workspace = true }
 futures = { workspace = true }
+jsonwebtoken = { workspace = true }
 mimalloc = { workspace = true }
 multiaddr = { workspace = true }
 regex = { workspace = true }
@@ -48,9 +48,6 @@ tokio = { workspace = true, features = ["signal", "io-std"] }
 tokio-postgres = { workspace = true }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }
-
-[features]
-test-server = ["dep:hash-graph-test-server"]
 
 [lints]
 workspace = true

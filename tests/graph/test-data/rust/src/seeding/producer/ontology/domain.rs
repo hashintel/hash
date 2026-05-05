@@ -168,7 +168,7 @@ struct LocalUniform<C: WebCatalog> {
 impl<C: WebCatalog> LocalUniform<C> {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> (Arc<str>, Arc<str>, WebId) {
         let count = self.catalog.len();
-        let index = rand::Rng::random_range(rng, 0..count);
+        let index = rand::RngExt::random_range(rng, 0..count);
         let (domain, shortname, web_id) = self
             .catalog
             .get_entry(index)

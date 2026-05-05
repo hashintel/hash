@@ -3,7 +3,7 @@ import { createElement, useEffect, useId, useRef, useState } from "react";
 import type { JSX } from "react/jsx-runtime";
 
 import { Filter } from "../components/filter";
-import { CONVEX } from "../helpers/surface-equations";
+import { convex } from "../helpers/surface-equations";
 
 type RefractionProps = {
   refraction: {
@@ -90,7 +90,7 @@ function createRefractiveComponent<
           refractiveIndex={refraction.refractiveIndex ?? 1.5}
           specularOpacity={refraction.specularOpacity ?? 0}
           specularAngle={refraction.specularAngle ?? 0}
-          bezelHeightFn={refraction.bezelHeightFn ?? CONVEX}
+          bezelHeightFn={refraction.bezelHeightFn ?? convex}
         />
 
         {/* @ts-expect-error Need to fix types in this file */}

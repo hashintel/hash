@@ -44,7 +44,7 @@ describe("computeNextFrame", () => {
         {
           id: "t1",
           name: "Transition 1",
-          inputArcs: [{ placeId: "p1", weight: 1 }],
+          inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
           outputArcs: [{ placeId: "p1", weight: 1 }],
           lambdaType: "stochastic",
           lambdaCode:

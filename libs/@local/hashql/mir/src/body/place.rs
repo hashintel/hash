@@ -447,6 +447,12 @@ pub struct Projection<'heap> {
     pub kind: ProjectionKind<'heap>,
 }
 
+impl AsRef<Self> for Projection<'_> {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
 /// A projection operation that navigates within structured data.
 ///
 /// Projections allow places to reference nested data within structured types.

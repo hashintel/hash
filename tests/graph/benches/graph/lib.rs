@@ -1,7 +1,6 @@
 #![feature(
     // Language Features
     custom_test_frameworks,
-    never_type,
 )]
 #![test_runner(criterion::runner)]
 #![expect(

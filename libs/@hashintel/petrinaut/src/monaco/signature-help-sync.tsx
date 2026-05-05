@@ -1,4 +1,4 @@
-import type * as Monaco from "monaco-editor";
+import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 import { Suspense, use, useEffect } from "react";
 import {
   type MarkupContent,

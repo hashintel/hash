@@ -20,7 +20,7 @@ import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { resetGraph } from "../../../test-server";
+import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 const logger = new Logger({

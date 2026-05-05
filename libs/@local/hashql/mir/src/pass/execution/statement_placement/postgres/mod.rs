@@ -4,7 +4,6 @@ use core::{alloc::Allocator, ops::ControlFlow};
 use hashql_core::{
     debug_panic,
     id::{Id as _, bit_vec::DenseBitSet},
-    symbol::sym,
     sync::lock::LocalLock,
     r#type::{
         self, RecursionBoundary, Type, TypeId,
@@ -30,8 +29,10 @@ use crate::{
     context::MirContext,
     pass::{
         execution::{
+            VertexType,
             cost::{Cost, StatementCostVec, TraversalCostVec},
-            statement_placement::lookup::{Access, entity_projection_access},
+            statement_placement::common::entity_projection_access,
+            storage::Access,
         },
         transform::Traversals,
     },
@@ -372,22 +373,17 @@ impl<'heap, A: Allocator> PostgresSupported<'_, 'heap, A> {
                 Some(self.env_domain.contains(field))
             }
             Local::VERTEX => {
-                let local_type = body.local_decls[place.local].r#type;
-                let type_name = context
-                    .env
-                    .r#type(local_type)
-                    .kind
-                    .opaque()
-                    .map_or_else(|| unreachable!(), |opaque| opaque.name);
+                let decl = &body.local_decls[place.local];
+                let Some(vertex_type) = VertexType::from_local(context.env, decl) else {
+                    unimplemented!("lookup for declared type")
+                };
 
-                if type_name == sym::path::Entity {
-                    return Some(matches!(
+                match vertex_type {
+                    VertexType::Entity => Some(matches!(
                         entity_projection_access(&place.projections),
                         Some(Access::Postgres(_))
-                    ));
+                    )),
                 }
-
-                unimplemented!("unimplemented lookup for declared type")
             }
             _ => None,
         }

@@ -149,6 +149,12 @@ export default withSentryConfig(
       eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
 
+      experimental: {
+        esmExternals: "loose",
+        webpackBuildWorker: true,
+        webpackMemoryOptimizations: true,
+      },
+
       transpilePackages: [
         "@blockprotocol/service",
         "@blockprotocol/core",

@@ -1,4 +1,4 @@
-import type { Edge, Node, ReactFlowInstance } from "reactflow";
+import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
 
 import type { SimulationFrameState_Transition } from "../../simulation/context";
 
@@ -9,6 +9,7 @@ import type { SimulationFrameState_Transition } from "../../simulation/context";
 
 export type ArcData = {
   weight: number;
+  arcType: "standard" | "inhibitor";
   /**
    * State of the transition connected to this arc in the current simulation frame.
    * Null when no simulation is running.
@@ -16,7 +17,9 @@ export type ArcData = {
   frame: SimulationFrameState_Transition | null;
 };
 
-export type ArcType = Omit<Edge<ArcData>, "style">;
+export type ArcEdgeType = Edge<ArcData>;
+
+export type ArcType = Omit<ArcEdgeType, "style">;
 
 export type PlaceNodeData = {
   label: string;
@@ -60,4 +63,7 @@ export type PetrinautReactFlowDefinitionObject = {
 /**
  * ReactFlow instance type for Petrinaut.
  */
-export type PetrinautReactFlowInstance = ReactFlowInstance<NodeData, ArcData>;
+export type PetrinautReactFlowInstance = ReactFlowInstance<
+  NodeType,
+  ArcEdgeType
+>;

@@ -1063,7 +1063,7 @@ pub(crate) fn type_parameter_not_found<K>(
     )
     .primary(Label::new(
         param.span,
-        format!("Invalid reference to undefined type parameter ?{argument}",),
+        format!("Invalid reference to undefined type parameter ?{argument}"),
     ));
 
     diagnostic.add_message(Message::help(

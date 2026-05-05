@@ -16,4 +16,4 @@ cd ../..
 rm .env
 
 echo "Building frontend"
-turbo build --filter='@apps/hash-frontend' --env-mode=loose
+NODE_OPTIONS="--max-old-space-size=6144" turbo build --filter='@apps/hash-frontend' --env-mode=loose

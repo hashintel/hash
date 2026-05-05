@@ -17,61 +17,59 @@ graph TD
     6[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
     7[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
     8[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
-    9[<a href="../hash_graph_test_server/index.html">hash-graph-test-server</a>]
-    10[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
-    11[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
-    12[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
-    13[<a href="../harpc_server/index.html">harpc-server</a>]
-    14[<a href="../harpc_types/index.html">harpc-types</a>]
-    15[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    16[<a href="../hashql_ast/index.html">hashql-ast</a>]
-    17[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
-    18[<a href="../hashql_eval/index.html">hashql-eval</a>]
-    19[<a href="../hashql_hir/index.html">hashql-hir</a>]
-    20[<a href="../hashql_mir/index.html">hashql-mir</a>]
-    21[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    22[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    23[<a href="../error_stack/index.html">error-stack</a>]
-    24[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    25[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    26[hash-graph-test-data]
-    class 26 root
-    0 --> 9
+    9[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    10[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    11[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
+    12[<a href="../harpc_server/index.html">harpc-server</a>]
+    13[<a href="../harpc_types/index.html">harpc-types</a>]
+    14[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    15[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    16[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    17[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    18[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    19[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    20[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    21[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    22[<a href="../error_stack/index.html">error-stack</a>]
+    23[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    24[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    25[hash-graph-test-data]
+    class 25 root
+    0 --> 4
     1 --> 8
-    1 -.-> 26
+    1 -.-> 25
     2 -.-> 3
-    2 --> 15
+    2 --> 14
     4 --> 6
-    4 --> 10
-    4 --> 13
-    4 --> 18
-    4 --> 21
+    4 --> 9
+    4 --> 12
+    4 --> 17
+    4 --> 20
     5 --> 1
-    6 --> 12
+    6 --> 11
     7 --> 5
-    7 --> 11
-    7 --> 22
+    7 --> 10
+    7 --> 21
     8 --> 2
-    9 --> 4
-    10 --> 7
-    11 -.-> 26
-    12 -.-> 26
-    13 -.-> 1
-    13 --> 14
-    15 -.-> 14
-    15 --> 14
-    15 --> 23
-    16 -.-> 17
+    9 --> 7
+    10 -.-> 25
+    11 -.-> 25
+    12 -.-> 1
+    12 --> 13
+    14 -.-> 13
+    14 --> 13
+    14 --> 22
+    15 -.-> 16
+    16 --> 17
+    16 --> 19
+    16 --> 20
+    16 --> 22
+    17 --> 7
     17 --> 18
-    17 --> 20
-    17 --> 21
-    17 --> 23
-    18 --> 7
-    18 --> 19
-    19 -.-> 17
-    20 --> 19
-    21 --> 16
-    22 --> 1
-    24 -.-> 4
-    25 -.-> 6
-    26 --> 7
+    18 -.-> 16
+    19 --> 18
+    20 --> 15
+    21 --> 1
+    23 -.-> 4
+    24 -.-> 6
+    25 --> 7

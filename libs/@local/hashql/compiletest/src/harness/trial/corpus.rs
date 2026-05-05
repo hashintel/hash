@@ -1,7 +1,9 @@
 use std::thread;
 
 use guppy::graph::PackageGraph;
-use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, ParseContext};
+use nextest_filtering::{
+    CompiledExpr, EvalContext, Filterset, FiltersetKind, KnownGroups, ParseContext,
+};
 
 use super::{group::TrialGroup, set::TrialSet};
 use crate::harness::test::TestCorpus;
@@ -42,8 +44,13 @@ impl<'graph> TrialCorpus<'graph> {
     pub(crate) fn filter(&mut self, filter: String, graph: &'graph PackageGraph) {
         let context = ParseContext::new(graph);
 
-        let filterset = Filterset::parse(filter, &context, FiltersetKind::Test)
-            .expect("should be a valid filterset expression");
+        let filterset = Filterset::parse(
+            filter,
+            &context,
+            FiltersetKind::Test,
+            &KnownGroups::Unavailable,
+        )
+        .expect("should be a valid filterset expression");
 
         let context = EvalContext {
             default_filter: &CompiledExpr::ALL,

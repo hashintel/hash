@@ -35,21 +35,25 @@ impl HardwareCounter {
     }
 
     /// Falls back to wall-clock time (not on macOS).
+    #[must_use]
     pub const fn instructions() -> Result<Self, MeasurementError> {
         Ok(Self::new())
     }
 
     /// Falls back to wall-clock time (not on macOS).
+    #[must_use]
     pub const fn cycles() -> Result<Self, MeasurementError> {
         Ok(Self::new())
     }
 
     /// Falls back to wall-clock time (not on macOS).
+    #[must_use]
     pub const fn branch_mispredictions() -> Result<Self, MeasurementError> {
         Ok(Self::new())
     }
 
     /// Falls back to wall-clock time (not on macOS).
+    #[must_use]
     pub const fn l1d_cache_misses() -> Result<Self, MeasurementError> {
         Ok(Self::new())
     }
@@ -57,6 +61,7 @@ impl HardwareCounter {
     /// Falls back to wall-clock time (not on macOS).
     ///
     /// The event is ignored; measurement uses wall-clock time.
+    #[must_use]
     pub const fn custom(_event: Event) -> Result<Self, MeasurementError> {
         Ok(Self::new())
     }
