@@ -223,16 +223,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     const simState = simulationStateRef.current;
     const cfg = getPlayModeBackpressure(snapshotRef.current.mode);
 
-    // eslint-disable-next-line no-console
-    console.log("[playback] play() called", {
-      simState,
-      mode: snapshotRef.current.mode,
-      totalFrames: totalFramesRef.current,
-    });
-
     if (simState === "NotRun") {
-      // eslint-disable-next-line no-console
-      console.log("[playback] NotRun → initialize then run");
       await initialize({
         seed: Date.now(),
         dt: dtRef.current,
@@ -240,8 +231,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         batchSize: cfg.batchSize,
       });
       // The Running-state effect above will flip playback into Playing.
-      // eslint-disable-next-line no-console
-      console.log("[playback] post-initialize, calling runSimulation");
       runSimulation();
       return;
     }
@@ -265,13 +254,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   const pause: PlaybackContextValue["pause"] = () => {
     const simState = simulationStateRef.current;
-    // eslint-disable-next-line no-console
-    console.log("[playback] pause() called", {
-      simState,
-      mode: snapshotRef.current.mode,
-      willPauseSim:
-        snapshotRef.current.mode !== "viewOnly" && simState === "Running",
-    });
     if (snapshotRef.current.mode !== "viewOnly" && simState === "Running") {
       pauseSimulation();
     }

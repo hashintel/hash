@@ -140,13 +140,6 @@ async function computeLoop(): Promise<void> {
 self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
   const message = event.data;
 
-  // eslint-disable-next-line no-console
-  console.log("[sim:worker] received", message.type, {
-    simulationStatus,
-    isRunning,
-    hasSimulation: !!simulation,
-  });
-
   switch (message.type) {
     case "init": {
       try {
@@ -178,17 +171,11 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
           postTypedMessage({ type: "frame", frame: initialFrame });
         }
 
-        // eslint-disable-next-line no-console
-        console.log("[sim:worker] init ok → sending ready", {
-          initialFrameCount: simulation.frames.length,
-        });
         postTypedMessage({
           type: "ready",
           initialFrameCount: simulation.frames.length,
         });
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("[sim:worker] init threw", error);
         simulationStatus = "error";
         postTypedMessage({
           type: "error",
@@ -204,11 +191,6 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
 
     case "start": {
       if (!simulation || simulationStatus === null) {
-        // eslint-disable-next-line no-console
-        console.error(
-          "[sim:worker] cannot start — simulation not initialized",
-          { hasSimulation: !!simulation, simulationStatus },
-        );
         postTypedMessage({
           type: "error",
           message: "Cannot start: simulation not initialized",
@@ -229,8 +211,6 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
 
       isRunning = true;
       simulationStatus = "running";
-      // eslint-disable-next-line no-console
-      console.log("[sim:worker] starting compute loop");
       // Start compute loop (async, runs in background)
       void computeLoop();
       break;

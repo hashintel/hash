@@ -13,15 +13,9 @@ import { LanguageClientContext } from "./context";
 
 /** Dynamically import and instantiate the language server worker (inlined as blob URL). */
 async function createLanguageServerWorker(): Promise<Worker> {
-  // eslint-disable-next-line no-console
-  console.log("[lsp] default createLanguageServerWorker invoked — importing");
   const LanguageServerWorker = await import(
     "../../core/lsp/worker/language-server.worker.ts?worker&inline"
   );
-  // eslint-disable-next-line no-console
-  console.log("[lsp] default createLanguageServerWorker — constructing", {
-    hasDefault: typeof LanguageServerWorker.default,
-  });
   // eslint-disable-next-line new-cap
   return new LanguageServerWorker.default();
 }

@@ -118,8 +118,6 @@ export const CreateMetricDrawer = ({
       const metric = buildMetricFromFormState(value, crypto.randomUUID());
       const result = metricSchema.safeParse(metric);
       if (!result.success) {
-        // eslint-disable-next-line no-console
-        console.error("Metric failed validation", result.error.issues);
         return;
       }
       addMetric(result.data);

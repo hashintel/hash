@@ -136,8 +136,6 @@ const ViewMetricContent = ({
       const updated = buildMetricFromFormState(value, metric.id);
       const result = metricSchema.safeParse(updated);
       if (!result.success) {
-        // eslint-disable-next-line no-console
-        console.error("Metric failed validation", result.error.issues);
         return;
       }
       updateMetric(metric.id, (draft) => {

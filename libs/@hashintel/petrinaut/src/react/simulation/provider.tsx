@@ -278,16 +278,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxFramesAhead,
     batchSize,
   }) => {
-    // eslint-disable-next-line no-console
-    console.log("[sim:provider] initialize() called", {
-      seed,
-      dt,
-      maxFramesAhead,
-      batchSize,
-      hasPrevious: !!simulationRef.current,
-      usingHostFactory: !!workerFactory,
-    });
-
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
 
@@ -329,23 +319,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // pick up the new stores.
     simulationRef.current = sim;
     setSimulation(sim);
-    // eslint-disable-next-line no-console
-    console.log("[sim:provider] initialize() resolved, sim ref set");
   };
 
   const run: SimulationContextValue["run"] = () => {
-    // eslint-disable-next-line no-console
-    console.log("[sim:provider] run() called", {
-      hasSim: !!simulationRef.current,
-    });
     simulationRef.current?.run();
   };
 
   const pause: SimulationContextValue["pause"] = () => {
-    // eslint-disable-next-line no-console
-    console.log("[sim:provider] pause() called", {
-      hasSim: !!simulationRef.current,
-    });
     simulationRef.current?.pause();
   };
 
@@ -459,11 +439,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       );
       if (outcome.ok) {
         compiledScenarioResult = outcome.result;
-        // eslint-disable-next-line no-console
-        console.log("[Scenario] compiled", compiledScenarioResult);
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn("[Scenario] compilation errors", outcome.errors);
       }
     }
   }

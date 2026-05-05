@@ -158,8 +158,6 @@ const ViewScenarioContent = ({
       const updated = buildScenarioFromFormState(value, scenario.id);
       const result = scenarioSchema.safeParse(updated);
       if (!result.success) {
-        // eslint-disable-next-line no-console
-        console.error("Scenario failed validation", result.error.issues);
         return;
       }
       updateScenario(scenario.id, (draft) => {

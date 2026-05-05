@@ -138,8 +138,6 @@ export const CreateScenarioDrawer = ({
       // Final structural validation against the persistence schema.
       const result = scenarioSchema.safeParse(scenario);
       if (!result.success) {
-        // eslint-disable-next-line no-console
-        console.error("Scenario failed validation", result.error.issues);
         return;
       }
       addScenario(result.data);
@@ -173,14 +171,9 @@ export const CreateScenarioForm = () => {
     (petriNetDefinition.scenarios ?? []).map((s) => s.name),
   );
 
-  const form = useScenarioForm(
-    EMPTY_SCENARIO_FORM_STATE,
-    (value) => {
-      // eslint-disable-next-line no-console
-      console.log("submit scenario", value);
-    },
-    { existingScenarioNames },
-  );
+  const form = useScenarioForm(EMPTY_SCENARIO_FORM_STATE, () => {}, {
+    existingScenarioNames,
+  });
 
   return <CreateScenarioBody form={form} />;
 };

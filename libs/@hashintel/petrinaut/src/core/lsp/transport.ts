@@ -29,62 +29,29 @@ export function createWorkerLspTransport(
   let terminated = false;
   const queued: ClientMessage[] = [];
 
-  // eslint-disable-next-line no-console
-  console.log("[lsp] createWorkerLspTransport: invoking factory");
-  void Promise.resolve(createWorker()).then(
-    (w) => {
-      if (terminated) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          "[lsp] worker booted after transport already terminated, terminating worker",
-        );
-        w.terminate();
-        return;
+  void Promise.resolve(createWorker()).then((w) => {
+    if (terminated) {
+      w.terminate();
+      return;
+    }
+    worker = w;
+    w.addEventListener("message", (event: MessageEvent<ServerMessage>) => {
+      for (const listener of listeners) {
+        listener(event.data);
       }
-      // eslint-disable-next-line no-console
-      console.log("[lsp] worker constructed", { queuedCount: queued.length });
-      worker = w;
-      w.addEventListener("message", (event: MessageEvent<ServerMessage>) => {
-        // eslint-disable-next-line no-console
-        console.log("[lsp] worker → main", event.data);
-        for (const listener of listeners) {
-          listener(event.data);
-        }
-      });
-      w.addEventListener("error", (event) => {
-        // eslint-disable-next-line no-console
-        console.error("[lsp] worker error event", event);
-      });
-      w.addEventListener("messageerror", (event) => {
-        // eslint-disable-next-line no-console
-        console.error("[lsp] worker messageerror event", event);
-      });
-      for (const message of queued) {
-        // eslint-disable-next-line no-console
-        console.log("[lsp] flushing queued message", message);
-        w.postMessage(message);
-      }
-      queued.length = 0;
-    },
-    (error) => {
-      // eslint-disable-next-line no-console
-      console.error("[lsp] worker factory rejected", error);
-    },
-  );
+    });
+    for (const message of queued) {
+      w.postMessage(message);
+    }
+    queued.length = 0;
+  });
 
   return {
     send(message) {
       if (worker) {
-        // eslint-disable-next-line no-console
-        console.log("[lsp] main → worker", message);
         worker.postMessage(message);
       } else if (!terminated) {
-        // eslint-disable-next-line no-console
-        console.log("[lsp] queueing message (worker not ready)", message);
         queued.push(message);
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn("[lsp] dropped message (transport terminated)", message);
       }
     },
     onMessage(listener) {
