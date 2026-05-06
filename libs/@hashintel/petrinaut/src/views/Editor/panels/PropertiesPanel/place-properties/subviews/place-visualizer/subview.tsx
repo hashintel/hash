@@ -20,15 +20,12 @@ import {
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaybackContext } from "../../../../../../../playback/context";
 import { SimulationContext } from "../../../../../../../simulation/context";
+import type { VisualizerComponent } from "../../../../../../../simulation/simulator/compile-visualizer";
 import { EditorContext } from "../../../../../../../state/editor-context";
 import { usePlacePropertiesContext } from "../../context";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
 type ViewMode = "code" | "preview" | "split";
-type VisualizerComponent = React.FC<{
-  tokens: Record<string, number>[];
-  parameters: Record<string, number | boolean>;
-}>;
 
 const contentStyle = css({
   display: "flex",
@@ -109,7 +106,9 @@ const VisualizerPreview: React.FC = () => {
         }
 
         try {
-          setVisualizerComponent(() => compileVisualizer(place.visualizerCode!));
+          setVisualizerComponent(() =>
+            compileVisualizer(place.visualizerCode!),
+          );
         } catch (error) {
           // eslint-disable-next-line no-console
           console.error("Failed to compile visualizer code:", error);

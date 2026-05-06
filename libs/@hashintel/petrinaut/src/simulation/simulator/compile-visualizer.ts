@@ -1,12 +1,12 @@
 import * as Babel from "@babel/standalone";
 import { createElement, type ReactElement } from "react";
 
-type VisualizerProps = {
+export type VisualizerProps = {
   tokens: Record<string, number>[];
   parameters: Record<string, number | boolean>;
 };
 
-type VisualizerComponent = (props: VisualizerProps) => ReactElement;
+export type VisualizerComponent = (props: VisualizerProps) => ReactElement;
 
 /**
  * Compiles TypeScript/JSX visualizer code into a React component.
