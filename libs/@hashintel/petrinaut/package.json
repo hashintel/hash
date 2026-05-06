@@ -24,6 +24,14 @@
   ],
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js"
+    },
+    "./styles.css": "./dist/main.css",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "storybook dev",

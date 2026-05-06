@@ -4,6 +4,20 @@ import { replacePlugin } from "rolldown/plugins";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 
+export const libraryExternalPatterns = [
+  /^@babel\/standalone$/,
+  /^@hashintel\/ds-components(\/.*)?$/,
+  /^@hashintel\/ds-helpers(\/.*)?$/,
+  /^@xyflow\/react(\/.*)?$/,
+  /^react(\/.*)?$/,
+  /^react-dom(\/.*)?$/,
+  /^use-sync-external-store(\/.*)?$/,
+];
+
+export function isLibraryExternal(id: string) {
+  return libraryExternalPatterns.some((pattern) => pattern.test(id));
+}
+
 /**
  * Library build config
  */
@@ -15,20 +29,10 @@ export default defineConfig(({ command }) => ({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: [
-        "@hashintel/ds-components",
-        "@hashintel/ds-helpers",
-        "react",
-        "react-dom",
-        "@xyflow/react",
-        "@babel/standalone",
-        // Pure-CJS dep pulled in transitively by @tanstack/react-form →
-        // @tanstack/react-store. Rolldown can't safely transform its
-        // `require("react")` when react is external, so it falls back to a
-        // runtime require helper that throws in the browser. Externalising it
-        // pushes CJS→ESM interop to the consumer's bundler.
-        /^use-sync-external-store(\/.*)?$/,
-      ],
+      // Keep peer packages external by subpath too. Source imports helper
+      // subpaths such as `@hashintel/ds-helpers/css`; externalizing only the
+      // package root lets those internals leak into Petrinaut's emitted graph.
+      external: isLibraryExternal,
       output: {
         globals: {
           react: "React",
