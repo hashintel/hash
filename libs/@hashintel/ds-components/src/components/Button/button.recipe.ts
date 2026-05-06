@@ -9,6 +9,7 @@ export const styles = sva({
       display: "inline-block",
       fontWeight: "medium",
       border: "var(--button-border-width) solid",
+      textAlign: "center",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
       "&:focus-visible": {
@@ -118,6 +119,8 @@ export const styles = sva({
           padding: "0 !important",
           border: "0 !important",
           background: "[none !important]",
+          textAlign: "[inherit !important]",
+          minWidth: "0 !important",
           fontWeight: "semibold",
           "&:not([aria-disabled=true]):hover": {
             textDecoration: "underline",
@@ -133,6 +136,8 @@ export const styles = sva({
           padding: "0 !important",
           border: "0 !important",
           background: "[none !important]",
+          textAlign: "[inherit !important]",
+          minWidth: "0 !important",
           fontWeight: "semibold",
           "&:focus-visible": {
             outlineOffset: "0.5",
@@ -754,6 +759,28 @@ export const styles = sva({
       css: {
         button: {
           color: "red.s115",
+        },
+      },
+    },
+    {
+      variant: "link",
+      size: "md",
+      css: {
+        button: {
+          fontSize: "[inherit !important]",
+          lineHeight: "[inherit !important]",
+          letterSpacing: "inherit !important",
+        },
+      },
+    },
+    {
+      variant: "linkSubtle",
+      size: "md",
+      css: {
+        button: {
+          fontSize: "[inherit !important]",
+          lineHeight: "[inherit !important]",
+          letterSpacing: "inherit !important",
         },
       },
     },
