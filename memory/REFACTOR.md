@@ -30,7 +30,7 @@ Status legend: `[x]` landed, `[ ]` pending.
 6. [x] Lazy-load graph layout at the import and manual-layout call sites while keeping the same layout result and read-only behavior. Landed in `4215c86eaf`.
 7. [x] Lazy-load visualizer compilation so the Babel standalone dependency is pulled only when previewing visualizer code. Landed in `b550252c97`.
 8. [x] Refactor the bottom-panel registry so the timeline chart is loaded only when the simulation timeline tab is active. Landed in `40204300fa`.
-9. [x] Defer simulation worker creation until the first simulation initialization while keeping reset, teardown, error, and backpressure behavior intact. Landed in `9a9ba2bef6`.
+9. [x] Defer simulation worker creation until the first simulation initialization while keeping reset, teardown, error, and backpressure behavior intact. Landed in `ea1faf95d5`.
 10. Defer language worker creation until diagnostics or editor language features are actually requested while preserving queued document updates and diagnostics publication.
 11. Defer Monaco initialization until the first code editor renders, with the sync helpers subscribing only after Monaco and language services are available.
 12. Move examples behind a lazy menu boundary so the editor shell does not statically import every example net.
@@ -43,7 +43,7 @@ Status legend: `[x]` landed, `[ ]` pending.
 
 Current branch: `ln/petrinaut-imports`.
 
-Latest verified slice: simulation worker lazy initialization (`9a9ba2bef6`).
+Latest verified slice: simulation worker lazy initialization (`ea1faf95d5`).
 
 Verification used for landed implementation slices:
 
