@@ -38,6 +38,7 @@ export const styles = sva({
           borderRadius: "md",
           textStyle: "xxs",
           minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + 1px * 2 + var(--button-border-width) * 2)]`,
+          "--button-icon-margin": "var(--spacing-1)",
         },
       },
       xs: {
@@ -47,6 +48,7 @@ export const styles = sva({
           borderRadius: "md",
           textStyle: "xs",
           minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--button-border-width) * 2)]`,
+          "--button-icon-margin": "var(--spacing-1)",
         },
       },
       sm: {
@@ -56,6 +58,7 @@ export const styles = sva({
           borderRadius: "lg",
           textStyle: "sm",
           minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--spacing-0\\.5) * 2 + var(--button-border-width) * 2)]`,
+          "--button-icon-margin": "var(--spacing-1\\.5)",
         },
       },
       md: {
@@ -65,6 +68,7 @@ export const styles = sva({
           borderRadius: "lg",
           textStyle: "base",
           minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-1) * 2 + var(--button-border-width) * 2)]`,
+          "--button-icon-margin": "var(--spacing-2)",
         },
       },
       lg: {
@@ -74,6 +78,7 @@ export const styles = sva({
           borderRadius: "lg",
           textStyle: "base",
           minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-2) * 2 + var(--button-border-width) * 2)]`,
+          "--button-icon-margin": "var(--spacing-2)",
         },
       },
     },
@@ -158,10 +163,10 @@ export const styles = sva({
       },
     },
     hasIconLeft: {
-      true: {},
+      true: { iconText: { marginLeft: "var(--button-icon-margin)" } },
     },
     hasIconRight: {
-      true: {},
+      true: { iconText: { marginRight: "var(--button-icon-margin)" } },
     },
     isDisabled: {
       true: {},
@@ -174,76 +179,6 @@ export const styles = sva({
     },
   },
   compoundVariants: [
-    {
-      size: "xxs",
-      hasIconLeft: true,
-      css: {
-        iconText: { marginLeft: "1" },
-      },
-    },
-    {
-      size: "xxs",
-      hasIconRight: true,
-      css: {
-        iconText: { marginRight: "1" },
-      },
-    },
-    {
-      size: "xs",
-      hasIconLeft: true,
-      css: {
-        iconText: { marginLeft: "1" },
-      },
-    },
-    {
-      size: "xs",
-      hasIconRight: true,
-      css: {
-        iconText: { marginRight: "1" },
-      },
-    },
-    {
-      size: "sm",
-      hasIconLeft: true,
-      css: {
-        iconText: { marginLeft: "1.5" },
-      },
-    },
-    {
-      size: "sm",
-      hasIconRight: true,
-      css: {
-        iconText: { marginRight: "1.5" },
-      },
-    },
-    {
-      size: "md",
-      hasIconLeft: true,
-      css: {
-        iconText: { marginLeft: "2" },
-      },
-    },
-    {
-      size: "md",
-      hasIconRight: true,
-      css: {
-        iconText: { marginRight: "2" },
-      },
-    },
-    {
-      size: "lg",
-      hasIconLeft: true,
-      css: {
-        iconText: { marginLeft: "2" },
-      },
-    },
-    {
-      size: "lg",
-      hasIconRight: true,
-      css: {
-        iconText: { marginRight: "2" },
-      },
-    },
     // ── Icon-only (square) ──
     {
       size: "xxs",
