@@ -52,9 +52,9 @@ Verification used for landed implementation slices:
 - `yarn workspace @hashintel/petrinaut test:unit run`
 - `yarn workspace @hashintel/petrinaut build`
 
-Latest full Petrinaut verification passed with 35 Vitest files and 483 tests.
+Latest full Petrinaut verification passed with 35 Vitest files and 485 tests.
 
-Current build signals after item 14:
+Current build signals after item 16:
 
 - `main.js`: approximately `589.9 KiB`, `157.0 KiB gzip`.
 - CSS: approximately `763.4 KiB`, `152.6 KiB gzip`; full Fontsource packages are no longer imported by the component entry.
@@ -73,7 +73,7 @@ Observed improvement from the original characterization baseline:
 
 - Baseline `main.js`: approximately `1.4 MiB`, `313 KiB gzip`.
 - Current `main.js`: approximately `589.9 KiB`, `157.0 KiB gzip`.
-- Baseline build time: `6.46s`; latest observed build: `5.35s`.
+- Baseline build time: `6.46s`; latest observed build: `5.31s`.
 
 Frontend verification for item 15:
 
