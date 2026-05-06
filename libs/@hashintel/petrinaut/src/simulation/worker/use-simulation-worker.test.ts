@@ -74,8 +74,8 @@ class MockWorker {
 // Store the mock worker instance for access in tests
 let mockWorkerInstance: MockWorker | null = null;
 
-// Mock the extracted createSimulationWorker module so the dynamic import
-// (with ?worker&inline) never runs. Returns a MockWorker synchronously
+// Mock the extracted createSimulationWorker module so the dynamic worker import
+// never runs. Returns a MockWorker synchronously
 // via a resolved promise, eliminating all async timing issues.
 vi.mock("./create-simulation-worker", () => ({
   createSimulationWorker: () => {

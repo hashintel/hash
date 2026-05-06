@@ -14,11 +14,9 @@ import type {
   SignatureHelp,
 } from "./protocol";
 
-/** Dynamically import and instantiate the language server worker (inlined as blob URL). */
+/** Dynamically import and instantiate the language server worker as an emitted asset. */
 async function createLanguageServerWorker() {
-  const LanguageServerWorker = await import(
-    "./language-server.worker.ts?worker&inline"
-  );
+  const LanguageServerWorker = await import("./language-server.worker.ts?worker");
   // eslint-disable-next-line new-cap
   return new LanguageServerWorker.default();
 }
