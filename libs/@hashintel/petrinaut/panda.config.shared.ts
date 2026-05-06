@@ -3,10 +3,14 @@ import { createRequire } from "node:module";
 import { defineConfig } from "@pandacss/dev";
 import { scopedThemeConfig } from "@hashintel/ds-components/preset";
 
-import { CODE_FONT_FAMILY } from "./src/constants/ui";
-
 export const DS_COMPONENTS_BUILD_INFO_SUBPATH =
   "@hashintel/ds-components/panda.buildinfo.json";
+
+const CODE_FONT_FAMILY = "'JetBrains Mono Variable', monospace";
+
+type PetrinautPandaConfigOptions = {
+  includeStorybook?: boolean;
+};
 
 export const createNodeSpecifierResolver = (moduleLocation: string | URL) => {
   const require = createRequire(moduleLocation);
@@ -18,14 +22,19 @@ export const resolveDsComponentsBuildInfoPath = (
   resolve: (specifier: string) => string,
 ) => resolve(DS_COMPONENTS_BUILD_INFO_SUBPATH);
 
-export const createPetrinautPandaConfig = (dsComponentsBuildInfoPath: string) =>
+export const createPetrinautPandaConfig = (
+  dsComponentsBuildInfoPath: string,
+  options: PetrinautPandaConfigOptions = {},
+) =>
   defineConfig({
     ...scopedThemeConfig(".petrinaut-root"),
 
     include: [
       "./src/**/*.{js,jsx,ts,tsx}",
       dsComponentsBuildInfoPath,
-      "./.storybook/**/*.{js,jsx,ts,tsx}",
+      ...(options.includeStorybook
+        ? ["./.storybook/**/*.{js,jsx,ts,tsx}"]
+        : []),
     ],
 
     exclude: [],

@@ -37,14 +37,25 @@ describe("resolveDsComponentsBuildInfoPath", () => {
 });
 
 describe("createPetrinautPandaConfig", () => {
-  it("includes the shipped build-info file instead of ds-components source globs", () => {
+  it("includes library source and shipped build-info without Storybook globs", () => {
     const config = createPetrinautPandaConfig(
       "/virtual/ds-components/panda.buildinfo.json",
     );
 
+    expect(config.include).toContain("./src/**/*.{js,jsx,ts,tsx}");
     expect(config.include).toContain(
       "/virtual/ds-components/panda.buildinfo.json",
     );
+    expect(config.include).not.toContain("./.storybook/**/*.{js,jsx,ts,tsx}");
     expect(config.include).not.toContain("../ds-components/src/**/*.{ts,tsx}");
+  });
+
+  it("includes Storybook globs only for the Storybook config mode", () => {
+    const config = createPetrinautPandaConfig(
+      "/virtual/ds-components/panda.buildinfo.json",
+      { includeStorybook: true },
+    );
+
+    expect(config.include).toContain("./.storybook/**/*.{js,jsx,ts,tsx}");
   });
 });
