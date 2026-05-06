@@ -78,6 +78,24 @@ describe("characterize-build-output", () => {
     }
   });
 
+  it("reports missing dist entry assets as bundle guard failures", async () => {
+    const tempDir = await mkdtemp(path.join(tmpdir(), "petrinaut-dist-"));
+    try {
+      const summary = await summarizeDistDirectory(tempDir);
+      const failures = evaluateBundleGuard({
+        dist: summary,
+        sourceHotspots: { totals: { inlineWorkerImports: 0 } },
+      });
+
+      expect(failures).toEqual([
+        "dist/main.js is missing",
+        "dist/main.css is missing",
+      ]);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("formats byte counts consistently", () => {
     expect(formatBytes(0)).toBe("0 B");
     expect(formatBytes(1_536)).toBe("1.5 KiB");

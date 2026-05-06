@@ -168,6 +168,10 @@ export function evaluateBundleGuard(
 ) {
   const failures = [];
 
+  for (const assetPath of report.dist.missingEntryAssets ?? []) {
+    failures.push(`dist/${assetPath} is missing`);
+  }
+
   const checkMax = (label, actual, expected) => {
     if (actual > expected) {
       failures.push(
@@ -300,6 +304,13 @@ export async function summarizeDistDirectory(distDir = DIST_DIR) {
 
   const mainJsPath = path.join(distDir, "main.js");
   const mainCssPath = path.join(distDir, "main.css");
+  const missingEntryAssets = [];
+  if (!(await pathExists(mainJsPath))) {
+    missingEntryAssets.push("main.js");
+  }
+  if (!(await pathExists(mainCssPath))) {
+    missingEntryAssets.push("main.css");
+  }
   const mainJs = await readFile(mainJsPath, "utf8").catch(() => "");
   const mainCss = await readFile(mainCssPath, "utf8").catch(() => "");
   const mainMap = await readJsonIfExists(path.join(distDir, "main.js.map"));
@@ -320,6 +331,7 @@ export async function summarizeDistDirectory(distDir = DIST_DIR) {
   return {
     assetGroups,
     exists: await pathExists(distDir),
+    missingEntryAssets,
     assets,
     largestAssets: assets.slice(0, 20),
     workerAssets: assets.filter((asset) =>
