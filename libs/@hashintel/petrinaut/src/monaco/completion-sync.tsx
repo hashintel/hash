@@ -60,7 +60,11 @@ function toMonacoCompletion(
 }
 
 const CompletionSyncInner = () => {
-  const { monaco } = use(use(MonacoContext));
+  const { monacoPromise } = use(MonacoContext);
+  if (!monacoPromise) {
+    throw new Error("Monaco is not initialized");
+  }
+  const { monaco } = use(monacoPromise);
   const { notifyDocumentChanged, requestCompletion } = use(
     LanguageClientContext,
   );
@@ -111,8 +115,15 @@ const CompletionSyncInner = () => {
 };
 
 /** Renders nothing visible — registers a Monaco CompletionItemProvider backed by the language server. */
-export const CompletionSync: React.FC = () => (
-  <Suspense fallback={null}>
-    <CompletionSyncInner />
-  </Suspense>
-);
+export const CompletionSync: React.FC = () => {
+  const { monacoPromise } = use(MonacoContext);
+  if (!monacoPromise) {
+    return null;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <CompletionSyncInner />
+    </Suspense>
+  );
+};

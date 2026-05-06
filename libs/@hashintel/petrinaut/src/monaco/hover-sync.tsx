@@ -48,7 +48,11 @@ function hoverContentsToMarkdown(hover: Hover): Monaco.IMarkdownString[] {
 }
 
 const HoverSyncInner = () => {
-  const { monaco } = use(use(MonacoContext));
+  const { monacoPromise } = use(MonacoContext);
+  if (!monacoPromise) {
+    throw new Error("Monaco is not initialized");
+  }
+  const { monaco } = use(monacoPromise);
   const { notifyDocumentChanged, requestHover } = use(LanguageClientContext);
 
   useEffect(() => {
@@ -91,8 +95,15 @@ const HoverSyncInner = () => {
 };
 
 /** Renders nothing visible — registers a Monaco HoverProvider backed by the language server. */
-export const HoverSync: React.FC = () => (
-  <Suspense fallback={null}>
-    <HoverSyncInner />
-  </Suspense>
-);
+export const HoverSync: React.FC = () => {
+  const { monacoPromise } = use(MonacoContext);
+  if (!monacoPromise) {
+    return null;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <HoverSyncInner />
+    </Suspense>
+  );
+};

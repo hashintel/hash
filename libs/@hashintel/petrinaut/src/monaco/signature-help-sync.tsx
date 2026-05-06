@@ -43,7 +43,11 @@ function toMonacoSignatureHelp(
 }
 
 const SignatureHelpSyncInner = () => {
-  const { monaco } = use(use(MonacoContext));
+  const { monacoPromise } = use(MonacoContext);
+  if (!monacoPromise) {
+    throw new Error("Monaco is not initialized");
+  }
+  const { monaco } = use(monacoPromise);
   const { notifyDocumentChanged, requestSignatureHelp } = use(
     LanguageClientContext,
   );
@@ -85,8 +89,15 @@ const SignatureHelpSyncInner = () => {
 };
 
 /** Renders nothing visible — registers a Monaco SignatureHelpProvider backed by the language server. */
-export const SignatureHelpSync: React.FC = () => (
-  <Suspense fallback={null}>
-    <SignatureHelpSyncInner />
-  </Suspense>
-);
+export const SignatureHelpSync: React.FC = () => {
+  const { monacoPromise } = use(MonacoContext);
+  if (!monacoPromise) {
+    return null;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <SignatureHelpSyncInner />
+    </Suspense>
+  );
+};

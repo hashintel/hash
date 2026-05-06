@@ -13,7 +13,7 @@ import type {
   PublishDiagnosticsParams,
 } from "./lsp/worker/protocol";
 import type { LanguageClientApi } from "./lsp/worker/use-language-client";
-import { MonacoContext, type MonacoContextValue } from "./monaco/context";
+import { MonacoContext, type MonacoContextHandle } from "./monaco/context";
 import { MonacoProvider } from "./monaco/provider";
 import { NotificationsContext } from "./notifications/notifications-context";
 import { SimulationContext } from "./simulation/context";
@@ -81,9 +81,12 @@ vi.mock(
   () => ({}),
 );
 
-vi.mock("monaco-editor/esm/vs/editor/contrib/folding/browser/folding.js", () => ({
-  default: {},
-}));
+vi.mock(
+  "monaco-editor/esm/vs/editor/contrib/folding/browser/folding.js",
+  () => ({
+    default: {},
+  }),
+);
 
 vi.mock("./monaco/diagnostics-sync", () => ({
   DiagnosticsSync: () => null,
@@ -138,7 +141,10 @@ function createLanguageClientMock(): LanguageClientApi & {
     notifySDCPNChanged: vi.fn(),
     notifyDocumentChanged: vi.fn(),
     requestCompletion: vi.fn(() =>
-      Promise.resolve({ isIncomplete: false, items: [] } satisfies CompletionList),
+      Promise.resolve({
+        isIncomplete: false,
+        items: [],
+      } satisfies CompletionList),
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
@@ -150,7 +156,7 @@ function createLanguageClientMock(): LanguageClientApi & {
     killMetricSession: vi.fn(),
     onDiagnostics: vi.fn(
       (callback: (params: PublishDiagnosticsParams[]) => void) => {
-      diagnosticsCallback = callback;
+        diagnosticsCallback = callback;
       },
     ),
     emitDiagnostics(params) {
@@ -194,7 +200,7 @@ function useMonacoContext() {
 }
 
 const MonacoContextProbe: React.FC<{
-  onValue: (value: Promise<MonacoContextValue>) => void;
+  onValue: (value: MonacoContextHandle) => void;
 }> = ({ onValue }) => {
   onValue(useMonacoContext());
   return null;
@@ -308,9 +314,12 @@ describe("provider lifecycle characterization", () => {
       });
 
       expect(result.current.totalDiagnosticsCount).toBe(1);
-      expect(result.current.diagnosticsByUri.has("file:///empty.ts")).toBe(false);
-      expect(result.current.diagnosticsByUri.get("file:///has-diagnostic.ts"))
-        .toHaveLength(1);
+      expect(result.current.diagnosticsByUri.has("file:///empty.ts")).toBe(
+        false,
+      );
+      expect(
+        result.current.diagnosticsByUri.get("file:///has-diagnostic.ts"),
+      ).toHaveLength(1);
 
       result.current.notifyDocumentChanged("file:///lambda.ts", "return true;");
       await result.current.requestCompletion("file:///lambda.ts", {
@@ -401,7 +410,9 @@ describe("provider lifecycle characterization", () => {
       const firstContext = createSdcpnContext(EMPTY_SDCPN, "net-1");
       const secondContext = createSdcpnContext(EMPTY_SDCPN, "net-2");
 
-      let simulationContext = null as ReturnType<typeof useSimulationContext> | null;
+      let simulationContext = null as ReturnType<
+        typeof useSimulationContext
+      > | null;
       const { rerender } = render(
         <SimulationProviderHarness
           sdcpnContext={firstContext}
@@ -437,27 +448,28 @@ describe("provider lifecycle characterization", () => {
   });
 
   describe("MonacoProvider", () => {
-    it("provides a shared Monaco initialization promise when mounted", async () => {
-      const providedPromises: Promise<MonacoContextValue>[] = [];
+    it("provides Monaco initialization without starting it on mount", async () => {
+      const providedHandles: MonacoContextHandle[] = [];
 
       render(
         <MonacoProvider>
           <MonacoContextProbe
             onValue={(value) => {
-              providedPromises.push(value);
+              providedHandles.push(value);
             }}
           />
         </MonacoProvider>,
       );
 
-      const providedPromise = providedPromises[0];
+      const providedHandle = providedHandles[0];
 
-      expect(providedPromise).toBeInstanceOf(Promise);
-      if (!providedPromise) {
-        throw new Error("MonacoProvider did not provide a promise");
+      expect(providedHandle?.monacoPromise).toBeNull();
+      expect(mocks.monacoLoaderConfig).not.toHaveBeenCalled();
+      if (!providedHandle) {
+        throw new Error("MonacoProvider did not provide a handle");
       }
 
-      const monacoContextValue = await providedPromise;
+      const monacoContextValue = await providedHandle.getMonaco();
 
       expect(monacoContextValue.monaco).toBeDefined();
       expect(typeof monacoContextValue.Editor).toBe("function");

@@ -1,5 +1,7 @@
+import { useCallback, useMemo, useState } from "react";
+
 import { CompletionSync } from "./completion-sync";
-import type { MonacoContextValue } from "./context";
+import type { MonacoContextHandle, MonacoContextValue } from "./context";
 import { MonacoContext } from "./context";
 import { DiagnosticsSync } from "./diagnostics-sync";
 import { HoverSync } from "./hover-sync";
@@ -61,10 +63,24 @@ function getMonacoPromise(): Promise<MonacoContextValue> {
 export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const promise = getMonacoPromise();
+  const [activeMonacoPromise, setActiveMonacoPromise] =
+    useState<Promise<MonacoContextValue> | null>(null);
+
+  const getMonaco = useCallback(() => {
+    const promise = getMonacoPromise();
+    queueMicrotask(() => {
+      setActiveMonacoPromise(promise);
+    });
+    return promise;
+  }, []);
+
+  const contextValue: MonacoContextHandle = useMemo(
+    () => ({ monacoPromise: activeMonacoPromise, getMonaco }),
+    [activeMonacoPromise, getMonaco],
+  );
 
   return (
-    <MonacoContext.Provider value={promise}>
+    <MonacoContext.Provider value={contextValue}>
       <DiagnosticsSync />
       <CompletionSync />
       <HoverSync />
