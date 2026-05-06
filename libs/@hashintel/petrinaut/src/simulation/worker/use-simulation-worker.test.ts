@@ -120,6 +120,24 @@ function createMinimalSDCPN(): SDCPN {
   };
 }
 
+async function initializeWorker(result: {
+  current: ReturnType<typeof useSimulationWorker>;
+}) {
+  act(() => {
+    void result.current.actions
+      .initialize({
+        sdcpn: createMinimalSDCPN(),
+        initialMarking: new Map(),
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      })
+      .catch(() => {});
+  });
+  await flushMicrotasks();
+}
+
 describe("useSimulationWorker", () => {
   beforeEach(() => {
     mockWorkerInstance = null;
@@ -135,11 +153,11 @@ describe("useSimulationWorker", () => {
       expect(result.current.state.error).toBeNull();
     });
 
-    it("creates worker on mount", async () => {
+    it("does not create worker on mount", async () => {
       renderHook(() => useSimulationWorker());
       await flushMicrotasks();
 
-      expect(mockWorkerInstance).not.toBeNull();
+      expect(mockWorkerInstance).toBeNull();
     });
   });
 
@@ -154,15 +172,18 @@ describe("useSimulationWorker", () => {
       ]);
 
       act(() => {
-        void result.current.actions.initialize({
-          sdcpn,
-          initialMarking,
-          parameterValues: { param1: "1.0" },
-          seed: 42,
-          dt: 0.1,
-          maxTime: 100,
-        });
+        void result.current.actions
+          .initialize({
+            sdcpn,
+            initialMarking,
+            parameterValues: { param1: "1.0" },
+            seed: 42,
+            dt: 0.1,
+            maxTime: 100,
+          })
+          .catch(() => {});
       });
+      await flushMicrotasks();
 
       expect(result.current.state.status).toBe("initializing");
 
@@ -184,15 +205,18 @@ describe("useSimulationWorker", () => {
       ]);
 
       act(() => {
-        void result.current.actions.initialize({
-          sdcpn,
-          initialMarking,
-          parameterValues: {},
-          seed: 42,
-          dt: 0.1,
-          maxTime: null,
-        });
+        void result.current.actions
+          .initialize({
+            sdcpn,
+            initialMarking,
+            parameterValues: {},
+            seed: 42,
+            dt: 0.1,
+            maxTime: null,
+          })
+          .catch(() => {});
       });
+      await flushMicrotasks();
 
       const initMessages = mockWorkerInstance!.getMessages("init");
       expect(initMessages[0]?.initialMarking).toBeInstanceOf(Array);
@@ -203,6 +227,7 @@ describe("useSimulationWorker", () => {
     it("clears frames on initialize", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       // Simulate having some frames
       act(() => {
@@ -221,15 +246,18 @@ describe("useSimulationWorker", () => {
 
       // Initialize again
       act(() => {
-        void result.current.actions.initialize({
-          sdcpn: createMinimalSDCPN(),
-          initialMarking: new Map(),
-          parameterValues: {},
-          seed: 42,
-          dt: 0.1,
-          maxTime: null,
-        });
+        void result.current.actions
+          .initialize({
+            sdcpn: createMinimalSDCPN(),
+            initialMarking: new Map(),
+            parameterValues: {},
+            seed: 42,
+            dt: 0.1,
+            maxTime: null,
+          })
+          .catch(() => {});
       });
+      await flushMicrotasks();
 
       expect(result.current.state.frames).toHaveLength(0);
     });
@@ -239,6 +267,7 @@ describe("useSimulationWorker", () => {
     it("sends start message and updates status", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         result.current.actions.start();
@@ -253,6 +282,7 @@ describe("useSimulationWorker", () => {
     it("sends pause message", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         result.current.actions.pause();
@@ -266,6 +296,7 @@ describe("useSimulationWorker", () => {
     it("sends stop message and resets state", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         result.current.actions.start();
@@ -285,6 +316,7 @@ describe("useSimulationWorker", () => {
     it("sends setBackpressure message with maxFramesAhead", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         result.current.actions.setBackpressure({ maxFramesAhead: 50000 });
@@ -298,6 +330,7 @@ describe("useSimulationWorker", () => {
     it("sends setBackpressure message with batchSize", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         result.current.actions.setBackpressure({ batchSize: 500 });
@@ -310,9 +343,23 @@ describe("useSimulationWorker", () => {
   });
 
   describe("reset action", () => {
+    it("resets state without creating a worker before initialization", async () => {
+      const { result } = renderHook(() => useSimulationWorker());
+      await flushMicrotasks();
+
+      act(() => {
+        result.current.actions.reset();
+      });
+
+      expect(mockWorkerInstance).toBeNull();
+      expect(result.current.state.status).toBe("idle");
+      expect(result.current.state.frames).toEqual([]);
+    });
+
     it("sends stop message and resets state", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         result.current.actions.start();
@@ -343,15 +390,18 @@ describe("useSimulationWorker", () => {
       await flushMicrotasks();
 
       act(() => {
-        void result.current.actions.initialize({
-          sdcpn: createMinimalSDCPN(),
-          initialMarking: new Map(),
-          parameterValues: {},
-          seed: 42,
-          dt: 0.1,
-          maxTime: null,
-        });
+        void result.current.actions
+          .initialize({
+            sdcpn: createMinimalSDCPN(),
+            initialMarking: new Map(),
+            parameterValues: {},
+            seed: 42,
+            dt: 0.1,
+            maxTime: null,
+          })
+          .catch(() => {});
       });
+      await flushMicrotasks();
 
       expect(result.current.state.status).toBe("initializing");
 
@@ -368,6 +418,7 @@ describe("useSimulationWorker", () => {
     it("handles frame message", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       const frame = {
         time: 1.5,
@@ -389,6 +440,7 @@ describe("useSimulationWorker", () => {
     it("handles frames (batch) message", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       const frames = [
         { time: 1, places: {}, transitions: {}, buffer: new Float64Array() },
@@ -408,6 +460,7 @@ describe("useSimulationWorker", () => {
     it("handles complete message", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         result.current.actions.start();
@@ -427,6 +480,7 @@ describe("useSimulationWorker", () => {
     it("handles paused message", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         result.current.actions.start();
@@ -445,6 +499,7 @@ describe("useSimulationWorker", () => {
     it("handles error message", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         mockWorkerInstance!.simulateMessage({
@@ -462,6 +517,7 @@ describe("useSimulationWorker", () => {
     it("handles worker onerror", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       act(() => {
         mockWorkerInstance!.simulateError("Worker crashed");
@@ -476,6 +532,7 @@ describe("useSimulationWorker", () => {
     it("sends ack message when ack action is called", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       mockWorkerInstance!.clearMessages();
 
@@ -491,6 +548,7 @@ describe("useSimulationWorker", () => {
     it("sends multiple ack messages with different frame numbers", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       mockWorkerInstance!.clearMessages();
 
@@ -512,8 +570,9 @@ describe("useSimulationWorker", () => {
     it("terminates worker on unmount", async () => {
       const terminateSpy = vi.fn();
 
-      const { unmount } = renderHook(() => useSimulationWorker());
+      const { result, unmount } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();
+      await initializeWorker(result);
 
       // Replace terminate with spy
       mockWorkerInstance!.terminate = terminateSpy;
