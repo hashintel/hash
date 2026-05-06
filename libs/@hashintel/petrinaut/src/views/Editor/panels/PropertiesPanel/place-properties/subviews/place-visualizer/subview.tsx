@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { IconButton } from "../../../../../../../components/icon-button";
@@ -20,12 +20,15 @@ import {
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaybackContext } from "../../../../../../../playback/context";
 import { SimulationContext } from "../../../../../../../simulation/context";
-import { compileVisualizer } from "../../../../../../../simulation/simulator/compile-visualizer";
 import { EditorContext } from "../../../../../../../state/editor-context";
 import { usePlacePropertiesContext } from "../../context";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
 type ViewMode = "code" | "preview" | "split";
+type VisualizerComponent = React.FC<{
+  tokens: Record<string, number>[];
+  parameters: Record<string, number | boolean>;
+}>;
 
 const contentStyle = css({
   display: "flex",
@@ -86,18 +89,47 @@ const VisualizerPreview: React.FC = () => {
   const { currentFrame, totalFrames } = use(PlaybackContext);
 
   const defaultParameterValues = useDefaultParameterValues();
+  const [VisualizerComponent, setVisualizerComponent] =
+    useState<VisualizerComponent | null>(null);
 
-  const VisualizerComponent = useMemo(() => {
+  useEffect(() => {
+    let cancelled = false;
+
     if (!place.visualizerCode) {
-      return null;
+      setVisualizerComponent(null);
+      return;
     }
-    try {
-      return compileVisualizer(place.visualizerCode);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to compile visualizer code:", error);
-      return null;
-    }
+
+    void import(
+      "../../../../../../../simulation/simulator/compile-visualizer"
+    ).then(
+      ({ compileVisualizer }) => {
+        if (cancelled) {
+          return;
+        }
+
+        try {
+          setVisualizerComponent(() => compileVisualizer(place.visualizerCode!));
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error("Failed to compile visualizer code:", error);
+          setVisualizerComponent(null);
+        }
+      },
+      (error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        // eslint-disable-next-line no-console
+        console.error("Failed to load visualizer compiler:", error);
+        setVisualizerComponent(null);
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
   }, [place.visualizerCode]);
 
   if (!place.visualizerCode) {
