@@ -37,13 +37,13 @@ Status legend: `[x]` landed, `[ ]` pending.
 13. [x] Reduce library CSS coupling by removing full font package imports from the component entry or moving them behind an explicit opt-in style contract. Landed in `a3240c4c26`.
 14. [x] Split library and Storybook Panda scanning, and remove source-runtime constants from Panda config evaluation. Landed in `8306f1f9b2`.
 15. [x] Test HASH frontend without transpiling Petrinaut and either remove Petrinaut from transpilation or document the remaining blockers with the bundle report. Landed in `4dd52cb214`.
-16. Turn the bundle graph characterization report into a regression guard with agreed thresholds once the new topology has landed.
+16. [x] Turn the bundle graph characterization report into a regression guard with agreed thresholds once the new topology has landed. Landed in `4eafbe7ecd`.
 
 ## Progress Notes
 
 Current branch: `ln/petrinaut-imports`.
 
-Latest verified slice: HASH frontend prebuilt Petrinaut consumption (`4dd52cb214`).
+Latest verified slice: bundle graph regression guard (`4eafbe7ecd`).
 
 Verification used for landed implementation slices:
 
@@ -67,6 +67,7 @@ Current build signals after item 14:
 - Babel deoptimization warnings for inline worker modules are gone.
 - Library Panda scanning excludes Storybook files by default; Storybook has an explicit opt-in Panda config, and Panda config no longer imports runtime constants from `src`.
 - HASH frontend imports `@hashintel/petrinaut/styles.css` and no longer lists `@hashintel/petrinaut` in `transpilePackages`.
+- `yarn workspace @hashintel/petrinaut check:bundle` now fails when emitted main JS, CSS, font-face count, inline worker imports, or known heavy dependency signals regress past the current thresholds.
 
 Observed improvement from the original characterization baseline:
 
@@ -80,7 +81,7 @@ Frontend verification for item 15:
 - `yarn workspace @apps/hash-frontend build` currently fails before the Petrinaut boundary because generated GraphQL artifacts such as `src/graphql/api-types.gen` and `libs/@local/hash-isomorphic-utils/src/graphql/fragment-types.gen.json` are missing.
 - No Petrinaut package-resolution, stylesheet-export, or worker-asset error was reached in those frontend checks.
 
-Next slice: item 16, turn the bundle graph characterization report into a regression guard with agreed thresholds.
+Refactor plan items 1-16 are now landed.
 
 ## Decision Document
 
