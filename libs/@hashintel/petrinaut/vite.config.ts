@@ -1,4 +1,4 @@
-import babel from "@rolldown/plugin-babel";
+import babel, { defineRolldownBabelPreset } from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { replacePlugin } from "rolldown/plugins";
 import { dts } from "rolldown-plugin-dts";
@@ -17,6 +17,46 @@ export const libraryExternalPatterns = [
 export function isLibraryExternal(id: string) {
   return libraryExternalPatterns.some((pattern) => pattern.test(id));
 }
+
+const reactCompilerIdInclude = /[\\/]src[\\/].+\.[jt]sx?$/;
+const reactCompilerIdExclude = [
+  /[\\/]src[\\/].+\.stories\.[jt]sx?$/,
+  /[\\/]src[\\/].+\.test\.[jt]sx?$/,
+  /[\\/]src[\\/].+\.worker\.[jt]s$/,
+  /[\\/]src[\\/]simulation[\\/]worker[\\/]/,
+  /[\\/]src[\\/]lsp[\\/]worker[\\/]/,
+];
+const reactCompilerCodeInclude =
+  /(?=[\s\S]*(?:from\s+["']react(?:\/[^"']*)?["']|import\s+["']react(?:\/[^"']*)?["']))(?=[\s\S]*(?:\b[A-Z]|\buse))/;
+
+export function shouldApplyReactCompiler(id: string, code: string) {
+  return (
+    reactCompilerIdInclude.test(id) &&
+    !reactCompilerIdExclude.some((pattern) => pattern.test(id)) &&
+    reactCompilerCodeInclude.test(code)
+  );
+}
+
+const baseReactCompilerBabelPreset = reactCompilerPreset({
+  target: "19",
+  compilationMode: "infer",
+  // @ts-expect-error - panicThreshold is accepted at runtime
+  panicThreshold: "critical_errors",
+});
+
+const reactCompilerBabelPreset = defineRolldownBabelPreset({
+  ...baseReactCompilerBabelPreset,
+  rolldown: {
+    ...baseReactCompilerBabelPreset.rolldown,
+    filter: {
+      id: {
+        include: reactCompilerIdInclude,
+        exclude: reactCompilerIdExclude,
+      },
+      code: reactCompilerCodeInclude,
+    },
+  },
+});
 
 /**
  * Library build config
@@ -84,14 +124,7 @@ export default defineConfig(({ command }) => ({
 
     react(),
     babel({
-      presets: [
-        reactCompilerPreset({
-          target: "19",
-          compilationMode: "infer",
-          // @ts-expect-error - panicThreshold is accepted at runtime
-          panicThreshold: "critical_errors",
-        }),
-      ],
+      presets: [reactCompilerBabelPreset],
     }),
 
     command === "build" &&

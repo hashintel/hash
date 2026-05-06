@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { isLibraryExternal } from "./vite.config";
+import { isLibraryExternal, shouldApplyReactCompiler } from "./vite.config";
 
 describe("petrinaut package boundary", () => {
   it("externalizes peer dependency subpaths as part of the library boundary", () => {
@@ -51,5 +51,38 @@ describe("petrinaut package boundary", () => {
     });
     expect(packageJson.exports?.["./styles.css"]).toBe("./dist/main.css");
     expect(packageJson.exports?.["./package.json"]).toBe("./package.json");
+  });
+
+  it("limits React Compiler to Petrinaut source modules that import React", () => {
+    expect(
+      shouldApplyReactCompiler(
+        "/repo/libs/@hashintel/petrinaut/src/components/input.tsx",
+        'import { useId } from "react";',
+      ),
+    ).toBe(true);
+    expect(
+      shouldApplyReactCompiler(
+        "/repo/libs/@hashintel/petrinaut/src/hooks/use-latest.ts",
+        'import { useRef } from "react";',
+      ),
+    ).toBe(true);
+    expect(
+      shouldApplyReactCompiler(
+        "/repo/libs/@hashintel/petrinaut/src/simulation/worker/simulation.worker.ts",
+        'import { compileSimulation } from "../simulator";',
+      ),
+    ).toBe(false);
+    expect(
+      shouldApplyReactCompiler(
+        "/repo/libs/@hashintel/petrinaut/src/simulation/simulator/build-simulation.ts",
+        'import { compileUserCode } from "./compile-user-code";',
+      ),
+    ).toBe(false);
+    expect(
+      shouldApplyReactCompiler(
+        "/repo/libs/@hashintel/petrinaut/src/components/input.test.tsx",
+        'import { render } from "@testing-library/react";',
+      ),
+    ).toBe(false);
   });
 });
