@@ -146,4 +146,37 @@ describe("useLanguageClient", () => {
       items: [],
     });
   });
+
+  it("creates the worker for language feature requests after a StrictMode remount", async () => {
+    const { result } = renderHook(() => useLanguageClient(), {
+      reactStrictMode: true,
+    });
+
+    act(() => {
+      result.current.initialize(EMPTY_SDCPN);
+    });
+
+    const completionPromise = result.current.requestCompletion(
+      "file:///predicate.ts",
+      { line: 0, character: 1 },
+    );
+    await flushMicrotasks();
+
+    expect(
+      mocks.worker?.postedMessages.map((message) => message.method),
+    ).toEqual(["initialize", "textDocument/completion"]);
+
+    act(() => {
+      mocks.worker?.simulateMessage({
+        jsonrpc: "2.0",
+        id: 0,
+        result: { isIncomplete: false, items: [] },
+      });
+    });
+
+    await expect(completionPromise).resolves.toEqual({
+      isIncomplete: false,
+      items: [],
+    });
+  });
 });

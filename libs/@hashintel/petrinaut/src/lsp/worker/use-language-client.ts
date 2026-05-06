@@ -82,6 +82,7 @@ export function useLanguageClient(): LanguageClientApi {
   >(null);
 
   useEffect(() => {
+    isMountedRef.current = true;
     const pending = pendingRef.current;
 
     return () => {

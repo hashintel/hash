@@ -195,6 +195,35 @@ describe("useSimulationWorker", () => {
       expect(initMessages[0]?.maxTime).toBe(100);
     });
 
+    it("sends init message to worker after a StrictMode remount", async () => {
+      const { result } = renderHook(() => useSimulationWorker(), {
+        reactStrictMode: true,
+      });
+      await flushMicrotasks();
+
+      const initializePromise = result.current.actions.initialize({
+        sdcpn: createMinimalSDCPN(),
+        initialMarking: new Map(),
+        parameterValues: {},
+        seed: 42,
+        dt: 0.1,
+        maxTime: null,
+      });
+      await flushMicrotasks();
+
+      const initMessages = mockWorkerInstance!.getMessages("init");
+      expect(initMessages).toHaveLength(1);
+
+      act(() => {
+        mockWorkerInstance!.simulateMessage({
+          type: "ready",
+          initialFrameCount: 1,
+        });
+      });
+
+      await expect(initializePromise).resolves.toBeUndefined();
+    });
+
     it("serializes initialMarking Map to array", async () => {
       const { result } = renderHook(() => useSimulationWorker());
       await flushMicrotasks();

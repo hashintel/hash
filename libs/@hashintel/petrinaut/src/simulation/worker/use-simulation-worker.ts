@@ -129,6 +129,8 @@ export function useSimulationWorker(): {
   } | null>(null);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     return () => {
       isMountedRef.current = false;
       workerRef.current?.terminate();
