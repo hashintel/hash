@@ -144,12 +144,12 @@ export function calculateRoundedSquareMap(props: {
       // Process pixels that are in rounded square or near bezel edge for anti-aliasing
       if (isInRoundedSquare) {
         const distanceFromCenter = Math.sqrt(distanceToCenterSquared);
-        const distanceFromBorder = Math.sqrt(distanceToBorderSquared);
-        const distanceFromBorderRatio =
-          distanceFromBorder / (distanceFromCenter + distanceFromBorder);
+        const distanceToBorder = Math.sqrt(distanceToBorderSquared);
+        const distanceToBorderRatio =
+          distanceToBorder / (distanceFromCenter + distanceToBorder);
         const angle = Math.atan2(y, x);
         // H-5525: Fix antialiasing calculation
-        const opacity = isOutsideRadius ? 1 - distanceFromBorder : 1;
+        const opacity = isOutsideRadius ? 1 - distanceToBorder : 1;
 
         processPixel(
           x,
@@ -157,8 +157,8 @@ export function calculateRoundedSquareMap(props: {
           imageData.data,
           idx,
           distanceFromCenter,
-          distanceFromBorder,
-          distanceFromBorderRatio,
+          distanceToBorder,
+          distanceToBorderRatio,
           angle,
           opacity,
         );

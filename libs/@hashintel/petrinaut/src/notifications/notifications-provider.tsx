@@ -106,7 +106,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
               )}
             >
               <refractive.div
-                refraction={{ radius: 31, blur: 3, bezelWidth: 20 }}
+                refraction={{ radius: 31, blur: 3, edgeSize: 20 }}
                 className={notificationStyle}
               >
                 {notification.message}
