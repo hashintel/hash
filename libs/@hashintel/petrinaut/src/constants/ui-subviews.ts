@@ -6,14 +6,52 @@
  */
 
 import type { SubView } from "../components/sub-view/types";
+import { createElement, lazy, Suspense } from "react";
 import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
-import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
 import { differentialEquationsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/differential-equations-list";
 import { entitiesTreeSubView } from "../views/Editor/panels/LeftSideBar/subviews/entities-tree";
 import { nodesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nodes-list";
 import { parametersListSubView } from "../views/Editor/panels/LeftSideBar/subviews/parameters-list";
 import { typesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/types-list";
+
+const LazySimulationTimelineContent = lazy(() =>
+  import("../views/Editor/panels/BottomPanel/subviews/simulation-timeline").then(
+    (module) => ({ default: module.SimulationTimelineContent }),
+  ),
+);
+
+const LazyTimelineHeaderActions = lazy(() =>
+  import("../views/Editor/panels/BottomPanel/subviews/simulation-timeline").then(
+    (module) => ({ default: module.TimelineHeaderActions }),
+  ),
+);
+
+const SimulationTimelineContent: React.FC = () => (
+  createElement(
+    Suspense,
+    { fallback: null },
+    createElement(LazySimulationTimelineContent),
+  )
+);
+
+const TimelineHeaderActions: React.FC = () => (
+  createElement(
+    Suspense,
+    { fallback: null },
+    createElement(LazyTimelineHeaderActions),
+  )
+);
+
+export const simulationTimelineSubView: SubView = {
+  id: "simulation-timeline",
+  title: "Timeline",
+  tooltip:
+    "View the simulation timeline with compartment time-series. Click/drag to scrub through frames.",
+  component: SimulationTimelineContent,
+  renderHeaderAction: () => createElement(TimelineHeaderActions),
+  noPadding: true,
+};
 
 export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
   nodesListSubView,

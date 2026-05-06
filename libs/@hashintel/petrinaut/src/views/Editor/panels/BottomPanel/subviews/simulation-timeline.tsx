@@ -282,7 +282,7 @@ const TimelineViewPicker: React.FC = () => {
   );
 };
 
-const TimelineHeaderActions: React.FC = () => (
+export const TimelineHeaderActions: React.FC = () => (
   <div className={headerActionsStyle}>
     <TimelineViewPicker />
     <TimelineChartTypeSelector />
@@ -1342,7 +1342,7 @@ const TimelineLegend: React.FC<{
 
 // -- Main component -----------------------------------------------------------
 
-const SimulationTimelineContent: React.FC = () => {
+export const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
   const { totalFrames } = use(SimulationContext);
   const { currentFrameIndex } = use(PlaybackContext);
