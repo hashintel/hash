@@ -32,7 +32,7 @@ Status legend: `[x]` landed, `[ ]` pending.
 8. [x] Refactor the bottom-panel registry so the timeline chart is loaded only when the simulation timeline tab is active. Landed in `40204300fa`.
 9. [x] Defer simulation worker creation until the first simulation initialization while keeping reset, teardown, error, and backpressure behavior intact. Landed in `ea1faf95d5`.
 10. [x] Defer language worker creation until diagnostics or editor language features are actually requested while preserving queued document updates and diagnostics publication. Landed in `4d13fdec9f`.
-11. Defer Monaco initialization until the first code editor renders, with the sync helpers subscribing only after Monaco and language services are available.
+11. [x] Defer Monaco initialization until the first code editor renders, with the sync helpers subscribing only after Monaco and language services are available. Landed in `5ed3f914e2`.
 12. Move examples behind a lazy menu boundary so the editor shell does not statically import every example net.
 13. Reduce library CSS coupling by removing full font package imports from the component entry or moving them behind an explicit opt-in style contract.
 14. Split library and Storybook Panda scanning, and remove source-runtime constants from Panda config evaluation.
@@ -43,7 +43,7 @@ Status legend: `[x]` landed, `[ ]` pending.
 
 Current branch: `ln/petrinaut-imports`.
 
-Latest verified slice: language worker lazy initialization (`4d13fdec9f`).
+Latest verified slice: Monaco lazy initialization (`5ed3f914e2`).
 
 Verification used for landed implementation slices:
 
@@ -54,23 +54,24 @@ Verification used for landed implementation slices:
 
 Latest full Petrinaut verification passed with 35 Vitest files and 483 tests.
 
-Current build signals after item 10:
+Current build signals after item 11:
 
-- `main.js`: approximately `637.7 KiB`, `164.9 KiB gzip`.
+- `main.js`: approximately `638.8 KiB`, `165.1 KiB gzip`.
 - CSS: approximately `1.47 MiB`, `685 KiB gzip`; font/CSS work remains pending.
 - Worker internals emit as separate `dist/assets/*worker*.js` files with tiny URL wrapper modules.
 - `calculate-graph-layout`, `compile-visualizer`, and `simulation-timeline` now emit as lazy chunks.
 - The simulation worker is not created when the worker hook mounts; it is created on first simulation initialization.
 - The language worker is not created by provider mount or structural initialization; diagnostics/document sync and language feature requests activate it and drain queued messages.
+- Monaco is not initialized when `MonacoProvider` mounts; the first rendered `CodeEditor` asks for Monaco, and sync helpers subscribe after that promise exists.
 - Babel deoptimization warnings for inline worker modules are gone.
 
 Observed improvement from the original characterization baseline:
 
 - Baseline `main.js`: approximately `1.4 MiB`, `313 KiB gzip`.
-- Current `main.js`: approximately `637.7 KiB`, `164.9 KiB gzip`.
-- Baseline build time: `6.46s`; latest observed build: `5.18s`.
+- Current `main.js`: approximately `638.8 KiB`, `165.1 KiB gzip`.
+- Baseline build time: `6.46s`; latest observed build: `5.02s`.
 
-Next slice: item 11, defer Monaco initialization until the first code editor renders.
+Next slice: item 12, move examples behind a lazy menu boundary.
 
 ## Decision Document
 
