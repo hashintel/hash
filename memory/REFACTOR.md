@@ -36,14 +36,14 @@ Status legend: `[x]` landed, `[ ]` pending.
 12. [x] Move examples behind a lazy menu boundary so the editor shell does not statically import every example net. Landed in `781d48a873`.
 13. [x] Reduce library CSS coupling by removing full font package imports from the component entry or moving them behind an explicit opt-in style contract. Landed in `a3240c4c26`.
 14. [x] Split library and Storybook Panda scanning, and remove source-runtime constants from Panda config evaluation. Landed in `8306f1f9b2`.
-15. Test HASH frontend without transpiling Petrinaut and either remove Petrinaut from transpilation or document the remaining blockers with the bundle report.
+15. [x] Test HASH frontend without transpiling Petrinaut and either remove Petrinaut from transpilation or document the remaining blockers with the bundle report. Landed in `4dd52cb214`.
 16. Turn the bundle graph characterization report into a regression guard with agreed thresholds once the new topology has landed.
 
 ## Progress Notes
 
 Current branch: `ln/petrinaut-imports`.
 
-Latest verified slice: Panda scanning split (`8306f1f9b2`).
+Latest verified slice: HASH frontend prebuilt Petrinaut consumption (`4dd52cb214`).
 
 Verification used for landed implementation slices:
 
@@ -66,6 +66,7 @@ Current build signals after item 14:
 - Monaco is not initialized when `MonacoProvider` mounts; the first rendered `CodeEditor` asks for Monaco, and sync helpers subscribe after that promise exists.
 - Babel deoptimization warnings for inline worker modules are gone.
 - Library Panda scanning excludes Storybook files by default; Storybook has an explicit opt-in Panda config, and Panda config no longer imports runtime constants from `src`.
+- HASH frontend imports `@hashintel/petrinaut/styles.css` and no longer lists `@hashintel/petrinaut` in `transpilePackages`.
 
 Observed improvement from the original characterization baseline:
 
@@ -73,7 +74,13 @@ Observed improvement from the original characterization baseline:
 - Current `main.js`: approximately `589.9 KiB`, `157.0 KiB gzip`.
 - Baseline build time: `6.46s`; latest observed build: `5.35s`.
 
-Next slice: item 15, test HASH frontend without transpiling Petrinaut and either remove Petrinaut from transpilation or document the remaining blockers with the bundle report.
+Frontend verification for item 15:
+
+- `yarn workspace @apps/hash-frontend lint:tsc` currently fails before the Petrinaut boundary because generated GraphQL/API artifacts are missing and existing Block Protocol type imports do not match the installed package surface.
+- `yarn workspace @apps/hash-frontend build` currently fails before the Petrinaut boundary because generated GraphQL artifacts such as `src/graphql/api-types.gen` and `libs/@local/hash-isomorphic-utils/src/graphql/fragment-types.gen.json` are missing.
+- No Petrinaut package-resolution, stylesheet-export, or worker-asset error was reached in those frontend checks.
+
+Next slice: item 16, turn the bundle graph characterization report into a regression guard with agreed thresholds.
 
 ## Decision Document
 
