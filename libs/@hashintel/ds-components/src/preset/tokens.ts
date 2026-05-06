@@ -59,10 +59,6 @@ const scaledRadii = scaleTokenValues(
   pandaPreset.theme.tokens.radii,
   "--roundness-factor",
 );
-const scaledLineHeights = scaleTokenValues(
-  pandaPreset.theme.tokens.lineHeights as TokenTree,
-  "--leading-factor",
-);
 
 export const tokens = {
   fontSizes,
@@ -85,7 +81,18 @@ export const tokens = {
   shadows: pandaPreset.theme.tokens.shadows,
   spacing: scaledSpacing,
   radii: scaledRadii,
-  lineHeights: scaledLineHeights as typeof pandaPreset.theme.tokens.lineHeights,
+  lineHeights: {
+    ...pandaPreset.theme.tokens.lineHeights,
+    xxs: { value: "1.6em" },
+    xs: { value: "1.6em" },
+    sm: { value: "1.6em" },
+    base: { value: "1.5em" },
+    lg: { value: "1.5em" },
+    xl: { value: "1.4em" },
+    "2xl": { value: "1.4em" },
+    "3xl": { value: "1.3em" },
+    "4xl": { value: "1.3em" },
+  },
 };
 
 export const semanticTokens = {

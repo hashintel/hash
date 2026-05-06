@@ -138,63 +138,63 @@ export function createPreset(options?: PresetOptions) {
           xxs: {
             value: {
               fontSize: "{fontSizes.xxs}",
-              lineHeight: "calc(1em * 1.6 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.xxs}",
               letterSpacing: "0.01em",
             },
           },
           xs: {
             value: {
               fontSize: "{fontSizes.xs}",
-              lineHeight: "calc(1em * 1.6 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.xs}",
               letterSpacing: "0.01em",
             },
           },
           sm: {
             value: {
               fontSize: "{fontSizes.sm}",
-              lineHeight: "calc(1em * 1.6 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.sm}",
               letterSpacing: "0.005em",
             },
           },
           base: {
             value: {
               fontSize: "{fontSizes.base}",
-              lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.base}",
               letterSpacing: "0em",
             },
           },
           lg: {
             value: {
               fontSize: "{fontSizes.lg}",
-              lineHeight: "calc(1em * 1.5 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.lg}",
               letterSpacing: "-0.005em",
             },
           },
           xl: {
             value: {
               fontSize: "{fontSizes.xl}",
-              lineHeight: "calc(1em * 1.4 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.xl}",
               letterSpacing: "-0.01em",
             },
           },
           "2xl": {
             value: {
               fontSize: "{fontSizes.2xl}",
-              lineHeight: "calc(1em * 1.4 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.2xl}",
               letterSpacing: "-0.015em",
             },
           },
           "3xl": {
             value: {
               fontSize: "{fontSizes.3xl}",
-              lineHeight: "calc(1em * 1.3 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.3xl}",
               letterSpacing: "-0.02em",
             },
           },
           "4xl": {
             value: {
               fontSize: "{fontSizes.4xl}",
-              lineHeight: "calc(1em * 1.3 * var(--leading-factor, 1))",
+              lineHeight: "{lineHeights.4xl}",
               letterSpacing: "-0.025em",
             },
           },
