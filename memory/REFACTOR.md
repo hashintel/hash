@@ -34,7 +34,7 @@ Status legend: `[x]` landed, `[ ]` pending.
 10. [x] Defer language worker creation until diagnostics or editor language features are actually requested while preserving queued document updates and diagnostics publication. Landed in `4d13fdec9f`.
 11. [x] Defer Monaco initialization until the first code editor renders, with the sync helpers subscribing only after Monaco and language services are available. Landed in `5ed3f914e2`.
 12. [x] Move examples behind a lazy menu boundary so the editor shell does not statically import every example net. Landed in `781d48a873`.
-13. Reduce library CSS coupling by removing full font package imports from the component entry or moving them behind an explicit opt-in style contract.
+13. [x] Reduce library CSS coupling by removing full font package imports from the component entry or moving them behind an explicit opt-in style contract. Landed in `a3240c4c26`.
 14. Split library and Storybook Panda scanning, and remove source-runtime constants from Panda config evaluation.
 15. Test HASH frontend without transpiling Petrinaut and either remove Petrinaut from transpilation or document the remaining blockers with the bundle report.
 16. Turn the bundle graph characterization report into a regression guard with agreed thresholds once the new topology has landed.
@@ -43,7 +43,7 @@ Status legend: `[x]` landed, `[ ]` pending.
 
 Current branch: `ln/petrinaut-imports`.
 
-Latest verified slice: example menu lazy loading (`781d48a873`).
+Latest verified slice: bundled font decoupling (`a3240c4c26`).
 
 Verification used for landed implementation slices:
 
@@ -54,10 +54,10 @@ Verification used for landed implementation slices:
 
 Latest full Petrinaut verification passed with 35 Vitest files and 483 tests.
 
-Current build signals after item 12:
+Current build signals after item 13:
 
 - `main.js`: approximately `589.9 KiB`, `157.0 KiB gzip`.
-- CSS: approximately `1.47 MiB`, `685 KiB gzip`; font/CSS work remains pending.
+- CSS: approximately `763.4 KiB`, `152.6 KiB gzip`; full Fontsource packages are no longer imported by the component entry.
 - Worker internals emit as separate `dist/assets/*worker*.js` files with tiny URL wrapper modules.
 - `calculate-graph-layout`, `compile-visualizer`, and `simulation-timeline` now emit as lazy chunks.
 - Example nets now emit as individual lazy chunks loaded only from the Load example submenu actions.
@@ -70,9 +70,9 @@ Observed improvement from the original characterization baseline:
 
 - Baseline `main.js`: approximately `1.4 MiB`, `313 KiB gzip`.
 - Current `main.js`: approximately `589.9 KiB`, `157.0 KiB gzip`.
-- Baseline build time: `6.46s`; latest observed build: `5.11s`.
+- Baseline build time: `6.46s`; latest observed build: `5.12s`.
 
-Next slice: item 13, reduce library CSS coupling by removing full font package imports from the component entry or moving them behind an explicit opt-in style contract.
+Next slice: item 14, split library and Storybook Panda scanning, and remove source-runtime constants from Panda config evaluation.
 
 ## Decision Document
 
