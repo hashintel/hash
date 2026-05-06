@@ -786,8 +786,8 @@ export const styles = sva({
     },
   ],
   defaultVariants: {
-    variant: "solid",
-    tone: "neutral",
     size: "md",
+    tone: "neutral",
+    variant: "solid",
   },
 });
