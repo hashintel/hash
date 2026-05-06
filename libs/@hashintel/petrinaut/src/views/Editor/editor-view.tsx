@@ -11,7 +11,6 @@ import { sirModel } from "../../examples/sir-model";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { exportSDCPN } from "../../file-format/export-sdcpn";
 import { importSDCPN } from "../../file-format/import-sdcpn";
-import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import { EditorContext } from "../../state/editor-context";
 import { MutationContext } from "../../state/mutation-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
@@ -176,6 +175,9 @@ export const EditorView = ({
     // We must do this before createNewNet because after createNewNet triggers a
     // re-render, the mutatePetriNetDefinition closure would be stale.
     if (hadMissingPositions) {
+      const { calculateGraphLayout } = await import(
+        "../../lib/calculate-graph-layout"
+      );
       const positions = await calculateGraphLayout(sdcpnToLoad, dims);
 
       if (Object.keys(positions).length > 0) {

@@ -24,6 +24,12 @@ import {
   type UserSettingsContextValue,
 } from "./user-settings-context";
 
+const calculateGraphLayoutMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../lib/calculate-graph-layout", () => ({
+  calculateGraphLayout: calculateGraphLayoutMock,
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -289,6 +295,57 @@ describe("MutationProvider", () => {
       expect(getSdcpn().transitions[0]!.x).toBe(300);
       expect(getSdcpn().transitions[0]!.y).toBe(400);
     });
+
+    test("layoutGraph loads layout only when invoked and applies positions", async () => {
+      const sdcpn = makeSDCPN({
+        places: [
+          {
+            id: "p1",
+            name: "P1",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            name: "T1",
+            inputArcs: [],
+            outputArcs: [],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+        ],
+      });
+      calculateGraphLayoutMock.mockResolvedValueOnce({
+        p1: { x: 10, y: 20 },
+        t1: { x: 30, y: 40 },
+      });
+      const { Wrapper, getSdcpn } = createWrapper({ sdcpn });
+      const { result } = renderHook(useMutations, { wrapper: Wrapper });
+
+      expect(calculateGraphLayoutMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await result.current.layoutGraph();
+      });
+
+      expect(calculateGraphLayoutMock).toHaveBeenCalledWith(
+        sdcpn,
+        {
+          place: { width: 130, height: 130 },
+          transition: { width: 160, height: 80 },
+        },
+      );
+      expect(getSdcpn().places[0]).toMatchObject({ x: 10, y: 20 });
+      expect(getSdcpn().transitions[0]).toMatchObject({ x: 30, y: 40 });
+    });
   });
 
   describe("readonly enforcement", () => {
@@ -419,6 +476,32 @@ describe("MutationProvider", () => {
         ]);
       });
 
+      expect(mutateFn).not.toHaveBeenCalled();
+    });
+
+    test("layoutGraph no-ops when readonly", async () => {
+      calculateGraphLayoutMock.mockClear();
+      const sdcpn = makeSDCPN({
+        places: [
+          {
+            id: "p1",
+            name: "P1",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      });
+      const { Wrapper, mutateFn } = createWrapper({ sdcpn, readonly: true });
+      const { result } = renderHook(useMutations, { wrapper: Wrapper });
+
+      await act(async () => {
+        await result.current.layoutGraph();
+      });
+
+      expect(calculateGraphLayoutMock).not.toHaveBeenCalled();
       expect(mutateFn).not.toHaveBeenCalled();
     });
   });

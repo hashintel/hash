@@ -2,7 +2,6 @@ import { use } from "react";
 
 import { pasteFromClipboard } from "../clipboard/clipboard";
 import type { MutateSDCPN, SDCPN } from "../core/types/sdcpn";
-import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
@@ -501,6 +500,9 @@ export const MutationProvider: React.FC<MutationProviderProps> = ({
         return;
       }
 
+      const { calculateGraphLayout } = await import(
+        "../lib/calculate-graph-layout"
+      );
       const positions = await calculateGraphLayout(sdcpn, dimensions);
 
       guardedMutate((sdcpnToMutate) => {
