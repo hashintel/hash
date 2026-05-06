@@ -35,7 +35,7 @@ Status legend: `[x]` landed, `[ ]` pending.
 11. [x] Defer Monaco initialization until the first code editor renders, with the sync helpers subscribing only after Monaco and language services are available. Landed in `5ed3f914e2`.
 12. [x] Move examples behind a lazy menu boundary so the editor shell does not statically import every example net. Landed in `781d48a873`.
 13. [x] Reduce library CSS coupling by removing full font package imports from the component entry or moving them behind an explicit opt-in style contract. Landed in `a3240c4c26`.
-14. Split library and Storybook Panda scanning, and remove source-runtime constants from Panda config evaluation.
+14. [x] Split library and Storybook Panda scanning, and remove source-runtime constants from Panda config evaluation. Landed in `8306f1f9b2`.
 15. Test HASH frontend without transpiling Petrinaut and either remove Petrinaut from transpilation or document the remaining blockers with the bundle report.
 16. Turn the bundle graph characterization report into a regression guard with agreed thresholds once the new topology has landed.
 
@@ -43,7 +43,7 @@ Status legend: `[x]` landed, `[ ]` pending.
 
 Current branch: `ln/petrinaut-imports`.
 
-Latest verified slice: bundled font decoupling (`a3240c4c26`).
+Latest verified slice: Panda scanning split (`8306f1f9b2`).
 
 Verification used for landed implementation slices:
 
@@ -54,7 +54,7 @@ Verification used for landed implementation slices:
 
 Latest full Petrinaut verification passed with 35 Vitest files and 483 tests.
 
-Current build signals after item 13:
+Current build signals after item 14:
 
 - `main.js`: approximately `589.9 KiB`, `157.0 KiB gzip`.
 - CSS: approximately `763.4 KiB`, `152.6 KiB gzip`; full Fontsource packages are no longer imported by the component entry.
@@ -65,14 +65,15 @@ Current build signals after item 13:
 - The language worker is not created by provider mount or structural initialization; diagnostics/document sync and language feature requests activate it and drain queued messages.
 - Monaco is not initialized when `MonacoProvider` mounts; the first rendered `CodeEditor` asks for Monaco, and sync helpers subscribe after that promise exists.
 - Babel deoptimization warnings for inline worker modules are gone.
+- Library Panda scanning excludes Storybook files by default; Storybook has an explicit opt-in Panda config, and Panda config no longer imports runtime constants from `src`.
 
 Observed improvement from the original characterization baseline:
 
 - Baseline `main.js`: approximately `1.4 MiB`, `313 KiB gzip`.
 - Current `main.js`: approximately `589.9 KiB`, `157.0 KiB gzip`.
-- Baseline build time: `6.46s`; latest observed build: `5.12s`.
+- Baseline build time: `6.46s`; latest observed build: `5.35s`.
 
-Next slice: item 14, split library and Storybook Panda scanning, and remove source-runtime constants from Panda config evaluation.
+Next slice: item 15, test HASH frontend without transpiling Petrinaut and either remove Petrinaut from transpilation or document the remaining blockers with the bundle report.
 
 ## Decision Document
 
