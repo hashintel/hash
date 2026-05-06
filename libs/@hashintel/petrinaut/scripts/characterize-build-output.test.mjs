@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  evaluateBundleGuard,
   formatBytes,
   parseBareImports,
   summarizeDistDirectory,
@@ -80,5 +81,49 @@ describe("characterize-build-output", () => {
   it("formats byte counts consistently", () => {
     expect(formatBytes(0)).toBe("0 B");
     expect(formatBytes(1_536)).toBe("1.5 KiB");
+  });
+
+  it("reports bundle guard threshold failures", () => {
+    const failures = evaluateBundleGuard(
+      {
+        dist: {
+          mainJs: {
+            bytes: 12,
+            gzipBytes: 6,
+            heavyDependencySignals: {
+              "@babel/standalone": true,
+              elkjs: false,
+            },
+          },
+          css: {
+            bytes: 20,
+            gzipBytes: 10,
+            fontFaceRules: 1,
+          },
+        },
+        sourceHotspots: {
+          totals: {
+            inlineWorkerImports: 1,
+          },
+        },
+      },
+      {
+        mainJsBytes: 10,
+        mainJsGzipBytes: 10,
+        cssBytes: 25,
+        cssGzipBytes: 8,
+        fontFaceRules: 0,
+        inlineWorkerImports: 0,
+        heavyDependenciesAbsentFromMain: ["@babel/standalone", "elkjs"],
+      },
+    );
+
+    expect(failures).toEqual([
+      "main.js is 12 B, expected <= 10 B",
+      "main.css gzip is 10 B, expected <= 8 B",
+      "main.css has 1 @font-face rules, expected <= 0",
+      "source has 1 inline worker imports, expected 0",
+      "@babel/standalone is present in main.js",
+    ]);
   });
 });

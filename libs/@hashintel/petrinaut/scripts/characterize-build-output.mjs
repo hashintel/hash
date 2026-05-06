@@ -4,13 +4,7 @@
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import {
-  cpus,
-  freemem,
-  platform,
-  release,
-  totalmem,
-} from "node:os";
+import { cpus, freemem, platform, release, totalmem } from "node:os";
 import {
   mkdir,
   readFile,
@@ -66,6 +60,22 @@ const DEFAULT_WATCH_SAMPLES = [
   },
 ];
 
+export const BUNDLE_GUARD_THRESHOLDS = {
+  mainJsBytes: 650 * 1024,
+  mainJsGzipBytes: 180 * 1024,
+  cssBytes: 850 * 1024,
+  cssGzipBytes: 180 * 1024,
+  fontFaceRules: 1,
+  inlineWorkerImports: 0,
+  heavyDependenciesAbsentFromMain: [
+    "@babel/standalone",
+    "elkjs",
+    "monaco-editor",
+    "@monaco-editor/react",
+    "uplot",
+  ],
+};
+
 const HEAVY_SOURCE_PATTERNS = [
   {
     key: "inlineWorkerImports",
@@ -77,7 +87,8 @@ const HEAVY_SOURCE_PATTERNS = [
   },
   {
     key: "babelStandaloneImports",
-    pattern: /from\s+["']@babel\/standalone["']|import\s+\*\s+as\s+\w+\s+from\s+["']@babel\/standalone["']/g,
+    pattern:
+      /from\s+["']@babel\/standalone["']|import\s+\*\s+as\s+\w+\s+from\s+["']@babel\/standalone["']/g,
   },
   {
     key: "elkImports",
@@ -85,7 +96,8 @@ const HEAVY_SOURCE_PATTERNS = [
   },
   {
     key: "uplotImports",
-    pattern: /from\s+["']uplot["']|import\s+["']uplot\/dist\/uPlot\.min\.css["']/g,
+    pattern:
+      /from\s+["']uplot["']|import\s+["']uplot\/dist\/uPlot\.min\.css["']/g,
   },
   {
     key: "fontsourceImports",
@@ -132,8 +144,7 @@ export function parseBareImports(source) {
     /(?:^|[;\n])\s*import\s+(?:[^'"()]+?\s+from\s+)?["']([^"']+)["']/g;
   const exportFromPattern =
     /(?:^|[;\n])\s*export\s+(?:[^'"]+?\s+from\s+)["']([^"']+)["']/g;
-  const sideEffectImportPattern =
-    /(?:^|[;\n])\s*import\s*["']([^"']+)["']/g;
+  const sideEffectImportPattern = /(?:^|[;\n])\s*import\s*["']([^"']+)["']/g;
 
   for (const pattern of [
     importFromPattern,
@@ -149,6 +160,52 @@ export function parseBareImports(source) {
   }
 
   return [...imports].sort((left, right) => left.localeCompare(right));
+}
+
+export function evaluateBundleGuard(
+  report,
+  thresholds = BUNDLE_GUARD_THRESHOLDS,
+) {
+  const failures = [];
+
+  const checkMax = (label, actual, expected) => {
+    if (actual > expected) {
+      failures.push(
+        `${label} is ${formatBytes(actual)}, expected <= ${formatBytes(expected)}`,
+      );
+    }
+  };
+
+  checkMax("main.js", report.dist.mainJs.bytes, thresholds.mainJsBytes);
+  checkMax(
+    "main.js gzip",
+    report.dist.mainJs.gzipBytes,
+    thresholds.mainJsGzipBytes,
+  );
+  checkMax("main.css", report.dist.css.bytes, thresholds.cssBytes);
+  checkMax("main.css gzip", report.dist.css.gzipBytes, thresholds.cssGzipBytes);
+
+  if (report.dist.css.fontFaceRules > thresholds.fontFaceRules) {
+    failures.push(
+      `main.css has ${report.dist.css.fontFaceRules} @font-face rules, expected <= ${thresholds.fontFaceRules}`,
+    );
+  }
+
+  const inlineWorkerImports =
+    report.sourceHotspots.totals.inlineWorkerImports ?? 0;
+  if (inlineWorkerImports !== thresholds.inlineWorkerImports) {
+    failures.push(
+      `source has ${inlineWorkerImports} inline worker imports, expected ${thresholds.inlineWorkerImports}`,
+    );
+  }
+
+  for (const dependency of thresholds.heavyDependenciesAbsentFromMain) {
+    if (report.dist.mainJs.heavyDependencySignals[dependency]) {
+      failures.push(`${dependency} is present in main.js`);
+    }
+  }
+
+  return failures;
 }
 
 async function listFiles(directory) {
@@ -256,7 +313,9 @@ export async function summarizeDistDirectory(distDir = DIST_DIR) {
     ]),
   );
 
-  const sourceMapSources = Array.isArray(mainMap?.sources) ? mainMap.sources : [];
+  const sourceMapSources = Array.isArray(mainMap?.sources)
+    ? mainMap.sources
+    : [];
 
   return {
     assetGroups,
@@ -293,9 +352,9 @@ export async function summarizeDistDirectory(distDir = DIST_DIR) {
 }
 
 async function summarizeSourceHotspots() {
-  const sourceFiles = (
-    await listFiles(path.join(PACKAGE_ROOT, "src"))
-  ).filter((filePath) => /\.(?:css|ts|tsx)$/.test(filePath));
+  const sourceFiles = (await listFiles(path.join(PACKAGE_ROOT, "src"))).filter(
+    (filePath) => /\.(?:css|ts|tsx)$/.test(filePath),
+  );
   const extraFiles = [
     path.join(PACKAGE_ROOT, "panda.config.ts"),
     path.join(PACKAGE_ROOT, "panda.config.shared.ts"),
@@ -403,6 +462,7 @@ function parseArgs(argv) {
     build: true,
     watch: true,
     checks: false,
+    guard: false,
     outputDir: null,
   };
 
@@ -417,6 +477,9 @@ function parseArgs(argv) {
         break;
       case "--include-checks":
         args.checks = true;
+        break;
+      case "--guard":
+        args.guard = true;
         break;
       case "--output-dir":
         args.outputDir = argv[index + 1] ?? null;
@@ -441,6 +504,7 @@ Options:
   --skip-build       Analyze the existing dist directory without running yarn build.
   --skip-watch       Skip Vite library watch rebuild profiling.
   --include-checks   Also time lint, typecheck, and unit tests.
+  --guard            Fail if the emitted bundle exceeds regression thresholds.
   --output-dir DIR   Write markdown and JSON reports to DIR.
 `);
 }
@@ -489,7 +553,9 @@ async function getGitValue(args) {
 }
 
 async function collectEnvironment() {
-  const packageJson = await readJsonIfExists(path.join(PACKAGE_ROOT, "package.json"));
+  const packageJson = await readJsonIfExists(
+    path.join(PACKAGE_ROOT, "package.json"),
+  );
 
   return {
     timestamp: new Date().toISOString(),
@@ -629,7 +695,10 @@ function renderReportMarkdown(report) {
           `${report.environment.cpuCount} x ${report.environment.cpuModel}`,
         ],
         ["Total memory", formatBytes(report.environment.totalMemoryBytes)],
-        ["Free memory at start", formatBytes(report.environment.freeMemoryBytes)],
+        [
+          "Free memory at start",
+          formatBytes(report.environment.freeMemoryBytes),
+        ],
       ],
     ),
     "",
@@ -650,7 +719,11 @@ function renderReportMarkdown(report) {
       ? markdownTable(
           ["Sample", "Touched file", "Duration"],
           [
-            ["initial library watch build", "", formatMs(report.watch.initialBuild.durationMs)],
+            [
+              "initial library watch build",
+              "",
+              formatMs(report.watch.initialBuild.durationMs),
+            ],
             ...report.watch.rebuilds.map((rebuild) => [
               rebuild.label,
               rebuild.path,
@@ -676,11 +749,13 @@ function renderReportMarkdown(report) {
     "",
     markdownTable(
       ["Asset", "Size", "Gzip"],
-      report.dist.largestAssets.slice(0, 12).map((asset) => [
-        asset.path,
-        formatBytes(asset.bytes),
-        formatBytes(asset.gzipBytes),
-      ]),
+      report.dist.largestAssets
+        .slice(0, 12)
+        .map((asset) => [
+          asset.path,
+          formatBytes(asset.bytes),
+          formatBytes(asset.gzipBytes),
+        ]),
     ),
     "",
     "## Worker Assets",
@@ -776,7 +851,12 @@ async function writeReports(report, outputDir) {
   await writeFile(timestampedJsonPath, json);
   await writeFile(timestampedMarkdownPath, markdown);
 
-  return { jsonPath, markdownPath, timestampedJsonPath, timestampedMarkdownPath };
+  return {
+    jsonPath,
+    markdownPath,
+    timestampedJsonPath,
+    timestampedMarkdownPath,
+  };
 }
 
 async function main() {
@@ -824,6 +904,7 @@ async function main() {
   };
 
   const reportPaths = await writeReports(report, outputDir);
+  const guardFailures = args.guard ? evaluateBundleGuard(report) : [];
 
   console.log("");
   console.log(`Wrote ${path.relative(repoRoot, reportPaths.markdownPath)}`);
@@ -838,6 +919,15 @@ async function main() {
   const failedCommand = commands.find((command) => command.exitCode !== 0);
   if (failedCommand) {
     process.exitCode = failedCommand.exitCode;
+  }
+
+  if (guardFailures.length > 0) {
+    console.error("");
+    console.error("Bundle guard failed:");
+    for (const failure of guardFailures) {
+      console.error(`- ${failure}`);
+    }
+    process.exitCode = 1;
   }
 }
 
