@@ -3,10 +3,11 @@
 import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { tooltip } from "@hashintel/ds-helpers/recipes";
 import { type ComponentProps, forwardRef } from "react";
 
-const { withRootProvider, withContext } = createStyleContext(tooltip);
+import { tooltipSlotRecipe } from "./tooltip.recipe";
+
+const { withRootProvider, withContext } = createStyleContext(tooltipSlotRecipe);
 
 type RootProps = ComponentProps<typeof Root>;
 type ContentProps = ComponentProps<typeof Content>;

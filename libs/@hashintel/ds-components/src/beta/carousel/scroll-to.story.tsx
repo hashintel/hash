@@ -4,9 +4,9 @@ import { useCarouselContext } from "@ark-ui/react/carousel";
 import { Center } from "@hashintel/ds-helpers/jsx";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
-import { Button } from "../button/button";
+import { Button } from "../button";
 import { IconButton } from "../icon-button/icon-button";
-import { Text } from "../text/text";
+import { Text } from "../text";
 import * as Carousel from "./carousel";
 
 const ScrollToTrigger = () => {

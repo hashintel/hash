@@ -4,12 +4,12 @@
 
 import { ark } from "@ark-ui/react/factory";
 import { createContext, mergeProps } from "@ark-ui/react/utils";
-import { styled } from "@hashintel/ds-helpers/jsx";
-import { button, type ButtonVariantProps } from "@hashintel/ds-helpers/recipes";
-import { type ComponentProps, forwardRef, useMemo } from "react";
+import { type HTMLStyledProps, styled } from "@hashintel/ds-helpers/jsx";
+import { forwardRef, useMemo } from "react";
 
-import { Group, type GroupProps } from "../group/group";
-import { Loader } from "../loader/loader";
+import { buttonRecipe, type ButtonRecipeProps } from "./button.recipe";
+import { Group, type GroupProps } from "./group/group";
+import { Loader } from "./loader/loader";
 
 interface ButtonLoadingProps {
   /**
@@ -32,10 +32,18 @@ interface ButtonLoadingProps {
   spinnerPlacement?: "start" | "end" | undefined;
 }
 
-type BaseButtonProps = ComponentProps<typeof BaseButton>;
-const BaseButton = styled(ark.button, button);
+interface ButtonCompositionProps {
+  asChild?: boolean | undefined;
+}
 
-export interface ButtonProps extends BaseButtonProps, ButtonLoadingProps {}
+const BaseButton = styled(ark.button, buttonRecipe);
+type BaseButtonProps = HTMLStyledProps<"button"> &
+  NonNullable<ButtonRecipeProps>;
+
+export interface ButtonProps
+  extends BaseButtonProps,
+    ButtonCompositionProps,
+    ButtonLoadingProps {}
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (props, ref) => {
@@ -77,12 +85,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   },
 );
 
-export interface ButtonGroupProps extends GroupProps, ButtonVariantProps {}
+export type ButtonGroupProps = GroupProps & NonNullable<ButtonRecipeProps>;
 
 export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(
   (props, ref) => {
     const [variantProps, otherProps] = useMemo(
-      () => button.splitVariantProps(props),
+      () => buttonRecipe.splitVariantProps(props),
       [props],
     );
     return (
@@ -93,10 +101,11 @@ export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(
   },
 );
 
-const [ButtonPropsProvider, useButtonPropsContext] =
-  createContext<ButtonVariantProps>({
-    name: "ButtonPropsContext",
-    hookName: "useButtonPropsContext",
-    providerName: "<PropsProvider />",
-    strict: false,
-  });
+const [ButtonPropsProvider, useButtonPropsContext] = createContext<
+  NonNullable<ButtonRecipeProps>
+>({
+  name: "ButtonPropsContext",
+  hookName: "useButtonPropsContext",
+  providerName: "<PropsProvider />",
+  strict: false,
+});

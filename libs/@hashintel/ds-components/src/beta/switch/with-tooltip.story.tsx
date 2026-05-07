@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-import { Tooltip } from "../tooltip/tooltip";
+import { Tooltip } from "../tooltip";
 import * as Switch from "./switch";
 
 export const App = () => {

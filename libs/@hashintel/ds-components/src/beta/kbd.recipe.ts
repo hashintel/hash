@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const kbd = defineRecipe({
+const kbdRecipeDefinition = {
   className: "kbd",
   base: {
     display: "inline-flex",
@@ -52,4 +52,9 @@ export const kbd = defineRecipe({
     size: "md",
     variant: "subtle",
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const kbdRecipe = cva(kbdRecipeDefinition);
+
+export type KbdRecipeProps = RecipeVariantProps<typeof kbdRecipe>;

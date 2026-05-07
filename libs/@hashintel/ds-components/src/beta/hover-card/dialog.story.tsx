@@ -3,12 +3,12 @@ import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { MapPinIcon } from "lucide-react";
 
 import * as Avatar from "../avatar/avatar";
-import { Button } from "../button/button";
+import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
 import * as Dialog from "../dialog/dialog";
 import { Icon } from "../icon/icon";
 import { Link } from "../link/link";
-import { Text } from "../text/text";
+import { Text } from "../text";
 import * as HoverCard from "./hover-card";
 
 export const App = () => {

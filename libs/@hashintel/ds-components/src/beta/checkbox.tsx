@@ -4,11 +4,12 @@
 
 import { Checkbox, useCheckboxContext } from "@ark-ui/react/checkbox";
 import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
-import { checkbox } from "@hashintel/ds-helpers/recipes";
 import type { HTMLStyledProps } from "@hashintel/ds-helpers/types";
 import { type ComponentProps, forwardRef } from "react";
 
-const { withProvider, withContext } = createStyleContext(checkbox);
+import { checkboxSlotRecipe } from "./checkbox.recipe";
+
+const { withProvider, withContext } = createStyleContext(checkboxSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export type HiddenInputProps = ComponentProps<typeof HiddenInput>;

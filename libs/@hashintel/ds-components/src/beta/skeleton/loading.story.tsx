@@ -3,8 +3,8 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 import { useState } from "react";
 
-import { Button } from "../button/button";
-import { Text } from "../text/text";
+import { Button } from "../button";
+import { Text } from "../text";
 import { Skeleton } from "./skeleton";
 
 export const App = () => {

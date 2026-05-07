@@ -1,6 +1,6 @@
 import { Box } from "@hashintel/ds-helpers/jsx";
 
-import { Button } from "../button/button";
+import { Button } from "../button";
 import * as Card from "./card";
 
 export const App = () => {

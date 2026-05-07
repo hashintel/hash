@@ -1,6 +1,6 @@
 import { UploadIcon } from "lucide-react";
 
-import { Button } from "../button/button";
+import { Button } from "../button";
 import * as FileUpload from "./file-upload";
 
 export const App = () => {

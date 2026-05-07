@@ -2,9 +2,9 @@
 
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
-import { ButtonGroup } from "../button/button";
+import { ButtonGroup } from "../button";
 import { IconButton } from "../icon-button/icon-button";
-import * as Pagination from "./pagination";
+import * as Pagination from "../pagination";
 
 export const App = () => {
   return (

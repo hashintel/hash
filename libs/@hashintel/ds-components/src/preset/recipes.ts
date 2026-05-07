@@ -5,10 +5,10 @@ import { angleSlider } from "../beta/angle-slider/angle-slider.recipe";
 import { avatar } from "../beta/avatar/avatar.recipe";
 import { badge } from "../beta/badge/badge.recipe";
 import { breadcrumb } from "../beta/breadcrumb/breadcrumb.recipe";
-import { button } from "../beta/button/button.recipe";
+import { buttonRecipe } from "../beta/button.recipe";
 import { card } from "../beta/card/card.recipe";
 import { carousel } from "../beta/carousel/carousel.recipe";
-import { checkbox } from "../beta/checkbox/checkbox.recipe";
+import { checkboxSlotRecipe } from "../beta/checkbox.recipe";
 import { clipboard } from "../beta/clipboard/clipboard.recipe";
 import { code } from "../beta/code/code.recipe";
 import { collapsible } from "../beta/collapsible/collapsible.recipe";
@@ -29,12 +29,12 @@ import { icon } from "../beta/icon/icon.recipe";
 import { input } from "../beta/input/input.recipe";
 import { inputAddon } from "../beta/input-addon/input-addon.recipe";
 import { inputGroup } from "../beta/input-group/input-group.recipe";
-import { kbd } from "../beta/kbd/kbd.recipe";
+import { kbdRecipe } from "../beta/kbd.recipe";
 import { link } from "../beta/link/link.recipe";
 import { listbox } from "../beta/listbox/listbox.recipe";
 import { menu } from "../beta/menu/menu.recipe";
 import { numberInput } from "../beta/number-input/number-input.recipe";
-import { pagination } from "../beta/pagination/pagination.recipe";
+import { paginationSlotRecipe } from "../beta/pagination.recipe";
 import { passwordInput } from "../beta/password-input/password-input.recipe";
 import { pinInput } from "../beta/pin-input/pin-input.recipe";
 import { popover } from "../beta/popover/popover.recipe";
@@ -49,38 +49,38 @@ import { select } from "../beta/select/select.recipe";
 import { signaturePad } from "../beta/signature-pad/signature-pad.recipe";
 import { skeleton } from "../beta/skeleton/skeleton.recipe";
 import { slider } from "../beta/slider/slider.recipe";
-import { spinner } from "../beta/spinner/spinner.recipe";
+import { spinnerRecipe } from "../beta/spinner.recipe";
 import { splitter } from "../beta/splitter/splitter.recipe";
 import { steps } from "../beta/steps/steps.recipe";
 import { switchRecipe } from "../beta/switch/switch.recipe";
 import { table } from "../beta/table/table.recipe";
 import { tabs } from "../beta/tabs/tabs.recipe";
 import { tagsInput } from "../beta/tags-input/tags-input.recipe";
-import { text } from "../beta/text/text.recipe";
+import { textRecipe } from "../beta/text.recipe";
 import { textarea } from "../beta/textarea/textarea.recipe";
 import { timer } from "../beta/timer/timer.recipe";
 import { toast } from "../beta/toast/toast.recipe";
 import { toggle } from "../beta/toggle/toggle.recipe";
 import { toggleGroup } from "../beta/toggle-group/toggle-group.recipe";
-import { tooltip } from "../beta/tooltip/tooltip.recipe";
+import { tooltipSlotRecipe } from "../beta/tooltip.recipe";
 import { tour } from "../beta/tour/tour.recipe";
 import { treeView } from "../beta/tree-view/tree-view.recipe";
 
 export const recipes = {
   // absoluteCenter,
   badge,
-  button,
+  button: buttonRecipe,
   code,
   group,
   heading,
   icon,
   input,
   inputAddon,
-  kbd,
+  kbd: kbdRecipe,
   link,
   skeleton,
-  spinner,
-  text,
+  spinner: spinnerRecipe,
+  text: textRecipe,
   textarea,
 };
 
@@ -92,7 +92,7 @@ export const slotRecipes = {
   breadcrumb,
   card,
   carousel,
-  checkbox,
+  checkbox: checkboxSlotRecipe,
   clipboard,
   collapsible,
   colorPicker,
@@ -110,7 +110,7 @@ export const slotRecipes = {
   listbox,
   menu,
   numberInput,
-  pagination,
+  pagination: paginationSlotRecipe,
   passwordInput,
   pinInput,
   popover,
@@ -133,7 +133,7 @@ export const slotRecipes = {
   toast,
   toggle,
   toggleGroup,
-  tooltip,
+  tooltip: tooltipSlotRecipe,
   tour,
   treeView,
   qrCode,

@@ -1,7 +1,7 @@
 import { Box, Wrap } from "@hashintel/ds-helpers/jsx";
 
 import { Badge } from "../badge/badge";
-import { Button } from "../button/button";
+import { Button } from "../button";
 import { Image } from "../image/image";
 import * as Card from "./card";
 

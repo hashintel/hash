@@ -2,7 +2,7 @@ import { Center } from "@hashintel/ds-helpers/jsx";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
 import { IconButton } from "../icon-button/icon-button";
-import { Text } from "../text/text";
+import { Text } from "../text";
 import * as Carousel from "./carousel";
 
 export const App = () => {

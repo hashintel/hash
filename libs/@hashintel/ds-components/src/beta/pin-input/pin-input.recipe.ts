@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-condition */
-
 import { pinInputAnatomy } from "@ark-ui/react/anatomy";
 import { defineSlotRecipe } from "@pandacss/dev";
 
@@ -29,28 +27,28 @@ export const pinInput = defineSlotRecipe({
   variants: {
     size: {
       xs: {
-        input: input.variants?.size?.xs,
+        input: input.variants.size.xs,
       },
       sm: {
-        input: input.variants?.size?.sm,
+        input: input.variants.size.sm,
       },
       md: {
-        input: input.variants?.size?.md,
+        input: input.variants.size.md,
       },
       lg: {
-        input: input.variants?.size?.lg,
+        input: input.variants.size.lg,
       },
       xl: {
-        input: input.variants?.size?.xl,
+        input: input.variants.size.xl,
       },
       "2xl": {
-        input: input.variants?.size?.["2xl"],
+        input: input.variants.size["2xl"],
       },
     },
     variant: {
-      outline: { input: input.variants?.variant?.outline },
-      subtle: { input: input.variants?.variant?.subtle },
-      flushed: { input: input.variants?.variant?.flushed },
+      outline: { input: input.variants.variant.outline },
+      subtle: { input: input.variants.variant.subtle },
+      flushed: { input: input.variants.variant.flushed },
     },
   },
 });

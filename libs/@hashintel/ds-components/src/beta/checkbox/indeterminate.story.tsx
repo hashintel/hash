@@ -3,7 +3,7 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 import { useState } from "react";
 
-import * as Checkbox from "./checkbox";
+import * as Checkbox from "../checkbox";
 
 export const App = () => {
   const initialValues = [

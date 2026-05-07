@@ -192,13 +192,13 @@ export function createPreset(options?: PresetOptions) {
             },
           },
         },
-        // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
-        // @ts-expect-error -- `colorPalette` not in PartialTheme types but works at runtime
         colorPalette: {
           enabled: true,
           include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
         },
+        // @ts-expect-error -- beta recipes are gradually migrating from Panda config recipes to runtime cva/sva recipes
         recipes,
+        // @ts-expect-error -- beta slot recipes are gradually migrating from Panda config recipes to runtime cva/sva recipes
         slotRecipes,
       },
     },

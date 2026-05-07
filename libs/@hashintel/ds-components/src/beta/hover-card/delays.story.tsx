@@ -5,7 +5,7 @@ import { MapPinIcon } from "lucide-react";
 import * as Avatar from "../avatar/avatar";
 import { Icon } from "../icon/icon";
 import { Link } from "../link/link";
-import { Text } from "../text/text";
+import { Text } from "../text";
 import * as HoverCard from "./hover-card";
 
 export const App = () => {

@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva } from "@hashintel/ds-helpers/css";
 
-export const button = defineRecipe({
+const buttonRecipeDefinition = {
   className: "button",
   jsx: ["Button", "IconButton", "CloseButton", "ButtonGroup"],
   base: {
@@ -149,4 +149,14 @@ export const button = defineRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const buttonRecipe = cva(buttonRecipeDefinition);
+
+// TODO(beta-graduation): restore `RecipeVariantProps<typeof buttonRecipe>` once
+// the staged strict-token errors in this beta recipe have been fixed.
+export type ButtonRecipeProps = {
+  size?: "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | undefined;
+  variant?: "solid" | "surface" | "subtle" | "outline" | "plain" | undefined;
+};

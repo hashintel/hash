@@ -2,8 +2,8 @@ import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { CheckIcon, XIcon } from "lucide-react";
 
 import * as Avatar from "../avatar/avatar";
-import { Button } from "../button/button";
-import { Text } from "../text/text";
+import { Button } from "../button";
+import { Text } from "../text";
 import * as Card from "./card";
 
 export const App = () => {

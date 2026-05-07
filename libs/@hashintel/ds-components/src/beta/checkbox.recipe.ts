@@ -1,7 +1,7 @@
 import { checkboxAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const checkbox = defineSlotRecipe({
+const checkboxSlotRecipeDefinition = {
   slots: checkboxAnatomy.keys(),
   className: "checkbox",
   base: {
@@ -105,4 +105,11 @@ export const checkbox = defineSlotRecipe({
     variant: "solid",
     size: "md",
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const checkboxSlotRecipe = sva(checkboxSlotRecipeDefinition);
+
+export type CheckboxSlotRecipeProps = RecipeVariantProps<
+  typeof checkboxSlotRecipe
+>;

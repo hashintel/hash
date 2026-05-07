@@ -1,4 +1,4 @@
-import { Button } from "../button/button";
+import { Button } from "../button";
 import { Group } from "./group";
 
 export const App = () => {

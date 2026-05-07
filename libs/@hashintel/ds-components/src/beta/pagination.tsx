@@ -4,13 +4,13 @@
 
 import { Pagination, usePaginationContext } from "@ark-ui/react/pagination";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { pagination } from "@hashintel/ds-helpers/recipes";
 import { EllipsisIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 
-import { IconButton } from "../icon-button/icon-button";
+import { IconButton } from "./icon-button/icon-button";
+import { paginationSlotRecipe } from "./pagination.recipe";
 
-const { withProvider, withContext } = createStyleContext(pagination);
+const { withProvider, withContext } = createStyleContext(paginationSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Pagination.Root, "root");

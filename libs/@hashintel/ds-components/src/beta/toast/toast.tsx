@@ -16,7 +16,7 @@ import { forwardRef } from "react";
 
 import { CloseButton } from "../close-button/close-button";
 import { Icon, type IconProps } from "../icon/icon";
-import { Spinner } from "../spinner/spinner";
+import { Spinner } from "../spinner";
 
 const { withProvider, withContext } = createStyleContext(toast);
 

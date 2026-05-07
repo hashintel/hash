@@ -3,7 +3,7 @@
 import { useSplitter } from "@ark-ui/react/splitter";
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Button } from "../button/button";
+import { Button } from "../button";
 import * as Splitter from "./splitter";
 
 export const App = () => {

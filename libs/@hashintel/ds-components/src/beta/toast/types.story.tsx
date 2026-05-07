@@ -2,7 +2,7 @@
 
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import { Button } from "../button/button";
+import { Button } from "../button";
 import { toaster } from "./toast";
 
 export const App = () => {

@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const spinner = defineRecipe({
+const spinnerRecipeDefinition = {
   className: "spinner",
   base: {
     "--spinner-track-color": "transparent",
@@ -30,4 +30,9 @@ export const spinner = defineRecipe({
       "2xl": { "--spinner-size": "sizes.8" },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const spinnerRecipe = cva(spinnerRecipeDefinition);
+
+export type SpinnerRecipeProps = RecipeVariantProps<typeof spinnerRecipe>;

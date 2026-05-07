@@ -3,7 +3,7 @@
 import { Portal } from "@ark-ui/react/portal";
 import { useState } from "react";
 
-import { Button } from "../button/button";
+import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
 import * as Dialog from "./dialog";
 

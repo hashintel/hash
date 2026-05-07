@@ -1,7 +1,7 @@
 import { useId } from "react";
 
 import * as Avatar from "../avatar/avatar";
-import { Tooltip } from "./tooltip";
+import { Tooltip } from "../tooltip";
 
 export const App = () => {
   const id = useId();

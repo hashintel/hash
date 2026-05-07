@@ -1,7 +1,7 @@
 import { VisuallyHidden } from "@hashintel/ds-helpers/jsx";
 import { forwardRef } from "react";
 
-import * as StyledCheckbox from "./checkbox";
+import * as StyledCheckbox from "../checkbox";
 
 export type { CheckboxCheckedState } from "@ark-ui/react/checkbox";
 

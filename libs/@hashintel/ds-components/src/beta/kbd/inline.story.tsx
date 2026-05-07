@@ -1,5 +1,5 @@
-import { Text } from "../text/text";
-import { Kbd } from "./kbd";
+import { Kbd } from "../kbd";
+import { Text } from "../text";
 
 export const App = () => {
   return (

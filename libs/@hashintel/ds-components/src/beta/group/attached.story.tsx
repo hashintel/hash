@@ -1,7 +1,7 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
 import { Badge } from "../badge/badge";
-import { Button } from "../button/button";
+import { Button } from "../button";
 import { Group } from "./group";
 
 export const App = () => {

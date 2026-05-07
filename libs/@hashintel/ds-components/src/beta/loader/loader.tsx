@@ -5,7 +5,7 @@ import { forwardRef } from "react";
 
 import { AbsoluteCenter } from "../absolute-center/absolute-center";
 import { Span } from "../span/span";
-import { Spinner } from "../spinner/spinner";
+import { Spinner } from "../spinner";
 
 export interface LoaderProps extends HTMLStyledProps<"span"> {
   /**
