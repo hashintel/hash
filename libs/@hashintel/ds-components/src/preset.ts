@@ -2,7 +2,6 @@ import { defineGlobalStyles, definePreset } from "@pandacss/dev";
 import pandaPreset from "@pandacss/preset-panda";
 
 import { documentSurfaceStyles, fontPipelineCssVars } from "./preset/document";
-import { recipes, slotRecipes } from "./preset/recipes";
 import { semanticTokens, tokens } from "./preset/tokens";
 
 export type PresetOptions = {
@@ -192,14 +191,11 @@ export function createPreset(options?: PresetOptions) {
             },
           },
         },
+        // @ts-expect-error -- Panda supports colorPalette here, but the preset theme type omits it
         colorPalette: {
           enabled: true,
           include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
         },
-        // @ts-expect-error -- beta recipes are gradually migrating from Panda config recipes to runtime cva/sva recipes
-        recipes,
-        // @ts-expect-error -- beta slot recipes are gradually migrating from Panda config recipes to runtime cva/sva recipes
-        slotRecipes,
       },
     },
   });
