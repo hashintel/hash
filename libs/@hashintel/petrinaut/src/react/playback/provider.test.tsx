@@ -624,6 +624,29 @@ describe("PlaybackProvider", () => {
       expect(pauseFn).toHaveBeenCalled();
     });
 
+    it("should pause simulation in compute mode regardless of mirrored state", () => {
+      // Regression: the React-mirrored simulation state lags behind the
+      // worker. If pause() is gated on state === "Running" the user's first
+      // pause click can land while React still sees "Paused" (e.g. just after
+      // init's Ready→Running flip), and the simulation keeps generating frames
+      // even though playback flipped to Paused.
+      const pauseFn = vi.fn();
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Paused",
+          pause: pauseFn,
+        },
+        10,
+      );
+      const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
+
+      act(() => {
+        getPlaybackValue().pause();
+      });
+
+      expect(pauseFn).toHaveBeenCalled();
+    });
+
     it("should not pause simulation when in viewOnly mode", () => {
       const pauseFn = vi.fn();
       const simulationContext = createMockSimulationContext(
