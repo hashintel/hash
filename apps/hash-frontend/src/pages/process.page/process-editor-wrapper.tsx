@@ -1,4 +1,4 @@
-import "@hashintel/petrinaut/dist/main.css";
+import "@hashintel/petrinaut/styles.css";
 
 import type { EntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";

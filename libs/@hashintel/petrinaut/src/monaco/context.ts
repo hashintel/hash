@@ -7,6 +7,9 @@ export type MonacoContextValue = {
   Editor: React.FC<EditorProps>;
 };
 
-export const MonacoContext = createContext<Promise<MonacoContextValue>>(
-  null as never,
-);
+export type MonacoContextHandle = {
+  monacoPromise: Promise<MonacoContextValue> | null;
+  getMonaco: () => Promise<MonacoContextValue>;
+};
+
+export const MonacoContext = createContext<MonacoContextHandle>(null as never);

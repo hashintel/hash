@@ -47,7 +47,11 @@ function diagnosticsToMarkers(
 }
 
 const DiagnosticsSyncInner = () => {
-  const { monaco } = use(use(MonacoContext));
+  const { monacoPromise } = use(MonacoContext);
+  if (!monacoPromise) {
+    throw new Error("Monaco is not initialized");
+  }
+  const { monaco } = use(monacoPromise);
   const { diagnosticsByUri } = use(LanguageClientContext);
   const prevUrisRef = useRef<Set<string>>(new Set());
 
@@ -94,8 +98,15 @@ const DiagnosticsSyncInner = () => {
 };
 
 /** Renders nothing visible — syncs diagnostics from LanguageClientContext to Monaco model markers. */
-export const DiagnosticsSync: React.FC = () => (
-  <Suspense fallback={null}>
-    <DiagnosticsSyncInner />
-  </Suspense>
-);
+export const DiagnosticsSync: React.FC = () => {
+  const { monacoPromise } = use(MonacoContext);
+  if (!monacoPromise) {
+    return null;
+  }
+
+  return (
+    <Suspense fallback={null}>
+      <DiagnosticsSyncInner />
+    </Suspense>
+  );
+};

@@ -24,6 +24,14 @@
   ],
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js"
+    },
+    "./styles.css": "./dist/main.css",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "storybook dev",
@@ -31,14 +39,13 @@
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "prepublishOnly": "turbo run build",
+    "check:bundle": "node scripts/characterize-build-output.mjs --skip-build --skip-watch --guard",
+    "profile:build": "node scripts/characterize-build-output.mjs",
     "test:unit": "vitest"
   },
   "dependencies": {
     "@ark-ui/react": "5.26.2",
     "@babel/standalone": "7.28.5",
-    "@fontsource-variable/inter": "5.2.8",
-    "@fontsource-variable/inter-tight": "5.2.7",
-    "@fontsource-variable/jetbrains-mono": "5.2.8",
     "@hashintel/ds-components": "workspace:^",
     "@hashintel/ds-helpers": "workspace:^",
     "@hashintel/refractive": "workspace:^",

@@ -138,7 +138,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   onChange,
   ...props
 }) => {
-  const { Editor } = use(use(MonacoContext));
+  const { Editor } = use(use(MonacoContext).getMonaco());
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const handleMount = (

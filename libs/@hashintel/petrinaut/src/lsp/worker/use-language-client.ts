@@ -14,10 +14,10 @@ import type {
   SignatureHelp,
 } from "./protocol";
 
-/** Dynamically import and instantiate the language server worker (inlined as blob URL). */
+/** Dynamically import and instantiate the language server worker as an emitted asset. */
 async function createLanguageServerWorker() {
   const LanguageServerWorker = await import(
-    "./language-server.worker.ts?worker&inline"
+    "./language-server.worker.ts?worker"
   );
   // eslint-disable-next-line new-cap
   return new LanguageServerWorker.default();
@@ -67,11 +67,13 @@ export type LanguageClientApi = {
 };
 
 /**
- * Spawn the language server WebWorker and return an LSP-inspired API to interact with it.
- * The worker is created on mount and terminated on unmount.
+ * Return an LSP-inspired API to interact with the language server WebWorker.
+ * The worker is created lazily when diagnostics or language features are requested.
  */
 export function useLanguageClient(): LanguageClientApi {
+  const isMountedRef = useRef(true);
   const workerRef = useRef<Worker | null>(null);
+  const workerPromiseRef = useRef<Promise<Worker> | null>(null);
   const pendingRef = useRef(new Map<number, Pending>());
   const nextId = useRef(0);
   const queueRef = useRef<object[]>([]);
@@ -80,52 +82,11 @@ export function useLanguageClient(): LanguageClientApi {
   >(null);
 
   useEffect(() => {
-    let terminated = false;
-
-    void createLanguageServerWorker().then((worker) => {
-      if (terminated) {
-        worker.terminate();
-        return;
-      }
-
-      worker.addEventListener(
-        "message",
-        (event: MessageEvent<ServerMessage>) => {
-          const msg = event.data;
-
-          if ("id" in msg) {
-            // Response to a request
-            const pending = pendingRef.current.get(msg.id);
-            if (!pending) {
-              return;
-            }
-            pendingRef.current.delete(msg.id);
-
-            if ("error" in msg) {
-              pending.reject(new Error(msg.error.message));
-            } else {
-              pending.resolve(msg.result as never);
-            }
-          } else if ("method" in msg) {
-            // Server-pushed notification
-            diagnosticsCallbackRef.current?.(msg.params);
-          }
-        },
-      );
-
-      workerRef.current = worker;
-
-      // Drain any messages queued before the worker was ready
-      for (const message of queueRef.current) {
-        worker.postMessage(message);
-      }
-      queueRef.current = [];
-    });
-
+    isMountedRef.current = true;
     const pending = pendingRef.current;
 
     return () => {
-      terminated = true;
+      isMountedRef.current = false;
       workerRef.current?.terminate();
       workerRef.current = null;
       for (const entry of pending.values()) {
@@ -135,16 +96,87 @@ export function useLanguageClient(): LanguageClientApi {
     };
   }, []);
 
+  const attachWorkerListeners = (worker: Worker) => {
+    worker.addEventListener("message", (event: MessageEvent<ServerMessage>) => {
+      const msg = event.data;
+
+      if ("id" in msg) {
+        // Response to a request
+        const pending = pendingRef.current.get(msg.id);
+        if (!pending) {
+          return;
+        }
+        pendingRef.current.delete(msg.id);
+
+        if ("error" in msg) {
+          pending.reject(new Error(msg.error.message));
+        } else {
+          pending.resolve(msg.result as never);
+        }
+      } else if ("method" in msg) {
+        // Server-pushed notification
+        diagnosticsCallbackRef.current?.(msg.params);
+      }
+    });
+  };
+
+  const rejectPendingRequests = (error: Error) => {
+    for (const entry of pendingRef.current.values()) {
+      entry.reject(error);
+    }
+    pendingRef.current.clear();
+  };
+
+  const ensureWorker = useCallback(async () => {
+    if (workerRef.current) {
+      return workerRef.current;
+    }
+
+    workerPromiseRef.current ??= createLanguageServerWorker().then((worker) => {
+      if (!isMountedRef.current) {
+        worker.terminate();
+        throw new Error("Worker terminated");
+      }
+
+      attachWorkerListeners(worker);
+      workerRef.current = worker;
+
+      // Drain any messages queued before the worker was ready
+      for (const message of queueRef.current) {
+        worker.postMessage(message);
+      }
+      queueRef.current = [];
+
+      return worker;
+    });
+
+    return workerPromiseRef.current;
+  }, []);
+
   // --- Notifications (fire-and-forget) ---
 
-  const sendNotification = useCallback((message: Omit<ClientMessage, "id">) => {
-    const worker = workerRef.current;
-    if (worker) {
-      worker.postMessage(message);
-    } else {
+  const sendNotification = useCallback(
+    (message: Omit<ClientMessage, "id">, options?: { activate: boolean }) => {
+      const worker = workerRef.current;
+      if (worker) {
+        worker.postMessage(message);
+        return;
+      }
+
       queueRef.current.push(message);
-    }
-  }, []);
+
+      if (options?.activate) {
+        void ensureWorker().catch((error: unknown) => {
+          rejectPendingRequests(
+            error instanceof Error
+              ? error
+              : new Error("Failed to create language worker"),
+          );
+        });
+      }
+    },
+    [ensureWorker],
+  );
 
   const initialize = useCallback(
     (sdcpn: SDCPN) => {
@@ -170,33 +202,42 @@ export function useLanguageClient(): LanguageClientApi {
 
   const notifyDocumentChanged = useCallback(
     (uri: DocumentUri, text: string) => {
-      sendNotification({
-        jsonrpc: "2.0",
-        method: "textDocument/didChange",
-        params: { textDocument: { uri }, text },
-      });
+      sendNotification(
+        {
+          jsonrpc: "2.0",
+          method: "textDocument/didChange",
+          params: { textDocument: { uri }, text },
+        },
+        { activate: true },
+      );
     },
     [sendNotification],
   );
 
   const initializeScenarioSession = useCallback(
     (params: ScenarioSessionParams) => {
-      sendNotification({
-        jsonrpc: "2.0",
-        method: "temp/scenario/initialize",
-        params,
-      });
+      sendNotification(
+        {
+          jsonrpc: "2.0",
+          method: "temp/scenario/initialize",
+          params,
+        },
+        { activate: true },
+      );
     },
     [sendNotification],
   );
 
   const updateScenarioSession = useCallback(
     (params: ScenarioSessionParams) => {
-      sendNotification({
-        jsonrpc: "2.0",
-        method: "temp/scenario/didChange",
-        params,
-      });
+      sendNotification(
+        {
+          jsonrpc: "2.0",
+          method: "temp/scenario/didChange",
+          params,
+        },
+        { activate: true },
+      );
     },
     [sendNotification],
   );
@@ -214,22 +255,28 @@ export function useLanguageClient(): LanguageClientApi {
 
   const initializeMetricSession = useCallback(
     (params: MetricSessionParams) => {
-      sendNotification({
-        jsonrpc: "2.0",
-        method: "temp/metric/initialize",
-        params,
-      });
+      sendNotification(
+        {
+          jsonrpc: "2.0",
+          method: "temp/metric/initialize",
+          params,
+        },
+        { activate: true },
+      );
     },
     [sendNotification],
   );
 
   const updateMetricSession = useCallback(
     (params: MetricSessionParams) => {
-      sendNotification({
-        jsonrpc: "2.0",
-        method: "temp/metric/didChange",
-        params,
-      });
+      sendNotification(
+        {
+          jsonrpc: "2.0",
+          method: "temp/metric/didChange",
+          params,
+        },
+        { activate: true },
+      );
     },
     [sendNotification],
   );
@@ -247,20 +294,36 @@ export function useLanguageClient(): LanguageClientApi {
 
   // --- Requests (return Promise) ---
 
-  const sendRequest = useCallback(<T>(message: ClientMessage): Promise<T> => {
-    return new Promise<T>((resolve, reject) => {
-      pendingRef.current.set((message as { id: number }).id, {
-        resolve: resolve as (result: never) => void,
-        reject,
+  const sendRequest = useCallback(
+    <T>(message: ClientMessage): Promise<T> => {
+      return new Promise<T>((resolve, reject) => {
+        pendingRef.current.set((message as { id: number }).id, {
+          resolve: resolve as (result: never) => void,
+          reject,
+        });
+        const worker = workerRef.current;
+        if (worker) {
+          worker.postMessage(message);
+        } else {
+          queueRef.current.push(message);
+          void ensureWorker().catch((error: unknown) => {
+            const pending = pendingRef.current.get(
+              (message as { id: number }).id,
+            );
+            if (pending) {
+              pending.reject(
+                error instanceof Error
+                  ? error
+                  : new Error("Failed to create language worker"),
+              );
+              pendingRef.current.delete((message as { id: number }).id);
+            }
+          });
+        }
       });
-      const worker = workerRef.current;
-      if (worker) {
-        worker.postMessage(message);
-      } else {
-        queueRef.current.push(message);
-      }
-    });
-  }, []);
+    },
+    [ensureWorker],
+  );
 
   const requestCompletion = useCallback(
     (uri: DocumentUri, position: Position): Promise<CompletionList> => {

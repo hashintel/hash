@@ -3,15 +3,8 @@ import { use, useRef, useState } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
-import { productionMachines } from "../../examples/broken-machines";
-import { deploymentPipelineSDCPN } from "../../examples/deployment-pipeline";
-import { satellitesSDCPN } from "../../examples/satellites";
-import { probabilisticSatellitesSDCPN } from "../../examples/satellites-launcher";
-import { sirModel } from "../../examples/sir-model";
-import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { exportSDCPN } from "../../file-format/export-sdcpn";
 import { importSDCPN } from "../../file-format/import-sdcpn";
-import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import { EditorContext } from "../../state/editor-context";
 import { MutationContext } from "../../state/mutation-context";
 import { PortalContainerContext } from "../../state/portal-container-context";
@@ -158,6 +151,16 @@ export const EditorView = ({
     exportTikZ({ petriNetDefinition, title });
   }
 
+  async function handleLoadExample(
+    loadExample: () => Promise<{
+      title: string;
+      petriNetDefinition: typeof petriNetDefinition;
+    }>,
+  ) {
+    createNewNet(await loadExample());
+    clearSelection();
+  }
+
   async function handleImport() {
     const result = await importSDCPN();
     if (!result) {
@@ -176,6 +179,9 @@ export const EditorView = ({
     // We must do this before createNewNet because after createNewNet triggers a
     // re-render, the mutatePetriNetDefinition closure would be stale.
     if (hadMissingPositions) {
+      const { calculateGraphLayout } = await import(
+        "../../lib/calculate-graph-layout"
+      );
       const positions = await calculateGraphLayout(sdcpnToLoad, dims);
 
       if (Object.keys(positions).length > 0) {
@@ -275,50 +281,61 @@ export const EditorView = ({
               {
                 id: "load-example-supply-chain-stochastic",
                 label: "Probabilistic Supply Chain",
-                onClick: () => {
-                  createNewNet(supplyChainStochasticSDCPN);
-                  clearSelection();
-                },
+                onClick: () =>
+                  handleLoadExample(
+                    async () =>
+                      (await import("../../examples/supply-chain-stochastic"))
+                        .supplyChainStochasticSDCPN,
+                  ),
               },
               {
                 id: "load-example-satellites",
                 label: "Satellites",
-                onClick: () => {
-                  createNewNet(satellitesSDCPN);
-                  clearSelection();
-                },
+                onClick: () =>
+                  handleLoadExample(
+                    async () =>
+                      (await import("../../examples/satellites"))
+                        .satellitesSDCPN,
+                  ),
               },
               {
                 id: "load-example-probabilistic-satellites",
                 label: "Probabilistic Satellites Launcher",
-                onClick: () => {
-                  createNewNet(probabilisticSatellitesSDCPN);
-                  clearSelection();
-                },
+                onClick: () =>
+                  handleLoadExample(
+                    async () =>
+                      (await import("../../examples/satellites-launcher"))
+                        .probabilisticSatellitesSDCPN,
+                  ),
               },
               {
                 id: "load-example-production-machines",
                 label: "Production Machines",
-                onClick: () => {
-                  createNewNet(productionMachines);
-                  clearSelection();
-                },
+                onClick: () =>
+                  handleLoadExample(
+                    async () =>
+                      (await import("../../examples/broken-machines"))
+                        .productionMachines,
+                  ),
               },
               {
                 id: "load-example-sir-model",
                 label: "SIR Model",
-                onClick: () => {
-                  createNewNet(sirModel);
-                  clearSelection();
-                },
+                onClick: () =>
+                  handleLoadExample(
+                    async () =>
+                      (await import("../../examples/sir-model")).sirModel,
+                  ),
               },
               {
                 id: "load-example-deployment-pipeline",
                 label: "Deployment Pipeline",
-                onClick: () => {
-                  createNewNet(deploymentPipelineSDCPN);
-                  clearSelection();
-                },
+                onClick: () =>
+                  handleLoadExample(
+                    async () =>
+                      (await import("../../examples/deployment-pipeline"))
+                        .deploymentPipelineSDCPN,
+                  ),
               },
             ],
           },

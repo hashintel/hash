@@ -118,7 +118,9 @@ export function useSimulationWorker(): {
   actions: WorkerActions;
 } {
   const [state, setState] = useState<WorkerState>(initialState);
+  const isMountedRef = useRef(true);
   const workerRef = useRef<Worker | null>(null);
+  const workerPromiseRef = useRef<Promise<Worker> | null>(null);
 
   // Pending initialization promise resolver
   const pendingInitRef = useRef<{
@@ -126,93 +128,11 @@ export function useSimulationWorker(): {
     reject: (error: Error) => void;
   } | null>(null);
 
-  // Initialize worker on mount
   useEffect(() => {
-    let terminated = false;
-
-    void createSimulationWorker().then((worker) => {
-      if (terminated) {
-        worker.terminate();
-        return;
-      }
-
-      worker.addEventListener(
-        "message",
-        (event: MessageEvent<ToMainMessage>) => {
-          const message = event.data;
-
-          switch (message.type) {
-            case "ready":
-              setState((prev) => ({
-                ...prev,
-                status: prev.status === "initializing" ? "ready" : prev.status,
-              }));
-              // Resolve pending initialization promise
-              if (pendingInitRef.current) {
-                pendingInitRef.current.resolve();
-                pendingInitRef.current = null;
-              }
-              break;
-
-            case "frame":
-              setState((prev) => ({
-                ...prev,
-                frames: [...prev.frames, message.frame],
-              }));
-              break;
-
-            case "frames":
-              setState((prev) => ({
-                ...prev,
-                frames: [...prev.frames, ...message.frames],
-              }));
-              break;
-
-            case "complete":
-              setState((prev) => ({
-                ...prev,
-                status: "complete",
-              }));
-              break;
-
-            case "paused":
-              setState((prev) => ({
-                ...prev,
-                status: "paused",
-              }));
-              break;
-
-            case "error":
-              setState((prev) => ({
-                ...prev,
-                status: "error",
-                error: message.message,
-                errorItemId: message.itemId,
-              }));
-              // Reject pending initialization promise if this error occurred during init
-              if (pendingInitRef.current) {
-                pendingInitRef.current.reject(new Error(message.message));
-                pendingInitRef.current = null;
-              }
-              break;
-          }
-        },
-      );
-
-      worker.addEventListener("error", (error) => {
-        setState((prev) => ({
-          ...prev,
-          status: "error",
-          error: error.message || "Worker error",
-          errorItemId: null,
-        }));
-      });
-
-      workerRef.current = worker;
-    });
+    isMountedRef.current = true;
 
     return () => {
-      terminated = true;
+      isMountedRef.current = false;
       workerRef.current?.terminate();
       // Reject any pending initialization promise on teardown
       if (pendingInitRef.current) {
@@ -221,6 +141,96 @@ export function useSimulationWorker(): {
       }
     };
   }, []);
+
+  const attachWorkerListeners = (worker: Worker) => {
+    worker.addEventListener("message", (event: MessageEvent<ToMainMessage>) => {
+      const message = event.data;
+
+      switch (message.type) {
+        case "ready":
+          setState((prev) => ({
+            ...prev,
+            status: prev.status === "initializing" ? "ready" : prev.status,
+          }));
+          // Resolve pending initialization promise
+          if (pendingInitRef.current) {
+            pendingInitRef.current.resolve();
+            pendingInitRef.current = null;
+          }
+          break;
+
+        case "frame":
+          setState((prev) => ({
+            ...prev,
+            frames: [...prev.frames, message.frame],
+          }));
+          break;
+
+        case "frames":
+          setState((prev) => ({
+            ...prev,
+            frames: [...prev.frames, ...message.frames],
+          }));
+          break;
+
+        case "complete":
+          setState((prev) => ({
+            ...prev,
+            status: "complete",
+          }));
+          break;
+
+        case "paused":
+          setState((prev) => ({
+            ...prev,
+            status: "paused",
+          }));
+          break;
+
+        case "error":
+          setState((prev) => ({
+            ...prev,
+            status: "error",
+            error: message.message,
+            errorItemId: message.itemId,
+          }));
+          // Reject pending initialization promise if this error occurred during init
+          if (pendingInitRef.current) {
+            pendingInitRef.current.reject(new Error(message.message));
+            pendingInitRef.current = null;
+          }
+          break;
+      }
+    });
+
+    worker.addEventListener("error", (error) => {
+      setState((prev) => ({
+        ...prev,
+        status: "error",
+        error: error.message || "Worker error",
+        errorItemId: null,
+      }));
+    });
+  };
+
+  const ensureWorker = async () => {
+    if (workerRef.current) {
+      return workerRef.current;
+    }
+
+    workerPromiseRef.current ??= createSimulationWorker().then((worker) => {
+      if (!isMountedRef.current) {
+        worker.terminate();
+        throw new Error("Worker terminated");
+      }
+
+      attachWorkerListeners(worker);
+      workerRef.current = worker;
+      return worker;
+    });
+
+    return workerPromiseRef.current;
+  };
 
   // Helper to post messages
   const postMessage = (message: ToWorkerMessage) => {
@@ -259,17 +269,30 @@ export function useSimulationWorker(): {
       pendingInitRef.current = { resolve, reject };
     });
 
-    postMessage({
-      type: "init",
-      sdcpn,
-      initialMarking: serializedMarking,
-      parameterValues,
-      seed,
-      dt,
-      maxTime,
-      maxFramesAhead,
-      batchSize,
-    });
+    void ensureWorker()
+      .then((worker) => {
+        worker.postMessage({
+          type: "init",
+          sdcpn,
+          initialMarking: serializedMarking,
+          parameterValues,
+          seed,
+          dt,
+          maxTime,
+          maxFramesAhead,
+          batchSize,
+        });
+      })
+      .catch((error: unknown) => {
+        if (pendingInitRef.current) {
+          pendingInitRef.current.reject(
+            error instanceof Error
+              ? error
+              : new Error("Failed to create simulation worker"),
+          );
+          pendingInitRef.current = null;
+        }
+      });
 
     return promise;
   };

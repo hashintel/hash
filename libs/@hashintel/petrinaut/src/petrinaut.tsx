@@ -1,6 +1,3 @@
-import "@fontsource-variable/inter";
-import "@fontsource-variable/inter-tight";
-import "@fontsource-variable/jetbrains-mono";
 import "@xyflow/react/dist/style.css";
 import "./index.css";
 
