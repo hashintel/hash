@@ -1,6 +1,6 @@
 import { LogOutIcon, Settings2Icon, UserIcon } from "lucide-react";
 
-import * as Avatar from "../avatar/avatar";
+import * as Avatar from "../avatar";
 import * as Menu from "./menu";
 
 export const App = () => {

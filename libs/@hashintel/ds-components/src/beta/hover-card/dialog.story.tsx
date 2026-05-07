@@ -2,7 +2,7 @@ import { Portal } from "@ark-ui/react/portal";
 import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { MapPinIcon } from "lucide-react";
 
-import * as Avatar from "../avatar/avatar";
+import * as Avatar from "../avatar";
 import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
 import * as Dialog from "../dialog/dialog";
