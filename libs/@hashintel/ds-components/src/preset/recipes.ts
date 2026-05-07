@@ -7,12 +7,12 @@ import { badgeRecipe } from "../beta/badge.recipe";
 import { breadcrumbSlotRecipe } from "../beta/breadcrumb.recipe";
 import { buttonRecipe } from "../beta/button.recipe";
 import { cardSlotRecipe } from "../beta/card.recipe";
-import { carousel } from "../beta/carousel/carousel.recipe";
+import { carouselSlotRecipe } from "../beta/carousel.recipe";
 import { checkboxSlotRecipe } from "../beta/checkbox.recipe";
 import { clipboardSlotRecipe } from "../beta/clipboard.recipe";
 import { codeRecipe } from "../beta/code.recipe";
 import { collapsibleSlotRecipe } from "../beta/collapsible.recipe";
-import { colorPicker } from "../beta/color-picker/color-picker.recipe";
+import { colorPickerSlotRecipe } from "../beta/color-picker.recipe";
 import { combobox } from "../beta/combobox/combobox.recipe";
 import { datePicker } from "../beta/date-picker/date-picker.recipe";
 import { dialog } from "../beta/dialog/dialog.recipe";
@@ -37,12 +37,12 @@ import { numberInput } from "../beta/number-input/number-input.recipe";
 import { paginationSlotRecipe } from "../beta/pagination.recipe";
 import { passwordInput } from "../beta/password-input/password-input.recipe";
 import { pinInput } from "../beta/pin-input/pin-input.recipe";
-import { popover } from "../beta/popover/popover.recipe";
+import { popoverSlotRecipe } from "../beta/popover.recipe";
 import { progressSlotRecipe } from "../beta/progress.recipe";
 import { qrCode } from "../beta/qr-code/qr-code.recipe";
-import { radioCardGroup } from "../beta/radio-card-group/radio-card-group.recipe";
+import { radioCardGroupSlotRecipe } from "../beta/radio-card-group.recipe";
 import { radioGroupSlotRecipe } from "../beta/radio-group.recipe";
-import { ratingGroup } from "../beta/rating-group/rating-group.recipe";
+import { ratingGroupSlotRecipe } from "../beta/rating-group.recipe";
 import { scrollAreaSlotRecipe } from "../beta/scroll-area.recipe";
 import { segmentGroupSlotRecipe } from "../beta/segment-group.recipe";
 import { select } from "../beta/select/select.recipe";
@@ -52,7 +52,7 @@ import { sliderSlotRecipe } from "../beta/slider.recipe";
 import { spinnerRecipe } from "../beta/spinner.recipe";
 import { splitterSlotRecipe } from "../beta/splitter.recipe";
 import { steps } from "../beta/steps/steps.recipe";
-import { switchRecipe } from "../beta/switch/switch.recipe";
+import { switchSlotRecipe } from "../beta/switch.recipe";
 import { tableSlotRecipe } from "../beta/table.recipe";
 import { tabs } from "../beta/tabs/tabs.recipe";
 import { tagsInput } from "../beta/tags-input/tags-input.recipe";
@@ -91,11 +91,11 @@ export const slotRecipes = {
   avatar: avatarSlotRecipe,
   breadcrumb: breadcrumbSlotRecipe,
   card: cardSlotRecipe,
-  carousel,
+  carousel: carouselSlotRecipe,
   checkbox: checkboxSlotRecipe,
   clipboard: clipboardSlotRecipe,
   collapsible: collapsibleSlotRecipe,
-  colorPicker,
+  colorPicker: colorPickerSlotRecipe,
   combobox,
   datePicker,
   dialog,
@@ -113,11 +113,11 @@ export const slotRecipes = {
   pagination: paginationSlotRecipe,
   passwordInput,
   pinInput,
-  popover,
+  popover: popoverSlotRecipe,
   progress: progressSlotRecipe,
-  radioCardGroup,
+  radioCardGroup: radioCardGroupSlotRecipe,
   radioGroup: radioGroupSlotRecipe,
-  ratingGroup,
+  ratingGroup: ratingGroupSlotRecipe,
   scrollArea: scrollAreaSlotRecipe,
   segmentGroup: segmentGroupSlotRecipe,
   select,
@@ -125,7 +125,7 @@ export const slotRecipes = {
   slider: sliderSlotRecipe,
   splitter: splitterSlotRecipe,
   steps,
-  switchRecipe,
+  switchRecipe: switchSlotRecipe,
   table: tableSlotRecipe,
   tabs,
   tagsInput,

@@ -2,10 +2,13 @@
 
 import { RadioGroup } from "@ark-ui/react/radio-group";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { radioCardGroup } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(radioCardGroup);
+import { radioCardGroupSlotRecipe } from "./radio-card-group.recipe";
+
+const { withProvider, withContext } = createStyleContext(
+  radioCardGroupSlotRecipe,
+);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(RadioGroup.Root, "root");

@@ -1,7 +1,7 @@
 import { radioGroupAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const radioCardGroup = defineSlotRecipe({
+const radioCardGroupSlotRecipeDefinition = {
   className: "radio-card-group",
   slots: radioGroupAnatomy.keys(),
   base: {
@@ -145,4 +145,11 @@ export const radioCardGroup = defineSlotRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const radioCardGroupSlotRecipe = sva(radioCardGroupSlotRecipeDefinition);
+
+export type RadioCardGroupSlotRecipeProps = RecipeVariantProps<
+  typeof radioCardGroupSlotRecipe
+>;

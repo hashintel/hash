@@ -4,10 +4,11 @@
 
 import { Carousel, useCarouselContext } from "@ark-ui/react/carousel";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { carousel } from "@hashintel/ds-helpers/recipes";
 import { type ComponentProps, forwardRef } from "react";
 
-const { withProvider, withContext } = createStyleContext(carousel);
+import { carouselSlotRecipe } from "./carousel.recipe";
+
+const { withProvider, withContext } = createStyleContext(carouselSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Carousel.Root, "root", {
@@ -34,11 +35,11 @@ export const IndicatorGroup = forwardRef<
   HTMLDivElement,
   ComponentProps<typeof StyledIndicatorGroup>
 >((props, ref) => {
-  const carousel = useCarouselContext();
+  const carouselSlotRecipe = useCarouselContext();
 
   return (
     <StyledIndicatorGroup {...props} ref={ref}>
-      {carousel.pageSnapPoints.map((_, index) => (
+      {carouselSlotRecipe.pageSnapPoints.map((_, index) => (
         <Indicator key={index} index={index} />
       ))}
     </StyledIndicatorGroup>

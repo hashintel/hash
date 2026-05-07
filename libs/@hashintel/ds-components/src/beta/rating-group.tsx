@@ -11,7 +11,6 @@ import {
   createStyleContext,
   type HTMLStyledProps,
 } from "@hashintel/ds-helpers/jsx";
-import { ratingGroup } from "@hashintel/ds-helpers/recipes";
 import { StarIcon } from "lucide-react";
 import {
   cloneElement,
@@ -21,7 +20,9 @@ import {
   type ReactElement,
 } from "react";
 
-const { withProvider, withContext } = createStyleContext(ratingGroup);
+import { ratingGroupSlotRecipe } from "./rating-group.recipe";
+
+const { withProvider, withContext } = createStyleContext(ratingGroupSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(RatingGroup.Root, "root");
@@ -80,8 +81,8 @@ interface ItemsProps extends Omit<ComponentProps<typeof Item>, "index"> {
 
 export const Items = (props: ItemsProps) => {
   const { icon, ...rest } = props;
-  const ratingGroup = useRatingGroupContext();
-  return ratingGroup.items.map((item) => (
+  const ratingGroupSlotRecipe = useRatingGroupContext();
+  return ratingGroupSlotRecipe.items.map((item) => (
     <Item key={item} index={item} {...rest}>
       <ItemIndicator icon={icon} />
     </Item>

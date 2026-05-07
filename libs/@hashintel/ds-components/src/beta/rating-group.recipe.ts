@@ -1,7 +1,7 @@
 import { ratingGroupAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const ratingGroup = defineSlotRecipe({
+const ratingGroupSlotRecipeDefinition = {
   className: "rating-group",
   slots: ratingGroupAnatomy.extendWith("itemIndicator").keys(),
   base: {
@@ -80,4 +80,11 @@ export const ratingGroup = defineSlotRecipe({
   defaultVariants: {
     size: "md",
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const ratingGroupSlotRecipe = sva(ratingGroupSlotRecipeDefinition);
+
+export type RatingGroupSlotRecipeProps = RecipeVariantProps<
+  typeof ratingGroupSlotRecipe
+>;

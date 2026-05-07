@@ -1,7 +1,7 @@
 import { colorPickerAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const colorPicker = defineSlotRecipe({
+const colorPickerSlotRecipeDefinition = {
   className: "color-picker",
   slots: colorPickerAnatomy.keys(),
   base: {
@@ -86,4 +86,11 @@ export const colorPicker = defineSlotRecipe({
       borderRadius: "l2",
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const colorPickerSlotRecipe = sva(colorPickerSlotRecipeDefinition);
+
+export type ColorPickerSlotRecipeProps = RecipeVariantProps<
+  typeof colorPickerSlotRecipe
+>;

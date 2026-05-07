@@ -1,7 +1,7 @@
 import { carouselAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const carousel = defineSlotRecipe({
+const carouselSlotRecipeDefinition = {
   className: "carousel",
   slots: carouselAnatomy.keys(),
   base: {
@@ -72,4 +72,11 @@ export const carousel = defineSlotRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const carouselSlotRecipe = sva(carouselSlotRecipeDefinition);
+
+export type CarouselSlotRecipeProps = RecipeVariantProps<
+  typeof carouselSlotRecipe
+>;

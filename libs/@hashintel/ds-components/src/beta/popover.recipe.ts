@@ -1,7 +1,7 @@
 import { popoverAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const popover = defineSlotRecipe({
+const popoverSlotRecipeDefinition = {
   className: "popover",
   slots: popoverAnatomy.extendWith("header", "body", "footer").keys(),
   base: {
@@ -73,4 +73,11 @@ export const popover = defineSlotRecipe({
       borderInlineStartWidth: "0.5px",
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const popoverSlotRecipe = sva(popoverSlotRecipeDefinition);
+
+export type PopoverSlotRecipeProps = RecipeVariantProps<
+  typeof popoverSlotRecipe
+>;

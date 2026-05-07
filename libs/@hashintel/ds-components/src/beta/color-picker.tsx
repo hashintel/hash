@@ -2,10 +2,11 @@
 
 import { ColorPicker } from "@ark-ui/react/color-picker";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { colorPicker } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(colorPicker);
+import { colorPickerSlotRecipe } from "./color-picker.recipe";
+
+const { withProvider, withContext } = createStyleContext(colorPickerSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(ColorPicker.Root, "root");

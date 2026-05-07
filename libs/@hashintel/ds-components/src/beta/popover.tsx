@@ -3,10 +3,11 @@
 import { ark } from "@ark-ui/react/factory";
 import { Popover } from "@ark-ui/react/popover";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { popover } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withRootProvider, withContext } = createStyleContext(popover);
+import { popoverSlotRecipe } from "./popover.recipe";
+
+const { withRootProvider, withContext } = createStyleContext(popoverSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withRootProvider(Popover.Root, {
