@@ -1,4 +1,4 @@
-import { SNAP_GRID_SIZE } from "../constants/ui";
+import { SNAP_GRID_SIZE } from "../ui/constants/ui";
 import type { SDCPN } from "../core/types/sdcpn";
 
 export const supplyChainStochasticSDCPN: {

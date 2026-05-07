@@ -47,7 +47,12 @@ export type PersistedNet = {
 type UseProcessSaveAndLoadParams = {
   petriNet: SDCPN;
   selectedNetId: EntityId | null;
-  setPetriNet: Dispatch<SetStateAction<SDCPN>>;
+  /**
+   * Replace the entire active net with a new SDCPN. Internally the consumer
+   * recreates the document handle, which resets undo/redo history — so this
+   * is intended for net-switch / load flows, not user mutations.
+   */
+  setPetriNet: (sdcpn: SDCPN) => void;
   setSelectedNetId: Dispatch<SetStateAction<EntityId | null>>;
   setTitle: Dispatch<SetStateAction<string>>;
   title: string;

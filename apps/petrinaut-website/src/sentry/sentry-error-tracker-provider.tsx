@@ -1,4 +1,4 @@
-import { ErrorTrackerContext } from "@hashintel/petrinaut";
+import { ErrorTrackerContext } from "@hashintel/petrinaut/react";
 import * as Sentry from "@sentry/react";
 
 /**

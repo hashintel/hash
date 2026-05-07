@@ -23,7 +23,28 @@
     "*.css"
   ],
   "main": "dist/main.js",
-  "types": "dist/main.d.ts",
+  "types": "dist/main.d.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.d.ts",
+      "default": "./dist/core.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.d.ts",
+      "default": "./dist/ui.js"
+    },
+    "./styles.css": "./dist/main.css",
+    "./dist/main.css": "./dist/main.css",
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "storybook dev",
@@ -47,6 +68,7 @@
     "@xyflow/react": "12.10.1",
     "elkjs": "0.11.0",
     "fuzzysort": "3.1.0",
+    "immer": "10.1.3",
     "lodash-es": "4.18.1",
     "monaco-editor": "0.55.1",
     "react-icons": "5.5.0",

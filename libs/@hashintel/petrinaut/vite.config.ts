@@ -10,8 +10,19 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
 export default defineConfig(({ command }) => ({
   build: {
     lib: {
-      entry: "src/main.ts",
-      fileName: "main",
+      // Four entry points: the legacy `main` (back-compat), plus the
+      // three-way split per RFC 0001. Each emits its own JS + dts bundle.
+      entry: {
+        main: "src/main.ts",
+        core: "src/core/index.ts",
+        react: "src/react/index.ts",
+        ui: "src/ui/index.ts",
+      },
+      fileName: (_format, entryName) => `${entryName}.js`,
+      // Emit the bundled CSS as `main.css` so the package.json `style` field
+      // and the `./styles.css` / `./dist/main.css` exports resolve. Without
+      // this vite uses the package name (`petrinaut.css`).
+      cssFileName: "main",
       formats: ["es"],
     },
     rolldownOptions: {
@@ -22,6 +33,11 @@ export default defineConfig(({ command }) => ({
         "react-dom",
         "@xyflow/react",
         "@babel/standalone",
+        // Externalising prevents the dts bundler from inlining the upstream
+        // namespace-merged types (`DocumentUri`, `Position`, …) which trigger
+        // sxzz/rolldown-plugin-dts#209 "Duplicated export" errors when
+        // reached from multiple entries.
+        "vscode-languageserver-types",
         // Pure-CJS dep pulled in transitively by @tanstack/react-form →
         // @tanstack/react-store. Rolldown can't safely transform its
         // `require("react")` when react is external, so it falls back to a
