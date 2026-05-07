@@ -4,11 +4,12 @@
 
 import { TagsInput, useTagsInputContext } from "@ark-ui/react/tags-input";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { tagsInput } from "@hashintel/ds-helpers/recipes";
 import { XIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(tagsInput);
+import { tagsInputSlotRecipe } from "./tags-input.recipe";
+
+const { withProvider, withContext } = createStyleContext(tagsInputSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export type ItemProps = ComponentProps<typeof Item>;

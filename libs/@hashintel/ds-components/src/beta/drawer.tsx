@@ -3,10 +3,11 @@
 import { Dialog } from "@ark-ui/react/dialog";
 import { ark } from "@ark-ui/react/factory";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { drawer } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withRootProvider, withContext } = createStyleContext(drawer);
+import { drawerSlotRecipe } from "./drawer.recipe";
+
+const { withRootProvider, withContext } = createStyleContext(drawerSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withRootProvider(Dialog.Root, {

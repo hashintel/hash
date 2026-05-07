@@ -16,7 +16,7 @@ import { colorPickerSlotRecipe } from "../beta/color-picker.recipe";
 import { combobox } from "../beta/combobox/combobox.recipe";
 import { datePicker } from "../beta/date-picker/date-picker.recipe";
 import { dialog } from "../beta/dialog/dialog.recipe";
-import { drawer } from "../beta/drawer/drawer.recipe";
+import { drawerSlotRecipe } from "../beta/drawer.recipe";
 import { editableSlotRecipe } from "../beta/editable.recipe";
 import { field } from "../beta/field/field.recipe";
 import { fieldsetSlotRecipe } from "../beta/fieldset.recipe";
@@ -55,11 +55,11 @@ import { steps } from "../beta/steps/steps.recipe";
 import { switchSlotRecipe } from "../beta/switch.recipe";
 import { tableSlotRecipe } from "../beta/table.recipe";
 import { tabs } from "../beta/tabs/tabs.recipe";
-import { tagsInput } from "../beta/tags-input/tags-input.recipe";
+import { tagsInputSlotRecipe } from "../beta/tags-input.recipe";
 import { textRecipe } from "../beta/text.recipe";
 import { textareaRecipe } from "../beta/textarea.recipe";
 import { timer } from "../beta/timer/timer.recipe";
-import { toast } from "../beta/toast/toast.recipe";
+import { toastSlotRecipe } from "../beta/toast.recipe";
 import { toggle } from "../beta/toggle/toggle.recipe";
 import { toggleGroupSlotRecipe } from "../beta/toggle-group.recipe";
 import { tooltipSlotRecipe } from "../beta/tooltip.recipe";
@@ -99,7 +99,7 @@ export const slotRecipes = {
   combobox,
   datePicker,
   dialog,
-  drawer,
+  drawer: drawerSlotRecipe,
   editable: editableSlotRecipe,
   field,
   fieldset: fieldsetSlotRecipe,
@@ -128,9 +128,9 @@ export const slotRecipes = {
   switchRecipe: switchSlotRecipe,
   table: tableSlotRecipe,
   tabs,
-  tagsInput,
+  tagsInput: tagsInputSlotRecipe,
   timer,
-  toast,
+  toast: toastSlotRecipe,
   toggle,
   toggleGroup: toggleGroupSlotRecipe,
   tooltip: tooltipSlotRecipe,

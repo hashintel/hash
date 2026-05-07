@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable import/no-extraneous-dependencies, @typescript-eslint/no-shadow */
+/* eslint-disable import/no-extraneous-dependencies */
 
 import { Portal } from "@ark-ui/react/portal";
 import {
@@ -10,15 +10,15 @@ import {
   useToastContext,
 } from "@ark-ui/react/toast";
 import { createStyleContext, Stack, styled } from "@hashintel/ds-helpers/jsx";
-import { toast } from "@hashintel/ds-helpers/recipes";
 import { CheckCircleIcon, CircleAlertIcon, CircleXIcon } from "lucide-react";
 import { forwardRef } from "react";
 
-import { CloseButton } from "../close-button/close-button";
-import { Icon, type IconProps } from "../icon";
-import { Spinner } from "../spinner";
+import { CloseButton } from "./close-button/close-button";
+import { Icon, type IconProps } from "./icon";
+import { Spinner } from "./spinner";
+import { toastSlotRecipe } from "./toast.recipe";
 
-const { withProvider, withContext } = createStyleContext(toast);
+const { withProvider, withContext } = createStyleContext(toastSlotRecipe);
 
 const Root = withProvider(Toast.Root, "root");
 const Title = withContext(Toast.Title, "title");

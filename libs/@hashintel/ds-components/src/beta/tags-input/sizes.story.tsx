@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as TagsInput from "./tags-input";
+import * as TagsInput from "../tags-input";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg"] as const;

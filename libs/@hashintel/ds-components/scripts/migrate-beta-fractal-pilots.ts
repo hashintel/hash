@@ -49,6 +49,7 @@ const pilotConfigs = new Map<string, PilotConfig>([
   ["input-addon", { name: "input-addon", suppressRecipeTypeErrors: true }],
   ["kbd", { name: "kbd", suppressRecipeTypeErrors: true }],
   ["link", { name: "link", suppressRecipeTypeErrors: true }],
+  ["drawer", { name: "drawer", suppressRecipeTypeErrors: true }],
   ["popover", { name: "popover", suppressRecipeTypeErrors: true }],
   ["progress", { name: "progress", suppressRecipeTypeErrors: true }],
   [
@@ -65,7 +66,9 @@ const pilotConfigs = new Map<string, PilotConfig>([
   ["splitter", { name: "splitter", suppressRecipeTypeErrors: true }],
   ["switch", { name: "switch", suppressRecipeTypeErrors: true }],
   ["table", { name: "table", suppressRecipeTypeErrors: true }],
+  ["tags-input", { name: "tags-input", suppressRecipeTypeErrors: true }],
   ["textarea", { name: "textarea", suppressRecipeTypeErrors: true }],
+  ["toast", { name: "toast", suppressRecipeTypeErrors: true }],
   ["toggle-group", { name: "toggle-group", suppressRecipeTypeErrors: true }],
   ["tooltip", { name: "tooltip", suppressRecipeTypeErrors: true }],
   ["spinner", { name: "spinner", suppressRecipeTypeErrors: true }],
