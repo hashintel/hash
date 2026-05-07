@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import type { Story, StoryDefault } from "@ladle/react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 import type { FormInputWidth } from "../../util/form-shared";
 import { formInputSizes } from "../../util/form-shared";
@@ -116,101 +116,23 @@ const subheadingStyle: React.CSSProperties = {
   color: "#666",
 };
 
-const StateMatrix = ({
-  variant,
-  readonly,
-}: {
-  variant: Variant;
-  readonly: boolean;
-}) => (
-  <div className={groupStyle}>
-    <h3 style={headingStyle}>{variant}</h3>
-    <div className={rowStyle}>
-      <div className={columnStyle}>
-        <span style={subheadingStyle}>Empty</span>
-        <Controlled
-          value=""
-          onChange={noop}
-          variant={variant}
-          readonly={readonly}
-          width="md"
-          disabled
-        />
-        <Controlled
-          value=""
-          onChange={noop}
-          variant={variant}
-          readonly={readonly}
-          width="md"
-          invalid
-        />
-        <Controlled
-          value=""
-          onChange={noop}
-          variant={variant}
-          readonly={readonly}
-          width="md"
-          loading
-        />
-        <ClearableInput
-          value=""
-          variant={variant}
-          readonly={readonly}
-          width="md"
-        />
-        <Controlled
-          value=""
-          onChange={noop}
-          variant={variant}
-          readonly={readonly}
-          width="md"
-          placeholder="Placeholder text..."
-        />
-      </div>
-      <div className={columnStyle}>
-        <span style={subheadingStyle}>With value</span>
-        <Controlled
-          value="Some text"
-          onChange={noop}
-          variant={variant}
-          readonly={readonly}
-          width="md"
-          disabled
-        />
-        <Controlled
-          value="Some text"
-          onChange={noop}
-          variant={variant}
-          readonly={readonly}
-          width="md"
-          invalid
-        />
-        <Controlled
-          value="Some text"
-          onChange={noop}
-          variant={variant}
-          readonly={readonly}
-          width="md"
-          loading
-        />
-        <ClearableInput
-          value="Some text"
-          variant={variant}
-          readonly={readonly}
-          width="md"
-        />
-        <Controlled
-          value="Some text"
-          onChange={noop}
-          variant={variant}
-          readonly={readonly}
-          width="md"
-          placeholder="Placeholder text..."
-        />
-      </div>
-    </div>
-  </div>
-);
+const stateRows = [
+  { key: "disabled", label: "Disabled", extraProps: { disabled: true } },
+  { key: "invalid", label: "Invalid", extraProps: { invalid: true } },
+  { key: "loading", label: "Loading", extraProps: { loading: true } },
+  { key: "clearable", label: "Clearable", clearable: true, extraProps: {} },
+  {
+    key: "placeholder",
+    label: "Placeholder",
+    extraProps: { placeholder: "Placeholder text..." },
+  },
+];
+
+const stateColumns = [
+  { key: "withValue", label: "With value", withValue: true, readonly: false },
+  { key: "empty", label: "Empty", withValue: false, readonly: false },
+  { key: "readonly", label: "Read-only", withValue: true, readonly: true },
+];
 
 export default {
   title: "Components/BaseInput",
@@ -219,46 +141,85 @@ export default {
 export const Default: Story = () => (
   <div className={sectionStyle}>
     {variants.map((variant) => (
-      <StateMatrix key={variant} variant={variant} readonly={false} />
-    ))}
-  </div>
-);
-
-export const ReadOnly: Story = () => (
-  <div className={sectionStyle}>
-    {variants.map((variant) => (
-      <StateMatrix key={variant} variant={variant} readonly />
+      <div key={variant} className={groupStyle}>
+        <h3 style={headingStyle}>{variant}</h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto auto auto",
+            columnGap: 32,
+            rowGap: 12,
+            alignItems: "center",
+            justifyContent: "start",
+          }}
+        >
+          {stateColumns.map((col) => (
+            <span key={col.key} style={subheadingStyle}>
+              {col.label}
+            </span>
+          ))}
+          {stateRows.flatMap((row) =>
+            stateColumns.map((col) => {
+              const value = col.withValue ? row.label : "";
+              const cellKey = `${row.key}-${col.key}`;
+              return row.clearable ? (
+                <ClearableInput
+                  key={cellKey}
+                  value={value}
+                  variant={variant}
+                  width="md"
+                  readonly={col.readonly}
+                  {...row.extraProps}
+                />
+              ) : (
+                <Controlled
+                  key={cellKey}
+                  value={value}
+                  onChange={noop}
+                  variant={variant}
+                  width="md"
+                  readonly={col.readonly}
+                  {...row.extraProps}
+                />
+              );
+            }),
+          )}
+        </div>
+      </div>
     ))}
   </div>
 );
 
 export const Alignment: Story = () => (
-  <div className={rowStyle}>
-    <div className={columnStyle}>
-      <span style={subheadingStyle}>Editable</span>
-      {alignments.map((align) => (
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "auto auto",
+      columnGap: 32,
+      rowGap: 12,
+      alignItems: "center",
+      justifyContent: "start",
+    }}
+  >
+    <span style={subheadingStyle}>Editable</span>
+    <span style={subheadingStyle}>Read-only</span>
+    {alignments.map((align) => (
+      <Fragment key={align}>
         <Controlled
-          key={align}
           value={`Align: ${align}`}
           onChange={noop}
           align={align}
           width="md"
         />
-      ))}
-    </div>
-    <div className={columnStyle}>
-      <span style={subheadingStyle}>Read-only</span>
-      {alignments.map((align) => (
         <Controlled
-          key={align}
           value={`Align: ${align}`}
           onChange={noop}
           align={align}
           width="md"
           readonly
         />
-      ))}
-    </div>
+      </Fragment>
+    ))}
   </div>
 );
 
