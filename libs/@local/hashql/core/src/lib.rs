@@ -17,8 +17,13 @@
     // Library Features
     allocator_api,
     binary_heap_into_iter_sorted,
+    bound_copied,
     clone_from_ref,
     const_cmp,
+    const_convert,
+    const_destruct,
+    const_ops,
+    const_range,
     const_trait_impl,
     extend_one,
     get_disjoint_mut_helpers,

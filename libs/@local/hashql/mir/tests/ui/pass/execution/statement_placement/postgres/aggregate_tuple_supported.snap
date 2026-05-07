@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hashql/mir/src/pass/analysis/execution/statement_placement/tests.rs
+source: libs/@local/hashql/mir/src/pass/execution/statement_placement/tests.rs
 expression: output
 ---
 fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
@@ -15,7 +15,3 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
         return %4
     }
 }
-
-=================== Traversals ===================
-
-Traversals:

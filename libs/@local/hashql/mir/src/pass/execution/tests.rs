@@ -21,10 +21,9 @@ use crate::{
     def::{DefId, DefIdSlice},
     intern::Interner,
     pass::{
-        Changed, GlobalAnalysisPass as _, TransformPass as _,
+        GlobalAnalysisPass as _,
         analysis::size_estimation::SizeEstimationAnalysis,
         execution::{ExecutionAnalysis, island::IslandVec, target::TargetId},
-        transform::TraversalExtraction,
     },
 };
 
@@ -66,7 +65,7 @@ fn assert_execution<'heap>(
     assert_snapshot!(name, output);
 }
 
-/// Runs `TraversalExtraction` and `SizeEstimationAnalysis`, then `ExecutionAnalysis`.
+/// Runs `SizeEstimationAnalysis`, then `ExecutionAnalysis`.
 #[track_caller]
 fn run_execution<'heap>(
     context: &mut MirContext<'_, 'heap>,
@@ -75,22 +74,12 @@ fn run_execution<'heap>(
     BasicBlockVec<TargetId, &'heap Heap>,
     IslandVec<Island, &'heap Heap>,
 ) {
-    let mut extraction = TraversalExtraction::new_in(Global);
-    let _: Changed = extraction.run(context, body);
-    let traversals = extraction
-        .take_traversals()
-        .expect("expected GraphReadFilter body");
-
-    let traversals = [Some(traversals)];
-    let traversals_slice = DefIdSlice::from_raw(&traversals);
-
     let mut size_analysis = SizeEstimationAnalysis::new_in(Global);
     size_analysis.run(context, DefIdSlice::from_raw(core::slice::from_ref(body)));
     let footprints = size_analysis.finish();
 
     let mut scratch = Scratch::new();
     let analysis = ExecutionAnalysis {
-        traversals: traversals_slice,
         footprints: &footprints,
         scratch: &mut scratch,
     };

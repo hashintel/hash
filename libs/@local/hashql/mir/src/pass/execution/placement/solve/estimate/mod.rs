@@ -1,8 +1,8 @@
 //! Cost estimation for placement target selection.
 //!
 //! The estimator computes an approximate cost for assigning a basic block to a given execution
-//! target. Cost includes statement execution cost plus transition costs to and from predecessor and
-//! successor blocks.
+//! target. Cost includes the block's own cost (statement base + path transfer premium) plus
+//! transition costs to and from predecessor and successor blocks.
 //!
 //! Cross-region transitions are weighted by a configurable [`CostEstimationConfig`] to
 //! de-emphasize boundary costs relative to intra-region costs. Self-loop edges are skipped because
@@ -12,10 +12,10 @@
 //! optimal option. Transition costs are counted from both predecessor and successor sides —
 //! intentional double-counting that gives each edge proportional influence at join points.
 //!
-//! The double-counting inflates transition costs relative to statement costs. This is acceptable
-//! (and possibly desirable) as long as transitions dominate. If statement costs ever become
+//! The double-counting inflates transition costs relative to block costs. This is acceptable
+//! (and possibly desirable) as long as transitions dominate. If block costs ever become
 //! comparable and the greedy value ordering consistently disagrees with BnB-optimal solutions,
-//! consider halving the transition weight here rather than single-counting — single-counting
+//! consider halving the transition weight here rather than single-counting; single-counting
 //! would make source-side blocks blind to downstream target demand.
 
 use core::{alloc::Allocator, cmp};
@@ -186,17 +186,16 @@ where
     ) -> Option<Cost> {
         match (source, target) {
             (Some(source), None) => {
-                // Minimize over the target block's domain, weighted by statement + transition cost
+                // Minimize over the target block's domain, weighted by block + transition cost
                 let mut current_minimum = ApproxCost::INF;
                 let mut minimum_transition_cost = None;
 
-                for target in &self.solver.data.assignment[edge.target.block] {
+                for target in &self.solver.data.blocks.assignments(edge.target.block) {
                     let Some(cost) = edge.matrix.get(source, target) else {
                         continue;
                     };
 
-                    let mut block_cost =
-                        self.solver.data.statements[target].sum_approx(edge.target.block);
+                    let mut block_cost = self.solver.data.blocks.cost(edge.target.block, target);
                     block_cost += cost;
 
                     if block_cost < current_minimum {
@@ -208,17 +207,16 @@ where
                 minimum_transition_cost
             }
             (None, Some(target)) => {
-                // Minimize over the source block's domain, weighted by statement + transition cost
+                // Minimize over the source block's domain, weighted by block + transition cost
                 let mut current_minimum = ApproxCost::INF;
                 let mut minimum_transition_cost = None;
 
-                for source in &self.solver.data.assignment[edge.source.block] {
+                for source in &self.solver.data.blocks.assignments(edge.source.block) {
                     let Some(cost) = edge.matrix.get(source, target) else {
                         continue;
                     };
 
-                    let mut block_cost =
-                        self.solver.data.statements[source].sum_approx(edge.source.block);
+                    let mut block_cost = self.solver.data.blocks.cost(edge.source.block, source);
                     block_cost += cost;
 
                     if block_cost < current_minimum {
@@ -247,12 +245,13 @@ where
         block: BasicBlockId,
         target: TargetId,
     ) -> Option<ApproxCost> {
-        // Start with the block's own statement cost, then add transition costs from each
-        // predecessor and to each successor. Transitions are counted on both sides (double-counted)
-        // so that join edges get proportional influence without frequency data.
-        // If a neighbor has no assignment yet, we optimistically assume its best local option.
-        // Returns `None` if any assigned neighbor lacks a valid transition to this target.
-        let mut cost = self.solver.data.statements[target].sum_approx(block);
+        // Start with the block's own cost (statement base + path transfer premium), then add
+        // transition costs from each predecessor and to each successor. Transitions are counted on
+        // both sides (double-counted) so that join edges get proportional influence without
+        // frequency data. If a neighbor has no assignment yet, we optimistically assume its best
+        // local option. Returns `None` if any assigned neighbor lacks a valid transition to this
+        // target.
+        let mut cost = self.solver.data.blocks.cost(block, target);
 
         for pred in body.basic_blocks.predecessors(block) {
             if pred == block {
@@ -328,7 +327,7 @@ where
     ) -> TargetHeap {
         let mut heap = TargetHeap::new();
 
-        for target in &self.solver.data.assignment[block] {
+        for target in &self.solver.data.blocks.assignments(block) {
             if let Some(cost) = self.estimate_target(body, region, block, target) {
                 heap.insert(target, cost);
             }

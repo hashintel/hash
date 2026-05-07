@@ -3,7 +3,7 @@
 
 use alloc::alloc::Global;
 use core::{alloc::Allocator, fmt::Display};
-use std::{io::Write as _, path::PathBuf};
+use std::path::PathBuf;
 
 use hashql_core::{
     heap::Heap,
@@ -19,17 +19,12 @@ use crate::{
     builder::body,
     context::MirContext,
     intern::Interner,
-    pass::{
-        Changed, TransformPass as _,
-        execution::{
-            cost::{StatementCostVec, TraversalCostVec},
-            statement_placement::{
-                EmbeddingStatementPlacement, InterpreterStatementPlacement,
-                PostgresStatementPlacement,
-            },
-            target::TargetArray,
+    pass::execution::{
+        VertexType,
+        cost::StatementCostVec,
+        statement_placement::{
+            EmbeddingStatementPlacement, InterpreterStatementPlacement, PostgresStatementPlacement,
         },
-        transform::{TraversalExtraction, Traversals},
     },
     pretty::{TextFormatAnnotations, TextFormatOptions},
 };
@@ -56,17 +51,6 @@ impl<A: Allocator> TextFormatAnnotations for CostAnnotations<'_, A> {
     }
 }
 
-/// Formats traversal costs as a summary section.
-fn format_traversals<A: Allocator>(traversal_costs: &TraversalCostVec<A>) -> impl Display {
-    core::fmt::from_fn(move |f| {
-        writeln!(f, "Traversals:")?;
-        for (local, cost) in traversal_costs {
-            writeln!(f, "  {local}: {cost}")?;
-        }
-        Ok(())
-    })
-}
-
 /// Runs statement placement analysis and asserts the result matches a snapshot.
 #[track_caller]
 pub(crate) fn assert_placement<'heap, A: Allocator>(
@@ -75,7 +59,6 @@ pub(crate) fn assert_placement<'heap, A: Allocator>(
     body: &Body<'heap>,
     context: &MirContext<'_, 'heap>,
     statement_costs: &StatementCostVec<A>,
-    traversal_costs: &TraversalCostVec<A>,
 ) {
     let formatter = Formatter::new(context.heap);
     let type_formatter = TypeFormatter::new(&formatter, context.env, TypeFormatterOptions::terse());
@@ -95,16 +78,6 @@ pub(crate) fn assert_placement<'heap, A: Allocator>(
 
     text_format.format_body(body).expect("formatting failed");
 
-    write!(
-        text_format.writer,
-        "\n\n{:=^50}\n\n",
-        format!(" Traversals ")
-    )
-    .expect("infallible");
-
-    write!(text_format.writer, "{}", format_traversals(traversal_costs))
-        .expect("formatting failed");
-
     // Snapshot configuration
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut settings = Settings::clone_current();
@@ -121,29 +94,19 @@ pub(crate) fn assert_placement<'heap, A: Allocator>(
 
 /// Helper to set up a test context and run placement analysis.
 ///
-/// Returns the body, context components, and cost vectors for assertion.
+/// Returns the body and statement cost vector for assertion.
 #[track_caller]
 pub(crate) fn run_placement<'heap>(
-    context: &mut MirContext<'_, 'heap>,
+    context: &MirContext<'_, 'heap>,
     placement: &mut impl StatementPlacement<'heap, &'heap Heap>,
-    mut body: Body<'heap>,
-) -> (
-    Body<'heap>,
-    StatementCostVec<&'heap Heap>,
-    TraversalCostVec<&'heap Heap>,
-) {
-    // Run TraversalExtraction to produce Traversals
-    let mut extraction = TraversalExtraction::new_in(Global);
-    let _: Changed = extraction.run(context, &mut body);
-    let traversals = extraction
-        .take_traversals()
-        .expect("expected GraphReadFilter body");
+    body: Body<'heap>,
+) -> (Body<'heap>, StatementCostVec<&'heap Heap>) {
+    let vertex = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
+        .unwrap_or_else(|| unimplemented!("lookup for declared type"));
 
-    // Run placement analysis
-    let (traversal_costs, statement_costs) =
-        placement.statement_placement_in(context, &body, &traversals, context.heap);
+    let statement_costs = placement.statement_placement_in(context, &body, vertex, context.heap);
 
-    (body, statement_costs, traversal_costs)
+    (body, statement_costs)
 }
 
 // =============================================================================
@@ -180,27 +143,16 @@ fn non_graph_read_filter_returns_empty() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = Traversals::with_capacity_in(Local::new(1), body.local_decls.len(), &heap);
-
-    let traversal_costs = TargetArray::from_fn(|_| None);
-
     let mut postgres = PostgresStatementPlacement::new_in(Global);
-    let mut interpreter = InterpreterStatementPlacement::<Global>::new(&traversal_costs);
+    let mut interpreter = InterpreterStatementPlacement::new();
     let mut embedding = EmbeddingStatementPlacement::new_in(Global);
 
-    let (postgres_traversal, postgres_statement) =
-        postgres.statement_placement_in(&context, &body, &traversals, &heap);
-    let (interpreter_traversal, interpreter_statement) =
-        interpreter.statement_placement_in(&context, &body, &traversals, &heap);
-    let (embedding_traversal, embedding_statement) =
-        embedding.statement_placement_in(&context, &body, &traversals, &heap);
+    let vertex = VertexType::Entity;
+    let postgres_statement = postgres.statement_placement_in(&context, &body, vertex, &heap);
+    let interpreter_statement = interpreter.statement_placement_in(&context, &body, vertex, &heap);
+    let embedding_statement = embedding.statement_placement_in(&context, &body, vertex, &heap);
 
-    assert_eq!(postgres_traversal.iter().count(), 0);
     assert!(postgres_statement.all_unassigned());
-
-    assert_eq!(interpreter_traversal.iter().count(), 0);
     assert!(interpreter_statement.all_unassigned());
-
-    assert_eq!(embedding_traversal.iter().count(), 0);
     assert!(embedding_statement.all_unassigned());
 }

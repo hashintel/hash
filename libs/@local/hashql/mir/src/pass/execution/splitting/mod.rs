@@ -185,7 +185,8 @@ fn offset_basic_blocks<'heap, A: Allocator, S: Allocator + Clone>(
 
             // Unlike other regions, these may be empty. Mark empty blocks as supported everywhere.
             if costs[TargetId::Interpreter].is_empty() {
-                targets[start_id].insert_range(TargetId::MIN..=TargetId::MAX);
+                targets[start_id]
+                    .insert_range(TargetId::MIN..=TargetId::MAX, TargetId::VARIANT_COUNT);
             } else {
                 targets[start_id] = supported(&costs, 0);
             }
@@ -305,9 +306,12 @@ impl<S: Allocator> BasicBlockSplitting<S> {
         self.split_in(context, body, statement_costs, Global)
     }
 
-    /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities.
+    /// Splits [`Body`] blocks and returns per-block [`TargetBitSet`] affinities along with
+    /// the per-block region counts used during splitting.
     ///
-    /// The returned vector is indexed by the new [`BasicBlockId`]s.
+    /// The first element is indexed by the new [`BasicBlockId`]s. The second element maps
+    /// each original block to the number of blocks it was split into, which callers can use
+    /// to redistribute parallel data structures.
     pub(crate) fn split_in<'heap, A: Allocator>(
         &self,
         context: &MirContext<'_, 'heap>,

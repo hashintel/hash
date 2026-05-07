@@ -26,12 +26,12 @@ use crate::{
     def::DefId,
     intern::Interner,
     op,
-    pass::{
-        execution::statement_placement::{
+    pass::execution::{
+        VertexType,
+        statement_placement::{
             PostgresStatementPlacement, StatementPlacement as _,
             tests::{assert_placement, run_placement},
         },
-        transform::Traversals,
     },
 };
 
@@ -58,7 +58,7 @@ fn binary_unary_ops_supported() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -66,8 +66,7 @@ fn binary_unary_ops_supported() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "binary_unary_ops_supported",
@@ -75,7 +74,6 @@ fn binary_unary_ops_supported() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -100,7 +98,7 @@ fn aggregate_tuple_supported() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -108,8 +106,7 @@ fn aggregate_tuple_supported() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "aggregate_tuple_supported",
@@ -117,7 +114,6 @@ fn aggregate_tuple_supported() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -145,7 +141,7 @@ fn aggregate_closure_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -153,8 +149,7 @@ fn aggregate_closure_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "aggregate_closure_rejected",
@@ -162,7 +157,6 @@ fn aggregate_closure_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -193,7 +187,7 @@ fn apply_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -201,8 +195,7 @@ fn apply_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "apply_rejected",
@@ -210,7 +203,6 @@ fn apply_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -234,7 +226,7 @@ fn input_supported() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -242,8 +234,7 @@ fn input_supported() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "input_supported",
@@ -251,7 +242,6 @@ fn input_supported() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -277,7 +267,7 @@ fn env_with_closure_type_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -285,8 +275,7 @@ fn env_with_closure_type_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_with_closure_type_rejected",
@@ -294,7 +283,6 @@ fn env_with_closure_type_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -319,7 +307,7 @@ fn env_without_closure_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -327,8 +315,7 @@ fn env_without_closure_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_without_closure_accepted",
@@ -336,7 +323,6 @@ fn env_without_closure_accepted() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -360,7 +346,7 @@ fn entity_projection_column() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -368,8 +354,7 @@ fn entity_projection_column() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "entity_projection_column",
@@ -377,7 +362,6 @@ fn entity_projection_column() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -402,7 +386,7 @@ fn entity_projection_jsonb() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -410,8 +394,7 @@ fn entity_projection_jsonb() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "entity_projection_jsonb",
@@ -419,7 +402,6 @@ fn entity_projection_jsonb() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -448,7 +430,7 @@ fn storage_statements_zero_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -456,8 +438,7 @@ fn storage_statements_zero_cost() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "storage_statements_zero_cost",
@@ -465,7 +446,6 @@ fn storage_statements_zero_cost() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -512,7 +492,7 @@ fn diamond_must_analysis() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -520,8 +500,7 @@ fn diamond_must_analysis() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "diamond_must_analysis",
@@ -529,7 +508,6 @@ fn diamond_must_analysis() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -554,7 +532,7 @@ fn graph_read_edge_unsupported() {
     let mut builder = BodyBuilder::new(&interner);
 
     let _env_local = builder.local("env", unit_ty);
-    let vertex = builder.local("vertex", entity_ty);
+    let _vertex = builder.local("vertex", entity_ty);
     let axis = builder.local("axis", int_ty);
     let graph_result = builder.local("graph_result", int_ty);
     let local_val = builder.local("local_val", int_ty);
@@ -596,11 +574,9 @@ fn graph_read_edge_unsupported() {
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let traversals = Traversals::with_capacity_in(vertex.local, body.local_decls.len(), &heap);
-
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (traversal_costs, statement_costs) =
-        placement.statement_placement_in(&context, &body, &traversals, &heap);
+    let statement_costs =
+        placement.statement_placement_in(&context, &body, VertexType::Entity, &heap);
 
     assert_placement(
         "graph_read_edge_unsupported",
@@ -608,7 +584,6 @@ fn graph_read_edge_unsupported() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -634,7 +609,7 @@ fn env_closure_field_rejected_other_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -642,8 +617,7 @@ fn env_closure_field_rejected_other_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_closure_field_rejected_other_accepted",
@@ -651,7 +625,6 @@ fn env_closure_field_rejected_other_accepted() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -676,7 +649,7 @@ fn env_dict_non_string_key_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -684,8 +657,7 @@ fn env_dict_non_string_key_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_dict_non_string_key_rejected",
@@ -693,7 +665,6 @@ fn env_dict_non_string_key_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -717,7 +688,7 @@ fn env_dict_string_key_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -725,8 +696,7 @@ fn env_dict_string_key_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_dict_string_key_accepted",
@@ -734,7 +704,6 @@ fn env_dict_string_key_accepted() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -762,7 +731,7 @@ fn env_dict_opaque_string_key_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -770,8 +739,7 @@ fn env_dict_opaque_string_key_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "env_dict_opaque_string_key_accepted",
@@ -779,7 +747,6 @@ fn env_dict_opaque_string_key_accepted() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -833,7 +800,7 @@ fn fnptr_constant_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -841,8 +808,7 @@ fn fnptr_constant_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "fnptr_constant_rejected",
@@ -850,7 +816,6 @@ fn fnptr_constant_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -880,7 +845,7 @@ fn eq_dict_vs_struct_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -888,8 +853,7 @@ fn eq_dict_vs_struct_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_dict_vs_struct_rejected",
@@ -897,7 +861,6 @@ fn eq_dict_vs_struct_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -927,7 +890,7 @@ fn eq_list_vs_tuple_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -935,8 +898,7 @@ fn eq_list_vs_tuple_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_list_vs_tuple_rejected",
@@ -944,7 +906,6 @@ fn eq_list_vs_tuple_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -974,7 +935,7 @@ fn eq_unknown_type_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -982,8 +943,7 @@ fn eq_unknown_type_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_unknown_type_rejected",
@@ -991,7 +951,6 @@ fn eq_unknown_type_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -1021,7 +980,7 @@ fn eq_same_type_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -1029,8 +988,7 @@ fn eq_same_type_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_same_type_accepted",
@@ -1038,7 +996,6 @@ fn eq_same_type_accepted() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -1068,7 +1025,7 @@ fn ne_dict_vs_struct_rejected() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -1076,8 +1033,7 @@ fn ne_dict_vs_struct_rejected() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "ne_dict_vs_struct_rejected",
@@ -1085,7 +1041,6 @@ fn ne_dict_vs_struct_rejected() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -1644,7 +1599,7 @@ fn eq_place_vs_constant_accepted() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -1652,8 +1607,7 @@ fn eq_place_vs_constant_accepted() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "eq_place_vs_constant_accepted",
@@ -1661,7 +1615,6 @@ fn eq_place_vs_constant_accepted() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -2181,7 +2134,7 @@ fn serialization_unsafe_statement_no_cost() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -2189,8 +2142,7 @@ fn serialization_unsafe_statement_no_cost() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "serialization_unsafe_statement_no_cost",
@@ -2198,7 +2150,6 @@ fn serialization_unsafe_statement_no_cost() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }
 
@@ -2237,7 +2188,7 @@ fn serialization_unsafe_edge_propagates() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
@@ -2245,8 +2196,7 @@ fn serialization_unsafe_edge_propagates() {
     };
 
     let mut placement = PostgresStatementPlacement::new_in(Global);
-    let (body, statement_costs, traversal_costs) =
-        run_placement(&mut context, &mut placement, body);
+    let (body, statement_costs) = run_placement(&context, &mut placement, body);
 
     assert_placement(
         "serialization_unsafe_edge_propagates",
@@ -2254,6 +2204,5 @@ fn serialization_unsafe_edge_propagates() {
         &body,
         &context,
         &statement_costs,
-        &traversal_costs,
     );
 }

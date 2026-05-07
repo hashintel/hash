@@ -21,7 +21,7 @@
 use alloc::alloc::Global;
 use core::{alloc::Allocator, convert::Infallible, mem};
 
-use hashql_core::{graph::Predecessors as _, heap::Heap, id::Id as _};
+use hashql_core::{graph::Predecessors as _, id::Id as _};
 
 use super::target::TargetId;
 use crate::{
@@ -226,47 +226,40 @@ fn fuse_blocks<A: Allocator, S: Allocator + Clone>(
 ///
 /// [`BasicBlock`]: crate::body::basic_block::BasicBlock
 /// [`BasicBlockSplitting`]: super::splitting::BasicBlockSplitting
-pub(crate) struct BasicBlockFusion<A: Allocator> {
-    alloc: A,
+pub(crate) struct BasicBlockFusion<S: Allocator> {
+    scratch: S,
 }
 
 impl BasicBlockFusion<Global> {
     /// Creates a new pass using the global allocator.
     #[must_use]
+    #[cfg(test)]
     pub(crate) const fn new() -> Self {
         Self::new_in(Global)
     }
 }
 
-impl<A: Allocator> BasicBlockFusion<A> {
+impl<S: Allocator> BasicBlockFusion<S> {
     /// Creates a new pass using the provided allocator.
-    pub(crate) const fn new_in(alloc: A) -> Self {
-        Self { alloc }
+    pub(crate) const fn new_in(scratch: S) -> Self {
+        Self { scratch }
     }
 
     /// Fuses blocks in `body` that share the same target assignment.
     ///
     /// Modifies both `body` and `targets` in place. The `targets` vec is compacted to match
     /// the new block layout.
-    pub(crate) fn fuse<'heap>(
+    pub(crate) fn fuse<A: Allocator>(
         &self,
-        body: &mut Body<'heap>,
-        targets: &mut BasicBlockVec<TargetId, &'heap Heap>,
-    ) where
-        A: Clone,
-    {
+        body: &mut Body<'_>,
+        targets: &mut BasicBlockVec<TargetId, A>,
+    ) {
         debug_assert_eq!(
             body.basic_blocks.len(),
             targets.len(),
             "target vec length must match basic block count"
         );
 
-        fuse_blocks(self.alloc.clone(), body, targets);
-    }
-}
-
-impl Default for BasicBlockFusion<Global> {
-    fn default() -> Self {
-        Self::new()
+        fuse_blocks(&self.scratch, body, targets);
     }
 }

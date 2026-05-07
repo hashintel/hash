@@ -46,7 +46,7 @@ impl Display for IdError {
 ///
 /// Provides type safety for IDs of different domains (nodes, users, etc.)
 /// while maintaining a consistent conversion API.
-pub trait Id:
+pub const trait Id:
     Copy
     + PartialEq
     + Eq
@@ -55,9 +55,9 @@ pub trait Id:
     + Hash
     + Debug
     + Display
-    + TryFrom<u32, Error = IdError>
-    + TryFrom<u64, Error = IdError>
-    + TryFrom<usize, Error = IdError>
+    + [const] TryFrom<u32, Error = IdError>
+    + [const] TryFrom<u64, Error = IdError>
+    + [const] TryFrom<usize, Error = IdError>
     + 'static
 {
     /// The maximum value this ID type can represent.
@@ -75,7 +75,10 @@ pub trait Id:
     #[inline]
     #[must_use]
     fn from_u32(index: u32) -> Self {
-        Self::try_from(index).expect("Cannot create ID: value outside valid range")
+        match Self::try_from(index) {
+            Ok(id) => id,
+            Err(_) => panic!("Cannot create ID: value outside valid range"),
+        }
     }
 
     /// Creates an ID from a [`u64`] value.
@@ -87,7 +90,10 @@ pub trait Id:
     #[inline]
     #[must_use]
     fn from_u64(index: u64) -> Self {
-        Self::try_from(index).expect("Cannot create ID: value outside valid range")
+        match Self::try_from(index) {
+            Ok(id) => id,
+            Err(_) => panic!("Cannot create ID: value outside valid range"),
+        }
     }
 
     /// Creates an ID from a [`usize`] value.
@@ -99,7 +105,10 @@ pub trait Id:
     #[inline]
     #[must_use]
     fn from_usize(index: usize) -> Self {
-        Self::try_from(index).expect("Cannot create ID: value outside valid range")
+        match Self::try_from(index) {
+            Ok(id) => id,
+            Err(_) => panic!("Cannot create ID: value outside valid range"),
+        }
     }
 
     /// Converts this ID to a [`u32`] value.
@@ -181,16 +190,16 @@ pub trait Id:
 ///     }
 /// }
 /// ```
-pub trait HasId {
+pub const trait HasId {
     type Id: Id;
 
     /// Returns the ID of this entity.
     fn id(&self) -> Self::Id;
 }
 
-impl<T> HasId for &T
+impl<T> const HasId for &T
 where
-    T: HasId,
+    T: [const] HasId,
 {
     type Id = T::Id;
 
@@ -199,7 +208,7 @@ where
     }
 }
 
-impl<I, T> HasId for (I, T)
+impl<I, T> const HasId for (I, T)
 where
     I: Id,
 {
