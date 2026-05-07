@@ -1,7 +1,8 @@
 import { ark } from "@ark-ui/react/factory";
 import { styled } from "@hashintel/ds-helpers/jsx";
-import { code } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
+import { codeRecipe } from "./code.recipe";
+
 export type CodeProps = ComponentProps<typeof Code>;
-export const Code = styled(ark.code, code);
+export const Code = styled(ark.code, codeRecipe);

@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const code = defineRecipe({
+const codeRecipeDefinition = {
   className: "code",
   base: {
     alignItems: "center",
@@ -48,4 +48,9 @@ export const code = defineRecipe({
       xl: { textStyle: "md", height: "6", minWidth: "6", px: "1" },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const codeRecipe = cva(codeRecipeDefinition);
+
+export type CodeRecipeProps = RecipeVariantProps<typeof codeRecipe>;

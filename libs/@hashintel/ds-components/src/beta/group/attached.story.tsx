@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Badge } from "../badge/badge";
+import { Badge } from "../badge";
 import { Button } from "../button";
 import { Group } from "./group";
 

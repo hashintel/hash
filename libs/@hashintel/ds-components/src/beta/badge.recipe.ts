@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const badge = defineRecipe({
+const badgeRecipeDefinition = {
   className: "badge",
   base: {
     display: "inline-flex",
@@ -76,4 +76,9 @@ export const badge = defineRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const badgeRecipe = cva(badgeRecipeDefinition);
+
+export type BadgeRecipeProps = RecipeVariantProps<typeof badgeRecipe>;

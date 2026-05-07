@@ -86,6 +86,18 @@ What was proven:
 
 These are now also on the flat-root pattern with local recipe imports.
 
+#### Third migration batch completed
+
+- `badge`
+- `code`
+- `heading`
+
+These are now on the flat-root pattern with local recipe imports.
+
+- `badgeRecipe` and `codeRecipe` are staged with root-level `@ts-expect-error` suppressions.
+- `headingRecipe` converted cleanly without a suppression.
+- `src/preset/recipes.ts` now imports these flat roots and maps them to the public preset recipe names.
+
 ### Preset integration decisions
 
 `src/preset/recipes.ts` now mixes three states intentionally:
@@ -121,8 +133,11 @@ The codemod script at `scripts/migrate-beta-fractal-pilots.ts` currently knows h
 
 The script currently has pilot config entries for:
 
+- `badge`
 - `button`
 - `checkbox`
+- `code`
+- `heading`
 - `kbd`
 - `pagination`
 - `spinner`
@@ -170,10 +185,11 @@ The script currently has pilot config entries for:
 - **Dirty files**: the just-completed ds-components migration slice prior to commit, including codemod files, preset updates, flattened beta roots, and many rewritten story imports under `libs/@hashintel/ds-components`
 - **Test status**:
   - `yarn fix:eslint` — passed
+  - `yarn fix:format` — passed
   - `yarn lint:eslint` — passed
   - `yarn lint:tsc` — passed
   - `yarn test:unit` — passed
-  - `yarn build` — not verifiable here because `tsup` is not on PATH (`build:lib` exits 127)
+  - `yarn build` — still not verifiable here because `tsup` is not on PATH in this environment (`build:lib` exits 127; likely sandbox-related rather than slice-specific)
 
 ## Artifact status
 

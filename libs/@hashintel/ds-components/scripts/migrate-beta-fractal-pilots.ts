@@ -27,8 +27,11 @@ type ReplaceEdit = {
 };
 
 const pilotConfigs = new Map<string, PilotConfig>([
+  ["badge", { name: "badge", suppressRecipeTypeErrors: true }],
   ["button", { name: "button", suppressRecipeTypeErrors: true }],
   ["checkbox", { name: "checkbox", suppressRecipeTypeErrors: true }],
+  ["code", { name: "code", suppressRecipeTypeErrors: true }],
+  ["heading", { name: "heading", suppressRecipeTypeErrors: false }],
   ["kbd", { name: "kbd", suppressRecipeTypeErrors: true }],
   ["text", { name: "text", suppressRecipeTypeErrors: false }],
   ["tooltip", { name: "tooltip", suppressRecipeTypeErrors: true }],

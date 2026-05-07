@@ -3,14 +3,14 @@ import { accordion } from "../beta/accordion/accordion.recipe";
 import { alert } from "../beta/alert/alert.recipe";
 import { angleSlider } from "../beta/angle-slider/angle-slider.recipe";
 import { avatar } from "../beta/avatar/avatar.recipe";
-import { badge } from "../beta/badge/badge.recipe";
+import { badgeRecipe } from "../beta/badge.recipe";
 import { breadcrumb } from "../beta/breadcrumb/breadcrumb.recipe";
 import { buttonRecipe } from "../beta/button.recipe";
 import { card } from "../beta/card/card.recipe";
 import { carousel } from "../beta/carousel/carousel.recipe";
 import { checkboxSlotRecipe } from "../beta/checkbox.recipe";
 import { clipboard } from "../beta/clipboard/clipboard.recipe";
-import { code } from "../beta/code/code.recipe";
+import { codeRecipe } from "../beta/code.recipe";
 import { collapsible } from "../beta/collapsible/collapsible.recipe";
 import { colorPicker } from "../beta/color-picker/color-picker.recipe";
 import { combobox } from "../beta/combobox/combobox.recipe";
@@ -23,7 +23,7 @@ import { fieldset } from "../beta/fieldset/fieldset.recipe";
 import { fileUpload } from "../beta/file-upload/file-upload.recipe";
 import { floatingPanel } from "../beta/floating-panel/floating-panel.recipe";
 import { group } from "../beta/group/group.recipe";
-import { heading } from "../beta/heading/heading.recipe";
+import { headingRecipe } from "../beta/heading.recipe";
 import { hoverCard } from "../beta/hover-card/hover-card.recipe";
 import { icon } from "../beta/icon/icon.recipe";
 import { input } from "../beta/input/input.recipe";
@@ -68,11 +68,11 @@ import { treeView } from "../beta/tree-view/tree-view.recipe";
 
 export const recipes = {
   // absoluteCenter,
-  badge,
+  badge: badgeRecipe,
   button: buttonRecipe,
-  code,
+  code: codeRecipe,
   group,
-  heading,
+  heading: headingRecipe,
   icon,
   input,
   inputAddon,
