@@ -2,8 +2,8 @@
 
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Span } from "../span/span";
-import { DisplayValue } from "./display-value";
+import { DisplayValue } from "../display-value";
+import { Span } from "../span";
 
 export const App = () => {
   return (

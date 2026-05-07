@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 import { ButtonGroup } from "../button";
-import { IconButton } from "../icon-button/icon-button";
+import { IconButton } from "../icon-button";
 import * as ToggleGroup from "../toggle-group";
 
 export const App = () => {

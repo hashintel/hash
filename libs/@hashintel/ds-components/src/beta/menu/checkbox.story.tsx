@@ -3,7 +3,7 @@
 import { useCheckboxGroup } from "@ark-ui/react/checkbox";
 
 import { Button } from "../button";
-import * as Menu from "./menu";
+import * as Menu from "../menu";
 
 export const App = () => {
   const items = [

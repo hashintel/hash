@@ -1,6 +1,6 @@
 import { Button } from "../button";
 import { Group } from "../group";
-import { Input } from "./input";
+import { Input } from "../input";
 
 export const App = () => {
   return (

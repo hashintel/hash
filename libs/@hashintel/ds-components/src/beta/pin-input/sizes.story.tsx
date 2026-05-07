@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as PinInput from "./pin-input";
+import * as PinInput from "../pin-input";
 
 export const App = () => {
   const sizes = ["sm", "md", "lg", "xl"] as const;

@@ -1,7 +1,7 @@
 import { Portal } from "@ark-ui/react/portal";
 
 import { Button } from "../button";
-import { CloseButton } from "../close-button/close-button";
+import { CloseButton } from "../close-button";
 import * as Popover from "../popover";
 
 export const App = () => {

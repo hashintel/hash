@@ -2,8 +2,8 @@ import { Portal } from "@ark-ui/react/portal";
 import { EllipsisIcon } from "lucide-react";
 
 import * as Breadcrumb from "../breadcrumb";
-import { IconButton } from "../icon-button/icon-button";
-import * as Menu from "../menu/menu";
+import { IconButton } from "../icon-button";
+import * as Menu from "../menu";
 
 interface BreadcrumbMenuItemProps {
   children: React.ReactNode;

@@ -9,7 +9,7 @@ import { forwardRef, useMemo } from "react";
 
 import { buttonRecipe, type ButtonRecipeProps } from "./button.recipe";
 import { Group, type GroupProps } from "./group";
-import { Loader } from "./loader/loader";
+import { Loader } from "./loader";
 
 interface ButtonLoadingProps {
   /**

@@ -7,7 +7,7 @@ import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { EllipsisIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 
-import { IconButton } from "./icon-button/icon-button";
+import { IconButton } from "./icon-button";
 import { paginationSlotRecipe } from "./pagination.recipe";
 
 const { withProvider, withContext } = createStyleContext(paginationSlotRecipe);

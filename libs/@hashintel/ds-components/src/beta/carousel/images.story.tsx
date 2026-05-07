@@ -1,8 +1,8 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import * as Carousel from "../carousel";
-import { IconButton } from "../icon-button/icon-button";
-import { Image } from "../image/image";
+import { IconButton } from "../icon-button";
+import { Image } from "../image";
 
 const images = [
   "https://tinyurl.com/5b6ka8jd",

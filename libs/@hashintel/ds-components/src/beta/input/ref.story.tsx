@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-import { Input } from "./input";
+import { Input } from "../input";
 
 export const App = () => {
   const ref = useRef<HTMLInputElement>(null);

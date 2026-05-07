@@ -4,7 +4,7 @@ import { MapPinIcon } from "lucide-react";
 
 import * as Avatar from "../avatar";
 import { Button } from "../button";
-import { CloseButton } from "../close-button/close-button";
+import { CloseButton } from "../close-button";
 import * as Dialog from "../dialog";
 import * as HoverCard from "../hover-card";
 import { Icon } from "../icon";

@@ -1,8 +1,8 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 import { EuroIcon, InfoIcon } from "lucide-react";
 
-import { Input } from "../input/input";
-import { InputGroup } from "./input-group";
+import { Input } from "../input";
+import { InputGroup } from "../input-group";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg", "xl"] as const;

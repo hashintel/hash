@@ -1,7 +1,7 @@
 import { ChevronDownIcon } from "lucide-react";
 
 import { Button, ButtonGroup } from "../button";
-import { IconButton } from "../icon-button/icon-button";
+import { IconButton } from "../icon-button";
 
 export const App = () => {
   return (

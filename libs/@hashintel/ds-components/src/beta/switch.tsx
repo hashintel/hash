@@ -3,10 +3,11 @@
 import { ark } from "@ark-ui/react/factory";
 import { Switch, useSwitchContext } from "@ark-ui/react/switch";
 import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
-import { switchRecipe } from "@hashintel/ds-helpers/recipes";
 import { type ComponentProps, forwardRef, type ReactNode } from "react";
 
-const { withProvider, withContext } = createStyleContext(switchRecipe);
+import { switchSlotRecipe } from "./switch.recipe";
+
+const { withProvider, withContext } = createStyleContext(switchSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Switch.Root, "root");

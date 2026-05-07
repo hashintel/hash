@@ -2,7 +2,7 @@ import { Portal } from "@ark-ui/react/portal";
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
 import { Button } from "../button";
-import { CloseButton } from "../close-button/close-button";
+import { CloseButton } from "../close-button";
 import * as Drawer from "../drawer";
 
 export const App = () => {

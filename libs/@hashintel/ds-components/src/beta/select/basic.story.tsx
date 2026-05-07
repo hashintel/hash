@@ -2,7 +2,7 @@
 
 import { createListCollection } from "@ark-ui/react/collection";
 
-import * as Select from "./select";
+import * as Select from "../select";
 
 const collection = createListCollection({
   items: ["React", "Vue", "Svelte", "Angular"],

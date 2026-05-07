@@ -2,7 +2,7 @@ import { Portal } from "@ark-ui/react/portal";
 import { ChevronRightIcon } from "lucide-react";
 
 import { Button } from "../button";
-import * as Menu from "./menu";
+import * as Menu from "../menu";
 
 export const App = () => {
   return (

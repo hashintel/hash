@@ -6,7 +6,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { Button } from "../button";
 import * as Carousel from "../carousel";
-import { IconButton } from "../icon-button/icon-button";
+import { IconButton } from "../icon-button";
 import { Text } from "../text";
 
 const ScrollToTrigger = () => {

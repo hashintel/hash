@@ -4,7 +4,7 @@ import { GithubIcon, GitlabIcon } from "lucide-react";
 import { Button } from "../button";
 import * as Card from "../card";
 import * as Field from "../field";
-import { Input } from "../input/input";
+import { Input } from "../input";
 import { Text } from "../text";
 
 export const App = () => {

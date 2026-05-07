@@ -13,30 +13,30 @@ import { clipboardSlotRecipe } from "../beta/clipboard.recipe";
 import { codeRecipe } from "../beta/code.recipe";
 import { collapsibleSlotRecipe } from "../beta/collapsible.recipe";
 import { colorPickerSlotRecipe } from "../beta/color-picker.recipe";
-import { combobox } from "../beta/combobox/combobox.recipe";
+import { comboboxSlotRecipe } from "../beta/combobox.recipe";
 import { datePickerSlotRecipe } from "../beta/date-picker.recipe";
 import { dialogSlotRecipe } from "../beta/dialog.recipe";
 import { drawerSlotRecipe } from "../beta/drawer.recipe";
 import { editableSlotRecipe } from "../beta/editable.recipe";
 import { fieldSlotRecipe } from "../beta/field.recipe";
 import { fieldsetSlotRecipe } from "../beta/fieldset.recipe";
-import { fileUpload } from "../beta/file-upload/file-upload.recipe";
+import { fileUploadSlotRecipe } from "../beta/file-upload.recipe";
 import { floatingPanel } from "../beta/floating-panel/floating-panel.recipe";
 import { groupRecipe } from "../beta/group.recipe";
 import { headingRecipe } from "../beta/heading.recipe";
 import { hoverCardSlotRecipe } from "../beta/hover-card.recipe";
 import { iconRecipe } from "../beta/icon.recipe";
-import { input } from "../beta/input/input.recipe";
+import { inputRecipe } from "../beta/input.recipe";
 import { inputAddonRecipe } from "../beta/input-addon.recipe";
-import { inputGroup } from "../beta/input-group/input-group.recipe";
+import { inputGroupSlotRecipe } from "../beta/input-group.recipe";
 import { kbdRecipe } from "../beta/kbd.recipe";
 import { linkRecipe } from "../beta/link.recipe";
 import { listbox } from "../beta/listbox/listbox.recipe";
-import { menu } from "../beta/menu/menu.recipe";
-import { numberInput } from "../beta/number-input/number-input.recipe";
+import { menuSlotRecipe } from "../beta/menu.recipe";
+import { numberInputSlotRecipe } from "../beta/number-input.recipe";
 import { paginationSlotRecipe } from "../beta/pagination.recipe";
 import { passwordInput } from "../beta/password-input/password-input.recipe";
-import { pinInput } from "../beta/pin-input/pin-input.recipe";
+import { pinInputSlotRecipe } from "../beta/pin-input.recipe";
 import { popoverSlotRecipe } from "../beta/popover.recipe";
 import { progressSlotRecipe } from "../beta/progress.recipe";
 import { qrCode } from "../beta/qr-code/qr-code.recipe";
@@ -45,7 +45,7 @@ import { radioGroupSlotRecipe } from "../beta/radio-group.recipe";
 import { ratingGroupSlotRecipe } from "../beta/rating-group.recipe";
 import { scrollAreaSlotRecipe } from "../beta/scroll-area.recipe";
 import { segmentGroupSlotRecipe } from "../beta/segment-group.recipe";
-import { select } from "../beta/select/select.recipe";
+import { selectSlotRecipe } from "../beta/select.recipe";
 import { signaturePad } from "../beta/signature-pad/signature-pad.recipe";
 import { skeletonRecipe } from "../beta/skeleton.recipe";
 import { sliderSlotRecipe } from "../beta/slider.recipe";
@@ -54,7 +54,7 @@ import { splitterSlotRecipe } from "../beta/splitter.recipe";
 import { steps } from "../beta/steps/steps.recipe";
 import { switchSlotRecipe } from "../beta/switch.recipe";
 import { tableSlotRecipe } from "../beta/table.recipe";
-import { tabs } from "../beta/tabs/tabs.recipe";
+import { tabsSlotRecipe } from "../beta/tabs.recipe";
 import { tagsInputSlotRecipe } from "../beta/tags-input.recipe";
 import { textRecipe } from "../beta/text.recipe";
 import { textareaRecipe } from "../beta/textarea.recipe";
@@ -74,7 +74,7 @@ export const recipes = {
   group: groupRecipe,
   heading: headingRecipe,
   icon: iconRecipe,
-  input,
+  input: inputRecipe,
   inputAddon: inputAddonRecipe,
   kbd: kbdRecipe,
   link: linkRecipe,
@@ -96,23 +96,23 @@ export const slotRecipes = {
   clipboard: clipboardSlotRecipe,
   collapsible: collapsibleSlotRecipe,
   colorPicker: colorPickerSlotRecipe,
-  combobox,
+  combobox: comboboxSlotRecipe,
   datePicker: datePickerSlotRecipe,
   dialog: dialogSlotRecipe,
   drawer: drawerSlotRecipe,
   editable: editableSlotRecipe,
   field: fieldSlotRecipe,
   fieldset: fieldsetSlotRecipe,
-  fileUpload,
+  fileUpload: fileUploadSlotRecipe,
   floatingPanel,
   hoverCard: hoverCardSlotRecipe,
-  inputGroup,
+  inputGroup: inputGroupSlotRecipe,
   listbox,
-  menu,
-  numberInput,
+  menu: menuSlotRecipe,
+  numberInput: numberInputSlotRecipe,
   pagination: paginationSlotRecipe,
   passwordInput,
-  pinInput,
+  pinInput: pinInputSlotRecipe,
   popover: popoverSlotRecipe,
   progress: progressSlotRecipe,
   radioCardGroup: radioCardGroupSlotRecipe,
@@ -120,14 +120,14 @@ export const slotRecipes = {
   ratingGroup: ratingGroupSlotRecipe,
   scrollArea: scrollAreaSlotRecipe,
   segmentGroup: segmentGroupSlotRecipe,
-  select,
+  select: selectSlotRecipe,
   signaturePad,
   slider: sliderSlotRecipe,
   splitter: splitterSlotRecipe,
   steps,
   switchRecipe: switchSlotRecipe,
   table: tableSlotRecipe,
-  tabs,
+  tabs: tabsSlotRecipe,
   tagsInput: tagsInputSlotRecipe,
   timer,
   toast: toastSlotRecipe,

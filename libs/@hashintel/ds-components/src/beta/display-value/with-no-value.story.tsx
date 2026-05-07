@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { DisplayValue } from "./display-value";
+import { DisplayValue } from "../display-value";
 
 export const App = () => {
   return (

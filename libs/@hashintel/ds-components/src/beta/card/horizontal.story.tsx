@@ -3,7 +3,7 @@ import { Box, Wrap } from "@hashintel/ds-helpers/jsx";
 import { Badge } from "../badge";
 import { Button } from "../button";
 import * as Card from "../card";
-import { Image } from "../image/image";
+import { Image } from "../image";
 
 export const App = () => {
   return (

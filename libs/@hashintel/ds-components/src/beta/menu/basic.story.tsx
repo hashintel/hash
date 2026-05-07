@@ -1,5 +1,5 @@
 import { Button } from "../button";
-import * as Menu from "./menu";
+import * as Menu from "../menu";
 
 export const App = () => {
   return (

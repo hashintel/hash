@@ -2,7 +2,7 @@ import { Stack } from "@hashintel/ds-helpers/jsx";
 import { EuroIcon } from "lucide-react";
 
 import { Group } from "../group";
-import { Input } from "../input/input";
+import { Input } from "../input";
 import { InputAddon } from "../input-addon";
 
 export const App = () => {
