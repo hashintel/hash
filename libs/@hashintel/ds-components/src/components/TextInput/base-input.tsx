@@ -1,5 +1,6 @@
 import { cx } from "@hashintel/ds-helpers/css";
 import { useRef, useState } from "react";
+import { useMergeRefs } from "use-callback-ref";
 
 import type { FormInputWidth, SharedInputProps } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
@@ -171,15 +172,6 @@ export const BaseInput = (
     disabled: !!disabled,
   });
 
-  const setInputRef = (el: HTMLInputElement | null) => {
-    internalRef.current = el;
-    if (typeof inputRef === "function") {
-      inputRef(el);
-    } else if (inputRef) {
-      (inputRef as { current: HTMLInputElement | null }).current = el;
-    }
-  };
-
   if (readonly) {
     return (
       <span
@@ -192,6 +184,49 @@ export const BaseInput = (
       </span>
     );
   }
+
+  const input = (
+    <input
+      ref={useMergeRefs([internalRef, ...(inputRef ? [inputRef] : [])])}
+      type={type}
+      inputMode={inputMode}
+      name={name}
+      value={value ?? ""}
+      placeholder={placeholder}
+      disabled={disabled}
+      required={required}
+      aria-invalid={invalid ?? undefined}
+      onChange={(event) => {
+        onChange(event.target.value, event);
+      }}
+      onFocus={(event) => {
+        setFocused(true);
+        onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setFocused(false);
+        onBlur?.(event);
+      }}
+      onKeyDown={onKeyDown}
+      min={min}
+      max={max}
+      step={step}
+      maxLength={maxLength}
+      pattern={pattern}
+      spellCheck={spellcheck}
+      autoComplete={autocomplete === false ? "off" : undefined}
+      data-1p-ignore={autocomplete === false ? true : undefined}
+      data-lpignore={autocomplete === false ? "true" : undefined}
+      data-protonpass-ignore={autocomplete === false ? "true" : undefined}
+      data-bwignore={autocomplete === false ? "1" : undefined}
+      data-testid={testId}
+      className={cx(
+        classes.input,
+        styledValue && !focused ? classes.hiddenInput : undefined,
+      )}
+      {...ariaProps}
+    />
+  );
 
   const showClear = !!(clearable?.clearable && value);
 
@@ -206,50 +241,11 @@ export const BaseInput = (
           onClick?.(event);
         }
       }}
-      data-testid={testId}
     >
       {prefix != null && renderAdornment(prefix, size, classes)}
 
       <div className={classes.inputWrapper}>
-        <input
-          ref={setInputRef}
-          type={type}
-          inputMode={inputMode}
-          name={name}
-          value={value ?? ""}
-          placeholder={placeholder}
-          disabled={disabled}
-          required={required}
-          aria-invalid={invalid ?? undefined}
-          onChange={(event) => {
-            onChange(
-              event.target.value,
-              event as unknown as React.InputHTMLAttributes<HTMLInputElement>["onChange"],
-            );
-          }}
-          onFocus={(event) => {
-            setFocused(true);
-            onFocus?.(event);
-          }}
-          onBlur={(event) => {
-            setFocused(false);
-            onBlur?.(event);
-          }}
-          onKeyDown={onKeyDown}
-          min={min}
-          max={max}
-          step={step}
-          maxLength={maxLength}
-          pattern={pattern}
-          spellCheck={spellcheck}
-          autoComplete={autocomplete === false ? "off" : undefined}
-          className={cx(
-            classes.input,
-            styledValue && !focused ? classes.hiddenInput : undefined,
-          )}
-          {...ariaProps}
-        />
-
+        {input}
         {styledValue && !focused && (
           <div className={classes.styledValueOverlay}>{styledValue}</div>
         )}
