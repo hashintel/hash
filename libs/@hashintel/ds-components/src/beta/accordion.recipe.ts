@@ -1,7 +1,7 @@
 import { accordionAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const accordion = defineSlotRecipe({
+const accordionSlotRecipeDefinition = {
   className: "accordion",
   slots: accordionAnatomy.extendWith("itemBody").keys(),
   base: {
@@ -87,4 +87,11 @@ export const accordion = defineSlotRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const accordionSlotRecipe = sva(accordionSlotRecipeDefinition);
+
+export type AccordionSlotRecipeProps = RecipeVariantProps<
+  typeof accordionSlotRecipe
+>;

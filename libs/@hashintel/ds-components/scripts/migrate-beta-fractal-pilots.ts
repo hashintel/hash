@@ -27,6 +27,7 @@ type ReplaceEdit = {
 };
 
 const pilotConfigs = new Map<string, PilotConfig>([
+  ["accordion", { name: "accordion", suppressRecipeTypeErrors: true }],
   ["badge", { name: "badge", suppressRecipeTypeErrors: true }],
   ["button", { name: "button", suppressRecipeTypeErrors: true }],
   ["checkbox", { name: "checkbox", suppressRecipeTypeErrors: true }],
@@ -40,9 +41,11 @@ const pilotConfigs = new Map<string, PilotConfig>([
   ["input-addon", { name: "input-addon", suppressRecipeTypeErrors: true }],
   ["kbd", { name: "kbd", suppressRecipeTypeErrors: true }],
   ["link", { name: "link", suppressRecipeTypeErrors: true }],
+  ["radio-group", { name: "radio-group", suppressRecipeTypeErrors: true }],
   ["text", { name: "text", suppressRecipeTypeErrors: false }],
   ["skeleton", { name: "skeleton", suppressRecipeTypeErrors: true }],
   ["textarea", { name: "textarea", suppressRecipeTypeErrors: true }],
+  ["toggle-group", { name: "toggle-group", suppressRecipeTypeErrors: true }],
   ["tooltip", { name: "tooltip", suppressRecipeTypeErrors: true }],
   ["spinner", { name: "spinner", suppressRecipeTypeErrors: true }],
   ["pagination", { name: "pagination", suppressRecipeTypeErrors: false }],

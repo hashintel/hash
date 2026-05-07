@@ -1,5 +1,5 @@
 // import { absoluteCenter } from "../beta/absolute-center/absolute-center.recipe";
-import { accordion } from "../beta/accordion/accordion.recipe";
+import { accordionSlotRecipe } from "../beta/accordion.recipe";
 import { alert } from "../beta/alert/alert.recipe";
 import { angleSlider } from "../beta/angle-slider/angle-slider.recipe";
 import { avatar } from "../beta/avatar/avatar.recipe";
@@ -41,7 +41,7 @@ import { popover } from "../beta/popover/popover.recipe";
 import { progress } from "../beta/progress/progress.recipe";
 import { qrCode } from "../beta/qr-code/qr-code.recipe";
 import { radioCardGroup } from "../beta/radio-card-group/radio-card-group.recipe";
-import { radioGroup } from "../beta/radio-group/radio-group.recipe";
+import { radioGroupSlotRecipe } from "../beta/radio-group.recipe";
 import { ratingGroup } from "../beta/rating-group/rating-group.recipe";
 import { scrollArea } from "../beta/scroll-area/scroll-area.recipe";
 import { segmentGroup } from "../beta/segment-group/segment-group.recipe";
@@ -61,7 +61,7 @@ import { textareaRecipe } from "../beta/textarea.recipe";
 import { timer } from "../beta/timer/timer.recipe";
 import { toast } from "../beta/toast/toast.recipe";
 import { toggle } from "../beta/toggle/toggle.recipe";
-import { toggleGroup } from "../beta/toggle-group/toggle-group.recipe";
+import { toggleGroupSlotRecipe } from "../beta/toggle-group.recipe";
 import { tooltipSlotRecipe } from "../beta/tooltip.recipe";
 import { tour } from "../beta/tour/tour.recipe";
 import { treeView } from "../beta/tree-view/tree-view.recipe";
@@ -85,7 +85,7 @@ export const recipes = {
 };
 
 export const slotRecipes = {
-  accordion,
+  accordion: accordionSlotRecipe,
   alert,
   angleSlider,
   avatar,
@@ -116,7 +116,7 @@ export const slotRecipes = {
   popover,
   progress,
   radioCardGroup,
-  radioGroup,
+  radioGroup: radioGroupSlotRecipe,
   ratingGroup,
   scrollArea,
   segmentGroup,
@@ -132,7 +132,7 @@ export const slotRecipes = {
   timer,
   toast,
   toggle,
-  toggleGroup,
+  toggleGroup: toggleGroupSlotRecipe,
   tooltip: tooltipSlotRecipe,
   tour,
   treeView,
