@@ -2,7 +2,7 @@ import { Portal } from "@ark-ui/react/portal";
 
 import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
-import * as Dialog from "../dialog/dialog";
+import * as Dialog from "../dialog";
 import * as Popover from "../popover";
 
 export const App = () => {

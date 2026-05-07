@@ -1,14 +1,13 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-shadow */
-
 import { Dialog, useDialogContext } from "@ark-ui/react/dialog";
 import { ark } from "@ark-ui/react/factory";
 import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
-import { dialog } from "@hashintel/ds-helpers/recipes";
 import { type ComponentProps, forwardRef } from "react";
 
-const { withRootProvider, withContext } = createStyleContext(dialog);
+import { dialogSlotRecipe } from "./dialog.recipe";
+
+const { withRootProvider, withContext } = createStyleContext(dialogSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withRootProvider(Dialog.Root, {

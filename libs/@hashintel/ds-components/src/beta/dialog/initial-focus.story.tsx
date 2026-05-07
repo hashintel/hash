@@ -5,9 +5,9 @@ import { useRef } from "react";
 
 import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
-import * as Field from "../field/field";
+import * as Dialog from "../dialog";
+import * as Field from "../field";
 import { Input } from "../input/input";
-import * as Dialog from "./dialog";
 
 export const App = () => {
   const ref = useRef<HTMLInputElement>(null);

@@ -3,7 +3,7 @@ import { Wrap } from "@hashintel/ds-helpers/jsx";
 
 import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
-import * as Dialog from "./dialog";
+import * as Dialog from "../dialog";
 
 export const App = () => {
   const placements = ["top", "center", "bottom"] as const;

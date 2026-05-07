@@ -1,4 +1,4 @@
-import * as Field from "../field/field";
+import * as Field from "../field";
 import * as NumberInput from "./number-input";
 
 export const App = () => {

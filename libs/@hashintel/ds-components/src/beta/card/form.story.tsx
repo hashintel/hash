@@ -3,7 +3,7 @@ import { GithubIcon, GitlabIcon } from "lucide-react";
 
 import { Button } from "../button";
 import * as Card from "../card";
-import * as Field from "../field/field";
+import * as Field from "../field";
 import { Input } from "../input/input";
 import { Text } from "../text";
 

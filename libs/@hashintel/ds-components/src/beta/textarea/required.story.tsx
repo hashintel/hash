@@ -1,4 +1,4 @@
-import * as Field from "../field/field";
+import * as Field from "../field";
 import { Textarea } from "../textarea";
 
 export const App = () => {

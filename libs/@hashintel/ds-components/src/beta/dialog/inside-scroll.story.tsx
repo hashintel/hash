@@ -3,7 +3,7 @@ import { loremIpsum } from "lorem-ipsum";
 
 import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
-import * as Dialog from "./dialog";
+import * as Dialog from "../dialog";
 
 export const App = () => {
   return (

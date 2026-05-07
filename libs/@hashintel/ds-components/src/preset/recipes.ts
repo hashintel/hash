@@ -14,11 +14,11 @@ import { codeRecipe } from "../beta/code.recipe";
 import { collapsibleSlotRecipe } from "../beta/collapsible.recipe";
 import { colorPickerSlotRecipe } from "../beta/color-picker.recipe";
 import { combobox } from "../beta/combobox/combobox.recipe";
-import { datePicker } from "../beta/date-picker/date-picker.recipe";
-import { dialog } from "../beta/dialog/dialog.recipe";
+import { datePickerSlotRecipe } from "../beta/date-picker.recipe";
+import { dialogSlotRecipe } from "../beta/dialog.recipe";
 import { drawerSlotRecipe } from "../beta/drawer.recipe";
 import { editableSlotRecipe } from "../beta/editable.recipe";
-import { field } from "../beta/field/field.recipe";
+import { fieldSlotRecipe } from "../beta/field.recipe";
 import { fieldsetSlotRecipe } from "../beta/fieldset.recipe";
 import { fileUpload } from "../beta/file-upload/file-upload.recipe";
 import { floatingPanel } from "../beta/floating-panel/floating-panel.recipe";
@@ -97,11 +97,11 @@ export const slotRecipes = {
   collapsible: collapsibleSlotRecipe,
   colorPicker: colorPickerSlotRecipe,
   combobox,
-  datePicker,
-  dialog,
+  datePicker: datePickerSlotRecipe,
+  dialog: dialogSlotRecipe,
   drawer: drawerSlotRecipe,
   editable: editableSlotRecipe,
-  field,
+  field: fieldSlotRecipe,
   fieldset: fieldsetSlotRecipe,
   fileUpload,
   floatingPanel,

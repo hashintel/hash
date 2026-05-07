@@ -2,10 +2,11 @@
 
 import { Field } from "@ark-ui/react/field";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { field } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(field);
+import { fieldSlotRecipe } from "./field.recipe";
+
+const { withProvider, withContext } = createStyleContext(fieldSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Field.Root, "root");

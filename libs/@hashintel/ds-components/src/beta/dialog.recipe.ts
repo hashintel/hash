@@ -1,7 +1,7 @@
 import { dialogAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const dialog = defineSlotRecipe({
+const dialogSlotRecipeDefinition = {
   className: "dialog",
   slots: dialogAnatomy.extendWith("header", "body", "footer").keys(),
   base: {
@@ -207,4 +207,9 @@ export const dialog = defineSlotRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const dialogSlotRecipe = sva(dialogSlotRecipeDefinition);
+
+export type DialogSlotRecipeProps = RecipeVariantProps<typeof dialogSlotRecipe>;

@@ -2,7 +2,7 @@ import { Portal } from "@ark-ui/react/portal";
 
 import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
-import * as Field from "../field/field";
+import * as Field from "../field";
 import { Input } from "../input/input";
 import * as Popover from "../popover";
 import { Textarea } from "../textarea";

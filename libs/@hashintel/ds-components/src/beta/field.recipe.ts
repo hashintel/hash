@@ -1,7 +1,7 @@
 import { fieldAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const field = defineSlotRecipe({
+const fieldSlotRecipeDefinition = {
   className: "field",
   slots: fieldAnatomy.keys(),
   base: {
@@ -37,4 +37,9 @@ export const field = defineSlotRecipe({
       textStyle: "sm",
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const fieldSlotRecipe = sva(fieldSlotRecipeDefinition);
+
+export type FieldSlotRecipeProps = RecipeVariantProps<typeof fieldSlotRecipe>;

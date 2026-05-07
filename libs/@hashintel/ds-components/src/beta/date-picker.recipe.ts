@@ -1,7 +1,7 @@
 import { datePickerAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const datePicker = defineSlotRecipe({
+const datePickerSlotRecipeDefinition = {
   className: "date-picker",
   slots: datePickerAnatomy.keys(),
   base: {
@@ -88,4 +88,11 @@ export const datePicker = defineSlotRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const datePickerSlotRecipe = sva(datePickerSlotRecipeDefinition);
+
+export type DatePickerSlotRecipeProps = RecipeVariantProps<
+  typeof datePickerSlotRecipe
+>;
