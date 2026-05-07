@@ -1,5 +1,70 @@
+import { cx } from "@hashintel/ds-helpers/css";
+import { useRef, useState } from "react";
+
 import type { FormInputWidth, SharedInputProps } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
+import { Icon } from "../Icon/icon";
+import { LoadingSpinner } from "../Loading/loading-spinner";
+import { baseInputRecipe } from "./base-input.recipe";
+
+type BaseInputSlots = ReturnType<typeof baseInputRecipe>;
+
+function isIconAdornment(
+  val: unknown,
+): val is { iconName: IconName; onClick?: () => void } {
+  return val != null && typeof val === "object" && "iconName" in val;
+}
+
+function isTextAdornment(
+  val: unknown,
+): val is { text: string; onClick?: () => void } {
+  return val != null && typeof val === "object" && "text" in val;
+}
+
+function renderAdornment(
+  adornment:
+    | { iconName: IconName; onClick?: () => void }
+    | { text: string; onClick?: () => void }
+    | React.ReactNode,
+  size: "xs" | "sm" | "md" | "lg",
+  classes: BaseInputSlots,
+): React.ReactNode {
+  if (isIconAdornment(adornment)) {
+    const icon = <Icon name={adornment.iconName} size={size} />;
+    if (adornment.onClick) {
+      return (
+        <button
+          type="button"
+          onClick={adornment.onClick}
+          className={classes.adornmentButton}
+        >
+          {icon}
+        </button>
+      );
+    }
+    return <span className={classes.adornment}>{icon}</span>;
+  }
+
+  if (isTextAdornment(adornment)) {
+    const text = (
+      <span className={classes.adornmentText}>{adornment.text}</span>
+    );
+    if (adornment.onClick) {
+      return (
+        <button
+          type="button"
+          onClick={adornment.onClick}
+          className={classes.adornmentButton}
+        >
+          {text}
+        </button>
+      );
+    }
+    return <span className={classes.adornment}>{text}</span>;
+  }
+
+  return adornment;
+}
 
 export const BaseInput = (
   props: {
@@ -56,5 +121,162 @@ export const BaseInput = (
   > &
     React.AriaAttributes,
 ) => {
-  return <input {...props} />;
+  const {
+    type,
+    inputMode,
+    placeholder,
+    readonly,
+    loading,
+    variant = "default",
+    align = "left",
+    width,
+    prefix,
+    suffix,
+    styledValue,
+    clearable,
+    onClick,
+    onKeyDown,
+    min,
+    max,
+    step,
+    maxLength,
+    pattern,
+    spellcheck,
+    autocomplete,
+    className,
+    name,
+    value,
+    onChange,
+    onFocus,
+    onBlur,
+    size = "md",
+    testId,
+    ref,
+    inputRef,
+    disabled,
+    required,
+    invalid,
+    ...ariaProps
+  } = props;
+
+  const [focused, setFocused] = useState(false);
+  const internalRef = useRef<HTMLInputElement>(null);
+
+  const classes = baseInputRecipe({
+    variant,
+    size,
+    align,
+    width,
+    invalid: !!invalid,
+    disabled: !!disabled,
+  });
+
+  const setInputRef = (el: HTMLInputElement | null) => {
+    internalRef.current = el;
+    if (typeof inputRef === "function") {
+      inputRef(el);
+    } else if (inputRef) {
+      (inputRef as { current: HTMLInputElement | null }).current = el;
+    }
+  };
+
+  if (readonly) {
+    return (
+      <span
+        ref={ref}
+        className={cx(classes.readonly, className)}
+        data-testid={testId}
+        {...ariaProps}
+      >
+        {styledValue ?? value ?? ""}
+      </span>
+    );
+  }
+
+  const showClear = !!(clearable?.clearable && value);
+
+  return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input>
+    <div
+      ref={ref as React.Ref<HTMLDivElement>}
+      className={cx(classes.root, className)}
+      onClick={(event) => {
+        if (!disabled) {
+          internalRef.current?.focus();
+          onClick?.(event);
+        }
+      }}
+      data-testid={testId}
+    >
+      {prefix != null && renderAdornment(prefix, size, classes)}
+
+      <div className={classes.inputWrapper}>
+        <input
+          ref={setInputRef}
+          type={type}
+          inputMode={inputMode}
+          name={name}
+          value={value ?? ""}
+          placeholder={placeholder}
+          disabled={disabled}
+          required={required}
+          aria-invalid={invalid ?? undefined}
+          onChange={(event) => {
+            onChange(
+              event.target.value,
+              event as unknown as React.InputHTMLAttributes<HTMLInputElement>["onChange"],
+            );
+          }}
+          onFocus={(event) => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
+          onKeyDown={onKeyDown}
+          min={min}
+          max={max}
+          step={step}
+          maxLength={maxLength}
+          pattern={pattern}
+          spellCheck={spellcheck}
+          autoComplete={autocomplete === false ? "off" : undefined}
+          className={cx(
+            classes.input,
+            styledValue && !focused ? classes.hiddenInput : undefined,
+          )}
+          {...ariaProps}
+        />
+
+        {styledValue && !focused && (
+          <div className={classes.styledValueOverlay}>{styledValue}</div>
+        )}
+      </div>
+
+      {suffix != null && renderAdornment(suffix, size, classes)}
+
+      {showClear && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            clearable.onClear();
+            internalRef.current?.focus();
+          }}
+          className={classes.adornmentButton}
+          aria-label="Clear input"
+        >
+          <Icon name="close" size={size} />
+        </button>
+      )}
+
+      {loading && (
+        <span className={classes.adornment}>
+          <LoadingSpinner size={size} />
+        </span>
+      )}
+    </div>
+  );
 };
