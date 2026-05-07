@@ -1,7 +1,7 @@
 import { fieldsetAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const fieldset = defineSlotRecipe({
+const fieldsetSlotRecipeDefinition = {
   className: "fieldset",
   slots: fieldsetAnatomy.extendWith("content", "control").keys(),
   base: {
@@ -43,4 +43,11 @@ export const fieldset = defineSlotRecipe({
       textStyle: "sm",
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const fieldsetSlotRecipe = sva(fieldsetSlotRecipeDefinition);
+
+export type FieldsetSlotRecipeProps = RecipeVariantProps<
+  typeof fieldsetSlotRecipe
+>;

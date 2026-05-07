@@ -4,11 +4,12 @@
 
 import { Avatar } from "@ark-ui/react/avatar";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { avatar } from "@hashintel/ds-helpers/recipes";
 import { UserIcon } from "lucide-react";
 import { type ComponentProps, forwardRef } from "react";
 
-const { withProvider, withContext } = createStyleContext(avatar);
+import { avatarSlotRecipe } from "./avatar.recipe";
+
+const { withProvider, withContext } = createStyleContext(avatarSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Avatar.Root, "root");

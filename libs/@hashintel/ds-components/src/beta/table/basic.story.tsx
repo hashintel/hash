@@ -1,4 +1,4 @@
-import * as Table from "./table";
+import * as Table from "../table";
 
 const items = [
   { id: 1, name: "Laptop", category: "Electronics", price: 999.99 },

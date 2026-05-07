@@ -3,10 +3,11 @@
 import { ark } from "@ark-ui/react/factory";
 import { Fieldset } from "@ark-ui/react/fieldset";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { fieldset } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(fieldset);
+import { fieldsetSlotRecipe } from "./fieldset.recipe";
+
+const { withProvider, withContext } = createStyleContext(fieldsetSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Fieldset.Root, "root");

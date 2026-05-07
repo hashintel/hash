@@ -1,6 +1,6 @@
 import * as Field from "../field/field";
+import * as Fieldset from "../fieldset";
 import { Input } from "../input/input";
-import * as Fieldset from "./fieldset";
 
 export const App = () => {
   return (

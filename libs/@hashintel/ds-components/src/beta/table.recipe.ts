@@ -1,6 +1,6 @@
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const table = defineSlotRecipe({
+const tableSlotRecipeDefinition = {
   className: "table",
   slots: ["root", "body", "cell", "foot", "head", "header", "row", "caption"],
   base: {
@@ -110,4 +110,9 @@ export const table = defineSlotRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const tableSlotRecipe = sva(tableSlotRecipeDefinition);
+
+export type TableSlotRecipeProps = RecipeVariantProps<typeof tableSlotRecipe>;

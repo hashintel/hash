@@ -1,4 +1,4 @@
-import * as Avatar from "./avatar";
+import * as Avatar from "../avatar";
 
 export const App = () => {
   return (

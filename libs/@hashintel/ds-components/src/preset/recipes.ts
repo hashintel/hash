@@ -2,7 +2,7 @@
 import { accordionSlotRecipe } from "../beta/accordion.recipe";
 import { alertSlotRecipe } from "../beta/alert.recipe";
 import { angleSlider } from "../beta/angle-slider/angle-slider.recipe";
-import { avatar } from "../beta/avatar/avatar.recipe";
+import { avatarSlotRecipe } from "../beta/avatar.recipe";
 import { badgeRecipe } from "../beta/badge.recipe";
 import { breadcrumbSlotRecipe } from "../beta/breadcrumb.recipe";
 import { buttonRecipe } from "../beta/button.recipe";
@@ -19,7 +19,7 @@ import { dialog } from "../beta/dialog/dialog.recipe";
 import { drawer } from "../beta/drawer/drawer.recipe";
 import { editableSlotRecipe } from "../beta/editable.recipe";
 import { field } from "../beta/field/field.recipe";
-import { fieldset } from "../beta/fieldset/fieldset.recipe";
+import { fieldsetSlotRecipe } from "../beta/fieldset.recipe";
 import { fileUpload } from "../beta/file-upload/file-upload.recipe";
 import { floatingPanel } from "../beta/floating-panel/floating-panel.recipe";
 import { groupRecipe } from "../beta/group.recipe";
@@ -53,7 +53,7 @@ import { spinnerRecipe } from "../beta/spinner.recipe";
 import { splitter } from "../beta/splitter/splitter.recipe";
 import { steps } from "../beta/steps/steps.recipe";
 import { switchRecipe } from "../beta/switch/switch.recipe";
-import { table } from "../beta/table/table.recipe";
+import { tableSlotRecipe } from "../beta/table.recipe";
 import { tabs } from "../beta/tabs/tabs.recipe";
 import { tagsInput } from "../beta/tags-input/tags-input.recipe";
 import { textRecipe } from "../beta/text.recipe";
@@ -88,7 +88,7 @@ export const slotRecipes = {
   accordion: accordionSlotRecipe,
   alert: alertSlotRecipe,
   angleSlider,
-  avatar,
+  avatar: avatarSlotRecipe,
   breadcrumb: breadcrumbSlotRecipe,
   card: cardSlotRecipe,
   carousel,
@@ -102,7 +102,7 @@ export const slotRecipes = {
   drawer,
   editable: editableSlotRecipe,
   field,
-  fieldset,
+  fieldset: fieldsetSlotRecipe,
   fileUpload,
   floatingPanel,
   hoverCard: hoverCardSlotRecipe,
@@ -126,7 +126,7 @@ export const slotRecipes = {
   splitter,
   steps,
   switchRecipe,
-  table,
+  table: tableSlotRecipe,
   tabs,
   tagsInput,
   timer,

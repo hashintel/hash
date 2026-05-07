@@ -2,10 +2,11 @@
 
 import { ark } from "@ark-ui/react/factory";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { table } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(table);
+import { tableSlotRecipe } from "./table.recipe";
+
+const { withProvider, withContext } = createStyleContext(tableSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(ark.table, "root");
