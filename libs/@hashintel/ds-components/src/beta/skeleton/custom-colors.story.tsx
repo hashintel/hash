@@ -1,4 +1,4 @@
-import { Skeleton } from "./skeleton";
+import { Skeleton } from "../skeleton";
 
 export const App = () => {
   return (

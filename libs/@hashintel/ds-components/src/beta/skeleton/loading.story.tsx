@@ -4,8 +4,8 @@ import { Stack } from "@hashintel/ds-helpers/jsx";
 import { useState } from "react";
 
 import { Button } from "../button";
+import { Skeleton } from "../skeleton";
 import { Text } from "../text";
-import { Skeleton } from "./skeleton";
 
 export const App = () => {
   const [loading, setLoading] = useState(true);

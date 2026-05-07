@@ -109,6 +109,18 @@ These are now on the flat-root pattern with local recipe imports.
 - `linkRecipe`, `iconRecipe`, and `inputAddonRecipe` are staged with root-level `@ts-expect-error` suppressions.
 - `src/preset/recipes.ts` now imports these flat roots and maps them to the public preset recipe names.
 
+#### Fifth migration batch completed
+
+- `group`
+- `skeleton`
+- `textarea`
+
+These are now on the flat-root pattern with local recipe imports.
+
+- `groupRecipe`, `skeletonRecipe`, and `textareaRecipe` are staged with root-level `@ts-expect-error` suppressions.
+- `skeleton.tsx` keeps its `SkeletonCircle` default variant through a narrow `defaultProps` cast because the staged recipe suppressions degrade `styled()` option inference.
+- `src/preset/recipes.ts` now imports these flat roots and maps them to the public preset recipe names.
+
 ### Preset integration decisions
 
 `src/preset/recipes.ts` now mixes three states intentionally:
@@ -148,14 +160,17 @@ The script currently has pilot config entries for:
 - `button`
 - `checkbox`
 - `code`
+- `group`
 - `heading`
 - `icon`
 - `input-addon`
 - `kbd`
 - `link`
 - `pagination`
+- `skeleton`
 - `spinner`
 - `text`
+- `textarea`
 - `tooltip`
 
 ### Remaining work

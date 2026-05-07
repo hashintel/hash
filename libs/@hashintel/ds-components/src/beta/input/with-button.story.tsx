@@ -1,5 +1,5 @@
 import { Button } from "../button";
-import { Group } from "../group/group";
+import { Group } from "../group";
 import { Input } from "./input";
 
 export const App = () => {

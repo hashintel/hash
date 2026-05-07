@@ -22,7 +22,7 @@ import { field } from "../beta/field/field.recipe";
 import { fieldset } from "../beta/fieldset/fieldset.recipe";
 import { fileUpload } from "../beta/file-upload/file-upload.recipe";
 import { floatingPanel } from "../beta/floating-panel/floating-panel.recipe";
-import { group } from "../beta/group/group.recipe";
+import { groupRecipe } from "../beta/group.recipe";
 import { headingRecipe } from "../beta/heading.recipe";
 import { hoverCard } from "../beta/hover-card/hover-card.recipe";
 import { iconRecipe } from "../beta/icon.recipe";
@@ -47,7 +47,7 @@ import { scrollArea } from "../beta/scroll-area/scroll-area.recipe";
 import { segmentGroup } from "../beta/segment-group/segment-group.recipe";
 import { select } from "../beta/select/select.recipe";
 import { signaturePad } from "../beta/signature-pad/signature-pad.recipe";
-import { skeleton } from "../beta/skeleton/skeleton.recipe";
+import { skeletonRecipe } from "../beta/skeleton.recipe";
 import { slider } from "../beta/slider/slider.recipe";
 import { spinnerRecipe } from "../beta/spinner.recipe";
 import { splitter } from "../beta/splitter/splitter.recipe";
@@ -57,7 +57,7 @@ import { table } from "../beta/table/table.recipe";
 import { tabs } from "../beta/tabs/tabs.recipe";
 import { tagsInput } from "../beta/tags-input/tags-input.recipe";
 import { textRecipe } from "../beta/text.recipe";
-import { textarea } from "../beta/textarea/textarea.recipe";
+import { textareaRecipe } from "../beta/textarea.recipe";
 import { timer } from "../beta/timer/timer.recipe";
 import { toast } from "../beta/toast/toast.recipe";
 import { toggle } from "../beta/toggle/toggle.recipe";
@@ -71,17 +71,17 @@ export const recipes = {
   badge: badgeRecipe,
   button: buttonRecipe,
   code: codeRecipe,
-  group,
+  group: groupRecipe,
   heading: headingRecipe,
   icon: iconRecipe,
   input,
   inputAddon: inputAddonRecipe,
   kbd: kbdRecipe,
   link: linkRecipe,
-  skeleton,
+  skeleton: skeletonRecipe,
   spinner: spinnerRecipe,
   text: textRecipe,
-  textarea,
+  textarea: textareaRecipe,
 };
 
 export const slotRecipes = {

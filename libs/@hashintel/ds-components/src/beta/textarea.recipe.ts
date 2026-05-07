@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const textarea = defineRecipe({
+const textareaRecipeDefinition = {
   className: "textarea",
   base: {
     appearance: "none",
@@ -79,4 +79,9 @@ export const textarea = defineRecipe({
       xl: { textStyle: "lg", px: "4", py: "9px", scrollPaddingBottom: "9px" },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const textareaRecipe = cva(textareaRecipeDefinition);
+
+export type TextareaRecipeProps = RecipeVariantProps<typeof textareaRecipe>;

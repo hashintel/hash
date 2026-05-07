@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const skeleton = defineRecipe({
+const skeletonRecipeDefinition = {
   className: "skeleton",
   jsx: ["Skeleton", "SkeletonCircle", "SkeletonText"],
   base: {},
@@ -61,4 +61,9 @@ export const skeleton = defineRecipe({
     variant: "pulse",
     loading: true,
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const skeletonRecipe = cva(skeletonRecipeDefinition);
+
+export type SkeletonRecipeProps = RecipeVariantProps<typeof skeletonRecipe>;

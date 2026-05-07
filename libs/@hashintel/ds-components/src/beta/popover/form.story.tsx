@@ -4,7 +4,7 @@ import { Button } from "../button";
 import { CloseButton } from "../close-button/close-button";
 import * as Field from "../field/field";
 import { Input } from "../input/input";
-import { Textarea } from "../textarea/textarea";
+import { Textarea } from "../textarea";
 import * as Popover from "./popover";
 
 export const App = () => {

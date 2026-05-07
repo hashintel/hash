@@ -1,14 +1,15 @@
 import { ark } from "@ark-ui/react/factory";
 import { Stack, type StackProps, styled } from "@hashintel/ds-helpers/jsx";
-import { skeleton } from "@hashintel/ds-helpers/recipes";
 import { type ComponentProps, forwardRef } from "react";
 
+import { skeletonRecipe } from "./skeleton.recipe";
+
 export type SkeletonProps = ComponentProps<typeof Skeleton>;
-export const Skeleton = styled(ark.div, skeleton);
+export const Skeleton = styled(ark.div, skeletonRecipe);
 
 export type SkeletonCircleProps = ComponentProps<typeof SkeletonCircle>;
-export const SkeletonCircle = styled(ark.div, skeleton, {
-  defaultProps: { circle: true },
+export const SkeletonCircle = styled(ark.div, skeletonRecipe, {
+  defaultProps: { circle: true } as never,
 });
 
 export interface SkeletonTextProps extends SkeletonProps {

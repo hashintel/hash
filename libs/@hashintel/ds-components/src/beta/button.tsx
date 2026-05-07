@@ -8,7 +8,7 @@ import { type HTMLStyledProps, styled } from "@hashintel/ds-helpers/jsx";
 import { forwardRef, useMemo } from "react";
 
 import { buttonRecipe, type ButtonRecipeProps } from "./button.recipe";
-import { Group, type GroupProps } from "./group/group";
+import { Group, type GroupProps } from "./group";
 import { Loader } from "./loader/loader";
 
 interface ButtonLoadingProps {

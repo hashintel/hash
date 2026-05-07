@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const group = defineRecipe({
+const groupRecipeDefinition = {
   className: "group",
   base: {
     display: "inline-flex",
@@ -74,4 +74,9 @@ export const group = defineRecipe({
       },
     },
   ],
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const groupRecipe = cva(groupRecipeDefinition);
+
+export type GroupRecipeProps = RecipeVariantProps<typeof groupRecipe>;

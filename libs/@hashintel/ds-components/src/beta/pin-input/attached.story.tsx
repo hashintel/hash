@@ -1,4 +1,4 @@
-import { Group } from "../group/group";
+import { Group } from "../group";
 import * as PinInput from "./pin-input";
 
 export const App = () => {
