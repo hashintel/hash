@@ -1,5 +1,5 @@
+import { Link } from "../link";
 import { Text } from "../text";
-import { Link } from "./link";
 
 export const App = () => {
   return (

@@ -3,8 +3,8 @@ import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { MapPinIcon } from "lucide-react";
 
 import * as Avatar from "../avatar/avatar";
-import { Icon } from "../icon/icon";
-import { Link } from "../link/link";
+import { Icon } from "../icon";
+import { Link } from "../link";
 import { Text } from "../text";
 import * as HoverCard from "./hover-card";
 

@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const icon = defineRecipe({
+const iconRecipeDefinition = {
   className: "icon",
   base: {
     color: "currentcolor",
@@ -22,4 +22,9 @@ export const icon = defineRecipe({
       xl: { boxSize: "6" },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const iconRecipe = cva(iconRecipeDefinition);
+
+export type IconRecipeProps = RecipeVariantProps<typeof iconRecipe>;

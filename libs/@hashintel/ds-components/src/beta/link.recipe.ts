@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const link = defineRecipe({
+const linkRecipeDefinition = {
   className: "link",
   base: {
     alignItems: "center",
@@ -39,4 +39,9 @@ export const link = defineRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const linkRecipe = cva(linkRecipeDefinition);
+
+export type LinkRecipeProps = RecipeVariantProps<typeof linkRecipe>;

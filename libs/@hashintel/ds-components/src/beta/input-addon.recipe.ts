@@ -1,6 +1,6 @@
-import { defineRecipe } from "@pandacss/dev";
+import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";
 
-export const inputAddon = defineRecipe({
+const inputAddonRecipeDefinition = {
   className: "input-addon",
   base: {
     alignItems: "center",
@@ -39,4 +39,9 @@ export const inputAddon = defineRecipe({
       xl: { textStyle: "lg", px: "4", _icon: { boxSize: "5.5" } },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const inputAddonRecipe = cva(inputAddonRecipeDefinition);
+
+export type InputAddonRecipeProps = RecipeVariantProps<typeof inputAddonRecipe>;

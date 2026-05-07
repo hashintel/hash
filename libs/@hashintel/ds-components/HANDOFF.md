@@ -98,6 +98,17 @@ These are now on the flat-root pattern with local recipe imports.
 - `headingRecipe` converted cleanly without a suppression.
 - `src/preset/recipes.ts` now imports these flat roots and maps them to the public preset recipe names.
 
+#### Fourth migration batch completed
+
+- `link`
+- `icon`
+- `input-addon`
+
+These are now on the flat-root pattern with local recipe imports.
+
+- `linkRecipe`, `iconRecipe`, and `inputAddonRecipe` are staged with root-level `@ts-expect-error` suppressions.
+- `src/preset/recipes.ts` now imports these flat roots and maps them to the public preset recipe names.
+
 ### Preset integration decisions
 
 `src/preset/recipes.ts` now mixes three states intentionally:
@@ -138,7 +149,10 @@ The script currently has pilot config entries for:
 - `checkbox`
 - `code`
 - `heading`
+- `icon`
+- `input-addon`
 - `kbd`
+- `link`
 - `pagination`
 - `spinner`
 - `text`
@@ -186,10 +200,9 @@ The script currently has pilot config entries for:
 - **Test status**:
   - `yarn fix:eslint` — passed
   - `yarn fix:format` — passed
-  - `yarn lint:eslint` — passed
   - `yarn lint:tsc` — passed
   - `yarn test:unit` — passed
-  - `yarn build` — still not verifiable here because `tsup` is not on PATH in this environment (`build:lib` exits 127; likely sandbox-related rather than slice-specific)
+  - `yarn build` — passed after running `yarn install` in the workspace so `tsup` resolved correctly
 
 ## Artifact status
 

@@ -1,7 +1,7 @@
 import { Box } from "@hashintel/ds-helpers/jsx";
 import { UploadIcon } from "lucide-react";
 
-import { Icon } from "../icon/icon";
+import { Icon } from "../icon";
 import * as FileUpload from "./file-upload";
 
 export const App = () => {

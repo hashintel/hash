@@ -25,12 +25,12 @@ import { floatingPanel } from "../beta/floating-panel/floating-panel.recipe";
 import { group } from "../beta/group/group.recipe";
 import { headingRecipe } from "../beta/heading.recipe";
 import { hoverCard } from "../beta/hover-card/hover-card.recipe";
-import { icon } from "../beta/icon/icon.recipe";
+import { iconRecipe } from "../beta/icon.recipe";
 import { input } from "../beta/input/input.recipe";
-import { inputAddon } from "../beta/input-addon/input-addon.recipe";
+import { inputAddonRecipe } from "../beta/input-addon.recipe";
 import { inputGroup } from "../beta/input-group/input-group.recipe";
 import { kbdRecipe } from "../beta/kbd.recipe";
-import { link } from "../beta/link/link.recipe";
+import { linkRecipe } from "../beta/link.recipe";
 import { listbox } from "../beta/listbox/listbox.recipe";
 import { menu } from "../beta/menu/menu.recipe";
 import { numberInput } from "../beta/number-input/number-input.recipe";
@@ -73,11 +73,11 @@ export const recipes = {
   code: codeRecipe,
   group,
   heading: headingRecipe,
-  icon,
+  icon: iconRecipe,
   input,
-  inputAddon,
+  inputAddon: inputAddonRecipe,
   kbd: kbdRecipe,
-  link,
+  link: linkRecipe,
   skeleton,
   spinner: spinnerRecipe,
   text: textRecipe,
