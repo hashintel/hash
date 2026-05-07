@@ -80,7 +80,6 @@
     "motion": "12.23.24"
   },
   "devDependencies": {
-    "@figma/code-connect": "1.4.3",
     "@fontsource-variable/geist-mono": "5.2.7",
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/inter-tight": "5.2.7",
