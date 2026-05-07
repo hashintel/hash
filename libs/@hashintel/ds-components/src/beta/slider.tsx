@@ -5,10 +5,11 @@
 import { ark } from "@ark-ui/react/factory";
 import { Slider, useSliderContext } from "@ark-ui/react/slider";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { slider } from "@hashintel/ds-helpers/recipes";
 import { type ComponentProps, forwardRef } from "react";
 
-const { withProvider, withContext } = createStyleContext(slider);
+import { sliderSlotRecipe } from "./slider.recipe";
+
+const { withProvider, withContext } = createStyleContext(sliderSlotRecipe);
 
 export const Root = withProvider(Slider.Root, "root");
 export const Control = withContext(Slider.Control, "control");
@@ -59,8 +60,8 @@ export const Marks = forwardRef<HTMLDivElement, MarksProps>((props, ref) => {
 });
 
 export const Thumbs = (props: Omit<ThumbProps, "index">) => {
-  const slider = useSliderContext();
-  return slider.value.map((_, index) => (
+  const sliderSlotRecipe = useSliderContext();
+  return sliderSlotRecipe.value.map((_, index) => (
     <Thumb key={index} index={index} {...props}>
       <HiddenInput />
     </Thumb>

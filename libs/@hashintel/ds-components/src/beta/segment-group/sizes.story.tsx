@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as SegmentGroup from "./segment-group";
+import * as SegmentGroup from "../segment-group";
 
 const items = ["React", "Solid", "Svelte", "Vue"];
 

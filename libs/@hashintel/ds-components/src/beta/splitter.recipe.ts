@@ -1,7 +1,7 @@
 import { splitterAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const splitter = defineSlotRecipe({
+const splitterSlotRecipeDefinition = {
   className: "splitter",
   slots: splitterAnatomy.keys(),
   base: {
@@ -29,4 +29,11 @@ export const splitter = defineSlotRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const splitterSlotRecipe = sva(splitterSlotRecipeDefinition);
+
+export type SplitterSlotRecipeProps = RecipeVariantProps<
+  typeof splitterSlotRecipe
+>;

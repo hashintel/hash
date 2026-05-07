@@ -4,10 +4,13 @@
 
 import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { segmentGroup } from "@hashintel/ds-helpers/recipes";
 import { type ComponentProps, type ReactNode, useMemo } from "react";
 
-const { withProvider, withContext } = createStyleContext(segmentGroup);
+import { segmentGroupSlotRecipe } from "./segment-group.recipe";
+
+const { withProvider, withContext } = createStyleContext(
+  segmentGroupSlotRecipe,
+);
 
 export type RootProps = ComponentProps<typeof Root>;
 

@@ -2,10 +2,11 @@
 
 import { ScrollArea } from "@ark-ui/react/scroll-area";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { scrollArea } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(scrollArea);
+import { scrollAreaSlotRecipe } from "./scroll-area.recipe";
+
+const { withProvider, withContext } = createStyleContext(scrollAreaSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export type ContentProps = ComponentProps<typeof Content>;

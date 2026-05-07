@@ -2,10 +2,11 @@
 
 import { Splitter } from "@ark-ui/react/splitter";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { splitter } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(splitter);
+import { splitterSlotRecipe } from "./splitter.recipe";
+
+const { withProvider, withContext } = createStyleContext(splitterSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Splitter.Root, "root");

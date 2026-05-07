@@ -1,7 +1,7 @@
+import * as Clipboard from "../clipboard";
 import { IconButton } from "../icon-button/icon-button";
 import { Input } from "../input/input";
 import { InputGroup } from "../input-group/input-group";
-import * as Clipboard from "./clipboard";
 
 const ClipboardIconButton = () => {
   return (

@@ -1,4 +1,4 @@
-import * as Slider from "./slider";
+import * as Slider from "../slider";
 
 export const App = () => {
   return (

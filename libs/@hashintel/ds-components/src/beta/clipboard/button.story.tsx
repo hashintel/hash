@@ -1,5 +1,5 @@
 import { Button } from "../button";
-import * as Clipboard from "./clipboard";
+import * as Clipboard from "../clipboard";
 
 export const App = () => {
   return (

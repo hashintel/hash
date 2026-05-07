@@ -4,7 +4,7 @@ import { Box, Center } from "@hashintel/ds-helpers/jsx";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useState } from "react";
 
-import * as ScrollArea from "./scroll-area";
+import * as ScrollArea from "../scroll-area";
 
 export const App = () => {
   const scrollRef = useRef<HTMLDivElement>(null);

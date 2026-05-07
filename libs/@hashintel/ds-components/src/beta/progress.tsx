@@ -2,10 +2,11 @@
 
 import { Progress } from "@ark-ui/react/progress";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { progress } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(progress);
+import { progressSlotRecipe } from "./progress.recipe";
+
+const { withProvider, withContext } = createStyleContext(progressSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Progress.Root, "root");

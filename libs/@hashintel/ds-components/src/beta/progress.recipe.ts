@@ -1,7 +1,7 @@
 import { progressAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const progress = defineSlotRecipe({
+const progressSlotRecipeDefinition = {
   slots: progressAnatomy.keys(),
   className: "progress",
   base: {
@@ -117,4 +117,11 @@ export const progress = defineSlotRecipe({
     size: "md",
     shape: "rounded",
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const progressSlotRecipe = sva(progressSlotRecipeDefinition);
+
+export type ProgressSlotRecipeProps = RecipeVariantProps<
+  typeof progressSlotRecipe
+>;

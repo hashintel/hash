@@ -1,4 +1,4 @@
-import * as ScrollArea from "../scroll-area/scroll-area";
+import * as ScrollArea from "../scroll-area";
 import * as Table from "../table";
 
 const items = [

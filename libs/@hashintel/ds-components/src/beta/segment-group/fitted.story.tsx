@@ -1,4 +1,4 @@
-import * as SegmentGroup from "./segment-group";
+import * as SegmentGroup from "../segment-group";
 
 export const App = () => {
   const items = ["React", "Solid", "Svelte", "Vue"];

@@ -1,6 +1,6 @@
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const scrollArea = defineSlotRecipe({
+const scrollAreaSlotRecipeDefinition = {
   className: "scroll-area",
   slots: ["root", "viewport", "content", "scrollbar", "thumb", "corner"],
   base: {
@@ -116,4 +116,11 @@ export const scrollArea = defineSlotRecipe({
       lg: { root: { "--thumb-size": "sizes.2.5" } },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const scrollAreaSlotRecipe = sva(scrollAreaSlotRecipeDefinition);
+
+export type ScrollAreaSlotRecipeProps = RecipeVariantProps<
+  typeof scrollAreaSlotRecipe
+>;

@@ -2,7 +2,7 @@ import { Stack } from "@hashintel/ds-helpers/jsx";
 import { loremIpsum } from "lorem-ipsum";
 
 import { Heading } from "../heading";
-import * as ScrollArea from "./scroll-area";
+import * as ScrollArea from "../scroll-area";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg"] as const;

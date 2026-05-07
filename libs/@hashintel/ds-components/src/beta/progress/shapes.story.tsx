@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as Progress from "./progress";
+import * as Progress from "../progress";
 
 export const App = () => {
   const shapes = ["rounded", "full", "square"] as const;
