@@ -3546,13 +3546,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/helper-string-parser@npm:^8.0.0-rc.2":
-  version: 8.0.0-rc.3
-  resolution: "@babel/helper-string-parser@npm:8.0.0-rc.3"
-  checksum: 10c0/204a59f279c9fb3ea7ea5a817712f3e9099a67711ecf7f314c98d700037ea50920c2a311f94529aa3fd163517068283db0e0e14c08832b29ae45e7c1969b3ff7
-  languageName: node
-  linkType: hard
-
 "@babel/helper-string-parser@npm:^8.0.0-rc.4":
   version: 8.0.0-rc.4
   resolution: "@babel/helper-string-parser@npm:8.0.0-rc.4"
@@ -3571,13 +3564,6 @@ __metadata:
   version: 7.28.5
   resolution: "@babel/helper-validator-identifier@npm:7.28.5"
   checksum: 10c0/42aaebed91f739a41f3d80b72752d1f95fd7c72394e8e4bd7cdd88817e0774d80a432451bcba17c2c642c257c483bf1d409dd4548883429ea9493a3bc4ab0847
-  languageName: node
-  linkType: hard
-
-"@babel/helper-validator-identifier@npm:^8.0.0-rc.2":
-  version: 8.0.0-rc.2
-  resolution: "@babel/helper-validator-identifier@npm:8.0.0-rc.2"
-  checksum: 10c0/9a1687e18bfb50728ae38b1dac889c1a3bc2c53bdf4c1632533b1b0672cc272c087507a2a7c60c3af20d58bd645e169dd685f892d2a62d580e759e26d67e8788
   languageName: node
   linkType: hard
 
@@ -3609,7 +3595,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/parser@npm:8.0.0-rc.4, @babel/parser@npm:^8.0.0-rc.4":
+"@babel/parser@npm:8.0.0-rc.4, @babel/parser@npm:^8.0.0-beta.4, @babel/parser@npm:^8.0.0-rc.4":
   version: 8.0.0-rc.4
   resolution: "@babel/parser@npm:8.0.0-rc.4"
   dependencies:
@@ -3628,17 +3614,6 @@ __metadata:
   bin:
     parser: ./bin/babel-parser.js
   checksum: 10c0/e5a4e69e3ac7acdde995f37cf299a68458cfe7009dff66bd0962fd04920bef287201169006af365af479c08ff216bfefbb595e331f87f6ae7283858aebbc3317
-  languageName: node
-  linkType: hard
-
-"@babel/parser@npm:^8.0.0-beta.4":
-  version: 8.0.0-rc.2
-  resolution: "@babel/parser@npm:8.0.0-rc.2"
-  dependencies:
-    "@babel/types": "npm:^8.0.0-rc.2"
-  bin:
-    parser: ./bin/babel-parser.js
-  checksum: 10c0/704ddbc1fce338e5b8df6327c1a7eeb1a554d136f89738135a8be5f5e2e854bd3f05eb3946b9d7b6814491bcd677175496076657696674eaecbed0e582749b2e
   languageName: node
   linkType: hard
 
@@ -4851,16 +4826,6 @@ __metadata:
     "@babel/helper-string-parser": "npm:^7.27.1"
     "@babel/helper-validator-identifier": "npm:^7.28.5"
   checksum: 10c0/23cc3466e83bcbfab8b9bd0edaafdb5d4efdb88b82b3be6728bbade5ba2f0996f84f63b1c5f7a8c0d67efded28300898a5f930b171bb40b311bca2029c4e9b4f
-  languageName: node
-  linkType: hard
-
-"@babel/types@npm:^8.0.0-rc.2":
-  version: 8.0.0-rc.2
-  resolution: "@babel/types@npm:8.0.0-rc.2"
-  dependencies:
-    "@babel/helper-string-parser": "npm:^8.0.0-rc.2"
-    "@babel/helper-validator-identifier": "npm:^8.0.0-rc.2"
-  checksum: 10c0/8b372115aa4ee3f55541e19887683655e32b78b64579d2402119920af3512594a2be820e05db4a3100cb38db3da3a7bdcc1beb7d031a4ab0129f28d858f129bd
   languageName: node
   linkType: hard
 
@@ -8478,17 +8443,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jridgewell/gen-mapping@npm:^0.3.12, @jridgewell/gen-mapping@npm:^0.3.5":
-  version: 0.3.12
-  resolution: "@jridgewell/gen-mapping@npm:0.3.12"
-  dependencies:
-    "@jridgewell/sourcemap-codec": "npm:^1.5.0"
-    "@jridgewell/trace-mapping": "npm:^0.3.24"
-  checksum: 10c0/32f771ae2467e4d440be609581f7338d786d3d621bac3469e943b9d6d116c23c4becb36f84898a92bbf2f3c0511365c54a945a3b86a83141547a2a360a5ec0c7
-  languageName: node
-  linkType: hard
-
-"@jridgewell/gen-mapping@npm:^0.3.2":
+"@jridgewell/gen-mapping@npm:^0.3.12, @jridgewell/gen-mapping@npm:^0.3.2, @jridgewell/gen-mapping@npm:^0.3.5":
   version: 0.3.13
   resolution: "@jridgewell/gen-mapping@npm:0.3.13"
   dependencies:
@@ -39202,18 +39157,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.3.11, postcss@npm:^8.4.14, postcss@npm:^8.4.33, postcss@npm:^8.5.1, postcss@npm:^8.5.10, postcss@npm:^8.5.3, postcss@npm:^8.5.6":
-  version: 8.5.10
-  resolution: "postcss@npm:8.5.10"
-  dependencies:
-    nanoid: "npm:^3.3.11"
-    picocolors: "npm:^1.1.1"
-    source-map-js: "npm:^1.2.1"
-  checksum: 10c0/c592dffa0c4873b401f01955b265538d9942f425040df5e2b8f0ad34c83773a792ea0fa5859ccc99cfb5b955b4ebff118ab7056315388dc83b107b0fa8313576
-  languageName: node
-  linkType: hard
-
-"postcss@npm:^8.5.14":
+"postcss@npm:^8.3.11, postcss@npm:^8.4.14, postcss@npm:^8.4.33, postcss@npm:^8.5.1, postcss@npm:^8.5.10, postcss@npm:^8.5.14, postcss@npm:^8.5.3, postcss@npm:^8.5.6":
   version: 8.5.14
   resolution: "postcss@npm:8.5.14"
   dependencies:
@@ -46121,7 +46065,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:8.0.10, vite@npm:^6.0.0 || ^7.0.0 || ^8.0.0":
+"vite@npm:8.0.10":
   version: 8.0.10
   resolution: "vite@npm:8.0.10"
   dependencies:
@@ -46178,7 +46122,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:8.0.11":
+"vite@npm:8.0.11, vite@npm:^6.0.0 || ^7.0.0 || ^8.0.0":
   version: 8.0.11
   resolution: "vite@npm:8.0.11"
   dependencies:
