@@ -92,7 +92,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
       setInitialMarking(placeId, { values, count });
     };
-  }, [hasSimulation, columns.length, setInitialMarking, placeId]);
+  }, [hasSimulation, readOnly, columns.length, setInitialMarking, placeId]);
 
   return <Spreadsheet columns={columns} data={data} onChange={handleChange} />;
 };

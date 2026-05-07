@@ -154,16 +154,16 @@ export function useMetricLspSession(code: string): string {
   const [sessionId] = useState(() => crypto.randomUUID());
   const initializedRef = useRef(false);
 
-  const sessionData = { sessionId, code };
-
   useEffect(() => {
+    const sessionData = { sessionId, code };
+
     if (!initializedRef.current) {
       initializeMetricSession(sessionData);
       initializedRef.current = true;
     } else {
       updateMetricSession(sessionData);
     }
-  }, [sessionData, initializeMetricSession, updateMetricSession]);
+  }, [code, initializeMetricSession, sessionId, updateMetricSession]);
 
   useEffect(() => {
     return () => {

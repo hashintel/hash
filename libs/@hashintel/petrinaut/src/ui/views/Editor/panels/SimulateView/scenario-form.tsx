@@ -460,39 +460,50 @@ function useScenarioLspSession({
   const [sessionId] = useState(() => crypto.randomUUID());
   const initializedRef = useRef(false);
 
-  // Build session data for all parameters and places that use code editors.
-  // Computed during render — React Compiler handles memoization.
-  const allOverrides: Record<string, string> = {};
-  for (const param of parameters) {
-    allOverrides[param.id] = parameterOverrides[param.id] ?? "";
-  }
-
-  // Include entries for places that use code editors (not spreadsheets)
-  const allInitialState: Record<string, string> = {};
-  for (const place of places) {
-    const placeType = place.colorId ? typesById.get(place.colorId) : undefined;
-    if (!placeType || placeType.elements.length === 0) {
-      allInitialState[place.id] = initialTokenCounts[place.id] ?? "";
-    }
-  }
-
-  const sessionData = {
-    sessionId,
-    scenarioParameters: scenarioParams.map(({ _key: _, ...rest }) => rest),
-    parameterOverrides: allOverrides,
-    initialState: allInitialState,
-    initialStateCode,
-    initialStateAsCode,
-  };
-
   useEffect(() => {
+    const allOverrides: Record<string, string> = {};
+    for (const param of parameters) {
+      allOverrides[param.id] = parameterOverrides[param.id] ?? "";
+    }
+
+    const allInitialState: Record<string, string> = {};
+    for (const place of places) {
+      const placeType = place.colorId
+        ? typesById.get(place.colorId)
+        : undefined;
+      if (!placeType || placeType.elements.length === 0) {
+        allInitialState[place.id] = initialTokenCounts[place.id] ?? "";
+      }
+    }
+
+    const sessionData = {
+      sessionId,
+      scenarioParameters: scenarioParams.map(({ _key: _, ...rest }) => rest),
+      parameterOverrides: allOverrides,
+      initialState: allInitialState,
+      initialStateCode,
+      initialStateAsCode,
+    };
+
     if (!initializedRef.current) {
       initializeScenarioSession(sessionData);
       initializedRef.current = true;
     } else {
       updateScenarioSession(sessionData);
     }
-  }, [sessionData, initializeScenarioSession, updateScenarioSession]);
+  }, [
+    initialStateAsCode,
+    initialStateCode,
+    initialTokenCounts,
+    initializeScenarioSession,
+    parameterOverrides,
+    parameters,
+    places,
+    scenarioParams,
+    sessionId,
+    typesById,
+    updateScenarioSession,
+  ]);
 
   useEffect(() => {
     return () => {

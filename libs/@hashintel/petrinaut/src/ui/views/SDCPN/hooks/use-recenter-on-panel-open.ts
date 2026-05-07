@@ -97,6 +97,7 @@ export function useRecenterOnPanelOpen(
         .catch(() => {});
     }
   }, [
+    canvasRef,
     isBottomPanelOpen,
     bottomPanelHeight,
     leftSidebarWidth,

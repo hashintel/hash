@@ -116,7 +116,7 @@ export const SDCPNView: React.FC<{
       minZoom: minZoom,
       maxZoom: 1.1,
     });
-  }, [reactFlowInstance, petriNetId]);
+  }, [minZoom, reactFlowInstance, petriNetId]);
 
   // This sets the min zoom (ie the max you can zoom out to) to be slightly larger than the total size of the current net.
   // We also avoid shrinking the zoom to be lower than the current zoom level to avoid changing the zoom without user input

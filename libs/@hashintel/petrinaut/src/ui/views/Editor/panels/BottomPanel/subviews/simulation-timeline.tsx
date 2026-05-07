@@ -335,7 +335,6 @@ const UNTYPED_COLOR = "#94a3b8"; // slate-400
  */
 function useStreamingData(): {
   store: StreamingStore;
-  revision: number;
   metricError: string | null;
 } {
   "use no memo"; // imperative streaming with refs
@@ -602,7 +601,7 @@ function useStreamingData(): {
     createEmptyStore(seriesConfig.series),
   );
   const processedRef = useRef(0);
-  const [revision, setRevision] = useState(0);
+  const [, setRevision] = useState(0);
 
   // Reset store when the series structure changes (view switch or net edits).
   useEffect(() => {
@@ -673,7 +672,6 @@ function useStreamingData(): {
 
   return {
     store: storeRef.current,
-    revision,
     metricError: compiledMetric.error,
   };
 }
@@ -683,12 +681,13 @@ function useStreamingData(): {
 function buildRunData(
   store: StreamingStore,
   hiddenPlaces: Set<string>,
+  length = store.length,
 ): uPlot.AlignedData {
   const result: (number | null | undefined)[][] = [store.columns[0]!];
   for (let i = 0; i < store.places.length; i++) {
     if (hiddenPlaces.has(store.places[i]!.placeId)) {
       // Hidden series: array of nulls (uPlot skips nulls)
-      result.push(new Array(store.length).fill(null));
+      result.push(new Array(length).fill(null));
     } else {
       // Visible series: direct reference to the column array (no copy!)
       result.push(store.columns[i + 1]!);
@@ -700,18 +699,19 @@ function buildRunData(
 function buildStackedData(
   store: StreamingStore,
   hiddenPlaces: Set<string>,
+  length = store.length,
 ): uPlot.AlignedData {
   const visible = store.places
     .map((p, i) => ({ ...p, colIdx: i + 1 }))
     .filter((p) => !hiddenPlaces.has(p.placeId));
 
-  const cumulative = new Float64Array(store.length);
+  const cumulative = new Float64Array(length);
   const series: number[][] = [];
 
   for (const p of visible) {
     const col = store.columns[p.colIdx]!;
-    const stacked = new Array<number>(store.length);
-    for (let i = 0; i < store.length; i++) {
+    const stacked = new Array<number>(length);
+    for (let i = 0; i < length; i++) {
       cumulative[i]! += col[i] ?? 0;
       stacked[i] = cumulative[i]!;
     }
@@ -1180,7 +1180,6 @@ const UPlotChart: React.FC<{
   store: StreamingStore;
   chartType: TimelineChartType;
   hiddenPlaces: Set<string>;
-  revision: number;
   totalFrames: number;
   currentFrameIndex: number;
   className?: string;
@@ -1188,7 +1187,6 @@ const UPlotChart: React.FC<{
   store,
   chartType,
   hiddenPlaces,
-  revision,
   totalFrames,
   currentFrameIndex,
   className,
@@ -1207,6 +1205,7 @@ const UPlotChart: React.FC<{
   // Boolean flag for the creation effect — triggers when size first becomes
   // available (null → non-null) without re-firing on every resize.
   const hasSize = size != null;
+  const dataLength = store.length;
 
   // Stable identity: always calls the latest closure but never changes reference,
   // so it doesn't trigger chart recreation when totalFrames changes.
@@ -1218,13 +1217,13 @@ const UPlotChart: React.FC<{
   // React Compiler ("use no memo"), and buildStackedData allocates O(places ×
   // frames) per call. Without memoization it would recompute on every render
   // (e.g. every playback frame), and the result would be silently discarded
-  // since Effect 3 only consumes it when `revision` changes.
+  // since Effect 3 only consumes it when the store length or series changes.
   const data = useMemo(
     () =>
       chartType === "stacked"
-        ? buildStackedData(store, hiddenPlaces)
-        : buildRunData(store, hiddenPlaces),
-    [revision, chartType, hiddenPlaces],
+        ? buildStackedData(store, hiddenPlaces, dataLength)
+        : buildRunData(store, hiddenPlaces, dataLength),
+    [store, dataLength, chartType, hiddenPlaces],
   );
 
   // -- Effect 1: create/destroy uPlot on structural changes -------------------
@@ -1233,9 +1232,19 @@ const UPlotChart: React.FC<{
     // Note: parent (SimulationTimelineContent) gates on store.length === 0,
     // so this component only mounts once data is available.
     const wrapper = wrapperRef.current;
-    if (!wrapper || !size) {
+    if (!wrapper || !hasSize) {
       return;
     }
+
+    const initialSize = {
+      width: wrapper.clientWidth,
+      height: wrapper.clientHeight,
+    };
+
+    const initialData =
+      chartType === "stacked"
+        ? buildStackedData(store, hiddenPlaces)
+        : buildRunData(store, hiddenPlaces);
 
     const tooltip = createTooltip();
 
@@ -1244,7 +1253,7 @@ const UPlotChart: React.FC<{
       storeRef,
       chartType,
       hiddenPlaces,
-      size,
+      size: initialSize,
       onScrub,
       getPlayheadFrame: () => playheadFrameRef.current,
       tooltip,
@@ -1253,7 +1262,7 @@ const UPlotChart: React.FC<{
     chartRef.current?.destroy();
 
     // eslint-disable-next-line new-cap -- uPlot's constructor is lowercase by convention
-    const u = new uPlot(opts, data, wrapper);
+    const u = new uPlot(opts, initialData, wrapper);
     chartRef.current = u;
 
     // Mount tooltip inside u.over (the cursor overlay div). It positions
@@ -1268,10 +1277,18 @@ const UPlotChart: React.FC<{
       u.destroy();
       chartRef.current = null;
     };
-    // Recreate only when chart type, visible series, or size availability changes.
+    // Recreate only when chart type, store, visible series, or size availability changes.
     // onScrub is stable (useStableCallback). Subsequent size changes trigger
     // setSize (Effect 2), not recreation.
-  }, [chartType, hiddenPlaces, store.places.length, hasSize]);
+  }, [
+    chartType,
+    hiddenPlaces,
+    store,
+    store.places.length,
+    storeRef,
+    hasSize,
+    onScrub,
+  ]);
 
   // -- Effect 2: sync container size to existing chart ------------------------
 
@@ -1285,7 +1302,7 @@ const UPlotChart: React.FC<{
 
   useEffect(() => {
     chartRef.current?.setData(data);
-  }, [revision]);
+  }, [data]);
 
   // -- Effect 4: playhead redraw ---------------------------------------------
 
@@ -1346,7 +1363,7 @@ const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
   const { totalFrames } = use(SimulationContext);
   const { currentFrameIndex } = use(PlaybackContext);
-  const { store, revision, metricError } = useStreamingData();
+  const { store, metricError } = useStreamingData();
 
   const [hiddenPlaces, setHiddenPlaces] = useState<Set<string>>(new Set());
 
@@ -1387,7 +1404,6 @@ const SimulationTimelineContent: React.FC = () => {
         store={store}
         chartType={chartType}
         hiddenPlaces={hiddenPlaces}
-        revision={revision}
         totalFrames={totalFrames}
         currentFrameIndex={currentFrameIndex}
       />
