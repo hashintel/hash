@@ -315,6 +315,30 @@ impl<I: Id, T: FiniteBitSetIntegral> FiniteBitSet<I, T> {
         self.store = !self.store & mask;
     }
 
+    /// Returns the first set bit, or [`None`] if the set is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use hashql_core::id::bit_vec::FiniteBitSet;
+    ///
+    /// let mut set: FiniteBitSet<MyId, u8> = FiniteBitSet::new_empty(8);
+    /// assert_eq!(set.first_set(), None);
+    ///
+    /// set.insert(MyId::from_usize(3));
+    /// set.insert(MyId::from_usize(5));
+    /// assert_eq!(set.first_set(), Some(MyId::from_usize(3)));
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn first_set(&self) -> Option<I> {
+        if self.is_empty() {
+            return None;
+        }
+
+        Some(I::from_u32(self.store.trailing_zeros()))
+    }
+
     /// Returns an iterator over the indices of set bits.
     #[inline]
     pub fn iter(&self) -> FiniteBitIter<I, T> {
@@ -726,6 +750,51 @@ mod tests {
 
         assert!(a.intersect(&b));
         assert!(a.is_empty());
+    }
+
+    #[test]
+    fn first_set_empty() {
+        let set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        assert_eq!(set.first_set(), None);
+    }
+
+    #[test]
+    fn first_set_single() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert(TestId::from_usize(5));
+        assert_eq!(set.first_set(), Some(TestId::from_usize(5)));
+    }
+
+    #[test]
+    fn first_set_multiple() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert(TestId::from_usize(3));
+        set.insert(TestId::from_usize(5));
+        set.insert(TestId::from_usize(7));
+        assert_eq!(set.first_set(), Some(TestId::from_usize(3)));
+    }
+
+    #[test]
+    fn first_set_bit_zero() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert(TestId::from_usize(0));
+        set.insert(TestId::from_usize(7));
+        assert_eq!(set.first_set(), Some(TestId::from_usize(0)));
+    }
+
+    #[test]
+    fn first_set_last_bit() {
+        let mut set: FiniteBitSet<TestId, u8> = FiniteBitSet::new_empty(8);
+        set.insert(TestId::from_usize(7));
+        assert_eq!(set.first_set(), Some(TestId::from_usize(7)));
+    }
+
+    #[test]
+    fn first_set_wide_integral() {
+        let mut set: FiniteBitSet<TestId, u128> = FiniteBitSet::new_empty(128);
+        set.insert(TestId::from_usize(100));
+        set.insert(TestId::from_usize(120));
+        assert_eq!(set.first_set(), Some(TestId::from_usize(100)));
     }
 
     #[test]
