@@ -34,7 +34,6 @@ const rowVariants: RowVariant[] = [
   { variant: "default", readonly: false, label: "Default" },
   { variant: "subtle", readonly: false, label: "Subtle" },
   { variant: "default", readonly: true, label: "Default (readonly)" },
-  { variant: "subtle", readonly: true, label: "Subtle (readonly)" },
 ];
 
 const noop = () => {};
@@ -85,19 +84,6 @@ const sectionStyle = css({
 });
 
 const groupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[12px]",
-});
-
-const rowStyle = css({
-  display: "flex",
-  flexDirection: "row",
-  gap: "[32px]",
-  alignItems: "flex-start",
-});
-
-const columnStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[12px]",
@@ -224,45 +210,61 @@ export const Alignment: Story = () => (
 );
 
 export const StyledValue: Story = () => (
-  <div className={rowStyle}>
-    <div className={columnStyle}>
-      <span style={subheadingStyle}>Editable</span>
-      {variants.map((variant) => (
-        <StyledNumberInput key={variant} variant={variant} width="md" />
-      ))}
-    </div>
-    <div className={columnStyle}>
-      <span style={subheadingStyle}>Read-only</span>
-      {variants.map((variant) => (
-        <StyledNumberInput
-          key={variant}
-          variant={variant}
-          width="md"
-          readonly
-        />
-      ))}
-    </div>
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "auto auto",
+      columnGap: 32,
+      rowGap: 12,
+      alignItems: "center",
+      justifyContent: "start",
+    }}
+  >
+    <span style={subheadingStyle}>Editable</span>
+    <span style={subheadingStyle}>Read-only</span>
+    {variants.map((variant) => (
+      <Fragment key={variant}>
+        <StyledNumberInput variant={variant} width="md" />
+        <StyledNumberInput variant={variant} width="md" readonly />
+      </Fragment>
+    ))}
   </div>
 );
 
 export const Size: Story = () => (
-  <div className={rowStyle}>
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: `auto repeat(${formInputSizes.length}, minmax(0, 1fr))`,
+      columnGap: 32,
+      rowGap: 12,
+      alignItems: "center",
+      width: "100%",
+      maxWidth: "100%",
+    }}
+  >
+    <span />
     {formInputSizes.map((size) => (
-      <div key={size} className={columnStyle}>
-        <span style={subheadingStyle}>Size: {size}</span>
-        {rowVariants.map((rv) => (
-          <Controlled
-            key={rv.label}
-            value={rv.label}
-            onChange={noop}
-            size={size}
-            variant={rv.variant}
-            readonly={rv.readonly}
-            width="md"
-          />
-        ))}
-      </div>
+      <span key={size} style={subheadingStyle}>
+        {size}
+      </span>
     ))}
+    {rowVariants.flatMap((rv) => [
+      <span key={`${rv.label}-label`} style={subheadingStyle}>
+        {rv.label}
+      </span>,
+      ...formInputSizes.map((size) => (
+        <Controlled
+          key={`${rv.label}-${size}`}
+          value={rv.label}
+          onChange={noop}
+          size={size}
+          variant={rv.variant}
+          readonly={rv.readonly}
+          width="fullWidth"
+        />
+      )),
+    ])}
   </div>
 );
 
@@ -324,15 +326,23 @@ export const PrefixAndSuffix: Story = () => (
       placeholder="Prefix + suffix"
       width="md"
     />
+    <Controlled
+      value=""
+      onChange={noop}
+      prefix={{ iconName: "search", onClick: noop }}
+      suffix={{ iconName: "close", onClick: noop }}
+      placeholder="Prefix + suffix button"
+      width="md"
+    />
     <ClearableInput
-      value="Loading"
+      value="Kitchen Sink"
       prefix={{ iconName: "search" }}
       suffix={{ text: "kg" }}
       width="md"
       loading
     />
     <ClearableInput
-      value="Disabled"
+      value="Kitchen Sink Disabled"
       prefix={{ iconName: "search" }}
       suffix={{ text: "kg" }}
       width="md"
@@ -340,7 +350,7 @@ export const PrefixAndSuffix: Story = () => (
       disabled
     />
     <ClearableInput
-      value="Invalid"
+      value="Kitchen Sink Invalid"
       prefix={{ iconName: "search" }}
       suffix={{ text: "kg" }}
       width="md"
