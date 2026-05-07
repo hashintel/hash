@@ -2,10 +2,11 @@
 
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { collapsible } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(collapsible);
+import { collapsibleSlotRecipe } from "./collapsible.recipe";
+
+const { withProvider, withContext } = createStyleContext(collapsibleSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Collapsible.Root, "root");

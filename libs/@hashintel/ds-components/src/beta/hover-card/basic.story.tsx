@@ -3,10 +3,10 @@ import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { MapPinIcon } from "lucide-react";
 
 import * as Avatar from "../avatar/avatar";
+import * as HoverCard from "../hover-card";
 import { Icon } from "../icon";
 import { Link } from "../link";
 import { Text } from "../text";
-import * as HoverCard from "./hover-card";
 
 export const App = () => {
   return (

@@ -1,7 +1,7 @@
 import { hoverCardAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const hoverCard = defineSlotRecipe({
+const hoverCardSlotRecipeDefinition = {
   className: "hover-card",
   slots: hoverCardAnatomy.keys(),
   base: {
@@ -38,4 +38,11 @@ export const hoverCard = defineSlotRecipe({
       borderInlineStartWidth: "0.5px",
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const hoverCardSlotRecipe = sva(hoverCardSlotRecipeDefinition);
+
+export type HoverCardSlotRecipeProps = RecipeVariantProps<
+  typeof hoverCardSlotRecipe
+>;

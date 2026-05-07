@@ -1,7 +1,7 @@
 import { editableAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const editable = defineSlotRecipe({
+const editableSlotRecipeDefinition = {
   slots: editableAnatomy.keys(),
   className: "editable",
   base: {
@@ -71,4 +71,11 @@ export const editable = defineSlotRecipe({
       },
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const editableSlotRecipe = sva(editableSlotRecipeDefinition);
+
+export type EditableSlotRecipeProps = RecipeVariantProps<
+  typeof editableSlotRecipe
+>;

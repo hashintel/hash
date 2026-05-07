@@ -2,10 +2,11 @@
 
 import { Editable } from "@ark-ui/react/editable";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { editable } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(editable);
+import { editableSlotRecipe } from "./editable.recipe";
+
+const { withProvider, withContext } = createStyleContext(editableSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(Editable.Root, "root");

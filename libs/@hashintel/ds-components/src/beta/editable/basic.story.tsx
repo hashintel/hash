@@ -1,4 +1,4 @@
-import * as Editable from "./editable";
+import * as Editable from "../editable";
 
 export const App = () => {
   return (

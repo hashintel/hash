@@ -11,20 +11,20 @@ import { carousel } from "../beta/carousel/carousel.recipe";
 import { checkboxSlotRecipe } from "../beta/checkbox.recipe";
 import { clipboard } from "../beta/clipboard/clipboard.recipe";
 import { codeRecipe } from "../beta/code.recipe";
-import { collapsible } from "../beta/collapsible/collapsible.recipe";
+import { collapsibleSlotRecipe } from "../beta/collapsible.recipe";
 import { colorPicker } from "../beta/color-picker/color-picker.recipe";
 import { combobox } from "../beta/combobox/combobox.recipe";
 import { datePicker } from "../beta/date-picker/date-picker.recipe";
 import { dialog } from "../beta/dialog/dialog.recipe";
 import { drawer } from "../beta/drawer/drawer.recipe";
-import { editable } from "../beta/editable/editable.recipe";
+import { editableSlotRecipe } from "../beta/editable.recipe";
 import { field } from "../beta/field/field.recipe";
 import { fieldset } from "../beta/fieldset/fieldset.recipe";
 import { fileUpload } from "../beta/file-upload/file-upload.recipe";
 import { floatingPanel } from "../beta/floating-panel/floating-panel.recipe";
 import { groupRecipe } from "../beta/group.recipe";
 import { headingRecipe } from "../beta/heading.recipe";
-import { hoverCard } from "../beta/hover-card/hover-card.recipe";
+import { hoverCardSlotRecipe } from "../beta/hover-card.recipe";
 import { iconRecipe } from "../beta/icon.recipe";
 import { input } from "../beta/input/input.recipe";
 import { inputAddonRecipe } from "../beta/input-addon.recipe";
@@ -94,18 +94,18 @@ export const slotRecipes = {
   carousel,
   checkbox: checkboxSlotRecipe,
   clipboard,
-  collapsible,
+  collapsible: collapsibleSlotRecipe,
   colorPicker,
   combobox,
   datePicker,
   dialog,
   drawer,
-  editable,
+  editable: editableSlotRecipe,
   field,
   fieldset,
   fileUpload,
   floatingPanel,
-  hoverCard,
+  hoverCard: hoverCardSlotRecipe,
   inputGroup,
   listbox,
   menu,

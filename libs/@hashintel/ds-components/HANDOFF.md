@@ -121,6 +121,18 @@ These are now on the flat-root pattern with local recipe imports.
 - `skeleton.tsx` keeps its `SkeletonCircle` default variant through a narrow `defaultProps` cast because the staged recipe suppressions degrade `styled()` option inference.
 - `src/preset/recipes.ts` now imports these flat roots and maps them to the public preset recipe names.
 
+#### Sixth migration batch completed
+
+- `collapsible`
+- `editable`
+- `hover-card`
+
+These are now on the flat-root pattern with local slot-recipe imports.
+
+- `editableSlotRecipe` and `hoverCardSlotRecipe` are staged with root-level `@ts-expect-error` suppressions.
+- `collapsibleSlotRecipe` converted cleanly without a suppression.
+- `src/preset/recipes.ts` now imports these flat roots and maps them to the public preset slot recipe names.
+
 ### Preset integration decisions
 
 `src/preset/recipes.ts` now mixes three states intentionally:
@@ -159,9 +171,12 @@ The script currently has pilot config entries for:
 - `badge`
 - `button`
 - `checkbox`
+- `collapsible`
 - `code`
+- `editable`
 - `group`
 - `heading`
+- `hover-card`
 - `icon`
 - `input-addon`
 - `kbd`

@@ -2,10 +2,12 @@
 
 import { HoverCard } from "@ark-ui/react/hover-card";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { hoverCard } from "@hashintel/ds-helpers/recipes";
 import type { ComponentProps } from "react";
 
-const { withRootProvider, withContext } = createStyleContext(hoverCard);
+import { hoverCardSlotRecipe } from "./hover-card.recipe";
+
+const { withRootProvider, withContext } =
+  createStyleContext(hoverCardSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withRootProvider(HoverCard.Root);
