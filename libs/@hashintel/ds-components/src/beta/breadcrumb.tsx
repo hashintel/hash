@@ -4,11 +4,12 @@
 
 import { ark } from "@ark-ui/react/factory";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import { breadcrumb } from "@hashintel/ds-helpers/recipes";
 import { ChevronRightIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(breadcrumb);
+import { breadcrumbSlotRecipe } from "./breadcrumb.recipe";
+
+const { withProvider, withContext } = createStyleContext(breadcrumbSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 

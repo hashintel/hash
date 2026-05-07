@@ -2,10 +2,10 @@ import { Divider, HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { GithubIcon, GitlabIcon } from "lucide-react";
 
 import { Button } from "../button";
+import * as Card from "../card";
 import * as Field from "../field/field";
 import { Input } from "../input/input";
 import { Text } from "../text";
-import * as Card from "./card";
 
 export const App = () => {
   return (

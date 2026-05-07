@@ -1,6 +1,6 @@
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const breadcrumb = defineSlotRecipe({
+const breadcrumbSlotRecipeDefinition = {
   className: "breadcrumb",
   slots: ["root", "list", "link", "item", "separator", "ellipsis"],
   base: {
@@ -74,4 +74,11 @@ export const breadcrumb = defineSlotRecipe({
     variant: "plain",
     size: "md",
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const breadcrumbSlotRecipe = sva(breadcrumbSlotRecipeDefinition);
+
+export type BreadcrumbSlotRecipeProps = RecipeVariantProps<
+  typeof breadcrumbSlotRecipe
+>;

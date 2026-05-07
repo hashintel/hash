@@ -1,6 +1,6 @@
 import { Button } from "../button";
+import * as Card from "../card";
 import { Image } from "../image/image";
-import * as Card from "./card";
 
 export const App = () => {
   return (

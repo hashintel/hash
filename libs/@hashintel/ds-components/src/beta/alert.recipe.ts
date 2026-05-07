@@ -1,6 +1,6 @@
-import { defineSlotRecipe } from "@pandacss/dev";
+import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
-export const alert = defineSlotRecipe({
+const alertSlotRecipeDefinition = {
   className: "alert",
   slots: ["root", "content", "description", "indicator", "title"],
   base: {
@@ -109,4 +109,9 @@ export const alert = defineSlotRecipe({
       neutral: {},
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const alertSlotRecipe = sva(alertSlotRecipeDefinition);
+
+export type AlertSlotRecipeProps = RecipeVariantProps<typeof alertSlotRecipe>;

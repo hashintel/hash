@@ -3,8 +3,8 @@ import { CheckIcon, XIcon } from "lucide-react";
 
 import * as Avatar from "../avatar/avatar";
 import { Button } from "../button";
+import * as Card from "../card";
 import { Text } from "../text";
-import * as Card from "./card";
 
 export const App = () => {
   return (

@@ -1,12 +1,12 @@
 // import { absoluteCenter } from "../beta/absolute-center/absolute-center.recipe";
 import { accordionSlotRecipe } from "../beta/accordion.recipe";
-import { alert } from "../beta/alert/alert.recipe";
+import { alertSlotRecipe } from "../beta/alert.recipe";
 import { angleSlider } from "../beta/angle-slider/angle-slider.recipe";
 import { avatar } from "../beta/avatar/avatar.recipe";
 import { badgeRecipe } from "../beta/badge.recipe";
-import { breadcrumb } from "../beta/breadcrumb/breadcrumb.recipe";
+import { breadcrumbSlotRecipe } from "../beta/breadcrumb.recipe";
 import { buttonRecipe } from "../beta/button.recipe";
-import { card } from "../beta/card/card.recipe";
+import { cardSlotRecipe } from "../beta/card.recipe";
 import { carousel } from "../beta/carousel/carousel.recipe";
 import { checkboxSlotRecipe } from "../beta/checkbox.recipe";
 import { clipboard } from "../beta/clipboard/clipboard.recipe";
@@ -86,11 +86,11 @@ export const recipes = {
 
 export const slotRecipes = {
   accordion: accordionSlotRecipe,
-  alert,
+  alert: alertSlotRecipe,
   angleSlider,
   avatar,
-  breadcrumb,
-  card,
+  breadcrumb: breadcrumbSlotRecipe,
+  card: cardSlotRecipe,
   carousel,
   checkbox: checkboxSlotRecipe,
   clipboard,
