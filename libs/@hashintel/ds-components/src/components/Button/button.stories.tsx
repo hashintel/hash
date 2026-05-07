@@ -1,5 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import type { Story, StoryDefault } from "@ladle/react";
+import { Fragment, useState } from "react";
 
 import { formInputSizes } from "../../util/form-shared";
 import { Icon, iconNames } from "../Icon/icon";
@@ -76,62 +77,56 @@ export default {
 } satisfies StoryDefault<ButtonElementProps>;
 
 const Button = (args: ButtonElementProps) => (
-  <ButtonComponent {...args} onClick={() => {}}>
+  <ButtonComponent {...args} onClick={args.onClick ?? (() => {})}>
     {args.children ?? ""}
   </ButtonComponent>
 );
 
-export const Default: Story<ButtonElementProps> = (args) => (
-  <>
-    {tones.map((tone) => (
-      <div
-        key={tone}
-        className={css({
-          display: "flex",
-          gap: "[16px]",
-          alignItems: "flex-end",
-          flexWrap: "wrap",
-          marginBottom: "4",
-        })}
-      >
-        {variants.map((variant) => (
-          <>
-            <Button key={variant} {...args} variant={variant} tone={tone}>
-              {variant}
-            </Button>
-            <Button
-              key={`${variant}loading`}
-              {...args}
-              variant={variant}
-              tone={tone}
-              loading
-            >
-              {variant}
-            </Button>
-            <Button
-              key={`${variant}disabled`}
-              {...args}
-              variant={variant}
-              tone={tone}
-              disabled
-            >
-              disabled
-            </Button>
-            <Button
-              key={`${variant}pressed`}
-              {...args}
-              variant={variant}
-              tone={tone}
-              pressed
-            >
-              pressed
-            </Button>
-          </>
-        ))}
-      </div>
-    ))}
-  </>
-);
+export const Default: Story<ButtonElementProps> = (args) => {
+  const [loading, setLoading] = useState<string | null>(null);
+  return (
+    <>
+      {tones.map((tone) => (
+        <div
+          key={tone}
+          className={css({
+            display: "flex",
+            gap: "[16px]",
+            alignItems: "flex-end",
+            flexWrap: "wrap",
+            marginBottom: "4",
+          })}
+        >
+          {variants.map((variant) => (
+            <Fragment key={variant}>
+              <Button
+                {...args}
+                variant={variant}
+                tone={tone}
+                onClick={() => {
+                  setLoading(`${variant}-${tone}`);
+                  setTimeout(() => setLoading(null), 1000);
+                }}
+                loading={loading === `${variant}-${tone}`}
+              >
+                {variant}
+              </Button>
+              <Button {...args} variant={variant} tone={tone} loading>
+                {variant}
+              </Button>
+              <Button {...args} variant={variant} tone={tone} disabled>
+                disabled
+              </Button>
+              <Button {...args} variant={variant} tone={tone} pressed>
+                pressed
+              </Button>
+            </Fragment>
+          ))}
+        </div>
+      ))}
+    </>
+  );
+};
 
 Default.parameters = {
   controls: { exclude: ["variant", "tone", "loading", "pressed", "disabled"] },

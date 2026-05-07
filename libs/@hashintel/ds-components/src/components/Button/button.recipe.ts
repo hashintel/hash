@@ -347,7 +347,7 @@ export const styles = sva({
           color: "neutral.s120",
           "&:not([aria-disabled=true]):hover": {
             background: "neutral.a20",
-            borderColor: "neutral.a70",
+            borderColor: "neutral.a80",
           },
         },
       },
