@@ -15,6 +15,7 @@ export const App = () => {
 
   const hasMore = items.length < 200;
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: hasMore ? items.length + 1 : items.length,
     getScrollElement: () => scrollRef.current,
