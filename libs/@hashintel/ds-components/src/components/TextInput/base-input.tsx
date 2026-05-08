@@ -23,6 +23,7 @@ function isTextAdornment(
 }
 
 function renderAdornment(
+  type: "prefix" | "suffix",
   adornment:
     | { iconName: IconName; onClick?: () => void }
     | { text: string; onClick?: () => void }
@@ -30,41 +31,38 @@ function renderAdornment(
   size: "xs" | "sm" | "md" | "lg",
   classes: BaseInputSlots,
 ): React.ReactNode {
-  if (isIconAdornment(adornment)) {
-    const icon = <Icon name={adornment.iconName} size={size} />;
-    if (adornment.onClick) {
-      return (
-        <button
-          type="button"
-          onClick={adornment.onClick}
-          className={classes.adornmentButton}
-        >
-          {icon}
-        </button>
-      );
-    }
-    return <span className={classes.adornment}>{icon}</span>;
-  }
-
-  if (isTextAdornment(adornment)) {
-    const text = (
-      <span className={classes.adornmentText}>{adornment.text}</span>
+  const content = isIconAdornment(adornment) ? (
+    <Icon name={adornment.iconName} size={size} />
+  ) : isTextAdornment(adornment) ? (
+    adornment.text
+  ) : (
+    adornment
+  );
+  if (
+    (isIconAdornment(adornment) || isTextAdornment(adornment)) &&
+    adornment.onClick
+  ) {
+    return (
+      <button
+        type="button"
+        onClick={adornment.onClick}
+        className={cx(
+          classes[type],
+          classes.adornment,
+          classes.adornmentButton,
+        )}
+      >
+        {content}
+      </button>
     );
-    if (adornment.onClick) {
-      return (
-        <button
-          type="button"
-          onClick={adornment.onClick}
-          className={classes.adornmentButton}
-        >
-          {text}
-        </button>
-      );
-    }
-    return <span className={classes.adornment}>{text}</span>;
   }
-
-  return adornment;
+  return (
+    <span
+      className={cx(classes[type], classes.adornment, classes.adornmentText)}
+    >
+      {content}
+    </span>
+  );
 }
 
 export const BaseInput = ({
@@ -244,7 +242,7 @@ export const BaseInput = ({
         }
       }}
     >
-      {prefix != null && renderAdornment(prefix, size, classes)}
+      {prefix != null && renderAdornment("prefix", prefix, size, classes)}
 
       <div className={classes.inputWrapper}>
         {input}
@@ -256,6 +254,7 @@ export const BaseInput = ({
       {showClear && (
         <button
           type="button"
+          data-part="clear"
           onMouseDown={(event) => {
             // prevents focus from changing/being removed from the input which can lead to UI stutter
             // if selectedDisplay is set
@@ -266,20 +265,20 @@ export const BaseInput = ({
             clearable.onClear();
             internalRef.current?.focus();
           }}
-          className={classes.adornmentButton}
+          className={classes.clear}
           aria-label="Clear input"
         >
-          <Icon name="close" size={size} />
+          <Icon name="close" size={size} className={classes.clearIcon} />
         </button>
       )}
 
       {loading && (
-        <span className={classes.adornment}>
+        <span className={classes.loading}>
           <LoadingSpinner size={size} />
         </span>
       )}
 
-      {suffix != null && renderAdornment(suffix, size, classes)}
+      {suffix != null && renderAdornment("suffix", suffix, size, classes)}
     </div>
   );
 };

@@ -357,5 +357,15 @@ export const PrefixAndSuffix: Story = () => (
       loading
       invalid
     />
+    <Controlled
+      value=""
+      onChange={noop}
+      prefix={{ iconName: "search", onClick: noop }}
+      suffix={{ iconName: "close", onClick: noop }}
+      placeholder="Prefix + suffix button"
+      width="md"
+      loading
+      invalid
+    />
   </div>
 );
