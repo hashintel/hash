@@ -9,9 +9,9 @@
  */
 
 import { SDCPNItemError } from "../../errors";
-import { buildSimulation } from "../engine/build-simulation";
-import { computeNextFrame } from "../engine/compute-next-frame";
-import type { SimulationInstance } from "../engine/types";
+import { buildSimulation } from "../authoring/engine/build-simulation";
+import { computeNextFrame } from "../authoring/engine/compute-next-frame";
+import type { SimulationInstance } from "../authoring/engine/types";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 //

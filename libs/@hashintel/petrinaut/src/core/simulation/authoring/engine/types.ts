@@ -5,8 +5,8 @@
  * part of the public simulation API.
  */
 
-import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
-import type { SimulationFrame } from "../frames/internal-frame";
+import type { Color, Place, SDCPN, Transition } from "../../../types/sdcpn";
+import type { SimulationFrame } from "../../frames/internal-frame";
 import type { RuntimeDistribution } from "./distribution";
 
 /**
@@ -95,5 +95,5 @@ export type SimulationInstance = {
 export type {
   SimulationFrame,
   SimulationFrameState_Place,
-} from "../frames/internal-frame";
-export type { SimulationFrameState_Transition } from "../api";
+} from "../../frames/internal-frame";
+export type { SimulationFrameState_Transition } from "../../api";
