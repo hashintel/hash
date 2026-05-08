@@ -17,11 +17,11 @@ export const baseInputRecipe = sva({
       display: "inline-flex",
       alignItems: "center",
       position: "relative",
-      transition: "colors",
+      borderWidth: "1px",
+      width: "[100%]",
       _focusWithin: {
-        outline: "[2px solid]",
+        outline: "[1px solid]",
         outlineColor: "colorPalette.bd.solid",
-        outlineOffset: "[-1px]",
       },
     },
     readonly: {
@@ -49,7 +49,7 @@ export const baseInputRecipe = sva({
       color: "[inherit]",
       borderRadius: "[inherit]",
       _placeholder: { color: "fg.muted" },
-      _disabled: { cursor: "not-allowed" },
+      _disabled: { cursor: "auto" },
     },
     hiddenInput: {
       color: "[transparent]",
@@ -90,11 +90,10 @@ export const baseInputRecipe = sva({
     variant: {
       default: {
         root: {
-          borderWidth: "1px",
           borderColor: "bd.solid",
           color: "fg.body",
           bg: "white",
-          _hover: {
+          "&:not(.layer-style_disabled):hover": {
             borderColor: "neutral.s80",
             bg: "neutral.s10",
           },
@@ -102,8 +101,11 @@ export const baseInputRecipe = sva({
       },
       subtle: {
         root: {
-          borderWidth: "1px",
           borderColor: "[transparent]",
+          "&:not(.layer-style_disabled):hover": {
+            background: "neutral.a10",
+            borderColor: "neutral.a40",
+          },
         },
       },
     },
@@ -112,6 +114,14 @@ export const baseInputRecipe = sva({
         input: {
           paddingX: "2",
           paddingY: "0",
+          textStyle: "xs",
+        },
+        styledValueOverlay: {
+          paddingX: "2",
+          paddingY: "0",
+          textStyle: "xs",
+        },
+        readonly: {
           textStyle: "xs",
         },
         root: {
@@ -125,6 +135,14 @@ export const baseInputRecipe = sva({
           paddingY: "0.5",
           textStyle: "sm",
         },
+        styledValueOverlay: {
+          paddingX: "2.5",
+          paddingY: "0.5",
+          textStyle: "sm",
+        },
+        readonly: {
+          textStyle: "sm",
+        },
         root: {
           gap: "1.5",
           borderRadius: "lg",
@@ -136,6 +154,14 @@ export const baseInputRecipe = sva({
           paddingY: "1",
           textStyle: "base",
         },
+        styledValueOverlay: {
+          paddingX: "3",
+          paddingY: "1",
+          textStyle: "base",
+        },
+        readonly: {
+          textStyle: "base",
+        },
         root: {
           gap: "2",
           borderRadius: "lg",
@@ -145,6 +171,14 @@ export const baseInputRecipe = sva({
         input: {
           paddingX: "4",
           paddingY: "2",
+          textStyle: "base",
+        },
+        styledValueOverlay: {
+          paddingX: "4",
+          paddingY: "2",
+          textStyle: "base",
+        },
+        readonly: {
           textStyle: "base",
         },
         root: {
@@ -160,6 +194,10 @@ export const baseInputRecipe = sva({
           _focusVisibleWithin: {
             outlineColor: "status.error.bd.solid",
           },
+          "&:not(.layer-style_disabled):hover": {
+            borderColor: "red.s65",
+            bg: "red.s05",
+          },
         },
       },
     },
@@ -167,27 +205,24 @@ export const baseInputRecipe = sva({
       true: {
         root: {
           layerStyle: "disabled",
-          cursor: "not-allowed",
+          cursor: "auto",
         },
       },
     },
     width: {
       sm: {
-        root: { width: "[12rem]" },
-        readonly: { width: "[12rem]" },
+        root: { maxWidth: "[10rem]" },
+        readonly: { maxWidth: "[10rem]" },
       },
       md: {
-        root: { width: "[20rem]" },
-        readonly: { width: "[20rem]" },
+        root: { maxWidth: "[18rem]" },
+        readonly: { maxWidth: "[18rem]" },
       },
       lg: {
-        root: { width: "[30rem]" },
-        readonly: { width: "[30rem]" },
+        root: { maxWidth: "[30rem]" },
+        readonly: { maxWidth: "[30rem]" },
       },
-      fullWidth: {
-        root: { width: "full" },
-        readonly: { width: "full" },
-      },
+      fullWidth: {},
       fitContent: {
         root: { width: "[fit-content]" },
         readonly: { width: "[fit-content]" },
@@ -199,6 +234,28 @@ export const baseInputRecipe = sva({
       right: { input: { textAlign: "end" } },
     },
   },
+  compoundVariants: [
+    {
+      variant: "default",
+      disabled: true,
+      css: {
+        root: {
+          background: "neutral.a20",
+          borderColor: "neutral.a50",
+          color: "neutral.s80",
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      disabled: true,
+      css: {
+        root: {
+          color: "neutral.s80",
+        },
+      },
+    },
+  ],
   defaultVariants: {
     variant: "default",
     size: "md",
