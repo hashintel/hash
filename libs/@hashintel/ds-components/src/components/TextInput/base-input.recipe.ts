@@ -28,10 +28,10 @@ export const baseInputRecipe = sva({
         outlineColor: "colorPalette.bd.solid",
       },
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
-        display: "block",
+        display: "flex",
       },
       "&:focus-within [data-part='clear']": {
-        display: "block",
+        display: "flex",
       },
     },
     readonly: {

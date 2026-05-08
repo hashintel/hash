@@ -265,6 +265,21 @@ export const Size: Story = () => (
         />
       )),
     ])}
+
+    <span key="kitchen-sink" style={subheadingStyle}>
+      With items
+    </span>
+    {...formInputSizes.map((size) => (
+      <ClearableInput
+        key={`sink-${size}`}
+        value="Kitchen Sink"
+        prefix={{ iconName: "search" }}
+        suffix={{ text: "kg" }}
+        width="fullWidth"
+        loading
+        size={size}
+      />
+    ))}
   </div>
 );
 
