@@ -118,6 +118,7 @@ export const Button = (props: ButtonProps) => {
     iconPosition = "left",
     prefix,
     suffix,
+    ref,
     href,
     onClick,
     onMouseDown,
@@ -217,7 +218,7 @@ export const Button = (props: ButtonProps) => {
         {...(isInactive
           ? {}
           : (sharedEventHandlers as React.DOMAttributes<HTMLAnchorElement>))}
-        ref={(props as AnchorElementOnlyProps).ref}
+        ref={ref as React.Ref<HTMLAnchorElement>}
         href={isInactive ? undefined : href}
         role={isInactive ? "link" : undefined}
         target={isInactive ? undefined : props.target}
@@ -233,7 +234,7 @@ export const Button = (props: ButtonProps) => {
     <button
       {...sharedProps}
       {...(sharedEventHandlers as React.DOMAttributes<HTMLButtonElement>)}
-      ref={(props as ButtonElementOnlyProps).ref}
+      ref={ref as React.Ref<HTMLButtonElement>}
       type={(props as ButtonElementOnlyProps).type ?? "button"}
       disabled={disabled || loading}
     >

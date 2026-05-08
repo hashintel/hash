@@ -1,3 +1,4 @@
+import { css } from "@hashintel/ds-helpers/css";
 import type { Story, StoryDefault } from "@ladle/react";
 
 import { Button } from "../Button/button";
@@ -28,7 +29,7 @@ export const Default: Story = () => (
         </h3>
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
           <Tooltip content="Button tooltip" variant={variant}>
-            <Button variant="secondary" colorScheme="neutral" size="sm">
+            <Button size="sm" onClick={() => {}}>
               Hover me
             </Button>
           </Tooltip>
@@ -85,10 +86,9 @@ export const AllPositions: Story = () => (
       ) : (
         <Tooltip key={position} content={position} position={position}>
           <Button
-            variant="secondary"
-            colorScheme="neutral"
             size="lg"
-            style={{ width: "100%" }}
+            className={css({ width: "[100%]" })}
+            onClick={() => {}}
           >
             {position}
           </Button>
