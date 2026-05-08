@@ -303,84 +303,140 @@ export const Widths: Story = () => (
   </div>
 );
 
+type PrefixSuffixRow = {
+  key: string;
+  clearable?: boolean;
+  props: Omit<BaseInputProps, "variant" | "width" | "onChange">;
+};
+
+const prefixSuffixRows: PrefixSuffixRow[] = [
+  {
+    key: "prefix-text",
+    props: {
+      value: "",
+      prefix: { text: "$" },
+      placeholder: "Prefix text",
+    },
+  },
+  {
+    key: "prefix-button",
+    props: {
+      value: "",
+      prefix: { iconName: "search", onClick: noop },
+      placeholder: "Prefix button",
+    },
+  },
+  {
+    key: "suffix-text",
+    props: {
+      value: "",
+      suffix: { text: "kg" },
+      placeholder: "Suffix text",
+    },
+  },
+  {
+    key: "suffix-button",
+    props: {
+      value: "",
+      suffix: { iconName: "close", onClick: noop },
+      placeholder: "Suffix button",
+    },
+  },
+  {
+    key: "prefix-suffix",
+    props: {
+      value: "",
+      prefix: { iconName: "search" },
+      suffix: { text: "CMD+K" },
+      placeholder: "Prefix + suffix",
+    },
+  },
+  {
+    key: "prefix-suffix-button",
+    props: {
+      value: "",
+      prefix: { iconName: "search", onClick: noop },
+      suffix: { iconName: "close", onClick: noop },
+      placeholder: "Prefix + suffix button",
+    },
+  },
+  {
+    key: "kitchen-sink",
+    clearable: true,
+    props: {
+      value: "Kitchen Sink",
+      prefix: { iconName: "search" },
+      suffix: { text: "kg" },
+      loading: true,
+    },
+  },
+  {
+    key: "kitchen-sink-disabled",
+    clearable: true,
+    props: {
+      value: "Kitchen Sink Disabled",
+      prefix: { iconName: "search" },
+      suffix: { text: "kg" },
+      loading: true,
+      disabled: true,
+    },
+  },
+  {
+    key: "kitchen-sink-invalid",
+    clearable: true,
+    props: {
+      value: "Kitchen Sink Invalid",
+      prefix: { iconName: "search" },
+      suffix: { text: "kg" },
+      loading: true,
+      invalid: true,
+    },
+  },
+  {
+    key: "prefix-suffix-button-loading-invalid",
+    props: {
+      value: "",
+      prefix: { iconName: "search", onClick: noop },
+      suffix: { iconName: "close", onClick: noop },
+      placeholder: "Prefix + suffix button",
+      loading: true,
+      invalid: true,
+    },
+  },
+];
+
 export const PrefixAndSuffix: Story = () => (
-  <div className={groupStyle}>
-    <Controlled
-      value=""
-      onChange={noop}
-      prefix={{ text: "$" }}
-      placeholder="Prefix text"
-      width="md"
-    />
-    <Controlled
-      value=""
-      onChange={noop}
-      prefix={{ iconName: "search", onClick: noop }}
-      placeholder="Prefix button"
-      width="md"
-    />
-    <Controlled
-      value=""
-      onChange={noop}
-      suffix={{ text: "kg" }}
-      placeholder="Suffix text"
-      width="md"
-    />
-    <Controlled
-      value=""
-      onChange={noop}
-      suffix={{ iconName: "close", onClick: noop }}
-      placeholder="Suffix button"
-      width="md"
-    />
-    <Controlled
-      value=""
-      onChange={noop}
-      prefix={{ iconName: "search" }}
-      suffix={{ text: "CMD+K" }}
-      placeholder="Prefix + suffix"
-      width="md"
-    />
-    <Controlled
-      value=""
-      onChange={noop}
-      prefix={{ iconName: "search", onClick: noop }}
-      suffix={{ iconName: "close", onClick: noop }}
-      placeholder="Prefix + suffix button"
-      width="md"
-    />
-    <ClearableInput
-      value="Kitchen Sink"
-      prefix={{ iconName: "search" }}
-      suffix={{ text: "kg" }}
-      width="md"
-      loading
-    />
-    <ClearableInput
-      value="Kitchen Sink Disabled"
-      prefix={{ iconName: "search" }}
-      suffix={{ text: "kg" }}
-      width="md"
-      loading
-      disabled
-    />
-    <ClearableInput
-      value="Kitchen Sink Invalid"
-      prefix={{ iconName: "search" }}
-      suffix={{ text: "kg" }}
-      width="md"
-      loading
-      invalid
-    />
-    <Controlled
-      value=""
-      onChange={noop}
-      prefix={{ iconName: "search", onClick: noop }}
-      suffix={{ iconName: "close", onClick: noop }}
-      placeholder="Prefix + suffix button"
-      width="md"
-      loading
-      invalid
-    />
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "auto auto",
+      columnGap: 32,
+      rowGap: 12,
+      alignItems: "center",
+      justifyContent: "start",
+    }}
+  >
+    <span style={subheadingStyle}>Default</span>
+    <span style={subheadingStyle}>Subtle</span>
+    {prefixSuffixRows.flatMap((row) =>
+      variants.map((variant) =>
+        row.clearable ? (
+          <ClearableInput
+            key={`${row.key}-${variant}`}
+            {...row.props}
+            variant={variant}
+            width="md"
+          />
+        ) : (
+          <Controlled
+            key={`${row.key}-${variant}`}
+            {...row.props}
+            onChange={noop}
+            variant={variant}
+            width="md"
+          />
+        ),
+      ),
+    )}
   </div>
 );
