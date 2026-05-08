@@ -1,3 +1,4 @@
+import type { Transition } from "../../../types/sdcpn";
 import type { SimulationFrame } from "./types";
 
 /**
@@ -26,20 +27,28 @@ export type TransitionEnablementResult = {
  * be structurally enabled but still not fire due to lambda returning 0 or false.
  *
  * @param frame - The current simulation frame
+ * @param transitions - Static transition definitions for the simulation run
  * @param transitionId - The ID of the transition to check
  * @returns true if the transition has sufficient input tokens, false otherwise
  */
 export const isTransitionStructurallyEnabled = (
   frame: SimulationFrame,
+  transitions: ReadonlyMap<string, Transition>,
   transitionId: string,
 ): boolean => {
-  const transition = frame.transitions[transitionId];
-  if (!transition) {
+  if (!frame.transitions[transitionId]) {
     throw new Error(`Transition with ID ${transitionId} not found.`);
   }
 
+  const transition = transitions.get(transitionId);
+  if (!transition) {
+    throw new Error(
+      `Transition definition for transition ${transitionId} not found.`,
+    );
+  }
+
   // Check if all input places have enough tokens for the required arc weights
-  return transition.instance.inputArcs.every((arc) => {
+  return transition.inputArcs.every((arc) => {
     const placeState = frame.places[arc.placeId];
     if (!placeState) {
       throw new Error(
@@ -71,7 +80,7 @@ export const isTransitionStructurallyEnabled = (
  *
  * @example
  * ```ts
- * const result = checkTransitionEnablement(currentFrame);
+ * const result = checkTransitionEnablement(currentFrame, simulation.transitions);
  * if (!result.hasEnabledTransition) {
  *   console.log("Simulation reached a terminal state (deadlock)");
  * }
@@ -79,12 +88,17 @@ export const isTransitionStructurallyEnabled = (
  */
 export const checkTransitionEnablement = (
   frame: SimulationFrame,
+  transitions: ReadonlyMap<string, Transition>,
 ): TransitionEnablementResult => {
   const transitionStatus = new Map<string, boolean>();
   let hasEnabledTransition = false;
 
   for (const transitionId of Object.keys(frame.transitions)) {
-    const isEnabled = isTransitionStructurallyEnabled(frame, transitionId);
+    const isEnabled = isTransitionStructurallyEnabled(
+      frame,
+      transitions,
+      transitionId,
+    );
     transitionStatus.set(transitionId, isEnabled);
 
     if (isEnabled) {

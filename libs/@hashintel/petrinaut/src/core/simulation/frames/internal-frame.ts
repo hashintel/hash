@@ -1,4 +1,4 @@
-import type { ID, Transition } from "../../types/sdcpn";
+import type { ID } from "../../types/sdcpn";
 import type { SimulationFrameState_Transition } from "../api";
 
 /**
@@ -21,10 +21,7 @@ export type SimulationFrame = {
   /** Place states with token buffer offsets, keyed by place ID */
   places: Record<ID, SimulationFrameState_Place>;
   /** Transition states with firing information, keyed by transition ID */
-  transitions: Record<
-    ID,
-    SimulationFrameState_Transition & { instance: Transition }
-  >;
+  transitions: Record<ID, SimulationFrameState_Transition>;
   /**
    * Buffer containing all place values concatenated.
    *

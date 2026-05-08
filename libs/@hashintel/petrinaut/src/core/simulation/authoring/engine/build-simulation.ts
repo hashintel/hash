@@ -234,7 +234,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
 
     transitionStates[transition.id] = {
-      instance: transition,
       timeSinceLastFiringMs: 0,
       firedInThisFrame: false,
       firingCount: 0,

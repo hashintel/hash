@@ -228,7 +228,10 @@ export function computeNextFrame(
   }
   // Check for deadlock if no transition fired
   else if (!transitionFired) {
-    const enablementResult = checkTransitionEnablement(finalFrame);
+    const enablementResult = checkTransitionEnablement(
+      finalFrame,
+      simulation.transitions,
+    );
     if (!enablementResult.hasEnabledTransition) {
       completionReason = "deadlock";
     }

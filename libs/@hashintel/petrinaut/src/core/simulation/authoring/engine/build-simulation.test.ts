@@ -250,6 +250,8 @@ describe("buildSimulation", () => {
     expect(Object.keys(frame.transitions).length).toBe(2);
     expect(frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
     expect(frame.transitions.t2?.timeSinceLastFiringMs).toBe(0);
+    expect(frame.transitions.t1).not.toHaveProperty("instance");
+    expect(simulationInstance.transitions.get("t1")?.name).toBe("Transition 1");
 
     // Verify all compiled functions exist
     expect(simulationInstance.differentialEquationFns.size).toBe(3);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Color, Place, Transition } from "../../types/sdcpn";
+import type { Color, Place } from "../../types/sdcpn";
 import { createSimulationFrameReader } from "./frame-reader";
 import type { SimulationFrame } from "./internal-frame";
 
@@ -25,18 +25,6 @@ const place: Place = {
   y: 0,
 };
 
-const transition: Transition = {
-  id: "transition-1",
-  name: "Transition 1",
-  inputArcs: [],
-  outputArcs: [],
-  lambdaType: "predicate",
-  lambdaCode: "",
-  transitionKernelCode: "",
-  x: 0,
-  y: 0,
-};
-
 function makeFrame(): SimulationFrame {
   return {
     time: 0.25,
@@ -44,11 +32,10 @@ function makeFrame(): SimulationFrame {
       [place.id]: { offset: 2, count: 2, dimensions: 2 },
     },
     transitions: {
-      [transition.id]: {
+      "transition-1": {
         timeSinceLastFiringMs: 10,
         firedInThisFrame: true,
         firingCount: 3,
-        instance: transition,
       },
     },
     buffer: new Float64Array([99, 99, 1, 2, 3, 4]),
@@ -73,7 +60,7 @@ describe("SimulationFrameReader", () => {
       { x: 3, y: 4 },
     ]);
 
-    const transitionState = reader.getTransitionState(transition.id);
+    const transitionState = reader.getTransitionState("transition-1");
     expect(transitionState).toEqual({
       timeSinceLastFiringMs: 10,
       firedInThisFrame: true,
@@ -88,7 +75,7 @@ describe("SimulationFrameReader", () => {
         [place.id]: { tokenCount: 2 },
       },
       transitions: {
-        [transition.id]: transitionState,
+        "transition-1": transitionState,
       },
     });
   });

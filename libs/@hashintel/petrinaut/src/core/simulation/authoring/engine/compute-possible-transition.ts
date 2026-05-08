@@ -25,14 +25,20 @@ export function computePossibleTransition(
   add: Record<PlaceID, number[][]>;
   newRngState: number;
 } {
-  // Get the transition from the simulation instance
-  const transition = frame.transitions[transitionId];
-  if (!transition) {
+  const transitionState = frame.transitions[transitionId];
+  if (!transitionState) {
     throw new Error(`Transition with ID ${transitionId} not found.`);
   }
 
+  const transition = simulation.transitions.get(transitionId);
+  if (!transition) {
+    throw new Error(
+      `Transition definition for transition ${transitionId} not found.`,
+    );
+  }
+
   // Gather input places with their weights relative to this transition.
-  const inputPlaces = transition.instance.inputArcs.map((arc) => {
+  const inputPlaces = transition.inputArcs.map((arc) => {
     const placeState = frame.places[arc.placeId];
     if (!placeState) {
       throw new Error(
@@ -82,7 +88,7 @@ export function computePossibleTransition(
 
   // Generate random number using seeded RNG and update state
   const [U1, newRngState] = nextRandom(rngState);
-  const { timeSinceLastFiringMs } = transition;
+  const { timeSinceLastFiringMs } = transitionState;
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
   // (just multiply by time since last transition)
@@ -172,10 +178,10 @@ export function computePossibleTransition(
       );
     } catch (err) {
       throw new SDCPNItemError(
-        `Error while executing lambda function for transition \`${transition.instance.name}\`:\n\n${
+        `Error while executing lambda function for transition \`${transition.name}\`:\n\n${
           (err as Error).message
         }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
-        transition.instance.id,
+        transition.id,
       );
     }
 
@@ -202,10 +208,10 @@ export function computePossibleTransition(
         );
       } catch (err) {
         throw new SDCPNItemError(
-          `Error while executing transition kernel for transition \`${transition.instance.name}\`:\n\n${
+          `Error while executing transition kernel for transition \`${transition.name}\`:\n\n${
             (err as Error).message
           }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
-          transition.instance.id,
+          transition.id,
         );
       }
 
@@ -216,7 +222,7 @@ export function computePossibleTransition(
       const addMap: Record<PlaceID, number[][]> = {};
       let currentRngState = newRngState;
 
-      for (const outputArc of transition.instance.outputArcs) {
+      for (const outputArc of transition.outputArcs) {
         const outputPlaceState = frame.places[outputArc.placeId];
         if (!outputPlaceState) {
           throw new Error(
@@ -249,8 +255,8 @@ export function computePossibleTransition(
 
         if (!outputTokens) {
           throw new SDCPNItemError(
-            `Transition kernel for transition \`${transition.instance.name}\` did not return tokens for place "${placeName}"`,
-            transition.instance.id,
+            `Transition kernel for transition \`${transition.name}\` did not return tokens for place "${placeName}"`,
+            transition.id,
           );
         }
 
