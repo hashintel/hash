@@ -37,4 +37,6 @@ export type SharedInputProps<
   ref?: React.Ref<HTMLElement>;
   /** The input ref - this could be different to the ref, which may be a containing element. Use this to access the internal input state and/or to set focus */
   inputRef?: React.Ref<HTMLInputElement>;
+  /** Set to true to make the element focused on mount - set to never to prevent the element from ever being auto-focused */
+  autoFocus?: true | "never";
 } & SharedInputAndFieldProps;

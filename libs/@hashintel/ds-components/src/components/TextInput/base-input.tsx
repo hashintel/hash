@@ -68,14 +68,14 @@ function renderAdornment(
 }
 
 export const BaseInput = ({
-  type,
+  type = "text",
   inputMode,
   placeholder,
   readonly,
   loading,
   variant = "default",
   align = "left",
-  width,
+  width = "fullWidth",
   prefix,
   suffix,
   styledValue,
@@ -102,6 +102,7 @@ export const BaseInput = ({
   disabled,
   required,
   invalid,
+  autoFocus,
   ...ariaProps
 }: {
   /** The html type of the input element (text/number etc) */
@@ -137,6 +138,8 @@ export const BaseInput = ({
     clearable: boolean;
     onClear: () => void;
   };
+  /** Set to false to prevent browsers from autocompleting input fields */
+  autocomplete?: false;
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   min?: number;
@@ -145,8 +148,7 @@ export const BaseInput = ({
   maxLength?: number;
   pattern?: string;
   spellcheck?: boolean;
-  /** Set to prevent browsers from autocompleting input fields */
-  autocomplete?: false;
+  tabIndex?: number;
 } & SharedInputProps<
   HTMLInputElement,
   string | null | undefined,
@@ -224,6 +226,8 @@ export const BaseInput = ({
         classes.input,
         styledValue && !focused ? classes.hiddenInput : undefined,
       )}
+      autoFocus={autoFocus === true ? true : undefined}
+      data-no-autofocus={autoFocus === "never" ? true : undefined}
       {...ariaProps}
     />
   );
@@ -248,8 +252,6 @@ export const BaseInput = ({
           <div className={classes.styledValueOverlay}>{styledValue}</div>
         )}
       </div>
-
-      {suffix != null && renderAdornment(suffix, size, classes)}
 
       {showClear && (
         <button
@@ -276,6 +278,8 @@ export const BaseInput = ({
           <LoadingSpinner size={size} />
         </span>
       )}
+
+      {suffix != null && renderAdornment(suffix, size, classes)}
     </div>
   );
 };
