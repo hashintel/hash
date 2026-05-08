@@ -9,6 +9,10 @@ import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "./base-input.recipe";
 
 type BaseInputSlots = ReturnType<typeof baseInputRecipe>;
+type PrefixOrSuffix =
+  | { iconName: IconName; onClick?: () => void }
+  | { text: string; onClick?: () => void }
+  | { type: "text" | "interactive"; content: React.ReactNode };
 
 function isIconAdornment(
   val: unknown,
@@ -24,10 +28,7 @@ function isTextAdornment(
 
 function renderAdornment(
   type: "prefix" | "suffix",
-  adornment:
-    | { iconName: IconName; onClick?: () => void }
-    | { text: string; onClick?: () => void }
-    | React.ReactNode,
+  adornment: PrefixOrSuffix,
   size: "xs" | "sm" | "md" | "lg",
   classes: BaseInputSlots,
 ): React.ReactNode {
@@ -36,12 +37,9 @@ function renderAdornment(
   ) : isTextAdornment(adornment) ? (
     adornment.text
   ) : (
-    adornment
+    adornment.content
   );
-  if (
-    (isIconAdornment(adornment) || isTextAdornment(adornment)) &&
-    adornment.onClick
-  ) {
+  if (!("content" in adornment) && adornment.onClick) {
     return (
       <button
         type="button"
@@ -120,15 +118,9 @@ export const BaseInput = ({
   /** A set of standard widths to choose for the input. You can also set the width with css when aligning with other inputs is not required. */
   width?: FormInputWidth;
   /** Optional element or button to include at the beginning of an input */
-  prefix?:
-    | { iconName: IconName; onClick?: () => void }
-    | { text: string; onClick?: () => void }
-    | React.ReactNode;
+  prefix?: PrefixOrSuffix;
   /** Optional element or button to include at the end of an input */
-  suffix?:
-    | { iconName: IconName; onClick?: () => void }
-    | { text: string; onClick?: () => void }
-    | React.ReactNode;
+  suffix?: PrefixOrSuffix;
   /** A customized view that is shown when the input is unfocused. Can be used to present the value with extra formatting */
   styledValue?: React.ReactNode;
   /** Set to allow the input to be cleared. As the component is controlled you must clear the value manually with onClear. */
@@ -273,7 +265,7 @@ export const BaseInput = ({
       )}
 
       {loading && (
-        <span className={classes.loading}>
+        <span className={classes.loading} data-part="loading">
           <LoadingSpinner size={size} />
         </span>
       )}

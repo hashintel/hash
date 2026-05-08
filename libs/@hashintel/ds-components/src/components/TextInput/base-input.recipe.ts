@@ -67,15 +67,13 @@ export const baseInputRecipe = sva({
     },
     prefix: {
       borderLeftRadius: "[inherit]",
-      borderRight: "1px solid var(--colors-bd-solid)",
+      borderRight: "1px solid transparent",
     },
     suffix: {
       borderRightRadius: "[inherit]",
-      borderLeft: "1px solid var(--colors-bd-solid)",
+      borderLeft: "1px solid transparent",
     },
     adornment: {
-      background: "neutral.s20",
-      paddingX: "2",
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
@@ -101,8 +99,10 @@ export const baseInputRecipe = sva({
     },
     loading: {
       alignSelf: "center",
+      paddingRight: "2",
     },
     clear: {
+      marginRight: "2",
       color: "neutral.s110",
       borderRadius: "full",
       alignSelf: "center",
@@ -110,6 +110,9 @@ export const baseInputRecipe = sva({
       display: "none",
       _hover: { color: "neutral.s125" },
       _focus: { background: "neutral.s30", outline: "none" },
+      "& + [data-part='loading']": {
+        marginLeft: "-0.5",
+      },
     },
     clearIcon: {
       padding: "0.5",
@@ -135,6 +138,11 @@ export const baseInputRecipe = sva({
             bg: "neutral.s10",
           },
         },
+        adornment: {
+          background: "neutral.s20",
+          paddingX: "2",
+          borderColor: "[bd.solid]",
+        },
       },
       subtle: {
         root: {
@@ -142,6 +150,20 @@ export const baseInputRecipe = sva({
           "&:not(.layer-style_disabled):hover": {
             background: "neutral.a10",
             borderColor: "neutral.a40",
+          },
+        },
+        adornment: {
+          paddingX: "1",
+        },
+        prefix: {
+          _focusVisible: {
+            borderColor: "bd.solid",
+            borderRight: "1px solid var(--colors-bd-solid)",
+          },
+        },
+        suffix: {
+          _focusVisible: {
+            borderLeft: "1px solid var(--colors-bd-solid)",
           },
         },
       },
@@ -162,7 +184,6 @@ export const baseInputRecipe = sva({
           textStyle: "xs",
         },
         root: {
-          gap: "1.5",
           borderRadius: "md",
         },
       },
@@ -181,7 +202,6 @@ export const baseInputRecipe = sva({
           textStyle: "sm",
         },
         root: {
-          gap: "1.5",
           borderRadius: "lg",
         },
       },
@@ -200,7 +220,6 @@ export const baseInputRecipe = sva({
           textStyle: "base",
         },
         root: {
-          gap: "2",
           borderRadius: "lg",
         },
       },
@@ -219,7 +238,6 @@ export const baseInputRecipe = sva({
           textStyle: "base",
         },
         root: {
-          gap: "2",
           borderRadius: "xl",
         },
       },
@@ -228,7 +246,7 @@ export const baseInputRecipe = sva({
       true: {
         root: {
           borderColor: "status.error.bd.solid",
-          _focusVisibleWithin: {
+          _focusWithin: {
             outlineColor: "status.error.bd.solid",
           },
           "&:not(.layer-style_disabled):hover": {
