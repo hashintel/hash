@@ -152,16 +152,18 @@ export const baseInputRecipe = sva({
             borderColor: "neutral.a40",
           },
         },
-        adornment: {
+        adornmentButton: {
           paddingX: "1",
         },
         prefix: {
+          paddingLeft: "1",
           _focusVisible: {
             borderColor: "bd.solid",
             borderRight: "1px solid var(--colors-bd-solid)",
           },
         },
         suffix: {
+          paddingRight: "1",
           _focusVisible: {
             borderLeft: "1px solid var(--colors-bd-solid)",
           },
