@@ -17,7 +17,7 @@ export interface CompiledPlaceMarking {
 export interface CompiledScenarioResult {
   /**
    * Resolved parameter values keyed by variableName (matches the format
-   * expected by the simulation worker and SimulationContext).
+   * expected by the simulation worker).
    */
   parameterValues: Record<string, string>;
   /**
@@ -282,7 +282,7 @@ export function compileScenario(
     return { ok: false, errors };
   }
 
-  // Convert parameters to string values (SimulationContext format)
+  // Convert parameters to string values (simulation worker input format)
   const parameterValues: Record<string, string> = {};
   for (const [key, value] of Object.entries(parametersObj)) {
     parameterValues[key] = String(value);

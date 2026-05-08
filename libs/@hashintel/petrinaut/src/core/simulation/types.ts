@@ -63,7 +63,7 @@ export type SimulationFrame = {
 };
 
 /**
- * Simplified view of a simulation frame for UI consumption.
+ * Simplified view of a simulation frame for higher-level consumers.
  * Provides easy access to place and transition states without internal details.
  */
 export type SimulationFrameState = {

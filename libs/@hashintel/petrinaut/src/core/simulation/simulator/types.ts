@@ -2,7 +2,7 @@
  * Internal types for the simulation engine.
  *
  * These types are used by the simulator and worker modules but are not
- * part of the public SimulationContext API.
+ * part of the public simulation API.
  */
 
 import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";

@@ -5,7 +5,8 @@ import type { ToMainMessage, ToWorkerMessage } from "./worker/messages";
  * `Simulation` handle from how the engine is actually run — Worker, inline,
  * recorded replay, or a Node `worker_threads` polyfill all satisfy this shape.
  *
- * See [05-simulation.md](../../../rfc/0001-core-react-ui-split/05-simulation.md) §5.1.
+ * This allows the same simulation handle to run against a browser worker,
+ * inline test transport, recorded replay transport, or Node worker adapter.
  */
 export interface SimulationTransport {
   /** Send a message to the engine. May queue if the transport is not yet ready. */
