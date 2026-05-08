@@ -6,7 +6,7 @@
  */
 
 import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
-import type { SimulationFrame } from "../types";
+import type { SimulationFrame } from "../frames/internal-frame";
 import type { RuntimeDistribution } from "./distribution";
 
 /**
@@ -91,9 +91,9 @@ export type SimulationInstance = {
   currentFrameNumber: number;
 };
 
-// Re-export frame types from context for convenient access within simulator
+// Re-export frame types for convenient access within simulator internals.
 export type {
   SimulationFrame,
   SimulationFrameState_Place,
-  SimulationFrameState_Transition,
-} from "../types";
+} from "../frames/internal-frame";
+export type { SimulationFrameState_Transition } from "../api";

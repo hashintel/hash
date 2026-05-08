@@ -1,10 +1,11 @@
-# Simulator
+# Simulation Engine
 
 Core simulation logic for SDCPN Petri net execution.
 
 ## Overview
 
-The simulator compiles an SDCPN definition into a runnable `SimulationInstance` and computes frames by evaluating transitions and differential equations.
+The engine compiles an SDCPN definition into a runnable `SimulationInstance`
+and computes frames by evaluating transitions and differential equations.
 
 ## Core Functions
 
@@ -31,9 +32,11 @@ computeNextFrame(simulation)
        └─► Check deadlock → "deadlock" completion
 ```
 
-## SimulationFrame
+## Internal SimulationFrame
 
-A snapshot of simulation state at a point in time.
+A snapshot of simulation state at a point in time. This is the engine and
+worker storage layout. Public callers should read frames through
+`SimulationFrameReader`.
 
 ```typescript
 type SimulationFrame = {

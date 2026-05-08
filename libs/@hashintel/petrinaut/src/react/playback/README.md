@@ -4,7 +4,9 @@ React context for viewing simulation frames at controlled speeds.
 
 ## Overview
 
-PlaybackProvider reads frames from SimulationContext and advances them using `requestAnimationFrame`. It controls both visualization playback and simulation computation via backpressure.
+PlaybackProvider reads frame readers from SimulationContext and advances them
+using `requestAnimationFrame`. It controls both visualization playback and
+simulation computation via backpressure.
 
 ## Play Mode
 
@@ -52,7 +54,7 @@ Playback auto-pauses when reaching the end of available frames (if simulation is
 
 **Reading:**
 
-- `getFrame()`: Access frame data for current index
+- `getFrame()`: Access a `SimulationFrameReader` for the current index
 - `dt`: Calculate real-time playback timing
 - `totalFrames`: Know when new frames are available
 - `state`: Determine available play modes

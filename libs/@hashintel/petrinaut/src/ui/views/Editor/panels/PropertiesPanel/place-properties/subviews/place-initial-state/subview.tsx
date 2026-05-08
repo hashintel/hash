@@ -91,7 +91,7 @@ const PlaceInitialStateContent: React.FC = () => {
 
   const { initialMarking, setInitialMarking, selectedScenarioId } =
     use(SimulationContext);
-  const { currentFrame, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   // Determine if simulation is running (has frames)
   const hasSimulationFrames = totalFrames > 0;
@@ -113,9 +113,8 @@ const PlaceInitialStateContent: React.FC = () => {
 
     // Uncolored places: show token count
     let tokenCount = 0;
-    if (hasSimulationFrames && currentFrame) {
-      const placeState = currentFrame.places[place.id];
-      tokenCount = placeState?.count ?? 0;
+    if (hasSimulationFrames && currentFrameReader) {
+      tokenCount = currentFrameReader.getPlaceTokenCount(place.id);
     } else {
       const marking = initialMarking.get(place.id);
       tokenCount = marking?.count ?? 0;
@@ -140,9 +139,8 @@ const PlaceInitialStateContent: React.FC = () => {
   if (!placeType || placeType.elements.length === 0) {
     // Get token count from simulation frame or initial marking
     let currentTokenCount = 0;
-    if (hasSimulationFrames && currentFrame) {
-      const placeState = currentFrame.places[place.id];
-      currentTokenCount = placeState?.count ?? 0;
+    if (hasSimulationFrames && currentFrameReader) {
+      currentTokenCount = currentFrameReader.getPlaceTokenCount(place.id);
     } else {
       const currentMarking = initialMarking.get(place.id);
       currentTokenCount = currentMarking?.count ?? 0;

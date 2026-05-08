@@ -23,7 +23,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   readOnly = false,
 }) => {
   const { initialMarking, setInitialMarking } = use(SimulationContext);
-  const { currentFrame, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   const hasSimulation = totalFrames > 0;
 
@@ -39,21 +39,12 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
   // Get current marking for this place - either from simulation frame or initial marking
   const currentMarking = useMemo(() => {
-    if (hasSimulation && currentFrame) {
-      const placeState = currentFrame.places[placeId];
-      if (!placeState) {
-        return null;
-      }
-
-      const { offset, count, dimensions } = placeState;
-      const placeSize = count * dimensions;
-      const values = currentFrame.buffer.slice(offset, offset + placeSize);
-
-      return { values, count };
+    if (hasSimulation && currentFrameReader) {
+      return currentFrameReader.getPlaceTokenValues(placeId);
     }
 
     return initialMarking.get(placeId) ?? null;
-  }, [hasSimulation, currentFrame, initialMarking, placeId]);
+  }, [hasSimulation, currentFrameReader, initialMarking, placeId]);
 
   // Convert Float64Array marking data to number[][] for the Spreadsheet
   const data: number[][] = useMemo(() => {

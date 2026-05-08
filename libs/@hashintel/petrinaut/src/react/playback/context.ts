@@ -8,7 +8,7 @@ import {
   type PlayMode,
 } from "../../core/playback";
 import type {
-  SimulationFrame,
+  SimulationFrameReader,
   SimulationFrameState,
 } from "../simulation/context";
 
@@ -32,11 +32,10 @@ export {
 export type PlaybackContextValue = {
   // State values
   /**
-   * The raw simulation frame data for the currently viewed frame.
-   * Contains buffer data for accessing token values directly.
+   * Reader for the currently viewed frame.
    * Null when no simulation is running or no frames exist.
    */
-  currentFrame: SimulationFrame | null;
+  currentFrameReader: SimulationFrameReader | null;
 
   /**
    * The currently viewed simulation frame state (simplified view).
@@ -120,7 +119,7 @@ export type PlaybackContextValue = {
 };
 
 const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
-  currentFrame: null,
+  currentFrameReader: null,
   currentViewedFrame: null,
   playbackState: "Stopped",
   currentFrameIndex: 0,

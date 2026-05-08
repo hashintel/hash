@@ -76,7 +76,7 @@ const PlaybackSettingsMenuStory = ({
     >
       <PlaybackContext
         value={{
-          currentFrame: null,
+          currentFrameReader: null,
           currentViewedFrame: null,
           playbackState: "Stopped",
           currentFrameIndex: 0,

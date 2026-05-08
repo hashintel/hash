@@ -1,23 +1,5 @@
-import type { ToMainMessage, ToWorkerMessage } from "./worker/messages";
-
-/**
- * Protocol-level abstraction over the simulation worker. Decouples the
- * `Simulation` handle from how the engine is actually run — Worker, inline,
- * recorded replay, or a Node `worker_threads` polyfill all satisfy this shape.
- *
- * This allows the same simulation handle to run against a browser worker,
- * inline test transport, recorded replay transport, or Node worker adapter.
- */
-export interface SimulationTransport {
-  /** Send a message to the engine. May queue if the transport is not yet ready. */
-  send(message: ToWorkerMessage): void;
-  /** Subscribe to messages from the engine. Returns an unsubscribe function. */
-  onMessage(listener: (message: ToMainMessage) => void): () => void;
-  /** Tear down the underlying worker / runtime. Idempotent. */
-  terminate(): void;
-}
-
-export type WorkerFactory = () => Worker | Promise<Worker>;
+import type { ToMainMessage } from "../worker/messages";
+import type { SimulationTransport, WorkerFactory } from "../api";
 
 /**
  * Wrap a `Worker` factory in a {@link SimulationTransport}. Messages sent
@@ -26,10 +8,10 @@ export type WorkerFactory = () => Worker | Promise<Worker>;
 export function createWorkerTransport(
   createWorker: WorkerFactory,
 ): SimulationTransport {
-  const listeners = new Set<(message: ToMainMessage) => void>();
+  const listeners = new Set<(message: unknown) => void>();
   let worker: Worker | null = null;
   let terminated = false;
-  const queued: ToWorkerMessage[] = [];
+  const queued: unknown[] = [];
 
   void Promise.resolve(createWorker()).then((w) => {
     if (terminated) {

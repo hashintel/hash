@@ -11,6 +11,15 @@ UI-framework dependency.
 `createSimulation` runs against an immutable SDCPN snapshot. After
 initialization, later document mutations do not affect the active simulation.
 
+## File Layout
+
+- `api.ts`: public simulation contract and exposed types.
+- `runtime/`: `createSimulation` implementation and worker transport adapter.
+- `frames/`: frame reader, metric projection, and internal frame storage.
+- `authoring/`: user-authored metric/scenario compilation and sandboxing.
+- `worker/`: worker protocol and runtime entrypoint.
+- `engine/`: internal SDCPN execution engine.
+
 ## Simulation State
 
 ```typescript
@@ -48,7 +57,8 @@ type SimulationState =
 Provide exactly one execution transport:
 
 - `createWorker`: a factory returning a `Worker` or `Promise<Worker>`.
-- `transport`: a pre-built `SimulationTransport`.
+- `transport`: a pre-built opaque `SimulationTransport` for tests or custom
+  worker adapters.
 
 ## Lifecycle
 
@@ -82,11 +92,13 @@ Provide exactly one execution transport:
   `Simulation` handle once the worker reports ready.
 - `simulation.status`: readable store containing the current
   `SimulationState`.
-- `simulation.frames`: readable store containing `{ count, latest }`.
+- `simulation.frames`: readable store containing `{ count, latest }`, where
+  `latest` is a `SimulationFrameReader`.
 - `simulation.events`: event stream for completion and runtime errors.
 - `simulation.run()` / `simulation.pause()` / `simulation.reset()`: control
   computation.
-- `simulation.getFrame(index)`: read a computed frame by index.
+- `simulation.getFrame(index)`: read a computed frame by index as a
+  `SimulationFrameReader`.
 - `simulation.ack(frameNumber)`: acknowledge consumed frames for worker
   backpressure.
 - `simulation.setBackpressure(config)`: update worker frame-ahead and batch
@@ -115,7 +127,9 @@ const simulation = await createSimulation({
 
 const unsubscribe = simulation.frames.subscribe(({ count, latest }) => {
   if (latest) {
-    console.log(`Computed ${count} frames; latest time is ${latest.time}`);
+    console.log(
+      `Computed ${count} frames; place p1 has ${latest.getPlaceTokenCount("p1")} tokens`,
+    );
   }
 });
 

@@ -14,12 +14,12 @@ import { PlaybackContext } from "../../../../../../react/playback/context";
 import {
   type CompiledMetric,
   compileMetric,
-} from "../../../../../../core/simulation/compile-metric";
+} from "../../../../../../core/simulation/authoring/compile-metric";
 import {
   SimulationContext,
-  type SimulationFrame,
+  type SimulationFrameReader,
 } from "../../../../../../react/simulation/context";
-import { buildMetricState } from "../../../../../../core/simulation/metric-state";
+import { buildMetricState } from "../../../../../../core/simulation/frames/metric-state";
 import {
   EditorContext,
   type TimelineChartType,
@@ -318,7 +318,10 @@ function createEmptyStore(places: PlaceMeta[]): StreamingStore {
  * A single extractor returns the value for series `seriesIdx` at the given
  * frame. Returning NaN leaves a gap on the chart.
  */
-type SeriesExtractor = (frame: SimulationFrame, seriesIdx: number) => number;
+type SeriesExtractor = (
+  frame: SimulationFrameReader,
+  seriesIdx: number,
+) => number;
 
 const UNTYPED_COLOR = "#94a3b8"; // slate-400
 
@@ -469,7 +472,7 @@ function useStreamingData(): {
           timeHistory.push(frame.time);
         }
 
-        const transitionState = frame.transitions[id];
+        const transitionState = frame.getTransitionState(id);
         const firingCount = transitionState?.firingCount ?? 0;
         const tslSec = (transitionState?.timeSinceLastFiringMs ?? 0) / 1000;
 
@@ -563,7 +566,7 @@ function useStreamingData(): {
         }
         let sum = 0;
         for (const id of ids) {
-          sum += frame.places[id]?.count ?? 0;
+          sum += frame.getPlaceTokenCount(id);
         }
         return sum;
       };
@@ -584,7 +587,7 @@ function useStreamingData(): {
     const placeIds = places.map((p) => p.id);
     const extract: SeriesExtractor = (frame, seriesIdx) => {
       const id = placeIds[seriesIdx];
-      return id ? (frame.places[id]?.count ?? 0) : 0;
+      return id ? frame.getPlaceTokenCount(id) : 0;
     };
     return { series, extract };
   }, [

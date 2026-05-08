@@ -8,8 +8,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SimulationContext,
   type SimulationContextValue,
-  type SimulationFrame,
+  type SimulationFrameReader,
 } from "../simulation/context";
+import { createSimulationFrameReader } from "../../core/simulation/frames/frame-reader";
+import type { SimulationFrame } from "../../core/simulation/frames/internal-frame";
 import { PlaybackContext, type PlaybackContextValue } from "./context";
 import { PlaybackProvider } from "./provider";
 
@@ -32,12 +34,12 @@ function createMockFrame(time: number): SimulationFrame {
 }
 
 /**
- * Creates mock frames array for testing.
+ * Creates mock frame readers array for testing.
  */
-function createMockFrames(frameCount: number): SimulationFrame[] {
-  const frames: SimulationFrame[] = [];
+function createMockFrameReaders(frameCount: number): SimulationFrameReader[] {
+  const frames: SimulationFrameReader[] = [];
   for (let i = 0; i < frameCount; i++) {
-    frames.push(createMockFrame(i * 0.01));
+    frames.push(createSimulationFrameReader(createMockFrame(i * 0.01), i));
   }
   return frames;
 }
@@ -45,7 +47,7 @@ function createMockFrames(frameCount: number): SimulationFrame[] {
 /**
  * Creates mock getFrame, getAllFrames, and getFramesInRange functions for testing.
  */
-function createMockFrameAccessors(frames: SimulationFrame[]) {
+function createMockFrameAccessors(frames: SimulationFrameReader[]) {
   return {
     getFrame: vi.fn((index: number) => Promise.resolve(frames[index] ?? null)),
     getAllFrames: vi.fn(() => Promise.resolve(frames)),
@@ -64,7 +66,7 @@ function createMockSimulationContext(
   overrides: MockSimulationContextOverrides = {},
   frameCount = 0,
 ): SimulationContextValue {
-  const frames = createMockFrames(frameCount);
+  const frames = createMockFrameReaders(frameCount);
   const frameAccessors = createMockFrameAccessors(frames);
 
   return {

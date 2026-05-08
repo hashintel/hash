@@ -1,92 +1,18 @@
-import type { ReadableStore } from "../handle";
-import type { EventStream } from "../instance";
-import type { SDCPN } from "../types/sdcpn";
-import {
-  createWorkerTransport,
-  type SimulationTransport,
-  type WorkerFactory,
-} from "./transport";
-import type { InitialMarking, SimulationFrame } from "./types";
-
-export type SimulationState =
-  | "Initializing"
-  | "Ready"
-  | "Running"
-  | "Paused"
-  | "Complete"
-  | "Error";
-
-export type BackpressureConfig = {
-  /** Maximum frames the worker can compute ahead before waiting for ack. */
-  maxFramesAhead?: number;
-  /** Number of frames to compute in each batch before checking for messages. */
-  batchSize?: number;
-};
-
-/**
- * Common per-run config shared by both transport modes. The simulation runs
- * against the {@link sdcpn} snapshot and never reads it again, so subsequent
- * mutations to the source document don't affect a running simulation.
- */
-export type SimulationConfig = {
-  sdcpn: SDCPN;
-  initialMarking: InitialMarking;
-  parameterValues: Record<string, string>;
-  seed: number;
-  dt: number;
-  /** Maximum simulation time. Null = no limit. */
-  maxTime: number | null;
-  backpressure?: BackpressureConfig;
-  /** Optional cancellation. Aborting tears down the simulation. */
-  signal?: AbortSignal;
-};
-
-/**
- * Top-level config for {@link createSimulation}. Provide exactly one of:
- *
- * - `createWorker`: a `Worker` factory; the function builds a transport for you.
- * - `transport`: a pre-built {@link SimulationTransport}; ownership transfers
- *   to the simulation (it will be terminated on `simulation.dispose()`).
- */
-export type CreateSimulationConfig = SimulationConfig &
-  (
-    | { createWorker: WorkerFactory; transport?: never }
-    | { transport: SimulationTransport; createWorker?: never }
-  );
-
-export type SimulationCompleteEvent = {
-  type: "complete";
-  reason: "deadlock" | "maxTime";
-  frameNumber: number;
-};
-
-export type SimulationErrorEvent = {
-  type: "error";
-  message: string;
-  itemId: string | null;
-};
-
-export type SimulationEvent = SimulationCompleteEvent | SimulationErrorEvent;
-
-export type SimulationFrameSummary = {
-  count: number;
-  latest: SimulationFrame | null;
-};
-
-export interface Simulation {
-  readonly status: ReadableStore<SimulationState>;
-  readonly frames: ReadableStore<SimulationFrameSummary>;
-  readonly events: EventStream<SimulationEvent>;
-
-  run(this: void): void;
-  pause(this: void): void;
-  reset(this: void): void;
-  ack(this: void, frameNumber: number): void;
-  setBackpressure(this: void, cfg: BackpressureConfig): void;
-  getFrame(this: void, index: number): SimulationFrame | null;
-
-  dispose(this: void): void;
-}
+import type { ReadableStore } from "../../handle";
+import type { EventStream } from "../../instance";
+import type {
+  CreateSimulationConfig,
+  Simulation,
+  SimulationErrorEvent,
+  SimulationEvent,
+  SimulationFrameSummary,
+  SimulationState,
+  SimulationTransport,
+} from "../api";
+import { createWorkerTransport } from "./transport";
+import type { ToMainMessage } from "../worker/messages";
+import { createSimulationFrameReader } from "../frames/frame-reader";
+import type { SimulationFrame } from "../frames/internal-frame";
 
 function createReadableStore<T>(initial: T): ReadableStore<T> & {
   set(next: T): void;
@@ -165,7 +91,13 @@ export function createSimulation(
     }
     frameSummary.set({
       count: frames.length,
-      latest: frames[frames.length - 1] ?? null,
+      latest:
+        frames.length > 0
+          ? createSimulationFrameReader(
+              frames[frames.length - 1]!,
+              frames.length - 1,
+            )
+          : null,
     });
   }
 
@@ -173,7 +105,8 @@ export function createSimulation(
     let settled = false;
     let handle: Simulation;
 
-    const off = transport.onMessage((message) => {
+    const off = transport.onMessage((rawMessage) => {
+      const message = rawMessage as ToMainMessage;
       switch (message.type) {
         case "ready": {
           status.set("Ready");
@@ -278,7 +211,8 @@ export function createSimulation(
         });
       },
       getFrame(index) {
-        return frames[index] ?? null;
+        const frame = frames[index];
+        return frame ? createSimulationFrameReader(frame, index) : null;
       },
       dispose() {
         if (disposed) {

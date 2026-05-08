@@ -5,7 +5,7 @@
  */
 
 import type { SDCPN } from "../../types/sdcpn";
-import type { SimulationFrame } from "../types";
+import type { SimulationFrame } from "../frames/internal-frame";
 
 //
 // Main Thread → Worker Messages

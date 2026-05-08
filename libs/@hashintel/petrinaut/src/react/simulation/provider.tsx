@@ -10,7 +10,7 @@ import {
 import {
   compileScenario,
   type CompiledScenarioResult,
-} from "../../core/simulation/compile-scenario";
+} from "../../core/simulation/authoring/compile-scenario";
 import { createSimulationWorker } from "../../core/simulation/worker/create-simulation-worker";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
@@ -22,7 +22,7 @@ import {
   type InitialMarking,
   SimulationContext,
   type SimulationContextValue,
-  type SimulationFrame,
+  type SimulationFrameReader,
   type SimulationState,
 } from "./context";
 
@@ -61,7 +61,7 @@ const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
  */
 const EMPTY_FRAME_SUMMARY: {
   count: number;
-  latest: SimulationFrame | null;
+  latest: SimulationFrameReader | null;
 } = { count: 0, latest: null };
 
 const EMPTY_FRAMES_STORE: ReadableStore<typeof EMPTY_FRAME_SUMMARY> = {
@@ -365,7 +365,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Frame access — reads from the active simulation handle.
   const getFrame: SimulationContextValue["getFrame"] = (
     frameIndex: number,
-  ): Promise<SimulationFrame | null> => {
+  ): Promise<SimulationFrameReader | null> => {
     const sim = simulationRef.current;
     if (!sim) {
       return Promise.resolve(null);
@@ -378,7 +378,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     if (!sim) {
       return Promise.resolve([]);
     }
-    const all: SimulationFrame[] = [];
+    const all: SimulationFrameReader[] = [];
     const total = sim.frames.get().count;
     for (let i = 0; i < total; i++) {
       const frame = sim.getFrame(i);
@@ -400,7 +400,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     const total = sim.frames.get().count;
     const start = Math.max(0, startIndex);
     const end = endIndex === undefined ? total : Math.min(endIndex, total);
-    const slice: SimulationFrame[] = [];
+    const slice: SimulationFrameReader[] = [];
     for (let i = start; i < end; i++) {
       const frame = sim.getFrame(i);
       if (frame) {

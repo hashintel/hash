@@ -40,18 +40,16 @@ export type {
   SimulationConfig,
   SimulationErrorEvent,
   SimulationEvent,
+  SimulationFrameReader,
+  SimulationFrameState,
+  SimulationFrameState_Transition,
   SimulationFrameSummary,
+  SimulationPlaceTokenValues,
   SimulationState,
   SimulationTransport,
   WorkerFactory,
-} from "./simulation";
-export type {
   InitialMarking,
-  SimulationFrame,
-  SimulationFrameState,
-  SimulationFrameState_Place,
-  SimulationFrameState_Transition,
-} from "./simulation/types";
+} from "./simulation";
 
 // --- LSP ---
 export {

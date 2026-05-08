@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Metric } from "../types/sdcpn";
+import type { Metric } from "../../types/sdcpn";
 import { compileMetric, type MetricState } from "./compile-metric";
 
 const metric = (overrides: Partial<Metric> = {}): Metric => ({

@@ -13,7 +13,7 @@ import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import {
   SimulationContext,
-  type SimulationFrame,
+  type SimulationFrameReader,
   type SimulationFrameState,
 } from "../simulation/context";
 import { useStore } from "../use-store";
@@ -38,39 +38,13 @@ const EMPTY_PLAYBACK_STORE: ReadableStore<PlaybackSnapshot> = {
 };
 
 /**
- * Converts a {@link SimulationFrame} to the simplified {@link SimulationFrameState}
+ * Converts a {@link SimulationFrameReader} to the simplified {@link SimulationFrameState}
  * shape consumed by visualisations.
  */
 function buildFrameState(
-  frame: SimulationFrame | null,
-  frameIndex: number,
+  frame: SimulationFrameReader | null,
 ): SimulationFrameState | null {
-  if (!frame) {
-    return null;
-  }
-
-  const places: SimulationFrameState["places"] = {};
-  for (const [placeId, placeData] of Object.entries(frame.places)) {
-    places[placeId] = { tokenCount: placeData.count };
-  }
-
-  const transitions: SimulationFrameState["transitions"] = {};
-  for (const [transitionId, transitionData] of Object.entries(
-    frame.transitions,
-  )) {
-    transitions[transitionId] = {
-      timeSinceLastFiringMs: transitionData.timeSinceLastFiringMs,
-      firedInThisFrame: transitionData.firedInThisFrame,
-      firingCount: transitionData.firingCount,
-    };
-  }
-
-  return {
-    number: frameIndex,
-    time: frame.time,
-    places,
-    transitions,
-  };
+  return frame?.toFrameState() ?? null;
 }
 
 type PlaybackProviderProps = React.PropsWithChildren;
@@ -112,9 +86,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   // Currently displayed frame data, fetched from the simulation when the
   // index changes.
-  const [currentFrame, setCurrentFrame] = useState<SimulationFrame | null>(
-    null,
-  );
+  const [currentFrameReader, setCurrentFrameReader] =
+    useState<SimulationFrameReader | null>(null);
 
   // Refs for stable identities inside the rAF loop / callbacks.
   const dtRef = useLatest(dt);
@@ -134,7 +107,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     let cancelled = false;
     void getFrame(frameIndex).then((frame) => {
       if (!cancelled) {
-        setCurrentFrame(frame);
+        setCurrentFrameReader(frame);
       }
     });
     return () => {
@@ -362,10 +335,10 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     playback.setMode(nextMode);
   };
 
-  const currentViewedFrame = buildFrameState(currentFrame, frameIndex);
+  const currentViewedFrame = buildFrameState(currentFrameReader);
 
   const contextValue: PlaybackContextValue = {
-    currentFrame,
+    currentFrameReader,
     currentViewedFrame,
     playbackState: playState,
     currentFrameIndex: frameIndex,

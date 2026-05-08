@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SimulationFrame } from "./types";
-import type { ToMainMessage, ToWorkerMessage } from "./worker/messages";
-import type { SDCPN } from "../types/sdcpn";
-import { createSimulation, type SimulationFrameSummary } from "./simulation";
-import type { SimulationTransport } from "./transport";
+import type { SimulationFrame } from "../frames/internal-frame";
+import type { ToMainMessage, ToWorkerMessage } from "../worker/messages";
+import type { SDCPN } from "../../types/sdcpn";
+import type { SimulationFrameSummary, SimulationTransport } from "../api";
+import { createSimulation } from "./simulation";
 
 const empty = (): SDCPN => ({
   places: [],
@@ -29,12 +29,12 @@ function makeFrame(time: number): SimulationFrame {
  */
 function makeMockTransport() {
   const sent: ToWorkerMessage[] = [];
-  const listeners = new Set<(m: ToMainMessage) => void>();
+  const listeners = new Set<(m: unknown) => void>();
   let terminated = false;
 
   const transport: SimulationTransport = {
     send(message) {
-      sent.push(message);
+      sent.push(message as ToWorkerMessage);
     },
     onMessage(listener) {
       listeners.add(listener);

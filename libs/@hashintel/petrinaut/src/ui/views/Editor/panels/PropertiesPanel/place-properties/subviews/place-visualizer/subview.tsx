@@ -79,7 +79,7 @@ const VisualizerPreview: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
   const { initialMarking, parameterValues } = use(SimulationContext);
-  const { currentFrame, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   const defaultParameterValues = useDefaultParameterValues();
 
@@ -108,19 +108,19 @@ const VisualizerPreview: React.FC = () => {
   const tokens: Record<string, number>[] = [];
   let parameters: Record<string, number | boolean> = {};
 
-  if (totalFrames > 0 && currentFrame) {
-    const placeState = currentFrame.places[place.id];
-    if (!placeState) {
+  if (totalFrames > 0 && currentFrameReader) {
+    const placeTokenValues = currentFrameReader.getPlaceTokenValues(place.id);
+    if (!placeTokenValues) {
       return <div className={messageStyle}>Place not found in frame</div>;
     }
 
-    const { offset, count } = placeState;
-    const placeSize = count * dimensions;
-    const tokenValues = Array.from(
-      currentFrame.buffer.slice(offset, offset + placeSize),
-    );
+    const tokenValues = Array.from(placeTokenValues.values);
 
-    for (let tokenIndex = 0; tokenIndex < count; tokenIndex++) {
+    for (
+      let tokenIndex = 0;
+      tokenIndex < placeTokenValues.count;
+      tokenIndex++
+    ) {
       const token: Record<string, number> = {};
       for (let colIndex = 0; colIndex < dimensions; colIndex++) {
         const dimensionName = placeType.elements[colIndex]!.name;
