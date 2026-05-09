@@ -5,7 +5,7 @@ import {
   checkTransitionEnablement,
   isTransitionStructurallyEnabled,
 } from "./check-transition-enablement";
-import type { SimulationFrame } from "./types";
+import type { EngineFrame } from "./types";
 
 const transitionState = {
   timeSinceLastFiringMs: 0,
@@ -47,9 +47,9 @@ function makeFrame({
   places,
   transitions,
 }: {
-  places: SimulationFrame["places"];
+  places: EngineFrame["places"];
   transitions: Transition[];
-}): SimulationFrame {
+}): EngineFrame {
   return {
     time: 0,
     places,

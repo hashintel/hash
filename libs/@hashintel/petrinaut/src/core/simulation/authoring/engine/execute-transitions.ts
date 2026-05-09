@@ -1,28 +1,28 @@
 import type { ID } from "../../../types/sdcpn";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
-import type { SimulationFrame, SimulationInstance } from "./types";
+import type { EngineFrame, SimulationInstance } from "./types";
 
 type PlaceID = ID;
 
 /**
  * Adds tokens to multiple places in the simulation frame.
  *
- * Takes a SimulationFrame and a Map of Place IDs to arrays of token values,
- * and returns a new SimulationFrame with:
+ * Takes an EngineFrame and a Map of Place IDs to arrays of token values,
+ * and returns a new EngineFrame with:
  * - The specified tokens added to each place's section in the buffer
  * - Each place's count incremented by the number of added tokens
  * - All subsequent places' offsets adjusted accordingly
  *
  * @param frame - The simulation frame to modify
  * @param tokensToAdd - Map from Place ID to array of token values to add (each token is an array of numbers)
- * @returns A new SimulationFrame with the tokens added
+ * @returns A new EngineFrame with the tokens added
  * @throws Error if a place is not found or token dimensions don't match
  */
 function addTokensToSimulationFrame(
-  frame: SimulationFrame,
+  frame: EngineFrame,
   tokensToAdd: Map<PlaceID, number[][]>,
-): SimulationFrame {
+): EngineFrame {
   // If no tokens to add, return frame as-is
   if (tokensToAdd.size === 0) {
     return frame;
@@ -64,7 +64,7 @@ function addTokensToSimulationFrame(
     (a, b) => a[1].offset - b[1].offset,
   );
 
-  const newPlaces: SimulationFrame["places"] = { ...frame.places };
+  const newPlaces: EngineFrame["places"] = { ...frame.places };
   let sourceIndex = 0;
   let targetIndex = 0;
 
@@ -122,7 +122,7 @@ function addTokensToSimulationFrame(
  */
 export type ExecuteTransitionsResult = {
   /** The updated simulation frame */
-  frame: SimulationFrame;
+  frame: EngineFrame;
   /** The updated RNG state after all transitions */
   rngState: number;
   /** Whether any transition fired */
@@ -146,7 +146,7 @@ export type ExecuteTransitionsResult = {
  * @returns Result containing the updated frame, new RNG state, and whether any transition fired
  */
 export function executeTransitions(
-  frame: SimulationFrame,
+  frame: EngineFrame,
   simulation: SimulationInstance,
   dt: number,
   rngState: number,
@@ -210,7 +210,7 @@ export function executeTransitions(
   const newFrame = addTokensToSimulationFrame(currentFrame, tokensToAdd);
 
   // Update transition timeSinceLastFiringMs, firedInThisFrame, and firingCount
-  const newTransitions: SimulationFrame["transitions"] = {
+  const newTransitions: EngineFrame["transitions"] = {
     ...newFrame.transitions,
   };
   for (const [transitionId, transitionState] of Object.entries(

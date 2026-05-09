@@ -26,7 +26,8 @@ computation.
 | Type       | Payload                                            | Description             |
 | ---------- | -------------------------------------------------- | ----------------------- |
 | `ready`    | `{ initialFrameCount }`                            | Initialization complete |
-| `frames`   | `{ frames: SimulationFrame[] }`                    | Batch of frames         |
+| `frame`    | `{ frame: SimulationFramePayload }`                | Single frame payload    |
+| `frames`   | `{ frames: SimulationFramePayload[] }`             | Batch of frame payloads |
 | `complete` | `{ reason: 'deadlock' \| 'maxTime', frameNumber }` | Simulation ended        |
 | `paused`   | `{ frameNumber }`                                  | Worker has paused       |
 | `error`    | `{ message, itemId: string \| null }`              | Error occurred          |

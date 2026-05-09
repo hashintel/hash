@@ -12,6 +12,7 @@ import { SDCPNItemError } from "../../errors";
 import { buildSimulation } from "../authoring/engine/build-simulation";
 import { computeNextFrame } from "../authoring/engine/compute-next-frame";
 import type { SimulationInstance } from "../authoring/engine/types";
+import { framePayloadFromEngineFrame } from "./frame-payload";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 //
@@ -121,9 +122,15 @@ async function computeLoop(): Promise<void> {
     // Send computed frames
     if (framesToSend.length > 0) {
       if (framesToSend.length === 1) {
-        postTypedMessage({ type: "frame", frame: framesToSend[0]! });
+        postTypedMessage({
+          type: "frame",
+          frame: framePayloadFromEngineFrame(framesToSend[0]!),
+        });
       } else {
-        postTypedMessage({ type: "frames", frames: framesToSend });
+        postTypedMessage({
+          type: "frames",
+          frames: framesToSend.map(framePayloadFromEngineFrame),
+        });
       }
     }
 
@@ -168,7 +175,10 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
         // Send initial frame
         const initialFrame = simulation.frames[0];
         if (initialFrame) {
-          postTypedMessage({ type: "frame", frame: initialFrame });
+          postTypedMessage({
+            type: "frame",
+            frame: framePayloadFromEngineFrame(initialFrame),
+          });
         }
 
         postTypedMessage({

@@ -10,8 +10,6 @@ import {
   type SimulationContextValue,
   type SimulationFrameReader,
 } from "../simulation/context";
-import { createSimulationFrameReader } from "../../core/simulation/frames/frame-reader";
-import type { SimulationFrame } from "../../core/simulation/frames/internal-frame";
 import { PlaybackContext, type PlaybackContextValue } from "./context";
 import { PlaybackProvider } from "./provider";
 
@@ -21,15 +19,21 @@ import { PlaybackProvider } from "./provider";
 
 type MockSimulationContextOverrides = Partial<SimulationContextValue>;
 
-/**
- * Creates a minimal SimulationFrame for testing.
- */
-function createMockFrame(time: number): SimulationFrame {
+function createMockFrameReader(number: number): SimulationFrameReader {
+  const time = number * 0.01;
   return {
+    number,
     time,
-    places: {},
-    transitions: {},
-    buffer: new Float64Array(),
+    getPlaceTokenCount: () => 0,
+    getPlaceTokenValues: () => null,
+    getPlaceTokens: () => [],
+    getTransitionState: () => null,
+    toFrameState: () => ({
+      number,
+      time,
+      places: {},
+      transitions: {},
+    }),
   };
 }
 
@@ -39,7 +43,7 @@ function createMockFrame(time: number): SimulationFrame {
 function createMockFrameReaders(frameCount: number): SimulationFrameReader[] {
   const frames: SimulationFrameReader[] = [];
   for (let i = 0; i < frameCount; i++) {
-    frames.push(createSimulationFrameReader(createMockFrame(i * 0.01), i));
+    frames.push(createMockFrameReader(i));
   }
   return frames;
 }

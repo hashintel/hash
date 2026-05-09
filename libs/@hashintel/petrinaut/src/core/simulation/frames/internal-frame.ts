@@ -2,24 +2,25 @@ import type { ID } from "../../types/sdcpn";
 import type { SimulationFrameState_Transition } from "../api";
 
 /**
- * Internal place layout within a simulation frame.
+ * Internal place layout within an engine frame.
  */
-export type SimulationFrameState_Place = {
+export type EngineFramePlaceState = {
   offset: number;
   count: number;
   dimensions: number;
 };
 
 /**
- * Internal frame storage layout exchanged with the worker.
+ * Internal frame storage layout used by the stepping engine.
  *
- * Public callers should read this through `SimulationFrameReader`.
+ * This is not a worker protocol or public API type. Public callers should read
+ * engine output through `SimulationFrameReader`.
  */
-export type SimulationFrame = {
+export type EngineFrame = {
   /** Simulation time at this frame */
   time: number;
   /** Place states with token buffer offsets, keyed by place ID */
-  places: Record<ID, SimulationFrameState_Place>;
+  places: Record<ID, EngineFramePlaceState>;
   /** Transition states with firing information, keyed by transition ID */
   transitions: Record<ID, SimulationFrameState_Transition>;
   /**

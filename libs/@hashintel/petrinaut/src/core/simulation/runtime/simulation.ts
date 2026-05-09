@@ -11,8 +11,8 @@ import type {
 } from "../api";
 import { createWorkerTransport } from "./transport";
 import type { ToMainMessage } from "../worker/messages";
-import { createSimulationFrameReader } from "../frames/frame-reader";
-import type { SimulationFrame } from "../frames/internal-frame";
+import type { SimulationFramePayload } from "../worker/frame-payload";
+import { createInMemorySimulationFrameStore } from "./frame-store";
 
 function createReadableStore<T>(initial: T): ReadableStore<T> & {
   set(next: T): void;
@@ -79,25 +79,17 @@ export function createSimulation(
     latest: null,
   });
   const events = createEventStream<SimulationEvent>();
-  const frames: SimulationFrame[] = [];
+  const frameStore = createInMemorySimulationFrameStore();
   let disposed = false;
 
-  function pushFrames(newFrames: SimulationFrame[]): void {
+  function pushFrames(newFrames: SimulationFramePayload[]): void {
     if (newFrames.length === 0) {
       return;
     }
-    for (const frame of newFrames) {
-      frames.push(frame);
-    }
+    frameStore.appendBatch(newFrames);
     frameSummary.set({
-      count: frames.length,
-      latest:
-        frames.length > 0
-          ? createSimulationFrameReader(
-              frames[frames.length - 1]!,
-              frames.length - 1,
-            )
-          : null,
+      count: frameStore.count(),
+      latest: frameStore.latest(),
     });
   }
 
@@ -190,7 +182,7 @@ export function createSimulation(
           return;
         }
         transport.send({ type: "stop" });
-        frames.length = 0;
+        frameStore.clear();
         frameSummary.set({ count: 0, latest: null });
         status.set("Ready");
       },
@@ -211,8 +203,7 @@ export function createSimulation(
         });
       },
       getFrame(index) {
-        const frame = frames[index];
-        return frame ? createSimulationFrameReader(frame, index) : null;
+        return frameStore.get(index);
       },
       dispose() {
         if (disposed) {

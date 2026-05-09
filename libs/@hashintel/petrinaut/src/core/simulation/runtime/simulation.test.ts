@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SimulationFrame } from "../frames/internal-frame";
 import type { ToMainMessage, ToWorkerMessage } from "../worker/messages";
+import type { SimulationFramePayload } from "../worker/frame-payload";
 import type { SDCPN } from "../../types/sdcpn";
 import type { SimulationFrameSummary, SimulationTransport } from "../api";
 import { createSimulation } from "./simulation";
@@ -14,7 +14,7 @@ const empty = (): SDCPN => ({
   differentialEquations: [],
 });
 
-function makeFrame(time: number): SimulationFrame {
+function makeFrame(time: number): SimulationFramePayload {
   return {
     time,
     places: {},

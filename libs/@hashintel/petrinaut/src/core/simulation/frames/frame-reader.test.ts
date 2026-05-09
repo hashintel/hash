@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Color, Place } from "../../types/sdcpn";
 import { createSimulationFrameReader } from "./frame-reader";
-import type { SimulationFrame } from "./internal-frame";
+import type { EngineFrame } from "./internal-frame";
 
 const color: Color = {
   id: "color-1",
@@ -25,7 +25,7 @@ const place: Place = {
   y: 0,
 };
 
-function makeFrame(): SimulationFrame {
+function makeFrame(): EngineFrame {
   return {
     time: 0.25,
     places: {

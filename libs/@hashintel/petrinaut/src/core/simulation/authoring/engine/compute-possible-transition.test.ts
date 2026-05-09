@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Color, Place, Transition } from "../../../types/sdcpn";
 import { computePossibleTransition } from "./compute-possible-transition";
 import type {
-  SimulationFrame,
+  EngineFrame,
   SimulationInstance,
   TransitionKernelFn,
 } from "./types";
@@ -94,7 +94,7 @@ describe("computePossibleTransition", () => {
         ["t1", () => ({ p2: [{ x: 1.0 }] })],
       ]),
     });
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: { offset: 0, count: 1, dimensions: 1 },
@@ -121,7 +121,7 @@ describe("computePossibleTransition", () => {
         ["t1", () => ({})],
       ]),
     });
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: { offset: 0, count: 2, dimensions: 0 },
@@ -159,7 +159,7 @@ describe("computePossibleTransition", () => {
         ["t1", () => ({ Target: [{ x: 5.0 }] })],
       ]),
     });
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: { offset: 0, count: 1, dimensions: 1 },
@@ -200,7 +200,7 @@ describe("computePossibleTransition", () => {
         ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
       ]),
     });
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: { offset: 0, count: 2, dimensions: 1 },

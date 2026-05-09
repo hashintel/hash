@@ -28,18 +28,18 @@ computeNextFrame(simulation)
        ├─► Check if maxTime reached → "maxTime" completion
        ├─► Apply differential equations
        ├─► For each transition: check enablement, sample firing, execute kernel
-       ├─► Build new SimulationFrame
+       ├─► Build new EngineFrame
        └─► Check deadlock → "deadlock" completion
 ```
 
-## Internal SimulationFrame
+## Internal EngineFrame
 
 A snapshot of simulation state at a point in time. This is the engine and
 worker storage layout. Public callers should read frames through
 `SimulationFrameReader`.
 
 ```typescript
-type SimulationFrame = {
+type EngineFrame = {
   time: number;
   places: Record<string, { offset, count, dimensions }>;
   transitions: Record<string, { timeSinceLastFiringMs, firedInThisFrame, firingCount }>;

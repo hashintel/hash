@@ -8,7 +8,7 @@ import type {
   DifferentialEquationFn,
   LambdaFn,
   ParameterValues,
-  SimulationFrame,
+  EngineFrame,
   SimulationInput,
   SimulationInstance,
   TransitionKernelFn,
@@ -43,7 +43,7 @@ function getPlaceDimensions(
  * - Random seed
  * - Time step (dt)
  *
- * Returns a SimulationFrame with:
+ * Returns an EngineFrame with:
  * - A SimulationInstance containing compiled user code functions
  * - Initial token distribution in a contiguous buffer
  * - All places and transitions initialized with proper state
@@ -189,7 +189,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Calculate buffer size and build place states
   let bufferSize = 0;
-  const placeStates: SimulationFrame["places"] = {};
+  const placeStates: EngineFrame["places"] = {};
 
   // Process places in a consistent order (sorted by ID)
   const sortedPlaceIds = Array.from(placesMap.keys()).sort();
@@ -227,7 +227,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   }
 
   // Initialize transition states
-  const transitionStates: SimulationFrame["transitions"] = {};
+  const transitionStates: EngineFrame["transitions"] = {};
   for (const transition of sdcpn.transitions) {
     if (transition.id === "__proto__") {
       throw new Error("Cannot add transition with id '__proto__'");
@@ -257,7 +257,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   };
 
   // Create the initial frame
-  const initialFrame: SimulationFrame = {
+  const initialFrame: EngineFrame = {
     time: 0,
     places: placeStates,
     transitions: transitionStates,

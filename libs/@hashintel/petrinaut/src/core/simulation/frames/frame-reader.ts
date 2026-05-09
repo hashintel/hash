@@ -4,10 +4,17 @@ import type {
   SimulationFrameState_Transition,
   SimulationPlaceTokenValues,
 } from "../api";
-import type { SimulationFrame } from "./internal-frame";
+import type { EngineFramePlaceState } from "./internal-frame";
+
+type SimulationFrameReaderData = {
+  time: number;
+  places: Record<string, EngineFramePlaceState>;
+  transitions: Record<string, SimulationFrameState_Transition>;
+  buffer: Float64Array;
+};
 
 export function createSimulationFrameReader(
-  frame: SimulationFrame,
+  frame: SimulationFrameReaderData,
   number: number,
 ): SimulationFrameReader {
   const getPlaceTokenCount = (placeId: string): number =>

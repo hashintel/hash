@@ -5,7 +5,7 @@
  */
 
 import type { SDCPN } from "../../types/sdcpn";
-import type { SimulationFrame } from "../frames/internal-frame";
+import type { SimulationFramePayload } from "./frame-payload";
 
 //
 // Main Thread → Worker Messages
@@ -106,7 +106,7 @@ export type ReadyMessage = {
  */
 export type FrameMessage = {
   type: "frame";
-  frame: SimulationFrame;
+  frame: SimulationFramePayload;
 };
 
 /**
@@ -114,7 +114,7 @@ export type FrameMessage = {
  */
 export type FramesMessage = {
   type: "frames";
-  frames: SimulationFrame[];
+  frames: SimulationFramePayload[];
 };
 
 /**

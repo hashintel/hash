@@ -1,10 +1,10 @@
-import type { SimulationFrame } from "./types";
+import type { EngineFrame } from "./types";
 
 /**
  * Removes tokens from multiple places in the simulation frame.
  *
- * Takes a SimulationFrame and a Map of Place IDs to Sets of token indices to remove,
- * and returns a new SimulationFrame with:
+ * Takes an EngineFrame and a Map of Place IDs to Sets of token indices to remove,
+ * and returns a new EngineFrame with:
  * - The specified tokens removed from each place's section in the buffer
  * - Each place's count decremented by the number of removed tokens
  * - All places' offsets adjusted accordingly
@@ -13,13 +13,13 @@ import type { SimulationFrame } from "./types";
  *
  * @param frame - The simulation frame to modify
  * @param tokensToRemove - Map from Place ID to Set of token indices to remove from that place
- * @returns A new SimulationFrame with the tokens removed
+ * @returns A new EngineFrame with the tokens removed
  * @throws Error if a place is not found or indices are invalid
  */
 export function removeTokensFromSimulationFrame(
-  frame: SimulationFrame,
+  frame: EngineFrame,
   tokensToRemove: Map<string, Set<number> | number>,
-): SimulationFrame {
+): EngineFrame {
   // If no tokens to remove, return frame as-is
   if (tokensToRemove.size === 0) {
     return frame;
@@ -106,7 +106,7 @@ export function removeTokensFromSimulationFrame(
     (a, b) => a[1].offset - b[1].offset,
   );
 
-  const newPlaces: SimulationFrame["places"] = { ...frame.places };
+  const newPlaces: EngineFrame["places"] = { ...frame.places };
   let cumulativeRemoved = 0;
 
   for (const [placeId, placeState] of placesByOffset) {

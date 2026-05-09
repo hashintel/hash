@@ -1,5 +1,5 @@
 import type { Transition } from "../../../types/sdcpn";
-import type { SimulationFrame } from "./types";
+import type { EngineFrame } from "./types";
 
 /**
  * Result of checking transition enablement for a simulation frame.
@@ -32,7 +32,7 @@ export type TransitionEnablementResult = {
  * @returns true if the transition has sufficient input tokens, false otherwise
  */
 export const isTransitionStructurallyEnabled = (
-  frame: SimulationFrame,
+  frame: EngineFrame,
   transitions: ReadonlyMap<string, Transition>,
   transitionId: string,
 ): boolean => {
@@ -87,7 +87,7 @@ export const isTransitionStructurallyEnabled = (
  * ```
  */
 export const checkTransitionEnablement = (
-  frame: SimulationFrame,
+  frame: EngineFrame,
   transitions: ReadonlyMap<string, Transition>,
 ): TransitionEnablementResult => {
   const transitionStatus = new Map<string, boolean>();

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
-import type { SimulationFrame } from "./types";
+import type { EngineFrame } from "./types";
 
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {},
       transitions: {},
@@ -21,7 +21,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when tokens map is empty", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -40,7 +40,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("throws error when token index is out of bounds", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -59,7 +59,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when place has empty set of indices", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -82,7 +82,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes a single token from a place with 1D tokens", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -106,7 +106,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes multiple tokens from a place with 1D tokens", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -130,7 +130,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes tokens from a place with multi-dimensional tokens", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -158,7 +158,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("adjusts offsets for subsequent places after removal", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -193,7 +193,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes all tokens from a place", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -224,7 +224,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("handles removal from middle place with three places", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {
@@ -268,7 +268,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes tokens from multiple places simultaneously", () => {
-    const frame: SimulationFrame = {
+    const frame: EngineFrame = {
       time: 0,
       places: {
         p1: {

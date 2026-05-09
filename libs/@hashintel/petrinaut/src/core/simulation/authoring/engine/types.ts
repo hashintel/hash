@@ -6,7 +6,7 @@
  */
 
 import type { Color, Place, SDCPN, Transition } from "../../../types/sdcpn";
-import type { SimulationFrame } from "../../frames/internal-frame";
+import type { EngineFrame } from "../../frames/internal-frame";
 import type { RuntimeDistribution } from "./distribution";
 
 /**
@@ -86,14 +86,14 @@ export type SimulationInstance = {
   /** Current state of the seeded random number generator */
   rngState: number;
   /** History of all computed frames */
-  frames: SimulationFrame[];
+  frames: EngineFrame[];
   /** Index of the current frame in the frames array */
   currentFrameNumber: number;
 };
 
 // Re-export frame types for convenient access within simulator internals.
 export type {
-  SimulationFrame,
-  SimulationFrameState_Place,
+  EngineFrame,
+  EngineFramePlaceState,
 } from "../../frames/internal-frame";
 export type { SimulationFrameState_Transition } from "../../api";

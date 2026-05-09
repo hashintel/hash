@@ -3,12 +3,12 @@ import type { ID } from "../../../types/sdcpn";
 import { isDistribution, sampleDistribution } from "./distribution";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
-import type { SimulationFrame, SimulationInstance } from "./types";
+import type { EngineFrame, SimulationInstance } from "./types";
 
 type PlaceID = ID;
 
 /**
- * Takes a SimulationFrame, a SimulationInstance, a TransitionID, and computes the possible transition.
+ * Takes an EngineFrame, a SimulationInstance, a TransitionID, and computes the possible transition.
  * Returns null if no transition is possible.
  * Returns a record with:
  * - removed: Map from PlaceID to Set of token indices to remove.
@@ -16,7 +16,7 @@ type PlaceID = ID;
  * - newRngState: Updated RNG seed after consuming randomness
  */
 export function computePossibleTransition(
-  frame: SimulationFrame,
+  frame: EngineFrame,
   simulation: SimulationInstance,
   transitionId: string,
   rngState: number,
