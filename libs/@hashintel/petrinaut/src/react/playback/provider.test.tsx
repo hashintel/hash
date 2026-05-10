@@ -268,8 +268,8 @@ describe("PlaybackProvider", () => {
     });
   });
 
-  describe("auto-switch play mode", () => {
-    it("should switch to viewOnly when simulation completes", () => {
+  describe("effective play mode", () => {
+    it("should expose viewOnly when simulation completes", () => {
       const simulationContext = createMockSimulationContext(
         {
           state: "Running",
@@ -292,7 +292,8 @@ describe("PlaybackProvider", () => {
         ),
       );
 
-      // Should auto-switch to viewOnly
+      // The exposed mode is derived from simulation state. The stored
+      // requested mode remains computeMax so a later reset can run again.
       expect(getPlaybackValue().playMode).toBe("viewOnly");
     });
   });
@@ -441,7 +442,7 @@ describe("PlaybackProvider", () => {
       );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
-      // Should auto-switch to viewOnly due to Complete state
+      // Should expose viewOnly due to Complete state
       expect(getPlaybackValue().playMode).toBe("viewOnly");
 
       // Try to switch to compute mode
@@ -473,15 +474,27 @@ describe("PlaybackProvider", () => {
   });
 
   describe("play action", () => {
-    it("should do nothing when no simulation exists", () => {
-      const simulationContext = createMockSimulationContext();
+    it("should initialize and start the simulation when no run exists", async () => {
+      const initializeFn = vi.fn().mockResolvedValue(undefined);
+      const runFn = vi.fn();
+      const simulationContext = createMockSimulationContext({
+        initialize: initializeFn,
+        run: runFn,
+      });
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
-      act(() => {
-        void getPlaybackValue().play();
+      await act(async () => {
+        await getPlaybackValue().play();
       });
 
-      expect(getPlaybackValue().playbackState).toBe("Stopped");
+      expect(initializeFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxFramesAhead: 10000,
+          batchSize: 500,
+        }),
+      );
+      expect(runFn).toHaveBeenCalled();
+      expect(getPlaybackValue().playbackState).toBe("Playing");
     });
 
     it("should do nothing when simulation has no frames", () => {
@@ -584,6 +597,65 @@ describe("PlaybackProvider", () => {
 
       // run should not have been called
       expect(runFn).not.toHaveBeenCalled();
+    });
+
+    it("should use compute backpressure when playing after complete/reset", async () => {
+      const initializeFn = vi.fn().mockResolvedValue(undefined);
+      const runFn = vi.fn();
+      const { getPlaybackValue, rerender } = renderPlaybackProvider(
+        createMockSimulationContext(
+          {
+            state: "Running",
+            initialize: initializeFn,
+            run: runFn,
+          },
+          10,
+        ),
+      );
+
+      expect(getPlaybackValue().playMode).toBe("computeMax");
+
+      await act(async () => {
+        rerender(
+          createMockSimulationContext(
+            {
+              state: "Complete",
+              initialize: initializeFn,
+              run: runFn,
+            },
+            10,
+          ),
+        );
+        await Promise.resolve();
+      });
+
+      expect(getPlaybackValue().playMode).toBe("viewOnly");
+
+      await act(async () => {
+        rerender(
+          createMockSimulationContext({
+            state: "NotRun",
+            initialize: initializeFn,
+            run: runFn,
+          }),
+        );
+        await Promise.resolve();
+      });
+
+      expect(getPlaybackValue().playMode).toBe("computeMax");
+
+      await act(async () => {
+        await getPlaybackValue().play();
+      });
+
+      expect(initializeFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxFramesAhead: 10000,
+          batchSize: 500,
+        }),
+      );
+      expect(runFn).toHaveBeenCalled();
+      expect(getPlaybackValue().playMode).toBe("computeMax");
     });
   });
 
@@ -761,7 +833,7 @@ describe("PlaybackProvider", () => {
   });
 
   describe("auto-start playback", () => {
-    it("should auto-start playback when simulation transitions to Running", () => {
+    it("should not auto-start playback when simulation transitions to Running", () => {
       const simulationContext = createMockSimulationContext(
         {
           state: "NotRun",
@@ -783,7 +855,7 @@ describe("PlaybackProvider", () => {
         ),
       );
 
-      expect(getPlaybackValue().playbackState).toBe("Playing");
+      expect(getPlaybackValue().playbackState).toBe("Stopped");
     });
   });
 });

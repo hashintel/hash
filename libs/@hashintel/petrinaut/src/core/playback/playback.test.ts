@@ -3,13 +3,6 @@ import { describe, expect, it } from "vitest";
 import { createPlayback, getPlayModeBackpressure } from "./playback";
 
 describe("getPlayModeBackpressure", () => {
-  it("returns zeros for viewOnly", () => {
-    expect(getPlayModeBackpressure("viewOnly")).toEqual({
-      maxFramesAhead: 0,
-      batchSize: 0,
-    });
-  });
-
   it("returns a small buffer for computeBuffer", () => {
     const cfg = getPlayModeBackpressure("computeBuffer");
     expect(cfg.maxFramesAhead).toBeGreaterThan(0);

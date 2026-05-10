@@ -57,15 +57,17 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
     instance.handle.history,
   );
 
-  // Keyed by handle id so a net switch fully resets the LSP worker
-  // and its in-flight diagnostics.
+  // Keyed by handle id so a net switch fully resets net-scoped worker state.
   const inner = (
     <SDCPNProvider>
       <LanguageClientProvider
         key={instance.handle.id}
         workerFactory={lspWorkerFactory}
       >
-        <SimulationProvider workerFactory={simulationWorkerFactory}>
+        <SimulationProvider
+          key={instance.handle.id}
+          workerFactory={simulationWorkerFactory}
+        >
           <PlaybackProvider>
             <UserSettingsProvider>
               <EditorProvider>

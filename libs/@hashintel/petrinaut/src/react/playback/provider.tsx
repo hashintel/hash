@@ -1,11 +1,10 @@
 import { use, useEffect, useRef, useState } from "react";
 
-import type { ReadableStore } from "../../core/handle";
 import {
   createPlayback,
   getPlayModeBackpressure,
+  type ComputePlayMode,
   type Playback,
-  type PlaybackSnapshot,
   type PlaybackSpeed,
   type PlayMode,
 } from "../../core/playback";
@@ -13,29 +12,12 @@ import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import {
   SimulationContext,
+  type SimulationContextValue,
   type SimulationFrameReader,
   type SimulationFrameState,
 } from "../simulation/context";
 import { useStore } from "../use-store";
 import { PlaybackContext, type PlaybackContextValue } from "./context";
-
-/**
- * Stable fallback snapshot used while the real playback handle is being
- * created in the mount effect. Sharing the same reference across `get()` calls
- * keeps `useSyncExternalStore` from looping (a fresh object each read would
- * trigger an infinite render cycle).
- */
-const EMPTY_PLAYBACK_SNAPSHOT: PlaybackSnapshot = {
-  playState: "Stopped",
-  frameIndex: 0,
-  speed: 1,
-  mode: "computeMax",
-};
-
-const EMPTY_PLAYBACK_STORE: ReadableStore<PlaybackSnapshot> = {
-  get: () => EMPTY_PLAYBACK_SNAPSHOT,
-  subscribe: () => () => {},
-};
 
 /**
  * Converts a {@link SimulationFrameReader} to the simplified {@link SimulationFrameState}
@@ -45,6 +27,30 @@ function buildFrameState(
   frame: SimulationFrameReader | null,
 ): SimulationFrameState | null {
   return frame?.toFrameState() ?? null;
+}
+
+function isSimulationComputeAvailable(
+  simulationState: SimulationContextValue["state"],
+): boolean {
+  return simulationState !== "Complete" && simulationState !== "Error";
+}
+
+function getEffectivePlayMode(
+  requestedMode: PlayMode,
+  simulationState: SimulationContextValue["state"],
+  totalFrames: number,
+): PlayMode {
+  if (!isSimulationComputeAvailable(simulationState)) {
+    return "viewOnly";
+  }
+  if (requestedMode === "viewOnly" && totalFrames === 0) {
+    return "computeMax";
+  }
+  return requestedMode;
+}
+
+function toComputePlayMode(mode: PlayMode): ComputePlayMode {
+  return mode === "computeBuffer" ? "computeBuffer" : "computeMax";
 }
 
 type PlaybackProviderProps = React.PropsWithChildren;
@@ -66,23 +72,13 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   // Pure timing model lives in /core. The provider drives ticks via rAF and
   // coordinates simulation lifecycle (init / run / pause / ack / backpressure).
-  //
-  // Created inside an effect (not via `useState`'s lazy initializer) so React
-  // StrictMode's simulated unmount/remount doesn't leave us holding a disposed
-  // handle. The cleanup disposes whichever handle was created here; the next
-  // mount creates a fresh one. Same pattern as <LanguageClientProvider>.
-  const [playback, setPlayback] = useState<Playback | null>(null);
+  const [playback] = useState<Playback>(() => createPlayback());
   useEffect(() => {
-    const pb = createPlayback();
-    setPlayback(pb);
-    return () => {
-      pb.dispose();
-      setPlayback((current) => (current === pb ? null : current));
-    };
-  }, []);
+    return playback.dispose;
+  }, [playback]);
 
-  const snapshot = useStore(playback?.state ?? EMPTY_PLAYBACK_STORE);
-  const { playState, frameIndex, speed, mode } = snapshot;
+  const snapshot = useStore(playback.state);
+  const { playState, frameIndex, speed, mode: requestedMode } = snapshot;
 
   // Currently displayed frame data, fetched from the simulation when the
   // index changes.
@@ -99,8 +95,25 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const isViewOnlyAvailable = totalFrames > 0;
 
   // Compute modes are available when simulation can still compute more frames.
-  const isComputeAvailable =
-    simulationState !== "Complete" && simulationState !== "Error";
+  const isComputeAvailable = isSimulationComputeAvailable(simulationState);
+  const mode = getEffectivePlayMode(
+    requestedMode,
+    simulationState,
+    totalFrames,
+  );
+
+  const getCurrentMode = () =>
+    getEffectivePlayMode(
+      snapshotRef.current.mode,
+      simulationStateRef.current,
+      totalFramesRef.current,
+    );
+  const getCurrentComputeMode = () => toComputePlayMode(getCurrentMode());
+  const pauseSimulationIfComputing = () => {
+    if (getCurrentMode() !== "viewOnly") {
+      pauseSimulation();
+    }
+  };
 
   // Fetch frame whenever the index changes.
   useEffect(() => {
@@ -115,47 +128,19 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     };
   }, [frameIndex, getFrame, totalFrames]);
 
-  // Auto-switch to viewOnly when the simulation can no longer compute.
-  useEffect(() => {
-    if (!playback) {
-      return;
-    }
-    if (!isComputeAvailable && mode !== "viewOnly") {
-      playback.setMode("viewOnly");
-    }
-  }, [isComputeAvailable, mode, playback]);
-
-  // Push backpressure config to the simulation worker on mode changes.
-  useEffect(() => {
-    const cfg = getPlayModeBackpressure(mode);
-    setBackpressure(cfg);
-  }, [mode, setBackpressure]);
-
-  // Reset playback state when the simulation is reset / not yet run.
-  useEffect(() => {
-    if (!playback) {
-      return;
-    }
-    if (simulationState === "NotRun") {
-      playback.stop();
-    }
-  }, [simulationState, playback]);
-
-  // Safety net: if the simulation transitions into Running without going
-  // through `play()` (e.g. an external caller invoked `simulation.run()`
-  // directly), make sure playback follows. The user-driven play path calls
-  // `playback.play()` itself so this effect is normally a no-op.
+  // Reset playback state when the simulation transitions back to NotRun.
   const prevSimulationStateRef = useRef(simulationState);
   useEffect(() => {
     const prevState = prevSimulationStateRef.current;
     prevSimulationStateRef.current = simulationState;
-    if (!playback) {
-      return;
+    if (
+      simulationState === "NotRun" &&
+      prevState !== "NotRun" &&
+      (playState !== "Stopped" || frameIndex !== 0)
+    ) {
+      playback.stop();
     }
-    if (simulationState === "Running" && prevState !== "Running") {
-      playback.play();
-    }
-  }, [simulationState, playback]);
+  }, [simulationState, playState, frameIndex, playback]);
 
   // Backpressure ack — based on play mode.
   const prevTotalFramesRef = useRef(totalFrames);
@@ -189,7 +174,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   // rAF loop — drive playback ticks while Playing.
   useEffect(() => {
-    if (!playback || playState !== "Playing") {
+    if (playState !== "Playing") {
       return;
     }
 
@@ -226,31 +211,22 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     snapshotRef,
   ]);
 
-  //
-  // Actions
-  //
-
-  // Simulation control is gated only on `mode` (not on the React-mirrored
-  // simulation state). The simulation handle's `pause`/`run` are idempotent at
-  // the worker level, and the React-mirrored state lags behind worker reality
-  // — gating on it caused the "first pause doesn't pause sim generation"
-  // class of bug where simState was momentarily out of sync with the worker.
-
   const setCurrentViewedFrame: PlaybackContextValue["setCurrentViewedFrame"] = (
     index,
   ) => {
-    playback?.setFrameIndex(index, totalFramesRef.current);
+    playback.setFrameIndex(index, totalFramesRef.current);
   };
 
   const play: PlaybackContextValue["play"] = async () => {
-    if (!playback) {
-      return;
-    }
     const simState = simulationStateRef.current;
-    const currentMode = snapshotRef.current.mode;
-    const cfg = getPlayModeBackpressure(currentMode);
+    const currentMode = getCurrentMode();
+    const computeMode = getCurrentComputeMode();
+    const cfg = getPlayModeBackpressure(computeMode);
 
     if (simState === "NotRun") {
+      if (snapshotRef.current.mode !== computeMode) {
+        playback.setMode(computeMode);
+      }
       await initialize({
         seed: Date.now(),
         dt: dtRef.current,
@@ -273,6 +249,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     // a no-op if it's already running, so it's safe to call regardless of
     // the React-mirrored simulation state.
     if (currentMode !== "viewOnly") {
+      setBackpressure(cfg);
       runSimulation();
     }
 
@@ -285,37 +262,24 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   };
 
   const pause: PlaybackContextValue["pause"] = () => {
-    if (!playback) {
-      return;
-    }
-    if (snapshotRef.current.mode !== "viewOnly") {
-      pauseSimulation();
-    }
+    pauseSimulationIfComputing();
     playback.pause();
   };
 
   const stop: PlaybackContextValue["stop"] = () => {
-    if (!playback) {
-      return;
-    }
-    if (snapshotRef.current.mode !== "viewOnly") {
-      pauseSimulation();
-    }
+    pauseSimulationIfComputing();
     playback.stop();
   };
 
   const setPlaybackSpeed: PlaybackContextValue["setPlaybackSpeed"] = (
     nextSpeed: PlaybackSpeed,
   ) => {
-    playback?.setSpeed(nextSpeed);
+    playback.setSpeed(nextSpeed);
   };
 
   const setPlayMode: PlaybackContextValue["setPlayMode"] = (
     nextMode: PlayMode,
   ) => {
-    if (!playback) {
-      return;
-    }
     if (nextMode === "viewOnly" && !isViewOnlyAvailable) {
       return;
     }
@@ -325,11 +289,13 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
     const isPlaying = snapshotRef.current.playState === "Playing";
 
-    if (nextMode !== "viewOnly" && isPlaying) {
-      runSimulation();
-    }
     if (nextMode === "viewOnly") {
       pauseSimulation();
+    } else {
+      setBackpressure(getPlayModeBackpressure(nextMode));
+      if (isPlaying) {
+        runSimulation();
+      }
     }
 
     playback.setMode(nextMode);

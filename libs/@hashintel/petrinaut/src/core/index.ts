@@ -73,6 +73,7 @@ export {
 } from "./playback";
 export type {
   Playback,
+  ComputePlayMode,
   PlaybackSnapshot,
   PlaybackSpeed,
   PlaybackState,

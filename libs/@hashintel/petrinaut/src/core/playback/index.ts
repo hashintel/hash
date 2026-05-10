@@ -3,6 +3,7 @@ export {
   formatPlaybackSpeed,
   getPlayModeBackpressure,
   PLAYBACK_SPEEDS,
+  type ComputePlayMode,
   type Playback,
   type PlaybackSnapshot,
   type PlaybackSpeed,
