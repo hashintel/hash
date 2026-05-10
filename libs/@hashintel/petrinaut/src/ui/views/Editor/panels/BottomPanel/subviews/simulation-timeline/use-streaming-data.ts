@@ -151,6 +151,8 @@ export function useStreamingData(): {
 
   const compiledMetric = compileTimelineMetric(selectedMetric);
 
+  // Computes the active timeline view mode described above into concrete uPlot
+  // series metadata and the per-frame value extractor used while streaming.
   const seriesConfig = buildTimelineSeriesConfig({
     timelineView,
     places,
