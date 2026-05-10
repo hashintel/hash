@@ -1,12 +1,5 @@
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import {
-  use,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { use, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   type CompiledMetric,
   compileMetric,
@@ -147,48 +140,35 @@ export function useStreamingData(): {
 } {
   const { getFramesInRange, totalFrames } = use(SimulationContext);
   const {
-    petriNetDefinition: { places, types, transitions, metrics = [] },
+    petriNetDefinition: { places, types, transitions, metrics },
   } = use(SDCPNContext);
   const { timelineView } = use(EditorContext);
 
-  const selectedMetric = useMemo(
-    () =>
-      timelineView.kind === "metric"
-        ? (metrics.find((metric) => metric.id === timelineView.metricId) ??
-          null)
-        : null,
-    [metrics, timelineView],
-  );
-  const compiledMetric = useMemo(
-    () => compileTimelineMetric(selectedMetric),
-    [selectedMetric],
-  );
-  const seriesConfig = useMemo(
-    () =>
-      buildTimelineSeriesConfig({
-        timelineView,
-        places,
-        types,
-        transitions,
-        selectedMetric,
-        compiledMetric: compiledMetric.fn,
-      }),
-    [
-      timelineView,
-      places,
-      types,
-      transitions,
-      selectedMetric,
-      compiledMetric.fn,
-    ],
-  );
+  const selectedMetric =
+    timelineView.kind === "metric"
+      ? (metrics?.find((metric) => metric.id === timelineView.metricId) ?? null)
+      : null;
 
-  const [storeController] = useState(() => createStreamingStoreController([]));
+  const compiledMetric = compileTimelineMetric(selectedMetric);
+
+  const seriesConfig = buildTimelineSeriesConfig({
+    timelineView,
+    places,
+    types,
+    transitions,
+    selectedMetric,
+    compiledMetric: compiledMetric.fn,
+  });
+
+  const storeController = createStreamingStoreController([]);
   const { store } = useSyncExternalStore(
     storeController.subscribe,
     storeController.getSnapshot,
     storeController.getSnapshot,
   );
+
+  // Imperative cursor for streaming: this is the next frame index that has not
+  // yet been appended to the uPlot columns. Updating it should not re-render.
   const processedRef = useRef(0);
 
   // Reset store when the series structure changes (view switch or net edits).
