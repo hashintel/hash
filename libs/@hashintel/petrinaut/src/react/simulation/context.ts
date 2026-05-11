@@ -3,6 +3,7 @@ import { createContext } from "react";
 import type { CompiledScenarioResult } from "../../core/simulation/authoring/scenario/compile-scenario";
 import type {
   InitialMarking,
+  InitialPlaceMarking,
   SimulationFrameReader,
   SimulationFrameState,
   SimulationFrameState_Transition,
@@ -12,6 +13,7 @@ import type {
 // the simulation context module.
 export type {
   InitialMarking,
+  InitialPlaceMarking,
   SimulationFrameReader,
   SimulationFrameState,
   SimulationFrameState_Transition,
@@ -137,10 +139,7 @@ export type SimulationContextValue = {
   // Actions
   setSelectedScenarioId: (scenarioId: string | null) => void;
   setScenarioParameterValue: (identifier: string, value: string) => void;
-  setInitialMarking: (
-    placeId: string,
-    marking: { values: Float64Array; count: number },
-  ) => void;
+  setInitialMarking: (placeId: string, marking: InitialPlaceMarking) => void;
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
   /**
@@ -188,7 +187,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   error: null,
   errorItemId: null,
   parameterValues: {},
-  initialMarking: new Map(),
+  initialMarking: {},
   selectedScenarioId: null,
   scenarioParameterValues: {},
   compiledScenarioResult: null,

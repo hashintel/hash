@@ -41,15 +41,12 @@ describe("buildSimulation", () => {
         ],
         transitions: [],
       },
-      initialMarking: new Map([
-        [
-          "p1",
-          {
-            values: new Float64Array([1.0, 2.0, 3.0, 4.0]),
-            count: 2, // 2 tokens with 2 dimensions each
-          },
+      initialMarking: {
+        p1: [
+          { x: 1.0, y: 2.0 },
+          { x: 3.0, y: 4.0 },
         ],
-      ]),
+      },
       parameterValues: {},
       seed: 42,
       dt: 0.1,
@@ -181,23 +178,11 @@ describe("buildSimulation", () => {
           },
         ],
       },
-      initialMarking: new Map([
-        [
-          "p1",
-          {
-            values: new Float64Array([10.0, 20.0, 30.0]),
-            count: 3, // 3 tokens with 1 dimension each
-          },
-        ],
-        [
-          "p2",
-          {
-            values: new Float64Array([1.0, 2.0]),
-            count: 1, // 1 token with 2 dimensions
-          },
-        ],
+      initialMarking: {
+        p1: [{ x: 10.0 }, { x: 20.0 }, { x: 30.0 }],
+        p2: [{ x: 1.0, y: 2.0 }],
         // p3 has no initial tokens
-      ]),
+      },
       parameterValues: {},
       seed: 123,
       dt: 0.05,
@@ -302,15 +287,9 @@ describe("buildSimulation", () => {
         ],
         transitions: [],
       },
-      initialMarking: new Map([
-        [
-          "p_nonexistent",
-          {
-            values: new Float64Array([1.0]),
-            count: 1,
-          },
-        ],
-      ]),
+      initialMarking: {
+        p_nonexistent: [{ x: 1.0 }],
+      },
       parameterValues: {},
       seed: 42,
       dt: 0.1,
@@ -322,7 +301,7 @@ describe("buildSimulation", () => {
     );
   });
 
-  it("throws error when token dimensions don't match place dimensions", () => {
+  it("throws error when colored initial marking is not token records", () => {
     const input: SimulationInput = {
       sdcpn: {
         types: [
@@ -359,15 +338,9 @@ describe("buildSimulation", () => {
         ],
         transitions: [],
       },
-      initialMarking: new Map([
-        [
-          "p1",
-          {
-            values: new Float64Array([1.0, 2.0, 3.0]), // 3 values for 2 tokens = wrong
-            count: 2, // 2 tokens × 2 dimensions = 4 values expected
-          },
-        ],
-      ]),
+      initialMarking: {
+        p1: 2,
+      },
       parameterValues: {},
       seed: 42,
       dt: 0.1,
@@ -375,7 +348,7 @@ describe("buildSimulation", () => {
     };
 
     expect(() => buildSimulation(input)).toThrow(
-      "Token dimension mismatch for place p1. Expected 4 values (2 dimensions × 2 tokens), got 3",
+      "Initial marking for colored place p1 must be an array of token records",
     );
   });
 });

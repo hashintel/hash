@@ -65,7 +65,7 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1?.count).toBe(100);
+        expect(result.result.initialState.place1).toBe(100);
       }
     });
 
@@ -81,7 +81,7 @@ describe("compileScenario", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.result.parameterValues).toEqual({ x: "5", y: "7" });
-        expect(result.result.initialState.place1?.count).toBe(0);
+        expect(result.result.initialState.place1).toBe(0);
       }
     });
   });
@@ -120,7 +120,7 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1?.count).toBe(50);
+        expect(result.result.initialState.place1).toBe(50);
       }
     });
   });
@@ -175,7 +175,7 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1?.count).toBe(1000);
+        expect(result.result.initialState.place1).toBe(1000);
       }
     });
 
@@ -189,7 +189,7 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1?.count).toBe(4);
+        expect(result.result.initialState.place1).toBe(4);
       }
     });
 
@@ -203,34 +203,57 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1?.count).toBe(0);
+        expect(result.result.initialState.place1).toBe(0);
       }
     });
   });
 
   describe("colored places (number[][] data)", () => {
-    it("passes through number[][] as flattened values", () => {
+    it("converts number[][] to token records", () => {
       const result = compileScenario(
         scenario({
           initialState: {
             type: "per_place",
             content: {
               place1: [
-                [1, 2, 3],
-                [4, 5, 6],
+                [1, 2],
+                [4, 5],
               ],
             },
           },
         }),
         [],
+        [
+          {
+            id: "place1",
+            name: "Place 1",
+            colorId: "type1",
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          {
+            id: "type1",
+            name: "Type 1",
+            iconSlug: "circle",
+            displayColor: "#000000",
+            elements: [
+              { elementId: "x", name: "x", type: "real" },
+              { elementId: "y", name: "y", type: "real" },
+            ],
+          },
+        ],
       );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1).toEqual({
-          values: [1, 2, 3, 4, 5, 6],
-          count: 2,
-        });
+        expect(result.result.initialState.place1).toEqual([
+          { x: 1, y: 2 },
+          { x: 4, y: 5 },
+        ]);
       }
     });
 
@@ -247,10 +270,7 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.place1).toEqual({
-          values: [],
-          count: 0,
-        });
+        expect(result.result.initialState.place1).toEqual([]);
       }
     });
 
@@ -273,14 +293,11 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.result.initialState.uncolored).toEqual({
-          values: [],
-          count: 42,
-        });
-        expect(result.result.initialState.colored).toEqual({
-          values: [10, 20, 30, 40],
-          count: 2,
-        });
+        expect(result.result.initialState.uncolored).toBe(42);
+        expect(result.result.initialState.colored).toEqual([
+          { "0": 10, "1": 20 },
+          { "0": 30, "1": 40 },
+        ]);
       }
     });
   });
@@ -301,7 +318,7 @@ describe("compileScenario", () => {
       expect(result.ok).toBe(true);
       if (result.ok) {
         // parameters.x should be the overridden 99, not the default 1
-        expect(result.result.initialState.place1?.count).toBe(99);
+        expect(result.result.initialState.place1).toBe(99);
       }
     });
   });

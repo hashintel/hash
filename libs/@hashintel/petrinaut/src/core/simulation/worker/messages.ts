@@ -5,6 +5,7 @@
  */
 
 import type { SDCPN } from "../../types/sdcpn";
+import type { InitialMarking } from "../api";
 import type { SimulationFramePayload } from "./frame-payload";
 
 //
@@ -19,8 +20,8 @@ export type InitMessage = {
   type: "init";
   /** The SDCPN definition to simulate */
   sdcpn: SDCPN;
-  /** Initial token distribution (serialized from Map) */
-  initialMarking: Array<[string, { values: Float64Array; count: number }]>;
+  /** Initial token distribution. JSON-serializable. */
+  initialMarking: InitialMarking;
   /** Parameter values (overrides SDCPN defaults) */
   parameterValues: Record<string, string>;
   /** Random seed for deterministic stochastic behavior */

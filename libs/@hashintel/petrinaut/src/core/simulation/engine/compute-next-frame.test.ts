@@ -57,9 +57,7 @@ describe("computeNextFrame", () => {
       ],
     };
 
-    const initialMarking = new Map([
-      ["p1", { values: new Float64Array([10.0, 20.0]), count: 1 }],
-    ]);
+    const initialMarking = { p1: [{ x: 10.0, y: 20.0 }] };
 
     // Build the simulation
     const simulation = buildSimulation({
@@ -111,9 +109,7 @@ describe("computeNextFrame", () => {
       transitions: [],
     };
 
-    const initialMarking = new Map([
-      ["p1", { values: new Float64Array([]), count: 0 }],
-    ]);
+    const initialMarking = { p1: 0 };
 
     const simulation = buildSimulation({
       sdcpn,
@@ -167,9 +163,7 @@ describe("computeNextFrame", () => {
       transitions: [],
     };
 
-    const initialMarking = new Map([
-      ["p1", { values: new Float64Array([10.0]), count: 1 }],
-    ]);
+    const initialMarking = { p1: [{ x: 10.0 }] };
 
     const simulation = buildSimulation({
       sdcpn,

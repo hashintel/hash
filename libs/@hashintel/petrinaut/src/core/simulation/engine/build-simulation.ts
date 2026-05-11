@@ -6,13 +6,27 @@ import {
 import { compileUserCode } from "../authoring/user-code/compile-user-code";
 import type {
   DifferentialEquationFn,
+  EngineFrame,
   LambdaFn,
   ParameterValues,
-  EngineFrame,
   SimulationInput,
   SimulationInstance,
   TransitionKernelFn,
 } from "./types";
+
+type PackedInitialPlaceMarking = {
+  values: number[];
+  count: number;
+};
+
+function getInitialMarkingValue(
+  initialMarking: SimulationInput["initialMarking"],
+  placeId: string,
+): SimulationInput["initialMarking"][string] | undefined {
+  return Object.prototype.hasOwnProperty.call(initialMarking, placeId)
+    ? initialMarking[placeId]
+    : undefined;
+}
 
 /**
  * Get the dimensions (number of elements) for a place based on its type.
@@ -34,12 +48,62 @@ function getPlaceDimensions(
   return type.elements.length;
 }
 
+function packInitialPlaceMarking(
+  place: SimulationInput["sdcpn"]["places"][0],
+  sdcpn: SimulationInput["sdcpn"],
+  value: SimulationInput["initialMarking"][string] | undefined,
+): PackedInitialPlaceMarking {
+  const dimensions = getPlaceDimensions(place, sdcpn);
+
+  if (value === undefined) {
+    return { values: [], count: 0 };
+  }
+
+  if (dimensions === 0) {
+    if (typeof value !== "number") {
+      throw new Error(
+        `Initial marking for uncolored place ${place.id} must be a token count number`,
+      );
+    }
+    return { values: [], count: Math.max(0, Math.round(value)) };
+  }
+
+  if (!Array.isArray(value)) {
+    throw new Error(
+      `Initial marking for colored place ${place.id} must be an array of token records`,
+    );
+  }
+
+  const type = sdcpn.types.find((tp) => tp.id === place.colorId);
+  if (!type) {
+    throw new Error(
+      `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`,
+    );
+  }
+
+  const tokenRecords: unknown[] = value;
+  const values: number[] = [];
+  for (const token of tokenRecords) {
+    if (typeof token !== "object" || token === null || Array.isArray(token)) {
+      throw new Error(
+        `Initial marking token for place ${place.id} must be a record`,
+      );
+    }
+    const tokenRecord = token as Record<string, number>;
+    for (const element of type.elements) {
+      values.push(Number(tokenRecord[element.name] ?? 0));
+    }
+  }
+
+  return { values, count: value.length };
+}
+
 /**
  * Builds a simulation instance and its initial frame from simulation input.
  *
  * Takes a SimulationInput containing:
  * - SDCPN definition (places, transitions, and their code)
- * - Initial marking (token distribution across places)
+ * - Initial marking (JSON-serializable token distribution across places)
  * - Random seed
  * - Time step (dt)
  *
@@ -51,7 +115,7 @@ function getPlaceDimensions(
  * @param input - The simulation input configuration
  * @returns The initial simulation frame ready for execution
  * @throws {Error} if place IDs in initialMarking don't match places in SDCPN
- * @throws {Error} if token dimensions don't match place dimensions
+ * @throws {Error} if a place marking does not match the place color shape
  * @throws {Error} if user code fails to compile
  */
 export function buildSimulation(input: SimulationInput): SimulationInstance {
@@ -80,7 +144,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   );
 
   // Validate that all places in initialMarking exist in SDCPN
-  for (const placeId of initialMarking.keys()) {
+  for (const placeId of Object.keys(initialMarking)) {
     if (!placesMap.has(placeId)) {
       throw new Error(
         `Place with ID ${placeId} in initialMarking does not exist in SDCPN`,
@@ -88,16 +152,16 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
   }
 
-  // Validate token dimensions match place dimensions
-  for (const [placeId, marking] of initialMarking) {
-    const place = placesMap.get(placeId)!;
-    const dimensions = getPlaceDimensions(place, sdcpn);
-    const expectedSize = dimensions * marking.count;
-    if (marking.values.length !== expectedSize) {
-      throw new Error(
-        `Token dimension mismatch for place ${placeId}. Expected ${expectedSize} values (${dimensions} dimensions × ${marking.count} tokens), got ${marking.values.length}`,
-      );
-    }
+  const packedInitialMarking = new Map<string, PackedInitialPlaceMarking>();
+  for (const place of sdcpn.places) {
+    packedInitialMarking.set(
+      place.id,
+      packInitialPlaceMarking(
+        place,
+        sdcpn,
+        getInitialMarkingValue(initialMarking, place.id),
+      ),
+    );
   }
 
   // Compile all differential equation functions
@@ -196,7 +260,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   for (const placeId of sortedPlaceIds) {
     const place = placesMap.get(placeId)!;
-    const marking = initialMarking.get(placeId);
+    const marking = packedInitialMarking.get(placeId);
     const count = marking?.count ?? 0;
     const dimensions = getPlaceDimensions(place, sdcpn);
 
@@ -218,7 +282,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   let bufferIndex = 0;
 
   for (const placeId of sortedPlaceIds) {
-    const marking = initialMarking.get(placeId);
+    const marking = packedInitialMarking.get(placeId);
     if (marking && marking.count > 0) {
       for (let i = 0; i < marking.values.length; i++) {
         buffer[bufferIndex++] = marking.values[i]!;

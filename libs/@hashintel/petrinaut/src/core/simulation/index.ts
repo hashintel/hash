@@ -2,6 +2,7 @@ export type {
   BackpressureConfig,
   CreateSimulationConfig,
   InitialMarking,
+  InitialPlaceMarking,
   Simulation,
   SimulationCompleteEvent,
   SimulationConfig,

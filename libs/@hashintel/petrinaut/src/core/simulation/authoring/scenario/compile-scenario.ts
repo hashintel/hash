@@ -1,18 +1,15 @@
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
+import type { InitialMarking, InitialPlaceMarking } from "../../api";
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
 
 // -- Result types -------------------------------------------------------------
 
 /**
  * Compiled initial state entry for a single place.
- * - Uncolored places: `values` is empty, `count` is the token count.
- * - Colored places: `values` is the flattened element data, `count` is the
- *   number of tokens (rows).
+ * - Uncolored places: token count number.
+ * - Colored places: array of token records keyed by color element name.
  */
-export interface CompiledPlaceMarking {
-  values: number[];
-  count: number;
-}
+export type CompiledPlaceMarking = InitialPlaceMarking;
 
 export interface CompiledScenarioResult {
   /**
@@ -23,7 +20,7 @@ export interface CompiledScenarioResult {
   /**
    * Resolved initial marking keyed by place ID.
    */
-  initialState: Record<string, CompiledPlaceMarking>;
+  initialState: InitialMarking;
 }
 
 export interface ScenarioCompilationError {
@@ -75,6 +72,54 @@ function evaluateExpression(
   return runSandboxed(() =>
     fn(createSafeObject(parameters), createSafeObject(scenario)),
   );
+}
+
+function tokenRecordsFromRows(
+  rows: number[][],
+  elements: Color["elements"],
+): Record<string, number>[] {
+  return rows.map((row) => {
+    const token: Record<string, number> = {};
+    if (elements.length > 0) {
+      for (let i = 0; i < elements.length; i++) {
+        token[elements[i]!.name] = row[i] ?? 0;
+      }
+    } else {
+      for (let i = 0; i < row.length; i++) {
+        token[String(i)] = row[i] ?? 0;
+      }
+    }
+    return token;
+  });
+}
+
+function normalizeTokenRecords(
+  tokens: unknown[],
+  elements: Color["elements"],
+): Record<string, number>[] {
+  return tokens.flatMap((rawToken) => {
+    if (
+      typeof rawToken !== "object" ||
+      rawToken === null ||
+      Array.isArray(rawToken)
+    ) {
+      return [];
+    }
+
+    const source = rawToken as Record<string, unknown>;
+    const token: Record<string, number> = {};
+    const entries =
+      elements.length > 0
+        ? elements.map(
+            (element) => [element.name, source[element.name]] as const,
+          )
+        : Object.entries(source);
+
+    for (const [name, value] of entries) {
+      token[name] = Number(value ?? 0);
+    }
+    return [token];
+  });
 }
 
 // -- Compiler -----------------------------------------------------------------
@@ -159,7 +204,10 @@ export function compileScenario(
 
   // ── Step 3: Evaluate initial state ──
 
-  const initialState: Record<string, CompiledPlaceMarking> = {};
+  const initialState: InitialMarking = {};
+  const placeById = new Map(places.map((p) => [p.id, p]));
+  const placeByName = new Map(places.map((p) => [p.name, p]));
+  const typeById = new Map(types.map((t) => [t.id, t]));
 
   if (scenario.initialState.type === "code") {
     // Code mode: evaluate the full code block as a function body.
@@ -184,10 +232,6 @@ export function compileScenario(
             message: `Initial state code must return an object, got ${typeof result}.`,
           });
         } else {
-          // Build lookups: placeName → placeId, placeId → color elements
-          const placeByName = new Map(places.map((p) => [p.name, p]));
-          const typeById = new Map(types.map((t) => [t.id, t]));
-
           for (const [placeName, tokens] of Object.entries(result)) {
             const place = placeByName.get(placeName);
             if (!place) {
@@ -196,30 +240,14 @@ export function compileScenario(
 
             if (typeof tokens === "number") {
               // Uncolored place: just a token count
-              initialState[place.id] = {
-                values: [],
-                count: Math.max(0, Math.round(tokens)),
-              };
+              initialState[place.id] = Math.max(0, Math.round(tokens));
             } else if (Array.isArray(tokens)) {
-              // Colored place: array of token objects → flatten
+              // Colored place: array of token objects.
               const color = place.colorId
                 ? typeById.get(place.colorId)
                 : undefined;
               const elements = color?.elements ?? [];
-              const flat: number[] = [];
-              for (const token of tokens) {
-                if (typeof token === "object" && token !== null) {
-                  for (const el of elements) {
-                    flat.push(
-                      Number((token as Record<string, unknown>)[el.name] ?? 0),
-                    );
-                  }
-                }
-              }
-              initialState[place.id] = {
-                values: flat,
-                count: tokens.length,
-              };
+              initialState[place.id] = normalizeTokenRecords(tokens, elements);
             }
           }
         }
@@ -236,22 +264,21 @@ export function compileScenario(
     for (const [placeId, value] of Object.entries(
       scenario.initialState.content,
     )) {
-      // Colored places: number[][] stored directly — flatten to values + count
+      // Colored places: number[][] stored directly by the UI.
       if (Array.isArray(value)) {
-        const flat: number[] = [];
-        for (const row of value) {
-          for (const v of row) {
-            flat.push(v);
-          }
-        }
-        initialState[placeId] = { values: flat, count: value.length };
+        const place = placeById.get(placeId);
+        const color = place?.colorId ? typeById.get(place.colorId) : undefined;
+        initialState[placeId] = tokenRecordsFromRows(
+          value,
+          color?.elements ?? [],
+        );
         continue;
       }
 
       // Uncolored places: expression string → evaluate to token count
       const trimmed = value.trim();
       if (trimmed === "") {
-        initialState[placeId] = { values: [], count: 0 };
+        initialState[placeId] = 0;
         continue;
       }
       try {
@@ -264,10 +291,7 @@ export function compileScenario(
           });
           continue;
         }
-        initialState[placeId] = {
-          values: [],
-          count: Math.max(0, Math.round(result)),
-        };
+        initialState[placeId] = Math.max(0, Math.round(result));
       } catch (err) {
         errors.push({
           source: "initialState",

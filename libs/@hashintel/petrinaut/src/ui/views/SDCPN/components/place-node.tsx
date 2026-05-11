@@ -69,8 +69,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = currentViewedFrame.places[id]?.tokenCount ?? null;
   } else if (isSimulateMode) {
     // In simulate mode but no simulation running - show initial marking
-    const marking = initialMarking.get(id);
-    tokenCount = marking?.count ?? 0;
+    const marking = initialMarking[id];
+    tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
   // Determine selection state

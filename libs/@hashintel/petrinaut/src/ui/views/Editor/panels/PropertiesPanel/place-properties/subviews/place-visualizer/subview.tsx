@@ -132,14 +132,13 @@ const VisualizerPreview: React.FC = () => {
 
     parameters = mergeParameterValues(parameterValues, defaultParameterValues);
   } else {
-    const marking = initialMarking.get(place.id);
-    if (marking && marking.count > 0) {
-      for (let tokenIndex = 0; tokenIndex < marking.count; tokenIndex++) {
+    const marking = initialMarking[place.id];
+    if (Array.isArray(marking) && marking.length > 0) {
+      for (let tokenIndex = 0; tokenIndex < marking.length; tokenIndex++) {
         const token: Record<string, number> = {};
         for (let colIndex = 0; colIndex < dimensions; colIndex++) {
           const dimensionName = placeType.elements[colIndex]!.name;
-          token[dimensionName] =
-            marking.values[tokenIndex * dimensions + colIndex] ?? 0;
+          token[dimensionName] = marking[tokenIndex]?.[dimensionName] ?? 0;
         }
         tokens.push(token);
       }

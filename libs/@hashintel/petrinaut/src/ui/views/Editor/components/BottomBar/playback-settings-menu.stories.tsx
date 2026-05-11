@@ -50,7 +50,7 @@ const PlaybackSettingsMenuStory = ({
         error: null,
         errorItemId: null,
         parameterValues: {},
-        initialMarking: new Map(),
+        initialMarking: {},
         selectedScenarioId: null,
         scenarioParameterValues: {},
         compiledScenarioResult: null,

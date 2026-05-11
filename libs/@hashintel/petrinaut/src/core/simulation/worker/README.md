@@ -63,7 +63,10 @@ import { createSimulation } from "@hashintel/petrinaut/core";
 
 const sim = await createSimulation({
   sdcpn,
-  initialMarking,
+  initialMarking: {
+    queue: 10,
+    customer: [{ waitTime: 0 }],
+  },
   parameterValues,
   seed,
   dt,

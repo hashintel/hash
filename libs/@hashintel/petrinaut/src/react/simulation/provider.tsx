@@ -42,7 +42,7 @@ type SimulationStateValues = {
 
 const INITIAL_STATE_VALUES: SimulationStateValues = {
   parameterValues: {},
-  initialMarking: new Map(),
+  initialMarking: {},
   selectedScenarioId: null,
   scenarioParameterValues: {},
   dt: 0.01,
@@ -256,9 +256,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     invalidateSimulationForConfigurationChange();
 
     setStateValues((prev) => {
-      const newMarking = new Map(prev.initialMarking);
-      newMarking.set(placeId, marking);
-      return { ...prev, initialMarking: newMarking };
+      return {
+        ...prev,
+        initialMarking: {
+          ...prev.initialMarking,
+          [placeId]: marking,
+        },
+      };
     });
   };
 
@@ -485,16 +489,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     effectiveParameterValues = compiledScenarioResult.parameterValues;
 
     // Merge compiled scenario initial state on top of manual markings.
-    const mergedMarking: InitialMarking = new Map(stateValues.initialMarking);
-    for (const [placeId, marking] of Object.entries(
-      compiledScenarioResult.initialState,
-    )) {
-      mergedMarking.set(placeId, {
-        values: new Float64Array(marking.values),
-        count: marking.count,
-      });
-    }
-    effectiveInitialMarking = mergedMarking;
+    effectiveInitialMarking = {
+      ...stateValues.initialMarking,
+      ...compiledScenarioResult.initialState,
+    };
   }
 
   // Keep refs to effective values so `initialize` uses scenario-overridden

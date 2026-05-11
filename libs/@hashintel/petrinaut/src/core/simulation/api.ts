@@ -30,12 +30,15 @@ export type WorkerFactory = () => Worker | Promise<Worker>;
 
 /**
  * Initial token distribution for starting a simulation.
- * Maps place IDs to their initial token values and counts.
+ *
+ * This is intentionally JSON-serializable. The simulator is responsible for
+ * converting it into its internal packed frame representation.
+ *
+ * - Uncolored places use a token count.
+ * - Colored places use one record per token, keyed by color element name.
  */
-export type InitialMarking = Map<
-  string,
-  { values: Float64Array; count: number }
->;
+export type InitialPlaceMarking = number | Record<string, number>[];
+export type InitialMarking = Record<string, InitialPlaceMarking>;
 
 /**
  * Common per-run config shared by both transport modes. The simulation runs

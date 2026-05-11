@@ -64,7 +64,7 @@ describe("createSimulation (transport flavour)", () => {
     const promise = createSimulation({
       transport: mock.transport,
       sdcpn: empty(),
-      initialMarking: new Map(),
+      initialMarking: {},
       parameterValues: {},
       seed: 1,
       dt: 0.01,
@@ -85,7 +85,7 @@ describe("createSimulation (transport flavour)", () => {
     const promise = createSimulation({
       transport: mock.transport,
       sdcpn: empty(),
-      initialMarking: new Map(),
+      initialMarking: {},
       parameterValues: {},
       seed: 1,
       dt: 0.01,
@@ -102,7 +102,7 @@ describe("createSimulation (transport flavour)", () => {
     const promise = createSimulation({
       transport: mock.transport,
       sdcpn: empty(),
-      initialMarking: new Map(),
+      initialMarking: {},
       parameterValues: {},
       seed: 1,
       dt: 0.01,
@@ -133,7 +133,7 @@ describe("createSimulation (transport flavour)", () => {
     const promise = createSimulation({
       transport: mock.transport,
       sdcpn: empty(),
-      initialMarking: new Map(),
+      initialMarking: {},
       parameterValues: {},
       seed: 1,
       dt: 0.01,
@@ -162,7 +162,7 @@ describe("createSimulation (transport flavour)", () => {
     const promise = createSimulation({
       transport: mock.transport,
       sdcpn: empty(),
-      initialMarking: new Map(),
+      initialMarking: {},
       parameterValues: {},
       seed: 1,
       dt: 0.01,
@@ -187,7 +187,7 @@ describe("createSimulation (transport flavour)", () => {
     const promise = createSimulation({
       transport: mock.transport,
       sdcpn: empty(),
-      initialMarking: new Map(),
+      initialMarking: {},
       parameterValues: {},
       seed: 1,
       dt: 0.01,
@@ -208,7 +208,7 @@ describe("createSimulation (transport flavour)", () => {
     const promise = createSimulation({
       transport: mock.transport,
       sdcpn: empty(),
-      initialMarking: new Map(),
+      initialMarking: {},
       parameterValues: {},
       seed: 1,
       dt: 0.01,
@@ -250,7 +250,7 @@ describe("createSimulation (createWorker flavour)", () => {
     const promise = createSimulation({
       createWorker: () => fakeWorker,
       sdcpn: empty(),
-      initialMarking: new Map(),
+      initialMarking: {},
       parameterValues: {},
       seed: 1,
       dt: 0.01,

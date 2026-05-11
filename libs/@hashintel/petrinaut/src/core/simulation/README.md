@@ -50,7 +50,7 @@ type SimulationState =
 | Property          | Description                                        |
 | ----------------- | -------------------------------------------------- |
 | `sdcpn`           | SDCPN snapshot to simulate.                        |
-| `initialMarking`  | Initial token placement.                           |
+| `initialMarking`  | JSON-serializable initial token placement.         |
 | `parameterValues` | Parameter values overriding SDCPN defaults.        |
 | `seed`            | Seed for deterministic stochastic behavior.        |
 | `dt`              | Time step in seconds.                              |
@@ -63,6 +63,16 @@ Provide exactly one execution transport:
 - `createWorker`: a factory returning a `Worker` or `Promise<Worker>`.
 - `transport`: a pre-built opaque `SimulationTransport` for tests or custom
   worker adapters.
+
+`initialMarking` is keyed by place ID. Uncolored places use a token count
+number, while colored places use one record per token:
+
+```ts
+{
+  susceptible: 100,
+  infected: [{ age: 42, viralLoad: 0.8 }]
+}
+```
 
 ## Lifecycle
 

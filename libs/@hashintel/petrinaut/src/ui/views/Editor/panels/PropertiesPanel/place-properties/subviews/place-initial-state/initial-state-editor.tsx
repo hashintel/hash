@@ -37,53 +37,53 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     [placeType.elements],
   );
 
-  // Get current marking for this place - either from simulation frame or initial marking
-  const currentMarking = useMemo(() => {
+  // Convert current frame data or serializable initial marking to spreadsheet rows.
+  const data: number[][] = useMemo(() => {
     if (hasSimulation && currentFrameReader) {
-      return currentFrameReader.getPlaceTokenValues(placeId);
+      const currentMarking = currentFrameReader.getPlaceTokenValues(placeId);
+      if (!currentMarking || currentMarking.count === 0) {
+        return [];
+      }
+
+      const dimensions = columns.length;
+      const tokens: number[][] = [];
+      for (let i = 0; i < currentMarking.count; i++) {
+        const tokenValues: number[] = [];
+        for (let colIndex = 0; colIndex < dimensions; colIndex++) {
+          tokenValues.push(
+            currentMarking.values[i * dimensions + colIndex] ?? 0,
+          );
+        }
+        tokens.push(tokenValues);
+      }
+      return tokens;
     }
 
-    return initialMarking.get(placeId) ?? null;
-  }, [hasSimulation, currentFrameReader, initialMarking, placeId]);
-
-  // Convert Float64Array marking data to number[][] for the Spreadsheet
-  const data: number[][] = useMemo(() => {
-    if (!currentMarking || currentMarking.count === 0) {
+    const marking = initialMarking[placeId];
+    if (!Array.isArray(marking)) {
       return [];
     }
 
-    const dimensions = columns.length;
-    const tokens: number[][] = [];
-    for (let i = 0; i < currentMarking.count; i++) {
-      const tokenValues: number[] = [];
-      for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-        tokenValues.push(currentMarking.values[i * dimensions + colIndex] ?? 0);
-      }
-      tokens.push(tokenValues);
-    }
-    return tokens;
-  }, [currentMarking, columns.length]);
+    return marking.map((token) =>
+      columns.map((column) => token[column.name] ?? 0),
+    );
+  }, [hasSimulation, currentFrameReader, placeId, columns, initialMarking]);
 
-  // Convert number[][] back to Float64Array and save to simulation store
+  // Convert spreadsheet rows back to serializable token records.
   const handleChange = useMemo(() => {
     if (hasSimulation || readOnly) {
       return undefined;
     }
 
     return (newData: number[][]) => {
-      const dimensions = columns.length;
-      const count = newData.length;
-      const values = new Float64Array(count * dimensions);
-
-      for (let i = 0; i < count; i++) {
-        for (let col = 0; col < dimensions; col++) {
-          values[i * dimensions + col] = newData[i]?.[col] ?? 0;
-        }
-      }
-
-      setInitialMarking(placeId, { values, count });
+      const tokens = newData.map((row) =>
+        Object.fromEntries(
+          columns.map((column, col) => [column.name, row[col] ?? 0]),
+        ),
+      );
+      setInitialMarking(placeId, tokens);
     };
-  }, [hasSimulation, readOnly, columns.length, setInitialMarking, placeId]);
+  }, [hasSimulation, readOnly, columns, setInitialMarking, placeId]);
 
   return <Spreadsheet columns={columns} data={data} onChange={handleChange} />;
 };

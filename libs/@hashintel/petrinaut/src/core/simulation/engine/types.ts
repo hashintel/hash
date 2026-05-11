@@ -7,6 +7,7 @@
 
 import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
+import type { InitialMarking } from "../api";
 import type { EngineFrame } from "../frames/internal-frame";
 
 /**
@@ -49,7 +50,7 @@ export type SimulationInput = {
   /** The SDCPN definition to simulate */
   sdcpn: SDCPN;
   /** Initial token distribution across places */
-  initialMarking: Map<string, { values: Float64Array; count: number }>;
+  initialMarking: InitialMarking;
   /** Parameter values from the simulation store (overrides SDCPN defaults) */
   parameterValues: Record<string, string>;
   /** Random seed for deterministic stochastic behavior */

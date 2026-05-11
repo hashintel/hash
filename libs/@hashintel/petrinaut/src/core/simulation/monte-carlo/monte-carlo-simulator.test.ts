@@ -23,15 +23,7 @@ const staticUntypedNet: SDCPN = {
 };
 
 function createUntypedInitialMarking(count: number): InitialMarking {
-  return new Map([
-    [
-      "p1",
-      {
-        values: new Float64Array(0),
-        count,
-      },
-    ],
-  ]);
+  return { p1: count };
 }
 
 describe("createMonteCarloSimulator", () => {

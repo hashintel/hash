@@ -150,13 +150,10 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
   switch (message.type) {
     case "init": {
       try {
-        // Convert serialized initialMarking back to Map
-        const initialMarking = new Map(message.initialMarking);
-
         // Build simulation (compiles user code)
         simulation = buildSimulation({
           sdcpn: message.sdcpn,
-          initialMarking,
+          initialMarking: message.initialMarking,
           parameterValues: message.parameterValues,
           seed: message.seed,
           dt: message.dt,

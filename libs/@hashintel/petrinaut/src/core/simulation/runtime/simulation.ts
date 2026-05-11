@@ -224,7 +224,7 @@ export function createSimulation(
     transport.send({
       type: "init",
       sdcpn: config.sdcpn,
-      initialMarking: Array.from(config.initialMarking.entries()),
+      initialMarking: config.initialMarking,
       parameterValues: config.parameterValues,
       seed: config.seed,
       dt: config.dt,
