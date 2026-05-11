@@ -172,6 +172,7 @@ export const BaseInput = ({
     width,
     invalid: !!invalid,
     disabled: !!disabled,
+    loading: !!loading,
   });
 
   if (readonly) {
@@ -256,32 +257,31 @@ export const BaseInput = ({
         {styledValue && !focused && (
           <div className={classes.styledValueOverlay}>{styledValue}</div>
         )}
+        {showClear && (
+          <button
+            type="button"
+            data-part="clear"
+            onMouseDown={(event) => {
+              // prevents focus from changing/being removed from the input which can lead to UI stutter
+              // if selectedDisplay is set
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={() => {
+              clearable.onClear();
+              internalRef.current?.focus();
+            }}
+            className={classes.clear}
+            aria-label="Clear input"
+          >
+            <Icon
+              name="close"
+              size={iconSizeMap[size]}
+              className={classes.clearIcon}
+            />
+          </button>
+        )}
       </div>
-
-      {showClear && (
-        <button
-          type="button"
-          data-part="clear"
-          onMouseDown={(event) => {
-            // prevents focus from changing/being removed from the input which can lead to UI stutter
-            // if selectedDisplay is set
-            event.preventDefault();
-            event.stopPropagation();
-          }}
-          onClick={() => {
-            clearable.onClear();
-            internalRef.current?.focus();
-          }}
-          className={classes.clear}
-          aria-label="Clear input"
-        >
-          <Icon
-            name="close"
-            size={iconSizeMap[size]}
-            className={classes.clearIcon}
-          />
-        </button>
-      )}
 
       {loading && (
         <span className={classes.loading} data-part="loading">

@@ -27,10 +27,10 @@ export const baseInputRecipe = sva({
       "--base-input-border-color": "var(--colors-bd-solid)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
-        display: "flex",
+        visibility: "visible",
       },
       "&:focus-within [data-part='clear']": {
-        display: "flex",
+        visibility: "visible",
       },
     },
     readonly: {
@@ -100,16 +100,24 @@ export const baseInputRecipe = sva({
       paddingRight: "2",
     },
     clear: {
-      marginRight: "2",
+      position: "absolute",
+      zIndex: "1",
+      right: "2",
+      display: "flex",
+      alignItems: "center",
+      visibility: "hidden",
       color: "neutral.s110",
       borderRadius: "full",
-      alignSelf: "center",
       cursor: "pointer",
-      display: "none",
       _hover: { color: "neutral.s125" },
       _focus: { background: "neutral.s30", outline: "none" },
-      "& + [data-part='loading']": {
-        marginLeft: "-0.5",
+      _before: {
+        content: "''",
+        position: "absolute",
+        insetY: "[calc(var(--base-input-padding-y) * -1)]",
+        insetX: "-1.5",
+        background: "white",
+        zIndex: "-1",
       },
     },
     clearIcon: {
@@ -161,7 +169,7 @@ export const baseInputRecipe = sva({
           _before: {
             content: '""',
             position: "absolute",
-            insetY: "0",
+            insetY: "[-1px]",
             insetX: "[calc(-1 * var(--base-input-padding-x))]",
             borderRadius: "[inherit]",
             border: "1px solid transparent",
@@ -301,6 +309,13 @@ export const baseInputRecipe = sva({
       left: { input: { textAlign: "start" } },
       center: { input: { textAlign: "center" } },
       right: { input: { textAlign: "end" } },
+    },
+    loading: {
+      true: {
+        clear: {
+          right: "1.5",
+        },
+      },
     },
   },
   compoundVariants: [
