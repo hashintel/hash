@@ -1,4 +1,12 @@
-import type { EngineFrame } from "./types";
+import {
+  createEngineFrame,
+  materializeEngineFrame,
+} from "../frames/internal-frame";
+import type {
+  EngineFrame,
+  EngineFrameLayout,
+  EngineFrameSnapshot,
+} from "./types";
 
 /**
  * Removes tokens from multiple places in the simulation frame.
@@ -19,15 +27,18 @@ import type { EngineFrame } from "./types";
 export function removeTokensFromSimulationFrame(
   frame: EngineFrame,
   tokensToRemove: Map<string, Set<number> | number>,
+  layout: EngineFrameLayout,
 ): EngineFrame {
   // If no tokens to remove, return frame as-is
   if (tokensToRemove.size === 0) {
     return frame;
   }
 
+  const snapshot = materializeEngineFrame(layout, frame);
+
   // Validate all places and indices first
   for (const [placeId, indices] of tokensToRemove) {
-    const placeState = frame.places[placeId];
+    const placeState = snapshot.places[placeId];
     if (!placeState) {
       throw new Error(
         `Place with ID ${placeId} not found in simulation frame.`,
@@ -64,7 +75,7 @@ export function removeTokensFromSimulationFrame(
   const globalIndicesToRemove = new Set<number>();
 
   for (const [placeId, indices] of tokensToRemove) {
-    const placeState = frame.places[placeId]!;
+    const placeState = snapshot.places[placeId]!;
     const { offset, dimensions } = placeState;
     const tokenSize = dimensions;
 
@@ -89,24 +100,24 @@ export function removeTokensFromSimulationFrame(
   }
 
   // Create a new buffer without the removed tokens
-  const newBufferSize = frame.buffer.length - globalIndicesToRemove.size;
+  const newBufferSize = snapshot.buffer.length - globalIndicesToRemove.size;
   const newBuffer = new Float64Array(newBufferSize);
 
   // Copy buffer excluding removed indices
   let newBufferIndex = 0;
-  for (let i = 0; i < frame.buffer.length; i++) {
+  for (let i = 0; i < snapshot.buffer.length; i++) {
     if (!globalIndicesToRemove.has(i)) {
-      newBuffer[newBufferIndex++] = frame.buffer[i]!;
+      newBuffer[newBufferIndex++] = snapshot.buffer[i]!;
     }
   }
 
   // Calculate offset adjustments for each place
   // We need to track cumulative size removed before each place's offset
-  const placesByOffset = Object.entries(frame.places).sort(
+  const placesByOffset = Object.entries(snapshot.places).sort(
     (a, b) => a[1].offset - b[1].offset,
   );
 
-  const newPlaces: EngineFrame["places"] = { ...frame.places };
+  const newPlaces: EngineFrameSnapshot["places"] = { ...snapshot.places };
   let cumulativeRemoved = 0;
 
   for (const [placeId, placeState] of placesByOffset) {
@@ -131,9 +142,9 @@ export function removeTokensFromSimulationFrame(
   }
 
   // Return new frame with updated buffer and places
-  return {
-    ...frame,
+  return createEngineFrame(layout, {
+    ...snapshot,
     buffer: newBuffer,
     places: newPlaces,
-  };
+  });
 }

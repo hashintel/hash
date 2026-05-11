@@ -4,6 +4,10 @@ import type { ToMainMessage, ToWorkerMessage } from "../worker/messages";
 import type { SimulationFramePayload } from "../worker/frame-payload";
 import type { SDCPN } from "../../types/sdcpn";
 import type { SimulationFrameSummary, SimulationTransport } from "../api";
+import {
+  createEngineFrame,
+  createEngineFrameLayout,
+} from "../frames/internal-frame";
 import { createSimulation } from "./simulation";
 
 const empty = (): SDCPN => ({
@@ -15,11 +19,15 @@ const empty = (): SDCPN => ({
 });
 
 function makeFrame(time: number): SimulationFramePayload {
-  return {
-    time,
+  const frame = createEngineFrame(createEngineFrameLayout(empty()), {
     places: {},
     transitions: {},
     buffer: new Float64Array(),
+  });
+
+  return {
+    time,
+    frame,
   };
 }
 

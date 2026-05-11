@@ -1,5 +1,6 @@
+import type { SDCPN } from "../../types/sdcpn";
 import type { SimulationFrameReader } from "../api";
-import { createSimulationFrameReader } from "../frames/frame-reader";
+import { compileSimulationFrameReader } from "../frames/frame-reader";
 import type { SimulationFramePayload } from "../worker/frame-payload";
 
 export interface SimulationFrameStore {
@@ -15,8 +16,11 @@ export interface SimulationFrameStore {
  * Compatibility store for the v1 worker protocol. It keeps all full frame
  * payloads in memory, while hiding that retention policy from `Simulation`.
  */
-export function createInMemorySimulationFrameStore(): SimulationFrameStore {
+export function createInMemorySimulationFrameStore(
+  sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,
+): SimulationFrameStore {
   const frames: SimulationFramePayload[] = [];
+  const createFrameReader = compileSimulationFrameReader(sdcpn);
 
   return {
     append(frame) {
@@ -34,11 +38,11 @@ export function createInMemorySimulationFrameStore(): SimulationFrameStore {
     latest() {
       const index = frames.length - 1;
       const frame = frames[index];
-      return frame ? createSimulationFrameReader(frame, index) : null;
+      return frame ? createFrameReader(frame.frame, index) : null;
     },
     get(index) {
       const frame = frames[index];
-      return frame ? createSimulationFrameReader(frame, index) : null;
+      return frame ? createFrameReader(frame.frame, index) : null;
     },
   };
 }

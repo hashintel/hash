@@ -1,5 +1,10 @@
 import type { Transition } from "../../types/sdcpn";
-import type { EngineFrame } from "./types";
+import { materializeEngineFrame } from "../frames/internal-frame";
+import type {
+  EngineFrame,
+  EngineFrameLayout,
+  EngineFrameSnapshot,
+} from "./types";
 
 /**
  * Result of checking transition enablement for a simulation frame.
@@ -31,12 +36,12 @@ export type TransitionEnablementResult = {
  * @param transitionId - The ID of the transition to check
  * @returns true if the transition has sufficient input tokens, false otherwise
  */
-export const isTransitionStructurallyEnabled = (
-  frame: EngineFrame,
+function isTransitionStructurallyEnabledSnapshot(
+  snapshot: EngineFrameSnapshot,
   transitions: ReadonlyMap<string, Transition>,
   transitionId: string,
-): boolean => {
-  if (!frame.transitions[transitionId]) {
+): boolean {
+  if (!snapshot.transitions[transitionId]) {
     throw new Error(`Transition with ID ${transitionId} not found.`);
   }
 
@@ -49,7 +54,7 @@ export const isTransitionStructurallyEnabled = (
 
   // Check if all input places have enough tokens for the required arc weights
   return transition.inputArcs.every((arc) => {
-    const placeState = frame.places[arc.placeId];
+    const placeState = snapshot.places[arc.placeId];
     if (!placeState) {
       throw new Error(
         `Place with ID ${arc.placeId} not found in current marking.`,
@@ -60,6 +65,19 @@ export const isTransitionStructurallyEnabled = (
       ? placeState.count < arc.weight
       : placeState.count >= arc.weight;
   });
+}
+
+export const isTransitionStructurallyEnabled = (
+  frame: EngineFrame,
+  transitions: ReadonlyMap<string, Transition>,
+  layout: EngineFrameLayout,
+  transitionId: string,
+): boolean => {
+  return isTransitionStructurallyEnabledSnapshot(
+    materializeEngineFrame(layout, frame),
+    transitions,
+    transitionId,
+  );
 };
 
 /**
@@ -80,7 +98,11 @@ export const isTransitionStructurallyEnabled = (
  *
  * @example
  * ```ts
- * const result = checkTransitionEnablement(currentFrame, simulation.transitions);
+ * const result = checkTransitionEnablement(
+ *   currentFrame,
+ *   simulation.transitions,
+ *   simulation.frameLayout,
+ * );
  * if (!result.hasEnabledTransition) {
  *   console.log("Simulation reached a terminal state (deadlock)");
  * }
@@ -89,13 +111,15 @@ export const isTransitionStructurallyEnabled = (
 export const checkTransitionEnablement = (
   frame: EngineFrame,
   transitions: ReadonlyMap<string, Transition>,
+  layout: EngineFrameLayout,
 ): TransitionEnablementResult => {
+  const snapshot = materializeEngineFrame(layout, frame);
   const transitionStatus = new Map<string, boolean>();
   let hasEnabledTransition = false;
 
-  for (const transitionId of Object.keys(frame.transitions)) {
-    const isEnabled = isTransitionStructurallyEnabled(
-      frame,
+  for (const transitionId of Object.keys(snapshot.transitions)) {
+    const isEnabled = isTransitionStructurallyEnabledSnapshot(
+      snapshot,
       transitions,
       transitionId,
     );

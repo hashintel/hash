@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { Color, Place, Transition } from "../../types/sdcpn";
-import { executeTransitions } from "./execute-transitions";
+import {
+  createEngineFrame,
+  createEngineFrameLayout,
+  materializeEngineFrame,
+  type EngineFrameLayout,
+  type EngineFrameSnapshot,
+} from "../frames/internal-frame";
+import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
 import type {
   EngineFrame,
   SimulationInstance,
@@ -33,6 +40,8 @@ const transitionState = (timeSinceLastFiringMs = 1.0) => ({
   firingCount: 0,
 });
 
+type TestFrame = EngineFrame & { layout: EngineFrameLayout };
+
 function makePlace(id: string, name: string, colorId: string | null): Place {
   return {
     id,
@@ -42,6 +51,20 @@ function makePlace(id: string, name: string, colorId: string | null): Place {
     differentialEquationId: null,
     x: 0,
     y: 0,
+  };
+}
+
+function makeColor(dimensions: number): Color {
+  return {
+    id: `frame-type-${dimensions}`,
+    name: `Frame Type ${dimensions}`,
+    iconSlug: "circle",
+    displayColor: "#000000",
+    elements: Array.from({ length: dimensions }, (_, index) => ({
+      elementId: `d${index}`,
+      name: `d${index}`,
+      type: "real",
+    })),
   };
 }
 
@@ -73,6 +96,12 @@ function makeSimulation({
   lambdaFns: SimulationInstance["lambdaFns"];
   transitionKernelFns: SimulationInstance["transitionKernelFns"];
 }): SimulationInstance {
+  const frameLayout = createEngineFrameLayout({
+    places,
+    transitions,
+    types,
+  });
+
   return {
     places: new Map(places.map((place) => [place.id, place])),
     transitions: new Map(
@@ -87,8 +116,55 @@ function makeSimulation({
     maxTime: null,
     currentTime: 0,
     rngState: 42,
+    frameLayout,
     frames: [],
     currentFrameNumber: 0,
+  };
+}
+
+function makeFrame(snapshot: EngineFrameSnapshot): TestFrame {
+  const dimensions = new Set(
+    Object.values(snapshot.places).map((place) => place.dimensions),
+  );
+  const layout = createEngineFrameLayout({
+    places: Object.entries(snapshot.places).map(([id, place]) =>
+      makePlace(
+        id,
+        id,
+        place.dimensions === 0 ? null : `frame-type-${place.dimensions}`,
+      ),
+    ),
+    transitions: Object.keys(snapshot.transitions).map((id) =>
+      makeTransition({ id, inputArcs: [], outputArcs: [] }),
+    ),
+    types: [...dimensions]
+      .filter((dimension) => dimension > 0)
+      .map((dimension) => makeColor(dimension)),
+  });
+  const frame = createEngineFrame(layout, snapshot) as TestFrame;
+  Object.defineProperty(frame, "layout", { value: layout });
+  return frame;
+}
+
+function executeTransitions(
+  frame: TestFrame,
+  simulation: SimulationInstance,
+  dt: number,
+  rngState: number,
+) {
+  const result = executeEngineTransitions(
+    frame,
+    { ...simulation, frameLayout: frame.layout },
+    dt,
+    rngState,
+  );
+
+  return {
+    ...result,
+    frame:
+      result.frame === frame
+        ? (frame as unknown as EngineFrameSnapshot)
+        : materializeEngineFrame(frame.layout, result.frame),
   };
 }
 
@@ -106,7 +182,7 @@ describe("executeTransitions", () => {
         ["t1", () => ({ p2: [{ x: 1.0 }] })],
       ]),
     });
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: { offset: 0, count: 0, dimensions: 1 },
       },
@@ -114,7 +190,7 @@ describe("executeTransitions", () => {
         t1: transitionState(),
       },
       buffer: new Float64Array([]),
-    };
+    });
 
     const result = executeTransitions(
       frame,
@@ -147,7 +223,7 @@ describe("executeTransitions", () => {
         ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
       ]),
     });
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: { offset: 0, count: 2, dimensions: 1 },
         p2: { offset: 2, count: 0, dimensions: 1 },
@@ -156,7 +232,7 @@ describe("executeTransitions", () => {
         t1: transitionState(),
       },
       buffer: new Float64Array([1.0, 1.5]),
-    };
+    });
 
     const result = executeTransitions(
       frame,
@@ -207,7 +283,7 @@ describe("executeTransitions", () => {
         ["t2", () => ({ "Place 3": [{ x: 10.0 }] })],
       ]),
     });
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: { offset: 0, count: 3, dimensions: 1 },
         p2: { offset: 3, count: 0, dimensions: 1 },
@@ -218,7 +294,7 @@ describe("executeTransitions", () => {
         t2: transitionState(),
       },
       buffer: new Float64Array([1.0, 2.0, 3.0]),
-    };
+    });
 
     const result = executeTransitions(
       frame,
@@ -254,7 +330,7 @@ describe("executeTransitions", () => {
         ["t1", () => ({ "Place 2": [{ x: 3.0, y: 4.0 }] })],
       ]),
     });
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: { offset: 0, count: 1, dimensions: 2 },
         p2: { offset: 2, count: 0, dimensions: 2 },
@@ -263,7 +339,7 @@ describe("executeTransitions", () => {
         t1: transitionState(),
       },
       buffer: new Float64Array([1.0, 2.0]),
-    };
+    });
 
     const result = executeTransitions(
       frame,
@@ -311,7 +387,7 @@ describe("executeTransitions", () => {
         ["t2", () => ({ "Place 2": [{ x: 3.0 }] })],
       ]),
     });
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: { offset: 0, count: 2, dimensions: 1 },
         p2: { offset: 2, count: 0, dimensions: 1 },
@@ -321,7 +397,7 @@ describe("executeTransitions", () => {
         t2: transitionState(0.3),
       },
       buffer: new Float64Array([1.0, 1.5]),
-    };
+    });
 
     const result = executeTransitions(
       frame,

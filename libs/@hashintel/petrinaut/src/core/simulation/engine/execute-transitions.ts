@@ -1,7 +1,16 @@
 import type { ID } from "../../types/sdcpn";
+import {
+  createEngineFrame,
+  materializeEngineFrame,
+} from "../frames/internal-frame";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
-import type { EngineFrame, SimulationInstance } from "./types";
+import type {
+  EngineFrame,
+  EngineFrameLayout,
+  EngineFrameSnapshot,
+  SimulationInstance,
+} from "./types";
 
 type PlaceID = ID;
 
@@ -22,15 +31,18 @@ type PlaceID = ID;
 function addTokensToSimulationFrame(
   frame: EngineFrame,
   tokensToAdd: Map<PlaceID, number[][]>,
+  layout: EngineFrameLayout,
 ): EngineFrame {
   // If no tokens to add, return frame as-is
   if (tokensToAdd.size === 0) {
     return frame;
   }
 
+  const snapshot = materializeEngineFrame(layout, frame);
+
   // Validate all places and token dimensions first
   for (const [placeId, tokens] of tokensToAdd) {
-    const placeState = frame.places[placeId];
+    const placeState = snapshot.places[placeId];
     if (!placeState) {
       throw new Error(
         `Place with ID ${placeId} not found in simulation frame.`,
@@ -51,20 +63,22 @@ function addTokensToSimulationFrame(
   // Calculate total size increase needed in buffer
   let totalSizeIncrease = 0;
   for (const [placeId, tokens] of tokensToAdd) {
-    const placeState = frame.places[placeId]!;
+    const placeState = snapshot.places[placeId]!;
     const tokenSize = placeState.dimensions;
     totalSizeIncrease += tokens.length * tokenSize;
   }
 
   // Create a new buffer with increased size
-  const newBuffer = new Float64Array(frame.buffer.length + totalSizeIncrease);
+  const newBuffer = new Float64Array(
+    snapshot.buffer.length + totalSizeIncrease,
+  );
 
   // Process places in order of their offsets to build the new buffer
-  const placesByOffset = Object.entries(frame.places).sort(
+  const placesByOffset = Object.entries(snapshot.places).sort(
     (a, b) => a[1].offset - b[1].offset,
   );
 
-  const newPlaces: EngineFrame["places"] = { ...frame.places };
+  const newPlaces: EngineFrameSnapshot["places"] = { ...snapshot.places };
   let sourceIndex = 0;
   let targetIndex = 0;
 
@@ -75,7 +89,7 @@ function addTokensToSimulationFrame(
 
     // Copy existing tokens from this place
     for (let i = 0; i < placeSize; i++) {
-      newBuffer[targetIndex++] = frame.buffer[sourceIndex++]!;
+      newBuffer[targetIndex++] = snapshot.buffer[sourceIndex++]!;
     }
 
     // Add new tokens for this place if any
@@ -110,11 +124,11 @@ function addTokensToSimulationFrame(
     currentOffset += placeSize;
   }
 
-  return {
-    ...frame,
+  return createEngineFrame(layout, {
+    ...snapshot,
     buffer: newBuffer,
     places: newPlaces,
-  };
+  });
 }
 
 /**
@@ -164,7 +178,7 @@ export function executeTransitions(
   let currentRngState = rngState;
 
   // Iterate through all transitions in the frame
-  for (const transitionId of Object.keys(currentFrame.transitions)) {
+  for (const transitionId of simulation.frameLayout.transitionIds) {
     // Compute if this transition can fire based on the current state
     const result = computePossibleTransition(
       currentFrame,
@@ -188,6 +202,7 @@ export function executeTransitions(
       currentFrame = removeTokensFromSimulationFrame(
         currentFrame,
         tokensToRemove,
+        simulation.frameLayout,
       );
 
       // Accumulate tokens to add
@@ -207,14 +222,22 @@ export function executeTransitions(
   }
 
   // Add all new tokens at once
-  const newFrame = addTokensToSimulationFrame(currentFrame, tokensToAdd);
+  const newFrame = addTokensToSimulationFrame(
+    currentFrame,
+    tokensToAdd,
+    simulation.frameLayout,
+  );
+  const newFrameSnapshot = materializeEngineFrame(
+    simulation.frameLayout,
+    newFrame,
+  );
 
   // Update transition timeSinceLastFiringMs, firedInThisFrame, and firingCount
-  const newTransitions: EngineFrame["transitions"] = {
-    ...newFrame.transitions,
+  const newTransitions: EngineFrameSnapshot["transitions"] = {
+    ...newFrameSnapshot.transitions,
   };
   for (const [transitionId, transitionState] of Object.entries(
-    newFrame.transitions,
+    newFrameSnapshot.transitions,
   )) {
     if (transitionsFired.has(transitionId)) {
       // Reset time since last firing and increment firing count for transitions that fired
@@ -235,10 +258,10 @@ export function executeTransitions(
   }
 
   return {
-    frame: {
-      ...newFrame,
+    frame: createEngineFrame(simulation.frameLayout, {
+      ...newFrameSnapshot,
       transitions: newTransitions,
-    },
+    }),
     rngState: currentRngState,
     transitionFired: true,
   };

@@ -18,19 +18,3 @@ export type {
 } from "./api";
 export { createSimulation } from "./runtime/simulation";
 export { createWorkerTransport } from "./runtime/transport";
-export {
-  createMonteCarloSimulator,
-  type MonteCarloAggregateSeries,
-  type MonteCarloDistributionBucket,
-  type MonteCarloDistributionConfig,
-  type MonteCarloDistributionSummary,
-  type MonteCarloFrameSeries,
-  type MonteCarloFrameView,
-  type MonteCarloMetricContext,
-  type MonteCarloMetricDefinition,
-  type MonteCarloMetricSeries,
-  type MonteCarloRunStopReason,
-  type MonteCarloSimulationResult,
-  type MonteCarloSimulator,
-  type MonteCarloSimulatorConfig,
-} from "./monte-carlo";

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation } from "./build-simulation";
 import type { SimulationInput } from "./types";
 
@@ -54,14 +55,18 @@ describe("buildSimulation", () => {
     };
 
     const simulationInstance = buildSimulation(input);
-    const frame = simulationInstance.frames[0]!;
+    const engineFrame = simulationInstance.frames[0]!;
+    const frame = materializeEngineFrame(
+      simulationInstance.frameLayout,
+      engineFrame,
+    );
 
     // Verify simulation instance properties
     expect(simulationInstance.dt).toBe(0.1);
     expect(simulationInstance.rngState).toBe(42);
     expect(simulationInstance.currentFrameNumber).toBe(0);
     expect(simulationInstance.frames).toHaveLength(1);
-    expect(simulationInstance.frames[0]).toBe(frame);
+    expect(simulationInstance.frames[0]).toBe(engineFrame);
 
     // Verify initial frame properties
     expect(simulationInstance.currentTime).toBe(0);
@@ -190,7 +195,10 @@ describe("buildSimulation", () => {
     };
 
     const simulationInstance = buildSimulation(input);
-    const frame = simulationInstance.frames[0]!;
+    const frame = materializeEngineFrame(
+      simulationInstance.frameLayout,
+      simulationInstance.frames[0]!,
+    );
 
     // Verify simulation instance properties
     expect(simulationInstance.dt).toBe(0.05);

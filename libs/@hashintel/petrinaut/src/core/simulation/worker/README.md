@@ -32,6 +32,11 @@ computation.
 | `paused`   | `{ frameNumber }`                                  | Worker has paused       |
 | `error`    | `{ message, itemId: string \| null }`              | Error occurred          |
 
+`SimulationFramePayload.frame` is a binary `ArrayBuffer`. Host code should not
+read it directly; `runtime/frame-store.ts` specializes a `SimulationFrameReader`
+from the SDCPN snapshot and exposes that reader through the public simulation
+API.
+
 ## Backpressure
 
 The worker blocks computation until it receives an `ack` message, then computes

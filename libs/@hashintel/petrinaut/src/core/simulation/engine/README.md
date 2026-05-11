@@ -41,16 +41,18 @@ simulation time; `EngineFrame` only stores the state needed to advance the
 simulation. Public callers should read frames through `SimulationFrameReader`.
 
 ```typescript
-type EngineFrame = {
-  places: Record<string, { offset, count, dimensions }>;
-  transitions: Record<string, { timeSinceLastFiringMs, firedInThisFrame, firingCount }>;
-  buffer: Float64Array;  // Token values storage
-};
+type EngineFrame = ArrayBuffer;
 ```
+
+The frame does not contain place or transition IDs. `SimulationInstance` owns an
+`EngineFrameLayout` derived from the SDCPN and passes it to internal readers and
+writers.
 
 ## Token Value Storage
 
-Token values are stored in a flat `Float64Array` buffer for performance.
+Token values are stored in a packed `Float64Array` section inside the frame
+buffer. Place counts and value offsets are stored in separate `Uint32Array`
+sections, so a place can be accessed in O(1) when the SDCPN layout is known.
 
 ```text
 Place p1: offset=0, count=2, dimensions=3
@@ -63,6 +65,7 @@ buffer: [v1.x, v1.y, v1.z, v2.x, v2.y, v2.z, v3.a, v3.b]
 Access:
 
 ```typescript
-const startIdx = place.offset + tokenIdx * place.dimensions;
-const values = buffer.slice(startIdx, startIdx + place.dimensions);
+const frameView = readEngineFrame(simulation.frameLayout, frame);
+const place = frameView.getPlaceState("p1");
+const values = frameView.getPlaceTokenValues("p1");
 ```

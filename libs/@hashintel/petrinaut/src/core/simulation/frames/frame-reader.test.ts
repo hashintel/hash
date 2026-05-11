@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { Color, Place } from "../../types/sdcpn";
-import { createSimulationFrameReader } from "./frame-reader";
-import type { EngineFrame } from "./internal-frame";
+import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
+import { compileSimulationFrameReader } from "./frame-reader";
+import {
+  createEngineFrame,
+  createEngineFrameLayout,
+  type EngineFrame,
+} from "./internal-frame";
 
 const color: Color = {
   id: "color-1",
@@ -25,8 +29,26 @@ const place: Place = {
   y: 0,
 };
 
+const transition: Transition = {
+  id: "transition-1",
+  name: "Transition 1",
+  inputArcs: [],
+  outputArcs: [],
+  lambdaType: "stochastic",
+  lambdaCode: "return 0;",
+  transitionKernelCode: "return {};",
+  x: 0,
+  y: 0,
+};
+
+const sdcpn: Pick<SDCPN, "places" | "transitions" | "types"> = {
+  places: [place],
+  transitions: [transition],
+  types: [color],
+};
+
 function makeFrame(): EngineFrame {
-  return {
+  return createEngineFrame(createEngineFrameLayout(sdcpn), {
     places: {
       [place.id]: { offset: 2, count: 2, dimensions: 2 },
     },
@@ -38,12 +60,12 @@ function makeFrame(): EngineFrame {
       },
     },
     buffer: new Float64Array([99, 99, 1, 2, 3, 4]),
-  };
+  });
 }
 
 describe("SimulationFrameReader", () => {
   it("reads place and transition state without exposing raw frame layout", () => {
-    const reader = createSimulationFrameReader(makeFrame(), 7);
+    const reader = compileSimulationFrameReader(sdcpn)(makeFrame(), 7);
 
     expect(reader.number).toBe(7);
     expect(reader.getPlaceTokenCount(place.id)).toBe(2);
@@ -75,7 +97,7 @@ describe("SimulationFrameReader", () => {
   });
 
   it("returns a copied token value buffer", () => {
-    const reader = createSimulationFrameReader(makeFrame(), 7);
+    const reader = compileSimulationFrameReader(sdcpn)(makeFrame(), 7);
     const values = reader.getPlaceTokenValues(place.id);
 
     expect(values).not.toBeNull();

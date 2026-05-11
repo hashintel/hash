@@ -21,7 +21,6 @@ initialization, later document mutations do not affect the active simulation.
 - `authoring/user-code/`: engine user-code compilation helpers.
 - `authoring/sandbox.ts`: shared same-realm hardening helpers.
 - `engine/`: internal SDCPN build/step execution engine.
-- `monte-carlo/`: first aggregate-only Monte Carlo simulator implementation.
 - `worker/`: worker protocol and runtime entrypoint.
 
 ## Simulation State
@@ -118,24 +117,6 @@ number, while colored places use one record per token:
 - `simulation.setBackpressure(config)`: update worker frame-ahead and batch
   settings.
 - `simulation.dispose()`: stop and terminate the underlying transport.
-
-## Monte Carlo Simulator
-
-`createMonteCarloSimulator(config)` is a separate, synchronous simulator for
-aggregate Monte Carlo runs. It does not use the worker playback protocol and
-does not retain every concrete frame. Each concrete simulation is run with a
-derived seed, only its latest frame is kept while stepping, and aggregate output
-is accumulated into typed arrays.
-
-Current aggregate outputs:
-
-- per-frame average/min/max token counts per place;
-- per-frame average/min/max metric hook values;
-- optional overall metric distributions.
-
-This is intentionally a first implementation. It reuses the existing engine for
-stepping, while establishing the lower-memory result shape described in
-`rfc/0002-simulation-engine-v2/MonteCarloSimulator.md`.
 
 ## Usage
 

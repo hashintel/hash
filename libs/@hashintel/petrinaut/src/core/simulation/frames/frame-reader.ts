@@ -1,52 +1,38 @@
+import type { SDCPN } from "../../types/sdcpn";
 import type {
   SimulationFrameReader,
   SimulationFrameState,
   SimulationPlaceTokenValues,
 } from "../api";
-import type { EngineFramePlaceState } from "./internal-frame";
-import type { SimulationTransitionState } from "./transition-state";
+import {
+  createEngineFrameLayout,
+  readEngineFrame,
+  type EngineFrame,
+  type EngineFrameLayout,
+} from "./internal-frame";
 
-type SimulationFrameReaderData = {
-  places: Record<string, EngineFramePlaceState>;
-  transitions: Record<string, SimulationTransitionState>;
-  buffer: Float64Array;
-};
-
-export function createSimulationFrameReader(
-  frame: SimulationFrameReaderData,
+function createSimulationFrameReader(
+  layout: EngineFrameLayout,
+  frame: EngineFrame,
   number: number,
 ): SimulationFrameReader {
+  const frameView = readEngineFrame(layout, frame);
+
   const getPlaceTokenCount = (placeId: string): number =>
-    frame.places[placeId]?.count ?? 0;
+    frameView.getPlaceState(placeId)?.count ?? 0;
 
   const getPlaceTokenValues = (
     placeId: string,
   ): SimulationPlaceTokenValues | null => {
-    const placeState = frame.places[placeId];
+    const placeState = frameView.getPlaceState(placeId);
     if (!placeState) {
       return null;
     }
 
-    const { offset, count, dimensions } = placeState;
-    const size = count * dimensions;
+    const tokenValues = frameView.getPlaceTokenValues(placeId)!;
     return {
-      values: frame.buffer.slice(offset, offset + size),
-      count,
-    };
-  };
-
-  const getTransitionState = (
-    transitionId: string,
-  ): SimulationTransitionState | null => {
-    const transitionState = frame.transitions[transitionId];
-    if (!transitionState) {
-      return null;
-    }
-
-    return {
-      timeSinceLastFiringMs: transitionState.timeSinceLastFiringMs,
-      firedInThisFrame: transitionState.firedInThisFrame,
-      firingCount: transitionState.firingCount,
+      values: tokenValues.slice(),
+      count: placeState.count,
     };
   };
 
@@ -55,7 +41,7 @@ export function createSimulationFrameReader(
     getPlaceTokenCount,
     getPlaceTokenValues,
     getPlaceTokens(place, color) {
-      const placeState = frame.places[place.id];
+      const placeState = frameView.getPlaceState(place.id);
       if (!placeState) {
         return [];
       }
@@ -76,17 +62,18 @@ export function createSimulationFrameReader(
           dimensionIndex++
         ) {
           token[elements[dimensionIndex]!.name] =
-            frame.buffer[base + dimensionIndex] ?? 0;
+            frameView.tokenValues[base + dimensionIndex] ?? 0;
         }
         tokens.push(token);
       }
 
       return tokens;
     },
-    getTransitionState,
+    getTransitionState: (transitionId) =>
+      frameView.getTransitionState(transitionId),
     toFrameState() {
       const places: SimulationFrameState["places"] = {};
-      for (const [placeId, placeData] of Object.entries(frame.places)) {
+      for (const [placeId, placeData] of frameView.getPlaceEntries()) {
         places[placeId] = { tokenCount: placeData.count };
       }
 
@@ -96,4 +83,12 @@ export function createSimulationFrameReader(
       };
     },
   };
+}
+
+export function compileSimulationFrameReader(
+  sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,
+): (frame: EngineFrame, number: number) => SimulationFrameReader {
+  const layout = createEngineFrameLayout(sdcpn);
+
+  return (frame, number) => createSimulationFrameReader(layout, frame, number);
 }

@@ -8,11 +8,11 @@ The simulation module is split into five boundaries:
   compile user-authored inputs. Shared same-realm hardening helpers live in
   `authoring/sandbox.ts`.
 - `engine/` builds SDCPN definitions into runnable state and advances internal
-  `EngineFrame` state. This code may use mutable/compact structures optimized
-  for stepping.
+  `EngineFrame` state. `EngineFrame` is an `ArrayBuffer`; the
+  SDCPN-specialized `EngineFrameLayout` lives on the `SimulationInstance`.
 - `worker/` owns the transport protocol between the engine worker and runtime.
-  Worker messages use protocol payloads such as `SimulationFramePayload`, not
-  engine types directly.
+  Worker frame payloads carry binary frame buffers plus orchestration metadata
+  such as time.
 - `runtime/` owns lifecycle and retention. It stores protocol payloads through a
   `SimulationFrameStore` and returns `SimulationFrameReader` instances.
 
@@ -27,10 +27,20 @@ SDCPN snapshot
   -> SimulationFrameReader
 ```
 
-`EngineFrame` is not a public API or stable storage format. It currently uses
-records keyed by IDs and a shared `Float64Array` for token values. Simulation
-time is owned by the run controller and kept outside `EngineFrame` and
-`SimulationFrameReader`. Future binary work should happen behind the worker
+`EngineFrame` is not a public API or stable storage format. It is currently a
+binary `ArrayBuffer` with typed sections for place token counts, place value
+offsets, transition timers/counts/flags, and packed token values. It can only be
+read with the matching SDCPN-derived layout.
+
+The public frame path is:
+
+```ts
+const createReader = compileSimulationFrameReader(sdcpn);
+const reader = createReader(engineFrame, frameNumber);
+```
+
+Simulation time is owned by the run controller and kept outside `EngineFrame`
+and `SimulationFrameReader`. Future storage work should happen behind the worker
 payload and frame-store boundaries so UI and React consumers keep using the same
 reader interface.
 

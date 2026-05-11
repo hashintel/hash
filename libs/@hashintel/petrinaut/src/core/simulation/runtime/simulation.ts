@@ -79,23 +79,23 @@ export function createSimulation(
     latest: null,
   });
   const events = createEventStream<SimulationEvent>();
-  const frameStore = createInMemorySimulationFrameStore();
   let disposed = false;
 
-  function pushFrames(newFrames: SimulationFramePayload[]): void {
-    if (newFrames.length === 0) {
-      return;
-    }
-    frameStore.appendBatch(newFrames);
-    frameSummary.set({
-      count: frameStore.count(),
-      latest: frameStore.latest(),
-    });
-  }
-
   return new Promise<Simulation>((resolve, reject) => {
+    const frameStore = createInMemorySimulationFrameStore(config.sdcpn);
     let settled = false;
     let handle: Simulation;
+
+    function pushFrames(newFrames: SimulationFramePayload[]): void {
+      if (newFrames.length === 0) {
+        return;
+      }
+      frameStore.appendBatch(newFrames);
+      frameSummary.set({
+        count: frameStore.count(),
+        latest: frameStore.latest(),
+      });
+    }
 
     const off = transport.onMessage((rawMessage) => {
       const message = rawMessage as ToMainMessage;

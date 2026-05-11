@@ -8,7 +8,7 @@
 import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
 import type { InitialMarking } from "../api";
-import type { EngineFrame } from "../frames/internal-frame";
+import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
 
 /**
  * Runtime parameter values used during simulation execution.
@@ -88,6 +88,8 @@ export type SimulationInstance = {
   currentTime: number;
   /** Current state of the seeded random number generator */
   rngState: number;
+  /** SDCPN-specialized binary frame layout for this simulation run. */
+  frameLayout: EngineFrameLayout;
   /** History of all computed frames */
   frames: EngineFrame[];
   /** Index of the current frame in the frames array */
@@ -97,5 +99,7 @@ export type SimulationInstance = {
 // Re-export frame types for convenient access within simulator internals.
 export type {
   EngineFrame,
+  EngineFrameLayout,
   EngineFramePlaceState,
+  EngineFrameSnapshot,
 } from "../frames/internal-frame";

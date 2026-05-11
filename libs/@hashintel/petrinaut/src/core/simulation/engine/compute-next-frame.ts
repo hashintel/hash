@@ -1,6 +1,10 @@
 import { checkTransitionEnablement } from "./check-transition-enablement";
 import { computePlaceNextState } from "./compute-place-next-state";
 import { executeTransitions } from "./execute-transitions";
+import {
+  createEngineFrame,
+  materializeEngineFrame,
+} from "../frames/internal-frame";
 import type { SimulationInstance } from "./types";
 
 /**
@@ -59,15 +63,22 @@ export function computeNextFrame(
     };
   }
 
+  const currentSnapshot = materializeEngineFrame(
+    simulation.frameLayout,
+    currentFrame,
+  );
+
   // Step 1: Apply differential equations to places with dynamics enabled
   let frameAfterDynamics = currentFrame;
 
   // Only apply dynamics if there are places with differential equations
   if (simulation.differentialEquationFns.size > 0) {
-    const newBuffer = new Float64Array(currentFrame.buffer);
+    const newBuffer = new Float64Array(currentSnapshot.buffer);
 
     // Apply differential equations to each place that has dynamics enabled
-    for (const [placeId, placeState] of Object.entries(currentFrame.places)) {
+    for (const [placeId, placeState] of Object.entries(
+      currentSnapshot.places,
+    )) {
       // Get the place instance from the simulation
       const place = simulation.places.get(placeId);
       if (!place) {
@@ -95,7 +106,10 @@ export function computeNextFrame(
       const placeSize = count * dimensions;
 
       // Extract the current state for this place from the buffer
-      const placeBuffer = currentFrame.buffer.slice(offset, offset + placeSize);
+      const placeBuffer = currentSnapshot.buffer.slice(
+        offset,
+        offset + placeSize,
+      );
 
       // Get the type definition to access dimension names
       const typeId = place.colorId;
@@ -176,10 +190,10 @@ export function computeNextFrame(
     }
 
     // Create frame with updated buffer after applying dynamics
-    frameAfterDynamics = {
-      ...currentFrame,
+    frameAfterDynamics = createEngineFrame(simulation.frameLayout, {
+      ...currentSnapshot,
       buffer: newBuffer,
-    };
+    });
   }
 
   // Step 2: Execute all transitions on the frame with updated dynamics
@@ -194,24 +208,29 @@ export function computeNextFrame(
   const nextTime = simulation.currentTime + simulation.dt;
 
   // Step 3: Ensure transition timers advance when no transition fired.
-  const finalFrame = transitionFired
-    ? frameAfterTransitions
-    : {
-        ...frameAfterTransitions,
-        transitions: Object.fromEntries(
-          Object.entries(frameAfterTransitions.transitions).map(
-            ([id, state]) => [
-              id,
-              {
-                ...state,
-                timeSinceLastFiringMs:
-                  state.timeSinceLastFiringMs + simulation.dt,
-                firedInThisFrame: false,
-              },
-            ],
-          ),
+  let finalFrame = frameAfterTransitions;
+  if (!transitionFired) {
+    const frameAfterTransitionsSnapshot = materializeEngineFrame(
+      simulation.frameLayout,
+      frameAfterTransitions,
+    );
+    finalFrame = createEngineFrame(simulation.frameLayout, {
+      ...frameAfterTransitionsSnapshot,
+      transitions: Object.fromEntries(
+        Object.entries(frameAfterTransitionsSnapshot.transitions).map(
+          ([id, state]) => [
+            id,
+            {
+              ...state,
+              timeSinceLastFiringMs:
+                state.timeSinceLastFiringMs + simulation.dt,
+              firedInThisFrame: false,
+            },
+          ],
         ),
-      };
+      ),
+    });
+  }
 
   // Step 4: Build updated simulation instance with new frame added
   const updatedSimulation: SimulationInstance = {
@@ -234,6 +253,7 @@ export function computeNextFrame(
     const enablementResult = checkTransitionEnablement(
       finalFrame,
       simulation.transitions,
+      simulation.frameLayout,
     );
     if (!enablementResult.hasEnabledTransition) {
       completionReason = "deadlock";

@@ -4,9 +4,13 @@ import {
   mergeParameterValues,
 } from "../../parameter-values";
 import { compileUserCode } from "../authoring/user-code/compile-user-code";
+import {
+  createEngineFrame,
+  createEngineFrameLayout,
+  type EngineFrameSnapshot,
+} from "../frames/internal-frame";
 import type {
   DifferentialEquationFn,
-  EngineFrame,
   LambdaFn,
   ParameterValues,
   SimulationInput,
@@ -253,20 +257,14 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Calculate buffer size and build place states
   let bufferSize = 0;
-  const placeStates: EngineFrame["places"] = {};
+  const frameLayout = createEngineFrameLayout(sdcpn);
+  const placeStates: EngineFrameSnapshot["places"] = {};
 
-  // Process places in a consistent order (sorted by ID)
-  const sortedPlaceIds = Array.from(placesMap.keys()).sort();
-
-  for (const placeId of sortedPlaceIds) {
+  for (const placeId of frameLayout.placeIds) {
     const place = placesMap.get(placeId)!;
     const marking = packedInitialMarking.get(placeId);
     const count = marking?.count ?? 0;
     const dimensions = getPlaceDimensions(place, sdcpn);
-
-    if (placeId === "__proto__") {
-      throw new Error("Cannot add place with id '__proto__'");
-    }
 
     placeStates[placeId] = {
       offset: bufferSize,
@@ -281,7 +279,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   const buffer = new Float64Array(bufferSize);
   let bufferIndex = 0;
 
-  for (const placeId of sortedPlaceIds) {
+  for (const placeId of frameLayout.placeIds) {
     const marking = packedInitialMarking.get(placeId);
     if (marking && marking.count > 0) {
       for (let i = 0; i < marking.values.length; i++) {
@@ -291,12 +289,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   }
 
   // Initialize transition states
-  const transitionStates: EngineFrame["transitions"] = {};
+  const transitionStates: EngineFrameSnapshot["transitions"] = {};
   for (const transition of sdcpn.transitions) {
-    if (transition.id === "__proto__") {
-      throw new Error("Cannot add transition with id '__proto__'");
-    }
-
     transitionStates[transition.id] = {
       timeSinceLastFiringMs: 0,
       firedInThisFrame: false,
@@ -317,16 +311,17 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     maxTime,
     currentTime: 0,
     rngState: seed,
+    frameLayout,
     frames: [], // Will be populated with the initial frame
     currentFrameNumber: 0,
   };
 
   // Create the initial frame
-  const initialFrame: EngineFrame = {
+  const initialFrame = createEngineFrame(frameLayout, {
     places: placeStates,
     transitions: transitionStates,
     buffer,
-  };
+  });
 
   // Add the initial frame to the simulation instance
   simulationInstance.frames.push(initialFrame);

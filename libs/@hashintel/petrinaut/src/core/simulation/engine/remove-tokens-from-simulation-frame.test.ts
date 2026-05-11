@@ -1,15 +1,84 @@
 import { describe, expect, it } from "vitest";
 
-import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
+import type { Color, Place } from "../../types/sdcpn";
+import {
+  createEngineFrame,
+  createEngineFrameLayout,
+  materializeEngineFrame,
+  type EngineFrameLayout,
+  type EngineFrameSnapshot,
+} from "../frames/internal-frame";
+import { removeTokensFromSimulationFrame as removeTokensFromEngineFrame } from "./remove-tokens-from-simulation-frame";
 import type { EngineFrame } from "./types";
+
+type TestFrame = EngineFrame & { layout: EngineFrameLayout };
+
+function makeColor(dimensions: number): Color {
+  return {
+    id: `type-${dimensions}`,
+    name: `Type ${dimensions}`,
+    iconSlug: "circle",
+    displayColor: "#000000",
+    elements: Array.from({ length: dimensions }, (_, index) => ({
+      elementId: `d${index}`,
+      name: `d${index}`,
+      type: "real",
+    })),
+  };
+}
+
+function makePlace(id: string, dimensions: number): Place {
+  return {
+    id,
+    name: id,
+    colorId: dimensions === 0 ? null : `type-${dimensions}`,
+    dynamicsEnabled: false,
+    differentialEquationId: null,
+    x: 0,
+    y: 0,
+  };
+}
+
+function makeFrame(snapshot: EngineFrameSnapshot): TestFrame {
+  const dimensions = new Set(
+    Object.values(snapshot.places).map((place) => place.dimensions),
+  );
+  const layout = createEngineFrameLayout({
+    places: Object.entries(snapshot.places).map(([id, place]) =>
+      makePlace(id, place.dimensions),
+    ),
+    transitions: [],
+    types: [...dimensions]
+      .filter((dimension) => dimension > 0)
+      .map((dimension) => makeColor(dimension)),
+  });
+  const frame = createEngineFrame(layout, snapshot) as TestFrame;
+  Object.defineProperty(frame, "layout", { value: layout });
+  return frame;
+}
+
+function removeTokensFromSimulationFrame(
+  frame: TestFrame,
+  tokensToRemove: Map<string, Set<number> | number>,
+): EngineFrameSnapshot {
+  const result = removeTokensFromEngineFrame(
+    frame,
+    tokensToRemove,
+    frame.layout,
+  );
+  if (result === frame) {
+    return frame as unknown as EngineFrameSnapshot;
+  }
+  return materializeEngineFrame(frame.layout, result);
+}
 
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {},
       transitions: {},
       buffer: new Float64Array([]),
-    };
+    });
 
     expect(() => {
       removeTokensFromSimulationFrame(
@@ -20,7 +89,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when tokens map is empty", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -30,7 +99,7 @@ describe("removeTokensFromSimulationFrame", () => {
       },
       transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0]),
-    };
+    });
 
     const result = removeTokensFromSimulationFrame(frame, new Map());
 
@@ -38,7 +107,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("throws error when token index is out of bounds", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -48,7 +117,7 @@ describe("removeTokensFromSimulationFrame", () => {
       },
       transitions: {},
       buffer: new Float64Array([1.0, 2.0]),
-    };
+    });
 
     expect(() => {
       removeTokensFromSimulationFrame(frame, new Map([["p1", new Set([3])]]));
@@ -56,7 +125,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when place has empty set of indices", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -66,7 +135,7 @@ describe("removeTokensFromSimulationFrame", () => {
       },
       transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0]),
-    };
+    });
 
     const result = removeTokensFromSimulationFrame(
       frame,
@@ -78,7 +147,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes a single token from a place with 1D tokens", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -88,7 +157,7 @@ describe("removeTokensFromSimulationFrame", () => {
       },
       transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0]),
-    };
+    });
 
     const result = removeTokensFromSimulationFrame(
       frame,
@@ -101,7 +170,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes multiple tokens from a place with 1D tokens", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -111,7 +180,7 @@ describe("removeTokensFromSimulationFrame", () => {
       },
       transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0]),
-    };
+    });
 
     const result = removeTokensFromSimulationFrame(
       frame,
@@ -124,7 +193,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes tokens from a place with multi-dimensional tokens", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -135,7 +204,7 @@ describe("removeTokensFromSimulationFrame", () => {
       transitions: {},
       // 3 tokens with 3 dimensions each: [1,2,3], [4,5,6], [7,8,9]
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
-    };
+    });
 
     // Remove token at index 1 (middle token: [4,5,6])
     const result = removeTokensFromSimulationFrame(
@@ -151,7 +220,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("adjusts offsets for subsequent places after removal", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -167,7 +236,7 @@ describe("removeTokensFromSimulationFrame", () => {
       transitions: {},
       // p1: [1,2], [3,4]  |  p2: [5], [6], [7]
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
-    };
+    });
 
     // Remove one token from p1
     const result = removeTokensFromSimulationFrame(
@@ -185,7 +254,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes all tokens from a place", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -200,7 +269,7 @@ describe("removeTokensFromSimulationFrame", () => {
       },
       transitions: {},
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0]),
-    };
+    });
 
     const result = removeTokensFromSimulationFrame(
       frame,
@@ -215,7 +284,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("handles removal from middle place with three places", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -236,7 +305,7 @@ describe("removeTokensFromSimulationFrame", () => {
       transitions: {},
       // p1: [1, 2] | p2: [3, 4, 5] | p3: [6, 7]
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]),
-    };
+    });
 
     // Remove one token from p2 (middle place)
     const result = removeTokensFromSimulationFrame(
@@ -258,7 +327,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("removes tokens from multiple places simultaneously", () => {
-    const frame: EngineFrame = {
+    const frame = makeFrame({
       places: {
         p1: {
           offset: 0,
@@ -279,7 +348,7 @@ describe("removeTokensFromSimulationFrame", () => {
       transitions: {},
       // p1: [1], [2], [3] | p2: [4,5], [6,7] | p3: [8], [9]
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
-    };
+    });
 
     // Remove tokens from multiple places: token 1 from p1, token 0 from p2, token 1 from p3
     const result = removeTokensFromSimulationFrame(

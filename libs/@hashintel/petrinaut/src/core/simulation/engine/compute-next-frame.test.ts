@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SDCPN } from "../../types/sdcpn";
+import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
 
@@ -79,7 +80,10 @@ describe("computeNextFrame", () => {
     expect(result.transitionFired).toBe(false);
 
     // The run controller should advance time by dt.
-    const nextFrame = result.simulation.frames[1]!;
+    const nextFrame = materializeEngineFrame(
+      result.simulation.frameLayout,
+      result.simulation.frames[1]!,
+    );
     expect(result.simulation.currentTime).toBe(0.1);
 
     // The buffer should reflect dynamics (values should have increased by derivative * dt)
@@ -178,7 +182,10 @@ describe("computeNextFrame", () => {
     const result = computeNextFrame(simulation);
 
     // THEN the buffer should be unchanged (no dynamics applied)
-    const nextFrame = result.simulation.frames[1]!;
+    const nextFrame = materializeEngineFrame(
+      result.simulation.frameLayout,
+      result.simulation.frames[1]!,
+    );
     expect(nextFrame.buffer[0]).toBe(10.0);
     expect(result.transitionFired).toBe(false);
   });
