@@ -186,15 +186,16 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
         </Dialog.Card>
         <Dialog.Footer>
           <Button
-            variant="secondary"
-            colorScheme="neutral"
+            variant="subtle"
+            tone="neutral"
             size="md"
             onClick={() => onOpenChange({ open: false })}
           >
             Cancel
           </Button>
           <Button
-            colorScheme="neutral"
+            variant="solid"
+            tone="neutral"
             size="md"
             onClick={() => onOpenChange({ open: false })}
           >

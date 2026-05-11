@@ -34,16 +34,12 @@ export const ImportErrorDialog = ({
       </Dialog.Card>
       <Dialog.Footer>
         <Dialog.CloseTrigger asChild>
-          <Button variant="secondary" colorScheme="neutral">
+          <Button variant="subtle" tone="neutral" onClick={() => {}}>
             Close
           </Button>
         </Dialog.CloseTrigger>
         <Dialog.CloseTrigger asChild>
-          <Button
-            variant="primary"
-            colorScheme="neutral"
-            onClick={onCreateEmpty}
-          >
+          <Button variant="solid" tone="neutral" onClick={onCreateEmpty}>
             Create empty net
           </Button>
         </Dialog.CloseTrigger>
