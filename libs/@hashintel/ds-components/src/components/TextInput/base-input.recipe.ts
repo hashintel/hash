@@ -11,6 +11,7 @@ export const baseInputRecipe = sva({
     "adornment",
     "adornmentButton",
     "adornmentText",
+    "adornmentInteractive",
     "disabledButton",
     "loading",
     "clear",
@@ -99,6 +100,15 @@ export const baseInputRecipe = sva({
         background: "neutral.s25",
       },
       _focus: { outline: "none" },
+    },
+    adornmentInteractive: {
+      transition:
+        "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
+      _focusWithin: {
+        outline: "[1px solid var(--colors-neutral-s80)]",
+        outlineOffset: "0",
+        background: "neutral.s25",
+      },
     },
     disabledButton: {
       cursor: "auto",

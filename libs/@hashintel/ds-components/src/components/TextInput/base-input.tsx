@@ -116,7 +116,14 @@ function renderAdornment(
   }
   return (
     <span
-      className={cx(classes[type], classes.adornment, classes.adornmentText)}
+      className={cx(
+        classes[type],
+        classes.adornment,
+        classes.adornmentText,
+        "content" in adornment &&
+          adornment.type === "interactive" &&
+          classes.adornmentInteractive,
+      )}
       data-part="adornment-text"
     >
       {content}
