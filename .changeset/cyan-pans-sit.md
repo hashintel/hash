@@ -2,4 +2,4 @@
 "@hashintel/ds-components": patch
 ---
 
-New Button component added to DS
+New Button component added to design system
