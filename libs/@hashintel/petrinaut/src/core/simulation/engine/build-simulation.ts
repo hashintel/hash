@@ -315,6 +315,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     parameterValues,
     dt,
     maxTime,
+    currentTime: 0,
     rngState: seed,
     frames: [], // Will be populated with the initial frame
     currentFrameNumber: 0,
@@ -322,7 +323,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Create the initial frame
   const initialFrame: EngineFrame = {
-    time: 0,
     places: placeStates,
     transitions: transitionStates,
     buffer,

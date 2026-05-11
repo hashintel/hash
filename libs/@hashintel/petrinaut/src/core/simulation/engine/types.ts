@@ -84,6 +84,8 @@ export type SimulationInstance = {
   dt: number;
   /** Maximum simulation time (immutable). Null means no limit. */
   maxTime: number | null;
+  /** Simulation time for the current frame, owned by the run controller. */
+  currentTime: number;
   /** Current state of the seeded random number generator */
   rngState: number;
   /** History of all computed frames */

@@ -85,6 +85,7 @@ function makeSimulation({
     parameterValues: {},
     dt: 0.1,
     maxTime: null,
+    currentTime: 0,
     rngState: 42,
     frames: [],
     currentFrameNumber: 0,
@@ -106,7 +107,6 @@ describe("executeTransitions", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 0, dimensions: 1 },
       },
@@ -148,7 +148,6 @@ describe("executeTransitions", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 2, dimensions: 1 },
         p2: { offset: 2, count: 0, dimensions: 1 },
@@ -170,7 +169,6 @@ describe("executeTransitions", () => {
     expect(result.frame.buffer[0]).toBe(1.5);
     expect(result.frame.places.p2?.count).toBe(1);
     expect(result.frame.buffer[1]).toBe(2.0);
-    expect(result.frame.time).toBe(0.1);
     expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
     expect(result.transitionFired).toBe(true);
   });
@@ -210,7 +208,6 @@ describe("executeTransitions", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 3, dimensions: 1 },
         p2: { offset: 3, count: 0, dimensions: 1 },
@@ -258,7 +255,6 @@ describe("executeTransitions", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 1, dimensions: 2 },
         p2: { offset: 2, count: 0, dimensions: 2 },
@@ -316,7 +312,6 @@ describe("executeTransitions", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 2, dimensions: 1 },
         p2: { offset: 2, count: 0, dimensions: 1 },

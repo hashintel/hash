@@ -238,7 +238,6 @@ export function executeTransitions(
     frame: {
       ...newFrame,
       transitions: newTransitions,
-      time: frame.time + dt,
     },
     rngState: currentRngState,
     transitionFired: true,

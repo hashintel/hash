@@ -78,9 +78,9 @@ describe("computeNextFrame", () => {
     // No transition should have fired (low probability)
     expect(result.transitionFired).toBe(false);
 
-    // The new frame should have time = dt
+    // The run controller should advance time by dt.
     const nextFrame = result.simulation.frames[1]!;
-    expect(nextFrame.time).toBe(0.1);
+    expect(result.simulation.currentTime).toBe(0.1);
 
     // The buffer should reflect dynamics (values should have increased by derivative * dt)
     // Initial: [10, 20], derivative: [1, 1], dt: 0.1

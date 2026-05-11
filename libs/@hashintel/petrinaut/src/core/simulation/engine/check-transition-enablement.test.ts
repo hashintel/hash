@@ -51,7 +51,6 @@ function makeFrame({
   transitions: Transition[];
 }): EngineFrame {
   return {
-    time: 0,
     places,
     transitions: Object.fromEntries(
       transitions.map((transition) => [transition.id, transitionState]),

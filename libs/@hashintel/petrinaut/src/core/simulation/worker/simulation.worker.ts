@@ -12,7 +12,10 @@ import { SDCPNItemError } from "../../errors";
 import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";
 import type { SimulationInstance } from "../engine/types";
-import { framePayloadFromEngineFrame } from "./frame-payload";
+import {
+  framePayloadFromEngineFrame,
+  type SimulationFramePayload,
+} from "./frame-payload";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 //
@@ -82,7 +85,7 @@ async function computeLoop(): Promise<void> {
     }
 
     // Compute a batch of frames
-    const framesToSend: typeof simulation.frames = [];
+    const framesToSend: SimulationFramePayload[] = [];
 
     for (let i = 0; i < batchSize; i++) {
       try {
@@ -91,7 +94,9 @@ async function computeLoop(): Promise<void> {
 
         simulation = updatedSimulation;
         const newFrame = simulation.frames[simulation.currentFrameNumber]!;
-        framesToSend.push(newFrame);
+        framesToSend.push(
+          framePayloadFromEngineFrame(newFrame, simulation.currentTime),
+        );
 
         // Check if simulation completed
         if (completionReason !== null) {
@@ -124,12 +129,12 @@ async function computeLoop(): Promise<void> {
       if (framesToSend.length === 1) {
         postTypedMessage({
           type: "frame",
-          frame: framePayloadFromEngineFrame(framesToSend[0]!),
+          frame: framesToSend[0]!,
         });
       } else {
         postTypedMessage({
           type: "frames",
-          frames: framesToSend.map(framePayloadFromEngineFrame),
+          frames: framesToSend,
         });
       }
     }
@@ -174,7 +179,10 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
         if (initialFrame) {
           postTypedMessage({
             type: "frame",
-            frame: framePayloadFromEngineFrame(initialFrame),
+            frame: framePayloadFromEngineFrame(
+              initialFrame,
+              simulation.currentTime,
+            ),
           });
         }
 

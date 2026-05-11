@@ -64,7 +64,7 @@ describe("buildSimulation", () => {
     expect(simulationInstance.frames[0]).toBe(frame);
 
     // Verify initial frame properties
-    expect(frame.time).toBe(0);
+    expect(simulationInstance.currentTime).toBe(0);
     expect(Object.keys(frame.places).length).toBe(1);
     expect(Object.keys(frame.transitions).length).toBe(0);
 

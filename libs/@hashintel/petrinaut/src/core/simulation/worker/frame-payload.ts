@@ -7,6 +7,7 @@ import type { EngineFrame } from "../frames/internal-frame";
  *
  * This is intentionally separate from `EngineFrame`: the current v1 payload is
  * structurally similar, but the worker protocol is the compatibility boundary.
+ * Time is attached by the run controller, not stored in `EngineFrame`.
  */
 export type SimulationFramePayloadPlaceState = {
   offset: number;
@@ -23,9 +24,10 @@ export type SimulationFramePayload = {
 
 export function framePayloadFromEngineFrame(
   frame: EngineFrame,
+  time: number,
 ): SimulationFramePayload {
   return {
-    time: frame.time,
+    time,
     places: frame.places,
     transitions: frame.transitions,
     buffer: frame.buffer,

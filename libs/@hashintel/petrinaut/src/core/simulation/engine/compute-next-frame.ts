@@ -48,7 +48,10 @@ export function computeNextFrame(
   const currentFrame = simulation.frames[simulation.currentFrameNumber]!;
 
   // Check if maxTime has been reached before computing
-  if (simulation.maxTime !== null && currentFrame.time >= simulation.maxTime) {
+  if (
+    simulation.maxTime !== null &&
+    simulation.currentTime >= simulation.maxTime
+  ) {
     return {
       simulation,
       transitionFired: false,
@@ -188,14 +191,13 @@ export function computeNextFrame(
   );
   const frameAfterTransitions = transitionsResult.frame;
   const transitionFired = transitionsResult.transitionFired;
+  const nextTime = simulation.currentTime + simulation.dt;
 
-  // Step 3: Ensure time is always incremented (executeTransitions only increments if transitions fire)
+  // Step 3: Ensure transition timers advance when no transition fired.
   const finalFrame = transitionFired
     ? frameAfterTransitions
     : {
         ...frameAfterTransitions,
-        time: currentFrame.time + simulation.dt,
-        // Also update transition timeSinceLastFiringMs and firedInThisFrame since time advanced
         transitions: Object.fromEntries(
           Object.entries(frameAfterTransitions.transitions).map(
             ([id, state]) => [
@@ -216,6 +218,7 @@ export function computeNextFrame(
     ...simulation,
     frames: [...simulation.frames, finalFrame],
     currentFrameNumber: simulation.currentFrameNumber + 1,
+    currentTime: nextTime,
     rngState: transitionsResult.rngState,
   };
 
@@ -223,7 +226,7 @@ export function computeNextFrame(
   let completionReason: SimulationCompletionReason | null = null;
 
   // Check if maxTime was reached with this new frame
-  if (simulation.maxTime !== null && finalFrame.time >= simulation.maxTime) {
+  if (simulation.maxTime !== null && nextTime >= simulation.maxTime) {
     completionReason = "maxTime";
   }
   // Check for deadlock if no transition fired

@@ -309,10 +309,11 @@ class DistributionAccumulator {
 function createFrameView(
   frame: EngineFrame,
   frameNumber: number,
+  time: number,
 ): MonteCarloFrameView {
   return {
     frameNumber,
-    time: frame.time,
+    time,
     getPlaceTokenCount(placeId) {
       return frame.places[placeId]?.count ?? 0;
     },
@@ -375,6 +376,7 @@ function validateConfig(config: MonteCarloSimulatorConfig): void {
 function observeFrame(params: {
   frame: EngineFrame;
   frameNumber: number;
+  time: number;
   runIndex: number;
   runSeed: number;
   placeIds: readonly string[];
@@ -387,6 +389,7 @@ function observeFrame(params: {
   const {
     frame,
     frameNumber,
+    time,
     runIndex,
     runSeed,
     placeIds,
@@ -397,7 +400,7 @@ function observeFrame(params: {
     metricDistributions,
   } = params;
 
-  frames.observe(frameNumber, frame.time);
+  frames.observe(frameNumber, time);
 
   for (let placeIndex = 0; placeIndex < placeIds.length; placeIndex++) {
     const placeId = placeIds[placeIndex]!;
@@ -412,12 +415,12 @@ function observeFrame(params: {
     return;
   }
 
-  const frameView = createFrameView(frame, frameNumber);
+  const frameView = createFrameView(frame, frameNumber, time);
   const context: MonteCarloMetricContext = {
     runIndex,
     runSeed,
     frameNumber,
-    time: frame.time,
+    time,
   };
 
   for (let metricIndex = 0; metricIndex < metrics.length; metricIndex++) {
@@ -480,6 +483,7 @@ export function createMonteCarloSimulator(
         observeFrame({
           frame: simulation.frames[0]!,
           frameNumber,
+          time: simulation.currentTime,
           runIndex,
           runSeed,
           placeIds,
@@ -500,8 +504,10 @@ export function createMonteCarloSimulator(
             break;
           }
 
-          const currentFrame = simulation.frames[0]!;
-          if (config.maxTime !== null && currentFrame.time >= config.maxTime) {
+          if (
+            config.maxTime !== null &&
+            simulation.currentTime >= config.maxTime
+          ) {
             stopReason = "maxTime";
             break;
           }
@@ -518,6 +524,7 @@ export function createMonteCarloSimulator(
           observeFrame({
             frame: simulation.frames[0]!,
             frameNumber,
+            time: simulation.currentTime,
             runIndex,
             runSeed,
             placeIds,

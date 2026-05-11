@@ -17,8 +17,6 @@ export type EngineFramePlaceState = {
  * engine output through `SimulationFrameReader`.
  */
 export type EngineFrame = {
-  /** Simulation time at this frame */
-  time: number;
   /** Place states with token buffer offsets, keyed by place ID */
   places: Record<ID, EngineFramePlaceState>;
   /** Transition states with firing information, keyed by transition ID */

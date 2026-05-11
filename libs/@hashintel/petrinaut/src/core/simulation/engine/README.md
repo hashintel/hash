@@ -36,13 +36,12 @@ computeNextFrame(simulation)
 
 ## Internal EngineFrame
 
-A snapshot of simulation state at a point in time. This is the engine and
-worker storage layout. Public callers should read frames through
-`SimulationFrameReader`.
+A snapshot of simulation state. The run controller owns frame number and
+simulation time; `EngineFrame` only stores the state needed to advance the
+simulation. Public callers should read frames through `SimulationFrameReader`.
 
 ```typescript
 type EngineFrame = {
-  time: number;
   places: Record<string, { offset, count, dimensions }>;
   transitions: Record<string, { timeSinceLastFiringMs, firedInThisFrame, firingCount }>;
   buffer: Float64Array;  // Token values storage

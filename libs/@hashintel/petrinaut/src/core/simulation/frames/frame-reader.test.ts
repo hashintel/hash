@@ -27,7 +27,6 @@ const place: Place = {
 
 function makeFrame(): EngineFrame {
   return {
-    time: 0.25,
     places: {
       [place.id]: { offset: 2, count: 2, dimensions: 2 },
     },
@@ -44,7 +43,7 @@ function makeFrame(): EngineFrame {
 
 describe("SimulationFrameReader", () => {
   it("reads place and transition state without exposing raw frame layout", () => {
-    const reader = createSimulationFrameReader(makeFrame(), 7);
+    const reader = createSimulationFrameReader(makeFrame(), 7, 0.25);
 
     expect(reader.number).toBe(7);
     expect(reader.time).toBe(0.25);
@@ -81,7 +80,7 @@ describe("SimulationFrameReader", () => {
   });
 
   it("returns a copied token value buffer", () => {
-    const reader = createSimulationFrameReader(makeFrame(), 7);
+    const reader = createSimulationFrameReader(makeFrame(), 7, 0.25);
     const values = reader.getPlaceTokenValues(place.id);
 
     expect(values).not.toBeNull();

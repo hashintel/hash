@@ -74,6 +74,7 @@ function makeSimulation({
     parameterValues: {},
     dt: 0.1,
     maxTime: null,
+    currentTime: 0,
     rngState: 42,
     frames: [],
     currentFrameNumber: 0,
@@ -95,7 +96,6 @@ describe("computePossibleTransition", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 1, dimensions: 1 },
       },
@@ -122,7 +122,6 @@ describe("computePossibleTransition", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 2, dimensions: 0 },
       },
@@ -160,7 +159,6 @@ describe("computePossibleTransition", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 1, dimensions: 1 },
         p2: { offset: 1, count: 0, dimensions: 0 },
@@ -201,7 +199,6 @@ describe("computePossibleTransition", () => {
       ]),
     });
     const frame: EngineFrame = {
-      time: 0,
       places: {
         p1: { offset: 0, count: 2, dimensions: 1 },
         p2: { offset: 2, count: 0, dimensions: 1 },
