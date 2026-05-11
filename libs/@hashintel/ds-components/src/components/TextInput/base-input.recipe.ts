@@ -23,14 +23,17 @@ export const baseInputRecipe = sva({
       display: "inline-flex",
       position: "relative",
       border: "1px solid transparent",
+      transition: "[background 0.15s ease, border 0.15s ease]",
       width: "[100%]",
       "--base-input-focus-color": "var(--colors-bd-solid)",
       "--base-input-border-color": "var(--colors-bd-solid)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
+        opacity: "1",
         visibility: "visible",
       },
       "&:focus-within [data-part='clear']": {
+        opacity: "1",
         visibility: "visible",
       },
     },
@@ -84,13 +87,14 @@ export const baseInputRecipe = sva({
       color: "fg.body",
       cursor: "pointer",
       padding: "0",
-      transition: "[background 0.15s ease]",
+      transition:
+        "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
       "&:not([disabled]):hover": {
         background: "neutral.s30",
         color: "neutral.s120",
       },
       _focusVisible: {
-        outline: "1px solid var(--colors-neutral-s80)",
+        outline: "[1px solid var(--colors-neutral-s80)]",
         outlineOffset: "0",
         background: "neutral.s25",
       },
@@ -114,7 +118,11 @@ export const baseInputRecipe = sva({
       right: "2",
       display: "flex",
       alignItems: "center",
+      opacity: "0",
+      // We set visibility and opacity because visibility prevents the clear button from being the first focus target
+      // when focusing backwards but opacity allows us to add a transition animation
       visibility: "hidden",
+      transition: "[opacity 0.08s ease]",
       color: "neutral.s110",
       cursor: "pointer",
       borderRadius: "[inherit]",
