@@ -1,7 +1,13 @@
 export const formInputSizes = ["xxs", "xs", "sm", "md", "lg"] as const;
 export type FormInputSize = (typeof formInputSizes)[number];
 
-export type FormInputWidth = "sm" | "md" | "lg" | "fullWidth" | "fitContent";
+export type FormInputWidth =
+  | "xs"
+  | "sm"
+  | "md"
+  | "lg"
+  | "fullWidth"
+  | "fitContent";
 
 export type SharedInputAndFieldProps = {
   /** Set to show the input as disabled */

@@ -17,6 +17,7 @@ const alignments = [
   "right",
 ] as const satisfies readonly Align[];
 const widths = [
+  "xs",
   "sm",
   "md",
   "lg",

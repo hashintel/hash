@@ -48,9 +48,9 @@ export const baseInputRecipe = sva({
       position: "relative",
       display: "flex",
       flex: "1",
-      minWidth: "0",
       alignItems: "center",
       borderRadius: "var(--base-input-border-radius)",
+      minWidth: "[6rem]",
     },
     input: {
       flex: "1",
@@ -340,17 +340,17 @@ export const baseInputRecipe = sva({
       },
     },
     width: {
+      xs: {
+        inputWrapper: { maxWidth: "[6rem]" },
+      },
       sm: {
-        root: { maxWidth: "[10rem]" },
-        readonly: { maxWidth: "[10rem]" },
+        inputWrapper: { maxWidth: "[15rem]" },
       },
       md: {
-        root: { maxWidth: "[18rem]" },
-        readonly: { maxWidth: "[18rem]" },
+        inputWrapper: { maxWidth: "[22.5rem]" },
       },
       lg: {
-        root: { maxWidth: "[30rem]" },
-        readonly: { maxWidth: "[30rem]" },
+        inputWrapper: { maxWidth: "[35rem]" },
       },
       fullWidth: {},
       fitContent: {
