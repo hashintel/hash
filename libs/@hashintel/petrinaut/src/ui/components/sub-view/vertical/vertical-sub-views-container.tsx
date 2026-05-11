@@ -284,11 +284,11 @@ const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
 
-  const updateShadows = () => {
-    const el = scrollRef.current;
+  const setShadowState = (el: HTMLDivElement | null) => {
     if (!el) {
       return;
     }
+
     setCanScrollUp(el.scrollTop > 0);
     setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
   };
@@ -299,16 +299,20 @@ const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    updateShadows();
+    const updateObservedShadows = () => {
+      setShadowState(el);
+    };
 
-    const observer = new ResizeObserver(updateShadows);
+    updateObservedShadows();
+
+    const observer = new ResizeObserver(updateObservedShadows);
     observer.observe(el);
     for (const child of el.children) {
       observer.observe(child);
     }
 
     return () => observer.disconnect();
-  }, [updateShadows]);
+  });
 
   return (
     <div className={scrollContainerStyle}>
@@ -321,7 +325,9 @@ const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
       <div
         ref={scrollRef}
         className={panelContentStyle}
-        onScroll={updateShadows}
+        onScroll={() => {
+          setShadowState(scrollRef.current);
+        }}
       >
         {children}
       </div>

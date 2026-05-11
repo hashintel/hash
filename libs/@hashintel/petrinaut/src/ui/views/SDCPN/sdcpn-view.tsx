@@ -5,7 +5,14 @@ import { useResizeObserver } from "./hooks/util/use-resize-observer";
 import { useDebounceCallback } from "./hooks/util/use-debounce-callback";
 import type { Connection } from "@xyflow/react";
 import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import {
+  use,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { v4 as generateUuid } from "uuid";
 
 import { SNAP_GRID_SIZE } from "../../constants/ui";
@@ -110,12 +117,19 @@ export const SDCPNView: React.FC<{
   useRecenterOnPanelOpen(canvasContainer, reactFlowInstance, nodes);
 
   // Center viewport on SDCPN load
+  const fitLoadedNetIntoView = useEffectEvent(
+    (instance: PetrinautReactFlowInstance) => {
+      void instance.fitView({
+        padding: ZOOM_PADDING,
+        minZoom,
+        maxZoom: 1.1,
+      });
+    },
+  );
+
   useEffect(() => {
-    void reactFlowInstance?.fitView({
-      padding: ZOOM_PADDING,
-      minZoom: minZoom,
-      maxZoom: 1.1,
-    });
+    if (!reactFlowInstance) return;
+    fitLoadedNetIntoView(reactFlowInstance);
   }, [reactFlowInstance, petriNetId]);
 
   // This sets the min zoom (ie the max you can zoom out to) to be slightly larger than the total size of the current net.

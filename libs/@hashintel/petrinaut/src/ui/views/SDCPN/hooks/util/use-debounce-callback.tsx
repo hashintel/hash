@@ -14,7 +14,7 @@ export function useDebounceCallback<
     return () => {
       debounced.flush();
     };
-  }, [func, delay]);
+  }, [debounced]);
 
   return debounced;
 }

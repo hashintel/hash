@@ -551,6 +551,7 @@ const FilterableListContent = <T extends FilterableListItem>({
                 }
               }}
               role="option"
+              tabIndex={-1}
               aria-selected={selected}
               className={listItemRowStyle({
                 selectable: true,
