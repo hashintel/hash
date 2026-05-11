@@ -29,6 +29,7 @@ export type {
 
 // --- Simulation ---
 export {
+  createMonteCarloSimulator,
   createSimulation,
   createWorkerTransport,
 } from "./simulation";
@@ -48,6 +49,14 @@ export type {
   SimulationTransport,
   WorkerFactory,
   InitialMarking,
+  MonteCarloAdvanceResult,
+  MonteCarloRunConfig,
+  MonteCarloRunSnapshot,
+  MonteCarloRunStatus,
+  MonteCarloRunSummary,
+  MonteCarloRunUntilCompleteOptions,
+  MonteCarloSimulator,
+  MonteCarloSimulatorConfig,
 } from "./simulation";
 
 // --- LSP ---
