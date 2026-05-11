@@ -6,7 +6,7 @@ import type {
 import { createJsonDocHandle } from "@hashintel/petrinaut/core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 import { produce } from "immer";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useSentryFeedbackAction } from "./app/sentry-feedback-button";
 import {
@@ -21,51 +21,117 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.parameters.length === 0 &&
   sdcpn.differentialEquations.length === 0;
 
-export const DevApp = () => {
-  "use no memo"; // getOrCreateHandle lazy-initialises a ref-held Map during render, and we mirror setStoredSDCPNs into a ref synchronously — both intentional ref-during-render writes the React Compiler treats as critical errors.
+const emptySDCPN: SDCPN = {
+  places: [],
+  transitions: [],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
 
+const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
+  id: "net-1",
+  title: "New Process",
+  sdcpn: emptySDCPN,
+  lastUpdated: new Date(0).toISOString(),
+});
+
+/**
+ * Creates the localStorage record for a newly created net, keeping the generated
+ * id and last-updated timestamp in sync.
+ */
+const createLocalStorageNetRecord = (params: {
+  petriNetDefinition: SDCPN;
+  title: string;
+}): SDCPNInLocalStorage => {
+  const now = new Date();
+
+  return {
+    id: `net-${now.getTime()}`,
+    title: params.title,
+    sdcpn: params.petriNetDefinition,
+    lastUpdated: now.toISOString(),
+  };
+};
+
+const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
+  createJsonDocHandle({ id: net.id, initial: net.sdcpn });
+
+const getStoredSDCPNsForDisplay = (
+  storedSDCPNs: Record<string, SDCPNInLocalStorage>,
+): Record<string, SDCPNInLocalStorage> => {
+  if (Object.values(storedSDCPNs).length > 0) {
+    return storedSDCPNs;
+  }
+
+  const defaultStoredSDCPN = createDefaultStoredSDCPN();
+  return { [defaultStoredSDCPN.id]: defaultStoredSDCPN };
+};
+
+type ActiveHandle = {
+  handle: PetrinautDocHandle;
+  netId: string;
+  fallbackNet: SDCPNInLocalStorage;
+};
+
+const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
+  handle: createHandle(net),
+  netId: net.id,
+  fallbackNet: net,
+});
+
+/**
+ * Demo-site shell for Petrinaut.
+ *
+ * Local storage is the persistence layer for saved nets, while the active
+ * Petrinaut document handle owns the currently open net's live editable state.
+ * Switching files replaces the active handle instead of keeping handles alive
+ * for background nets.
+ */
+export const DevApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
+  const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
+  const firstNet = Object.values(storedSDCPNsForDisplay)[0] ?? null;
 
-  const [currentNetId, setCurrentNetId] = useState<string | null>(null);
+  // The net currently selected in the UI.
+  const [currentNetId, setCurrentNetId] = useState<string | null>(
+    () => firstNet?.id ?? null,
+  );
 
-  const currentNet = currentNetId ? (storedSDCPNs[currentNetId] ?? null) : null;
+  // Metadata and persisted SDCPN snapshot for the selected net.
+  const currentNet = currentNetId
+    ? (storedSDCPNsForDisplay[currentNetId] ?? null)
+    : null;
 
-  /**
-   * Per-net handles. Each handle owns the live SDCPN and its undo/redo
-   * history. localStorage is the persistence layer; we mirror handle
-   * changes into it via subscribe.
-   */
-  const handlesRef = useRef<Map<string, PetrinautDocHandle>>(new Map());
-  const setStoredSDCPNsRef = useRef(setStoredSDCPNs);
-  setStoredSDCPNsRef.current = setStoredSDCPNs;
+  // Live editable document handle for the selected net only.
+  const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(() =>
+    firstNet ? createActiveHandle(firstNet) : null,
+  );
 
-  const getOrCreateHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle => {
-    const existing = handlesRef.current.get(net.id);
-    if (existing) {
-      return existing;
+  useEffect(() => {
+    if (!activeHandle) {
+      return;
     }
-    const handle = createJsonDocHandle({ id: net.id, initial: net.sdcpn });
-    handlesRef.current.set(net.id, handle);
 
-    handle.subscribe((event) => {
-      setStoredSDCPNsRef.current((prev) => {
-        const stored = prev[net.id];
-        if (!stored) {
-          return prev;
-        }
+    const { fallbackNet, handle, netId } = activeHandle;
+
+    return handle.subscribe((event) => {
+      const lastUpdated = new Date().toISOString();
+
+      setStoredSDCPNs((prev) => {
+        const stored = prev[netId] ?? fallbackNet;
+
         return produce(prev, (draft) => {
-          draft[net.id] = {
+          draft[netId] = {
             ...stored,
             sdcpn: event.next,
-            lastUpdated: new Date().toISOString(),
+            lastUpdated,
           };
         });
       });
     });
-
-    return handle;
-  };
+  }, [activeHandle, setStoredSDCPNs]);
 
   const existingNets: MinimalNetMetadata[] = Object.values(storedSDCPNs)
     .map((net) => ({
@@ -82,91 +148,87 @@ export const DevApp = () => {
     petriNetDefinition: SDCPN;
     title: string;
   }) => {
-    const newNet: SDCPNInLocalStorage = {
-      id: `net-${Date.now()}`,
-      title: params.title,
-      sdcpn: params.petriNetDefinition,
-      lastUpdated: new Date().toISOString(),
-    };
+    const newNet = createLocalStorageNetRecord(params);
+    const previousNet =
+      currentNetId && currentNetId !== newNet.id ? currentNet : null;
+    const previousNetIdToRemove = previousNet !== null ? currentNetId : null;
 
     setStoredSDCPNs((prev) => {
       const next = { ...prev, [newNet.id]: newNet };
 
       // Remove the previous net if it was empty and unmodified
-      if (currentNetId && currentNetId !== newNet.id) {
-        const prevNet = prev[currentNetId];
-        if (prevNet && isEmptySDCPN(prevNet.sdcpn)) {
-          delete next[currentNetId];
-          handlesRef.current.delete(currentNetId);
-        }
+      if (
+        previousNetIdToRemove &&
+        previousNet &&
+        isEmptySDCPN(prev[previousNetIdToRemove]?.sdcpn ?? previousNet.sdcpn)
+      ) {
+        delete next[previousNetIdToRemove];
       }
 
       return next;
     });
+    setActiveHandle(createActiveHandle(newNet));
     setCurrentNetId(newNet.id);
   };
 
   const loadPetriNet = (petriNetId: string) => {
+    const netToLoad = storedSDCPNsForDisplay[petriNetId];
+    if (!netToLoad) {
+      return;
+    }
+
     // Remove the current net if it was empty and unmodified
     if (currentNetId && currentNetId !== petriNetId) {
+      const previousNetIdToRemove =
+        currentNet && isEmptySDCPN(currentNet.sdcpn) ? currentNetId : null;
+
       setStoredSDCPNs((prev) => {
-        const prevNet = prev[currentNetId];
-        if (prevNet && isEmptySDCPN(prevNet.sdcpn)) {
+        const prevNet = previousNetIdToRemove
+          ? prev[previousNetIdToRemove]
+          : null;
+
+        if (previousNetIdToRemove && prevNet && isEmptySDCPN(prevNet.sdcpn)) {
           const next = { ...prev };
-          delete next[currentNetId];
-          handlesRef.current.delete(currentNetId);
+          delete next[previousNetIdToRemove];
           return next;
         }
         return prev;
       });
     }
+    setActiveHandle(createActiveHandle(netToLoad));
     setCurrentNetId(petriNetId);
   };
 
   const setTitle = (title: string) => {
-    if (!currentNetId) {
+    if (!currentNetId || !currentNet) {
       return;
     }
 
+    const lastUpdated = new Date().toISOString();
+
     setStoredSDCPNs((prev) =>
       produce(prev, (draft) => {
-        if (draft[currentNetId]) {
-          draft[currentNetId].title = title;
-        }
+        draft[currentNetId] = {
+          ...(draft[currentNetId] ?? currentNet),
+          title,
+          lastUpdated,
+        };
       }),
     );
   };
-
-  // Initialize with a default net if none exists
-  useEffect(() => {
-    const sdcpnsInStorage = Object.values(storedSDCPNs);
-
-    if (!sdcpnsInStorage[0]) {
-      createNewNet({
-        petriNetDefinition: {
-          places: [],
-          transitions: [],
-          types: [],
-          parameters: [],
-          differentialEquations: [],
-        },
-        title: "New Process",
-      });
-    } else if (!currentNetId) {
-      setCurrentNetId(sdcpnsInStorage[0].id);
-    }
-  }, [currentNetId, createNewNet, setStoredSDCPNs, storedSDCPNs]);
 
   if (!currentNet) {
     return null;
   }
 
-  const handle = getOrCreateHandle(currentNet);
+  if (!activeHandle || activeHandle.netId !== currentNet.id) {
+    return null;
+  }
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
       <Petrinaut
-        handle={handle}
+        handle={activeHandle.handle}
         existingNets={existingNets}
         createNewNet={createNewNet}
         hideNetManagementControls={false}
