@@ -121,8 +121,8 @@ describe("createSimulation (transport flavour)", () => {
     });
 
     expect(sim.frames.get().count).toBe(4);
-    expect(sim.frames.get().latest?.time).toBe(0.03);
-    expect(sim.getFrame(2)?.time).toBe(0.02);
+    expect(sim.frames.get().latest?.number).toBe(3);
+    expect(sim.getFrame(2)?.number).toBe(2);
     expect(seen).toEqual([1, 4]);
 
     sim.dispose();

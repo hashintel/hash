@@ -15,7 +15,6 @@ type SimulationFrameReaderData = {
 export function createSimulationFrameReader(
   frame: SimulationFrameReaderData,
   number: number,
-  time: number,
 ): SimulationFrameReader {
   const getPlaceTokenCount = (placeId: string): number =>
     frame.places[placeId]?.count ?? 0;
@@ -53,7 +52,6 @@ export function createSimulationFrameReader(
 
   return {
     number,
-    time,
     getPlaceTokenCount,
     getPlaceTokenValues,
     getPlaceTokens(place, color) {
@@ -100,7 +98,6 @@ export function createSimulationFrameReader(
 
       return {
         number,
-        time,
         places,
         transitions,
       };

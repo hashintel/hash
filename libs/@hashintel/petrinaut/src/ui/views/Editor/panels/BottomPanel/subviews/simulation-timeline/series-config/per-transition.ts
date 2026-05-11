@@ -44,7 +44,7 @@ export function buildPerTransitionSeriesConfig(args: {
       seriesName: transition.name,
       color: DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
     })),
-    extract: (frame, seriesIdx) => {
+    extract: (frame, seriesIdx, time) => {
       const id = transitionIds[seriesIdx];
       if (!id) {
         return 0;
@@ -52,10 +52,10 @@ export function buildPerTransitionSeriesConfig(args: {
 
       if (seriesIdx === 0) {
         const last = timeHistory[timeHistory.length - 1];
-        if (last !== undefined && frame.time < last) {
+        if (last !== undefined && time < last) {
           resetState();
         }
-        timeHistory.push(frame.time);
+        timeHistory.push(time);
       }
 
       const transitionState = frame.getTransitionState(id);
@@ -65,12 +65,12 @@ export function buildPerTransitionSeriesConfig(args: {
       if (firingCount > prevFiringCounts[seriesIdx]!) {
         const prevFiringTime = lastFiringTimes[seriesIdx] ?? null;
         if (prevFiringTime !== null) {
-          const interval = frame.time - prevFiringTime;
+          const interval = time - prevFiringTime;
           if (interval > 0) {
             lastIntervals[seriesIdx] = interval;
           }
         }
-        lastFiringTimes[seriesIdx] = frame.time;
+        lastFiringTimes[seriesIdx] = time;
       }
       prevFiringCounts[seriesIdx] = firingCount;
 
@@ -82,7 +82,7 @@ export function buildPerTransitionSeriesConfig(args: {
 
       cumulativeHistories[seriesIdx]!.push(interpolated);
 
-      const targetTime = frame.time - PER_TRANSITION_WINDOW_SEC;
+      const targetTime = time - PER_TRANSITION_WINDOW_SEC;
       const history = cumulativeHistories[seriesIdx]!;
       let prev = 0;
       for (let i = timeHistory.length - 2; i >= 0; i--) {

@@ -102,8 +102,6 @@ export type SimulationFrameState_Transition = {
 export type SimulationFrameState = {
   /** Frame index in the simulation history */
   number: number;
-  /** Simulation time at this frame */
-  time: number;
   /** Place states indexed by place ID */
   places: {
     [placeId: string]:
@@ -127,8 +125,6 @@ export type SimulationPlaceTokenValues = {
 export interface SimulationFrameReader {
   /** Frame index in the simulation history. */
   readonly number: number;
-  /** Simulation time at this frame. */
-  readonly time: number;
 
   getPlaceTokenCount(placeId: string): number;
   getPlaceTokenValues(placeId: string): SimulationPlaceTokenValues | null;

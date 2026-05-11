@@ -17,6 +17,7 @@ export interface TimelineSeriesMeta {
 export type TimelineSeriesExtractor = (
   frame: TimelineFrame,
   seriesIdx: number,
+  time: number,
 ) => number;
 
 /** Series metadata and extractor for the active timeline view. */

@@ -47,6 +47,7 @@ interface StreamingStoreController {
   appendFrames: (
     frames: TimelineFrame[],
     extract: TimelineSeriesExtractor,
+    dt: number,
   ) => void;
 }
 
@@ -85,15 +86,16 @@ function createStreamingStoreController(
       resetStore(store, store.series);
       notify();
     },
-    appendFrames: (frames, extract) => {
+    appendFrames: (frames, extract, dt) => {
       const cols = store.columns;
       const timeCol = cols[0]!;
       const seriesCount = store.series.length;
 
       for (const frame of frames) {
-        timeCol.push(frame.time);
+        const time = frame.number * dt;
+        timeCol.push(time);
         for (let s = 0; s < seriesCount; s++) {
-          cols[s + 1]!.push(extract(frame, s));
+          cols[s + 1]!.push(extract(frame, s, time));
         }
       }
 
@@ -138,7 +140,7 @@ export function useStreamingData(): {
   store: StreamingStore;
   metricError: string | null;
 } {
-  const { getFramesInRange, totalFrames } = use(SimulationContext);
+  const { dt, getFramesInRange, totalFrames } = use(SimulationContext);
   const {
     petriNetDefinition: { places, types, transitions, metrics },
   } = use(SDCPNContext);
@@ -173,11 +175,11 @@ export function useStreamingData(): {
   // yet been appended to the uPlot columns. Updating it should not re-render.
   const processedRef = useRef(0);
 
-  // Reset store when the series structure changes (view switch or net edits).
+  // Reset store when the series structure or x-axis timing changes.
   useEffect(() => {
     storeController.reset(seriesConfig.series);
     processedRef.current = 0;
-  }, [seriesConfig.series, storeController]);
+  }, [dt, seriesConfig.series, storeController]);
 
   // Stream new frames into the store
   useEffect(() => {
@@ -208,7 +210,7 @@ export function useStreamingData(): {
         return;
       }
 
-      storeController.appendFrames(newFrames, seriesConfig.extract);
+      storeController.appendFrames(newFrames, seriesConfig.extract, dt);
       processedRef.current = totalFrames;
     };
 
@@ -216,7 +218,7 @@ export function useStreamingData(): {
     return () => {
       cancelled = true;
     };
-  }, [getFramesInRange, totalFrames, seriesConfig, storeController]);
+  }, [dt, getFramesInRange, totalFrames, seriesConfig, storeController]);
 
   return {
     store,

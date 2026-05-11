@@ -20,17 +20,14 @@ import { PlaybackProvider } from "./provider";
 type MockSimulationContextOverrides = Partial<SimulationContextValue>;
 
 function createMockFrameReader(number: number): SimulationFrameReader {
-  const time = number * 0.01;
   return {
     number,
-    time,
     getPlaceTokenCount: () => 0,
     getPlaceTokenValues: () => null,
     getPlaceTokens: () => [],
     getTransitionState: () => null,
     toFrameState: () => ({
       number,
-      time,
       places: {},
       transitions: {},
     }),
@@ -819,7 +816,6 @@ describe("PlaybackProvider", () => {
 
       expect(getPlaybackValue().currentViewedFrame).not.toBeNull();
       expect(getPlaybackValue().currentViewedFrame!.number).toBe(0);
-      expect(getPlaybackValue().currentViewedFrame!.time).toBe(0);
 
       // Move to frame 5
       await act(async () => {
@@ -828,7 +824,6 @@ describe("PlaybackProvider", () => {
       });
 
       expect(getPlaybackValue().currentViewedFrame!.number).toBe(5);
-      expect(getPlaybackValue().currentViewedFrame!.time).toBeCloseTo(0.05);
     });
   });
 
