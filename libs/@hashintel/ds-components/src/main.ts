@@ -19,3 +19,4 @@ export {
 export { Slider, type SliderProps } from "./components/Slider/slider";
 export { Switch, type SwitchProps } from "./components/Switch/switch";
 export { Tooltip } from "./components/Tooltip/tooltip";
+export { TextInput } from "./components/TextInput/text-input";

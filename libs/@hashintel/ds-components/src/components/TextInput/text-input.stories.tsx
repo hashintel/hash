@@ -4,11 +4,11 @@ import { Fragment, useState } from "react";
 
 import type { FormInputWidth } from "../../util/form-shared";
 import { formInputSizes } from "../../util/form-shared";
-import { BaseInput } from "./base-input";
+import { TextInput } from "./text-input";
 
-type BaseInputProps = React.ComponentProps<typeof BaseInput>;
-type Variant = NonNullable<BaseInputProps["variant"]>;
-type Align = NonNullable<BaseInputProps["align"]>;
+type TextInputProps = React.ComponentProps<typeof TextInput>;
+type Variant = NonNullable<TextInputProps["variant"]>;
+type Align = NonNullable<TextInputProps["align"]>;
 
 const variants = ["default", "subtle"] as const satisfies readonly Variant[];
 const alignments = [
@@ -38,19 +38,19 @@ const rowVariants: RowVariant[] = [
 
 const noop = () => {};
 
-const Controlled = (props: BaseInputProps) => {
+const Controlled = (props: TextInputProps) => {
   const [value, setValue] = useState(String(props.value ?? ""));
   return (
-    <BaseInput {...props} value={value} onChange={(val) => setValue(val)} />
+    <TextInput {...props} value={value} onChange={(val) => setValue(val)} />
   );
 };
 
 const ClearableInput = (
-  props: Omit<BaseInputProps, "clearable" | "onChange">,
+  props: Omit<TextInputProps, "clearable" | "onChange">,
 ) => {
   const [value, setValue] = useState(String(props.value ?? ""));
   return (
-    <BaseInput
+    <TextInput
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
@@ -60,11 +60,11 @@ const ClearableInput = (
 };
 
 const StyledNumberInput = (
-  props: Omit<BaseInputProps, "value" | "onChange" | "styledValue">,
+  props: Omit<TextInputProps, "value" | "onChange" | "styledValue">,
 ) => {
   const [value, setValue] = useState("1234567890");
   return (
-    <BaseInput
+    <TextInput
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
@@ -121,7 +121,7 @@ const stateColumns = [
 ];
 
 export default {
-  title: "Components/BaseInput",
+  title: "Components/TextInput",
 } satisfies StoryDefault;
 
 export const Default: Story = () => (
@@ -306,7 +306,7 @@ export const Widths: Story = () => (
 type PrefixSuffixRow = {
   key: string;
   clearable?: boolean;
-  props: Omit<BaseInputProps, "variant" | "width" | "onChange">;
+  props: Omit<TextInputProps, "variant" | "width" | "onChange">;
 };
 
 const prefixSuffixRows: PrefixSuffixRow[] = [
