@@ -182,7 +182,7 @@ export const baseInputRecipe = sva({
           "&:not(.layer-style_disabled):hover [data-part='clear']:before": {
             bg: "neutral.s10",
           },
-          _focusWithin: {
+          "&:focus-within:not(.layer-style_disabled)": {
             outline: "[1px solid var(--base-input-focus-color)]",
           },
         },
@@ -220,7 +220,7 @@ export const baseInputRecipe = sva({
               borderColor: "var(--base-input-border-hover-color)",
             },
           },
-          _focusWithin: {
+          "&:focus-within:not(.layer-style_disabled)": {
             bg: "white",
             _before: {
               borderColor: "var(--base-input-border-color)",
@@ -390,26 +390,25 @@ export const baseInputRecipe = sva({
           "--base-input-border-color": "var(--colors-neutral-a50)",
           background: "neutral.s20",
           color: "neutral.s80",
-        },
-        adornmentButton: {
-          "&:hover::after": {
-            content: "''",
-            position: "absolute",
-            inset: "[-1px]",
-            border: "1px solid var(--base-input-border-hover-color)",
-            borderRadius: "var(--base-input-border-radius)",
-            pointerEvents: "none",
-          },
-        },
-        adornmentInteractive: {
-          "&:hover:after": {
-            content: "''",
-            position: "absolute",
-            inset: "[-1px]",
-            border: "1px solid var(--base-input-border-hover-color)",
-            borderRadius: "var(--base-input-border-radius)",
-            pointerEvents: "none",
-          },
+          "&:has([data-part='adornment-button']:hover)::after, &:has([data-part='adornment-text'][data-interactive]:hover)::after":
+            {
+              content: "''",
+              position: "absolute",
+              inset: "[-1px]",
+              border: "1px solid var(--base-input-border-hover-color)",
+              borderRadius: "var(--base-input-border-radius)",
+              pointerEvents: "none",
+            },
+          "&:has([data-part='adornment-button']:focus-visible)::after, &:has([data-part='adornment-text'][data-interactive]:focus-within)::after":
+            {
+              content: "''",
+              position: "absolute",
+              inset: "[-1px]",
+              border: "1px solid var(--base-input-border-hover-color)",
+              borderRadius: "var(--base-input-border-radius)",
+              pointerEvents: "none",
+              outline: "[1px solid var(--base-input-focus-color)]",
+            },
         },
       },
     },
@@ -419,6 +418,14 @@ export const baseInputRecipe = sva({
       css: {
         root: {
           color: "neutral.s80",
+          "&:has([data-part='adornment-button']:hover)::before, &:has([data-part='adornment-text'][data-interactive]:hover)::before":
+            {
+              borderColor: "var(--base-input-border-hover-color)",
+            },
+          "&:has([data-part='adornment-button']:focus-visible)::before, &:has([data-part='adornment-text'][data-interactive]:focus-within)::before":
+            {
+              borderColor: "var(--base-input-border-color)",
+            },
         },
       },
     },

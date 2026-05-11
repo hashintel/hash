@@ -114,17 +114,18 @@ function renderAdornment(
       </button>
     );
   }
+  const isInteractive =
+    "content" in adornment && adornment.type === "interactive";
   return (
     <span
       className={cx(
         classes[type],
         classes.adornment,
         classes.adornmentText,
-        "content" in adornment &&
-          adornment.type === "interactive" &&
-          classes.adornmentInteractive,
+        isInteractive && classes.adornmentInteractive,
       )}
       data-part="adornment-text"
+      data-interactive={isInteractive || undefined}
     >
       {content}
     </span>
