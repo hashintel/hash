@@ -188,6 +188,7 @@ export const baseInputRecipe = sva({
             },
           },
           _focusWithin: {
+            bg: "white",
             _before: {
               borderColor: "var(--base-input-border-color)",
             },
@@ -332,7 +333,7 @@ export const baseInputRecipe = sva({
       css: {
         root: {
           "--base-input-border-color": "var(--colors-neutral-a50)",
-          background: "neutral.a20",
+          background: "neutral.s20",
           color: "neutral.s80",
         },
       },

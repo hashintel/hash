@@ -59,15 +59,21 @@ const ClearableInput = (
   );
 };
 
-const StyledNumberInput = (
-  props: Omit<TextInputProps, "value" | "onChange" | "styledValue">,
-) => {
+const StyledNumberInput = ({
+  clearable,
+  ...props
+}: Omit<TextInputProps, "value" | "onChange" | "styledValue" | "clearable"> & {
+  clearable?: boolean;
+}) => {
   const [value, setValue] = useState("1234567890");
   return (
     <TextInput
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
+      clearable={
+        clearable ? { clearable: true, onClear: () => setValue("") } : undefined
+      }
       styledValue={
         <span style={{ color: "green", fontWeight: "bold" }}>
           {Number(value).toLocaleString() || value}
@@ -226,6 +232,27 @@ export const StyledValue: Story = () => (
       <Fragment key={variant}>
         <StyledNumberInput variant={variant} width="md" />
         <StyledNumberInput variant={variant} width="md" readonly />
+      </Fragment>
+    ))}
+    {variants.map((variant) => (
+      <Fragment key={`sink-${variant}`}>
+        <StyledNumberInput
+          variant={variant}
+          width="md"
+          prefix={{ iconName: "search" }}
+          suffix={{ text: "kg" }}
+          loading
+          clearable
+        />
+        <StyledNumberInput
+          variant={variant}
+          width="md"
+          prefix={{ iconName: "search" }}
+          suffix={{ text: "kg" }}
+          loading
+          clearable
+          readonly
+        />
       </Fragment>
     ))}
   </div>
