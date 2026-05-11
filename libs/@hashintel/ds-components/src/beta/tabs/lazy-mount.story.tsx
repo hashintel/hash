@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import * as Tabs from "./tabs";
+import * as Tabs from "../tabs";
 
 const TickValue = () => {
   const [value, setValue] = useState(0);

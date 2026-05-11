@@ -3,7 +3,7 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 
-import * as Select from "./select";
+import * as Select from "../select";
 
 const collection = createListCollection({
   items: [

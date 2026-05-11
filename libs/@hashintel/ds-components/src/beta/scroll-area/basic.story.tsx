@@ -1,6 +1,6 @@
 import { loremIpsum } from "lorem-ipsum";
 
-import * as ScrollArea from "./scroll-area";
+import * as ScrollArea from "../scroll-area";
 
 export const App = () => {
   return (

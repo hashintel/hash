@@ -1,8 +1,7 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { refractive } from "@hashintel/refractive";
 
-// TODO: Segmented Control should just be implemented as in the Figma, without refractive effects.
+// TODO: Segmented Control should just be implemented as in the Figma.
 // This version is just legacy for demo purposes.
 
 const ROOT_PADDING = 4;
@@ -20,11 +19,14 @@ const rootBackdropStyles = css({
   position: "absolute",
   display: "flex",
   alignItems: "center",
+  pointerEvents: "none",
   backgroundColor: "neutral.s10/20",
+  backdropFilter: "[blur(2px)]",
   left: "[0px]",
   top: "[0px]",
   right: "[0px]",
   bottom: "[0px]",
+  border: "[1px solid rgba(255,255,255,0.35)]",
   shadow: "[inset 1px 1px 1px rgba(0, 0, 0, 0.05)]",
 });
 
@@ -108,13 +110,9 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         borderRadius: ROOT_RADIUS,
       }}
     >
-      <refractive.div
+      <div
         className={rootBackdropStyles}
-        refraction={{
-          radius: ROOT_RADIUS,
-          blur: 2,
-          bezelWidth: 22,
-        }}
+        style={{ borderRadius: ROOT_RADIUS }}
       />
 
       <SegmentGroup.Indicator

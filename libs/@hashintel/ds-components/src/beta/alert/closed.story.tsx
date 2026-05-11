@@ -1,6 +1,6 @@
 import { forwardRef, type ReactElement, type ReactNode } from "react";
 
-import * as StyledAlert from "./alert";
+import * as StyledAlert from "../alert";
 
 export interface AlertProps extends Omit<StyledAlert.RootProps, "title"> {
   startElement?: ReactNode;

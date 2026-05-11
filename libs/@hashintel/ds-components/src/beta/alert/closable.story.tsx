@@ -1,5 +1,5 @@
-import { CloseButton } from "../close-button/close-button";
-import { Alert } from "./alert";
+import { Alert } from "../alert";
+import { CloseButton } from "../close-button";
 
 export const App = () => {
   return (

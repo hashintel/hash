@@ -1,7 +1,7 @@
 import { angleSliderAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { sva } from "@hashintel/ds-helpers/css";
 
-export const angleSlider = defineSlotRecipe({
+export const angleSliderSlotRecipe = sva({
   className: "angleSlider",
   slots: angleSliderAnatomy.keys(),
   base: {},

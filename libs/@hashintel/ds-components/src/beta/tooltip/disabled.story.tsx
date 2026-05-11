@@ -1,5 +1,5 @@
-import { Button } from "../button/button";
-import { Tooltip } from "./tooltip";
+import { Button } from "../button";
+import { Tooltip } from "../tooltip";
 
 export const App = () => {
   return (

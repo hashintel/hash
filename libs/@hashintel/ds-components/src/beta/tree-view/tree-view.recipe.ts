@@ -1,7 +1,7 @@
 import { treeViewAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { sva } from "@hashintel/ds-helpers/css";
 
-export const treeView = defineSlotRecipe({
+const treeViewSlotRecipeDefinition = {
   className: "tree-view",
   slots: treeViewAnatomy.keys(),
   base: {
@@ -116,4 +116,7 @@ export const treeView = defineSlotRecipe({
       gap: "3",
     },
   },
-});
+} as const;
+
+// @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
+export const treeViewSlotRecipe = sva(treeViewSlotRecipeDefinition);

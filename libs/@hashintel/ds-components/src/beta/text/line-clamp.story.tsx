@@ -1,6 +1,6 @@
 import { Flex } from "@hashintel/ds-helpers/jsx";
 
-import { Text } from "./text";
+import { Text } from "../text";
 
 export const App = () => {
   return (

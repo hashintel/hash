@@ -1,6 +1,6 @@
 import { forwardRef, type ImgHTMLAttributes } from "react";
 
-import * as StyledAvatar from "./avatar";
+import * as StyledAvatar from "../avatar";
 
 type ImageProps = ImgHTMLAttributes<HTMLImageElement>;
 

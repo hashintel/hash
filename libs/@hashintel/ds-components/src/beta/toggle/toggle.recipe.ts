@@ -1,7 +1,7 @@
 import { toggleAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { sva } from "@hashintel/ds-helpers/css";
 
-export const toggle = defineSlotRecipe({
+export const toggleSlotRecipe = sva({
   className: "toggle",
   slots: toggleAnatomy.keys(),
   base: {},

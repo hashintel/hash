@@ -1,9 +1,9 @@
 import { Portal } from "@ark-ui/react/portal";
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import { Button } from "../button/button";
-import { CloseButton } from "../close-button/close-button";
-import * as Dialog from "./dialog";
+import { Button } from "../button";
+import { CloseButton } from "../close-button";
+import * as Dialog from "../dialog";
 
 export const App = () => {
   const presets = ["scale", "slide-in-bottom", "slide-in-top", "none"] as const;

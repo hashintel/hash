@@ -1,7 +1,7 @@
 import { signaturePadAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { sva } from "@hashintel/ds-helpers/css";
 
-export const signaturePad = defineSlotRecipe({
+export const signaturePadSlotRecipe = sva({
   className: "signature-pad",
   slots: signaturePadAnatomy.keys(),
   base: {},

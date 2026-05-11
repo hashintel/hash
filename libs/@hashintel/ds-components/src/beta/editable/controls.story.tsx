@@ -1,8 +1,8 @@
 import { CheckIcon, EditIcon, XIcon } from "lucide-react";
 
-import { ButtonGroup } from "../button/button";
-import { IconButton } from "../icon-button/icon-button";
-import * as Editable from "./editable";
+import { ButtonGroup } from "../button";
+import * as Editable from "../editable";
+import { IconButton } from "../icon-button";
 
 export const App = () => {
   return (

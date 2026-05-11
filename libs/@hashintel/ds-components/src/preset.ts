@@ -2,7 +2,6 @@ import { defineGlobalStyles, definePreset } from "@pandacss/dev";
 import pandaPreset from "@pandacss/preset-panda";
 
 import { documentSurfaceStyles, fontPipelineCssVars } from "./preset/document";
-import { recipes, slotRecipes } from "./preset/recipes";
 import { semanticTokens, tokens } from "./preset/tokens";
 
 export type PresetOptions = {
@@ -199,14 +198,11 @@ export function createPreset(options?: PresetOptions) {
             },
           },
         },
-        // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
-        // @ts-expect-error -- `colorPalette` not in PartialTheme types but works at runtime
+        // @ts-expect-error -- Panda supports colorPalette here, but the preset theme type omits it
         colorPalette: {
           enabled: true,
           include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
         },
-        recipes,
-        slotRecipes,
       },
     },
   });

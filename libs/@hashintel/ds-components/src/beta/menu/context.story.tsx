@@ -1,7 +1,7 @@
 import { Portal } from "@ark-ui/react/portal";
 import { Center } from "@hashintel/ds-helpers/jsx";
 
-import * as Menu from "./menu";
+import * as Menu from "../menu";
 
 export const App = () => {
   return (

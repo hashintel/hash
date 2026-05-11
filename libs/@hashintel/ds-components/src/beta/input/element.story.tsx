@@ -1,8 +1,8 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 import { EuroIcon, InfoIcon, UserIcon } from "lucide-react";
 
-import { InputGroup } from "../input-group/input-group";
-import { Input } from "./input";
+import { Input } from "../input";
+import { InputGroup } from "../input-group";
 
 export const App = () => {
   return (

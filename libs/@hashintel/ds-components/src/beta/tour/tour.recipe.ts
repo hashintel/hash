@@ -1,7 +1,7 @@
 import { tourAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { sva } from "@hashintel/ds-helpers/css";
 
-export const tour = defineSlotRecipe({
+export const tourSlotRecipe = sva({
   className: "tour",
   slots: tourAnatomy.keys(),
   base: {},

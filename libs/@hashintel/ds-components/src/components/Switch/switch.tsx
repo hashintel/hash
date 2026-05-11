@@ -1,6 +1,5 @@
 import { Switch as BaseSwitch } from "@ark-ui/react/switch";
 import { css } from "@hashintel/ds-helpers/css";
-import { lip, refractive } from "@hashintel/refractive";
 
 // Layout constants
 const SLIDER_HEIGHT = 20;
@@ -41,11 +40,12 @@ const switchThumbStyles = css({
     transform: "translateY(-50%)",
   },
   "& > div": {
-    backgroundColor: "[rgba(255, 255, 255, 1)]",
+    background:
+      "[linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,247,250,0.92) 100%)]",
   },
   "&[data-active] > div": {
     transform: `scale(${THUMB_SCALE_ACTIVE})`,
-    backgroundColor: "[rgba(255, 255, 255, 0.1)]",
+    background: "[rgba(255, 255, 255, 0.1)]",
     shadow:
       "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
   },
@@ -56,14 +56,14 @@ const switchThumbInnerStyles = css({
   width: `[${THUMB_WIDTH}px]`,
   height: `[${THUMB_HEIGHT}px]`,
   borderRadius: `[${THUMB_RADIUS}px]`,
+  border: "[1px solid rgba(255,255,255,0.55)]",
+  background:
+    "[linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,247,250,0.92) 100%)]",
   boxShadow: "[0 4px 22px rgba(0,0,0,0.1)]",
   transition: "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
 });
 
 export interface SwitchProps {
-  specularOpacity?: number;
-  specularSaturation?: number;
-  blurLevel?: number;
   checked?: boolean;
   defaultChecked?: boolean;
   disabled?: boolean;
@@ -99,16 +99,7 @@ export const Switch: React.FC<SwitchProps> = ({
         className={switchControlStyles(disabled)}
       >
         <BaseSwitch.Thumb className={switchThumbStyles}>
-          <refractive.div
-            className={switchThumbInnerStyles}
-            refraction={{
-              radius: THUMB_RADIUS,
-              bezelWidth: THUMB_RADIUS * 0.42,
-              bezelHeightFn: lip,
-              glassThickness: 12,
-              specularOpacity: 0.5,
-            }}
-          />
+          <div className={switchThumbInnerStyles} />
         </BaseSwitch.Thumb>
       </BaseSwitch.Control>
       <BaseSwitch.HiddenInput />

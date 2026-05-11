@@ -48,6 +48,7 @@
     "build:buildinfo": "panda ship --config panda.config.ts --outfile dist/panda.buildinfo.json",
     "build:ladle": "ladle build",
     "build:lib": "tsup --config tsup.config.ts",
+    "codemod:beta-fractal-pilots": "tsx scripts/migrate-beta-fractal-pilots.ts",
     "codegen": "yarn run codegen:colors && yarn run codegen:tokens && yarn run codegen:panda",
     "codegen:colors": "tsx scripts/generate-colors-radix.ts",
     "codegen:panda": "panda codegen --clean",
@@ -73,14 +74,12 @@
   "dependencies": {
     "@ark-ui/react": "5.26.2",
     "@hashintel/ds-helpers": "workspace:^",
-    "@hashintel/refractive": "workspace:^",
     "@pandacss/dev": "1.4.3",
     "@pandacss/preset-panda": "1.4.3",
     "canvas": "3.2.0",
     "motion": "12.23.24"
   },
   "devDependencies": {
-    "@figma/code-connect": "1.4.3",
     "@fontsource-variable/geist-mono": "5.2.7",
     "@fontsource-variable/inter": "5.2.8",
     "@fontsource-variable/inter-tight": "5.2.7",
@@ -120,7 +119,6 @@
   "peerDependencies": {
     "@ark-ui/react": "^5.26.2",
     "@hashintel/ds-helpers": "workspace:^",
-    "@hashintel/refractive": "workspace:^",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   }

@@ -1,7 +1,7 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Group } from "../group/group";
-import * as Avatar from "./avatar";
+import * as Avatar from "../avatar";
+import { Group } from "../group";
 
 const users = [
   {

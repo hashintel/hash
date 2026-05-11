@@ -1,17 +1,21 @@
 import { Slider as BaseSlider } from "@ark-ui/react/slider";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { refractive } from "@hashintel/refractive";
 
 const THUMB_WIDTH = 18;
 const THUMB_HEIGHT = 16;
 const THUMB_RADIUS = THUMB_HEIGHT / 2;
-const THUMB_BEZEL_WIDTH = THUMB_RADIUS * 0.7;
 const THUMB_ACTIVE_SCALE = 2.2;
 
-const THUMB_SPECULAR_OPACITY = 0.4;
-const THUMB_BLUR_LEVEL = 0;
-const THUMB_GLASS_THICKNESS = 16;
-const THUMB_REFRACTIVE_INDEX = 1.5;
+const thumbInnerStyles = css({
+  display: "block",
+  width: `[${THUMB_WIDTH}px]`,
+  height: `[${THUMB_HEIGHT}px]`,
+  borderRadius: `[${THUMB_RADIUS}px]`,
+  border: "[1px solid rgba(255,255,255,0.45)]",
+  background:
+    "[linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(37,99,235,0.98) 100%)]",
+  boxShadow: "[0 2px 10px rgba(37,99,235,0.28)]",
+});
 
 export interface SliderProps {
   className?: string;
@@ -113,33 +117,21 @@ export const Slider: React.FC<SliderProps> = ({
           className={css({
             outline: "none",
             "& > div": {
-              backgroundColor: "blue.s70",
+              background:
+                "[linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(37,99,235,0.98) 100%)]",
               transformOrigin: "center",
               transition:
-                "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease]",
+                "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease]",
             },
             "&[data-dragging] > div": {
               transform: `scale(${THUMB_ACTIVE_SCALE})`,
-              backgroundColor: "[rgba(255,255,255,0.2)]",
+              background: "[rgba(255,255,255,0.2)]",
               shadow:
                 "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
             },
           })}
         >
-          <refractive.div
-            style={{
-              height: THUMB_HEIGHT,
-              width: THUMB_WIDTH,
-            }}
-            refraction={{
-              radius: THUMB_RADIUS,
-              bezelWidth: THUMB_BEZEL_WIDTH,
-              blur: THUMB_BLUR_LEVEL,
-              specularOpacity: THUMB_SPECULAR_OPACITY,
-              glassThickness: THUMB_GLASS_THICKNESS,
-              refractiveIndex: THUMB_REFRACTIVE_INDEX,
-            }}
-          />
+          <div className={thumbInnerStyles} />
           <BaseSlider.HiddenInput />
         </BaseSlider.Thumb>
       </BaseSlider.Control>

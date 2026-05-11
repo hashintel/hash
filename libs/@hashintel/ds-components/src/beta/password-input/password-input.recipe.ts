@@ -1,7 +1,7 @@
 import { passwordInputAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
+import { sva } from "@hashintel/ds-helpers/css";
 
-export const passwordInput = defineSlotRecipe({
+export const passwordInputSlotRecipe = sva({
   className: "password-input",
   slots: passwordInputAnatomy.keys(),
   base: {},

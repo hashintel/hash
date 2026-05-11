@@ -1,6 +1,6 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import * as RadioGroup from "./radio-group";
+import * as RadioGroup from "../radio-group";
 
 export const App = () => {
   const sizes = ["sm", "md", "lg"] as const;

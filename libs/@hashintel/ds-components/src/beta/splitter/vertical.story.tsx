@@ -1,4 +1,4 @@
-import * as Splitter from "./splitter";
+import * as Splitter from "../splitter";
 
 export const App = () => {
   return (

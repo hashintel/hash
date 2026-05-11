@@ -1,4 +1,4 @@
-import * as Checkbox from "./checkbox";
+import * as Checkbox from "../checkbox";
 
 export const App = () => {
   return (

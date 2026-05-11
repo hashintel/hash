@@ -1,6 +1,6 @@
 import { Stack, Wrap } from "@hashintel/ds-helpers/jsx";
 
-import { Code } from "./code";
+import { Code } from "../code";
 
 export const App = () => {
   const colors = ["blue", "green", "amber", "red"] as const;

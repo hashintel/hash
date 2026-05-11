@@ -1,7 +1,7 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 import { PhoneIcon } from "lucide-react";
 
-import { IconButton } from "./icon-button";
+import { IconButton } from "../icon-button";
 
 export const App = () => {
   return (

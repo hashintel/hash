@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as Checkbox from "./checkbox";
+import * as Checkbox from "../checkbox";
 
 export const App = () => {
   const variants = ["solid", "surface", "subtle", "outline", "plain"] as const;
