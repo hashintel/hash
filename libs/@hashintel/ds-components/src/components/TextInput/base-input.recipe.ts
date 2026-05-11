@@ -98,6 +98,7 @@ export const baseInputRecipe = sva({
     loading: {
       alignSelf: "center",
       paddingRight: "2",
+      position: "relative",
     },
     clear: {
       position: "absolute",
@@ -107,8 +108,8 @@ export const baseInputRecipe = sva({
       alignItems: "center",
       visibility: "hidden",
       color: "neutral.s110",
-      borderRadius: "full",
       cursor: "pointer",
+      borderRadius: "[inherit]",
       _hover: { color: "neutral.s125" },
       _focus: { _after: { background: "neutral.s30" }, outline: "none" },
       _before: {
@@ -118,11 +119,12 @@ export const baseInputRecipe = sva({
         insetX: "-1.5",
         background: "white",
         zIndex: "-2",
+        borderRightRadius: "[inherit]",
       },
       _after: {
         content: "''",
         position: "absolute",
-        borderRadius: "[inherit]",
+        borderRadius: "full",
         inset: "0",
         zIndex: "-1",
       },
@@ -151,6 +153,9 @@ export const baseInputRecipe = sva({
             borderColor: "var(--base-input-border-hover-color)",
             bg: "neutral.s10",
           },
+          "&:not(.layer-style_disabled):hover [data-part='clear']:before": {
+            bg: "neutral.s10",
+          },
           _focusWithin: {
             outline: "[1px solid var(--base-input-focus-color)]",
           },
@@ -158,10 +163,12 @@ export const baseInputRecipe = sva({
         adornment: {
           background: "neutral.s20",
           paddingX: "2",
-          borderColor: "var(--base-input-border-color)",
+          borderRightColor: "var(--base-input-border-color)",
+          borderLeftColor: "var(--base-input-border-color)",
         },
         adornmentButton: {
-          borderColor: "var(--colors-bd-solid)",
+          borderRightColor: "var(--colors-bd-solid)",
+          borderLeftColor: "var(--colors-bd-solid)",
         },
         input: {
           paddingX: "var(--base-input-padding-x)",
@@ -196,15 +203,27 @@ export const baseInputRecipe = sva({
         },
         prefix: {
           paddingLeft: "1",
-          _focusVisible: {
-            borderColor: "var(--colors-bd-solid)",
+          left: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
+          "&[data-part='adornment-text']": {
+            left: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
           },
         },
         suffix: {
           paddingRight: "1",
-          _focusVisible: {
-            borderColor: "var(--colors-bd-solid)",
+          right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
+          "&[data-part='adornment-text']": {
+            right: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
           },
+        },
+        loading: {
+          right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
+        },
+        clear: {
+          right:
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+        },
+        adornment: {
+          position: "relative",
         },
         adornmentButton: {
           paddingX: "1",
@@ -328,6 +347,16 @@ export const baseInputRecipe = sva({
   },
   compoundVariants: [
     {
+      variant: "subtle",
+      loading: true,
+      css: {
+        clear: {
+          right:
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
+        },
+      },
+    },
+    {
       variant: "default",
       disabled: true,
       css: {
@@ -364,6 +393,42 @@ export const baseInputRecipe = sva({
           "&:not(.layer-style_disabled):hover": {
             bg: "red.s05",
           },
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      size: "xs",
+      css: {
+        root: {
+          "--base-input-padding-x": "spacing.2",
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      size: "sm",
+      css: {
+        root: {
+          "--base-input-padding-x": "spacing.2",
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      size: "md",
+      css: {
+        root: {
+          "--base-input-padding-x": "spacing.2",
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      size: "lg",
+      css: {
+        root: {
+          "--base-input-padding-x": "spacing.2",
         },
       },
     },

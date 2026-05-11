@@ -101,6 +101,7 @@ function renderAdornment(
       <button
         type="button"
         onClick={adornment.onClick}
+        data-part="adornment-button"
         className={cx(
           classes[type],
           classes.adornment,
@@ -114,6 +115,7 @@ function renderAdornment(
   return (
     <span
       className={cx(classes[type], classes.adornment, classes.adornmentText)}
+      data-part="adornment-text"
     >
       {content}
     </span>
