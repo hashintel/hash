@@ -1,4 +1,4 @@
-import type { Transition } from "../../../types/sdcpn";
+import type { Transition } from "../../types/sdcpn";
 import type { EngineFrame } from "./types";
 
 /**

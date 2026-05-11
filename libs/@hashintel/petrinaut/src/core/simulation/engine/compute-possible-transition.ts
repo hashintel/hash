@@ -1,7 +1,8 @@
-import { SDCPNItemError } from "../../../errors";
-import type { ID } from "../../../types/sdcpn";
-import { isDistribution, sampleDistribution } from "./distribution";
+import { SDCPNItemError } from "../../errors";
+import type { ID } from "../../types/sdcpn";
+import { isDistribution } from "../authoring/user-code/distribution";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
+import { sampleDistribution } from "./sample-distribution";
 import { nextRandom } from "./seeded-rng";
 import type { EngineFrame, SimulationInstance } from "./types";
 

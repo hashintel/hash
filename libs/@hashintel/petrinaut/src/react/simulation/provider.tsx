@@ -10,7 +10,7 @@ import {
 import {
   compileScenario,
   type CompiledScenarioResult,
-} from "../../core/simulation/authoring/compile-scenario";
+} from "../../core/simulation/authoring/scenario/compile-scenario";
 import { createSimulationWorker } from "../../core/simulation/worker/create-simulation-worker";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";

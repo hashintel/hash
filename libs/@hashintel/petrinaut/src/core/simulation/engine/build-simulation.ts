@@ -1,9 +1,9 @@
-import { SDCPNItemError } from "../../../errors";
+import { SDCPNItemError } from "../../errors";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
-} from "../../../parameter-values";
-import { compileUserCode } from "./compile-user-code";
+} from "../../parameter-values";
+import { compileUserCode } from "../authoring/user-code/compile-user-code";
 import type {
   DifferentialEquationFn,
   LambdaFn,

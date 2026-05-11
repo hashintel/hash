@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { CompiledScenarioResult } from "../../core/simulation/authoring/compile-scenario";
+import type { CompiledScenarioResult } from "../../core/simulation/authoring/scenario/compile-scenario";
 import type {
   InitialMarking,
   SimulationFrameReader,

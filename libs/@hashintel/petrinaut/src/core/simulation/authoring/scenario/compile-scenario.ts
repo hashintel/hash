@@ -1,5 +1,5 @@
-import type { Color, Parameter, Place, Scenario } from "../../types/sdcpn";
-import { runSandboxed, SHADOWED_GLOBALS } from "./sandbox";
+import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
+import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
 
 // -- Result types -------------------------------------------------------------
 

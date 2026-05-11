@@ -5,9 +5,9 @@
  * part of the public simulation API.
  */
 
-import type { Color, Place, SDCPN, Transition } from "../../../types/sdcpn";
-import type { EngineFrame } from "../../frames/internal-frame";
-import type { RuntimeDistribution } from "./distribution";
+import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
+import type { RuntimeDistribution } from "../authoring/user-code/distribution";
+import type { EngineFrame } from "../frames/internal-frame";
 
 /**
  * Runtime parameter values used during simulation execution.
@@ -95,5 +95,5 @@ export type SimulationInstance = {
 export type {
   EngineFrame,
   EngineFramePlaceState,
-} from "../../frames/internal-frame";
-export type { SimulationFrameState_Transition } from "../../api";
+} from "../frames/internal-frame";
+export type { SimulationFrameState_Transition } from "../api";

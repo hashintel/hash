@@ -1,4 +1,4 @@
-import type { CompiledMetric } from "../../../../../../../../core/simulation/authoring/compile-metric";
+import type { CompiledMetric } from "../../../../../../../../core/simulation/authoring/metric/compile-metric";
 import { buildMetricState } from "../../../../../../../../core/simulation/frames/metric-state";
 import type {
   Color,

@@ -1,5 +1,5 @@
-import type { Metric } from "../../types/sdcpn";
-import { runSandboxed, SHADOWED_GLOBALS } from "./sandbox";
+import type { Metric } from "../../../types/sdcpn";
+import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
 
 // -- Public types -------------------------------------------------------------
 

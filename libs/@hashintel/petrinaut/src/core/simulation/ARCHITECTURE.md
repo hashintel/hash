@@ -1,10 +1,13 @@
 # Simulation Architecture
 
-The simulation module is split into four boundaries:
+The simulation module is split into five boundaries:
 
 - `api.ts` defines the public Core contract. Consumers receive
   `SimulationFrameReader` and summary state, not engine storage objects.
-- `authoring/engine/` compiles SDCPN definitions and advances internal
+- `authoring/metric/`, `authoring/scenario/`, and `authoring/user-code/`
+  compile user-authored inputs. Shared same-realm hardening helpers live in
+  `authoring/sandbox.ts`.
+- `engine/` builds SDCPN definitions into runnable state and advances internal
   `EngineFrame` state. This code may use mutable/compact structures optimized
   for stepping.
 - `worker/` owns the transport protocol between the engine worker and runtime.

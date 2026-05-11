@@ -4,8 +4,10 @@ Core simulation logic for SDCPN Petri net execution.
 
 ## Overview
 
-The engine compiles an SDCPN definition into a runnable `SimulationInstance`
-and computes frames by evaluating transitions and differential equations.
+The engine builds an SDCPN definition into a runnable `SimulationInstance` and
+computes frames by evaluating transitions and differential equations. It imports
+user-code compilation helpers from `authoring/user-code/`, but owns the
+runtime stepping state and frame layout.
 
 ## Core Functions
 

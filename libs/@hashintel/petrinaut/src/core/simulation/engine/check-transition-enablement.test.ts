@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { InputArc, OutputArc, Transition } from "../../../types/sdcpn";
+import type { InputArc, OutputArc, Transition } from "../../types/sdcpn";
 import {
   checkTransitionEnablement,
   isTransitionStructurallyEnabled,

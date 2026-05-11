@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Color, Place, Transition } from "../../../types/sdcpn";
+import type { Color, Place, Transition } from "../../types/sdcpn";
 import { executeTransitions } from "./execute-transitions";
 import type {
   EngineFrame,

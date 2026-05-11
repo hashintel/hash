@@ -1,6 +1,6 @@
 import type { Color, Place } from "../../types/sdcpn";
 import type { SimulationFrameReader } from "../api";
-import type { MetricState } from "../authoring/compile-metric";
+import type { MetricState } from "../authoring/metric/compile-metric";
 
 /**
  * Reshape a simulation frame reader into the `MetricState` shape exposed to

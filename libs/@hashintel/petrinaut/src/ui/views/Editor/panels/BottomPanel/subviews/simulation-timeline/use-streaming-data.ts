@@ -3,7 +3,7 @@ import { use, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   type CompiledMetric,
   compileMetric,
-} from "../../../../../../../core/simulation/authoring/compile-metric";
+} from "../../../../../../../core/simulation/authoring/metric/compile-metric";
 import type { Metric } from "../../../../../../../core/types/sdcpn";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
