@@ -59,7 +59,7 @@ export const linearWebhook: RequestHandler<
 
   const payload = JSON.parse(req.body) as LinearWebhookPayload;
 
-  const temporalClient = await createTemporalClient(logger);
+  const temporalClient = await createTemporalClient();
 
   const organizationId = payload.organizationId;
 

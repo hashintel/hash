@@ -237,6 +237,9 @@ services:
       POSTGRES_USER: "${HASH_TEMPORAL_PG_USER}"
       POSTGRES_PWD: "${HASH_TEMPORAL_PG_PASSWORD}"
       POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
+      # Expose Prometheus-format metrics on port 8000 so the otel-collector
+      # can scrape them and forward to Mimir.
+      PROMETHEUS_ENDPOINT: "0.0.0.0:8000"
     security_opt:
       - no-new-privileges:true
     ports:

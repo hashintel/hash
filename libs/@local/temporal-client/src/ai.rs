@@ -1,11 +1,21 @@
 use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _};
+use opentelemetry::{global, propagation::Injector};
 use serde::Serialize;
-use temporalio_client::{WorkflowClientTrait as _, WorkflowOptions};
+use temporalio_client::{NamespacedClient, WorkflowService, tonic::IntoRequest as _};
 use temporalio_common::protos::{
-    ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL, temporal::api::common::v1::Payload,
+    ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL,
+    coresdk::IntoPayloadsExt as _,
+    temporal::api::{
+        common::v1::{Header, Payload, WorkflowType},
+        enums::v1::TaskQueueKind,
+        taskqueue::v1::TaskQueue,
+        workflowservice::v1::StartWorkflowExecutionRequest,
+    },
 };
+use tracing::{Span, instrument};
+use tracing_opentelemetry::OpenTelemetrySpanExt as _;
 use type_system::{
     knowledge::entity::EntityId,
     ontology::{
@@ -17,6 +27,72 @@ use uuid::Uuid;
 
 use crate::{TemporalClient, WorkflowError};
 
+/// Header key used by `@temporalio/interceptors-opentelemetry` to carry the
+/// trace-context payload across workflow boundaries. Must stay in sync with
+/// `TRACE_HEADER` in that package's `instrumentation.ts`; if it drifts,
+/// workflows started from Rust will ship correct headers that the TypeScript
+/// inbound interceptor silently ignores, and every resulting span renders
+/// parent-less in Tempo.
+const TRACE_HEADER: &str = "_tracer-data";
+
+/// Adapter so `opentelemetry`'s text-map propagator can write into a plain
+/// `HashMap` carrier.
+struct CarrierWriter<'a>(&'a mut HashMap<String, String>);
+
+impl Injector for CarrierWriter<'_> {
+    fn set(&mut self, key: &str, value: String) {
+        self.0.insert(key.to_owned(), value);
+    }
+}
+
+/// Build a Temporal `Header` containing the active OTEL trace context as
+/// a JSON-encoded text-map under the `_tracer-data` field.
+///
+/// Returns `None` if no propagator wrote anything into the carrier (e.g.
+/// no active span, or no propagator registered) — the caller should leave
+/// the request `header` field empty in that case rather than send an
+/// empty payload.
+fn build_otel_header() -> Option<Header> {
+    let context = Span::current().context();
+    let mut carrier = HashMap::<String, String>::new();
+    global::get_text_map_propagator(|propagator| {
+        propagator.inject_context(&context, &mut CarrierWriter(&mut carrier));
+    });
+    if carrier.is_empty() {
+        // Surface this once per process: an empty carrier means either no
+        // active tracing span (caller missing `#[instrument]`) or no
+        // global propagator registered (telemetry bootstrap missing
+        // `set_text_map_propagator`). Either way the workflow will start
+        // with no parent context and the worker-side span renders detached
+        // from the caller's trace.
+        static WARNED: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+        WARNED.get_or_init(|| {
+            tracing::warn!(
+                "OpenTelemetry text-map propagator wrote no headers when starting workflow; \
+                 workflow spans will be parent-less. Verify the global propagator is installed \
+                 and the calling fn carries an active tracing span."
+            );
+        });
+        return None;
+    }
+
+    let payload = Payload {
+        metadata: HashMap::from([(
+            ENCODING_PAYLOAD_KEY.to_owned(),
+            JSON_ENCODING_VAL.as_bytes().to_vec(),
+        )]),
+        // `HashMap<String, String>` cannot fail to serialise — fail loud
+        // rather than silently dropping the trace context (which would
+        // produce a parent-less workflow span on every start).
+        data: serde_json::to_vec(&carrier).expect("HashMap<String, String> serialises"),
+        ..Default::default()
+    };
+
+    Some(Header {
+        fields: HashMap::from([(TRACE_HEADER.to_owned(), payload)]),
+    })
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AuthenticationContext {
@@ -24,31 +100,66 @@ struct AuthenticationContext {
 }
 
 impl TemporalClient {
+    /// Start a workflow on the `ai` task queue, injecting the active
+    /// OTEL trace context into the workflow start headers so the
+    /// worker-side interceptors can parent the workflow + activity
+    /// spans off the caller's trace.
+    ///
+    /// Goes via the low-level `WorkflowService::start_workflow_execution`
+    /// because `WorkflowClientTrait::start_workflow` does not expose the
+    /// proto `header` field. The span is annotated with `otel.kind =
+    /// "producer"` for the asynchronous fire-and-forget shape (the value
+    /// is case-sensitive; `tracing-opentelemetry` falls back to
+    /// `Internal` on typos).
+    #[instrument(
+        skip(self, payload),
+        fields(workflow_type = workflow, otel.kind = "producer"),
+    )]
     async fn start_ai_workflow(
         &self,
         workflow: &'static str,
         payload: &(impl Serialize + Sync),
     ) -> Result<String, Report<WorkflowError>> {
-        Ok(self
-            .client
-            .start_workflow(
-                vec![Payload {
-                    metadata: HashMap::from([(
-                        ENCODING_PAYLOAD_KEY.to_owned(),
-                        JSON_ENCODING_VAL.as_bytes().to_vec(),
-                    )]),
-                    data: serde_json::to_vec(payload).change_context(WorkflowError(workflow))?,
-                    external_payloads: Vec::new(),
-                }],
-                "ai".to_owned(),
-                Uuid::new_v4().to_string(),
-                workflow.to_owned(),
-                None,
-                WorkflowOptions::default(),
-            )
-            .await
-            .change_context(WorkflowError(workflow))?
-            .run_id)
+        let mut client = self.client.clone();
+        // `WorkflowClientTrait::start_workflow` auto-populates `identity` from
+        // `ClientOptions` (typically `pid@hostname`). The low-level
+        // `StartWorkflowExecutionRequest` defaults it to an empty string,
+        // which makes Temporal Server / UI unable to attribute starts to a
+        // client. Read it back from the configured client.
+        let identity = client.get_client().identity();
+        let request = StartWorkflowExecutionRequest {
+            namespace: <_ as NamespacedClient>::namespace(&client),
+            input: vec![Payload {
+                metadata: HashMap::from([(
+                    ENCODING_PAYLOAD_KEY.to_owned(),
+                    JSON_ENCODING_VAL.as_bytes().to_vec(),
+                )]),
+                data: serde_json::to_vec(payload).change_context(WorkflowError(workflow))?,
+                ..Default::default()
+            }]
+            .into_payloads(),
+            workflow_id: Uuid::new_v4().to_string(),
+            workflow_type: Some(WorkflowType {
+                name: workflow.to_owned(),
+            }),
+            task_queue: Some(TaskQueue {
+                name: "ai".to_owned(),
+                kind: TaskQueueKind::Unspecified as i32,
+                normal_name: String::new(),
+            }),
+            identity,
+            request_id: Uuid::new_v4().to_string(),
+            header: build_otel_header(),
+            ..Default::default()
+        };
+
+        let response =
+            WorkflowService::start_workflow_execution(&mut client, request.into_request())
+                .await
+                .change_context(WorkflowError(workflow))?
+                .into_inner();
+
+        Ok(response.run_id)
     }
 
     /// Starts a workflow to update the embeddings for the provided data type.
@@ -138,10 +249,7 @@ impl TemporalClient {
         .await
     }
 
-    /// Starts a workflow to update the embeddings for the provided entities.
-    ///
-    /// The `embedding_exclusions` parameter specifies which properties should be excluded
-    /// from embedding generation for specific entity types (e.g., email for User entities).
+    /// Starts workflows to update the embeddings for the provided entities.
     ///
     /// Returns the run IDs of the workflows.
     ///

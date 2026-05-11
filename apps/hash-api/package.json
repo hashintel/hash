@@ -54,7 +54,6 @@
     "@opentelemetry/instrumentation": "0.207.0",
     "@opentelemetry/instrumentation-express": "0.56.0",
     "@opentelemetry/instrumentation-graphql": "0.55.0",
-    "@opentelemetry/instrumentation-http": "0.207.0",
     "@opentelemetry/resources": "2.2.0",
     "@opentelemetry/sdk-logs": "0.207.0",
     "@opentelemetry/sdk-trace-base": "2.2.0",

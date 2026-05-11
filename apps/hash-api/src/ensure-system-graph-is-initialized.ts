@@ -17,7 +17,7 @@ const context: ImpureGraphContext<false, true> = {
     host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
     port: Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   }),
-  temporalClient: await createTemporalClient(logger),
+  temporalClient: await createTemporalClient(),
 };
 
 await ensureSystemGraphIsInitialized({

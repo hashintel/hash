@@ -1,4 +1,8 @@
-/* eslint-disable import/first */
+/* eslint-disable import/first, import/order, simple-import-sort/imports */
+
+// Must be the first import so OTEL auto-instrumentations can patch
+// http / grpc / Sentry's own monkey-patches before they apply.
+import { otelSetup } from "./instrument.js";
 
 import * as Sentry from "@sentry/node";
 
@@ -12,9 +16,16 @@ Sentry.init({
     process.env.ENVIRONMENT ||
     (process.env.NODE_ENV === "production" ? "production" : "development"),
   tracesSampleRate: process.env.NODE_ENV === "production" ? 1.0 : 0,
+  // Sentry registers its own global `NodeTracerProvider` by default.
+  // Letting it run after `registerOpenTelemetry` would replace the
+  // provider that the OTEL workflow client interceptor (set up in
+  // `createTemporalClient`) holds via `trace.getTracer(...)`, breaking
+  // caller → workflow → activity context propagation. With this flag
+  // Sentry shares our provider so its spans flow through the same
+  // OTLP pipeline.
+  skipOpenTelemetrySetup: !!otelSetup,
 });
 
-import * as http from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,10 +34,9 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { createCommonFlowActivities } from "@local/hash-backend-utils/flows";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
-import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
+import type { WorkflowSource } from "@local/hash-backend-utils/temporal/worker-bootstrap";
+import { runWorker } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
 import { createFlowActivities } from "./activities/flow-activities.js";
@@ -38,8 +48,9 @@ const __dirname = path.dirname(__filename);
 
 const require = createRequire(import.meta.url);
 
-// This is a workaround to ensure that all functions defined in WorkflowTypeMap are exported from the workflows file
-// They must be individually exported from the file, and it's impossible to check completeness of exports in the file itself
+// Ensures that all functions defined in WorkflowTypeMap are exported from the
+// workflows file. They must be individually exported, and it's impossible to
+// check completeness of exports in the file itself.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const exportMap: WorkflowTypeMap = workflows;
 
@@ -52,99 +63,36 @@ export const logger = new Logger({
   serviceName: "integration-worker",
 });
 
-const TEMPORAL_HOST = new URL(
-  process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost",
-).hostname;
-const TEMPORAL_PORT = process.env.HASH_TEMPORAL_SERVER_PORT
-  ? parseInt(process.env.HASH_TEMPORAL_SERVER_PORT, 10)
-  : 7233;
-
-const createHealthCheckServer = () => {
-  const server = http.createServer((req, res) => {
-    if (req.method === "GET" && req.url === "/health") {
-      res.setHeader("Content-Type", "application/json");
-      res.writeHead(200);
-      res.end(
-        JSON.stringify({
-          msg: "worker healthy",
-        }),
-      );
-      return;
-    }
-    res.writeHead(404);
-    res.end("");
-  });
-
-  return server;
-};
-
-const workflowOption = () =>
+const workflowSource: WorkflowSource =
   process.env.NODE_ENV === "production"
     ? {
-        workflowBundle: {
-          codePath: require.resolve("../dist/workflow-bundle.js"),
-        },
+        kind: "bundle",
+        bundle: { codePath: require.resolve("../dist/workflow-bundle.js") },
       }
-    : { workflowsPath: require.resolve("./workflows") };
+    : { kind: "path", workflowsPath: require.resolve("./workflows") };
 
 async function run() {
-  // eslint-disable-next-line no-console
-  console.info("Starting integration worker...");
-
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   });
 
-  const worker = await Worker.create({
-    ...workflowOption(),
+  await runWorker({
+    serviceName: "integration worker",
+    taskQueue: "integration",
+    healthCheckPort: 4300,
     activities: {
-      ...linearActivities.createLinearIntegrationActivities({
-        graphApiClient,
-      }),
-      ...createFlowActivities({
-        graphApiClient,
-      }),
+      ...linearActivities.createLinearIntegrationActivities({ graphApiClient }),
+      ...createFlowActivities({ graphApiClient }),
       ...createCommonFlowActivities({ graphApiClient }),
     },
-    connection: await NativeConnection.connect({
-      address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
-    }),
-    namespace: "HASH",
-    taskQueue: "integration",
-    sinks: { ...defaultSinks(), ...sentrySinks() },
-    interceptors: {
-      workflowModules: [
-        require.resolve(
-          "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
-        ),
-      ],
-      activityInbound: [(ctx) => new SentryActivityInboundInterceptor(ctx)],
-    },
+    workflowSource,
+    otelSetup,
+    logger,
   });
-
-  const httpServer = createHealthCheckServer();
-  const port = 4300;
-  httpServer.listen({ host: "0.0.0.0", port });
-  // eslint-disable-next-line no-console
-  console.info(`HTTP server listening on port ${port}`);
-
-  await worker.run();
 }
 
-process.on("SIGINT", () => {
-  // eslint-disable-next-line no-console
-  console.info("Received SIGINT, exiting...");
-  process.exit(1);
-});
-process.on("SIGTERM", () => {
-  // eslint-disable-next-line no-console
-  console.info("Received SIGTERM, exiting...");
-  process.exit(1);
-});
-
-run().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error(err);
+run().catch((error: unknown) => {
+  logger.error("Error running worker", { error });
   process.exit(1);
 });
