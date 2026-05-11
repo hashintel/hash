@@ -275,7 +275,11 @@ export const BaseInput = ({
           className={classes.clear}
           aria-label="Clear input"
         >
-          <Icon name="close" size={size} className={classes.clearIcon} />
+          <Icon
+            name="close"
+            size={iconSizeMap[size]}
+            className={classes.clearIcon}
+          />
         </button>
       )}
 

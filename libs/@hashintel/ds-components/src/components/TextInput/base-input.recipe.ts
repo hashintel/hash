@@ -21,12 +21,11 @@ export const baseInputRecipe = sva({
     root: {
       display: "inline-flex",
       position: "relative",
-      borderWidth: "1px",
+      border: "1px solid transparent",
       width: "[100%]",
-      _focusWithin: {
-        outline: "[1px solid]",
-        outlineColor: "colorPalette.bd.solid",
-      },
+      "--base-input-focus-color": "var(--colors-bd-solid)",
+      "--base-input-border-color": "var(--colors-bd-solid)",
+      "--base-input-border-hover-color": "var(--colors-neutral-s80)",
       "&:not(.layer-style_disabled):hover [data-part='clear']": {
         display: "flex",
       },
@@ -51,7 +50,7 @@ export const baseInputRecipe = sva({
       flex: "1",
       minWidth: "0",
       width: "[100%]",
-      padding: "0",
+      paddingY: "var(--base-input-padding-y)",
       appearance: "none",
       outline: "0",
       border: "none",
@@ -124,32 +123,45 @@ export const baseInputRecipe = sva({
       alignItems: "center",
       pointerEvents: "none",
       overflow: "hidden",
+      paddingY: "var(--base-input-padding-y)",
     },
   },
   variants: {
     variant: {
       default: {
         root: {
-          borderColor: "bd.solid",
+          borderColor: "var(--base-input-border-color)",
           color: "fg.body",
           bg: "white",
           "&:not(.layer-style_disabled):hover": {
-            borderColor: "neutral.s80",
+            borderColor: "var(--base-input-border-hover-color)",
             bg: "neutral.s10",
+          },
+          _focusWithin: {
+            outline: "[1px solid var(--base-input-focus-color)]",
           },
         },
         adornment: {
           background: "neutral.s20",
           paddingX: "2",
-          borderColor: "[bd.solid]",
+          borderColor: "var(--base-input-border-color)",
+        },
+        input: {
+          paddingX: "var(--base-input-padding-x)",
+        },
+        styledValueOverlay: {
+          paddingX: "var(--base-input-padding-x)",
         },
       },
       subtle: {
         root: {
-          borderColor: "[transparent]",
+          "--base-input-border-hover-color": "var(--colors-neutral-a40)",
           "&:not(.layer-style_disabled):hover": {
             background: "neutral.a10",
-            borderColor: "neutral.a40",
+            boxShadow: "[0 0 0 1px var(--base-input-border-hover-color)]",
+          },
+          _focusWithin: {
+            boxShadow: "[0 0 0 1px var(--base-input-border-color)]",
           },
         },
         adornmentButton: {
@@ -158,14 +170,13 @@ export const baseInputRecipe = sva({
         prefix: {
           paddingLeft: "1",
           _focusVisible: {
-            borderColor: "bd.solid",
-            borderRight: "1px solid var(--colors-bd-solid)",
+            borderColor: "var(--base-input-border-color)",
           },
         },
         suffix: {
           paddingRight: "1",
           _focusVisible: {
-            borderLeft: "1px solid var(--colors-bd-solid)",
+            borderColor: "var(--base-input-border-color)",
           },
         },
       },
@@ -173,13 +184,9 @@ export const baseInputRecipe = sva({
     size: {
       xs: {
         input: {
-          paddingX: "2",
-          paddingY: "0",
           textStyle: "xs",
         },
         styledValueOverlay: {
-          paddingX: "2",
-          paddingY: "0",
           textStyle: "xs",
         },
         readonly: {
@@ -187,17 +194,15 @@ export const baseInputRecipe = sva({
         },
         root: {
           borderRadius: "md",
+          "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-y": "spacing.0",
         },
       },
       sm: {
         input: {
-          paddingX: "2.5",
-          paddingY: "0.5",
           textStyle: "sm",
         },
         styledValueOverlay: {
-          paddingX: "2.5",
-          paddingY: "0.5",
           textStyle: "sm",
         },
         readonly: {
@@ -205,17 +210,15 @@ export const baseInputRecipe = sva({
         },
         root: {
           borderRadius: "lg",
+          "--base-input-padding-x": "spacing.2.5",
+          "--base-input-padding-y": "spacing.0.5",
         },
       },
       md: {
         input: {
-          paddingX: "3",
-          paddingY: "1",
           textStyle: "base",
         },
         styledValueOverlay: {
-          paddingX: "3",
-          paddingY: "1",
           textStyle: "base",
         },
         readonly: {
@@ -223,17 +226,15 @@ export const baseInputRecipe = sva({
         },
         root: {
           borderRadius: "lg",
+          "--base-input-padding-x": "spacing.3",
+          "--base-input-padding-y": "spacing.1",
         },
       },
       lg: {
         input: {
-          paddingX: "4",
-          paddingY: "2",
           textStyle: "base",
         },
         styledValueOverlay: {
-          paddingX: "4",
-          paddingY: "2",
           textStyle: "base",
         },
         readonly: {
@@ -241,18 +242,18 @@ export const baseInputRecipe = sva({
         },
         root: {
           borderRadius: "xl",
+          "--base-input-padding-x": "spacing.4",
+          "--base-input-padding-y": "spacing.2",
         },
       },
     },
     invalid: {
       true: {
         root: {
-          borderColor: "status.error.bd.solid",
-          _focusWithin: {
-            outlineColor: "status.error.bd.solid",
-          },
+          "--base-input-focus-color": "var(--colors-status-error-bd-solid)",
+          "--base-input-border-color": "var(--colors-status-error-bd-solid)",
+          "--base-input-border-hover-color": "var(--colors-red-s65)",
           "&:not(.layer-style_disabled):hover": {
-            borderColor: "red.s65",
             bg: "red.s05",
           },
         },
@@ -297,8 +298,8 @@ export const baseInputRecipe = sva({
       disabled: true,
       css: {
         root: {
+          "--base-input-border-color": "var(--colors-neutral-a50)",
           background: "neutral.a20",
-          borderColor: "neutral.a50",
           color: "neutral.s80",
         },
       },
@@ -309,6 +310,15 @@ export const baseInputRecipe = sva({
       css: {
         root: {
           color: "neutral.s80",
+        },
+      },
+    },
+    {
+      variant: "default",
+      size: "lg",
+      css: {
+        adornment: {
+          paddingX: "2.5",
         },
       },
     },
