@@ -60,8 +60,8 @@ export type BaseInputProps = {
 
 type BaseInputSlots = ReturnType<typeof baseInputRecipe>;
 type PrefixOrSuffix =
-  | { iconName: IconName; onClick?: () => void }
-  | { text: string; onClick?: () => void }
+  | { iconName: IconName; onClick?: () => void; disabled?: boolean }
+  | { text: string; onClick?: () => void; disabled?: boolean }
   | { type: "text" | "interactive"; content: React.ReactNode };
 
 function isIconAdornment(
@@ -101,11 +101,13 @@ function renderAdornment(
       <button
         type="button"
         onClick={adornment.onClick}
+        disabled={adornment.disabled}
         data-part="adornment-button"
         className={cx(
           classes[type],
           classes.adornment,
           classes.adornmentButton,
+          adornment.disabled && classes.disabledButton,
         )}
       >
         {content}
@@ -191,7 +193,7 @@ export const BaseInput = ({
   }
 
   const noAutocomplete = clearable ?? autocomplete === false;
-  const showClear = !!(clearable?.clearable && value);
+  const showClear = !!(clearable?.clearable && value && !disabled);
 
   const input = (
     <input

@@ -409,6 +409,17 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     },
   },
   {
+    key: "kitchen-sink-button-disabled",
+    clearable: true,
+    props: {
+      value: "Kitchen Sink Disabled",
+      prefix: { iconName: "search", onClick: noop, disabled: true },
+      suffix: { iconName: "close", onClick: noop },
+      loading: true,
+      disabled: true,
+    },
+  },
+  {
     key: "kitchen-sink-invalid",
     clearable: true,
     props: {

@@ -11,6 +11,7 @@ export const baseInputRecipe = sva({
     "adornment",
     "adornmentButton",
     "adornmentText",
+    "disabledButton",
     "loading",
     "clear",
     "clearIcon",
@@ -84,13 +85,20 @@ export const baseInputRecipe = sva({
       cursor: "pointer",
       padding: "0",
       transition: "[background 0.15s ease]",
-      _hover: { background: "neutral.s30", color: "neutral.s120" },
+      "&:not([disabled]):hover": {
+        background: "neutral.s30",
+        color: "neutral.s120",
+      },
       _focusVisible: {
         outline: "1px solid var(--colors-neutral-s80)",
         outlineOffset: "0",
         background: "neutral.s25",
       },
       _focus: { outline: "none" },
+    },
+    disabledButton: {
+      cursor: "auto",
+      color: "fg.muted",
     },
     adornmentText: {
       color: "fg.muted",
