@@ -24,6 +24,7 @@ export const baseInputRecipe = sva({
       display: "inline-flex",
       position: "relative",
       border: "1px solid transparent",
+      borderRadius: "var(--base-input-border-radius)",
       transition: "[background 0.15s ease, border 0.15s ease]",
       width: "[100%]",
       "--base-input-focus-color": "var(--colors-bd-solid)",
@@ -49,7 +50,7 @@ export const baseInputRecipe = sva({
       flex: "1",
       minWidth: "0",
       alignItems: "center",
-      borderRadius: "[inherit]",
+      borderRadius: "var(--base-input-border-radius)",
     },
     input: {
       flex: "1",
@@ -61,7 +62,7 @@ export const baseInputRecipe = sva({
       border: "none",
       bg: "[inherit]",
       color: "[inherit]",
-      borderRadius: "[inherit]",
+      borderRadius: "var(--base-input-border-radius)",
       _placeholder: { color: "neutral.s80" },
       _disabled: { cursor: "auto" },
     },
@@ -70,11 +71,11 @@ export const baseInputRecipe = sva({
       caretColor: "[transparent]",
     },
     prefix: {
-      borderLeftRadius: "[inherit]",
+      borderLeftRadius: "var(--base-input-border-radius)",
       borderRight: "1px solid transparent",
     },
     suffix: {
-      borderRightRadius: "[inherit]",
+      borderRightRadius: "var(--base-input-border-radius)",
       borderLeft: "1px solid transparent",
     },
     adornment: {
@@ -135,7 +136,6 @@ export const baseInputRecipe = sva({
       transition: "[opacity 0.08s ease]",
       color: "neutral.s110",
       cursor: "pointer",
-      borderRadius: "[inherit]",
       _hover: { color: "neutral.s125" },
       _focus: { _after: { background: "neutral.s30" }, outline: "none" },
       _before: {
@@ -145,7 +145,7 @@ export const baseInputRecipe = sva({
         insetX: "-1.5",
         background: "white",
         zIndex: "-2",
-        borderRightRadius: "[inherit]",
+        borderRightRadius: "var(--base-input-border-radius)",
       },
       _after: {
         content: "''",
@@ -211,7 +211,7 @@ export const baseInputRecipe = sva({
             position: "absolute",
             insetY: "[-1px]",
             insetX: "[calc(-1 * var(--base-input-padding-x))]",
-            borderRadius: "[inherit]",
+            borderRadius: "var(--base-input-border-radius)",
             border: "1px solid transparent",
             pointerEvents: "none",
           },
@@ -268,7 +268,7 @@ export const baseInputRecipe = sva({
           textStyle: "xs",
         },
         root: {
-          borderRadius: "md",
+          "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
           "--base-input-padding-y": "spacing.0",
         },
@@ -284,7 +284,7 @@ export const baseInputRecipe = sva({
           textStyle: "sm",
         },
         root: {
-          borderRadius: "lg",
+          "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
           "--base-input-padding-y": "spacing.0.5",
         },
@@ -300,7 +300,7 @@ export const baseInputRecipe = sva({
           textStyle: "base",
         },
         root: {
-          borderRadius: "lg",
+          "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
           "--base-input-padding-y": "spacing.1",
         },
@@ -316,7 +316,7 @@ export const baseInputRecipe = sva({
           textStyle: "base",
         },
         root: {
-          borderRadius: "xl",
+          "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
           "--base-input-padding-y": "spacing.2",
         },
@@ -390,6 +390,26 @@ export const baseInputRecipe = sva({
           "--base-input-border-color": "var(--colors-neutral-a50)",
           background: "neutral.s20",
           color: "neutral.s80",
+        },
+        adornmentButton: {
+          "&:hover::after": {
+            content: "''",
+            position: "absolute",
+            inset: "[-1px]",
+            border: "1px solid var(--base-input-border-hover-color)",
+            borderRadius: "var(--base-input-border-radius)",
+            pointerEvents: "none",
+          },
+        },
+        adornmentInteractive: {
+          "&:hover:after": {
+            content: "''",
+            position: "absolute",
+            inset: "[-1px]",
+            border: "1px solid var(--base-input-border-hover-color)",
+            borderRadius: "var(--base-input-border-radius)",
+            pointerEvents: "none",
+          },
         },
       },
     },
