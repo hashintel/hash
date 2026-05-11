@@ -77,6 +77,7 @@ function isTextAdornment(
 }
 
 export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+  xxs: "xs",
   xs: "xs",
   sm: "sm",
   md: "md",
@@ -86,7 +87,7 @@ export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
 function renderAdornment(
   type: "prefix" | "suffix",
   adornment: PrefixOrSuffix,
-  size: "xs" | "sm" | "md" | "lg",
+  size: FormInputSize,
   classes: BaseInputSlots,
 ): React.ReactNode {
   const content = isIconAdornment(adornment) ? (
@@ -297,7 +298,7 @@ export const BaseInput = ({
 
       {loading && (
         <span className={classes.loading} data-part="loading">
-          <LoadingSpinner size={iconSizeMap[size]} />
+          <LoadingSpinner size={iconSizeMap[size]} variant="bars" />
         </span>
       )}
 

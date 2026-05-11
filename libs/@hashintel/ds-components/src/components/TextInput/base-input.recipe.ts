@@ -257,8 +257,30 @@ export const baseInputRecipe = sva({
       },
     },
     size: {
+      xxs: {
+        input: {
+          textStyle: "xxs",
+        },
+        adornment: {
+          textStyle: "xxs",
+        },
+        styledValueOverlay: {
+          textStyle: "xxs",
+        },
+        readonly: {
+          textStyle: "xxs",
+        },
+        root: {
+          "--base-input-border-radius": "radii.md",
+          "--base-input-padding-x": "spacing.2",
+          "--base-input-padding-y": "1px",
+        },
+      },
       xs: {
         input: {
+          textStyle: "xs",
+        },
+        adornment: {
           textStyle: "xs",
         },
         styledValueOverlay: {
@@ -277,6 +299,9 @@ export const baseInputRecipe = sva({
         input: {
           textStyle: "sm",
         },
+        adornment: {
+          textStyle: "sm",
+        },
         styledValueOverlay: {
           textStyle: "sm",
         },
@@ -293,6 +318,9 @@ export const baseInputRecipe = sva({
         input: {
           textStyle: "base",
         },
+        adornment: {
+          textStyle: "base",
+        },
         styledValueOverlay: {
           textStyle: "base",
         },
@@ -307,6 +335,9 @@ export const baseInputRecipe = sva({
       },
       lg: {
         input: {
+          textStyle: "base",
+        },
+        adornment: {
           textStyle: "base",
         },
         styledValueOverlay: {
