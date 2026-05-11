@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-shadow, react/no-array-index-key */
+/* eslint-disable react/no-array-index-key */
 
 import { Carousel, useCarouselContext } from "@ark-ui/react/carousel";
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
