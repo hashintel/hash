@@ -10,7 +10,9 @@ import {
 } from "../frames/internal-frame";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
 import type {
+  CompiledTransition,
   EngineFrame,
+  LambdaFn,
   SimulationInstance,
   TransitionKernelFn,
 } from "./types";
@@ -83,6 +85,67 @@ function makeTransition(
   };
 }
 
+function makeCompiledTransitions({
+  places,
+  transitions,
+  types,
+  lambdaFns,
+  transitionKernelFns,
+}: {
+  places: Place[];
+  transitions: Transition[];
+  types: Color[];
+  lambdaFns: ReadonlyMap<string, LambdaFn>;
+  transitionKernelFns: ReadonlyMap<string, TransitionKernelFn>;
+}): Map<string, CompiledTransition> {
+  const placesMap = new Map(places.map((place) => [place.id, place]));
+  const typesMap = new Map(types.map((type) => [type.id, type]));
+  const getElementNames = (placeId: string) => {
+    const place = placesMap.get(placeId);
+    if (!place?.colorId) {
+      return null;
+    }
+
+    return (
+      typesMap.get(place.colorId)?.elements.map((element) => element.name) ??
+      null
+    );
+  };
+
+  return new Map(
+    transitions.map((transition) => {
+      const lambdaFn = lambdaFns.get(transition.id);
+      const transitionKernelFn = transitionKernelFns.get(transition.id);
+      if (!lambdaFn || !transitionKernelFn) {
+        throw new Error(`Missing compiled functions for ${transition.id}`);
+      }
+
+      return [
+        transition.id,
+        {
+          id: transition.id,
+          name: transition.name,
+          inputPlaces: transition.inputArcs.map((arc) => ({
+            placeId: arc.placeId,
+            placeName: placesMap.get(arc.placeId)?.name ?? arc.placeId,
+            weight: arc.weight,
+            arcType: arc.type,
+            elementNames: getElementNames(arc.placeId),
+          })),
+          outputPlaces: transition.outputArcs.map((arc) => ({
+            placeId: arc.placeId,
+            placeName: placesMap.get(arc.placeId)?.name ?? arc.placeId,
+            weight: arc.weight,
+            elementNames: getElementNames(arc.placeId),
+          })),
+          lambdaFn,
+          transitionKernelFn,
+        },
+      ];
+    }),
+  );
+}
+
 function makeSimulation({
   places = [],
   transitions,
@@ -93,8 +156,8 @@ function makeSimulation({
   places?: Place[];
   transitions: Transition[];
   types?: Color[];
-  lambdaFns: SimulationInstance["lambdaFns"];
-  transitionKernelFns: SimulationInstance["transitionKernelFns"];
+  lambdaFns: ReadonlyMap<string, LambdaFn>;
+  transitionKernelFns: ReadonlyMap<string, TransitionKernelFn>;
 }): SimulationInstance {
   const frameLayout = createEngineFrameLayout({
     places,
@@ -109,8 +172,13 @@ function makeSimulation({
     ),
     types: new Map(types.map((type) => [type.id, type])),
     differentialEquationFns: new Map(),
-    lambdaFns,
-    transitionKernelFns,
+    compiledTransitions: makeCompiledTransitions({
+      places,
+      transitions,
+      types,
+      lambdaFns,
+      transitionKernelFns,
+    }),
     parameterValues: {},
     dt: 0.1,
     maxTime: null,

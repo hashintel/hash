@@ -248,17 +248,16 @@ describe("buildSimulation", () => {
 
     // Verify all compiled functions exist
     expect(simulationInstance.differentialEquationFns.size).toBe(3);
-    expect(simulationInstance.lambdaFns.size).toBe(2);
-    expect(simulationInstance.transitionKernelFns.size).toBe(2);
+    expect(simulationInstance.compiledTransitions.size).toBe(2);
 
     // Verify compiled functions are callable
-    const lambdaFn = simulationInstance.lambdaFns.get("t1");
-    expect(lambdaFn).toBeDefined();
-    expect(typeof lambdaFn).toBe("function");
+    const compiledTransition = simulationInstance.compiledTransitions.get("t1");
+    expect(compiledTransition).toBeDefined();
+    expect(typeof compiledTransition?.lambdaFn).toBe("function");
 
-    const kernelFn = simulationInstance.transitionKernelFns.get("t2");
-    expect(kernelFn).toBeDefined();
-    expect(typeof kernelFn).toBe("function");
+    const kernelTransition = simulationInstance.compiledTransitions.get("t2");
+    expect(kernelTransition).toBeDefined();
+    expect(typeof kernelTransition?.transitionKernelFn).toBe("function");
   });
 
   it("throws error when initialMarking references non-existent place", () => {

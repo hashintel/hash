@@ -29,23 +29,51 @@ export type DifferentialEquationFn = (
   numberOfTokens: number,
 ) => Float64Array;
 
-/**
- * Compiled lambda function for transition firing probability.
- * Returns a rate (number) for stochastic transitions or a boolean for predicate transitions.
- */
-export type LambdaFn = (
-  tokenValues: Record<string, Record<string, number>[]>,
-  parameters: ParameterValues,
-) => number | boolean;
+export type TransitionTokenValues = Record<string, Record<string, number>[]>;
+export type TransitionKernelOutput = Record<
+  string,
+  Record<string, number | RuntimeDistribution>[]
+>;
 
 /**
- * Compiled transition kernel function for token generation.
+ * Engine-facing lambda function for transition firing probability.
+ *
+ * Runtime parameter values are already bound by `buildSimulation`.
+ *
+ * Returns a rate (number) for stochastic transitions or a boolean for predicate transitions.
+ */
+export type LambdaFn = (tokenValues: TransitionTokenValues) => number | boolean;
+
+/**
+ * Engine-facing transition kernel function for token generation.
+ *
+ * Runtime parameter values are already bound by `buildSimulation`.
+ *
  * Computes the output tokens to create when a transition fires.
  */
 export type TransitionKernelFn = (
-  tokenValues: Record<string, Record<string, number>[]>,
-  parameters: ParameterValues,
-) => Record<string, Record<string, number | RuntimeDistribution>[]>;
+  tokenValues: TransitionTokenValues,
+) => TransitionKernelOutput;
+
+export type CompiledTransitionPlace = {
+  placeId: string;
+  placeName: string;
+  weight: number;
+  elementNames: readonly string[] | null;
+};
+
+export type CompiledTransitionInputPlace = CompiledTransitionPlace & {
+  arcType: "standard" | "inhibitor";
+};
+
+export type CompiledTransition = {
+  id: string;
+  name: string;
+  inputPlaces: readonly CompiledTransitionInputPlace[];
+  outputPlaces: readonly CompiledTransitionPlace[];
+  lambdaFn: LambdaFn;
+  transitionKernelFn: TransitionKernelFn;
+};
 
 /**
  * Input configuration for building a new simulation instance.
@@ -78,10 +106,8 @@ export type SimulationInstance = {
   types: Map<string, Color>;
   /** Compiled differential equation functions indexed by place ID */
   differentialEquationFns: Map<string, DifferentialEquationFn>;
-  /** Compiled lambda functions indexed by transition ID */
-  lambdaFns: Map<string, LambdaFn>;
-  /** Compiled transition kernel functions indexed by transition ID */
-  transitionKernelFns: Map<string, TransitionKernelFn>;
+  /** Transition definitions specialized for runtime execution. */
+  compiledTransitions: Map<string, CompiledTransition>;
   /** Resolved parameter values for this simulation run */
   parameterValues: ParameterValues;
   /** Time step for simulation advancement */

@@ -10,12 +10,15 @@ import {
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import type {
+  CompiledTransition,
   DifferentialEquationFn,
   LambdaFn,
   ParameterValues,
   SimulationInput,
   SimulationInstance,
+  TransitionKernelOutput,
   TransitionKernelFn,
+  TransitionTokenValues,
 } from "./types";
 
 type PackedInitialPlaceMarking = {
@@ -27,6 +30,16 @@ type UserDifferentialEquationFn = (
   tokens: Record<string, number>[],
   parameters: ParameterValues,
 ) => Record<string, number>[];
+
+type UserLambdaFn = (
+  tokenValues: TransitionTokenValues,
+  parameters: ParameterValues,
+) => number | boolean;
+
+type UserTransitionKernelFn = (
+  tokenValues: TransitionTokenValues,
+  parameters: ParameterValues,
+) => TransitionKernelOutput;
 
 function getInitialMarkingValue(
   initialMarking: SimulationInput["initialMarking"],
@@ -163,6 +176,140 @@ function createDifferentialEquationFn({
   };
 }
 
+function getPlaceElementNames(
+  placeId: string,
+  placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>,
+  typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>,
+): readonly string[] | null {
+  const place = placesMap.get(placeId);
+  if (!place) {
+    throw new Error(
+      `Place with ID ${placeId} referenced by transition does not exist in SDCPN`,
+    );
+  }
+
+  if (!place.colorId) {
+    return null;
+  }
+
+  const type = typesMap.get(place.colorId);
+  if (!type) {
+    throw new Error(
+      `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`,
+    );
+  }
+
+  return type.elements.map((element) => element.name);
+}
+
+function createLambdaFn(
+  transition: SimulationInput["sdcpn"]["transitions"][number],
+  parameterValues: ParameterValues,
+): LambdaFn {
+  try {
+    const userFn = compileUserCode<[TransitionTokenValues, ParameterValues]>(
+      transition.lambdaCode,
+      "Lambda",
+    ) as UserLambdaFn;
+
+    return (tokenValues) => userFn(tokenValues, parameterValues);
+  } catch (error) {
+    throw new SDCPNItemError(
+      `Failed to compile Lambda function for transition \`${
+        transition.name
+      }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
+      transition.id,
+    );
+  }
+}
+
+function createTransitionKernelFn({
+  transition,
+  placesMap,
+  parameterValues,
+}: {
+  transition: SimulationInput["sdcpn"]["transitions"][number];
+  placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>;
+  parameterValues: ParameterValues;
+}): TransitionKernelFn {
+  const hasTypedOutputPlace = transition.outputArcs.some((arc) => {
+    const place = placesMap.get(arc.placeId);
+    return Boolean(place?.colorId);
+  });
+
+  if (!hasTypedOutputPlace) {
+    return () => ({});
+  }
+
+  try {
+    const userFn = compileUserCode<[TransitionTokenValues, ParameterValues]>(
+      transition.transitionKernelCode,
+      "TransitionKernel",
+    ) as UserTransitionKernelFn;
+
+    return (tokenValues) => userFn(tokenValues, parameterValues);
+  } catch (error) {
+    throw new SDCPNItemError(
+      `Failed to compile transition kernel for transition \`${
+        transition.name
+      }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
+      transition.id,
+    );
+  }
+}
+
+function createCompiledTransition({
+  transition,
+  placesMap,
+  typesMap,
+  lambdaFn,
+  transitionKernelFn,
+}: {
+  transition: SimulationInput["sdcpn"]["transitions"][number];
+  placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>;
+  typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>;
+  lambdaFn: LambdaFn;
+  transitionKernelFn: TransitionKernelFn;
+}): CompiledTransition {
+  return {
+    id: transition.id,
+    name: transition.name,
+    inputPlaces: transition.inputArcs.map((arc) => {
+      const place = placesMap.get(arc.placeId);
+      if (!place) {
+        throw new Error(
+          `Input place with ID ${arc.placeId} referenced by transition ${transition.id} does not exist in SDCPN`,
+        );
+      }
+
+      return {
+        placeId: arc.placeId,
+        placeName: place.name,
+        weight: arc.weight,
+        arcType: arc.type,
+        elementNames: getPlaceElementNames(arc.placeId, placesMap, typesMap),
+      };
+    }),
+    outputPlaces: transition.outputArcs.map((arc) => {
+      const place = placesMap.get(arc.placeId);
+      if (!place) {
+        throw new Error(
+          `Output place with ID ${arc.placeId} referenced by transition ${transition.id} does not exist in SDCPN`,
+        );
+      }
+
+      return {
+        placeId: arc.placeId,
+        placeName: place.name,
+        weight: arc.weight,
+        elementNames: getPlaceElementNames(arc.placeId, placesMap, typesMap),
+      };
+    }),
+    lambdaFn,
+    transitionKernelFn,
+  };
+}
+
 /**
  * Builds a simulation instance and its initial frame from simulation input.
  *
@@ -281,57 +428,23 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
   }
 
-  // Compile all lambda functions
-  const lambdaFns = new Map<string, LambdaFn>();
+  // Compile transitions into the shape used by the execution hot path.
+  const compiledTransitions = new Map<string, CompiledTransition>();
   for (const transition of sdcpn.transitions) {
-    try {
-      const fn = compileUserCode<
-        [Record<string, Record<string, number>[]>, ParameterValues]
-      >(transition.lambdaCode, "Lambda");
-      lambdaFns.set(transition.id, fn as LambdaFn);
-    } catch (error) {
-      throw new SDCPNItemError(
-        `Failed to compile Lambda function for transition \`${
-          transition.name
-        }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
-        transition.id,
-      );
-    }
-  }
-
-  // Compile all transition kernel functions
-  const transitionKernelFns = new Map<string, TransitionKernelFn>();
-  for (const transition of sdcpn.transitions) {
-    // Skip transitions without output places that have types
-    // (they won't need to generate token data)
-    const hasTypedOutputPlace = transition.outputArcs.some((arc) => {
-      const place = placesMap.get(arc.placeId);
-      return place && place.colorId;
-    });
-
-    if (!hasTypedOutputPlace) {
-      // Set a dummy function that returns an empty object for transitions
-      // without typed output places (they don't need to generate token data)
-      transitionKernelFns.set(
-        transition.id,
-        (() => ({})) as TransitionKernelFn,
-      );
-      continue;
-    }
-
-    try {
-      const fn = compileUserCode<
-        [Record<string, Record<string, number>[]>, ParameterValues]
-      >(transition.transitionKernelCode, "TransitionKernel");
-      transitionKernelFns.set(transition.id, fn as TransitionKernelFn);
-    } catch (error) {
-      throw new SDCPNItemError(
-        `Failed to compile transition kernel for transition \`${
-          transition.name
-        }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
-        transition.id,
-      );
-    }
+    compiledTransitions.set(
+      transition.id,
+      createCompiledTransition({
+        transition,
+        placesMap,
+        typesMap,
+        lambdaFn: createLambdaFn(transition, parameterValues),
+        transitionKernelFn: createTransitionKernelFn({
+          transition,
+          placesMap,
+          parameterValues,
+        }),
+      }),
+    );
   }
 
   // Calculate buffer size and build place states
@@ -383,8 +496,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     transitions: transitionsMap,
     types: typesMap,
     differentialEquationFns,
-    lambdaFns,
-    transitionKernelFns,
+    compiledTransitions,
     parameterValues,
     dt,
     maxTime,
