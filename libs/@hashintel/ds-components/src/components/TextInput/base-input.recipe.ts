@@ -82,12 +82,11 @@ export const baseInputRecipe = sva({
     adornmentButton: {
       color: "fg.body",
       cursor: "pointer",
-      borderWidth: "0",
       padding: "0",
       transition: "[background 0.15s ease]",
       _hover: { background: "neutral.s30", color: "neutral.s120" },
       _focusVisible: {
-        outline: "[1px solid var(--colors-neutral-s80)]",
+        outline: "1px solid var(--colors-neutral-s80)",
         outlineOffset: "0",
         background: "neutral.s25",
       },
@@ -146,6 +145,9 @@ export const baseInputRecipe = sva({
           paddingX: "2",
           borderColor: "var(--base-input-border-color)",
         },
+        adornmentButton: {
+          borderColor: "var(--colors-bd-solid)",
+        },
         input: {
           paddingX: "var(--base-input-padding-x)",
         },
@@ -156,28 +158,40 @@ export const baseInputRecipe = sva({
       subtle: {
         root: {
           "--base-input-border-hover-color": "var(--colors-neutral-a40)",
+          _before: {
+            content: '""',
+            position: "absolute",
+            insetY: "0",
+            insetX: "[calc(-1 * var(--base-input-padding-x))]",
+            borderRadius: "[inherit]",
+            border: "1px solid transparent",
+            pointerEvents: "none",
+          },
           "&:not(.layer-style_disabled):hover": {
-            background: "neutral.a10",
-            boxShadow: "[0 0 0 1px var(--base-input-border-hover-color)]",
+            _before: {
+              borderColor: "var(--base-input-border-hover-color)",
+            },
           },
           _focusWithin: {
-            boxShadow: "[0 0 0 1px var(--base-input-border-color)]",
+            _before: {
+              borderColor: "var(--base-input-border-color)",
+            },
           },
-        },
-        adornmentButton: {
-          paddingX: "1",
         },
         prefix: {
           paddingLeft: "1",
           _focusVisible: {
-            borderColor: "var(--base-input-border-color)",
+            borderColor: "var(--colors-bd-solid)",
           },
         },
         suffix: {
           paddingRight: "1",
           _focusVisible: {
-            borderColor: "var(--base-input-border-color)",
+            borderColor: "var(--colors-bd-solid)",
           },
+        },
+        adornmentButton: {
+          paddingX: "1",
         },
       },
     },
@@ -253,9 +267,6 @@ export const baseInputRecipe = sva({
           "--base-input-focus-color": "var(--colors-status-error-bd-solid)",
           "--base-input-border-color": "var(--colors-status-error-bd-solid)",
           "--base-input-border-hover-color": "var(--colors-red-s65)",
-          "&:not(.layer-style_disabled):hover": {
-            bg: "red.s05",
-          },
         },
       },
     },
@@ -319,6 +330,17 @@ export const baseInputRecipe = sva({
       css: {
         adornment: {
           paddingX: "2.5",
+        },
+      },
+    },
+    {
+      variant: "default",
+      invalid: true,
+      css: {
+        root: {
+          "&:not(.layer-style_disabled):hover": {
+            bg: "red.s05",
+          },
         },
       },
     },
