@@ -23,6 +23,11 @@ type PackedInitialPlaceMarking = {
   count: number;
 };
 
+type UserDifferentialEquationFn = (
+  tokens: Record<string, number>[],
+  parameters: ParameterValues,
+) => Record<string, number>[];
+
 function getInitialMarkingValue(
   initialMarking: SimulationInput["initialMarking"],
   placeId: string,
@@ -100,6 +105,62 @@ function packInitialPlaceMarking(
   }
 
   return { values, count: value.length };
+}
+
+function createDifferentialEquationFn({
+  placeId,
+  elementNames,
+  parameterValues,
+  userFn,
+}: {
+  placeId: string;
+  elementNames: string[];
+  parameterValues: ParameterValues;
+  userFn: UserDifferentialEquationFn;
+}): DifferentialEquationFn {
+  const expectedDimensions = elementNames.length;
+
+  return (currentState, dimensions, numberOfTokens) => {
+    if (dimensions !== expectedDimensions) {
+      throw new Error(
+        `Place ${placeId} has ${dimensions} dimensions in frame, expected ${expectedDimensions}`,
+      );
+    }
+
+    const inputTokens: Record<string, number>[] = [];
+    for (let tokenIndex = 0; tokenIndex < numberOfTokens; tokenIndex++) {
+      const tokenStart = tokenIndex * dimensions;
+      const token: Record<string, number> = {};
+      for (
+        let dimensionIndex = 0;
+        dimensionIndex < dimensions;
+        dimensionIndex++
+      ) {
+        token[elementNames[dimensionIndex]!] =
+          currentState[tokenStart + dimensionIndex]!;
+      }
+      inputTokens.push(token);
+    }
+
+    const resultTokens = userFn(inputTokens, parameterValues);
+    const result = new Float64Array(numberOfTokens * dimensions);
+    const tokenCount = Math.min(resultTokens.length, numberOfTokens);
+
+    for (let tokenIndex = 0; tokenIndex < tokenCount; tokenIndex++) {
+      const token = resultTokens[tokenIndex]!;
+      for (
+        let dimensionIndex = 0;
+        dimensionIndex < dimensions;
+        dimensionIndex++
+      ) {
+        const dimensionName = elementNames[dimensionIndex]!;
+        result[tokenIndex * dimensions + dimensionIndex] =
+          token[dimensionName]!;
+      }
+    }
+
+    return result;
+  };
 }
 
 /**
@@ -187,11 +248,29 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     const { code } = differentialEquation;
 
     try {
-      const fn = compileUserCode<[Record<string, number>[], ParameterValues]>(
-        code,
-        "Dynamics",
+      if (!place.colorId) {
+        continue;
+      }
+
+      const type = typesMap.get(place.colorId);
+      if (!type) {
+        throw new Error(
+          `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`,
+        );
+      }
+
+      const userFn = compileUserCode<
+        [Record<string, number>[], ParameterValues]
+      >(code, "Dynamics") as UserDifferentialEquationFn;
+      differentialEquationFns.set(
+        place.id,
+        createDifferentialEquationFn({
+          placeId: place.id,
+          elementNames: type.elements.map((element) => element.name),
+          parameterValues,
+          userFn,
+        }),
       );
-      differentialEquationFns.set(place.id, fn as DifferentialEquationFn);
     } catch (error) {
       throw new SDCPNItemError(
         `Failed to compile differential equation for place \`${

@@ -75,112 +75,26 @@ export function computeNextFrame(
   if (simulation.differentialEquationFns.size > 0) {
     const newBuffer = new Float64Array(currentSnapshot.buffer);
 
-    // Apply differential equations to each place that has dynamics enabled
-    for (const [placeId, placeState] of Object.entries(
-      currentSnapshot.places,
-    )) {
-      // Get the place instance from the simulation
-      const place = simulation.places.get(placeId);
-      if (!place) {
-        throw new Error(`Place with ID ${placeId} not found in simulation`);
+    for (const [
+      placeId,
+      differentialEquation,
+    ] of simulation.differentialEquationFns) {
+      const placeState = currentSnapshot.places[placeId];
+      if (!placeState) {
+        throw new Error(`Place with ID ${placeId} not found in frame`);
       }
-
-      // Skip places without dynamics enabled
-      if (!place.dynamicsEnabled) {
-        continue;
-      }
-
-      // Skip places without a type (no dimensions to work with)
-      if (!place.colorId) {
-        continue;
-      }
-
-      // Get the differential equation function for this place
-      const diffEqFn = simulation.differentialEquationFns.get(placeId);
-      if (!diffEqFn) {
-        // No differential equation defined for this place, skip
-        continue;
-      }
-
       const { offset, count, dimensions } = placeState;
       const placeSize = count * dimensions;
-
-      // Extract the current state for this place from the buffer
       const placeBuffer = currentSnapshot.buffer.slice(
         offset,
         offset + placeSize,
       );
 
-      // Get the type definition to access dimension names
-      const typeId = place.colorId;
-      if (!typeId) {
-        continue; // This shouldn't happen due to earlier check, but be safe
-      }
-
-      const type = simulation.types.get(typeId);
-      if (!type) {
-        throw new Error(
-          `Type with ID ${typeId} referenced by place ${placeId} does not exist in simulation`,
-        );
-      }
-
-      // ADAPTER
-      // This could also allow for different modes, like:
-      // - Buffer mode: passing Float64Array directly
-      // - Object mode: passing array of objects
-      // Right now, we pass objects with named dimensions
-
-      // Convert buffer to token array with named dimensions (Record<string, number>[])
-      const tokens: Record<string, number>[] = [];
-      for (let tokenIdx = 0; tokenIdx < count; tokenIdx++) {
-        const tokenStart = tokenIdx * dimensions;
-        const token: Record<string, number> = {};
-        for (let dimIdx = 0; dimIdx < dimensions; dimIdx++) {
-          const dimensionName = type.elements[dimIdx]!.name;
-          token[dimensionName] = placeBuffer[tokenStart + dimIdx]!;
-        }
-        tokens.push(token);
-      }
-
-      // Compute the next state using the differential equation
-      // The DifferentialEquationFn now expects tokens as Record<string, number>[]
-      const wrappedDiffEq = (
-        currentState: Float64Array,
-        _dimensions: number,
-        _numberOfTokens: number,
-      ): Float64Array => {
-        // Convert Float64Array to token array for the user function
-        const inputTokens: Record<string, number>[] = [];
-        for (let tokenIdx = 0; tokenIdx < count; tokenIdx++) {
-          const tokenStart = tokenIdx * dimensions;
-          const token: Record<string, number> = {};
-          for (let dimIdx = 0; dimIdx < dimensions; dimIdx++) {
-            const dimensionName = type.elements[dimIdx]!.name;
-            token[dimensionName] = currentState[tokenStart + dimIdx]!;
-          }
-          inputTokens.push(token);
-        }
-
-        // Call the user's differential equation function with token array
-        const resultTokens = diffEqFn(inputTokens, simulation.parameterValues);
-
-        // Convert result back to Float64Array
-        const result = new Float64Array(count * dimensions);
-        for (let tokenIdx = 0; tokenIdx < resultTokens.length; tokenIdx++) {
-          const token = resultTokens[tokenIdx]!;
-          for (let dimIdx = 0; dimIdx < dimensions; dimIdx++) {
-            const dimensionName = type.elements[dimIdx]!.name;
-            result[tokenIdx * dimensions + dimIdx] = token[dimensionName]!;
-          }
-        }
-        return result;
-      };
-
       const nextPlaceBuffer = computePlaceNextState(
         placeBuffer,
         dimensions,
         count,
-        wrappedDiffEq,
+        differentialEquation,
         "euler", // Currently only Euler method is implemented
         simulation.dt,
       );

@@ -17,13 +17,17 @@ import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
 export type ParameterValues = Record<string, number | boolean>;
 
 /**
- * Compiled differential equation function for continuous dynamics.
- * Computes the rate of change for tokens in a place with dynamics enabled.
+ * Engine-facing differential equation for one place's continuous dynamics.
+ *
+ * Today this wraps the user-authored object API and adapts it to/from the
+ * engine's packed numeric buffers. Later this can be replaced by an
+ * IR-compiled buffer-native function without changing the stepping loop.
  */
 export type DifferentialEquationFn = (
-  tokens: Record<string, number>[],
-  parameters: ParameterValues,
-) => Record<string, number>[];
+  currentState: Float64Array,
+  dimensions: number,
+  numberOfTokens: number,
+) => Float64Array;
 
 /**
  * Compiled lambda function for transition firing probability.
