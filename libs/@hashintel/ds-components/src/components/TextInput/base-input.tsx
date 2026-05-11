@@ -2,7 +2,11 @@ import { cx } from "@hashintel/ds-helpers/css";
 import { useRef, useState } from "react";
 import { useMergeRefs } from "use-callback-ref";
 
-import type { FormInputWidth, SharedInputProps } from "../../util/form-shared";
+import type {
+  FormInputSize,
+  FormInputWidth,
+  SharedInputProps,
+} from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
@@ -26,6 +30,13 @@ function isTextAdornment(
   return val != null && typeof val === "object" && "text" in val;
 }
 
+export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+  xs: "xs",
+  sm: "sm",
+  md: "md",
+  lg: "md",
+};
+
 function renderAdornment(
   type: "prefix" | "suffix",
   adornment: PrefixOrSuffix,
@@ -33,7 +44,7 @@ function renderAdornment(
   classes: BaseInputSlots,
 ): React.ReactNode {
   const content = isIconAdornment(adornment) ? (
-    <Icon name={adornment.iconName} size={size} />
+    <Icon name={adornment.iconName} size={iconSizeMap[size]} />
   ) : isTextAdornment(adornment) ? (
     adornment.text
   ) : (
@@ -266,7 +277,7 @@ export const BaseInput = ({
 
       {loading && (
         <span className={classes.loading} data-part="loading">
-          <LoadingSpinner size={size} />
+          <LoadingSpinner size={iconSizeMap[size]} />
         </span>
       )}
 
