@@ -29,7 +29,6 @@ function createMockFrameReader(number: number): SimulationFrameReader {
     toFrameState: () => ({
       number,
       places: {},
-      transitions: {},
     }),
   };
 }

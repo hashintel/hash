@@ -39,7 +39,7 @@ export type PlaybackContextValue = {
 
   /**
    * The currently viewed simulation frame state (simplified view).
-   * Provides easy access to token counts and transition states.
+   * Provides easy access to place token counts.
    * Null when no simulation is running or no frames exist.
    */
   currentViewedFrame: SimulationFrameState | null;

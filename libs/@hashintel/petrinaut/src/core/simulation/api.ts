@@ -72,32 +72,8 @@ export type CreateSimulationConfig = SimulationConfig &
   );
 
 /**
- * State of a transition within a simulation frame.
- *
- * Contains timing information and firing counts for tracking transition behavior
- * during simulation execution.
- */
-export type SimulationFrameState_Transition = {
-  /**
-   * Time elapsed since this transition last fired, in milliseconds.
-   * Resets to 0 when the transition fires.
-   */
-  timeSinceLastFiringMs: number;
-  /**
-   * Whether this transition fired in this specific frame.
-   * True only during the frame when the firing occurred.
-   */
-  firedInThisFrame: boolean;
-  /**
-   * Total cumulative count of times this transition has fired
-   * since the start of the simulation (frame 0).
-   */
-  firingCount: number;
-};
-
-/**
  * Simplified view of a simulation frame for higher-level consumers.
- * Provides easy access to place and transition states without internal details.
+ * Provides easy access to place states without internal details.
  */
 export type SimulationFrameState = {
   /** Frame index in the simulation history */
@@ -110,10 +86,6 @@ export type SimulationFrameState = {
           tokenCount: number;
         }
       | undefined;
-  };
-  /** Transition states indexed by transition ID */
-  transitions: {
-    [transitionId: string]: SimulationFrameState_Transition | undefined;
   };
 };
 
@@ -132,9 +104,23 @@ export interface SimulationFrameReader {
     place: Place,
     color: Color | null | undefined,
   ): Record<string, number>[];
-  getTransitionState(
-    transitionId: string,
-  ): SimulationFrameState_Transition | null;
+  getTransitionState(transitionId: string): {
+    /**
+     * Time elapsed since this transition last fired, in milliseconds.
+     * Resets to 0 when the transition fires.
+     */
+    timeSinceLastFiringMs: number;
+    /**
+     * Whether this transition fired in this specific frame.
+     * True only during the frame when the firing occurred.
+     */
+    firedInThisFrame: boolean;
+    /**
+     * Total cumulative count of times this transition has fired
+     * since the start of the simulation (frame 0).
+     */
+    firingCount: number;
+  } | null;
   toFrameState(): SimulationFrameState;
 }
 

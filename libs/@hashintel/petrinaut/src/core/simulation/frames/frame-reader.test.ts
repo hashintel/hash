@@ -71,9 +71,6 @@ describe("SimulationFrameReader", () => {
       places: {
         [place.id]: { tokenCount: 2 },
       },
-      transitions: {
-        "transition-1": transitionState,
-      },
     });
   });
 

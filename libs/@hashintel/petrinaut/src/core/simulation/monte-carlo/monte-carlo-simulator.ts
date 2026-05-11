@@ -1,4 +1,4 @@
-import type { SimulationConfig, SimulationFrameState_Transition } from "../api";
+import type { SimulationConfig } from "../api";
 import { buildSimulation } from "../engine/build-simulation";
 import {
   computeNextFrame,
@@ -16,7 +16,11 @@ export type MonteCarloFrameView = {
   getTransitionState(
     this: void,
     transitionId: string,
-  ): SimulationFrameState_Transition | null;
+  ): {
+    timeSinceLastFiringMs: number;
+    firedInThisFrame: boolean;
+    firingCount: number;
+  } | null;
   getTransitionFiringCount(this: void, transitionId: string): number;
 };
 

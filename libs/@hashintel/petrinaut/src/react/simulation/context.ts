@@ -6,7 +6,6 @@ import type {
   InitialPlaceMarking,
   SimulationFrameReader,
   SimulationFrameState,
-  SimulationFrameState_Transition,
 } from "../../core/simulation";
 
 // Re-export for back-compat with existing consumers that import these from
@@ -16,7 +15,6 @@ export type {
   InitialPlaceMarking,
   SimulationFrameReader,
   SimulationFrameState,
-  SimulationFrameState_Transition,
 };
 
 /**

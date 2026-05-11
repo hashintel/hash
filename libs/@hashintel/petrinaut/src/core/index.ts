@@ -42,7 +42,6 @@ export type {
   SimulationEvent,
   SimulationFrameReader,
   SimulationFrameState,
-  SimulationFrameState_Transition,
   SimulationFrameSummary,
   SimulationPlaceTokenValues,
   SimulationState,

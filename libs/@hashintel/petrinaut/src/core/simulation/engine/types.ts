@@ -99,4 +99,3 @@ export type {
   EngineFrame,
   EngineFramePlaceState,
 } from "../frames/internal-frame";
-export type { SimulationFrameState_Transition } from "../api";

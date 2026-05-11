@@ -1,6 +1,6 @@
 import type { ID } from "../../types/sdcpn";
-import type { SimulationFrameState_Transition } from "../api";
 import type { EngineFrame } from "../frames/internal-frame";
+import type { SimulationTransitionState } from "../frames/transition-state";
 
 /**
  * Worker protocol representation for a full frame payload.
@@ -18,7 +18,7 @@ export type SimulationFramePayloadPlaceState = {
 export type SimulationFramePayload = {
   time: number;
   places: Record<ID, SimulationFramePayloadPlaceState>;
-  transitions: Record<ID, SimulationFrameState_Transition>;
+  transitions: Record<ID, SimulationTransitionState>;
   buffer: Float64Array;
 };
 

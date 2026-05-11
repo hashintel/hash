@@ -1,14 +1,14 @@
 import type {
   SimulationFrameReader,
   SimulationFrameState,
-  SimulationFrameState_Transition,
   SimulationPlaceTokenValues,
 } from "../api";
 import type { EngineFramePlaceState } from "./internal-frame";
+import type { SimulationTransitionState } from "./transition-state";
 
 type SimulationFrameReaderData = {
   places: Record<string, EngineFramePlaceState>;
-  transitions: Record<string, SimulationFrameState_Transition>;
+  transitions: Record<string, SimulationTransitionState>;
   buffer: Float64Array;
 };
 
@@ -37,7 +37,7 @@ export function createSimulationFrameReader(
 
   const getTransitionState = (
     transitionId: string,
-  ): SimulationFrameState_Transition | null => {
+  ): SimulationTransitionState | null => {
     const transitionState = frame.transitions[transitionId];
     if (!transitionState) {
       return null;
@@ -90,16 +90,9 @@ export function createSimulationFrameReader(
         places[placeId] = { tokenCount: placeData.count };
       }
 
-      const transitions: SimulationFrameState["transitions"] = {};
-      for (const transitionId of Object.keys(frame.transitions)) {
-        transitions[transitionId] =
-          getTransitionState(transitionId) ?? undefined;
-      }
-
       return {
         number,
         places,
-        transitions,
       };
     },
   };

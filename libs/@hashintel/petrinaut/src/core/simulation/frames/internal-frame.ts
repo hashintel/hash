@@ -1,5 +1,5 @@
 import type { ID } from "../../types/sdcpn";
-import type { SimulationFrameState_Transition } from "../api";
+import type { SimulationTransitionState } from "./transition-state";
 
 /**
  * Internal place layout within an engine frame.
@@ -20,7 +20,7 @@ export type EngineFrame = {
   /** Place states with token buffer offsets, keyed by place ID */
   places: Record<ID, EngineFramePlaceState>;
   /** Transition states with firing information, keyed by transition ID */
-  transitions: Record<ID, SimulationFrameState_Transition>;
+  transitions: Record<ID, SimulationTransitionState>;
   /**
    * Buffer containing all place values concatenated.
    *
