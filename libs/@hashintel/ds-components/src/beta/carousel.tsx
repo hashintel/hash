@@ -35,11 +35,11 @@ export const IndicatorGroup = forwardRef<
   HTMLDivElement,
   ComponentProps<typeof StyledIndicatorGroup>
 >((props, ref) => {
-  const carouselSlotRecipe = useCarouselContext();
+  const carousel = useCarouselContext();
 
   return (
     <StyledIndicatorGroup {...props} ref={ref}>
-      {carouselSlotRecipe.pageSnapPoints.map((_, index) => (
+      {carousel.pageSnapPoints.map((_, index) => (
         <Indicator key={index} index={index} />
       ))}
     </StyledIndicatorGroup>

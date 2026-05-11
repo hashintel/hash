@@ -117,14 +117,15 @@ export const Slider: React.FC<SliderProps> = ({
           className={css({
             outline: "none",
             "& > div": {
-              backgroundColor: "blue.s70",
+              background:
+                "[linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(37,99,235,0.98) 100%)]",
               transformOrigin: "center",
               transition:
-                "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease]",
+                "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease]",
             },
             "&[data-dragging] > div": {
               transform: `scale(${THUMB_ACTIVE_SCALE})`,
-              backgroundColor: "[rgba(255,255,255,0.2)]",
+              background: "[rgba(255,255,255,0.2)]",
               shadow:
                 "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
             },

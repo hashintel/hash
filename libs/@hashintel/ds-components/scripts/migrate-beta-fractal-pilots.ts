@@ -375,13 +375,9 @@ function migrateComponentModule(
   );
   const nextImportName = usesSlotRecipe ? slotRecipeName : nextRecipeImportName;
 
+  const legacyImport = `import { ${legacyRecipeImportName} } from "@hashintel/ds-helpers/recipes";`;
   const updatedImport = `import { ${nextImportName} } from "./${componentName}.recipe";`;
-  const nextSource = sourceText.replace(
-    new RegExp(
-      `import \\{\\s*${legacyRecipeImportName}\\s*\\} from "@hashintel/ds-helpers/recipes";`,
-    ),
-    updatedImport,
-  );
+  const nextSource = sourceText.replace(legacyImport, updatedImport);
 
   return renameIdentifierReferences(
     nextSource,

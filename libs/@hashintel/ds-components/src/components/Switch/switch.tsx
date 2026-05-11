@@ -40,11 +40,12 @@ const switchThumbStyles = css({
     transform: "translateY(-50%)",
   },
   "& > div": {
-    backgroundColor: "[rgba(255, 255, 255, 1)]",
+    background:
+      "[linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,247,250,0.92) 100%)]",
   },
   "&[data-active] > div": {
     transform: `scale(${THUMB_SCALE_ACTIVE})`,
-    backgroundColor: "[rgba(255, 255, 255, 0.1)]",
+    background: "[rgba(255, 255, 255, 0.1)]",
     shadow:
       "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
   },
@@ -63,9 +64,6 @@ const switchThumbInnerStyles = css({
 });
 
 export interface SwitchProps {
-  specularOpacity?: number;
-  specularSaturation?: number;
-  blurLevel?: number;
   checked?: boolean;
   defaultChecked?: boolean;
   disabled?: boolean;
