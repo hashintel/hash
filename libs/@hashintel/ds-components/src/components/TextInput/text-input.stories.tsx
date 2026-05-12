@@ -319,6 +319,17 @@ export const Widths: Story = () => (
             width={width}
           />
         ))}
+        {!rv.readonly && (
+          <ClearableInput
+            value="Width: fitContent with all the trimmings"
+            variant={rv.variant}
+            width="fitContent"
+            prefix={{ iconName: "search" }}
+            suffix={{ text: "kg" }}
+            loading
+            showEditIcon
+          />
+        )}
       </div>
     ))}
   </div>
