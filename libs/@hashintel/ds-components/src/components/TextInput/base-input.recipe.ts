@@ -456,6 +456,17 @@ export const baseInputRecipe = sva({
     },
     {
       variant: "subtle",
+      invalid: true,
+      css: {
+        root: {
+          _before: {
+            borderColor: "var(--base-input-border-color)",
+          },
+        },
+      },
+    },
+    {
+      variant: "subtle",
       size: "xxs",
       css: {
         root: {

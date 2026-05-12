@@ -437,7 +437,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
       prefix: {
         type: "interactive",
         content: (
-          <button type="button" onClick={noop}>
+          <button type="button" onClick={noop} style={{ outline: "none" }}>
             Go
           </button>
         ),
@@ -445,7 +445,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
       suffix: {
         type: "interactive",
         content: (
-          <button type="button" onClick={noop}>
+          <button type="button" onClick={noop} style={{ outline: "none" }}>
             Clear
           </button>
         ),
