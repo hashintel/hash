@@ -442,6 +442,29 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
       invalid: true,
     },
   },
+  {
+    key: "prefix-suffix-interactive-button",
+    props: {
+      value: "",
+      prefix: {
+        type: "interactive",
+        content: (
+          <button type="button" onClick={noop}>
+            Go
+          </button>
+        ),
+      },
+      suffix: {
+        type: "interactive",
+        content: (
+          <button type="button" onClick={noop}>
+            Clear
+          </button>
+        ),
+      },
+      placeholder: "Interactive button prefix + suffix",
+    },
+  },
 ];
 
 export const PrefixAndSuffix: Story = () => (
