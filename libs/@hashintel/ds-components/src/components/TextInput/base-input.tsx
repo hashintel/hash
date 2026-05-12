@@ -84,6 +84,14 @@ export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "md",
 };
 
+export const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
+  xxs: "xs",
+  xs: "xs",
+  sm: "sm",
+  md: "sm",
+  lg: "md",
+};
+
 function renderAdornment(
   type: "prefix" | "suffix",
   adornment: PrefixOrSuffix,
@@ -298,7 +306,7 @@ export const BaseInput = ({
 
       {loading && (
         <span className={classes.loading} data-part="loading">
-          <LoadingSpinner size={iconSizeMap[size]} variant="bars" />
+          <LoadingSpinner size={loadingSizeMap[size]} variant="bars" />
         </span>
       )}
 
