@@ -396,6 +396,16 @@ export const baseInputRecipe = sva({
         input: {
           gridArea: "[1 / 1]",
         },
+        clear: {
+          position: "relative",
+          right: "auto",
+          gridArea: "[1 / 2]",
+        },
+        editIcon: {
+          position: "relative",
+          right: "auto",
+          gridArea: "[1 / 2]",
+        },
       },
     },
     align: {
