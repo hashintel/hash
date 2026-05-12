@@ -1,6 +1,7 @@
 import { cx } from "@hashintel/ds-helpers/css";
 import { useId } from "react";
 
+import type { DataAttributes } from "../../util/dom";
 import type { FormInputSize } from "../../util/form-shared";
 import { styles } from "./loading-spinner.recipe";
 
@@ -25,16 +26,18 @@ export const LoadingSpinner = ({
   size = "md",
   variant = "default",
   className,
+  ...dataAttributes
 }: {
   size?: FormInputSize;
   variant?: LoadingSpinnerVariant;
   className?: string;
-}) => {
+} & DataAttributes) => {
   const gradientId = useId();
 
   if (variant === "bars") {
     return (
       <svg
+        {...dataAttributes}
         viewBox="0 0 24 24"
         className={cx(styles({ size, variant: "bars" }), className)}
       >
@@ -59,6 +62,7 @@ export const LoadingSpinner = ({
 
   return (
     <svg
+      {...dataAttributes}
       viewBox="0 0 56 56"
       className={cx(styles({ size, variant: "default" }), className)}
     >

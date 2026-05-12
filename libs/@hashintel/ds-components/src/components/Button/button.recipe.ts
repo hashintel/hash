@@ -3,7 +3,13 @@ import { sva } from "@hashintel/ds-helpers/css";
 import { formSizes } from "../../util/form-size.recipe";
 
 export const styles = sva({
-  slots: ["button", "loadingContainer", "loadingContent", "iconText"],
+  slots: [
+    "button",
+    "loadingContainer",
+    "loadingSpinner",
+    "loadingContent",
+    "iconText",
+  ],
   base: {
     button: {
       cursor: "pointer",
@@ -65,6 +71,9 @@ export const styles = sva({
           paddingX: "3",
           borderRadius: "lg",
           "--button-icon-margin": "var(--spacing-2)",
+        },
+        loadingSpinner: {
+          padding: "[2px]",
         },
       },
       lg: {
