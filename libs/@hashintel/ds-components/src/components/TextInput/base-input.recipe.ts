@@ -111,6 +111,10 @@ export const baseInputRecipe = sva({
         background: "neutral.s30",
         color: "neutral.s120",
       },
+      "&:not([disabled]):active": {
+        background: "neutral.s40",
+        color: "neutral.s125",
+      },
       _focusVisible: {
         outline: "[1px solid var(--colors-neutral-s80)]",
         outlineOffset: "0",
