@@ -115,12 +115,12 @@ export const baseInputRecipe = sva({
         background: "neutral.s40",
         color: "neutral.s125",
       },
+      "&:focus:not(:focus-visible)": { outline: "none" },
       _focusVisible: {
         outline: "[1px solid var(--colors-neutral-s80)]",
         outlineOffset: "0",
         background: "neutral.s25",
       },
-      _focus: { outline: "none" },
     },
     adornmentInteractive: {
       transition:

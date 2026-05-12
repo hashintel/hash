@@ -425,6 +425,16 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     },
   },
   {
+    key: "prefix-suffix-button-loading-invalid",
+    props: {
+      value: "Invalid Buttons",
+      prefix: { iconName: "search", onClick: noop },
+      suffix: { iconName: "close", onClick: noop },
+      loading: true,
+      invalid: true,
+    },
+  },
+  {
     key: "kitchen-sink-edit",
     clearable: true,
     props: {
@@ -433,17 +443,6 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
       suffix: { text: "kg" },
       loading: true,
       showEditIcon: true,
-    },
-  },
-  {
-    key: "prefix-suffix-button-loading-invalid",
-    props: {
-      value: "",
-      prefix: { iconName: "search", onClick: noop },
-      suffix: { iconName: "close", onClick: noop },
-      placeholder: "Prefix + suffix button",
-      loading: true,
-      invalid: true,
     },
   },
   {
