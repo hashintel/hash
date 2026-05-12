@@ -38,6 +38,11 @@ export type PetrinautProps = {
    */
   simulationWorkerFactory?: WorkerFactory;
   /**
+   * Optional Monte Carlo worker factory. Hosts can provide this when they need
+   * to own worker bundling for the Experiments tab.
+   */
+  monteCarloWorkerFactory?: WorkerFactory;
+  /**
    * Optional language-server worker factory. Same intent as
    * `simulationWorkerFactory` — host-supplied LSP worker, typically via
    * `?worker` against the host's own copy of the worker source.
@@ -66,6 +71,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   loadPetriNet = noop,
   viewportActions,
   simulationWorkerFactory,
+  monteCarloWorkerFactory,
   lspWorkerFactory,
 }) => {
   const instance = useMemo<Instance>(
@@ -88,6 +94,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
       instance={instance}
       netManagement={netManagement}
       simulationWorkerFactory={simulationWorkerFactory}
+      monteCarloWorkerFactory={monteCarloWorkerFactory}
       lspWorkerFactory={lspWorkerFactory}
     >
       <MonacoProvider>

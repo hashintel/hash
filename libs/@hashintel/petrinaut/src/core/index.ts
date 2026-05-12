@@ -29,12 +29,16 @@ export type {
 
 // --- Simulation ---
 export {
+  createMonteCarloExperiment,
   createMonteCarloSimulator,
+  createMonteCarloWorker,
+  createPlaceTokenCountDistributionMetric,
   createSimulation,
   createWorkerTransport,
 } from "./simulation";
 export type {
   BackpressureConfig,
+  CreateMonteCarloExperimentConfig,
   CreateSimulationConfig,
   Simulation,
   SimulationCompleteEvent,
@@ -50,6 +54,13 @@ export type {
   WorkerFactory,
   InitialMarking,
   MonteCarloAdvanceResult,
+  MonteCarloActiveRunPlaceCountsVisitor,
+  MonteCarloExperiment,
+  MonteCarloExperimentDistributions,
+  MonteCarloExperimentEvent,
+  MonteCarloExperimentState,
+  MonteCarloFrameMetric,
+  MonteCarloFrameMetricContext,
   MonteCarloRunConfig,
   MonteCarloRunSnapshot,
   MonteCarloRunStatus,
@@ -57,6 +68,11 @@ export type {
   MonteCarloRunUntilCompleteOptions,
   MonteCarloSimulator,
   MonteCarloSimulatorConfig,
+  PlaceTokenCountDistributionBin,
+  PlaceTokenCountDistributionFrame,
+  PlaceTokenCountDistributionMetric,
+  PlaceTokenCountDistributionPlace,
+  MonteCarloWorkerProgress,
 } from "./simulation";
 
 // --- LSP ---

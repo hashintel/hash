@@ -8,6 +8,10 @@ import { SegmentGroup } from "../../../../components/segment-group";
 import { Stack } from "../../../../components/stack";
 import type { Metric, Scenario } from "../../../../../core/types/sdcpn";
 import {
+  ExperimentsContext,
+  type ExperimentRecord,
+} from "../../../../../react/experiments/context";
+import {
   EditorContext,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
@@ -15,6 +19,7 @@ import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import { CreateMetricDrawer } from "./create-metric-drawer";
 import { CreateScenarioDrawer } from "./create-scenario-drawer";
+import { ViewExperimentDrawer } from "./view-experiment-drawer";
 import { ViewMetricDrawer } from "./view-metric-drawer";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
 
@@ -112,6 +117,16 @@ const descriptionColumnStyle = css({
   minWidth: "[0]",
 });
 
+const statusColumnStyle = css({
+  width: "[110px]",
+  flexShrink: 0,
+});
+
+const runColumnStyle = css({
+  width: "[90px]",
+  flexShrink: 0,
+});
+
 const tableRowStyle = css({
   display: "flex",
   alignItems: "center",
@@ -184,8 +199,7 @@ const modeOptions: SegmentOption[] = [
     label: "Experiments",
     icon: <Icon name="flask" size="sm" />,
     hideLabel: true,
-    tooltip: "Experiments not yet available",
-    disabled: true,
+    tooltip: "Experiments",
   },
 ];
 
@@ -283,6 +297,84 @@ const MetricList = ({
   );
 };
 
+// -- Experiment list component ------------------------------------------------
+
+function formatExperimentStatus(status: ExperimentRecord["status"]): string {
+  switch (status) {
+    case "initializing":
+      return "Initializing";
+    case "running":
+      return "Running";
+    case "complete":
+      return "Complete";
+    case "error":
+      return "Error";
+    case "cancelled":
+      return "Cancelled";
+  }
+}
+
+const ExperimentList = ({
+  experiments,
+  selectedId,
+  onSelect,
+}: {
+  experiments: readonly ExperimentRecord[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) => {
+  if (experiments.length === 0) {
+    return <div className={emptyStateStyle}>No experiments yet</div>;
+  }
+
+  return (
+    <div className={tableStyle} role="table">
+      <div className={tableHeaderStyle} role="row">
+        <span className={`${tableHeaderCellStyle} ${nameColumnStyle}`}>
+          Name
+        </span>
+        <span className={`${tableHeaderCellStyle} ${descriptionColumnStyle}`}>
+          Scenario
+        </span>
+        <span className={`${tableHeaderCellStyle} ${runColumnStyle}`}>
+          Runs
+        </span>
+        <span className={`${tableHeaderCellStyle} ${statusColumnStyle}`}>
+          Status
+        </span>
+      </div>
+
+      {experiments.map((experiment) => (
+        <button
+          key={experiment.id}
+          type="button"
+          className={`${tableRowStyle}${experiment.id === selectedId ? ` ${selectedRowStyle}` : ""}`}
+          onClick={() => onSelect(experiment.id)}
+        >
+          <div className={nameColumnStyle}>
+            <span className={scenarioNameStyle}>{experiment.name}</span>
+          </div>
+          <div className={descriptionColumnStyle}>
+            <span className={scenarioDescriptionStyle}>
+              {experiment.scenarioName ?? "Default"}
+            </span>
+          </div>
+          <div className={runColumnStyle}>
+            <span className={scenarioDescriptionStyle}>
+              {experiment.runCount}
+            </span>
+          </div>
+          <div className={statusColumnStyle}>
+            <span className={scenarioDescriptionStyle}>
+              {formatExperimentStatus(experiment.status)}
+            </span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 // -- Component -----------------------------------------------------------------
 
 type DrawerState =
@@ -291,6 +383,7 @@ type DrawerState =
   | { type: "create-scenario" }
   | { type: "view-metric"; metricId: string }
   | { type: "create-metric" }
+  | { type: "view-experiment"; experimentId: string }
   | { type: "create-experiment" };
 
 export const SimulateView = () => {
@@ -301,6 +394,7 @@ export const SimulateView = () => {
   const { petriNetDefinition } = use(SDCPNContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
   const metrics = petriNetDefinition.metrics ?? [];
+  const { experiments } = use(ExperimentsContext);
 
   const selectedScenario =
     drawer.type === "view-scenario"
@@ -310,6 +404,11 @@ export const SimulateView = () => {
   const selectedMetric =
     drawer.type === "view-metric"
       ? metrics.find((m) => m.id === drawer.metricId)
+      : undefined;
+
+  const selectedExperiment =
+    drawer.type === "view-experiment"
+      ? experiments.find((experiment) => experiment.id === drawer.experimentId)
       : undefined;
 
   const closeDrawer = () => setDrawer({ type: "closed" });
@@ -425,11 +524,30 @@ export const SimulateView = () => {
         )}
         {mode === "experiments" && (
           <>
-            <div className={emptyStateStyle}>No experiments yet</div>
+            <div className={contentStyle}>
+              <ExperimentList
+                experiments={experiments}
+                selectedId={
+                  drawer.type === "view-experiment" ? drawer.experimentId : null
+                }
+                onSelect={(id) =>
+                  setDrawer({ type: "view-experiment", experimentId: id })
+                }
+              />
+            </div>
 
             <CreateExperimentDrawer
               open={drawer.type === "create-experiment"}
               onClose={closeDrawer}
+              onCreated={(experimentId) =>
+                setDrawer({ type: "view-experiment", experimentId })
+              }
+            />
+
+            <ViewExperimentDrawer
+              open={!!selectedExperiment}
+              onClose={closeDrawer}
+              experiment={selectedExperiment}
             />
           </>
         )}

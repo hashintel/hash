@@ -2,6 +2,7 @@ import type { InitialMarking } from "../api";
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
 import type { ParameterValues } from "../engine/types";
 import type { SDCPN } from "../../types/sdcpn";
+import type { MonteCarloFrameMetric } from "./metrics/types";
 
 export type MonteCarloRunStatus = "ready" | "running" | "complete" | "error";
 
@@ -21,6 +22,7 @@ export type MonteCarloSimulatorConfig = {
   maxTime: number;
   runs?: readonly MonteCarloRunConfig[];
   initialTokenValueCapacity?: number;
+  metrics?: readonly MonteCarloFrameMetric[];
 };
 
 export type MonteCarloRunSummary = {

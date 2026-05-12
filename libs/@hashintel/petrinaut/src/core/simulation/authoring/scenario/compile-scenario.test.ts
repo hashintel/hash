@@ -123,6 +123,56 @@ describe("compileScenario", () => {
         expect(result.result.initialState.place1).toBe(50);
       }
     });
+
+    it("uses supplied scenario parameter values over defaults", () => {
+      const result = compileScenario(
+        scenario({
+          scenarioParameters: [
+            { type: "integer", identifier: "count", default: 50 },
+          ],
+          parameterOverrides: { p1: "scenario.count * 2" },
+          initialState: {
+            type: "per_place",
+            content: { place1: "scenario.count" },
+          },
+        }),
+        [param("p1", "x", "0")],
+        [],
+        [],
+        { scenarioParameterValues: { count: 75 } },
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.parameterValues.x).toBe("150");
+        expect(result.result.initialState.place1).toBe(75);
+      }
+    });
+
+    it("rejects non-finite supplied scenario parameter values", () => {
+      const result = compileScenario(
+        scenario({
+          scenarioParameters: [
+            { type: "real", identifier: "rate", default: 1 },
+          ],
+        }),
+        [],
+        [],
+        [],
+        { scenarioParameterValues: { rate: Number.NaN } },
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors).toEqual([
+          {
+            source: "scenarioParameter",
+            itemId: "rate",
+            message: 'Scenario parameter "rate" must be a finite number.',
+          },
+        ]);
+      }
+    });
   });
 
   describe("expression features", () => {

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { SDCPN } from "../../types/sdcpn";
 import { createMonteCarloSimulator } from "./monte-carlo-simulator";
+import { createPlaceTokenCountDistributionMetric } from "./metrics";
+import type { PlaceTokenCountDistributionFrame } from "./metrics";
 
 const sdcpn: SDCPN = {
   types: [
@@ -58,6 +60,18 @@ const sdcpn: SDCPN = {
     },
   ],
 };
+
+function getPlaceDistributionFrame(
+  frame: PlaceTokenCountDistributionFrame,
+  placeId: string,
+) {
+  const place = frame.places.find((entry) => entry.placeId === placeId);
+  if (!place) {
+    throw new Error(`Expected distribution for place ${placeId}`);
+  }
+
+  return place;
+}
 
 describe("MonteCarloSimulator", () => {
   it("runs multiple independent simulations without retaining frame history", () => {
@@ -123,5 +137,67 @@ describe("MonteCarloSimulator", () => {
     expect(simulator.getSummaries().map((run) => run.frameNumber)).toEqual([
       1, 1, 1,
     ]);
+  });
+
+  it("streams active-only place token count distributions", () => {
+    const distributionMetric = createPlaceTokenCountDistributionMetric();
+    const simulator = createMonteCarloSimulator({
+      sdcpn,
+      runCount: 2,
+      initialMarking: { source: 1 },
+      runs: [
+        { seed: 10, initialMarking: { source: 1 } },
+        { seed: 20, initialMarking: { source: 2 } },
+      ],
+      dt: 1,
+      maxTime: 20,
+      metrics: [distributionMetric],
+    });
+
+    expect(distributionMetric.frames).toHaveLength(1);
+    expect(distributionMetric.frames[0]).toMatchObject({
+      frameNumber: 0,
+      time: 0,
+      activeRunCount: 2,
+      completedRunCount: 0,
+      erroredRunCount: 0,
+    });
+    expect(
+      getPlaceDistributionFrame(distributionMetric.frames[0]!, "source").bins,
+    ).toEqual([
+      [1, 1],
+      [2, 1],
+    ]);
+    expect(
+      getPlaceDistributionFrame(distributionMetric.frames[0]!, "product").bins,
+    ).toEqual([[0, 2]]);
+
+    simulator.advanceAll();
+    expect(distributionMetric.frames).toHaveLength(2);
+    expect(
+      getPlaceDistributionFrame(distributionMetric.frames[1]!, "source").bins,
+    ).toEqual([
+      [0, 1],
+      [1, 1],
+    ]);
+    expect(
+      getPlaceDistributionFrame(distributionMetric.frames[1]!, "product").bins,
+    ).toEqual([[1, 2]]);
+
+    simulator.advanceAll();
+    expect(distributionMetric.frames).toHaveLength(3);
+    expect(distributionMetric.frames[2]).toMatchObject({
+      frameNumber: 2,
+      time: 2,
+      activeRunCount: 1,
+      completedRunCount: 1,
+      erroredRunCount: 0,
+    });
+    expect(
+      getPlaceDistributionFrame(distributionMetric.frames[2]!, "source").bins,
+    ).toEqual([[0, 1]]);
+    expect(
+      getPlaceDistributionFrame(distributionMetric.frames[2]!, "product").bins,
+    ).toEqual([[2, 1]]);
   });
 });

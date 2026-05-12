@@ -48,6 +48,10 @@ export const createPetrinautPandaConfig = (dsComponentsBuildInfoPath: string) =>
             from: { opacity: "1", transform: "translateY(0)" },
             to: { opacity: "0", transform: "translateY(-10px)" },
           },
+          spin: {
+            from: { transform: "rotate(0deg)" },
+            to: { transform: "rotate(360deg)" },
+          },
           expand: {
             from: { height: "0", opacity: "0" },
             to: { height: "var(--height)", opacity: "1" },

@@ -14,6 +14,7 @@ import type {
   MonteCarloSimulator,
   MonteCarloSimulatorConfig,
 } from "./types";
+import type { MonteCarloFrameMetric } from "./metrics/types";
 
 /**
  * Coordinates a fixed set of independent Monte Carlo runs.
@@ -24,6 +25,11 @@ import type {
  */
 class MonteCarloSimulatorImpl implements MonteCarloSimulator {
   readonly #runs: MonteCarloRunState[];
+  readonly #metrics: readonly MonteCarloFrameMetric[];
+  readonly #placeIds: readonly string[];
+  readonly #placeNames: readonly string[];
+  #frameNumber = 0;
+  #time = 0;
 
   /**
    * Validates simulator-level configuration and creates all run states.
@@ -49,6 +55,13 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
     this.#runs = Array.from({ length: config.runCount }, (_, index) =>
       createRunState(config, config.runs?.[index], index),
     );
+    const firstRun = this.#runs[0]!;
+    this.#metrics = config.metrics ?? [];
+    this.#placeIds = firstRun.simulation.frameLayout.placeIds;
+    this.#placeNames = this.#placeIds.map(
+      (placeId) => firstRun.simulation.places.get(placeId)?.name ?? placeId,
+    );
+    this.observeMetricFrame();
   }
 
   /**
@@ -70,6 +83,12 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
       if (advanceRun(run)) {
         advancedRuns++;
       }
+    }
+
+    if (advancedRuns > 0) {
+      this.#frameNumber++;
+      this.#time += this.#runs[0]!.simulation.dt;
+      this.observeMetricFrame();
     }
 
     return summarizeRuns(this.#runs, advancedRuns);
@@ -117,6 +136,49 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
    */
   getSummaries(): MonteCarloRunSummary[] {
     return this.#runs.map((run) => summarizeRun(run));
+  }
+
+  /**
+   * Streams the current frame to configured metrics.
+   */
+  private observeMetricFrame(): void {
+    if (this.#metrics.length === 0) {
+      return;
+    }
+
+    let activeRunCount = 0;
+    let completedRunCount = 0;
+    let erroredRunCount = 0;
+
+    for (const run of this.#runs) {
+      if (run.status === "complete") {
+        completedRunCount++;
+      } else if (run.status === "error") {
+        erroredRunCount++;
+      } else {
+        activeRunCount++;
+      }
+    }
+
+    for (const metric of this.#metrics) {
+      metric.observeFrame({
+        frameNumber: this.#frameNumber,
+        time: this.#time,
+        runCount: this.#runs.length,
+        activeRunCount,
+        completedRunCount,
+        erroredRunCount,
+        placeIds: this.#placeIds,
+        placeNames: this.#placeNames,
+        forEachActiveRunPlaceCounts: (visitor) => {
+          for (const run of this.#runs) {
+            if (run.status !== "complete" && run.status !== "error") {
+              visitor(run.index, run.currentFrame.placeCounts);
+            }
+          }
+        },
+      });
+    }
   }
 
   /**

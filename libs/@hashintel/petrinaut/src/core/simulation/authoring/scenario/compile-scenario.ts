@@ -36,6 +36,16 @@ export type CompileScenarioOutcome =
   | { ok: true; result: CompiledScenarioResult }
   | { ok: false; errors: ScenarioCompilationError[] };
 
+export type ScenarioParameterValues = Record<string, number>;
+
+export interface CompileScenarioOptions {
+  /**
+   * Concrete scenario parameter values keyed by scenario parameter identifier.
+   * When omitted, the scenario's own default values are used.
+   */
+  scenarioParameterValues?: ScenarioParameterValues;
+}
+
 // -- Hardened expression evaluator --------------------------------------------
 
 /**
@@ -144,6 +154,7 @@ export function compileScenario(
   netParameters: Parameter[],
   places: Place[] = [],
   types: Color[] = [],
+  options: CompileScenarioOptions = {},
 ): CompileScenarioOutcome {
   const errors: ScenarioCompilationError[] = [];
 
@@ -154,7 +165,20 @@ export function compileScenario(
     if (sp.identifier.trim() === "") {
       continue;
     }
-    scenarioObj[sp.identifier] = sp.default;
+
+    const value =
+      options.scenarioParameterValues?.[sp.identifier] ?? sp.default;
+    if (!Number.isFinite(value)) {
+      errors.push({
+        source: "scenarioParameter",
+        itemId: sp.identifier,
+        message: `Scenario parameter "${sp.identifier}" must be a finite number.`,
+      });
+      scenarioObj[sp.identifier] = sp.default;
+      continue;
+    }
+
+    scenarioObj[sp.identifier] = value;
   }
 
   // ── Step 2: Evaluate parameter overrides ──

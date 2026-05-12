@@ -16,9 +16,22 @@ export type {
   SimulationState,
   WorkerFactory,
 } from "./api";
-export { createMonteCarloSimulator } from "./monte-carlo";
+export {
+  createMonteCarloExperiment,
+  createMonteCarloSimulator,
+  createMonteCarloWorker,
+  createPlaceTokenCountDistributionMetric,
+} from "./monte-carlo";
 export type {
+  CreateMonteCarloExperimentConfig,
   MonteCarloAdvanceResult,
+  MonteCarloActiveRunPlaceCountsVisitor,
+  MonteCarloExperiment,
+  MonteCarloExperimentDistributions,
+  MonteCarloExperimentEvent,
+  MonteCarloExperimentState,
+  MonteCarloFrameMetric,
+  MonteCarloFrameMetricContext,
   MonteCarloRunConfig,
   MonteCarloRunSnapshot,
   MonteCarloRunStatus,
@@ -26,6 +39,11 @@ export type {
   MonteCarloRunUntilCompleteOptions,
   MonteCarloSimulator,
   MonteCarloSimulatorConfig,
+  PlaceTokenCountDistributionBin,
+  PlaceTokenCountDistributionFrame,
+  PlaceTokenCountDistributionMetric,
+  PlaceTokenCountDistributionPlace,
+  MonteCarloWorkerProgress,
 } from "./monte-carlo";
 export { createSimulation } from "./runtime/simulation";
 export { createWorkerTransport } from "./runtime/transport";

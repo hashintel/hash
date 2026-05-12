@@ -1,9 +1,9 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
 import { IconButton } from "../../../../../../components/icon-button";
 import { SegmentGroup } from "../../../../../../components/segment-group";
 import { Select } from "../../../../../../components/select";
-import { TbList, TbPencil, TbPlus } from "react-icons/tb";
 
 import { CreateMetricDrawer } from "../../../SimulateView/create-metric-drawer";
 import { ViewMetricDrawer } from "../../../SimulateView/view-metric-drawer";
@@ -126,7 +126,7 @@ const TimelineViewPicker: React.FC = () => {
             tooltip="Edit Metric"
             onClick={() => setIsViewOpen(true)}
           >
-            <TbPencil size={14} />
+            <Icon name="pencil" size="sm" />
           </IconButton>
         )}
         <IconButton
@@ -136,7 +136,7 @@ const TimelineViewPicker: React.FC = () => {
           tooltip="Create Metric"
           onClick={() => setIsCreateOpen(true)}
         >
-          <TbPlus size={14} />
+          <Icon name="plus" size="sm" />
         </IconButton>
         <IconButton
           size="xs"
@@ -148,7 +148,7 @@ const TimelineViewPicker: React.FC = () => {
             setGlobalMode("simulate");
           }}
         >
-          <TbList size={14} />
+          <Icon name="list" size="sm" />
         </IconButton>
       </div>
       <CreateMetricDrawer
