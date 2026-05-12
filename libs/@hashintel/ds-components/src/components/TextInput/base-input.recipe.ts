@@ -398,12 +398,12 @@ export const baseInputRecipe = sva({
         },
         clear: {
           position: "relative",
-          right: "auto",
+          right: "[auto]",
           gridArea: "[1 / 2]",
         },
         editIcon: {
           position: "relative",
-          right: "auto",
+          right: "[auto]",
           gridArea: "[1 / 2]",
         },
       },
