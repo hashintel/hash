@@ -18,8 +18,9 @@ use type_system::knowledge::Entity;
 
 use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Distinctness, EqualityOperator, Expression, Function, PostgresQueryPath,
-    PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _, WindowStatement,
+    Alias, Column, Distinctness, EqualityOperator, Expression, Function, Identifier,
+    PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
+    WindowStatement,
     expression::{FromItem, GroupByExpression, PostgresType},
     table::{
         DataTypeEmbeddings, DatabaseColumn as _, EntityEditions, EntityEmbeddings,
@@ -440,7 +441,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     .map(|filter| self.compile_filter(filter))
                     .collect::<Result<_, _>>()?,
             ),
-            Filter::Not(filter) => Expression::not(self.compile_filter(filter)?),
+            Filter::Not(filter) => self.compile_filter(filter)?.not(),
             Filter::Equal(lhs, rhs) => Expression::equal(
                 self.compile_filter_expression(lhs).0,
                 self.compile_filter_expression(rhs).0,
@@ -616,7 +617,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                                     parameter_expression,
                                                 )),
                                             )),
-                                            alias: Some("distance"),
+                                            alias: Some(Identifier::from("distance")),
                                         }))
                                         .collect(),
                                 )
@@ -744,7 +745,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
                             )),
                         ),
-                        alias: Some("latest_version"),
+                        alias: Some(Identifier::from("latest_version")),
                     },
                 ])
                 .from(

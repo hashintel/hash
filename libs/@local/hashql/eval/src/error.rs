@@ -1,8 +1,13 @@
 use alloc::borrow::Cow;
 
-use hashql_diagnostics::category::DiagnosticCategory;
+use hashql_core::span::SpanId;
+use hashql_diagnostics::{Diagnostic, DiagnosticIssues, Severity, category::DiagnosticCategory};
 
+#[cfg(feature = "graph")]
 use crate::graph::error::GraphCompilerDiagnosticCategory;
+
+pub type EvalDiagnostic<K = Severity> = Diagnostic<EvalDiagnosticCategory, SpanId, K>;
+pub type EvalDiagnosticIssues<K = Severity> = DiagnosticIssues<EvalDiagnosticCategory, SpanId, K>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum EvalDiagnosticCategory {

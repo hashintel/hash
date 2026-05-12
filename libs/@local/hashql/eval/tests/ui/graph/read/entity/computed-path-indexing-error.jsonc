@@ -9,7 +9,7 @@
         {"#literal": 2},
         ["[]",
           ["input", "user_ids", "Dict<::graph::types::knowledge::entity::EntityUuid, Integer>"],
-          "vertex.id.entity_id.entity_uuid"
+          "vertex.metadata.record_id.entity_id.entity_uuid"
           //~^ ERROR Cannot use computed value as index
         ]
       ]

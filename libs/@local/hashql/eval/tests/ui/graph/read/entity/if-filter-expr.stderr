@@ -1,8 +1,8 @@
 error[graph-read-compiler::branch-unsupported]: Branch construct unsupported
    ╭▸ 
 10 │ ┏         ["if", {"#literal": true},
-11 │ ┃           "vertex.id.entity_id.entity_uuid",
-12 │ ┃           "vertex.id.entity_id.entity_uuid"
+11 │ ┃           "vertex.metadata.record_id.entity_id.entity_uuid",
+12 │ ┃           "vertex.metadata.record_id.entity_id.entity_uuid"
 13 │ ┃         ]
    │ ┗━━━━━━━━━┛ conditional expressions are not supported in filter contexts
    │

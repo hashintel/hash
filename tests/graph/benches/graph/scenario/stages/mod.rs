@@ -132,8 +132,7 @@ impl Stage {
                 .await
                 .map(|result| json!(result))
                 .change_context(StageError),
-            Self::QueryEntitiesByUser(stage) => stage
-                .execute(runner)
+            Self::QueryEntitiesByUser(stage) => Box::pin(stage.execute(runner))
                 .await
                 .map(|result| json!(result))
                 .change_context(StageError),
