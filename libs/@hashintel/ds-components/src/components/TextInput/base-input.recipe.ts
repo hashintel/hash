@@ -271,14 +271,14 @@ export const baseInputRecipe = sva({
         prefix: {
           paddingLeft: "1",
           left: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-          "&[data-part='adornment-text']": {
+          "&[data-part='adornment-text']:not([data-interactive='true'])": {
             left: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
           },
         },
         suffix: {
           paddingRight: "1",
           right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
-          "&[data-part='adornment-text']": {
+          "&[data-part='adornment-text']:not([data-interactive='true'])": {
             right: "[calc(var(--base-input-padding-x) * -0.8 + 1px)]",
           },
         },
