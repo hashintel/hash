@@ -226,8 +226,8 @@ export const baseInputRecipe = sva({
         adornment: {
           background: "neutral.s20",
           paddingX: "2",
-          borderRightColor: "var(--base-input-border-color)",
-          borderLeftColor: "var(--base-input-border-color)",
+          borderRightColor: "var(--colors-bd-solid)",
+          borderLeftColor: "var(--colors-bd-solid)",
         },
         adornmentButton: {
           borderRightColor: "var(--colors-bd-solid)",
