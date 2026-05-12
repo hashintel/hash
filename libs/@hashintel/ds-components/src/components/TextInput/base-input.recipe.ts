@@ -1,6 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
+import { formWidthBase, formWidths } from "../../util/form-width.recipe";
 
 export const baseInputRecipe = sva({
   slots: [
@@ -24,6 +25,7 @@ export const baseInputRecipe = sva({
   ],
   base: {
     root: {
+      ...formWidthBase,
       display: "inline-flex",
       width: "[fit-content]",
       position: "relative",
@@ -43,8 +45,7 @@ export const baseInputRecipe = sva({
       },
     },
     readonly: {
-      display: "inline-flex",
-      alignItems: "center",
+      display: "inline",
       color: "fg.body",
     },
     inputWrapper: {
@@ -52,8 +53,10 @@ export const baseInputRecipe = sva({
       display: "flex",
       alignItems: "center",
       borderRadius: "var(--base-input-border-radius)",
-      minWidth: "[6rem]",
+      minWidth: "var(--form-min-width)",
       flex: "[1 1 auto]",
+      width: "var(--form-width)",
+      maxWidth: "var(--form-width)",
     },
     input: {
       flex: "1",
@@ -318,16 +321,16 @@ export const baseInputRecipe = sva({
     },
     width: {
       xs: {
-        inputWrapper: { width: "[6rem]", maxWidth: "[6rem]" },
+        root: { ...formWidths.xs },
       },
       sm: {
-        inputWrapper: { width: "[15rem]", maxWidth: "[15rem]" },
+        root: { ...formWidths.sm },
       },
       md: {
-        inputWrapper: { width: "[22.5rem]", maxWidth: "[22.5rem]" },
+        root: { ...formWidths.md },
       },
       lg: {
-        inputWrapper: { width: "[35rem]", maxWidth: "[35rem]" },
+        root: { ...formWidths.lg },
       },
       fullWidth: {
         root: { width: "[100%]" },
