@@ -229,11 +229,13 @@ export const iconNames = Object.keys(IconMap) as Array<keyof typeof IconMap>;
 
 export const Icon = ({
   className,
+  "data-part": dataPart,
   name,
   size,
   alt,
 }: {
   className?: string;
+  "data-part"?: string;
   name: IconName;
   size?: FormInputSize;
   alt?: string;
@@ -244,6 +246,7 @@ export const Icon = ({
     <IconSvg
       className={cx(styles({ size }), className)}
       aria-label={alt}
+      data-part={dataPart}
       role={alt ? "img" : undefined}
       aria-hidden={alt ? undefined : "true"}
     />

@@ -18,6 +18,7 @@ export const baseInputRecipe = sva({
     "adornmentInteractive",
     "disabledButton",
     "loading",
+    "editIcon",
     "clear",
     "clearIcon",
     "styledValueOverlay",
@@ -43,6 +44,9 @@ export const baseInputRecipe = sva({
         opacity: "1",
         visibility: "visible",
       },
+      "&:focus-within [data-part='edit']": {
+        display: "none",
+      },
     },
     readonly: {
       display: "inline",
@@ -57,6 +61,9 @@ export const baseInputRecipe = sva({
       flex: "[1 1 auto]",
       width: "var(--form-width)",
       maxWidth: "var(--form-width)",
+      "&:hover [data-part='edit']": {
+        color: "fg.body",
+      },
     },
     input: {
       flex: "1",
@@ -132,6 +139,24 @@ export const baseInputRecipe = sva({
       paddingRight: "2",
       position: "relative",
     },
+    editIcon: {
+      position: "absolute",
+      zIndex: "1",
+      right: "2",
+      display: "flex",
+      alignItems: "center",
+      color: "fg.muted",
+      cursor: "pointer",
+      _before: {
+        content: "''",
+        position: "absolute",
+        insetY: "[calc(var(--form-padding-y) * -1)]",
+        insetX: "-1.5",
+        background: "white",
+        zIndex: "-2",
+        borderRightRadius: "var(--base-input-border-radius)",
+      },
+    },
     clear: {
       position: "absolute",
       zIndex: "1",
@@ -189,6 +214,9 @@ export const baseInputRecipe = sva({
             bg: "neutral.s10",
           },
           "&:not(.layer-style_disabled):hover [data-part='clear']:before": {
+            bg: "neutral.s10",
+          },
+          "&:not(.layer-style_disabled):hover [data-part='edit']:before": {
             bg: "neutral.s10",
           },
           "&:focus-within:not(.layer-style_disabled)": {
@@ -252,6 +280,10 @@ export const baseInputRecipe = sva({
         },
         loading: {
           right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
+        },
+        editIcon: {
+          right:
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
         },
         clear: {
           right:
@@ -333,10 +365,16 @@ export const baseInputRecipe = sva({
         root: { ...formWidths.variants.widths.lg },
       },
       fullWidth: {
-        root: { width: "[100%]" },
+        root: {
+          ...formWidths.variants.widths.fullWidth,
+          width: "[100%]",
+        },
       },
       fitContent: {
-        root: { width: "[fit-content]" },
+        root: {
+          ...formWidths.variants.widths.fitContent,
+          width: "[fit-content]",
+        },
         readonly: { width: "[fit-content]" },
         inputWrapper: {
           display: "inline-grid",
@@ -366,6 +404,9 @@ export const baseInputRecipe = sva({
         clear: {
           right: "1.5",
         },
+        editIcon: {
+          right: "1.5",
+        },
       },
     },
   },
@@ -384,6 +425,10 @@ export const baseInputRecipe = sva({
       loading: true,
       css: {
         clear: {
+          right:
+            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
+        },
+        editIcon: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
         },

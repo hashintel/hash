@@ -30,6 +30,8 @@ export const formWidths = {
       sm: { "--form-width": "15rem" },
       md: { "--form-width": "22.5rem" },
       lg: { "--form-width": "35rem" },
+      fullWidth: { "--form-width": "100%" },
+      fitContent: { "--form-width": "auto" },
     },
   },
 } as const;

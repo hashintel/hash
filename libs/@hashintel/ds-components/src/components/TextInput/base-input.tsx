@@ -40,6 +40,7 @@ export type BaseInputProps = {
     clearable: boolean;
     onClear: () => void;
   };
+  showEditIcon?: boolean;
   /** Set to false to prevent browsers from autocompleting input fields */
   autocomplete?: false;
   onClick?: React.MouseEventHandler<Element>;
@@ -76,7 +77,7 @@ function isTextAdornment(
   return val != null && typeof val === "object" && "text" in val;
 }
 
-export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
   xs: "xs",
   sm: "sm",
@@ -84,7 +85,7 @@ export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   lg: "md",
 };
 
-export const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
+const loadingSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
   xs: "xs",
   sm: "sm",
@@ -154,6 +155,7 @@ export const BaseInput = ({
   suffix,
   styledValue,
   clearable,
+  showEditIcon,
   onClick,
   onKeyDown,
   min,
@@ -308,6 +310,11 @@ export const BaseInput = ({
               className={classes.clearIcon}
             />
           </button>
+        )}
+        {!disabled && showEditIcon && (
+          <span className={classes.editIcon} data-part="edit">
+            <Icon name="pencil" size={loadingSizeMap[size]} />
+          </span>
         )}
       </div>
 

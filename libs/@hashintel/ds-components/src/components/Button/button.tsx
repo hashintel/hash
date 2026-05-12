@@ -86,7 +86,7 @@ export type AnchorElementProps = AnchorElementOnlyProps &
   ButtonIconProps;
 export type ButtonProps = ButtonElementProps | AnchorElementProps;
 
-export const iconSizeMap: Record<FormInputSize, FormInputSize> = {
+const iconSizeMap: Record<FormInputSize, FormInputSize> = {
   xxs: "xs",
   xs: "xs",
   sm: "sm",

@@ -119,6 +119,11 @@ const stateRows = [
     label: "Placeholder",
     extraProps: { placeholder: "Placeholder text..." },
   },
+  {
+    key: "editIcon",
+    label: "Show Edit Icon",
+    extraProps: { showEditIcon: true },
+  },
 ];
 
 const stateColumns = [
@@ -417,6 +422,17 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
       suffix: { text: "kg" },
       loading: true,
       invalid: true,
+    },
+  },
+  {
+    key: "kitchen-sink-edit",
+    clearable: true,
+    props: {
+      value: "Kitchen Sink Edit Icon",
+      prefix: { iconName: "search" },
+      suffix: { text: "kg" },
+      loading: true,
+      showEditIcon: true,
     },
   },
   {
