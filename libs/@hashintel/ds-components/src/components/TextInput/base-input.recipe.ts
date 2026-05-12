@@ -1,5 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
+import { formSizes } from "../../util/form-size.recipe";
+
 export const baseInputRecipe = sva({
   slots: [
     "root",
@@ -23,7 +25,7 @@ export const baseInputRecipe = sva({
     root: {
       display: "inline-flex",
       position: "relative",
-      border: "1px solid transparent",
+      border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
       transition: "[background 0.15s ease, border 0.15s ease]",
       width: "[100%]",
@@ -56,7 +58,7 @@ export const baseInputRecipe = sva({
       flex: "1",
       minWidth: "0",
       width: "[100%]",
-      paddingY: "var(--base-input-padding-y)",
+      paddingY: "var(--form-padding-y)",
       appearance: "none",
       outline: "0",
       border: "none",
@@ -141,7 +143,7 @@ export const baseInputRecipe = sva({
       _before: {
         content: "''",
         position: "absolute",
-        insetY: "[calc(var(--base-input-padding-y) * -1)]",
+        insetY: "[calc(var(--form-padding-y) * -1)]",
         insetX: "-1.5",
         background: "white",
         zIndex: "-2",
@@ -165,7 +167,7 @@ export const baseInputRecipe = sva({
       alignItems: "center",
       pointerEvents: "none",
       overflow: "hidden",
-      paddingY: "var(--base-input-padding-y)",
+      paddingY: "var(--form-padding-y)",
     },
   },
   variants: {
@@ -258,98 +260,38 @@ export const baseInputRecipe = sva({
     },
     size: {
       xxs: {
-        input: {
-          textStyle: "xxs",
-        },
-        adornment: {
-          textStyle: "xxs",
-        },
-        styledValueOverlay: {
-          textStyle: "xxs",
-        },
-        readonly: {
-          textStyle: "xxs",
-        },
         root: {
+          ...formSizes.xxs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
-          "--base-input-padding-y": "1px",
         },
       },
       xs: {
-        input: {
-          textStyle: "xs",
-        },
-        adornment: {
-          textStyle: "xs",
-        },
-        styledValueOverlay: {
-          textStyle: "xs",
-        },
-        readonly: {
-          textStyle: "xs",
-        },
         root: {
+          ...formSizes.xs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
-          "--base-input-padding-y": "spacing.0",
         },
       },
       sm: {
-        input: {
-          textStyle: "sm",
-        },
-        adornment: {
-          textStyle: "sm",
-        },
-        styledValueOverlay: {
-          textStyle: "sm",
-        },
-        readonly: {
-          textStyle: "sm",
-        },
         root: {
+          ...formSizes.sm,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
-          "--base-input-padding-y": "spacing.0.5",
         },
       },
       md: {
-        input: {
-          textStyle: "base",
-        },
-        adornment: {
-          textStyle: "base",
-        },
-        styledValueOverlay: {
-          textStyle: "base",
-        },
-        readonly: {
-          textStyle: "base",
-        },
         root: {
+          ...formSizes.md,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
-          "--base-input-padding-y": "spacing.1",
         },
       },
       lg: {
-        input: {
-          textStyle: "base",
-        },
-        adornment: {
-          textStyle: "base",
-        },
-        styledValueOverlay: {
-          textStyle: "base",
-        },
-        readonly: {
-          textStyle: "base",
-        },
         root: {
+          ...formSizes.lg,
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
-          "--base-input-padding-y": "spacing.2",
         },
       },
     },

@@ -5,7 +5,11 @@ import { preset } from "./src/preset";
 export const coreConfig: Config = {
   importMap: "@hashintel/ds-helpers",
   outdir: "../ds-helpers/styled-system",
-  include: ["./src/components/**/*.{ts,tsx}", "./src/beta/**/*.{ts,tsx}"],
+  include: [
+    "./src/components/**/*.{ts,tsx}",
+    "./src/beta/**/*.{ts,tsx}",
+    "./src/util/**/*.{ts,tsx}",
+  ],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,
