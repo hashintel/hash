@@ -421,23 +421,21 @@ export const baseInputRecipe = sva({
           "--base-input-border-color": "var(--colors-neutral-a50)",
           background: "neutral.s20",
           color: "neutral.s80",
+          "&:after": {
+            content: "''",
+            position: "absolute",
+            inset: "[-1px]",
+            borderRadius: "var(--base-input-border-radius)",
+            pointerEvents: "none",
+            transition: "[border 0.15s ease]",
+          },
           "&:has([data-part='adornment-button']:hover)::after, &:has([data-part='adornment-text'][data-interactive]:hover)::after":
             {
-              content: "''",
-              position: "absolute",
-              inset: "[-1px]",
               border: "1px solid var(--base-input-border-hover-color)",
-              borderRadius: "var(--base-input-border-radius)",
-              pointerEvents: "none",
             },
           "&:has([data-part='adornment-button']:focus-visible)::after, &:has([data-part='adornment-text'][data-interactive]:focus-within)::after":
             {
-              content: "''",
-              position: "absolute",
-              inset: "[-1px]",
               border: "1px solid var(--base-input-border-hover-color)",
-              borderRadius: "var(--base-input-border-radius)",
-              pointerEvents: "none",
               outline: "[1px solid var(--base-input-focus-color)]",
             },
         },
