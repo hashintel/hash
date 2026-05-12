@@ -93,8 +93,9 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     fi && \
     rustup target add "$(uname -m)-unknown-linux-musl" && \
     cargo install --target "$(uname -m)-unknown-linux-musl" --path apps/hash-graph --root /tmp --profile $PROFILE --locked && \
-    mkdir -p /out/etc && \
+    mkdir -p /out/etc/ssl/certs && \
     cp /tmp/bin/hash-graph /out/hash-graph && \
+    cp /etc/ssl/certs/ca-certificates.crt /out/etc/ssl/certs/ca-certificates.crt && \
     echo 'graph:x:61000:60000:hash-graph:/:' > /out/etc/passwd && \
     echo 'hash:x:60000:' > /out/etc/group && \
     install -d -m 0775 -o 61000 -g 60000 /out/logs
