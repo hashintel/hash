@@ -2,8 +2,6 @@
 //
 // No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
 // SDCPN documents, simulation, LSP, and playback.
-//
-// See `rfc/0001-core-react-ui-split/` chapters 04, 05, 11 for design context.
 
 // --- Document ---
 export {
