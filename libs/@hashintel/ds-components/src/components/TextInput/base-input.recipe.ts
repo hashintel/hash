@@ -350,7 +350,7 @@ export const baseInputRecipe = sva({
     disabled: {
       true: {
         root: {
-          layerStyle: "disabled",
+          ...({ layerStyle: "disabled" } as Record<string, string>),
           cursor: "auto",
         },
       },
