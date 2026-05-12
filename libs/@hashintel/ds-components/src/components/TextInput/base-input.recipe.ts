@@ -1,7 +1,7 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
-import { formWidthBase, formWidths } from "../../util/form-width.recipe";
+import { formWidths } from "../../util/form-width.recipe";
 
 export const baseInputRecipe = sva({
   slots: [
@@ -25,7 +25,7 @@ export const baseInputRecipe = sva({
   ],
   base: {
     root: {
-      ...formWidthBase,
+      ...formWidths.base,
       display: "inline-flex",
       width: "[fit-content]",
       position: "relative",
@@ -268,35 +268,35 @@ export const baseInputRecipe = sva({
     size: {
       xxs: {
         root: {
-          ...formSizes.xxs,
+          ...formSizes.variants.sizes.xxs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
       },
       xs: {
         root: {
-          ...formSizes.xs,
+          ...formSizes.variants.sizes.xs,
           "--base-input-border-radius": "radii.md",
           "--base-input-padding-x": "spacing.2",
         },
       },
       sm: {
         root: {
-          ...formSizes.sm,
+          ...formSizes.variants.sizes.sm,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.2.5",
         },
       },
       md: {
         root: {
-          ...formSizes.md,
+          ...formSizes.variants.sizes.md,
           "--base-input-border-radius": "radii.lg",
           "--base-input-padding-x": "spacing.3",
         },
       },
       lg: {
         root: {
-          ...formSizes.lg,
+          ...formSizes.variants.sizes.lg,
           "--base-input-border-radius": "radii.xl",
           "--base-input-padding-x": "spacing.4",
         },
@@ -321,16 +321,16 @@ export const baseInputRecipe = sva({
     },
     width: {
       xs: {
-        root: { ...formWidths.xs },
+        root: { ...formWidths.variants.widths.xs },
       },
       sm: {
-        root: { ...formWidths.sm },
+        root: { ...formWidths.variants.widths.sm },
       },
       md: {
-        root: { ...formWidths.md },
+        root: { ...formWidths.variants.widths.md },
       },
       lg: {
-        root: { ...formWidths.lg },
+        root: { ...formWidths.variants.widths.lg },
       },
       fullWidth: {
         root: { width: "[100%]" },

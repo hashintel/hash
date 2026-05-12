@@ -1,3 +1,5 @@
+import { cva } from "@hashintel/ds-helpers/css";
+
 /**
  * Shared per-size style values for sized form-input components
  * (Button, TextInput, …). Internal — these CSS variables are NOT part of
@@ -24,34 +26,41 @@
  * `var(--leading-factor)` so the global leading utility still applies.
  */
 export const formSizes = {
-  xxs: {
-    textStyle: "xxs",
-    "--form-border-width": "1px",
-    "--form-padding-y": "1px",
-    "--form-line-height": "1.6em",
-  },
-  xs: {
-    textStyle: "xs",
-    "--form-border-width": "1px",
-    "--form-padding-y": "spacing.0",
-    "--form-line-height": "1.6em",
-  },
-  sm: {
-    textStyle: "sm",
-    "--form-border-width": "1px",
-    "--form-padding-y": "spacing.0.5",
-    "--form-line-height": "1.6em",
-  },
-  md: {
-    textStyle: "base",
-    "--form-border-width": "1px",
-    "--form-padding-y": "spacing.1",
-    "--form-line-height": "1.5em",
-  },
-  lg: {
-    textStyle: "base",
-    "--form-border-width": "1px",
-    "--form-padding-y": "spacing.2",
-    "--form-line-height": "1.5em",
+  variants: {
+    sizes: {
+      xxs: {
+        textStyle: "xxs",
+        "--form-border-width": "1px",
+        "--form-padding-y": "1px",
+        "--form-line-height": "1.6em",
+      },
+      xs: {
+        textStyle: "xs",
+        "--form-border-width": "1px",
+        "--form-padding-y": "spacing.0",
+        "--form-line-height": "1.6em",
+      },
+      sm: {
+        textStyle: "sm",
+        "--form-border-width": "1px",
+        "--form-padding-y": "spacing.0.5",
+        "--form-line-height": "1.6em",
+      },
+      md: {
+        textStyle: "base",
+        "--form-border-width": "1px",
+        "--form-padding-y": "spacing.1",
+        "--form-line-height": "1.5em",
+      },
+      lg: {
+        textStyle: "base",
+        "--form-border-width": "1px",
+        "--form-padding-y": "spacing.2",
+        "--form-line-height": "1.5em",
+      },
+    },
   },
 } as const;
+
+// Do not use this export! We only need to export this as a recipe for panda to be able to properly analyze and share styles
+export const formSizesRecipe = cva(formSizes);

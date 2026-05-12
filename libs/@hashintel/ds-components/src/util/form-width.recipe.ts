@@ -1,3 +1,5 @@
+import { cva } from "@hashintel/ds-helpers/css";
+
 /**
  * Shared per-width style values for sized form-input components
  * (TextInput, …). Internal — these CSS variables are NOT part of the
@@ -18,13 +20,19 @@
  *   md    | 22.5rem
  *   lg    | 35rem
  */
-export const formWidthBase = {
-  "--form-min-width": "6rem",
+export const formWidths = {
+  base: {
+    "--form-min-width": "6rem",
+  },
+  variants: {
+    widths: {
+      xs: { "--form-width": "6rem" },
+      sm: { "--form-width": "15rem" },
+      md: { "--form-width": "22.5rem" },
+      lg: { "--form-width": "35rem" },
+    },
+  },
 } as const;
 
-export const formWidths = {
-  xs: { "--form-width": "6rem" },
-  sm: { "--form-width": "15rem" },
-  md: { "--form-width": "22.5rem" },
-  lg: { "--form-width": "35rem" },
-} as const;
+// Do not use this export! We only need to export this as a recipe for panda to be able to properly analyze and share styles
+export const formWidthsRecipe = cva(formWidths);
