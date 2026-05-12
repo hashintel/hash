@@ -37,7 +37,7 @@ export const styles = sva({
     size: {
       xxs: {
         button: {
-          ...formSizes.xxs,
+          ...formSizes.variants.sizes.xxs,
           paddingX: "2",
           borderRadius: "md",
           "--button-icon-margin": "var(--spacing-1)",
@@ -45,7 +45,7 @@ export const styles = sva({
       },
       xs: {
         button: {
-          ...formSizes.xs,
+          ...formSizes.variants.sizes.xs,
           paddingX: "2",
           borderRadius: "md",
           "--button-icon-margin": "var(--spacing-1)",
@@ -53,7 +53,7 @@ export const styles = sva({
       },
       sm: {
         button: {
-          ...formSizes.sm,
+          ...formSizes.variants.sizes.sm,
           paddingX: "2",
           borderRadius: "lg",
           "--button-icon-margin": "var(--spacing-1\\.5)",
@@ -61,7 +61,7 @@ export const styles = sva({
       },
       md: {
         button: {
-          ...formSizes.md,
+          ...formSizes.variants.sizes.md,
           paddingX: "3",
           borderRadius: "lg",
           "--button-icon-margin": "var(--spacing-2)",
@@ -69,7 +69,7 @@ export const styles = sva({
       },
       lg: {
         button: {
-          ...formSizes.lg,
+          ...formSizes.variants.sizes.lg,
           paddingX: "4",
           borderRadius: "lg",
           "--button-icon-margin": "var(--spacing-2)",
