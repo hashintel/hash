@@ -209,7 +209,7 @@ export const BaseInput = ({
     );
   }
 
-  const noAutocomplete = clearable ?? autocomplete === false;
+  const noAutocomplete = !!clearable || autocomplete === false;
   const showClear = !!(clearable?.clearable && value && !disabled);
 
   const input = (
