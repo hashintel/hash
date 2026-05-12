@@ -8,6 +8,7 @@ export const baseInputRecipe = sva({
     "inputWrapper",
     "input",
     "hiddenInput",
+    "sizer",
     "prefix",
     "suffix",
     "adornment",
@@ -71,6 +72,9 @@ export const baseInputRecipe = sva({
     hiddenInput: {
       color: "[transparent]",
       caretColor: "[transparent]",
+    },
+    sizer: {
+      display: "none",
     },
     prefix: {
       borderLeftRadius: "var(--base-input-border-radius)",
@@ -329,6 +333,22 @@ export const baseInputRecipe = sva({
       fitContent: {
         root: { width: "[fit-content]" },
         readonly: { width: "[fit-content]" },
+        inputWrapper: {
+          display: "inline-grid",
+          minWidth: "[unset]",
+        },
+        sizer: {
+          display: "[inline-block]",
+          gridArea: "[1 / 1]",
+          visibility: "hidden",
+          whiteSpace: "pre",
+          pointerEvents: "none",
+          minWidth: "[1ch]",
+          paddingY: "var(--form-padding-y)",
+        },
+        input: {
+          gridArea: "[1 / 1]",
+        },
       },
     },
     align: {
@@ -345,6 +365,15 @@ export const baseInputRecipe = sva({
     },
   },
   compoundVariants: [
+    {
+      variant: "default",
+      width: "fitContent",
+      css: {
+        sizer: {
+          paddingX: "var(--base-input-padding-x)",
+        },
+      },
+    },
     {
       variant: "subtle",
       loading: true,

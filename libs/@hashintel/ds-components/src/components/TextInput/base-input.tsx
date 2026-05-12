@@ -274,6 +274,11 @@ export const BaseInput = ({
       {prefix != null && renderAdornment("prefix", prefix, size, classes)}
 
       <div className={classes.inputWrapper}>
+        {width === "fitContent" && (
+          <span aria-hidden="true" className={classes.sizer}>
+            {value != null && value.length > 0 ? value : (placeholder ?? "")}
+          </span>
+        )}
         {input}
         {styledValue && !focused && (
           <div className={classes.styledValueOverlay}>{styledValue}</div>
