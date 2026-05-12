@@ -160,7 +160,6 @@ export const Default: Story = () => (
                   key={cellKey}
                   value={value}
                   variant={variant}
-                  width="md"
                   readonly={col.readonly}
                   {...row.extraProps}
                 />
@@ -170,7 +169,6 @@ export const Default: Story = () => (
                   value={value}
                   onChange={noop}
                   variant={variant}
-                  width="md"
                   readonly={col.readonly}
                   {...row.extraProps}
                 />
@@ -198,17 +196,11 @@ export const Alignment: Story = () => (
     <span style={subheadingStyle}>Read-only</span>
     {alignments.map((align) => (
       <Fragment key={align}>
+        <Controlled value={`Align: ${align}`} onChange={noop} align={align} />
         <Controlled
           value={`Align: ${align}`}
           onChange={noop}
           align={align}
-          width="md"
-        />
-        <Controlled
-          value={`Align: ${align}`}
-          onChange={noop}
-          align={align}
-          width="md"
           readonly
         />
       </Fragment>
@@ -231,15 +223,14 @@ export const StyledValue: Story = () => (
     <span style={subheadingStyle}>Read-only</span>
     {variants.map((variant) => (
       <Fragment key={variant}>
-        <StyledNumberInput variant={variant} width="md" />
-        <StyledNumberInput variant={variant} width="md" readonly />
+        <StyledNumberInput variant={variant} />
+        <StyledNumberInput variant={variant} readonly />
       </Fragment>
     ))}
     {variants.map((variant) => (
       <Fragment key={`sink-${variant}`}>
         <StyledNumberInput
           variant={variant}
-          width="md"
           prefix={{ iconName: "search" }}
           suffix={{ text: "kg" }}
           loading
@@ -247,7 +238,6 @@ export const StyledValue: Story = () => (
         />
         <StyledNumberInput
           variant={variant}
-          width="md"
           prefix={{ iconName: "search" }}
           suffix={{ text: "kg" }}
           loading
@@ -289,7 +279,6 @@ export const Size: Story = () => (
           size={size}
           variant={rv.variant}
           readonly={rv.readonly}
-          width="fullWidth"
         />
       )),
     ])}
@@ -303,7 +292,6 @@ export const Size: Story = () => (
         value="Kitchen Sink"
         prefix={{ iconName: "search" }}
         suffix={{ text: "kg" }}
-        width="fullWidth"
         loading
         size={size}
       />
@@ -487,7 +475,6 @@ export const PrefixAndSuffix: Story = () => (
             key={`${row.key}-${variant}`}
             {...row.props}
             variant={variant}
-            width="md"
           />
         ) : (
           <Controlled
@@ -495,7 +482,6 @@ export const PrefixAndSuffix: Story = () => (
             {...row.props}
             onChange={noop}
             variant={variant}
-            width="md"
           />
         ),
       ),

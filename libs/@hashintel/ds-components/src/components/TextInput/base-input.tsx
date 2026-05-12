@@ -293,7 +293,9 @@ export const BaseInput = ({
               event.preventDefault();
               event.stopPropagation();
             }}
-            onClick={() => {
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
               clearable.onClear();
               internalRef.current?.focus();
             }}

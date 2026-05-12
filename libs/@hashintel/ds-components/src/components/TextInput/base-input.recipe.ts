@@ -25,11 +25,11 @@ export const baseInputRecipe = sva({
   base: {
     root: {
       display: "inline-flex",
+      width: "[fit-content]",
       position: "relative",
       border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
       transition: "[background 0.15s ease, border 0.15s ease]",
-      width: "[100%]",
       "--base-input-focus-color": "var(--colors-bd-solid)",
       "--base-input-border-color": "var(--colors-bd-solid)",
       "--base-input-border-hover-color": "var(--colors-neutral-s80)",
@@ -50,10 +50,10 @@ export const baseInputRecipe = sva({
     inputWrapper: {
       position: "relative",
       display: "flex",
-      flex: "1",
       alignItems: "center",
       borderRadius: "var(--base-input-border-radius)",
       minWidth: "[6rem]",
+      flex: "[1 1 auto]",
     },
     input: {
       flex: "1",
@@ -318,18 +318,20 @@ export const baseInputRecipe = sva({
     },
     width: {
       xs: {
-        inputWrapper: { maxWidth: "[6rem]" },
+        inputWrapper: { width: "[6rem]", maxWidth: "[6rem]" },
       },
       sm: {
-        inputWrapper: { maxWidth: "[15rem]" },
+        inputWrapper: { width: "[15rem]", maxWidth: "[15rem]" },
       },
       md: {
-        inputWrapper: { maxWidth: "[22.5rem]" },
+        inputWrapper: { width: "[22.5rem]", maxWidth: "[22.5rem]" },
       },
       lg: {
-        inputWrapper: { maxWidth: "[35rem]" },
+        inputWrapper: { width: "[35rem]", maxWidth: "[35rem]" },
       },
-      fullWidth: {},
+      fullWidth: {
+        root: { width: "[100%]" },
+      },
       fitContent: {
         root: { width: "[fit-content]" },
         readonly: { width: "[fit-content]" },
@@ -446,6 +448,15 @@ export const baseInputRecipe = sva({
           "&:not(.layer-style_disabled):hover": {
             bg: "red.s05",
           },
+        },
+      },
+    },
+    {
+      variant: "subtle",
+      size: "xxs",
+      css: {
+        root: {
+          "--base-input-padding-x": "spacing.2",
         },
       },
     },
