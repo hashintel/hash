@@ -264,7 +264,7 @@ impl Projections {
             })
             .build()
             .cross_join(FromItem::Function {
-                lateral: false,
+                lateral: true,
                 function: query::Function::Unnest(vec![
                     query::Expression::ColumnReference(ColumnReference {
                         correlation: Some(eit_ref.clone()),
