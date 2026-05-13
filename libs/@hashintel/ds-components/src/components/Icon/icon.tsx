@@ -1,5 +1,6 @@
 /* eslint simple-import-sort/imports: "off", sort-imports: ["error", { ignoreDeclarationSort: true, ignoreMemberSort: true, ignoreCase: false }] */
 import { cx } from "@hashintel/ds-helpers/css";
+import type { DataAttributes } from "../../util/dom";
 import ArrowDown from "./svgs/regular/arrow-down.svg";
 import ArrowDownLeftAndArrowUpRightToCenter from "./svgs/solid/arrow-down-left-and-arrow-up-right-to-center.svg";
 import ArrowLeft from "./svgs/regular/arrow-left.svg";
@@ -232,16 +233,18 @@ export const Icon = ({
   name,
   size,
   alt,
+  ...dataAttributes
 }: {
   className?: string;
   name: IconName;
   size?: FormInputSize;
   alt?: string;
-}) => {
+} & DataAttributes) => {
   const IconSvg = IconMap[name];
 
   return (
     <IconSvg
+      {...dataAttributes}
       className={cx(styles({ size }), className)}
       aria-label={alt}
       role={alt ? "img" : undefined}

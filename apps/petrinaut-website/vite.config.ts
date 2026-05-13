@@ -25,6 +25,11 @@ export default defineConfig(() => {
           reactCompilerPreset({
             target: "19",
             compilationMode: "infer",
+            // @hashintel/ds-components ships prebuilt jsx() calls; the compiler
+            // can't recognize ref forwarding in that form and bails with
+            // "Cannot access refs during render". Opt that package out.
+            sources: (filename: string) =>
+              !filename.includes("@hashintel/ds-components"),
             // @ts-expect-error - panicThreshold is accepted at runtime
             panicThreshold: "critical_errors",
           }),

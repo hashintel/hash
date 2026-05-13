@@ -1,17 +1,27 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
+import { formSizes } from "../../util/form-size.recipe";
+
 export const styles = sva({
-  slots: ["button", "loadingContainer", "loadingContent", "iconText"],
+  slots: [
+    "button",
+    "loadingContainer",
+    "loadingSpinner",
+    "loadingContent",
+    "iconText",
+  ],
   base: {
     button: {
-      "--button-border-width": "1px",
       cursor: "pointer",
       display: "inline-block",
       fontWeight: "medium",
-      border: "var(--button-border-width) solid",
+      border: "var(--form-border-width) solid",
       textAlign: "center",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
+      paddingY: "var(--form-padding-y)",
+      minWidth:
+        "[calc(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2)]",
       "&:focus-visible": {
         outline: "2px solid",
       },
@@ -33,51 +43,44 @@ export const styles = sva({
     size: {
       xxs: {
         button: {
+          ...formSizes.variants.sizes.xxs,
           paddingX: "2",
-          paddingY: "[1px]",
           borderRadius: "md",
-          textStyle: "xxs",
-          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + 1px * 2 + var(--button-border-width) * 2)]`,
           "--button-icon-margin": "var(--spacing-1)",
         },
       },
       xs: {
         button: {
+          ...formSizes.variants.sizes.xs,
           paddingX: "2",
-          paddingY: "0",
           borderRadius: "md",
-          textStyle: "xs",
-          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--button-border-width) * 2)]`,
           "--button-icon-margin": "var(--spacing-1)",
         },
       },
       sm: {
         button: {
+          ...formSizes.variants.sizes.sm,
           paddingX: "2",
-          paddingY: "0.5",
           borderRadius: "lg",
-          textStyle: "sm",
-          minWidth: `[calc(1em * ${1.6} * var(--leading-factor, 1) + var(--spacing-0\\.5) * 2 + var(--button-border-width) * 2)]`,
           "--button-icon-margin": "var(--spacing-1\\.5)",
         },
       },
       md: {
         button: {
+          ...formSizes.variants.sizes.md,
           paddingX: "3",
-          paddingY: "1",
           borderRadius: "lg",
-          textStyle: "base",
-          minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-1) * 2 + var(--button-border-width) * 2)]`,
           "--button-icon-margin": "var(--spacing-2)",
+        },
+        loadingSpinner: {
+          padding: "[2px]",
         },
       },
       lg: {
         button: {
+          ...formSizes.variants.sizes.lg,
           paddingX: "4",
-          paddingY: "2",
           borderRadius: "lg",
-          textStyle: "base",
-          minWidth: `[calc(1em * ${1.5} * var(--leading-factor, 1) + var(--spacing-2) * 2 + var(--button-border-width) * 2)]`,
           "--button-icon-margin": "var(--spacing-2)",
         },
       },
