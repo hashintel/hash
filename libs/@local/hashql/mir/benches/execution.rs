@@ -104,7 +104,7 @@ fn execution_analysis(criterion: &mut Criterion) {
                 scratch: &mut *scratch,
             };
 
-            let _result = core::hint::black_box(analysis.run(context, body));
+            let _result = core::hint::black_box(analysis.run_in(context, body, context.heap));
         });
     });
 
@@ -123,7 +123,7 @@ fn execution_analysis(criterion: &mut Criterion) {
                     scratch: &mut *scratch,
                 };
 
-                let _result = core::hint::black_box(analysis.run(context, body));
+                let _result = core::hint::black_box(analysis.run_in(context, body, context.heap));
             },
         );
     });
@@ -140,7 +140,7 @@ fn execution_analysis(criterion: &mut Criterion) {
                 scratch: &mut *scratch,
             };
 
-            let _result = core::hint::black_box(analysis.run(context, body));
+            let _result = core::hint::black_box(analysis.run_in(context, body, context.heap));
         });
     });
 }

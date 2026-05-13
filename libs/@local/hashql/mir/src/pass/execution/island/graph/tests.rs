@@ -34,7 +34,7 @@ pub(crate) fn make_targets(assignments: &[TargetId]) -> BasicBlockVec<TargetId, 
 
 pub(crate) fn build_graph(body: &Body<'_>, targets: &[TargetId]) -> IslandGraph<Global> {
     let target_vec = make_targets(targets);
-    let islands = IslandPlacement::new().run(body, VertexType::Entity, &target_vec, Global);
+    let islands = IslandPlacement::new().run_in(body, VertexType::Entity, &target_vec, Global);
     IslandGraph::new_in(body, VertexType::Entity, islands, Global, Global)
 }
 

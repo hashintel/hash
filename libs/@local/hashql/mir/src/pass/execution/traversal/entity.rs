@@ -5,7 +5,7 @@ use hashql_core::{
         Id,
         bit_vec::{BitRelations as _, FiniteBitSet},
     },
-    symbol::{ConstantSymbol, sym},
+    symbol::{ConstantSymbol, Symbol, sym},
 };
 
 use super::{
@@ -192,6 +192,41 @@ impl EntityPath {
     #[must_use]
     pub fn resolve(projections: &[Projection<'_>]) -> Option<(Self, usize)> {
         resolve(projections)
+    }
+
+    /// Returns a unique symbol identifying this path variant.
+    ///
+    /// Used as column aliases in SQL generation so the interpreter can locate
+    /// result columns by name.
+    #[must_use]
+    pub const fn as_symbol(self) -> Symbol<'static> {
+        match self {
+            Self::Properties => sym::properties,
+            Self::Vectors => sym::vectors,
+            Self::RecordId => sym::record_id,
+            Self::EntityId => sym::entity_id,
+            Self::WebId => sym::web_id,
+            Self::EntityUuid => sym::entity_uuid,
+            Self::DraftId => sym::draft_id,
+            Self::EditionId => sym::edition_id,
+            Self::TemporalVersioning => sym::temporal_versioning,
+            Self::DecisionTime => sym::decision_time,
+            Self::TransactionTime => sym::transaction_time,
+            Self::EntityTypeIds => sym::entity_type_ids,
+            Self::Archived => sym::archived,
+            Self::Confidence => sym::confidence,
+            Self::ProvenanceInferred => sym::provenance_inferred,
+            Self::ProvenanceEdition => sym::provenance_edition,
+            Self::PropertyMetadata => sym::property_metadata,
+            Self::LeftEntityWebId => sym::left_entity_web_id,
+            Self::LeftEntityUuid => sym::left_entity_uuid,
+            Self::RightEntityWebId => sym::right_entity_web_id,
+            Self::RightEntityUuid => sym::right_entity_uuid,
+            Self::LeftEntityConfidence => sym::left_entity_confidence,
+            Self::RightEntityConfidence => sym::right_entity_confidence,
+            Self::LeftEntityProvenance => sym::left_entity_provenance,
+            Self::RightEntityProvenance => sym::right_entity_provenance,
+        }
     }
 
     /// Returns the set of execution targets that natively serve this path.

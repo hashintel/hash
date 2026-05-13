@@ -23,6 +23,7 @@
     iter_collect_into,
     likely_unlikely,
     maybe_uninit_fill,
+    option_into_flat_iter,
     step_trait,
     temporary_niche_types,
     try_trait_v2,
