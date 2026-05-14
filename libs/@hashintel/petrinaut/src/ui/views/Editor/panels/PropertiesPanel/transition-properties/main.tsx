@@ -7,6 +7,7 @@ import type {
   Place,
   Transition,
 } from "../../../../../../core/types/sdcpn";
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { TransitionPropertiesProvider } from "./context";
 import { transitionMainContentSubView } from "./subviews/main";
@@ -24,16 +25,10 @@ interface TransitionPropertiesProps {
   transition: Transition;
   places: Place[];
   types: Color[];
-  updateTransition: (
-    id: string,
-    updateFn: (existingTransition: Transition) => void,
-  ) => void;
-  onArcWeightUpdate: (
-    transitionId: string,
-    arcDirection: "input" | "output",
-    placeId: string,
-    weight: number,
-  ) => void;
+  updateTransition: MutationContextValue["updateTransition"];
+  onArcWeightUpdate: MutationContextValue["updateArcWeight"];
+  updateArcPlace: MutationContextValue["updateArcPlace"];
+  removeArc: MutationContextValue["removeArc"];
 }
 
 export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
@@ -42,6 +37,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   types,
   updateTransition,
   onArcWeightUpdate,
+  updateArcPlace,
+  removeArc,
 }) => {
   const isReadOnly = useIsReadOnly();
 
@@ -60,6 +57,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         isReadOnly={isReadOnly}
         updateTransition={updateTransition}
         onArcWeightUpdate={onArcWeightUpdate}
+        updateArcPlace={updateArcPlace}
+        removeArc={removeArc}
       >
         <VerticalSubViewsContainer
           name="transition-properties"

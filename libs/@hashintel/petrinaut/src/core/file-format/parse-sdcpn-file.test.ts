@@ -61,6 +61,25 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.differentialEquations).toEqual([]);
     });
 
+    it("preserves relaxed scenario and metric import defaults", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        scenarios: [{ id: "scenario-1", name: "Scenario One" }],
+        metrics: [{ id: "metric-1", name: "Metric One" }],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.scenarios?.[0]).toMatchObject({
+        scenarioParameters: [],
+        parameterOverrides: {},
+        initialState: { type: "per_place", content: {} },
+      });
+      expect(result.sdcpn.metrics?.[0]?.code).toBe("");
+    });
+
     it("strips version and meta from the returned sdcpn", () => {
       const result = parseSDCPNFile({
         version: 1,

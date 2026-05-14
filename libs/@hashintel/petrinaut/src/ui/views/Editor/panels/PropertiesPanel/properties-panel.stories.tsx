@@ -1,5 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { type ReactNode, useState } from "react";
+import {
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+  useState,
+} from "react";
 
 import type {
   Color,
@@ -13,6 +18,7 @@ import {
   SDCPNContext,
   type SDCPNContextValue,
 } from "../../../../../react/state/sdcpn-context";
+import type { MutationContextValue } from "../../../../../react/state/mutation-context";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { ParameterProperties } from "./parameter-properties/main";
 import { PlaceProperties } from "./place-properties/main";
@@ -154,9 +160,16 @@ const SDCPN_STUB: SDCPNContextValue = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Deep-clone a value so that immer-style mutators work in stories. */
+/** Deep-clone story state so local Storybook updates mimic app mutations. */
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function applyStoryUpdate<T>(
+  setValue: Dispatch<SetStateAction<T>>,
+  update: Partial<T>,
+): void {
+  setValue((prev) => ({ ...clone(prev), ...clone(update) }));
 }
 
 /** Wraps panel content with the required contexts, filling the viewport. */
@@ -192,12 +205,8 @@ const PanelFrame = ({ children }: { children: ReactNode }) => (
 
 const PlacePanelStory = () => {
   const [place, setPlace] = useState<Place>(PLACES[0]!);
-  const updatePlace = (_id: string, fn: (p: Place) => void) => {
-    setPlace((prev) => {
-      const next = clone(prev);
-      fn(next);
-      return next;
-    });
+  const updatePlace: MutationContextValue["updatePlace"] = (input) => {
+    applyStoryUpdate(setPlace, input.update);
   };
   return (
     <PanelFrame>
@@ -216,12 +225,8 @@ const PlaceEmptyPanelStory = () => {
     x: 0,
     y: 0,
   });
-  const updatePlace = (_id: string, fn: (p: Place) => void) => {
-    setPlace((prev) => {
-      const next = clone(prev);
-      fn(next);
-      return next;
-    });
+  const updatePlace: MutationContextValue["updatePlace"] = (input) => {
+    applyStoryUpdate(setPlace, input.update);
   };
   return (
     <PanelFrame>
@@ -232,10 +237,44 @@ const PlaceEmptyPanelStory = () => {
 
 const TransitionPanelStory = () => {
   const [transition, setTransition] = useState<Transition>(TRANSITION);
-  const updateTransition = (_id: string, fn: (t: Transition) => void) => {
+  const updateTransition: MutationContextValue["updateTransition"] = (
+    input,
+  ) => {
+    applyStoryUpdate(setTransition, input.update);
+  };
+  const updateArcWeight: MutationContextValue["updateArcWeight"] = (input) => {
     setTransition((prev) => {
       const next = clone(prev);
-      fn(next);
+      const arcs =
+        input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
+      const arc = arcs.find((item) => item.placeId === input.placeId);
+      if (arc) {
+        arc.weight = input.weight;
+      }
+      return next;
+    });
+  };
+  const updateArcPlace: MutationContextValue["updateArcPlace"] = (input) => {
+    setTransition((prev) => {
+      const next = clone(prev);
+      const arcs =
+        input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
+      const arc = arcs.find((item) => item.placeId === input.oldPlaceId);
+      if (arc) {
+        arc.placeId = input.newPlaceId;
+      }
+      return next;
+    });
+  };
+  const removeArc: MutationContextValue["removeArc"] = (input) => {
+    setTransition((prev) => {
+      const next = clone(prev);
+      const arcs =
+        input.arcDirection === "input" ? next.inputArcs : next.outputArcs;
+      const index = arcs.findIndex((arc) => arc.placeId === input.placeId);
+      if (index !== -1) {
+        arcs.splice(index, 1);
+      }
       return next;
     });
   };
@@ -246,16 +285,9 @@ const TransitionPanelStory = () => {
         places={PLACES}
         types={TYPES}
         updateTransition={updateTransition}
-        onArcWeightUpdate={(transitionId, arcDirection, placeId, weight) => {
-          updateTransition(transitionId, (tr) => {
-            const arcs =
-              arcDirection === "input" ? tr.inputArcs : tr.outputArcs;
-            const arc = arcs.find((a) => a.placeId === placeId);
-            if (arc) {
-              arc.weight = weight;
-            }
-          });
-        }}
+        onArcWeightUpdate={updateArcWeight}
+        updateArcPlace={updateArcPlace}
+        removeArc={removeArc}
       />
     </PanelFrame>
   );
@@ -273,12 +305,10 @@ const TransitionEmptyPanelStory = () => {
     x: 0,
     y: 0,
   });
-  const updateTransition = (_id: string, fn: (t: Transition) => void) => {
-    setTransition((prev) => {
-      const next = clone(prev);
-      fn(next);
-      return next;
-    });
+  const updateTransition: MutationContextValue["updateTransition"] = (
+    input,
+  ) => {
+    applyStoryUpdate(setTransition, input.update);
   };
   return (
     <PanelFrame>
@@ -288,6 +318,8 @@ const TransitionEmptyPanelStory = () => {
         types={TYPES}
         updateTransition={updateTransition}
         onArcWeightUpdate={() => {}}
+        updateArcPlace={() => {}}
+        removeArc={() => {}}
       />
     </PanelFrame>
   );
@@ -295,28 +327,73 @@ const TransitionEmptyPanelStory = () => {
 
 const TypePanelStory = () => {
   const [type, setType] = useState<Color>(TYPES[0]!);
-  const updateType = (_id: string, fn: (t: Color) => void) => {
+  const updateType: MutationContextValue["updateType"] = (input) => {
+    applyStoryUpdate(setType, input.update);
+  };
+  const addTypeElement: MutationContextValue["addTypeElement"] = (input) => {
     setType((prev) => {
       const next = clone(prev);
-      fn(next);
+      next.elements.push(clone(input.element));
+      return next;
+    });
+  };
+  const updateTypeElement: MutationContextValue["updateTypeElement"] = (
+    input,
+  ) => {
+    setType((prev) => {
+      const next = clone(prev);
+      const element = next.elements.find(
+        (item) => item.elementId === input.elementId,
+      );
+      if (element) {
+        Object.assign(element, clone(input.update));
+      }
+      return next;
+    });
+  };
+  const removeTypeElement: MutationContextValue["removeTypeElement"] = (
+    input,
+  ) => {
+    setType((prev) => ({
+      ...clone(prev),
+      elements: prev.elements.filter(
+        (element) => element.elementId !== input.elementId,
+      ),
+    }));
+  };
+  const moveTypeElement: MutationContextValue["moveTypeElement"] = (input) => {
+    setType((prev) => {
+      const next = clone(prev);
+      const fromIndex = next.elements.findIndex(
+        (element) => element.elementId === input.elementId,
+      );
+      if (fromIndex !== -1) {
+        const [element] = next.elements.splice(fromIndex, 1);
+        if (element) {
+          next.elements.splice(input.toIndex, 0, element);
+        }
+      }
       return next;
     });
   };
   return (
     <PanelFrame>
-      <TypeProperties type={type} updateType={updateType} />
+      <TypeProperties
+        type={type}
+        updateType={updateType}
+        addTypeElement={addTypeElement}
+        updateTypeElement={updateTypeElement}
+        removeTypeElement={removeTypeElement}
+        moveTypeElement={moveTypeElement}
+      />
     </PanelFrame>
   );
 };
 
 const ParameterPanelStory = () => {
   const [parameter, setParameter] = useState<Parameter>(PARAMETER);
-  const updateParameter = (_id: string, fn: (p: Parameter) => void) => {
-    setParameter((prev) => {
-      const next = clone(prev);
-      fn(next);
-      return next;
-    });
+  const updateParameter: MutationContextValue["updateParameter"] = (input) => {
+    applyStoryUpdate(setParameter, input.update);
   };
   return (
     <PanelFrame>
@@ -330,15 +407,10 @@ const ParameterPanelStory = () => {
 
 const DifferentialEquationPanelStory = () => {
   const [diffEq, setDiffEq] = useState<DifferentialEquation>(DIFF_EQS[0]!);
-  const updateDiffEq = (
-    _id: string,
-    fn: (eq: DifferentialEquation) => void,
+  const updateDiffEq: MutationContextValue["updateDifferentialEquation"] = (
+    input,
   ) => {
-    setDiffEq((prev) => {
-      const next = clone(prev);
-      fn(next);
-      return next;
-    });
+    applyStoryUpdate(setDiffEq, input.update);
   };
   return (
     <PanelFrame>

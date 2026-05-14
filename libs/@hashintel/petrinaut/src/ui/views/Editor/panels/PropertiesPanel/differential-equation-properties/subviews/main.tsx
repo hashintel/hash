@@ -107,23 +107,19 @@ const DiffEqMainContent: React.FC = () => {
       setPendingTypeId(newTypeId);
       setShowConfirmDialog(true);
     } else {
-      updateDifferentialEquation(
-        differentialEquation.id,
-        (existingEquation) => {
-          existingEquation.colorId = newTypeId;
-        },
-      );
+      updateDifferentialEquation({
+        equationId: differentialEquation.id,
+        update: { colorId: newTypeId },
+      });
     }
   };
 
   const confirmTypeChange = () => {
     if (pendingTypeId !== null) {
-      updateDifferentialEquation(
-        differentialEquation.id,
-        (existingEquation) => {
-          existingEquation.colorId = pendingTypeId;
-        },
-      );
+      updateDifferentialEquation({
+        equationId: differentialEquation.id,
+        update: { colorId: pendingTypeId },
+      });
     }
     setShowConfirmDialog(false);
     setPendingTypeId(null);
@@ -140,12 +136,10 @@ const DiffEqMainContent: React.FC = () => {
         <Input
           value={differentialEquation.name}
           onChange={(event) => {
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.name = event.target.value;
-              },
-            );
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: { name: event.target.value },
+            });
           }}
           disabled={isReadOnly}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
@@ -262,12 +256,10 @@ const DiffEqMainContent: React.FC = () => {
           value={differentialEquation.code}
           height="100%"
           onChange={(newCode) => {
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.code = newCode ?? "";
-              },
-            );
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: { code: newCode ?? "" },
+            });
           }}
           options={{ readOnly: isReadOnly }}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
@@ -308,14 +300,14 @@ const DiffEqCodeAction: React.FC = () => {
               (tp) => tp.id === differentialEquation.colorId,
             );
 
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.code = equationType
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: {
+                code: equationType
                   ? generateDefaultDifferentialEquationCode(equationType)
-                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
+                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
               },
-            );
+            });
           },
         },
         {

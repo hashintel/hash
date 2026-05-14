@@ -39,6 +39,21 @@ export type {
   EventStream,
   Petrinaut as PetrinautInstance,
 } from "./core/instance";
+export { createPetrinautActions } from "./core/actions";
+export type { MutationHelperFunctions } from "./core/actions";
+export {
+  createPetrinautAiPrompt,
+  createPetrinautAiToolCallbacks,
+  petrinautAiToolInputSchemas,
+  petrinautAiTools,
+} from "./core/ai";
+export type {
+  PetrinautAiTool,
+  PetrinautAiToolCallbacks,
+  PetrinautAiToolInput,
+  PetrinautAiToolName,
+  PetrinautAiTools,
+} from "./core/ai";
 export {
   createSimulation,
   createWorkerTransport,

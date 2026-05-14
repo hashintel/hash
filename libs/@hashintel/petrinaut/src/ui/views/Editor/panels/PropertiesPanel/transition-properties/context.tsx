@@ -5,22 +5,17 @@ import type {
   Place,
   Transition,
 } from "../../../../../../core/types/sdcpn";
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 
 interface TransitionPropertiesContextValue {
   transition: Transition;
   places: Place[];
   types: Color[];
   isReadOnly: boolean;
-  updateTransition: (
-    id: string,
-    updateFn: (existingTransition: Transition) => void,
-  ) => void;
-  onArcWeightUpdate: (
-    transitionId: string,
-    arcDirection: "input" | "output",
-    placeId: string,
-    weight: number,
-  ) => void;
+  updateTransition: MutationContextValue["updateTransition"];
+  onArcWeightUpdate: MutationContextValue["updateArcWeight"];
+  updateArcPlace: MutationContextValue["updateArcPlace"];
+  removeArc: MutationContextValue["removeArc"];
 }
 
 const TransitionPropertiesContext =
@@ -42,16 +37,10 @@ interface TransitionPropertiesProviderProps {
   places: Place[];
   types: Color[];
   isReadOnly: boolean;
-  updateTransition: (
-    id: string,
-    updateFn: (existingTransition: Transition) => void,
-  ) => void;
-  onArcWeightUpdate: (
-    transitionId: string,
-    arcDirection: "input" | "output",
-    placeId: string,
-    weight: number,
-  ) => void;
+  updateTransition: MutationContextValue["updateTransition"];
+  onArcWeightUpdate: MutationContextValue["updateArcWeight"];
+  updateArcPlace: MutationContextValue["updateArcPlace"];
+  removeArc: MutationContextValue["removeArc"];
   children: ReactNode;
 }
 
@@ -64,6 +53,8 @@ export const TransitionPropertiesProvider: React.FC<
   isReadOnly,
   updateTransition,
   onArcWeightUpdate,
+  updateArcPlace,
+  removeArc,
   children,
 }) => {
   return (
@@ -75,6 +66,8 @@ export const TransitionPropertiesProvider: React.FC<
         isReadOnly,
         updateTransition,
         onArcWeightUpdate,
+        updateArcPlace,
+        removeArc,
       }}
     >
       {children}

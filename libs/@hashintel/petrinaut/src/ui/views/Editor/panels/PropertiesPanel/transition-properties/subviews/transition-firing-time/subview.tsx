@@ -67,10 +67,11 @@ const FiringTimeHeaderAction: React.FC = () => {
           id: "load-default",
           label: "Load default template",
           onClick: () => {
-            updateTransition(transition.id, (existingTransition) => {
-              existingTransition.lambdaCode = generateDefaultLambdaCode(
-                existingTransition.lambdaType,
-              );
+            updateTransition({
+              transitionId: transition.id,
+              update: {
+                lambdaCode: generateDefaultLambdaCode(transition.lambdaType),
+              },
             });
           },
         },
@@ -111,10 +112,11 @@ const TransitionFiringTimeContent: React.FC = () => {
             { value: "stochastic", label: "Stochastic Rate" },
           ]}
           onChange={(value) => {
-            updateTransition(transition.id, (existingTransition) => {
-              existingTransition.lambdaType = value as
-                | "predicate"
-                | "stochastic";
+            updateTransition({
+              transitionId: transition.id,
+              update: {
+                lambdaType: value as "predicate" | "stochastic",
+              },
             });
           }}
           disabled={isReadOnly}
@@ -134,8 +136,9 @@ const TransitionFiringTimeContent: React.FC = () => {
         value={transition.lambdaCode || ""}
         height="100%"
         onChange={(value) => {
-          updateTransition(transition.id, (existingTransition) => {
-            existingTransition.lambdaCode = value ?? "";
+          updateTransition({
+            transitionId: transition.id,
+            update: { lambdaCode: value ?? "" },
           });
         }}
         options={{ readOnly: isReadOnly }}

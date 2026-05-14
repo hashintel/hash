@@ -150,7 +150,7 @@ export function useKeyboardShortcuts(
       hasSelection
     ) {
       event.preventDefault();
-      deleteItemsByIds(selection);
+      deleteItemsByIds({ items: Array.from(selection.values()) });
       clearSelection();
       return;
     }

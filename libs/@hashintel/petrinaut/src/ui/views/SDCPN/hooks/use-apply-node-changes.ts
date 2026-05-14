@@ -139,7 +139,7 @@ export function useApplyNodeChanges() {
       }
 
       if (commits.length > 0) {
-        commitNodePositions(commits);
+        commitNodePositions({ commits });
       }
     }
   };

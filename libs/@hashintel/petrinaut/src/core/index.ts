@@ -26,6 +26,30 @@ export type {
   EventStream,
   Petrinaut,
 } from "./instance";
+export { createPetrinautActions } from "./actions";
+export type { MutationHelperFunctions } from "./actions";
+
+// --- AI ---
+export {
+  colorSchema,
+  createPetrinautAiPrompt,
+  createPetrinautAiToolCallbacks,
+  differentialEquationSchema,
+  metricSchema,
+  parameterSchema,
+  petrinautAiToolInputSchemas,
+  petrinautAiTools,
+  placeSchema,
+  scenarioSchema,
+  transitionSchema,
+} from "./ai";
+export type {
+  PetrinautAiTool,
+  PetrinautAiToolCallbacks,
+  PetrinautAiToolInput,
+  PetrinautAiToolName,
+  PetrinautAiTools,
+} from "./ai";
 
 // --- Simulation ---
 export {

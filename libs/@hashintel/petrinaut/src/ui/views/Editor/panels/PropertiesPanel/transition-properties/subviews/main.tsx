@@ -34,6 +34,8 @@ const TransitionMainContent: React.FC = () => {
     isReadOnly,
     updateTransition,
     onArcWeightUpdate,
+    updateArcPlace,
+    removeArc,
   } = useTransitionPropertiesContext();
 
   const [nameInputValue, setNameInputValue] = useState(transition.name);
@@ -82,13 +84,11 @@ const TransitionMainContent: React.FC = () => {
     oldPlaceId: string,
     newPlaceId: string,
   ) => {
-    updateTransition(transition.id, (existingTransition) => {
-      const arc = existingTransition.inputArcs.find(
-        (ar) => ar.placeId === oldPlaceId,
-      );
-      if (arc) {
-        arc.placeId = newPlaceId;
-      }
+    updateArcPlace({
+      transitionId: transition.id,
+      arcDirection: "input",
+      oldPlaceId,
+      newPlaceId,
     });
   };
 
@@ -96,35 +96,27 @@ const TransitionMainContent: React.FC = () => {
     oldPlaceId: string,
     newPlaceId: string,
   ) => {
-    updateTransition(transition.id, (existingTransition) => {
-      const arc = existingTransition.outputArcs.find(
-        (ar) => ar.placeId === oldPlaceId,
-      );
-      if (arc) {
-        arc.placeId = newPlaceId;
-      }
+    updateArcPlace({
+      transitionId: transition.id,
+      arcDirection: "output",
+      oldPlaceId,
+      newPlaceId,
     });
   };
 
   const handleDeleteInputArc = (placeId: string) => {
-    updateTransition(transition.id, (existingTransition) => {
-      const index = existingTransition.inputArcs.findIndex(
-        (arc) => arc.placeId === placeId,
-      );
-      if (index !== -1) {
-        existingTransition.inputArcs.splice(index, 1);
-      }
+    removeArc({
+      transitionId: transition.id,
+      arcDirection: "input",
+      placeId,
     });
   };
 
   const handleDeleteOutputArc = (placeId: string) => {
-    updateTransition(transition.id, (existingTransition) => {
-      const index = existingTransition.outputArcs.findIndex(
-        (arc) => arc.placeId === placeId,
-      );
-      if (index !== -1) {
-        existingTransition.outputArcs.splice(index, 1);
-      }
+    removeArc({
+      transitionId: transition.id,
+      arcDirection: "output",
+      placeId,
     });
   };
 
@@ -149,8 +141,9 @@ const TransitionMainContent: React.FC = () => {
 
             setNameError(null);
             if (result.name !== transition.name) {
-              updateTransition(transition.id, (existingTransition) => {
-                existingTransition.name = result.name;
+              updateTransition({
+                transitionId: transition.id,
+                update: { name: result.name },
               });
             }
           }}
@@ -185,12 +178,12 @@ const TransitionMainContent: React.FC = () => {
                     handleInputArcPlaceChange(arc.placeId, newPlaceId)
                   }
                   onWeightChange={(weight) => {
-                    onArcWeightUpdate(
-                      transition.id,
-                      "input",
-                      arc.placeId,
+                    onArcWeightUpdate({
+                      transitionId: transition.id,
+                      arcDirection: "input",
+                      placeId: arc.placeId,
                       weight,
-                    );
+                    });
                   }}
                   onDelete={() => handleDeleteInputArc(arc.placeId)}
                 />
@@ -224,12 +217,12 @@ const TransitionMainContent: React.FC = () => {
                     handleOutputArcPlaceChange(arc.placeId, newPlaceId)
                   }
                   onWeightChange={(weight) => {
-                    onArcWeightUpdate(
-                      transition.id,
-                      "output",
-                      arc.placeId,
+                    onArcWeightUpdate({
+                      transitionId: transition.id,
+                      arcDirection: "output",
+                      placeId: arc.placeId,
                       weight,
-                    );
+                    });
                   }}
                   onDelete={() => handleDeleteOutputArc(arc.placeId)}
                 />
@@ -253,7 +246,7 @@ const DeleteTransitionAction: React.FC = () => {
       variant="ghost"
       tone="error"
       iconName="trash"
-      onClick={() => removeTransition(transition.id)}
+      onClick={() => removeTransition({ transitionId: transition.id })}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
       tooltipDisplay="inline"

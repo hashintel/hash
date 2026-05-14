@@ -28,16 +28,18 @@ const ParameterMainContent: React.FC = () => {
   }, [parameter.id, parameter.variableName]);
 
   const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
-    updateParameter(parameter.id, (existingParameter) => {
-      existingParameter.name = event.target.value;
+    updateParameter({
+      parameterId: parameter.id,
+      update: { name: event.target.value },
     });
   };
 
   const handleUpdateDefaultValue = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    updateParameter(parameter.id, (existingParameter) => {
-      existingParameter.defaultValue = event.target.value;
+    updateParameter({
+      parameterId: parameter.id,
+      update: { defaultValue: event.target.value },
     });
   };
 
@@ -71,8 +73,9 @@ const ParameterMainContent: React.FC = () => {
 
             setVarNameError(null);
             if (result.name !== parameter.variableName) {
-              updateParameter(parameter.id, (existingParameter) => {
-                existingParameter.variableName = result.name;
+              updateParameter({
+                parameterId: parameter.id,
+                update: { variableName: result.name },
               });
             }
           }}

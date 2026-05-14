@@ -128,10 +128,13 @@ const ViewMetricContent = ({
       if (!result.success) {
         return;
       }
-      updateMetric(metric.id, (draft) => {
-        draft.name = result.data.name;
-        draft.description = result.data.description;
-        draft.code = result.data.code;
+      updateMetric({
+        metricId: metric.id,
+        update: {
+          name: result.data.name,
+          description: result.data.description,
+          code: result.data.code,
+        },
       });
       onClose();
     },
@@ -156,7 +159,7 @@ const ViewMetricContent = ({
   const metricSessionId = useMetricLspSession(values.code);
 
   const handleDelete = () => {
-    removeMetric(metric.id);
+    removeMetric({ metricId: metric.id });
     onClose();
   };
 

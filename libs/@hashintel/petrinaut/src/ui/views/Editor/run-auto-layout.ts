@@ -34,8 +34,9 @@ export async function runAutoLayout({
 
   const positions = await calculateGraphLayout(sdcpn, dimensions);
 
-  const commits: Parameters<MutationContextValue["commitNodePositions"]>[0] =
-    [];
+  const commits: Parameters<
+    MutationContextValue["commitNodePositions"]
+  >[0]["commits"] = [];
 
   for (const place of sdcpn.places) {
     const position = positions[place.id];
@@ -59,6 +60,6 @@ export async function runAutoLayout({
   }
 
   if (commits.length > 0) {
-    commitNodePositions(commits);
+    commitNodePositions({ commits });
   }
 }

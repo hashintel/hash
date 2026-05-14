@@ -66,9 +66,10 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   }
 
   const deleteActions: Partial<Record<string, () => void>> = {
-    type: () => removeType(item.id),
-    differentialEquation: () => removeDifferentialEquation(item.id),
-    parameter: () => removeParameter(item.id),
+    type: () => removeType({ typeId: item.id }),
+    differentialEquation: () =>
+      removeDifferentialEquation({ equationId: item.id }),
+    parameter: () => removeParameter({ parameterId: item.id }),
   };
   const deleteAction = deleteActions[type];
 

@@ -1,49 +1,63 @@
 import { z } from "zod";
 
+import {
+  colorElementSchema as currentColorElementSchema,
+  colorSchema as currentColorSchema,
+  differentialEquationSchema as currentDifferentialEquationSchema,
+  inputArcSchema as currentInputArcSchema,
+  outputArcSchema as currentOutputArcSchema,
+  parameterSchema as currentParameterSchema,
+  placeSchema as currentPlaceSchema,
+  transitionSchema as currentTransitionSchema,
+} from "../schemas/entity-schemas";
+import {
+  scenarioParameterSchema as currentScenarioParameterSchema,
+  scenarioSchema as currentScenarioSchema,
+} from "../schemas/scenario-schema";
+import { metricSchema as currentMetricSchema } from "../schemas/metric-schema";
+
 export const SDCPN_FILE_FORMAT_VERSION = 1;
 
+/*
+ * File import intentionally stays more permissive than current runtime/action
+ * schemas: older files may omit visual fields and input arc type, and imported
+ * display names may predate current UI validation rules.
+ */
 const inputArcSchema = z.object({
-  placeId: z.string(),
-  weight: z.number(),
+  ...currentInputArcSchema.shape,
   type: z.enum(["standard", "inhibitor"]).optional().default("standard"),
 });
 
 const outputArcSchema = z.object({
-  placeId: z.string(),
-  weight: z.number(),
+  ...currentOutputArcSchema.shape,
 });
 
 const placeSchema = z.object({
+  ...currentPlaceSchema.shape,
   id: z.string(),
   name: z.string(),
-  colorId: z.string().nullable(),
-  dynamicsEnabled: z.boolean(),
-  differentialEquationId: z.string().nullable(),
-  visualizerCode: z.string().optional(),
-  showAsInitialState: z.boolean().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
 });
 
 const transitionSchema = z.object({
+  ...currentTransitionSchema.shape,
   id: z.string(),
   name: z.string(),
   inputArcs: z.array(inputArcSchema),
   outputArcs: z.array(outputArcSchema),
-  lambdaType: z.enum(["predicate", "stochastic"]),
-  lambdaCode: z.string(),
-  transitionKernelCode: z.string(),
   x: z.number().optional(),
   y: z.number().optional(),
 });
 
 const colorElementSchema = z.object({
+  ...currentColorElementSchema.shape,
   elementId: z.string(),
   name: z.string(),
-  type: z.enum(["real", "integer", "boolean"]),
 });
 
 const colorSchema = z.object({
+  ...currentColorSchema.shape,
   id: z.string(),
   name: z.string(),
   iconSlug: z.string().optional(),
@@ -52,53 +66,38 @@ const colorSchema = z.object({
 });
 
 const differentialEquationSchema = z.object({
+  ...currentDifferentialEquationSchema.shape,
   id: z.string(),
   name: z.string(),
-  colorId: z.string(),
-  code: z.string(),
 });
 
 const parameterSchema = z.object({
+  ...currentParameterSchema.shape,
   id: z.string(),
   name: z.string(),
-  variableName: z.string(),
-  type: z.enum(["real", "integer", "boolean"]),
-  defaultValue: z.string(),
 });
 
 const scenarioParameterSchema = z.object({
-  type: z.enum(["real", "integer", "boolean", "ratio"]),
+  ...currentScenarioParameterSchema.shape,
   identifier: z.string(),
-  default: z.number(),
 });
 
-const initialStateSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("per_place"),
-    content: z.record(
-      z.string(),
-      z.union([z.string(), z.array(z.array(z.number()))]),
-    ),
-  }),
-  z.object({
-    type: z.literal("code"),
-    content: z.string(),
-  }),
-]);
-
 const scenarioSchema = z.object({
+  ...currentScenarioSchema.shape,
   id: z.string(),
   name: z.string(),
-  description: z.string().optional(),
   scenarioParameters: z.array(scenarioParameterSchema).default([]),
   parameterOverrides: z.record(z.string(), z.string()).default({}),
-  initialState: initialStateSchema.default({ type: "per_place", content: {} }),
+  initialState: currentScenarioSchema.shape.initialState.default({
+    type: "per_place",
+    content: {},
+  }),
 });
 
 const metricSchema = z.object({
+  ...currentMetricSchema.shape,
   id: z.string(),
   name: z.string(),
-  description: z.string().optional(),
   code: z.string().default(""),
 });
 

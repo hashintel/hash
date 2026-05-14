@@ -71,8 +71,13 @@ export const PropertiesPanel: React.FC = () => {
     updateTransition,
     updateArcWeight,
     updateArcType,
+    updateArcPlace,
     removeArc,
     updateType,
+    addTypeElement,
+    updateTypeElement,
+    removeTypeElement,
+    moveTypeElement,
     updateDifferentialEquation,
     updateParameter,
     deleteItemsByIds,
@@ -134,6 +139,8 @@ export const PropertiesPanel: React.FC = () => {
               types={petriNetDefinition.types}
               onArcWeightUpdate={updateArcWeight}
               updateTransition={updateTransition}
+              updateArcPlace={updateArcPlace}
+              removeArc={removeArc}
             />
           );
         }
@@ -158,7 +165,16 @@ export const PropertiesPanel: React.FC = () => {
           (type) => type.id === item.id,
         );
         if (typeData) {
-          content = <TypeProperties type={typeData} updateType={updateType} />;
+          content = (
+            <TypeProperties
+              type={typeData}
+              updateType={updateType}
+              addTypeElement={addTypeElement}
+              updateTypeElement={updateTypeElement}
+              removeTypeElement={removeTypeElement}
+              moveTypeElement={moveTypeElement}
+            />
+          );
         }
         break;
       }

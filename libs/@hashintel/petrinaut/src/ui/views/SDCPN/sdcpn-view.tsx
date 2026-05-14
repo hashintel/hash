@@ -200,13 +200,23 @@ export const SDCPNView: React.FC<{
     // Determine direction: place->transition or transition->place
     if (sourceNode.type === "place" && targetNode.type === "transition") {
       // Input arc: place to transition
-      addArc(target, "input", source, 1);
+      addArc({
+        transitionId: target,
+        arcDirection: "input",
+        placeId: source,
+        weight: 1,
+      });
     } else if (
       sourceNode.type === "transition" &&
       targetNode.type === "place"
     ) {
       // Output arc: transition to place
-      addArc(source, "output", target, 1);
+      addArc({
+        transitionId: source,
+        arcDirection: "output",
+        placeId: target,
+        weight: 1,
+      });
     }
   }
 

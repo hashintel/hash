@@ -14,6 +14,7 @@ import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import type { SDCPN } from "../../../../../../core/types/sdcpn";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { parseArcId } from "../../../../../../core/types/selection";
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 
 const containerStyle = css({
@@ -38,22 +39,9 @@ interface ArcPropertiesData {
   targetName: string;
   weight: number;
   type: "standard" | "inhibitor";
-  updateArcWeight: (
-    transitionId: string,
-    arcDirection: "input" | "output",
-    placeId: string,
-    weight: number,
-  ) => void;
-  updateArcType: (
-    transitionId: string,
-    placeId: string,
-    type: "standard" | "inhibitor",
-  ) => void;
-  removeArc: (
-    transitionId: string,
-    arcDirection: "input" | "output",
-    placeId: string,
-  ) => void;
+  updateArcWeight: MutationContextValue["updateArcWeight"];
+  updateArcType: MutationContextValue["updateArcType"];
+  removeArc: MutationContextValue["removeArc"];
 }
 
 const ArcPropertiesContext = createContext<ArcPropertiesData | null>(null);
@@ -95,11 +83,11 @@ const ArcMainContent: React.FC = () => {
           <Select
             value={type}
             onValueChange={(value) => {
-              updateArcType(
+              updateArcType({
                 transitionId,
                 placeId,
-                value as "inhibitor" | "standard",
-              );
+                type: value as "inhibitor" | "standard",
+              });
             }}
             options={[
               { value: "standard", label: "Standard" },
@@ -122,7 +110,12 @@ const ArcMainContent: React.FC = () => {
               10,
             );
             if (value > 0) {
-              updateArcWeight(transitionId, arcDirection, placeId, value);
+              updateArcWeight({
+                transitionId,
+                arcDirection,
+                placeId,
+                weight: value,
+              });
             }
           }}
           disabled={isReadOnly}
@@ -146,7 +139,7 @@ const DeleteArcAction: React.FC = () => {
       tone="error"
       iconName="trash"
       onClick={() => {
-        removeArc(transitionId, arcDirection, placeId);
+        removeArc({ transitionId, arcDirection, placeId });
         clearSelection();
       }}
       disabled={isReadOnly}
@@ -171,22 +164,9 @@ const subViews: SubView[] = [arcMainContentSubView];
 interface ArcPropertiesProps {
   arcId: string;
   petriNetDefinition: SDCPN;
-  updateArcWeight: (
-    transitionId: string,
-    arcDirection: "input" | "output",
-    placeId: string,
-    weight: number,
-  ) => void;
-  updateArcType: (
-    transitionId: string,
-    placeId: string,
-    type: "standard" | "inhibitor",
-  ) => void;
-  removeArc: (
-    transitionId: string,
-    arcDirection: "input" | "output",
-    placeId: string,
-  ) => void;
+  updateArcWeight: MutationContextValue["updateArcWeight"];
+  updateArcType: MutationContextValue["updateArcType"];
+  removeArc: MutationContextValue["removeArc"];
 }
 
 export const ArcProperties: React.FC<ArcPropertiesProps> = ({

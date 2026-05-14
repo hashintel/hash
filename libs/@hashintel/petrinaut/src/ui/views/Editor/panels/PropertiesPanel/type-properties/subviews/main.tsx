@@ -129,7 +129,14 @@ const slugifyToIdentifier = (input: string): string => {
 };
 
 const TypeMainContent: React.FC = () => {
-  const { type, updateType } = useTypePropertiesContext();
+  const {
+    type,
+    updateType,
+    addTypeElement,
+    updateTypeElement,
+    removeTypeElement,
+    moveTypeElement,
+  } = useTypePropertiesContext();
   const isDisabled = useIsReadOnly();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -152,19 +159,17 @@ const TypeMainContent: React.FC = () => {
       name: `dimension_${nextNumber}`,
       type: "real" as const,
     };
-    updateType(type.id, (existingType) => {
-      existingType.elements.push(newElement);
+    addTypeElement({
+      typeId: type.id,
+      element: newElement,
     });
   };
 
   const handleUpdateElementName = (elementId: string, newName: string) => {
-    updateType(type.id, (existingType) => {
-      for (const element of existingType.elements) {
-        if (element.elementId === elementId) {
-          element.name = newName;
-          break;
-        }
-      }
+    updateTypeElement({
+      typeId: type.id,
+      elementId,
+      update: { name: newName },
     });
   };
 
@@ -184,25 +189,18 @@ const TypeMainContent: React.FC = () => {
     }
 
     if (currentName !== slugifiedName) {
-      updateType(type.id, (existingType) => {
-        for (const element of existingType.elements) {
-          if (element.elementId === elementId) {
-            element.name = slugifiedName;
-            break;
-          }
-        }
+      updateTypeElement({
+        typeId: type.id,
+        elementId,
+        update: { name: slugifiedName },
       });
     }
   };
 
   const handleDeleteElement = (elementId: string) => {
-    updateType(type.id, (existingType) => {
-      const index = existingType.elements.findIndex(
-        (elem) => elem.elementId === elementId,
-      );
-      if (index !== -1) {
-        existingType.elements.splice(index, 1);
-      }
+    removeTypeElement({
+      typeId: type.id,
+      elementId,
     });
   };
 
@@ -223,12 +221,14 @@ const TypeMainContent: React.FC = () => {
       return;
     }
 
-    updateType(type.id, (existingType) => {
-      const [draggedElement] = existingType.elements.splice(draggedIndex, 1);
-      if (draggedElement) {
-        existingType.elements.splice(dropIndex, 0, draggedElement);
-      }
-    });
+    const draggedElement = type.elements[draggedIndex];
+    if (draggedElement) {
+      moveTypeElement({
+        typeId: type.id,
+        elementId: draggedElement.elementId,
+        toIndex: dropIndex,
+      });
+    }
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
@@ -244,8 +244,9 @@ const TypeMainContent: React.FC = () => {
         <Input
           value={type.name}
           onChange={(event) => {
-            updateType(type.id, (existingType) => {
-              existingType.name = event.target.value;
+            updateType({
+              typeId: type.id,
+              update: { name: event.target.value },
             });
           }}
           disabled={isDisabled}
@@ -258,8 +259,9 @@ const TypeMainContent: React.FC = () => {
           <ColorSelect
             value={type.displayColor}
             onChange={(color) => {
-              updateType(type.id, (existingType) => {
-                existingType.displayColor = color;
+              updateType({
+                typeId: type.id,
+                update: { displayColor: color },
               });
             }}
             disabled={isDisabled}

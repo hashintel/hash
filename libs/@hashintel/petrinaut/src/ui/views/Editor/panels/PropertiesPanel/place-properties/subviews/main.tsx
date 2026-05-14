@@ -98,8 +98,9 @@ const PlaceMainContent: React.FC = () => {
 
     setNameError(null);
     if (result.name !== place.name) {
-      updatePlace(place.id, (existingPlace) => {
-        existingPlace.name = result.name;
+      updatePlace({
+        placeId: place.id,
+        update: { name: result.name },
       });
     }
   };
@@ -147,12 +148,15 @@ const PlaceMainContent: React.FC = () => {
             value={place.colorId ?? ""}
             onValueChange={(value) => {
               const newType = value === "" ? null : value;
-              updatePlace(place.id, (existingPlace) => {
-                existingPlace.colorId = newType;
-                // Disable dynamics if type is being set to null
-                if (newType === null && existingPlace.dynamicsEnabled) {
-                  existingPlace.dynamicsEnabled = false;
-                }
+              updatePlace({
+                placeId: place.id,
+                update: {
+                  colorId: newType,
+                  dynamicsEnabled:
+                    newType === null && place.dynamicsEnabled
+                      ? false
+                      : place.dynamicsEnabled,
+                },
               });
             }}
             options={[
@@ -241,18 +245,24 @@ const PlaceMainContent: React.FC = () => {
                       : undefined
               }
               onCheckedChange={(checked) => {
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.dynamicsEnabled = checked;
-                  if (checked) {
-                    // Auto-select first available diff eq if none selected or previous no longer exists
-                    const currentIsValid = availableDiffEqs.some(
-                      (eq) => eq.id === existingPlace.differentialEquationId,
-                    );
-                    if (!currentIsValid && availableDiffEqs.length > 0) {
-                      existingPlace.differentialEquationId =
-                        availableDiffEqs[0]!.id;
-                    }
+                const update: {
+                  dynamicsEnabled: boolean;
+                  differentialEquationId?: string | null;
+                } = { dynamicsEnabled: checked };
+
+                if (checked) {
+                  // Auto-select first available diff eq if none selected or previous no longer exists
+                  const currentIsValid = availableDiffEqs.some(
+                    (eq) => eq.id === place.differentialEquationId,
+                  );
+                  if (!currentIsValid && availableDiffEqs.length > 0) {
+                    update.differentialEquationId = availableDiffEqs[0]!.id;
                   }
+                }
+
+                updatePlace({
+                  placeId: place.id,
+                  update,
                 });
               }}
             />
@@ -275,8 +285,9 @@ const PlaceMainContent: React.FC = () => {
                 <Select
                   value={place.differentialEquationId ?? undefined}
                   onValueChange={(value) => {
-                    updatePlace(place.id, (existingPlace) => {
-                      existingPlace.differentialEquationId = value;
+                    updatePlace({
+                      placeId: place.id,
+                      update: { differentialEquationId: value },
                     });
                   }}
                   options={availableDiffEqs.map((eq) => ({
@@ -319,8 +330,9 @@ const PlaceMainContent: React.FC = () => {
               checked={!!place.showAsInitialState}
               disabled={isReadOnly}
               onCheckedChange={(checked) => {
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.showAsInitialState = checked === true;
+                updatePlace({
+                  placeId: place.id,
+                  update: { showAsInitialState: checked === true },
                 });
               }}
             />
@@ -348,7 +360,7 @@ const DeletePlaceAction: React.FC = () => {
       variant="ghost"
       tone="error"
       iconName="trash"
-      onClick={() => removePlace(place.id)}
+      onClick={() => removePlace({ placeId: place.id })}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
       tooltipDisplay="inline"

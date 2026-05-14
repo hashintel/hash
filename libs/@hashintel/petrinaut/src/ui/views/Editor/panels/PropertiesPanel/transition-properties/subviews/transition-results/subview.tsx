@@ -105,9 +105,14 @@ const ResultsHeaderAction: React.FC = () => {
               })
               .filter((o) => o !== null);
 
-            updateTransition(transition.id, (existingTransition) => {
-              existingTransition.transitionKernelCode =
-                generateDefaultTransitionKernelCode(inputs, outputs);
+            updateTransition({
+              transitionId: transition.id,
+              update: {
+                transitionKernelCode: generateDefaultTransitionKernelCode(
+                  inputs,
+                  outputs,
+                ),
+              },
             });
           },
         },
@@ -161,8 +166,9 @@ const TransitionResultsContent: React.FC = () => {
         value={transition.transitionKernelCode || ""}
         height="100%"
         onChange={(value) => {
-          updateTransition(transition.id, (existingTransition) => {
-            existingTransition.transitionKernelCode = value ?? "";
+          updateTransition({
+            transitionId: transition.id,
+            update: { transitionKernelCode: value ?? "" },
           });
         }}
         options={{ readOnly: isReadOnly }}

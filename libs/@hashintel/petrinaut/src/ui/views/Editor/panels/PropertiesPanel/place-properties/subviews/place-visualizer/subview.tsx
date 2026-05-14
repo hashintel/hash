@@ -207,8 +207,9 @@ const PlaceVisualizerContent: React.FC = () => {
               height="100%"
               value={place.visualizerCode}
               onChange={(value) => {
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.visualizerCode = value ?? "";
+                updatePlace({
+                  placeId: place.id,
+                  update: { visualizerCode: value ?? "" },
                 });
               }}
             />
@@ -244,16 +245,20 @@ const VisualizerHeaderAction: React.FC = () => {
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           onCheckedChange={(checked) => {
             if (checked) {
-              updatePlace(place.id, (existingPlace) => {
-                existingPlace.visualizerCode =
-                  savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE;
+              updatePlace({
+                placeId: place.id,
+                update: {
+                  visualizerCode:
+                    savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
+                },
               });
             } else {
               if (place.visualizerCode) {
                 setSavedVisualizerCode(place.visualizerCode);
               }
-              updatePlace(place.id, (existingPlace) => {
-                existingPlace.visualizerCode = undefined;
+              updatePlace({
+                placeId: place.id,
+                update: { visualizerCode: undefined },
               });
             }
           }}
@@ -281,10 +286,13 @@ const VisualizerHeaderAction: React.FC = () => {
                   ? types.find((type) => type.id === place.colorId)
                   : null;
 
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.visualizerCode = currentPlaceType
-                    ? generateDefaultVisualizerCode(currentPlaceType)
-                    : DEFAULT_VISUALIZER_CODE;
+                updatePlace({
+                  placeId: place.id,
+                  update: {
+                    visualizerCode: currentPlaceType
+                      ? generateDefaultVisualizerCode(currentPlaceType)
+                      : DEFAULT_VISUALIZER_CODE,
+                  },
                 });
               },
             },

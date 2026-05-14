@@ -119,7 +119,7 @@ const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
           icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
-          onClick: () => removeType(item.id),
+          onClick: () => removeType({ typeId: item.id }),
         },
       ]}
     />

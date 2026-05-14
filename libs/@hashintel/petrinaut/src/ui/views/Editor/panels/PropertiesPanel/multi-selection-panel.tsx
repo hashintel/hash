@@ -9,10 +9,8 @@ import type { SubView } from "../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import type {
-  SelectionItem,
-  SelectionMap,
-} from "../../../../../core/types/selection";
+import type { SelectionItem } from "../../../../../core/types/selection";
+import type { MutationContextValue } from "../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 
 const containerStyle = css({
@@ -30,7 +28,7 @@ const summaryStyle = css({
 
 interface MultiSelectionData {
   items: SelectionItem[];
-  deleteItemsByIds: (items: SelectionMap) => void;
+  deleteItemsByIds: MutationContextValue["deleteItemsByIds"];
 }
 
 const MultiSelectionContext = createContext<MultiSelectionData | null>(null);
@@ -87,7 +85,7 @@ const DeleteSelectionAction: React.FC = () => {
       iconName="trash"
       disabled={isReadOnly}
       onClick={() => {
-        deleteItemsByIds(new Map(items.map((item) => [item.id, item])));
+        deleteItemsByIds({ items });
         clearSelection();
       }}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete selected"}
@@ -110,7 +108,7 @@ const subViews: SubView[] = [multiSelectionMainSubView];
 
 interface MultiSelectionPanelProps {
   items: SelectionItem[];
-  deleteItemsByIds: (items: SelectionMap) => void;
+  deleteItemsByIds: MutationContextValue["deleteItemsByIds"];
 }
 
 export const MultiSelectionPanel: React.FC<MultiSelectionPanelProps> = ({

@@ -9,7 +9,7 @@ import { z } from "zod";
  */
 const PASCAL_CASE_REGEX = /^[A-Z][a-zA-Z]*\d*$/;
 
-const entityNameSchema = z
+export const entityNameSchema = z
   .string()
   .trim()
   .check(

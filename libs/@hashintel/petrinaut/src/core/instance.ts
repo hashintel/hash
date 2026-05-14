@@ -3,6 +3,10 @@ import type {
   PetrinautPatch,
   ReadableStore,
 } from "./handle";
+import {
+  createPetrinautActions,
+  type MutationHelperFunctions,
+} from "./actions";
 import type { SDCPN } from "./types/sdcpn";
 
 const EMPTY_SDCPN: SDCPN = {
@@ -25,7 +29,7 @@ export type EventStream<T> = {
  * {@link createSimulation} directly with `instance.handle.doc()` (or any other
  * SDCPN value). The host owns the simulation's lifecycle.
  */
-export type Petrinaut = {
+export type Petrinaut = MutationHelperFunctions & {
   readonly handle: PetrinautDocHandle;
 
   /** Current SDCPN snapshot store. Falls back to an empty SDCPN until the handle is ready. */
@@ -102,17 +106,20 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
 
   const definition = createDefinitionStore(handle);
   const patches = createPatchStream(handle);
+  const mutate = (fn: (draft: SDCPN) => void) => {
+    if (readonly) {
+      return;
+    }
+    handle.change(fn);
+  };
+  const actions = createPetrinautActions(mutate);
 
   return {
+    ...actions,
     handle,
     definition,
     patches,
-    mutate(fn) {
-      if (readonly) {
-        return;
-      }
-      handle.change(fn);
-    },
+    mutate,
     readonly,
     dispose() {
       for (const dispose of disposers) {
