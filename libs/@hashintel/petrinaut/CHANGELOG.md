@@ -1,5 +1,15 @@
 # @hashintel/petrinaut
 
+## 0.0.14
+
+### Patch Changes
+
+- [#8633](https://github.com/hashintel/hash/pull/8633) [`fe08932`](https://github.com/hashintel/hash/commit/fe0893270534885d81ea909b871d4185d6aa0c2e) Thanks [@kube](https://github.com/kube)! - Add Metrics: user-authored functions over simulation state that produce a single number per frame, plotted via a new metric picker in the simulation timeline header
+
+- Updated dependencies [[`926f9fa`](https://github.com/hashintel/hash/commit/926f9fa3b844a9dd4ca26cdbe6dd69ceed87dcb5), [`ab0a035`](https://github.com/hashintel/hash/commit/ab0a0353baa0f1611ceba7ca29cd8adb575392f5), [`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa), [`d9eb831`](https://github.com/hashintel/hash/commit/d9eb8317bd0c981e45f263a007aeac48f309e268), [`79eda1e`](https://github.com/hashintel/hash/commit/79eda1e27e9a6b2959a68e59f9a25791639f5770)]:
+  - @hashintel/ds-components@0.2.0
+  - @hashintel/ds-helpers@0.2.0
+
 ## 0.0.13
 
 ### Patch Changes
