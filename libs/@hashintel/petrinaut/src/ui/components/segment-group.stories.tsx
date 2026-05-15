@@ -1,9 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentProps } from "react";
 import { useState } from "react";
-import { LuLayers2 } from "react-icons/lu";
-import { PiFlaskBold } from "react-icons/pi";
-import { TbCategory, TbCircleFilled, TbPlayerPlay } from "react-icons/tb";
 
 import type { SegmentOption } from "./segment-group";
 import { SegmentGroup } from "./segment-group";
@@ -46,9 +44,9 @@ export const Small: Story = {
 };
 
 const iconOptions: SegmentOption[] = [
-  { value: "edit", label: "Edit", icon: <TbCategory /> },
-  { value: "simulate", label: "Simulate", icon: <TbPlayerPlay /> },
-  { value: "actual", label: "Actual", icon: <TbCircleFilled /> },
+  { value: "edit", label: "Edit", icon: <Icon name="shapes" /> },
+  { value: "simulate", label: "Simulate", icon: <Icon name="play" /> },
+  { value: "actual", label: "Actual", icon: <Icon name="circleFilled" /> },
 ];
 
 export const WithIcons: Story = {
@@ -56,17 +54,22 @@ export const WithIcons: Story = {
 };
 
 const iconOnlyOptions: SegmentOption[] = [
-  { value: "edit", label: "Edit", icon: <TbCategory />, hideLabel: true },
+  {
+    value: "edit",
+    label: "Edit",
+    icon: <Icon name="shapes" />,
+    hideLabel: true,
+  },
   {
     value: "simulate",
     label: "Simulate",
-    icon: <TbPlayerPlay />,
+    icon: <Icon name="play" />,
     hideLabel: true,
   },
   {
     value: "actual",
     label: "Actual",
-    icon: <TbCircleFilled />,
+    icon: <Icon name="circleFilled" />,
     hideLabel: true,
   },
 ];
@@ -82,18 +85,18 @@ export const WithDisabledItems: Story = {
     <SegmentGroupStory
       initialValue="edit"
       options={[
-        { value: "edit", label: "Edit", icon: <TbCategory /> },
+        { value: "edit", label: "Edit", icon: <Icon name="shapes" /> },
         {
           value: "simulate",
           label: "Simulate",
-          icon: <TbPlayerPlay />,
+          icon: <Icon name="play" />,
           disabled: true,
           tooltip: "Simulate mode is not yet available.",
         },
         {
           value: "actual",
           label: "Actual",
-          icon: <TbCircleFilled />,
+          icon: <Icon name="circleFilled" />,
           disabled: true,
           tooltip: "Actual mode is not yet available.",
         },
@@ -124,14 +127,14 @@ const verticalIconOptions: SegmentOption[] = [
   {
     value: "experiments",
     label: "Experiments",
-    icon: <LuLayers2 size={16} />,
+    icon: <Icon name="layer" size="sm" />,
     hideLabel: true,
     tooltip: "Experiments",
   },
   {
     value: "results",
     label: "Results",
-    icon: <PiFlaskBold size={16} />,
+    icon: <Icon name="flask" size="sm" />,
     hideLabel: true,
     tooltip: "Results",
   },

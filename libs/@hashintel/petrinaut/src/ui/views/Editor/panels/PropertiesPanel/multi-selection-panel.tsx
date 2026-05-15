@@ -1,7 +1,8 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use } from "react";
-import { GrMultiple } from "react-icons/gr";
-import { TbTrash } from "react-icons/tb";
+
+const MultipleIcon = () => <Icon name="layer" />;
 
 import { IconButton } from "../../../../components/icon-button";
 import type { SubView } from "../../../../components/sub-view/types";
@@ -89,7 +90,7 @@ const DeleteSelectionAction: React.FC = () => {
       }}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete selected"}
     >
-      <TbTrash />
+      <Icon name="trash" />
     </IconButton>
   );
 };
@@ -97,7 +98,7 @@ const DeleteSelectionAction: React.FC = () => {
 const multiSelectionMainSubView: SubView = {
   id: "multi-selection-main",
   title: "Multiple Selection",
-  icon: GrMultiple,
+  icon: MultipleIcon,
   main: true,
   component: MultiSelectionContent,
   renderHeaderAction: () => <DeleteSelectionAction />,

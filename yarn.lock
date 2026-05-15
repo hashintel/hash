@@ -7603,7 +7603,6 @@ __metadata:
     "@pandacss/preset-panda": "npm:1.4.3"
     "@playwright/test": "npm:1.58.2"
     "@radix-ui/colors": "npm:3.0.0"
-    "@svgr/rollup": "npm:8.1.0"
     "@tanstack/react-virtual": "npm:3.13.24"
     "@tsconfig/strictest": "npm:^2.0.8"
     "@types/node": "npm:22.18.13"
@@ -7615,6 +7614,7 @@ __metadata:
     canvas: "npm:3.2.0"
     case-anything: "npm:3.1.0"
     colorjs.io: "npm:0.6.1"
+    esbuild-plugin-svgr: "npm:3.1.1"
     eslint: "npm:9.39.4"
     lorem-ipsum: "npm:2.0.8"
     lucide-react: "npm:0.544.0"
@@ -7683,7 +7683,6 @@ __metadata:
     oxlint-tsgolint: "npm:0.22.1"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
-    react-icons: "npm:5.5.0"
     react-resizable-panels: "npm:4.6.5"
     rolldown: "npm:1.0.0"
     rolldown-plugin-dts: "npm:0.25.0"
@@ -17526,23 +17525,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@svgr/rollup@npm:8.1.0":
-  version: 8.1.0
-  resolution: "@svgr/rollup@npm:8.1.0"
-  dependencies:
-    "@babel/core": "npm:^7.21.3"
-    "@babel/plugin-transform-react-constant-elements": "npm:^7.21.3"
-    "@babel/preset-env": "npm:^7.20.2"
-    "@babel/preset-react": "npm:^7.18.6"
-    "@babel/preset-typescript": "npm:^7.21.0"
-    "@rollup/pluginutils": "npm:^5.0.2"
-    "@svgr/core": "npm:8.1.0"
-    "@svgr/plugin-jsx": "npm:8.1.0"
-    "@svgr/plugin-svgo": "npm:8.1.0"
-  checksum: 10c0/c3204b70f8f263c5b0170c9f6b72a237ba1f3891638b88fa3e06560398f5bdd993b77fa070e01e42cecfd02475c4d5414e28a73b789c50c4c8ba9881f476dc8b
-  languageName: node
-  linkType: hard
-
 "@svgr/webpack@npm:8.1.0":
   version: 8.1.0
   resolution: "@svgr/webpack@npm:8.1.0"
@@ -27147,6 +27129,18 @@ __metadata:
     esast-util-from-estree: "npm:^2.0.0"
     vfile-message: "npm:^4.0.0"
   checksum: 10c0/3a446fb0b0d7bcd7e0157aa44b3b692802a08c93edbea81cc0f7fe4437bfdfb4b72e4563fe63b4e36d390086b71185dba4ac921f4180cc6349985c263cc74421
+  languageName: node
+  linkType: hard
+
+"esbuild-plugin-svgr@npm:3.1.1":
+  version: 3.1.1
+  resolution: "esbuild-plugin-svgr@npm:3.1.1"
+  dependencies:
+    "@svgr/core": "npm:^8.1.0"
+    "@svgr/plugin-jsx": "npm:^8.1.0"
+  peerDependencies:
+    esbuild: ^0.25.2
+  checksum: 10c0/469127f41efb63ba47f1bc8713a9eaefdff0531742f4235e8c15bebd3b16b17cfbfe8c9a9832420a3a5393434b4e4c7cefbfb8d40c7ee40645dc4f7775fd1ebb
   languageName: node
   linkType: hard
 

@@ -1,10 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { FaBars } from "react-icons/fa6";
-import {
-  TbLayoutSidebarLeftCollapse,
-  TbLayoutSidebarRightCollapse,
-} from "react-icons/tb";
 
 import { IconButton } from "../../../../components/icon-button";
 import { Menu, type MenuItem } from "../../../../components/menu";
@@ -84,17 +80,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
-          {isLeftSidebarOpen ? (
-            <TbLayoutSidebarLeftCollapse size={16} />
-          ) : (
-            <TbLayoutSidebarRightCollapse size={16} />
-          )}
+          <Icon name="sidebar" size="sm" />
         </IconButton>
 
         <Menu
           trigger={
             <IconButton aria-label="Menu" size="sm" variant="ghost">
-              <FaBars />
+              <Icon name="bars" />
             </IconButton>
           }
           items={menuItems}

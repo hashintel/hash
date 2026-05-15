@@ -1,7 +1,6 @@
-import { Checkbox } from "@hashintel/ds-components";
+import { Checkbox, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
-import { TbArrowRight, TbTrash } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
 import { IconButton } from "../../../../../../components/icon-button";
@@ -214,7 +213,7 @@ const PlaceMainContent: React.FC = () => {
                     }
                   }
                 }}
-                suffix={<TbArrowRight />}
+                suffix={<Icon name="arrowRight" />}
               >
                 Jump to Type
               </Button>
@@ -303,7 +302,7 @@ const PlaceMainContent: React.FC = () => {
                           });
                         }
                       }}
-                      suffix={<TbArrowRight />}
+                      suffix={<Icon name="arrowRight" />}
                     >
                       Jump to Differential Equation
                     </Button>
@@ -352,7 +351,7 @@ const DeletePlaceAction: React.FC = () => {
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
     >
-      <TbTrash />
+      <Icon name="trash" />
     </IconButton>
   );
 };

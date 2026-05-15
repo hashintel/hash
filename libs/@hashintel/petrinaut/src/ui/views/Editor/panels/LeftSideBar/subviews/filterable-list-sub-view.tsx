@@ -1,8 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ComponentType, ReactNode } from "react";
 import { Fragment, use, useEffect, useRef, useState } from "react";
-import { LuChevronRight, LuSearch } from "react-icons/lu";
-import { TbDots } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
 import type { MenuItem } from "../../../../../components/menu";
@@ -158,7 +157,6 @@ const chevronStyle = cva({
   },
 });
 
-const CHEVRON_SIZE = 10;
 const NESTING_INDENT = 16;
 
 const emptyMessageStyle = css({
@@ -208,7 +206,7 @@ const FilterHeaderAction: React.FC<{
         size="xs"
         onClick={() => setSearchOpen(true)}
       >
-        <LuSearch />
+        <Icon name="search" />
       </IconButton>
       {renderExtraAction?.()}
     </>
@@ -234,7 +232,7 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
           data-row-action
           onClick={(event) => event.stopPropagation()}
         >
-          <TbDots />
+          <Icon name="ellipsis" />
         </IconButton>
       }
       items={items}
@@ -567,7 +565,7 @@ const FilterableListContent = <T extends FilterableListItem>({
               <div className={listItemContentStyle}>
                 {isItemGroup && (
                   <span className={chevronStyle({ expanded: !isCollapsed })}>
-                    <LuChevronRight size={CHEVRON_SIZE} />
+                    <Icon name="chevronRight" size="xxs" />
                   </span>
                 )}
                 {item.icon && (

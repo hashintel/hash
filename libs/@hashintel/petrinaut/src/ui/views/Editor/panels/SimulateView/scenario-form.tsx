@@ -1,7 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
-import { TbPlus, TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../components/icon-button";
 import { Input } from "../../../../components/input";
@@ -639,7 +639,7 @@ const ScenarioFormSections = ({
             aria-label="Add scenario parameter"
             onClick={addScenarioParam}
           >
-            <TbPlus size={12} />
+            <Icon name="plus" size="xs" />
           </IconButton>
         )}
       >
@@ -727,7 +727,7 @@ const ScenarioFormSections = ({
                 aria-label="Remove parameter"
                 onClick={() => removeScenarioParam(param._key)}
               >
-                <TbTrash size={12} />
+                <Icon name="trash" size="xs" />
               </IconButton>
             </div>
           ))

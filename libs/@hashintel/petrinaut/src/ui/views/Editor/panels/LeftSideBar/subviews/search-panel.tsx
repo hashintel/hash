@@ -1,8 +1,10 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import fuzzysort from "fuzzysort";
 import type { ComponentType, ReactNode } from "react";
 import { use, useEffect, useRef, useState } from "react";
-import { LuSearch } from "react-icons/lu";
+
+const SearchIcon = () => <Icon name="search" />;
 
 import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -434,7 +436,7 @@ const SearchHeaderAction: React.FC = () => {
 export const searchSubView: SubView = {
   id: "search",
   title: "Search",
-  icon: LuSearch,
+  icon: SearchIcon,
   component: SearchContent,
   renderTitle: () => <SearchTitle />,
   renderHeaderAction: () => <SearchHeaderAction />,

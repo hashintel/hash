@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useMemo, useRef, useState } from "react";
-import { TbList, TbPencil, TbPlus } from "react-icons/tb";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
@@ -242,7 +242,7 @@ const TimelineViewPicker: React.FC = () => {
             tooltip="Edit Metric"
             onClick={() => setIsViewOpen(true)}
           >
-            <TbPencil size={14} />
+            <Icon name="pencil" size="sm" />
           </IconButton>
         )}
         <IconButton
@@ -252,7 +252,7 @@ const TimelineViewPicker: React.FC = () => {
           tooltip="Create Metric"
           onClick={() => setIsCreateOpen(true)}
         >
-          <TbPlus size={14} />
+          <Icon name="plus" size="sm" />
         </IconButton>
         <IconButton
           size="xs"
@@ -264,7 +264,7 @@ const TimelineViewPicker: React.FC = () => {
             setGlobalMode("simulate");
           }}
         >
-          <TbList size={14} />
+          <Icon name="list" size="sm" />
         </IconButton>
       </div>
       <CreateMetricDrawer

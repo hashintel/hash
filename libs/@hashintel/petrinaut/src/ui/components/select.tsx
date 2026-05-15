@@ -3,10 +3,10 @@ import {
   createListCollection,
   Select as ArkSelect,
 } from "@ark-ui/react/select";
+import { Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
-import { FaChevronDown } from "react-icons/fa6";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import { withTooltip } from "./hoc/with-tooltip";
@@ -24,11 +24,11 @@ const ConditionalPortal: React.FC<{
 
 type SelectSize = "xs" | "sm" | "md" | "lg";
 
-const ICON_SIZE: Record<SelectSize, number> = {
-  xs: 10,
-  sm: 12,
-  md: 14,
-  lg: 16,
+const ICON_SIZE: Record<SelectSize, "xxs" | "xs" | "sm"> = {
+  xs: "xs",
+  sm: "xs",
+  md: "sm",
+  lg: "sm",
 };
 
 // -- Styles -------------------------------------------------------------------
@@ -289,7 +289,7 @@ const SelectBase: React.FC<SelectBaseProps> = ({
             >
               {selectedOption?.label ?? placeholder}
             </span>
-            <FaChevronDown size={iconSize} className={chevronStyle} />
+            <Icon name="chevronDown" size={iconSize} className={chevronStyle} />
           </>
         )}
       </ArkSelect.Trigger>

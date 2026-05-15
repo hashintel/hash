@@ -1,7 +1,8 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use } from "react";
-import { PiScribbleLoopBold } from "react-icons/pi";
-import { TbTrash } from "react-icons/tb";
+
+const ArcIcon = () => <Icon name="scribble" />;
 
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
@@ -149,7 +150,7 @@ const DeleteArcAction: React.FC = () => {
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
     >
-      <TbTrash />
+      <Icon name="trash" />
     </IconButton>
   );
 };
@@ -157,7 +158,7 @@ const DeleteArcAction: React.FC = () => {
 const arcMainContentSubView: SubView = {
   id: "arc-main-content",
   title: "Arc",
-  icon: PiScribbleLoopBold,
+  icon: ArcIcon,
   main: true,
   component: ArcMainContent,
   renderHeaderAction: () => <DeleteArcAction />,

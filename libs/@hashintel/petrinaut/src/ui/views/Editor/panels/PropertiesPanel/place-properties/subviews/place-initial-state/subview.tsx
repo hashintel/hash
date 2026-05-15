@@ -1,7 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { LuLayers2 } from "react-icons/lu";
-import { TbTrash } from "react-icons/tb";
 
 import { NumberInput } from "../../../../../../../components/number-input";
 import type { SubView } from "../../../../../../../components/sub-view/types";
@@ -67,7 +66,7 @@ const ClearStateHeaderAction: React.FC = () => {
   if (selectedScenarioId) {
     return (
       <div className={scenarioInfoStyle}>
-        <LuLayers2 size={12} />
+        <Icon name="layer" size="xs" />
         Defined by scenario
       </div>
     );
@@ -87,7 +86,7 @@ const ClearStateHeaderAction: React.FC = () => {
 
   return (
     <button type="button" onClick={handleClear} className={clearButtonStyle}>
-      <TbTrash size={12} color="#a72b2bff" />
+      <Icon name="trash" size="xs" className={css({ color: "[#a72b2bff]" })} />
       Clear state
     </button>
   );

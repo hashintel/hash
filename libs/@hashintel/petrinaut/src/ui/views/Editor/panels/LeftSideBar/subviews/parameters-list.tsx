@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../components/icon-button";
@@ -57,7 +57,7 @@ export const ParametersHeaderAction: React.FC = () => {
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
       onClick={handleAddParameter}
     >
-      <TbPlus />
+      <Icon name="plus" />
     </IconButton>
   );
 };
@@ -77,7 +77,7 @@ const ParameterRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <TbTrash />,
+          icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
           onClick: () => removeParameter(item.id),

@@ -1,8 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
-import { FaChevronDown } from "react-icons/fa6";
-import { TbTrash } from "react-icons/tb";
 
 import { NumberInput } from "./number-input";
 import { Select, type SelectOption } from "./select";
@@ -284,7 +283,7 @@ export const ArcItem = ({
         style={{ backgroundColor: color ?? "#d4d4d4" }}
       />
       <span className={nameTextStyle}>{placeName}</span>
-      <FaChevronDown size={10} className={chevronStyle} />
+      <Icon name="chevronDown" size="xxs" className={chevronStyle} />
     </div>
   );
 
@@ -360,7 +359,7 @@ export const ArcItem = ({
             onClick={onDelete}
             aria-label="Delete arc"
           >
-            <TbTrash size={14} />
+            <Icon name="trash" size="sm" />
           </button>
         </div>
       )}

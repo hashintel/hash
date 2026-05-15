@@ -1,5 +1,5 @@
+import { Icon } from "@hashintel/ds-components";
 import { use } from "react";
-import { TbPlus, TbTrash } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -100,7 +100,7 @@ export const TypesSectionHeaderAction: React.FC = () => {
         selectItem({ type: "type", id });
       }}
     >
-      <TbPlus />
+      <Icon name="plus" />
     </IconButton>
   );
 };
@@ -115,7 +115,7 @@ const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <TbTrash />,
+          icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
           onClick: () => removeType(item.id),

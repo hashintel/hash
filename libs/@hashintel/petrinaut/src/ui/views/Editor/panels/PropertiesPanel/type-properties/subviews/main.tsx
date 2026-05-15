@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { TbPlus, TbX } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import { IconButton } from "../../../../../../components/icon-button";
@@ -281,7 +281,7 @@ const TypeMainContent: React.FC = () => {
             aria-label="Add dimension"
             tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           >
-            <TbPlus />
+            <Icon name="plus" />
           </IconButton>
         )}
       >
@@ -353,7 +353,7 @@ const TypeMainContent: React.FC = () => {
                   aria-label={`Delete dimension ${element.name}`}
                   tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                 >
-                  <TbX />
+                  <Icon name="close" />
                 </IconButton>
               </div>
             ))}

@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useState } from "react";
-import { TbTrash } from "react-icons/tb";
 
 import {
   ArcItem,
@@ -256,7 +256,7 @@ const DeleteTransitionAction: React.FC = () => {
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
     >
-      <TbTrash />
+      <Icon name="trash" />
     </IconButton>
   );
 };

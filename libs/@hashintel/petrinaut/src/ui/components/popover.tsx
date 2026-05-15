@@ -1,8 +1,8 @@
 import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
+import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ComponentProps, ReactNode } from "react";
-import { TbX } from "react-icons/tb";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import { IconButton } from "./icon-button";
@@ -119,7 +119,7 @@ const Header = ({ children }: { children: ReactNode }) => (
         variant="ghost"
         className={closeButtonStyle}
       >
-        <TbX />
+        <Icon name="close" size="sm" />
       </IconButton>
     </ArkPopover.CloseTrigger>
   </div>

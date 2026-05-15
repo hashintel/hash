@@ -1,13 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useReactFlow } from "@xyflow/react";
 import { use, useState } from "react";
-import {
-  TbLockOpen,
-  TbMaximize,
-  TbMinus,
-  TbPlus,
-  TbSettings,
-} from "react-icons/tb";
 
 import { IconButton } from "../../../components/icon-button";
 import { PANEL_MARGIN } from "../../../constants/ui";
@@ -70,7 +64,7 @@ export const ViewportControls: React.FC<{
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomIn()}
       >
-        <TbPlus size={14} />
+        <Icon name="plus" size="sm" />
       </IconButton>
       <IconButton
         size="xs"
@@ -80,7 +74,7 @@ export const ViewportControls: React.FC<{
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomOut()}
       >
-        <TbMinus size={14} />
+        <Icon name="dash" size="sm" />
       </IconButton>
       <IconButton
         size="xs"
@@ -89,7 +83,7 @@ export const ViewportControls: React.FC<{
         tooltip="Fullscreen"
         onClick={collapseAllPanels}
       >
-        <TbMaximize size={14} />
+        <Icon name="expand" size="sm" />
       </IconButton>
       <IconButton
         size="xs"
@@ -100,7 +94,7 @@ export const ViewportControls: React.FC<{
           // Placeholder for future lock view functionality
         }}
       >
-        <TbLockOpen size={14} />
+        <Icon name="lockOpen" size="sm" />
       </IconButton>
       <IconButton
         size="xs"
@@ -109,7 +103,7 @@ export const ViewportControls: React.FC<{
         tooltip="Settings"
         onClick={() => setIsSettingsOpen(true)}
       >
-        <TbSettings size={14} />
+        <Icon name="gear" size="sm" />
       </IconButton>
       <ViewportSettingsDialog
         open={isSettingsOpen}

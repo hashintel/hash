@@ -4,17 +4,39 @@
  * Each entity has an outline icon (used in PropertiesPanel headers)
  * and optionally a filled icon (used in list item rows).
  */
-import { FaCircle, FaSquare } from "react-icons/fa6";
-import { LuCircle, LuSettings2, LuSquare } from "react-icons/lu";
-import { RiColorFilterFill, RiFormula } from "react-icons/ri";
+import { Icon, type IconName } from "@hashintel/ds-components";
+
+type IconSize = "xxs" | "xs" | "sm" | "md" | "lg";
+
+const sizeToIconSize = (size: number): IconSize => {
+  if (size <= 9) {
+    return "xxs";
+  }
+  if (size <= 13) {
+    return "xs";
+  }
+  if (size <= 19) {
+    return "sm";
+  }
+  if (size <= 27) {
+    return "md";
+  }
+  return "lg";
+};
+
+const makeIcon =
+  (name: IconName) =>
+  ({ size }: { size: number }) => (
+    <Icon name={name} size={sizeToIconSize(size)} />
+  );
 
 /** Outline icons — used in PropertiesPanel headers */
-export const PlaceIcon = LuCircle;
-export const TransitionIcon = LuSquare;
-export const ParameterIcon = LuSettings2;
-export const TokenTypeIcon = RiColorFilterFill;
-export const DifferentialEquationIcon = RiFormula;
+export const PlaceIcon = makeIcon("circle");
+export const TransitionIcon = makeIcon("square");
+export const ParameterIcon = makeIcon("sliders");
+export const TokenTypeIcon = makeIcon("threeCircles");
+export const DifferentialEquationIcon = makeIcon("function");
 
 /** Filled icons — used in list item rows */
-export const PlaceFilledIcon = FaCircle;
-export const TransitionFilledIcon = FaSquare;
+export const PlaceFilledIcon = makeIcon("circle");
+export const TransitionFilledIcon = makeIcon("square");

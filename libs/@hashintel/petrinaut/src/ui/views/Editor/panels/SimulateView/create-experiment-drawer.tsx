@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { TbPlayerPlay } from "react-icons/tb";
 
 import { Button } from "../../../../components/button";
 import { Drawer } from "../../../../components/drawer";
@@ -205,7 +205,7 @@ export const CreateExperimentDrawer = ({
           variant="solid"
           tone="neutral"
           size="sm"
-          prefix={<TbPlayerPlay size={14} />}
+          prefix={<Icon name="play" size="sm" />}
           onClick={() => {}}
         >
           Play

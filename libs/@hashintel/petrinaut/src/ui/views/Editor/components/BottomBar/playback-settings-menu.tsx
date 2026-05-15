@@ -1,13 +1,6 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { Icon } from "@hashintel/ds-components";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { MdCheck, MdOutlinePlayArrow } from "react-icons/md";
-import {
-  TbArrowBarToRight,
-  TbChartLine,
-  TbClock,
-  TbInfinity,
-  TbSettings,
-} from "react-icons/tb";
 
 import { NumberInput } from "../../../../components/number-input";
 import { Popover } from "../../../../components/popover";
@@ -185,7 +178,7 @@ export const PlaybackSettingsMenu = () => {
             tooltip="Playback settings"
             ariaLabel="Playback settings"
           >
-            <TbSettings />
+            <Icon name="gear" />
           </ToolbarButton>
         </span>
       </Popover.Trigger>
@@ -211,12 +204,12 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <MdOutlinePlayArrow className={menuItemIconStyle} />
+              <Icon name="play" className={menuItemIconStyle} />
               <span className={menuItemTextStyle}>
                 Play computed steps only
               </span>
               {playMode === "viewOnly" && (
-                <MdCheck className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} />
               )}
             </button>
             <button
@@ -233,10 +226,10 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <TbChartLine className={menuItemIconStyle} />
+              <Icon name="chartLine" className={menuItemIconStyle} />
               <span className={menuItemTextStyle}>Play + compute buffer</span>
               {playMode === "computeBuffer" && (
-                <MdCheck className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} />
               )}
             </button>
             <button
@@ -253,10 +246,10 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <TbArrowBarToRight className={menuItemIconStyle} />
+              <Icon name="rightToLine" className={menuItemIconStyle} />
               <span className={menuItemTextStyle}>Play + compute max</span>
               {playMode === "computeMax" && (
-                <MdCheck className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} />
               )}
             </button>
             <div className={popoverDividerStyle} />
@@ -307,10 +300,10 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <TbInfinity className={menuItemIconStyle} />
+              <Icon name="infinity" className={menuItemIconStyle} />
               <span className={menuItemTextStyle}>Run indefinitely</span>
               {stoppingCondition === "indefinitely" && (
-                <MdCheck className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} />
               )}
             </button>
             <button
@@ -329,7 +322,7 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <TbClock className={menuItemIconStyle} />
+              <Icon name="clock" className={menuItemIconStyle} />
               <span className={menuItemTextStyle}>End at fixed time</span>
               {stoppingCondition === "fixed" && (
                 <>
@@ -362,9 +355,9 @@ export const PlaybackSettingsMenu = () => {
                 </>
               )}
               {stoppingCondition !== "fixed" && (
-                <MdCheck
-                  className={checkIconStyle}
-                  style={{ visibility: "hidden" }}
+                <Icon
+                  name="check"
+                  className={cx(checkIconStyle, css({ visibility: "hidden" }))}
                 />
               )}
             </button>

@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
-import { TbX } from "react-icons/tb";
 
 /**
  * Shared visual primitives used by Dialog and Drawer.
@@ -74,7 +74,7 @@ export const Card = ({
     {children}
     {closeButton ?? (
       <button type="button" className={closeButtonStyle} aria-label="Close">
-        <TbX />
+        <Icon name="close" size="sm" />
       </button>
     )}
   </div>

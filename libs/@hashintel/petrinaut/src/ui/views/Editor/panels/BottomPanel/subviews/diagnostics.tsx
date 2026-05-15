@@ -1,7 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useMemo, useState } from "react";
-import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
-import { TbArrowRight } from "react-icons/tb";
 import type { Diagnostic } from "vscode-languageserver-types";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -273,7 +272,7 @@ const DiagnosticsContent: React.FC = () => {
               className={editButtonStyle}
             >
               Edit Item
-              <TbArrowRight className={editButtonIconStyle} />
+              <Icon name="arrowRight" className={editButtonIconStyle} />
             </button>
           )}
         </div>
@@ -296,9 +295,9 @@ const DiagnosticsContent: React.FC = () => {
               className={entityButtonStyle}
             >
               {isExpanded ? (
-                <FaChevronDown size={10} />
+                <Icon name="chevronDown" size="xxs" />
               ) : (
-                <FaChevronRight size={10} />
+                <Icon name="chevronRight" size="xxs" />
               )}
               <span>{entityLabel}</span>
               <span className={errorCountStyle}>

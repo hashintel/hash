@@ -1,8 +1,8 @@
 import { Dialog as ArkDialog } from "@ark-ui/react/dialog";
 import { Portal } from "@ark-ui/react/portal";
+import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ComponentProps, ReactNode } from "react";
-import { TbX } from "react-icons/tb";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import {
@@ -86,7 +86,7 @@ const Card = ({ children }: { children: ReactNode }) => (
   <PanelCard
     closeButton={
       <ArkDialog.CloseTrigger className={closeButtonStyle} aria-label="Close">
-        <TbX />
+        <Icon name="close" size="sm" />
       </ArkDialog.CloseTrigger>
     }
   >

@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { TbList, TbMinus, TbPencil, TbPlus } from "react-icons/tb";
 
 import { IconButton } from "../../../../../components/icon-button";
 import { NumberInput } from "../../../../../components/number-input";
@@ -238,7 +238,11 @@ const SimulationSettingsContent: React.FC = () => {
           renderItem={(option) => (
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {option.value === NO_SCENARIO && (
-                <TbMinus size={12} style={{ opacity: 0.4 }} />
+                <Icon
+                  name="dash"
+                  size="xs"
+                  className={css({ opacity: "[0.4]" })}
+                />
               )}
               {option.label}
             </span>
@@ -253,7 +257,7 @@ const SimulationSettingsContent: React.FC = () => {
               tooltip="Edit Scenario"
               onClick={() => setIsViewScenarioOpen(true)}
             >
-              <TbPencil size={14} />
+              <Icon name="pencil" size="sm" />
             </IconButton>
           )}
           <IconButton
@@ -263,7 +267,7 @@ const SimulationSettingsContent: React.FC = () => {
             tooltip="Create Scenario"
             onClick={() => setIsCreateScenarioOpen(true)}
           >
-            <TbPlus size={14} />
+            <Icon name="plus" size="sm" />
           </IconButton>
           <IconButton
             size="xs"
@@ -272,7 +276,7 @@ const SimulationSettingsContent: React.FC = () => {
             tooltip="Manage Scenarios"
             onClick={() => setGlobalMode("simulate")}
           >
-            <TbList size={14} />
+            <Icon name="list" size="sm" />
           </IconButton>
         </div>
       </div>

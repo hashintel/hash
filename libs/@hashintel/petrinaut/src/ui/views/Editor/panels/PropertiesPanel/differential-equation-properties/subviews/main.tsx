@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
 import { IconButton } from "../../../../../../components/icon-button";
@@ -296,7 +296,7 @@ const DiffEqCodeAction: React.FC = () => {
       animated
       trigger={
         <IconButton aria-label="More options" size="xs">
-          <TbDotsVertical />
+          <Icon name="ellipsisVertical" />
         </IconButton>
       }
       items={[
@@ -326,7 +326,7 @@ const DiffEqCodeAction: React.FC = () => {
               display="inline"
             >
               <div className={aiMenuItemStyle}>
-                <TbSparkles className={aiIconStyle} />
+                <Icon name="sparkles" className={aiIconStyle} />
                 Generate with AI
               </div>
             </Tooltip>

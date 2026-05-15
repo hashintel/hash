@@ -1,7 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { type ReactNode, use, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { TbX } from "react-icons/tb";
 
 import { PortalContainerContext } from "../../react/state/portal-container-context";
 import {
@@ -152,7 +152,7 @@ const Card = ({
         aria-label="Close"
         onClick={onClose}
       >
-        <TbX />
+        <Icon name="close" size="sm" />
       </button>
     }
   >
