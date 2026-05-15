@@ -1,5 +1,4 @@
 /* eslint-disable no-param-reassign -- Monte Carlo run state owns mutable frame buffers. */
-import type { InitialMarking } from "../api";
 import { buildSimulation } from "../engine/build-simulation";
 import { readEngineFrame } from "../frames/internal-frame";
 import {
@@ -16,25 +15,6 @@ import type {
   MonteCarloRunSummary,
   MonteCarloSimulatorConfig,
 } from "./types";
-
-/**
- * Copies the serializable initial marking so each run owns its own input state.
- *
- * Per-run mutation must never leak back into the simulator config or another
- * Monte Carlo run.
- */
-function cloneInitialMarking(initialMarking: InitialMarking): InitialMarking {
-  const clone: InitialMarking = {};
-
-  for (const [placeId, marking] of Object.entries(initialMarking)) {
-    clone[placeId] =
-      typeof marking === "number"
-        ? marking
-        : marking.map((token) => ({ ...token }));
-  }
-
-  return clone;
-}
 
 /**
  * Derives a deterministic seed for a run when the caller did not provide an
@@ -90,10 +70,9 @@ export function ensureFrameCapacity(
 /**
  * Builds one independent Monte Carlo run.
  *
- * Each run gets its own compiled simulation instance, initial marking copy,
- * RNG state, current frame, and next frame. The engine's retained frame history
- * is cleared after copying the initial frame into the reusable Monte Carlo
- * buffer format.
+ * Each run gets its own compiled simulation instance, RNG state, current frame,
+ * and next frame. The engine's retained frame history is cleared after copying
+ * the initial frame into the reusable Monte Carlo buffer format.
  */
 export function createRunState(
   config: MonteCarloSimulatorConfig,
@@ -101,9 +80,7 @@ export function createRunState(
   index: number,
 ): MonteCarloRunState {
   const seed = runConfig?.seed ?? deriveRunSeed(config.seed ?? 1, index);
-  const initialMarking = cloneInitialMarking(
-    runConfig?.initialMarking ?? config.initialMarking,
-  );
+  const initialMarking = runConfig?.initialMarking ?? config.initialMarking;
   const inputParameterValues = {
     ...config.parameterValues,
     ...runConfig?.parameterValues,
