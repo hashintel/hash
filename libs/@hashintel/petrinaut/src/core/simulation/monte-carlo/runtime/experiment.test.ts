@@ -213,6 +213,7 @@ describe("createMonteCarloExperiment", () => {
     mock.simulate({ type: "error", message: "boom", itemId: "transition-a" });
 
     await expect(promise).rejects.toThrow("boom");
+    expect(mock.isTerminated()).toBe(true);
   });
 
   it("emits errors reported after initialization", async () => {

@@ -115,9 +115,82 @@ export function createMonteCarloExperiment(
 
   return new Promise<MonteCarloExperiment>((resolve, reject) => {
     let settled = false;
-    let handle: MonteCarloExperiment;
+    let off: (() => void) | null = null;
+    let abortListener: (() => void) | null = null;
 
-    const off = transport.onMessage((rawMessage) => {
+    const cleanupTransport = ({ sendCancel }: { sendCancel: boolean }) => {
+      if (disposed) {
+        return;
+      }
+
+      disposed = true;
+      if (abortListener) {
+        config.signal?.removeEventListener("abort", abortListener);
+        abortListener = null;
+      }
+      off?.();
+      off = null;
+
+      if (sendCancel) {
+        try {
+          transport.send({ type: "cancel" });
+        } catch {
+          // Transport may already be torn down.
+        }
+      }
+
+      transport.terminate();
+    };
+
+    const rejectBeforeReady = (error: Error) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanupTransport({ sendCancel: false });
+      reject(error);
+    };
+
+    const onAbort = () => {
+      if (!settled) {
+        settled = true;
+        reject(
+          new DOMException(
+            "Monte Carlo experiment start aborted",
+            "AbortError",
+          ),
+        );
+      }
+      cleanupTransport({ sendCancel: true });
+    };
+
+    abortListener = onAbort;
+
+    const handle: MonteCarloExperiment = {
+      status,
+      progress,
+      distributions,
+      events,
+      start() {
+        if (disposed) {
+          return;
+        }
+        status.set("Running");
+        transport.send({ type: "start" });
+      },
+      cancel() {
+        if (disposed) {
+          return;
+        }
+        transport.send({ type: "cancel" });
+      },
+      dispose() {
+        cleanupTransport({ sendCancel: true });
+      },
+    };
+
+    off = transport.onMessage((rawMessage) => {
       const message = rawMessage as MonteCarloToMainMessage;
 
       switch (message.type) {
@@ -158,59 +231,11 @@ export function createMonteCarloExperiment(
             itemId: message.itemId,
           });
           if (!settled) {
-            settled = true;
-            reject(new Error(message.message));
+            rejectBeforeReady(new Error(message.message));
           }
           break;
       }
     });
-
-    const onAbort = () => {
-      if (!settled) {
-        settled = true;
-        reject(
-          new DOMException(
-            "Monte Carlo experiment start aborted",
-            "AbortError",
-          ),
-        );
-      }
-      handle.dispose();
-    };
-
-    handle = {
-      status,
-      progress,
-      distributions,
-      events,
-      start() {
-        if (disposed) {
-          return;
-        }
-        status.set("Running");
-        transport.send({ type: "start" });
-      },
-      cancel() {
-        if (disposed) {
-          return;
-        }
-        transport.send({ type: "cancel" });
-      },
-      dispose() {
-        if (disposed) {
-          return;
-        }
-        disposed = true;
-        config.signal?.removeEventListener("abort", onAbort);
-        off();
-        try {
-          transport.send({ type: "cancel" });
-        } catch {
-          // Transport may already be torn down.
-        }
-        transport.terminate();
-      },
-    };
 
     if (config.signal) {
       if (config.signal.aborted) {
@@ -220,16 +245,24 @@ export function createMonteCarloExperiment(
       config.signal.addEventListener("abort", onAbort, { once: true });
     }
 
-    transport.send({
-      type: "init",
-      sdcpn: config.sdcpn,
-      initialMarking: config.initialMarking,
-      parameterValues: config.parameterValues,
-      seed: config.seed,
-      dt: config.dt,
-      maxTime: config.maxTime,
-      runCount: config.runCount,
-      batchSize: config.batchSize,
-    });
+    try {
+      transport.send({
+        type: "init",
+        sdcpn: config.sdcpn,
+        initialMarking: config.initialMarking,
+        parameterValues: config.parameterValues,
+        seed: config.seed,
+        dt: config.dt,
+        maxTime: config.maxTime,
+        runCount: config.runCount,
+        batchSize: config.batchSize,
+      });
+    } catch (error) {
+      rejectBeforeReady(
+        error instanceof Error
+          ? error
+          : new Error("Failed to initialize Monte Carlo experiment"),
+      );
+    }
   });
 }
