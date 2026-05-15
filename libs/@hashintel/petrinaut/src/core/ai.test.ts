@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  createPetrinautAiToolCallbacks,
-  petrinautAiToolInputSchemas,
+  createPetrinautMutationAiToolCallbacks,
+  petrinautAiMutationToolInputSchemas,
   petrinautAiTools,
 } from "./ai";
 import { createJsonDocHandle } from "./handle";
@@ -11,7 +11,7 @@ import { createPetrinaut } from "./instance";
 describe("Petrinaut AI core exports", () => {
   test("tool metadata stays aligned with input schemas and has no execute", () => {
     expect(Object.keys(petrinautAiTools).sort()).toEqual(
-      Object.keys(petrinautAiToolInputSchemas).sort(),
+      Object.keys(petrinautAiMutationToolInputSchemas).sort(),
     );
 
     for (const tool of Object.values(petrinautAiTools)) {
@@ -34,7 +34,7 @@ describe("Petrinaut AI core exports", () => {
         },
       }),
     });
-    const callbacks = createPetrinautAiToolCallbacks(instance);
+    const callbacks = createPetrinautMutationAiToolCallbacks(instance);
 
     callbacks.addPlace({
       id: "place-1",
@@ -65,7 +65,7 @@ describe("Petrinaut AI core exports", () => {
         },
       }),
     });
-    const callbacks = createPetrinautAiToolCallbacks(instance);
+    const callbacks = createPetrinautMutationAiToolCallbacks(instance);
 
     expect(() =>
       callbacks.addPlace({

@@ -277,7 +277,8 @@ export const mutationActionInputSchemas = {
     .strictObject({ parameterId: idSchema })
     .meta({ description: "Remove a net-level parameter." }),
   addScenario: simulationScenarioSchema.meta({
-    description: "Add a simulation scenario.",
+    description:
+      "Add a simulation scenario. Include scenarioParameters for key user-tunable assumptions, parameterOverrides keyed by existing net-level parameter IDs, and initialState with per-place content keyed by existing place IDs unless advanced code is required. Omit parameterOverrides or use {} when no net-level parameters need overriding.",
   }),
   updateScenario: z
     .strictObject({

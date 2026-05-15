@@ -32,12 +32,14 @@ export type { MutationHelperFunctions } from "./actions";
 // --- AI ---
 export {
   colorSchema,
-  createPetrinautAiPrompt,
-  createPetrinautAiToolCallbacks,
+  createPetrinautMutationAiToolCallbacks,
   differentialEquationSchema,
+  getLatestNetDefinitionToolName,
   metricSchema,
   parameterSchema,
-  petrinautAiToolInputSchemas,
+  petrinautAiMutationToolInputSchemas,
+  petrinautAiMutationTools,
+  petrinautAiPrompt,
   petrinautAiTools,
   placeSchema,
   scenarioSchema,
@@ -45,8 +47,10 @@ export {
 } from "./ai";
 export type {
   PetrinautAiTool,
-  PetrinautAiToolCallbacks,
+  PetrinautMutationAiToolCallbacks,
   PetrinautAiToolInput,
+  PetrinautAiMutationToolInput,
+  PetrinautAiMutationToolName,
   PetrinautAiToolName,
   PetrinautAiTools,
 } from "./ai";
