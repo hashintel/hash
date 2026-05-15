@@ -31,12 +31,12 @@ const makeIcon =
   );
 
 /** Outline icons — used in PropertiesPanel headers */
-export const PlaceIcon = makeIcon("circle");
-export const TransitionIcon = makeIcon("square");
+export const PlaceIcon = makeIcon("circleFilled");
+export const TransitionIcon = makeIcon("squareFilled");
 export const ParameterIcon = makeIcon("sliders");
 export const TokenTypeIcon = makeIcon("threeCircles");
 export const DifferentialEquationIcon = makeIcon("function");
 
 /** Filled icons — used in list item rows */
-export const PlaceFilledIcon = makeIcon("circle");
-export const TransitionFilledIcon = makeIcon("square");
+export const PlaceFilledIcon = makeIcon("circleFilled");
+export const TransitionFilledIcon = makeIcon("squareFilled");
