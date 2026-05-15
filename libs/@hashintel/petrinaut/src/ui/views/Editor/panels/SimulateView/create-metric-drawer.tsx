@@ -20,13 +20,6 @@ import { summarizeMetricLspErrors } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
 import { ScenarioErrorDisplay } from "./scenario-error-display";
 
-const bodyStyle = css({
-  overflowY: "auto",
-  paddingX: "5",
-  paddingY: "[0]",
-  flex: "1",
-});
-
 // -- Footer -------------------------------------------------------------------
 
 const CreateMetricFooter = ({
@@ -145,7 +138,7 @@ export const CreateMetricDrawer = ({
         <Drawer.Header description="A function over the simulation state that returns a number to plot on the timeline.">
           Create a metric
         </Drawer.Header>
-        <Drawer.Body className={bodyStyle}>
+        <Drawer.Body>
           <MetricFormBody
             form={form}
             idPrefix="create-"

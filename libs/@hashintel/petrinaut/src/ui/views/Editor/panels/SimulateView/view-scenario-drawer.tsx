@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
@@ -18,12 +17,6 @@ import {
 import { ScenarioErrorDisplay } from "./scenario-error-display";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
 import { buildScenarioFromFormState } from "./scenario-mapping";
-
-// Override default Drawer.Body padding — vertical padding on the scroll
-// container creates a gap above sticky section headers.
-const bodyStyle = css({
-  paddingY: "[0]",
-});
 
 // -- Defaults -----------------------------------------------------------------
 
@@ -172,7 +165,7 @@ const ViewScenarioContent = ({
     <>
       <Drawer.Card onClose={onClose}>
         <Drawer.Header>{scenario.name}</Drawer.Header>
-        <Drawer.Body className={bodyStyle}>
+        <Drawer.Body>
           <ScenarioFormBody
             form={form}
             parameters={petriNetDefinition.parameters}
