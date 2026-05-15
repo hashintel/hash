@@ -23,22 +23,6 @@ const simpleStateContainerStyle = css({
   gap: "[8px]",
 });
 
-const clearButtonStyle = css({
-  fontSize: "[10px]",
-  padding: "[1px 4px]",
-  border: "[1px solid rgba(0, 0, 0, 0.2)]",
-  borderRadius: "[3px]",
-  backgroundColor: "neutral.s00",
-  cursor: "pointer",
-  color: "[#666]",
-  display: "flex",
-  alignItems: "center",
-  gap: "[4px]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
-  },
-});
-
 const scenarioInfoStyle = css({
   display: "flex",
   alignItems: "center",
@@ -88,7 +72,6 @@ const ClearStateHeaderAction: React.FC = () => {
   return (
     <Button
       onClick={handleClear}
-      className={clearButtonStyle}
       variant="subtle"
       tone="error"
       size="xxs"

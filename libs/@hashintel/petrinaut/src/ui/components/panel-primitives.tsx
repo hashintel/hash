@@ -47,21 +47,7 @@ export const closeButtonStyle = css({
   position: "absolute",
   top: "2",
   right: "2",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[30px]",
-  height: "[30px]",
-  fontSize: "base",
-  color: "neutral.s100",
-  backgroundColor: "[transparent]",
-  border: "[none]",
-  borderRadius: "lg",
-  cursor: "pointer",
   zIndex: "[3]",
-  _hover: {
-    backgroundColor: "neutral.bg.min.hover",
-  },
 });
 
 export const Card = ({
@@ -77,6 +63,7 @@ export const Card = ({
       <Button
         className={closeButtonStyle}
         variant="ghost"
+        size="sm"
         aria-label="Close"
         tooltip="Close"
         tooltipDisplay="inline"

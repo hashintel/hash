@@ -196,18 +196,6 @@ const deleteContainerStyle = css({
   justifyContent: "center",
 });
 
-const deleteButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  background: "[none]",
-  border: "none",
-  padding: "[0]",
-  color: "[#ef4444]",
-  height: "[100%]",
-});
-
 // -- Select trigger style overrides for ArcItem -------------------------------
 
 const selectRootOverrideStyle = css({
@@ -355,9 +343,9 @@ export const ArcItem = ({
       {onDelete && !disabled && (
         <div data-arc-delete="" className={deleteContainerStyle}>
           <Button
-            className={deleteButtonStyle}
             variant="ghost"
             tone="error"
+            size="xs"
             onClick={onDelete}
             aria-label="Delete arc"
             tooltip="Delete arc"

@@ -20,7 +20,7 @@ const contentWidthStyle = css({
 
 const menuItemStyle = cva({
   base: {
-    display: "flex",
+    display: "flex !important",
     alignItems: "center",
     gap: "2",
     width: "[100%]",

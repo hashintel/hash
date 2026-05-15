@@ -149,6 +149,7 @@ const Card = ({
       <Button
         className={closeButtonStyle}
         variant="ghost"
+        size="sm"
         aria-label="Close"
         tooltip="Close"
         tooltipDisplay="inline"
