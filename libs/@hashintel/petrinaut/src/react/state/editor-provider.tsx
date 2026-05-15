@@ -218,6 +218,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, timelineView: view })),
     setSimulateViewMode: (mode) =>
       setState((prev) => ({ ...prev, simulateViewMode: mode })),
+    setSimulateDrawer: (drawer) =>
+      setState((prev) => ({ ...prev, simulateDrawer: drawer })),
     setSearchOpen: (isOpen) => {
       scheduleAnimationEnd();
       setState((prev) => {
@@ -234,6 +236,13 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         };
       });
     },
+    setAiAssistantOpen: (isOpen) =>
+      setState((prev) => ({ ...prev, isAiAssistantOpen: isOpen })),
+    toggleAiAssistant: () =>
+      setState((prev) => ({
+        ...prev,
+        isAiAssistantOpen: !prev.isAiAssistantOpen,
+      })),
     triggerPanelAnimation: () => {
       scheduleAnimationEnd();
       setState((prev) => ({ ...prev, ...animationPatch() }));

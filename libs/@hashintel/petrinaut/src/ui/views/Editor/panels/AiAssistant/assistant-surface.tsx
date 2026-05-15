@@ -1,0 +1,1270 @@
+import { Collapsible } from "@ark-ui/react/collapsible";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import {
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import ReactMarkdown from "react-markdown";
+import {
+  TbCheck,
+  TbChevronUp,
+  TbList,
+  TbLoader2,
+  TbPlayerStopFilled,
+  TbSend,
+  TbTrash,
+  TbX,
+} from "react-icons/tb";
+
+import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
+import { IconButton } from "../../../../components/icon-button";
+import { Input } from "../../../../components/input";
+import {
+  getLatestNetDefinitionToolName,
+  petrinautAiMutationTools,
+} from "../../../../../core/ai";
+import type { SelectionItem } from "../../../../../core/types/selection";
+import {
+  type AiToolTarget,
+  type AiToolSummary,
+  summarizePetrinautAiToolCall,
+} from "./tool-summaries";
+import type { PetrinautAiMessage } from "./types";
+
+type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
+
+type ToolTone = "danger" | "info" | "neutral" | "success";
+
+type ToolRenderItem = {
+  id: string;
+  state: string;
+  summary: AiToolSummary;
+  tone: ToolTone;
+  toolName: string;
+};
+
+type MessagePart = PetrinautAiMessage["parts"][number];
+type TextPart = Extract<MessagePart, { type: "text" }>;
+type ReasoningMessagePart = Extract<MessagePart, { type: "reasoning" }>;
+
+type RenderableToolPart = PetrinautAiMessage["parts"][number] & {
+  input?: unknown;
+  output?: unknown;
+  state?: string;
+  toolCallId?: string;
+  toolName?: unknown;
+  type: `tool-${string}` | "dynamic-tool";
+};
+
+type MessageRenderItem =
+  | { type: "reasoning"; key: string; part: ReasoningMessagePart }
+  | { type: "text"; key: string; part: TextPart }
+  | { type: "tools"; key: string; tools: ToolRenderItem[] };
+
+export type AiAssistantSurfaceProps = {
+  error?: Error;
+  input: string;
+  messages: PetrinautAiMessage[];
+  onClearMessages?: () => void;
+  onClose: () => void;
+  onInputChange: (value: string) => void;
+  onSelectToolTarget?: (target: AiToolTarget) => void;
+  onStop: () => void;
+  onSubmit: () => void;
+  rightOffset?: number;
+  status: AiAssistantStatus;
+};
+
+const shellStyle = css({
+  position: "absolute",
+  top: "0",
+  right: "0",
+  bottom: "0",
+  width: "[420px]",
+  maxWidth: "[calc(100vw - 32px)]",
+  zIndex: 1090,
+  padding: "2",
+  pointerEvents: "auto",
+  transition: "[right 150ms ease-in-out]",
+  _before: {
+    content: '""',
+    position: "absolute",
+    inset: "2",
+    borderRadius: "[14px]",
+    background:
+      "[radial-gradient(circle at 78% 28%, rgba(52,160,250,0.22), rgba(190,230,255,0.04) 54%, transparent 80%)]",
+    filter: "[blur(4px)]",
+    pointerEvents: "none",
+  },
+});
+
+const resizeHandleStyle = css({
+  position: "absolute",
+  top: "2",
+  bottom: "2",
+  left: "0",
+  width: "[10px]",
+  cursor: "ew-resize",
+  zIndex: 1,
+  touchAction: "none",
+  _before: {
+    content: '""',
+    position: "absolute",
+    top: "[12px]",
+    bottom: "[12px]",
+    left: "[4px]",
+    width: "[2px]",
+    borderRadius: "full",
+    backgroundColor: "[transparent]",
+    transition: "[background-color 120ms ease-out]",
+  },
+  _hover: {
+    _before: {
+      backgroundColor: "neutral.a40",
+    },
+  },
+});
+
+const cardStyle = css({
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  height: "full",
+  overflow: "hidden",
+  backgroundColor: "neutral.s10",
+  borderRadius: "[12px]",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0,0,0,0.06), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 12px 12px -6px rgba(0,0,0,0.02), 0px 4px 4px -12px rgba(0,0,0,0.02)]",
+});
+
+const headerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[1px]",
+  paddingX: "1",
+  paddingTop: "[6px]",
+  borderBottom: "[1px solid rgba(0,0,0,0.08)]",
+  flexShrink: 0,
+});
+
+const tabStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    height: "[28px]",
+    maxWidth: "[112px]",
+    paddingX: "3",
+    borderTopLeftRadius: "lg",
+    borderTopRightRadius: "lg",
+    fontSize: "xs",
+    fontWeight: "medium",
+    lineHeight: "[12px]",
+    color: "neutral.s90",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+  },
+  variants: {
+    active: {
+      true: {
+        backgroundColor: "neutral.s00",
+        boxShadow: "[0px 0px 0px 1px rgba(0,0,0,0.08)]",
+        color: "neutral.s100",
+      },
+    },
+  },
+});
+
+const headerButtonStyle = css({
+  color: "neutral.s90",
+  _hover: {
+    color: "neutral.s110",
+  },
+});
+
+const messagesStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  flex: "[1]",
+  minHeight: "[0]",
+  overflowY: "auto",
+  padding: "2",
+});
+
+const emptyStyle = css({
+  display: "flex",
+  flex: "[1]",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "2",
+  minHeight: "[240px]",
+  color: "neutral.s90",
+  textAlign: "center",
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "[20px]",
+  padding: "[20px]",
+});
+
+const messageStyle = cva({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2",
+    borderRadius: "xl",
+    padding: "[10px]",
+    fontSize: "sm",
+    fontWeight: "medium",
+    lineHeight: "[1.5]",
+    color: "neutral.s100",
+    boxShadow:
+      "[0px 0px 0px 1px rgba(0,0,0,0.07), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 8px 8px -6px rgba(0,0,0,0.04)]",
+  },
+  variants: {
+    role: {
+      assistant: {
+        alignSelf: "stretch",
+        backgroundColor: "white.a95",
+      },
+      user: {
+        alignSelf: "flex-end",
+        maxWidth: "[92%]",
+        backgroundColor: "neutral.s20",
+        textAlign: "right",
+      },
+    },
+    activity: {
+      active: {},
+      complete: {},
+    },
+  },
+  compoundVariants: [
+    {
+      role: "assistant",
+      activity: "active",
+      css: {
+        backgroundColor: "neutral.s00",
+      },
+    },
+    {
+      role: "assistant",
+      activity: "complete",
+      css: {
+        backgroundColor: "neutral.s10",
+      },
+    },
+  ],
+});
+
+const markdownStyle = css({
+  "& p": {
+    margin: "[0]",
+  },
+  "& p + p": {
+    marginTop: "2",
+  },
+  "& ul, & ol": {
+    marginTop: "1",
+    marginBottom: "1",
+    paddingLeft: "5",
+  },
+  "& code": {
+    fontFamily: "mono",
+    fontSize: "xs",
+    backgroundColor: "neutral.s20",
+    borderRadius: "sm",
+    paddingX: "1",
+  },
+});
+
+const reasoningGroupStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  borderRadius: "lg",
+  backgroundColor: "neutral.bg.subtle",
+  padding: "1",
+});
+
+const reasoningHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  width: "full",
+  height: "8",
+  paddingX: "2",
+  border: "none",
+  borderRadius: "lg",
+  backgroundColor: "[transparent]",
+  color: "neutral.s90",
+  cursor: "pointer",
+  fontSize: "sm",
+  fontWeight: "medium",
+  textAlign: "left",
+  _hover: {
+    backgroundColor: "white.a60",
+  },
+  "& svg[data-chevron]": {
+    transition: "[transform 150ms ease-out]",
+  },
+  "&[data-state=closed] svg[data-chevron]": {
+    transform: "[rotate(180deg)]",
+  },
+});
+
+const reasoningBodyStyle = css({
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a30",
+  borderRadius: "lg",
+  backgroundColor: "neutral.s10",
+  boxShadow: "[0px 0px 0px 2px {colors.neutral.bg.subtle}]",
+  padding: "2",
+  color: "neutral.s90",
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "[1.5]",
+});
+
+const collapsibleContentStyle = css({
+  overflow: "hidden",
+  animationDuration: "[200ms]",
+  animationTimingFunction: "ease-in-out",
+  "&[data-state=open]": {
+    animationName: "expand",
+  },
+  "&[data-state=closed]": {
+    animationName: "collapse",
+  },
+});
+
+const spinnerStyle = css({
+  animation: "[spin 900ms linear infinite]",
+  color: "neutral.s80",
+});
+
+const reasoningLoadingStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  minHeight: "6",
+  color: "neutral.s80",
+});
+
+const toolListStyle = cva({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    borderRadius: "lg",
+  },
+  variants: {
+    kind: {
+      group: {
+        backgroundColor: "[#eff9ff]",
+        borderWidth: "thin",
+        borderStyle: "solid",
+        borderColor: "[#bee6ff]",
+      },
+      single: {},
+    },
+  },
+});
+
+const toolGroupPanelStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[0]",
+  overflow: "hidden",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "[rgba(0,0,0,0.13)]",
+  borderRadius: "lg",
+  backgroundColor: "white",
+  "& > button": {
+    borderRadius: "[0]",
+  },
+  "& > div > button": {
+    borderRadius: "[0]",
+  },
+  "& > button:first-child": {
+    borderTopLeftRadius: "md",
+    borderTopRightRadius: "md",
+  },
+  "& > div:first-child > button": {
+    borderTopLeftRadius: "md",
+    borderTopRightRadius: "md",
+  },
+  "& > button:last-child": {
+    borderBottomLeftRadius: "md",
+    borderBottomRightRadius: "md",
+  },
+  "& > div:last-child > button": {
+    borderBottomLeftRadius: "md",
+    borderBottomRightRadius: "md",
+  },
+  "& > * + *": {
+    marginTop: "[-1px]",
+  },
+});
+
+const toolItemCollapsibleStyle = css({
+  "& > button": {
+    borderRadius: "[0]",
+  },
+});
+
+const toolHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  height: "8",
+  paddingX: "2",
+  fontSize: "sm",
+  fontWeight: "medium",
+  color: "[#0666c6]",
+  "& svg[data-chevron]": {
+    transition: "[transform 150ms ease-out]",
+  },
+  "&[data-state=closed] svg[data-chevron]": {
+    transform: "[rotate(180deg)]",
+  },
+});
+
+const toolHeaderIconStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[14px]",
+  height: "[14px]",
+  borderRadius: "full",
+  backgroundColor: "[#2a80c8]",
+  color: "white",
+  boxShadow: "[0px 0px 0px 1px white]",
+  flexShrink: 0,
+});
+
+const toolItemStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    gap: "2",
+    width: "full",
+    minHeight: "8",
+    paddingX: "2",
+    paddingY: "[5px]",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderRadius: "lg",
+    color: "neutral.s90",
+    fontSize: "sm",
+    fontWeight: "medium",
+    textAlign: "left",
+    cursor: "default",
+    _enabled: {
+      cursor: "pointer",
+    },
+    "& svg[data-chevron]": {
+      transition: "[transform 150ms ease-out]",
+    },
+    "&[data-state=closed] svg[data-chevron]": {
+      transform: "[rotate(180deg)]",
+    },
+  },
+  variants: {
+    tone: {
+      danger: {
+        backgroundColor: "red.s20",
+        borderColor: "red.a40",
+      },
+      info: {
+        backgroundColor: "[#eff9ff]",
+        borderColor: "[#bee6ff]",
+        color: "[#0666c6]",
+      },
+      neutral: {
+        backgroundColor: "neutral.s10",
+        borderColor: "neutral.a30",
+      },
+      success: {
+        backgroundColor: "green.s20",
+        borderColor: "green.a40",
+      },
+    },
+  },
+});
+
+const toolStatusStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "[14px]",
+    height: "[14px]",
+    borderRadius: "full",
+    flexShrink: 0,
+    boxShadow: "[0px 0px 0px 1px white]",
+    color: "white",
+  },
+  variants: {
+    tone: {
+      danger: {
+        backgroundColor: "red.s90",
+      },
+      info: {
+        backgroundColor: "[#2a80c8]",
+      },
+      neutral: {
+        backgroundColor: "neutral.s90",
+      },
+      success: {
+        backgroundColor: "green.s90",
+      },
+    },
+    state: {
+      active: {
+        backgroundColor: "white",
+        borderWidth: "thin",
+        borderStyle: "dashed",
+        borderColor: "blue.s70",
+        color: "blue.s70",
+      },
+      complete: {},
+      error: {
+        backgroundColor: "red.s90",
+      },
+    },
+  },
+});
+
+const toolTextStyle = css({
+  display: "flex",
+  flex: "[1]",
+  flexDirection: "column",
+  gap: "[2px]",
+});
+
+const toolDetailStyle = css({
+  display: "block",
+  color: "neutral.s80",
+  fontSize: "xs",
+  lineHeight: "[16px]",
+});
+
+const toolSubItemListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  padding: "[4px 8px 8px 30px]",
+  color: "neutral.s80",
+  fontSize: "xs",
+  fontWeight: "medium",
+  lineHeight: "[16px]",
+});
+
+const toolSubItemStyle = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const errorStyle = css({
+  borderRadius: "lg",
+  padding: "2",
+  backgroundColor: "red.bg.subtle",
+  color: "red.s100",
+  fontSize: "sm",
+  fontWeight: "medium",
+});
+
+const composerWrapStyle = css({
+  padding: "2",
+  backgroundColor: "neutral.bg.subtle",
+  flexShrink: 0,
+});
+
+const composerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  borderRadius: "lg",
+  backgroundColor: "neutral.s10",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0,0,0,0.06), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 12px 12px -6px rgba(0,0,0,0.02), 0px 4px 4px -12px rgba(0,0,0,0.02)]",
+  padding: "1",
+});
+
+const inputStyle = css({
+  flex: "[1]",
+  minWidth: "[0]",
+  width: "auto",
+  borderColor: "[transparent]",
+  backgroundColor: "[transparent]",
+  boxShadow: "[none]",
+  _hover: {
+    borderColor: "[transparent]",
+  },
+  _focus: {
+    borderColor: "[transparent]",
+    boxShadow: "[none]",
+  },
+  _active: {
+    borderColor: "[transparent]",
+    boxShadow: "[none]",
+  },
+  _placeholder: {
+    color: "neutral.s70",
+  },
+});
+
+const isToolPart = (
+  part: PetrinautAiMessage["parts"][number],
+): part is RenderableToolPart =>
+  part.type === "dynamic-tool" || part.type.startsWith("tool-");
+
+const getToolName = (part: RenderableToolPart) =>
+  part.type === "dynamic-tool" && typeof part.toolName === "string"
+    ? part.toolName
+    : part.type.replace(/^tool-/, "");
+
+const getAiToolTarget = (value: unknown): AiToolTarget | undefined => {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+
+  const candidate = value as {
+    id?: unknown;
+    item?: unknown;
+    itemId?: unknown;
+    kind?: unknown;
+    mode?: unknown;
+    type?: unknown;
+  };
+
+  if (candidate.kind === "selection") {
+    return { kind: "selection", item: candidate.item as SelectionItem };
+  }
+
+  if (
+    candidate.kind === "simulateView" &&
+    (candidate.mode === "scenarios" || candidate.mode === "metrics")
+  ) {
+    return {
+      kind: "simulateView",
+      mode: candidate.mode,
+      itemId:
+        typeof candidate.itemId === "string" ? candidate.itemId : undefined,
+    };
+  }
+
+  if (typeof candidate.type === "string" && typeof candidate.id === "string") {
+    return {
+      kind: "selection",
+      item: {
+        type: candidate.type as SelectionItem["type"],
+        id: candidate.id,
+      },
+    };
+  }
+
+  return undefined;
+};
+
+const getToolSummaryFromPart = (part: RenderableToolPart): AiToolSummary => {
+  const toolName = getToolName(part);
+  if (toolName === getLatestNetDefinitionToolName) {
+    return { title: "Checked latest net definition" };
+  }
+
+  const output = part.output;
+  if (typeof output === "object" && output !== null) {
+    const maybeSummary = output as {
+      detail?: unknown;
+      items?: unknown;
+      title?: unknown;
+      target?: unknown;
+    };
+    if (typeof maybeSummary.title === "string") {
+      return {
+        title: maybeSummary.title,
+        detail:
+          typeof maybeSummary.detail === "string"
+            ? maybeSummary.detail
+            : undefined,
+        items: Array.isArray(maybeSummary.items)
+          ? maybeSummary.items.filter(
+              (item): item is string => typeof item === "string",
+            )
+          : undefined,
+        target: getAiToolTarget(maybeSummary.target),
+      };
+    }
+  }
+
+  if (!(toolName in petrinautAiMutationTools)) {
+    return { title: toolName };
+  }
+  try {
+    return summarizePetrinautAiToolCall({
+      toolName: toolName as never,
+      input: part.input as never,
+    });
+  } catch {
+    return { title: toolName };
+  }
+};
+
+const getToolTone = ({
+  state,
+  summary,
+  toolName,
+}: {
+  state: string;
+  summary: AiToolSummary;
+  toolName: string;
+}): ToolTone => {
+  if (state === "output-error") {
+    return "danger";
+  }
+
+  if (toolName === getLatestNetDefinitionToolName) {
+    return "neutral";
+  }
+
+  if (
+    toolName === "deleteItemsByIds" ||
+    toolName.startsWith("remove") ||
+    /^(Deleted|Removed)\b/u.test(summary.title)
+  ) {
+    return "danger";
+  }
+
+  return "success";
+};
+
+const toToolRenderItem = (
+  message: PetrinautAiMessage,
+  part: RenderableToolPart,
+): ToolRenderItem => {
+  const state = part.state ?? "input-available";
+  const summary = getToolSummaryFromPart(part);
+  const toolName = getToolName(part);
+
+  return {
+    id:
+      typeof part.toolCallId === "string"
+        ? part.toolCallId
+        : `${message.id}-${part.type}`,
+    state,
+    summary,
+    tone: getToolTone({ state, summary, toolName }),
+    toolName,
+  };
+};
+
+const getMessageRenderItems = (
+  message: PetrinautAiMessage,
+): MessageRenderItem[] => {
+  const items: MessageRenderItem[] = [];
+  let pendingTools: ToolRenderItem[] = [];
+
+  const flushTools = () => {
+    if (pendingTools.length === 0) {
+      return;
+    }
+
+    items.push({
+      type: "tools",
+      key: `${message.id}-tools-${items.length}`,
+      tools: pendingTools,
+    });
+    pendingTools = [];
+  };
+
+  message.parts.forEach((part, index) => {
+    if (part.type === "text") {
+      flushTools();
+      items.push({
+        type: "text",
+        key: `${message.id}-text-${index}`,
+        part,
+      });
+      return;
+    }
+
+    if (part.type === "reasoning") {
+      flushTools();
+      items.push({
+        type: "reasoning",
+        key: `${message.id}-reasoning-${index}`,
+        part,
+      });
+      return;
+    }
+
+    if (isToolPart(part)) {
+      const tool = toToolRenderItem(message, part);
+
+      if (tool.toolName === getLatestNetDefinitionToolName) {
+        flushTools();
+        pendingTools.push(tool);
+        flushTools();
+        return;
+      }
+
+      pendingTools.push(tool);
+    }
+  });
+
+  flushTools();
+
+  return items;
+};
+
+const isPartActive = (part: PetrinautAiMessage["parts"][number]): boolean =>
+  "state" in part &&
+  (part.state === "streaming" ||
+    part.state === "input-streaming" ||
+    part.state === "input-available");
+
+const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string =>
+  messages
+    .map((message) =>
+      [
+        message.id,
+        message.parts
+          .map((part) => {
+            if (part.type === "text" || part.type === "reasoning") {
+              return `${part.type}:${part.state ?? ""}:${part.text}`;
+            }
+
+            return "state" in part
+              ? `${part.type}:${part.state ?? ""}`
+              : part.type;
+          })
+          .join(","),
+      ].join(":"),
+    )
+    .join("|");
+
+const formatElapsedTime = (elapsedMs: number): string => {
+  const seconds = Math.max(0, Math.floor(elapsedMs / 1_000));
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  return minutes > 0
+    ? `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s`
+    : `${seconds}s`;
+};
+
+const useElapsedTime = (isRunning: boolean): string => {
+  const startedAt = useRef(Date.now());
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!isRunning) {
+      setElapsedMs((current) => current || Date.now() - startedAt.current);
+      return;
+    }
+
+    const updateElapsed = () => setElapsedMs(Date.now() - startedAt.current);
+    updateElapsed();
+    const intervalId = window.setInterval(updateElapsed, 1_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isRunning]);
+
+  return formatElapsedTime(elapsedMs);
+};
+
+const ReasoningPart = ({
+  isStreaming,
+  text,
+}: {
+  isStreaming: boolean;
+  text: string;
+}) => {
+  const elapsedTime = useElapsedTime(isStreaming);
+  const renderedText = text.trim();
+  const [open, setOpen] = useState(isStreaming);
+
+  useEffect(() => {
+    setOpen(isStreaming);
+  }, [isStreaming]);
+
+  if (!isStreaming && !renderedText) {
+    return null;
+  }
+
+  return (
+    <Collapsible.Root
+      className={reasoningGroupStyle}
+      open={open}
+      onOpenChange={(details) => setOpen(details.open)}
+    >
+      <Collapsible.Trigger className={reasoningHeaderStyle}>
+        <TbList size={14} />
+        <span style={{ flex: 1 }}>Reasoning</span>
+        <span aria-label={`Reasoning time ${elapsedTime}`}>{elapsedTime}</span>
+        <TbChevronUp data-chevron size={14} />
+      </Collapsible.Trigger>
+      <Collapsible.Content className={collapsibleContentStyle}>
+        <div className={reasoningBodyStyle}>
+          {renderedText ? (
+            <ReactMarkdown>{renderedText}</ReactMarkdown>
+          ) : (
+            <div className={reasoningLoadingStyle}>
+              <TbLoader2
+                className={spinnerStyle}
+                data-testid="reasoning-spinner"
+                aria-label="Loading reasoning"
+                size={14}
+              />
+            </div>
+          )}
+        </div>
+      </Collapsible.Content>
+    </Collapsible.Root>
+  );
+};
+
+const ToolItem = ({
+  onSelectToolTarget,
+  tool,
+}: {
+  onSelectToolTarget?: (target: AiToolTarget) => void;
+  tool: ToolRenderItem;
+}) => {
+  const complete = tool.state === "output-available";
+  const errored = tool.state === "output-error";
+  const target = tool.summary.target;
+  const children = tool.summary.items ?? [];
+  const expandable = children.length > 0;
+  const title = errored ? `${tool.toolName} errored` : tool.summary.title;
+
+  const button = (
+    <button
+      type="button"
+      className={toolItemStyle({ tone: tool.tone })}
+      data-tone={tool.tone}
+      disabled={!target && !expandable}
+      onClick={() => {
+        if (target) {
+          onSelectToolTarget?.(target);
+        }
+      }}
+    >
+      <span
+        className={toolStatusStyle({
+          state: errored ? "error" : complete ? "complete" : "active",
+          tone: tool.tone,
+        })}
+      >
+        {errored ? <TbX size={10} /> : complete ? <TbCheck size={10} /> : null}
+      </span>
+      <span className={toolTextStyle}>
+        <span>{title}</span>
+        {tool.summary.detail && (
+          <span className={toolDetailStyle} data-testid="tool-detail">
+            {tool.summary.detail}
+          </span>
+        )}
+      </span>
+      {expandable && <TbChevronUp data-chevron size={14} />}
+    </button>
+  );
+
+  if (!expandable) {
+    return button;
+  }
+
+  return (
+    <Collapsible.Root className={toolItemCollapsibleStyle} defaultOpen={false}>
+      <Collapsible.Trigger asChild>{button}</Collapsible.Trigger>
+      <Collapsible.Content className={collapsibleContentStyle}>
+        <div className={toolSubItemListStyle}>
+          {children.map((item, index) => (
+            <div className={toolSubItemStyle} key={`${tool.id}-${index}`}>
+              {item}
+            </div>
+          ))}
+        </div>
+      </Collapsible.Content>
+    </Collapsible.Root>
+  );
+};
+
+const ToolListContent = ({
+  onSelectToolTarget,
+  tools,
+}: {
+  onSelectToolTarget?: (target: AiToolTarget) => void;
+  tools: ToolRenderItem[];
+}) => (
+  <>
+    {tools.map((tool) => (
+      <ToolItem
+        key={tool.id}
+        tool={tool}
+        onSelectToolTarget={onSelectToolTarget}
+      />
+    ))}
+  </>
+);
+
+const ToolList = ({
+  onSelectToolTarget,
+  tools,
+}: {
+  onSelectToolTarget?: (target: AiToolTarget) => void;
+  tools: ToolRenderItem[];
+}) => {
+  if (tools.length === 0) {
+    return null;
+  }
+
+  if (tools.length === 1) {
+    return (
+      <div className={toolListStyle({ kind: "single" })}>
+        <ToolListContent
+          tools={tools}
+          onSelectToolTarget={onSelectToolTarget}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <Collapsible.Root className={toolListStyle({ kind: "group" })} defaultOpen>
+      <Collapsible.Trigger className={toolHeaderStyle}>
+        <span className={toolHeaderIconStyle}>
+          <TbList size={10} />
+        </span>
+        <span style={{ flex: 1 }}>{tools.length} changes</span>
+        <TbChevronUp data-chevron size={14} />
+      </Collapsible.Trigger>
+      <Collapsible.Content className={collapsibleContentStyle}>
+        <div className={toolGroupPanelStyle}>
+          <ToolListContent
+            tools={tools}
+            onSelectToolTarget={onSelectToolTarget}
+          />
+        </div>
+      </Collapsible.Content>
+    </Collapsible.Root>
+  );
+};
+
+export const AiAssistantSurface = ({
+  error,
+  input,
+  messages,
+  onClearMessages,
+  onClose,
+  onInputChange,
+  onSelectToolTarget,
+  onStop,
+  onSubmit,
+  rightOffset = 0,
+  status,
+}: AiAssistantSurfaceProps) => {
+  const isBusy = status === "submitted" || status === "streaming";
+  const canSubmit = input.trim().length > 0 && !isBusy;
+  const [assistantWidth, setAssistantWidth] = useState(420);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesScrollKey = getMessagesScrollKey(messages);
+
+  const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = assistantWidth;
+    const maxWidth = Math.min(window.innerWidth - 32, 720);
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      setAssistantWidth(
+        Math.min(
+          Math.max(startWidth + startX - moveEvent.clientX, 320),
+          maxWidth,
+        ),
+      );
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  };
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const scrollToEnd = () => {
+      messagesEndRef.current?.scrollIntoView?.({
+        block: "end",
+        behavior: "smooth",
+      });
+    };
+    const requestFrame =
+      window.requestAnimationFrame ??
+      ((callback: FrameRequestCallback) => window.setTimeout(callback, 0));
+    const cancelFrame =
+      window.cancelAnimationFrame ??
+      ((handle: number) => window.clearTimeout(handle));
+    const frameId = requestFrame(scrollToEnd);
+
+    return () => cancelFrame(frameId);
+  }, [messagesScrollKey, status]);
+
+  return (
+    <aside
+      className={shellStyle}
+      style={{ right: rightOffset, width: assistantWidth }}
+      aria-label="AI assistant"
+    >
+      <div
+        aria-label="Resize AI assistant"
+        className={resizeHandleStyle}
+        onPointerDown={onResizeStart}
+        role="separator"
+      />
+      <div className={cardStyle}>
+        <div className={headerStyle}>
+          <div className={tabStyle({ active: true })}>Petrinaut AI</div>
+          <div style={{ flex: 1 }} />
+          <IconButton
+            size="xs"
+            variant="ghost"
+            colorScheme="red"
+            className={headerButtonStyle}
+            aria-label="Clear AI chat"
+            disabled={messages.length === 0}
+            onClick={onClearMessages}
+          >
+            <TbTrash size={14} />
+          </IconButton>
+          <IconButton
+            size="xs"
+            variant="ghost"
+            className={headerButtonStyle}
+            aria-label="Close AI assistant"
+            onClick={onClose}
+          >
+            <TbX size={14} />
+          </IconButton>
+        </div>
+
+        <div className={messagesStyle}>
+          {messages.length === 0 && (
+            <div className={emptyStyle}>
+              <AiAssistantIcon size={28} />
+              <div>
+                Ask Petrinaut AI to create a Petri net, explain or revise the
+                current model.
+              </div>
+            </div>
+          )}
+          {messages.map((message) => {
+            const role = message.role === "user" ? "user" : "assistant";
+            const assistantActivity = message.parts.some(isPartActive)
+              ? "active"
+              : "complete";
+            const renderItems = getMessageRenderItems(message);
+
+            return (
+              <div
+                key={message.id}
+                className={messageStyle({
+                  role,
+                  activity: assistantActivity,
+                })}
+                data-activity={
+                  role === "assistant" ? assistantActivity : undefined
+                }
+                data-role={role}
+              >
+                {renderItems.map((item) => {
+                  switch (item.type) {
+                    case "text":
+                      return (
+                        <div className={markdownStyle} key={item.key}>
+                          <ReactMarkdown>{item.part.text}</ReactMarkdown>
+                        </div>
+                      );
+                    case "reasoning":
+                      return (
+                        <ReasoningPart
+                          key={item.key}
+                          isStreaming={item.part.state === "streaming"}
+                          text={item.part.text}
+                        />
+                      );
+                    case "tools":
+                      return (
+                        <ToolList
+                          key={item.key}
+                          tools={item.tools}
+                          onSelectToolTarget={onSelectToolTarget}
+                        />
+                      );
+                  }
+                })}
+              </div>
+            );
+          })}
+          {error && <div className={errorStyle}>{error.message}</div>}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <form
+          className={composerWrapStyle}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSubmit) {
+              onSubmit();
+            }
+          }}
+        >
+          <div className={composerStyle}>
+            <Input
+              ref={inputRef}
+              className={inputStyle}
+              size="sm"
+              value={input}
+              onChange={(event) => onInputChange(event.currentTarget.value)}
+              placeholder={
+                messages.length === 0
+                  ? "Get creating..."
+                  : "Continue iterating..."
+              }
+              aria-label="Message Petrinaut AI"
+            />
+            <IconButton
+              type={isBusy ? "button" : "submit"}
+              size="sm"
+              variant={isBusy ? "subtle" : "solid"}
+              colorScheme={isBusy ? "gray" : "brand"}
+              disabled={!isBusy && !canSubmit}
+              aria-label={isBusy ? "Stop AI response" : "Send message"}
+              onClick={() => {
+                if (isBusy) {
+                  onStop();
+                }
+              }}
+            >
+              {isBusy ? <TbPlayerStopFilled size={14} /> : <TbSend size={14} />}
+            </IconButton>
+          </div>
+        </form>
+      </div>
+    </aside>
+  );
+};
