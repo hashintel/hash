@@ -38,11 +38,11 @@ export function createInMemorySimulationFrameStore(
     latest() {
       const index = frames.length - 1;
       const frame = frames[index];
-      return frame ? createFrameReader(frame.frame, index) : null;
+      return frame ? createFrameReader(frame.frame, index, frame.time) : null;
     },
     get(index) {
       const frame = frames[index];
-      return frame ? createFrameReader(frame.frame, index) : null;
+      return frame ? createFrameReader(frame.frame, index, frame.time) : null;
     },
   };
 }

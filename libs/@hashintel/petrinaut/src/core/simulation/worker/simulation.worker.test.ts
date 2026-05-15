@@ -101,11 +101,9 @@ describe("simulation.worker", () => {
   });
 
   describe("initialization", () => {
-    it("posts ready message on load", () => {
-      // Worker posts ready on load
+    it("does not post ready before init", () => {
       const readyMessages = getMessages("ready");
-      expect(readyMessages).toHaveLength(1);
-      expect(readyMessages[0]?.initialFrameCount).toBe(0);
+      expect(readyMessages).toHaveLength(0);
     });
 
     it("initializes simulation with valid SDCPN", () => {

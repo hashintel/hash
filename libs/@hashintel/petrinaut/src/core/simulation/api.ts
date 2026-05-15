@@ -97,6 +97,8 @@ export type SimulationPlaceTokenValues = {
 export interface SimulationFrameReader {
   /** Frame index in the simulation history. */
   readonly number: number;
+  /** Simulation time for this frame, in seconds. */
+  readonly time: number;
 
   getPlaceTokenCount(placeId: string): number;
   getPlaceTokenValues(placeId: string): SimulationPlaceTokenValues | null;

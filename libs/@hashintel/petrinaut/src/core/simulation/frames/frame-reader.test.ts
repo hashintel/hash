@@ -65,9 +65,10 @@ function makeFrame(): EngineFrame {
 
 describe("SimulationFrameReader", () => {
   it("reads place and transition state without exposing raw frame layout", () => {
-    const reader = compileSimulationFrameReader(sdcpn)(makeFrame(), 7);
+    const reader = compileSimulationFrameReader(sdcpn)(makeFrame(), 7, 1.25);
 
     expect(reader.number).toBe(7);
+    expect(reader.time).toBe(1.25);
     expect(reader.getPlaceTokenCount(place.id)).toBe(2);
     expect(reader.getPlaceTokenCount("missing")).toBe(0);
 
@@ -97,7 +98,7 @@ describe("SimulationFrameReader", () => {
   });
 
   it("returns a copied token value buffer", () => {
-    const reader = compileSimulationFrameReader(sdcpn)(makeFrame(), 7);
+    const reader = compileSimulationFrameReader(sdcpn)(makeFrame(), 7, 1.25);
     const values = reader.getPlaceTokenValues(place.id);
 
     expect(values).not.toBeNull();

@@ -90,14 +90,8 @@ function tokenRecordsFromRows(
 ): Record<string, number>[] {
   return rows.map((row) => {
     const token: Record<string, number> = {};
-    if (elements.length > 0) {
-      for (let i = 0; i < elements.length; i++) {
-        token[elements[i]!.name] = row[i] ?? 0;
-      }
-    } else {
-      for (let i = 0; i < row.length; i++) {
-        token[String(i)] = row[i] ?? 0;
-      }
+    for (let i = 0; i < elements.length; i++) {
+      token[elements[i]!.name] = row[i] ?? 0;
     }
     return token;
   });
@@ -292,6 +286,37 @@ export function compileScenario(
       if (Array.isArray(value)) {
         const place = placeById.get(placeId);
         const color = place?.colorId ? typeById.get(place.colorId) : undefined;
+        const hasTokenValues = value.some((row) => row.length > 0);
+
+        if (hasTokenValues && !place) {
+          errors.push({
+            source: "initialState",
+            itemId: placeId,
+            message: `Initial state for place "${placeId}" uses colored token rows, but the place does not exist.`,
+          });
+          continue;
+        }
+
+        if (hasTokenValues && (!color || color.elements.length === 0)) {
+          errors.push({
+            source: "initialState",
+            itemId: placeId,
+            message: `Initial state for place "${placeId}" uses colored token rows, but the place has no color elements.`,
+          });
+          continue;
+        }
+
+        const elementCount = color?.elements.length ?? 0;
+        const tooWideRow = value.find((row) => row.length > elementCount);
+        if (tooWideRow) {
+          errors.push({
+            source: "initialState",
+            itemId: placeId,
+            message: `Initial state for place "${placeId}" has ${tooWideRow.length} values per token, but the color type has ${elementCount} elements.`,
+          });
+          continue;
+        }
+
         initialState[placeId] = tokenRecordsFromRows(
           value,
           color?.elements ?? [],

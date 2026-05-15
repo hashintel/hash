@@ -47,7 +47,6 @@ interface StreamingStoreController {
   appendFrames: (
     frames: TimelineFrame[],
     extract: TimelineSeriesExtractor,
-    dt: number,
   ) => void;
 }
 
@@ -86,13 +85,13 @@ function createStreamingStoreController(
       resetStore(store, store.series);
       notify();
     },
-    appendFrames: (frames, extract, dt) => {
+    appendFrames: (frames, extract) => {
       const cols = store.columns;
       const timeCol = cols[0]!;
       const seriesCount = store.series.length;
 
       for (const frame of frames) {
-        const time = frame.number * dt;
+        const time = frame.time;
         timeCol.push(time);
         for (let s = 0; s < seriesCount; s++) {
           cols[s + 1]!.push(extract(frame, s, time));
@@ -210,7 +209,7 @@ export function useStreamingData(): {
         return;
       }
 
-      storeController.appendFrames(newFrames, seriesConfig.extract, dt);
+      storeController.appendFrames(newFrames, seriesConfig.extract);
       processedRef.current = totalFrames;
     };
 

@@ -265,14 +265,8 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
     }
 
     case "ack": {
-      lastAckedFrame = message.frameNumber;
+      lastAckedFrame = Math.max(lastAckedFrame, message.frameNumber);
       break;
     }
   }
 };
-
-// Signal that worker is ready
-postTypedMessage({
-  type: "ready",
-  initialFrameCount: 0,
-});

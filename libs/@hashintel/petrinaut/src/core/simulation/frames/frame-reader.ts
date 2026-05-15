@@ -15,6 +15,7 @@ function createSimulationFrameReader(
   layout: EngineFrameLayout,
   frame: EngineFrame,
   number: number,
+  time: number,
 ): SimulationFrameReader {
   const frameView = readEngineFrame(layout, frame);
 
@@ -38,6 +39,7 @@ function createSimulationFrameReader(
 
   return {
     number,
+    time,
     getPlaceTokenCount,
     getPlaceTokenValues,
     getPlaceTokens(place, color) {
@@ -87,8 +89,9 @@ function createSimulationFrameReader(
 
 export function compileSimulationFrameReader(
   sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,
-): (frame: EngineFrame, number: number) => SimulationFrameReader {
+): (frame: EngineFrame, number: number, time: number) => SimulationFrameReader {
   const layout = createEngineFrameLayout(sdcpn);
 
-  return (frame, number) => createSimulationFrameReader(layout, frame, number);
+  return (frame, number, time) =>
+    createSimulationFrameReader(layout, frame, number, time);
 }

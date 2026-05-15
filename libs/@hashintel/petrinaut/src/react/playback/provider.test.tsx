@@ -22,6 +22,7 @@ type MockSimulationContextOverrides = Partial<SimulationContextValue>;
 function createMockFrameReader(number: number): SimulationFrameReader {
   return {
     number,
+    time: number * 0.01,
     getPlaceTokenCount: () => 0,
     getPlaceTokenValues: () => null,
     getPlaceTokens: () => [],

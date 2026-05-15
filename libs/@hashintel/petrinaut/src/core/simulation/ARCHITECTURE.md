@@ -36,13 +36,14 @@ The public frame path is:
 
 ```ts
 const createReader = compileSimulationFrameReader(sdcpn);
-const reader = createReader(engineFrame, frameNumber);
+const reader = createReader(engineFrame, frameNumber, frameTime);
 ```
 
-Simulation time is owned by the run controller and kept outside `EngineFrame`
-and `SimulationFrameReader`. Future storage work should happen behind the worker
-payload and frame-store boundaries so UI and React consumers keep using the same
-reader interface.
+Simulation time is owned by the run controller and kept outside `EngineFrame`.
+Worker payloads carry it as frame metadata, and `SimulationFrameReader` exposes
+it to consumers. Future storage work should happen behind the worker payload and
+frame-store boundaries so UI and React consumers keep using the same reader
+interface.
 
 Retention is intentionally isolated in `runtime/frame-store.ts`. The current
 store keeps every full frame in memory for compatibility. Future stores can keep

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Parameter, Scenario } from "../../../types/sdcpn";
+import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 import { compileScenario } from "./compile-scenario";
 
 // -- Helpers ------------------------------------------------------------------
@@ -24,6 +24,27 @@ const scenario = (overrides: Partial<Scenario> = {}): Scenario => ({
   parameterOverrides: {},
   initialState: { type: "per_place", content: {} },
   ...overrides,
+});
+
+const place = (id: string, name: string, colorId: string | null): Place => ({
+  id,
+  name,
+  colorId,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x: 0,
+  y: 0,
+});
+
+const color = (id: string): Color => ({
+  id,
+  name: "Type 1",
+  iconSlug: "circle",
+  displayColor: "#000000",
+  elements: [
+    { elementId: "x", name: "x", type: "real" },
+    { elementId: "y", name: "y", type: "real" },
+  ],
 });
 
 // -- Tests --------------------------------------------------------------------
@@ -339,14 +360,72 @@ describe("compileScenario", () => {
           },
         }),
         [],
+        [
+          place("uncolored", "Uncolored", null),
+          place("colored", "Colored", "type1"),
+        ],
+        [color("type1")],
       );
 
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.result.initialState.uncolored).toBe(42);
         expect(result.result.initialState.colored).toEqual([
-          { "0": 10, "1": 20 },
-          { "0": 30, "1": 40 },
+          { x: 10, y: 20 },
+          { x: 30, y: 40 },
+        ]);
+      }
+    });
+
+    it("reports colored token rows when place metadata is missing", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: {
+              colored: [[10, 20]],
+            },
+          },
+        }),
+        [],
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors).toEqual([
+          {
+            source: "initialState",
+            itemId: "colored",
+            message:
+              'Initial state for place "colored" uses colored token rows, but the place does not exist.',
+          },
+        ]);
+      }
+    });
+
+    it("reports colored token rows when color elements are missing", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: {
+              colored: [[10, 20]],
+            },
+          },
+        }),
+        [],
+        [place("colored", "Colored", "missing-type")],
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors).toEqual([
+          {
+            source: "initialState",
+            itemId: "colored",
+            message:
+              'Initial state for place "colored" uses colored token rows, but the place has no color elements.',
+          },
         ]);
       }
     });
