@@ -96,6 +96,15 @@ export default defineConfig(({ command }) => ({
 
     react(),
     babel({
+      // Default excludes node_modules. Also skip workspace `dist/` outputs:
+      // those are pre-bundled JSX → `jsx(tag, { ref, ... })` calls, and
+      // React Compiler flags the inlined `ref` prop as "Passing a ref to a
+      // function" (the rule fires for `jsx()` calls but not raw JSX).
+      exclude: [
+        /[\\/]node_modules[\\/]/,
+        /[\\/]libs[\\/]@hashintel[\\/][^\\/]+[\\/]dist[\\/]/,
+        /^0rolldown\/runtime\.js$/,
+      ],
       presets: [
         reactCompilerPreset({
           target: "19",
