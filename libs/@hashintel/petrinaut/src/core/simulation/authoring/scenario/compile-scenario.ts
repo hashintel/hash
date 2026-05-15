@@ -286,9 +286,9 @@ export function compileScenario(
       if (Array.isArray(value)) {
         const place = placeById.get(placeId);
         const color = place?.colorId ? typeById.get(place.colorId) : undefined;
-        const hasTokenValues = value.some((row) => row.length > 0);
+        const hasTokenRows = value.length > 0;
 
-        if (hasTokenValues && !place) {
+        if (hasTokenRows && !place) {
           errors.push({
             source: "initialState",
             itemId: placeId,
@@ -297,7 +297,7 @@ export function compileScenario(
           continue;
         }
 
-        if (hasTokenValues && (!color || color.elements.length === 0)) {
+        if (hasTokenRows && (!color || color.elements.length === 0)) {
           errors.push({
             source: "initialState",
             itemId: placeId,

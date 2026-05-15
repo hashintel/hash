@@ -345,6 +345,28 @@ describe("compileScenario", () => {
       }
     });
 
+    it("converts empty colored token rows to zero-valued token records", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: { place1: [[], []] },
+          },
+        }),
+        [],
+        [place("place1", "Place 1", "type1")],
+        [color("type1")],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.place1).toEqual([
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ]);
+      }
+    });
+
     it("handles mixed colored and uncolored places", () => {
       const result = compileScenario(
         scenario({
@@ -403,6 +425,32 @@ describe("compileScenario", () => {
       }
     });
 
+    it("reports empty colored token rows when place metadata is missing", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: {
+              colored: [[], []],
+            },
+          },
+        }),
+        [],
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors).toEqual([
+          {
+            source: "initialState",
+            itemId: "colored",
+            message:
+              'Initial state for place "colored" uses colored token rows, but the place does not exist.',
+          },
+        ]);
+      }
+    });
+
     it("reports colored token rows when color elements are missing", () => {
       const result = compileScenario(
         scenario({
@@ -410,6 +458,33 @@ describe("compileScenario", () => {
             type: "per_place",
             content: {
               colored: [[10, 20]],
+            },
+          },
+        }),
+        [],
+        [place("colored", "Colored", "missing-type")],
+      );
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.errors).toEqual([
+          {
+            source: "initialState",
+            itemId: "colored",
+            message:
+              'Initial state for place "colored" uses colored token rows, but the place has no color elements.',
+          },
+        ]);
+      }
+    });
+
+    it("reports empty colored token rows when color elements are missing", () => {
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: {
+              colored: [[], []],
             },
           },
         }),
