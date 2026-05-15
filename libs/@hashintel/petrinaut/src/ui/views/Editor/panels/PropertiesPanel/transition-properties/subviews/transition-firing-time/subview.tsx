@@ -41,10 +41,6 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
-const aiIconStyle = css({
-  fontSize: "base",
-});
-
 const FiringTimeHeaderAction: React.FC = () => {
   const { transition, updateTransition } = useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
@@ -86,7 +82,7 @@ const FiringTimeHeaderAction: React.FC = () => {
               display="inline"
             >
               <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" className={aiIconStyle} />
+                <Icon name="sparkles" size="sm" />
                 Generate with AI
               </div>
             </Tooltip>

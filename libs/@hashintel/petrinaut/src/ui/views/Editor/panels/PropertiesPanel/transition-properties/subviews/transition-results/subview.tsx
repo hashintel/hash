@@ -19,10 +19,6 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
-const aiIconStyle = css({
-  fontSize: "base",
-});
-
 const contentStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -123,7 +119,7 @@ const ResultsHeaderAction: React.FC = () => {
               display="inline"
             >
               <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" className={aiIconStyle} />
+                <Icon name="sparkles" size="sm" />
                 Generate with AI
               </div>
             </Tooltip>

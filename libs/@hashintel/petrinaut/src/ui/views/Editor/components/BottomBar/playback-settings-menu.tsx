@@ -74,9 +74,7 @@ const menuItemTextStyle = css({
 });
 
 const checkIconStyle = css({
-  fontSize: "sm",
   color: "blue.s50",
-  flexShrink: 0,
 });
 
 const speedGridStyle = css({

@@ -99,10 +99,7 @@ const nameTextStyle = css({
 });
 
 const chevronStyle = css({
-  flexShrink: 0,
   color: "[rgba(0, 0, 0, 0.3)]",
-  display: "flex",
-  alignItems: "center",
 });
 
 const separatorContainerStyle = css({

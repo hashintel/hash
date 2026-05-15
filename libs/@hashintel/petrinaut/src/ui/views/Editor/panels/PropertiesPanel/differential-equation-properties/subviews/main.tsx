@@ -85,10 +85,6 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
-const aiIconStyle = css({
-  fontSize: "base",
-});
-
 const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places, updateDifferentialEquation } =
     useDiffEqPropertiesContext();
@@ -330,7 +326,7 @@ const DiffEqCodeAction: React.FC = () => {
               display="inline"
             >
               <div className={aiMenuItemStyle}>
-                <Icon name="sparkles" className={aiIconStyle} />
+                <Icon name="sparkles" size="sm" />
                 Generate with AI
               </div>
             </Tooltip>

@@ -71,10 +71,6 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
-const aiIconStyle = css({
-  fontSize: "base",
-});
-
 /**
  * Renders the visualizer preview for the current place,
  * using simulation frame data or initial marking.
@@ -300,7 +296,7 @@ const VisualizerHeaderAction: React.FC = () => {
                   display="inline"
                 >
                   <div className={aiMenuItemStyle}>
-                    <Icon name="sparkles" className={aiIconStyle} />
+                    <Icon name="sparkles" size="sm" />
                     Generate with AI
                   </div>
                 </Tooltip>
