@@ -1,7 +1,7 @@
 import { Icon } from "@hashintel/ds-components";
 import { use, useMemo } from "react";
 
-import { IconButton } from "../../../../components/icon-button";
+import { Button } from "../../../../components/button";
 import { Menu, type MenuItem } from "../../../../components/menu";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 
@@ -43,9 +43,14 @@ export const VersionHistoryButton = () => {
   return (
     <Menu
       trigger={
-        <IconButton size="md" variant="ghost" aria-label="Version history">
-          <Icon name="clockRotateLeft" size="sm" />
-        </IconButton>
+        <Button
+          size="md"
+          variant="ghost"
+          aria-label="Version history"
+          tooltip="Version history"
+          tooltipDisplay="inline"
+          iconName="clockRotateLeft"
+        />
       }
       items={menuItems}
       animated

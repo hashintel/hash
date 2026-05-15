@@ -2,7 +2,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
-import { IconButton } from "../../../../../../../components/icon-button";
+import { Button } from "../../../../../../../components/button";
 import { Menu } from "../../../../../../../components/menu";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
 import type { SubView } from "../../../../../../../components/sub-view/types";
@@ -57,9 +57,14 @@ const FiringTimeHeaderAction: React.FC = () => {
     <Menu
       animated
       trigger={
-        <IconButton aria-label="More options" size="xs">
-          <Icon name="ellipsisVertical" />
-        </IconButton>
+        <Button
+          aria-label="More options"
+          tooltip="More options"
+          tooltipDisplay="inline"
+          variant="ghost"
+          size="xs"
+          iconName="ellipsisVertical"
+        />
       }
       items={[
         {

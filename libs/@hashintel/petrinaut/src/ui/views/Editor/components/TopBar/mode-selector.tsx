@@ -12,17 +12,17 @@ const options: SegmentOption[] = [
   {
     label: "Edit",
     value: "edit",
-    icon: <Icon name="shapes" />,
+    icon: <Icon name="shapes" size="sm" />,
   },
   {
     label: "Simulate",
     value: "simulate",
-    icon: <Icon name="play" />,
+    icon: <Icon name="play" size="sm" />,
   },
   {
     label: "Actual",
     value: "actual",
-    icon: <Icon name="circleFilled" />,
+    icon: <Icon name="circleFilled" size="sm" />,
     disabled: true,
     tooltip: "Actual mode is not yet available.",
   },

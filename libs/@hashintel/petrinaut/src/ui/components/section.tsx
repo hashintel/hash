@@ -1,10 +1,9 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { type ReactNode, use } from "react";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { IconButton } from "./icon-button";
+import { Button } from "./button";
 import { InfoIconTooltip } from "./tooltip";
 
 // -- SectionList (wrapper) --------------------------------------------------
@@ -188,9 +187,14 @@ export const Section = ({
           {headerLeft}
           {renderHeaderAction && <div>{renderHeaderAction()}</div>}
           <Collapsible.Trigger className={triggerButtonStyle} asChild>
-            <IconButton size="xs" variant="ghost" aria-label="Toggle section">
-              <Icon name="chevronUp" size="xxs" />
-            </IconButton>
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label="Toggle section"
+              iconName="chevronUp"
+              tooltip="Toggle section"
+              tooltipDisplay="inline"
+            />
           </Collapsible.Trigger>
         </div>
         <Collapsible.Content

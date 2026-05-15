@@ -3,7 +3,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { ParameterIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -50,15 +50,16 @@ export const ParametersHeaderAction: React.FC = () => {
   };
 
   return (
-    <IconButton
+    <Button
       aria-label="Add parameter"
       size="xs"
+      variant="ghost"
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add parameter"}
+      tooltipDisplay="inline"
+      iconName="plus"
       onClick={handleAddParameter}
-    >
-      <Icon name="plus" />
-    </IconButton>
+    />
   );
 };
 

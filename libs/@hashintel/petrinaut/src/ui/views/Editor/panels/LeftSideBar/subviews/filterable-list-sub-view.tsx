@@ -3,7 +3,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ComponentType, ReactNode } from "react";
 import { Fragment, use, useEffect, useRef, useState } from "react";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
 import type { MenuItem } from "../../../../../components/menu";
 import { Menu } from "../../../../../components/menu";
 import type {
@@ -201,13 +201,15 @@ const FilterHeaderAction: React.FC<{
 
   return (
     <>
-      <IconButton
+      <Button
         aria-label="Search list"
+        tooltip="Search list"
+        tooltipDisplay="inline"
         size="xs"
+        variant="ghost"
+        iconName="search"
         onClick={() => setSearchOpen(true)}
-      >
-        <Icon name="search" />
-      </IconButton>
+      />
       {renderExtraAction?.()}
     </>
   );
@@ -226,14 +228,16 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
     <Menu
       animated
       trigger={
-        <IconButton
+        <Button
           aria-label="More options"
+          tooltip="More options"
+          tooltipDisplay="inline"
           size="xxs"
+          variant="ghost"
+          iconName="ellipsis"
           data-row-action
           onClick={(event) => event.stopPropagation()}
-        >
-          <Icon name="ellipsis" />
-        </IconButton>
+        />
       }
       items={items}
       placement="bottom-end"

@@ -1,9 +1,8 @@
-import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
 
-import { IconButton } from "../../../../components/icon-button";
+import { Button } from "../../../../components/button";
 import { Input } from "../../../../components/input";
 import { Section, SectionList } from "../../../../components/section";
 import { Select } from "../../../../components/select";
@@ -633,14 +632,15 @@ const ScenarioFormSections = ({
         collapsible
         defaultOpen
         renderHeaderAction={() => (
-          <IconButton
+          <Button
             size="xs"
             variant="ghost"
             aria-label="Add scenario parameter"
+            tooltip="Add scenario parameter"
+            tooltipDisplay="inline"
+            iconName="plus"
             onClick={addScenarioParam}
-          >
-            <Icon name="plus" size="xs" />
-          </IconButton>
+          />
         )}
       >
         <span className={hintStyle}>
@@ -720,15 +720,16 @@ const ScenarioFormSections = ({
                   />
                 )}
               </div>
-              <IconButton
+              <Button
                 size="xs"
                 variant="ghost"
-                colorScheme="red"
+                tone="error"
                 aria-label="Remove parameter"
+                tooltip="Remove parameter"
+                tooltipDisplay="inline"
+                iconName="trash"
                 onClick={() => removeScenarioParam(param._key)}
-              >
-                <Icon name="trash" size="xs" />
-              </IconButton>
+              />
             </div>
           ))
         )}

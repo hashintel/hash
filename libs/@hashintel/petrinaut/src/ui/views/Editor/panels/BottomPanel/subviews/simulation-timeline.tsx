@@ -1,10 +1,9 @@
-import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
 import { SegmentGroup } from "../../../../../components/segment-group";
 import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -235,37 +234,37 @@ const TimelineViewPicker: React.FC = () => {
       </div>
       <div style={{ display: "flex" }}>
         {selectedMetric && (
-          <IconButton
-            size="xs"
+          <Button
+            size="sm"
             variant="ghost"
             aria-label="Edit metric"
             tooltip="Edit Metric"
+            tooltipDisplay="inline"
+            iconName="pencil"
             onClick={() => setIsViewOpen(true)}
-          >
-            <Icon name="pencil" size="sm" />
-          </IconButton>
+          />
         )}
-        <IconButton
-          size="xs"
+        <Button
+          size="sm"
           variant="ghost"
           aria-label="Create metric"
           tooltip="Create Metric"
+          tooltipDisplay="inline"
+          iconName="plus"
           onClick={() => setIsCreateOpen(true)}
-        >
-          <Icon name="plus" size="sm" />
-        </IconButton>
-        <IconButton
-          size="xs"
+        />
+        <Button
+          size="sm"
           variant="ghost"
           aria-label="Manage metrics"
           tooltip="Manage Metrics"
+          tooltipDisplay="inline"
+          iconName="list"
           onClick={() => {
             setSimulateViewMode("metrics");
             setGlobalMode("simulate");
           }}
-        >
-          <Icon name="list" size="sm" />
-        </IconButton>
+        />
       </div>
       <CreateMetricDrawer
         open={isCreateOpen}

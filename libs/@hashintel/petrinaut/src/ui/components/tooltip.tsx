@@ -126,7 +126,7 @@ export const InfoIconTooltip = ({
 }) => {
   return (
     <Tooltip content={tooltip} display="inline">
-      <Icon name="info" size="xxs" className={circleInfoIconStyle} />
+      <Icon name="info" size="xs" className={circleInfoIconStyle} />
     </Tooltip>
   );
 };

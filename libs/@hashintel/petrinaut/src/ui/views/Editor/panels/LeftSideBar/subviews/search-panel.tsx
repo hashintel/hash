@@ -6,7 +6,7 @@ import { use, useEffect, useRef, useState } from "react";
 
 const SearchIcon = () => <Icon name="search" />;
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import {
   DifferentialEquationIcon,
@@ -423,13 +423,15 @@ const SearchHeaderAction: React.FC = () => {
   const { setSearchOpen } = use(EditorContext);
 
   return (
-    <IconButton
+    <Button
       aria-label="Close search"
+      tooltip="Close search"
+      tooltipDisplay="inline"
+      variant="ghost"
       size="xxs"
+      iconName="close"
       onClick={() => setSearchOpen(false)}
-    >
-      ✕
-    </IconButton>
+    />
   );
 };
 

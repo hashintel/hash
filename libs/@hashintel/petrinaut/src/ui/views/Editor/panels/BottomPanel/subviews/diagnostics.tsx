@@ -295,9 +295,9 @@ const DiagnosticsContent: React.FC = () => {
               className={entityButtonStyle}
             >
               {isExpanded ? (
-                <Icon name="chevronDown" size="xxs" />
+                <Icon name="chevronDown" size="xs" />
               ) : (
-                <Icon name="chevronRight" size="xxs" />
+                <Icon name="chevronRight" size="xs" />
               )}
               <span>{entityLabel}</span>
               <span className={errorCountStyle}>

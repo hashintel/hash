@@ -1,9 +1,8 @@
-import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { IconButton } from "../../../../../../components/icon-button";
+import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -272,17 +271,17 @@ const TypeMainContent: React.FC = () => {
         title="Dimensions"
         tooltip="A type is an ordered tuple of real-valued dimensions. The index of each dimension determines its position in the token vector."
         renderHeaderAction={() => (
-          <IconButton
+          <Button
             onClick={handleAddElement}
             disabled={isDisabled}
             size="xs"
             variant="ghost"
-            colorScheme="brand"
+            tone="brand"
             aria-label="Add dimension"
-            tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          >
-            <Icon name="plus" />
-          </IconButton>
+            tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add dimension"}
+            tooltipDisplay="inline"
+            iconName="plus"
+          />
         )}
       >
         {type.elements.length === 0 ? (
@@ -342,19 +341,23 @@ const TypeMainContent: React.FC = () => {
                 />
 
                 {/* Delete button */}
-                <IconButton
+                <Button
                   onClick={() => {
                     handleDeleteElement(element.elementId);
                   }}
                   disabled={isDisabled || type.elements.length === 1}
                   size="xxs"
                   variant="ghost"
-                  colorScheme="red"
+                  tone="error"
                   aria-label={`Delete dimension ${element.name}`}
-                  tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                >
-                  <Icon name="close" />
-                </IconButton>
+                  tooltip={
+                    isDisabled
+                      ? UI_MESSAGES.READ_ONLY_MODE
+                      : `Delete dimension ${element.name}`
+                  }
+                  tooltipDisplay="inline"
+                  iconName="close"
+                />
               </div>
             ))}
           </div>

@@ -204,12 +204,12 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <Icon name="play" className={menuItemIconStyle} />
+              <Icon name="play" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>
                 Play computed steps only
               </span>
               {playMode === "viewOnly" && (
-                <Icon name="check" className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} size="sm" />
               )}
             </button>
             <button
@@ -226,10 +226,10 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <Icon name="chartLine" className={menuItemIconStyle} />
+              <Icon name="chartLine" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>Play + compute buffer</span>
               {playMode === "computeBuffer" && (
-                <Icon name="check" className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} size="sm" />
               )}
             </button>
             <button
@@ -246,10 +246,14 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <Icon name="rightToLine" className={menuItemIconStyle} />
+              <Icon
+                name="rightToLine"
+                className={menuItemIconStyle}
+                size="sm"
+              />
               <span className={menuItemTextStyle}>Play + compute max</span>
               {playMode === "computeMax" && (
-                <Icon name="check" className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} size="sm" />
               )}
             </button>
             <div className={popoverDividerStyle} />
@@ -300,10 +304,10 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <Icon name="infinity" className={menuItemIconStyle} />
+              <Icon name="infinity" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>Run indefinitely</span>
               {stoppingCondition === "indefinitely" && (
-                <Icon name="check" className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} size="sm" />
               )}
             </button>
             <button
@@ -322,12 +326,12 @@ export const PlaybackSettingsMenu = () => {
                   : undefined
               }
             >
-              <Icon name="clock" className={menuItemIconStyle} />
+              <Icon name="clock" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>End at fixed time</span>
               {stoppingCondition === "fixed" && (
                 <>
                   <NumberInput
-                    size="xs"
+                    size="sm"
                     min={0.1}
                     step={0.1}
                     value={maxTime ?? 10}
@@ -358,6 +362,7 @@ export const PlaybackSettingsMenu = () => {
                 <Icon
                   name="check"
                   className={cx(checkIconStyle, css({ visibility: "hidden" }))}
+                  size="sm"
                 />
               )}
             </button>

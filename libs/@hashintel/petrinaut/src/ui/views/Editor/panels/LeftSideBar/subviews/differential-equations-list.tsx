@@ -2,7 +2,7 @@ import { Icon } from "@hashintel/ds-components";
 import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { DifferentialEquationIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -29,11 +29,16 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <IconButton
+    <Button
       aria-label="Add differential equation"
       size="xs"
+      variant="ghost"
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      tooltip={
+        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add differential equation"
+      }
+      tooltipDisplay="inline"
+      iconName="plus"
       onClick={() => {
         const name = `Equation ${differentialEquations.length + 1}`;
         const id = uuidv4();
@@ -45,9 +50,7 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
         });
         selectItem({ type: "differentialEquation", id });
       }}
-    >
-      <Icon name="plus" />
-    </IconButton>
+    />
   );
 };
 

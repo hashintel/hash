@@ -3,7 +3,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 
 import { Button } from "../../../../../../components/button";
-import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Menu } from "../../../../../../components/menu";
 import { Section, SectionList } from "../../../../../../components/section";
@@ -295,9 +294,14 @@ const DiffEqCodeAction: React.FC = () => {
     <Menu
       animated
       trigger={
-        <IconButton aria-label="More options" size="xs">
-          <Icon name="ellipsisVertical" />
-        </IconButton>
+        <Button
+          aria-label="More options"
+          tooltip="More options"
+          tooltipDisplay="inline"
+          variant="ghost"
+          size="xs"
+          iconName="ellipsisVertical"
+        />
       }
       items={[
         {

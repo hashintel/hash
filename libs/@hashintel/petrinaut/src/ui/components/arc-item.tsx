@@ -283,7 +283,7 @@ export const ArcItem = ({
         style={{ backgroundColor: color ?? "#d4d4d4" }}
       />
       <span className={nameTextStyle}>{placeName}</span>
-      <Icon name="chevronDown" size="xxs" className={chevronStyle} />
+      <Icon name="chevronDown" size="xs" className={chevronStyle} />
     </div>
   );
 

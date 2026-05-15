@@ -1,8 +1,7 @@
-import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
-import { IconButton } from "../../../../components/icon-button";
+import { Button } from "../../../../components/button";
 import { Menu, type MenuItem } from "../../../../components/menu";
 import {
   EditorContext,
@@ -69,8 +68,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div className={topBarStyle}>
       <div className={leftSectionStyle}>
-        <IconButton
-          size="xs"
+        <Button
+          size="sm"
           variant="ghost"
           onClick={() => {
             setLeftSidebarOpen(!isLeftSidebarOpen);
@@ -79,15 +78,21 @@ export const TopBar: React.FC<TopBarProps> = ({
             }
           }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          <Icon name="sidebar" size="sm" />
-        </IconButton>
+          tooltip={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          tooltipDisplay="inline"
+          iconName="sidebar"
+        />
 
         <Menu
           trigger={
-            <IconButton aria-label="Menu" size="sm" variant="ghost">
-              <Icon name="bars" />
-            </IconButton>
+            <Button
+              aria-label="Menu"
+              size="sm"
+              variant="ghost"
+              tooltip="Menu"
+              tooltipDisplay="inline"
+              iconName="bars"
+            />
           }
           items={menuItems}
           animated

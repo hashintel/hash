@@ -1,11 +1,10 @@
 import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
-import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ComponentProps, ReactNode } from "react";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
-import { IconButton } from "./icon-button";
+import { Button } from "./button";
 
 // -- Styles ------------------------------------------------------------------
 
@@ -113,14 +112,15 @@ const Header = ({ children }: { children: ReactNode }) => (
   <div className={headerStyle}>
     <ArkPopover.Title className={titleStyle}>{children}</ArkPopover.Title>
     <ArkPopover.CloseTrigger asChild>
-      <IconButton
+      <Button
         aria-label="Close"
         size="xs"
         variant="ghost"
         className={closeButtonStyle}
-      >
-        <Icon name="close" size="sm" />
-      </IconButton>
+        iconName="close"
+        tooltip="Close"
+        tooltipDisplay="inline"
+      />
     </ArkPopover.CloseTrigger>
   </div>
 );

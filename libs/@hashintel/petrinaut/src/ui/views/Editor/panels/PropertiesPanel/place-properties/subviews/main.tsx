@@ -3,7 +3,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 
 import { Button } from "../../../../../../components/button";
-import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { Select, type SelectOption } from "../../../../../../components/select";
@@ -343,16 +342,17 @@ const DeletePlaceAction: React.FC = () => {
   const { removePlace } = use(MutationContext);
 
   return (
-    <IconButton
+    <Button
       aria-label="Delete"
       size="xs"
-      colorScheme="red"
+      variant="ghost"
+      tone="error"
+      iconName="trash"
       onClick={() => removePlace(place.id)}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-    >
-      <Icon name="trash" />
-    </IconButton>
+      tooltipDisplay="inline"
+    />
   );
 };
 

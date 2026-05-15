@@ -65,10 +65,8 @@ type ButtonElementOnlyProps = {
   target?: never;
   download?: never;
   ref?: React.Ref<HTMLButtonElement>;
-} & RequireAtLeastOne<{
-  onClick: React.ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
-  type: "submit" | "reset";
-}>;
+  onClick?: React.ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
+};
 
 export type AnchorElementOnlyProps = {
   href: string;

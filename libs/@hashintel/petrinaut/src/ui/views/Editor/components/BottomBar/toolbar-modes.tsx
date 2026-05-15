@@ -101,7 +101,7 @@ const CursorModeDropdown: React.FC<{
           ) : (
             <Icon name="cursor" size="sm" />
           )}
-          <Icon name="chevronDown" size="xxs" className={dropdownArrowStyle} />
+          <Icon name="chevronDown" size="xs" className={dropdownArrowStyle} />
         </button>
       }
       items={items}

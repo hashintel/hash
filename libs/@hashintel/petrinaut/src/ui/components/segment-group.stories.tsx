@@ -44,9 +44,17 @@ export const Small: Story = {
 };
 
 const iconOptions: SegmentOption[] = [
-  { value: "edit", label: "Edit", icon: <Icon name="shapes" /> },
-  { value: "simulate", label: "Simulate", icon: <Icon name="play" /> },
-  { value: "actual", label: "Actual", icon: <Icon name="circleFilled" /> },
+  { value: "edit", label: "Edit", icon: <Icon name="shapes" size="sm" /> },
+  {
+    value: "simulate",
+    label: "Simulate",
+    icon: <Icon name="play" size="sm" />,
+  },
+  {
+    value: "actual",
+    label: "Actual",
+    icon: <Icon name="circleFilled" size="sm" />,
+  },
 ];
 
 export const WithIcons: Story = {
@@ -69,7 +77,7 @@ const iconOnlyOptions: SegmentOption[] = [
   {
     value: "actual",
     label: "Actual",
-    icon: <Icon name="circleFilled" />,
+    icon: <Icon name="circleFilled" size="sm" />,
     hideLabel: true,
   },
 ];
@@ -96,7 +104,7 @@ export const WithDisabledItems: Story = {
         {
           value: "actual",
           label: "Actual",
-          icon: <Icon name="circleFilled" />,
+          icon: <Icon name="circleFilled" size="sm" />,
           disabled: true,
           tooltip: "Actual mode is not yet available.",
         },

@@ -2,7 +2,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Select } from "../../../../../components/select";
 import { Slider } from "../../../../../components/slider";
@@ -250,34 +250,34 @@ const SimulationSettingsContent: React.FC = () => {
         />
         <div style={{ display: "flex" }}>
           {selectedScenario && (
-            <IconButton
-              size="xs"
+            <Button
+              size="sm"
               variant="ghost"
               aria-label="Edit scenario"
               tooltip="Edit Scenario"
+              tooltipDisplay="inline"
+              iconName="pencil"
               onClick={() => setIsViewScenarioOpen(true)}
-            >
-              <Icon name="pencil" size="sm" />
-            </IconButton>
+            />
           )}
-          <IconButton
-            size="xs"
+          <Button
+            size="sm"
             variant="ghost"
             aria-label="Create scenario"
             tooltip="Create Scenario"
+            tooltipDisplay="inline"
+            iconName="plus"
             onClick={() => setIsCreateScenarioOpen(true)}
-          >
-            <Icon name="plus" size="sm" />
-          </IconButton>
-          <IconButton
-            size="xs"
+          />
+          <Button
+            size="sm"
             variant="ghost"
             aria-label="Manage scenarios"
             tooltip="Manage Scenarios"
+            tooltipDisplay="inline"
+            iconName="list"
             onClick={() => setGlobalMode("simulate")}
-          >
-            <Icon name="list" size="sm" />
-          </IconButton>
+          />
         </div>
       </div>
       <CreateScenarioDrawer

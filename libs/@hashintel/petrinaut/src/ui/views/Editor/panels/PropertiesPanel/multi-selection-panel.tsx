@@ -4,7 +4,7 @@ import { createContext, use } from "react";
 
 const MultipleIcon = () => <Icon name="layer" />;
 
-import { IconButton } from "../../../../components/icon-button";
+import { Button } from "../../../../components/button";
 import type { SubView } from "../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -79,19 +79,20 @@ const DeleteSelectionAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <IconButton
+    <Button
       aria-label="Delete selected"
       size="xs"
-      colorScheme="red"
+      variant="ghost"
+      tone="error"
+      iconName="trash"
       disabled={isReadOnly}
       onClick={() => {
         deleteItemsByIds(new Map(items.map((item) => [item.id, item])));
         clearSelection();
       }}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete selected"}
-    >
-      <Icon name="trash" />
-    </IconButton>
+      tooltipDisplay="inline"
+    />
   );
 };
 
