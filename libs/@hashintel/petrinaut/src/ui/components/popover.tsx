@@ -39,23 +39,6 @@ const titleStyle = css({
   letterSpacing: "[0.48px]",
 });
 
-const closeButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[24px]",
-  height: "[24px]",
-  fontSize: "sm",
-  color: "neutral.s100",
-  backgroundColor: "[transparent]",
-  border: "none",
-  borderRadius: "md",
-  cursor: "pointer",
-  _hover: {
-    backgroundColor: "neutral.bg.min.hover",
-  },
-});
-
 const sectionStyle = css({
   paddingX: "1",
   paddingBottom: "1",
@@ -116,7 +99,6 @@ const Header = ({ children }: { children: ReactNode }) => (
         aria-label="Close"
         size="xs"
         variant="ghost"
-        className={closeButtonStyle}
         iconName="close"
         tooltip="Close"
         tooltipDisplay="inline"

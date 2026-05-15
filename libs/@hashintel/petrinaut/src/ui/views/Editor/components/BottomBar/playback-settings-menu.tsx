@@ -2,6 +2,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
+import { Button } from "../../../../components/button";
 import { NumberInput } from "../../../../components/number-input";
 import { Popover } from "../../../../components/popover";
 import {
@@ -91,6 +92,7 @@ const speedButtonStyle = cva({
     alignItems: "center",
     justifyContent: "center",
     padding: "2",
+    minWidth: "0",
     fontSize: "sm",
     fontWeight: "medium",
     color: "neutral.s120",
@@ -190,15 +192,16 @@ export const PlaybackSettingsMenu = () => {
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>When pressing play</Popover.SectionLabel>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: playMode === "viewOnly",
                 disabled: !isViewOnlyAvailable,
               })}
               onClick={() => isViewOnlyAvailable && setPlayMode("viewOnly")}
               aria-disabled={!isViewOnlyAvailable}
-              title={
+              tooltip={
                 !isViewOnlyAvailable
                   ? "Available when there are computed frames"
                   : undefined
@@ -211,16 +214,17 @@ export const PlaybackSettingsMenu = () => {
               {playMode === "viewOnly" && (
                 <Icon name="check" className={checkIconStyle} size="sm" />
               )}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: playMode === "computeBuffer",
                 disabled: !isComputeAvailable,
               })}
               onClick={() => isComputeAvailable && setPlayMode("computeBuffer")}
               aria-disabled={!isComputeAvailable}
-              title={
+              tooltip={
                 !isComputeAvailable
                   ? "Not available when simulation is complete"
                   : undefined
@@ -231,16 +235,17 @@ export const PlaybackSettingsMenu = () => {
               {playMode === "computeBuffer" && (
                 <Icon name="check" className={checkIconStyle} size="sm" />
               )}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: playMode === "computeMax",
                 disabled: !isComputeAvailable,
               })}
               onClick={() => isComputeAvailable && setPlayMode("computeMax")}
               aria-disabled={!isComputeAvailable}
-              title={
+              tooltip={
                 !isComputeAvailable
                   ? "Not available when simulation is complete"
                   : undefined
@@ -255,7 +260,7 @@ export const PlaybackSettingsMenu = () => {
               {playMode === "computeMax" && (
                 <Icon name="check" className={checkIconStyle} size="sm" />
               )}
-            </button>
+            </Button>
             <div className={popoverDividerStyle} />
           </Popover.SectionCard>
         </Popover.Section>
@@ -267,16 +272,17 @@ export const PlaybackSettingsMenu = () => {
             {speedRows.map((row) => (
               <div key={row[0]} className={speedGridStyle}>
                 {row.map((speed) => (
-                  <button
+                  <Button
                     key={speed}
-                    type="button"
+                    variant="ghost"
+                    size="sm"
                     className={speedButtonStyle({
                       selected: speed === playbackSpeed,
                     })}
                     onClick={() => setPlaybackSpeed(speed)}
                   >
                     {formatPlaybackSpeed(speed)}
-                  </button>
+                  </Button>
                 ))}
               </div>
             ))}
@@ -288,8 +294,9 @@ export const PlaybackSettingsMenu = () => {
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>Stopping conditions</Popover.SectionLabel>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: stoppingCondition === "indefinitely",
                 disabled: hasSimulation,
@@ -298,7 +305,7 @@ export const PlaybackSettingsMenu = () => {
                 !hasSimulation && handleStoppingConditionChange("indefinitely")
               }
               aria-disabled={hasSimulation}
-              title={
+              tooltip={
                 hasSimulation
                   ? "Reset simulation to change stopping conditions"
                   : undefined
@@ -309,9 +316,10 @@ export const PlaybackSettingsMenu = () => {
               {stoppingCondition === "indefinitely" && (
                 <Icon name="check" className={checkIconStyle} size="sm" />
               )}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: stoppingCondition === "fixed",
                 disabled: hasSimulation,
@@ -320,7 +328,7 @@ export const PlaybackSettingsMenu = () => {
                 !hasSimulation && handleStoppingConditionChange("fixed")
               }
               aria-disabled={hasSimulation}
-              title={
+              tooltip={
                 hasSimulation
                   ? "Reset simulation to change stopping conditions"
                   : undefined
@@ -365,7 +373,7 @@ export const PlaybackSettingsMenu = () => {
                   size="sm"
                 />
               )}
-            </button>
+            </Button>
             <div className={popoverDividerStyle} />
           </Popover.SectionCard>
         </Popover.Section>
