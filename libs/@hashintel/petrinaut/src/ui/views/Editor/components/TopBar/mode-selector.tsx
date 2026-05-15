@@ -1,4 +1,4 @@
-import { TbCategory, TbCircleFilled, TbPlayerPlay } from "react-icons/tb";
+import { Icon } from "@hashintel/ds-components";
 
 import type { SegmentOption } from "../../../../components/segment-group";
 import { SegmentGroup } from "../../../../components/segment-group";
@@ -12,17 +12,17 @@ const options: SegmentOption[] = [
   {
     label: "Edit",
     value: "edit",
-    icon: <TbCategory />,
+    icon: <Icon name="shapes" size="sm" />,
   },
   {
     label: "Simulate",
     value: "simulate",
-    icon: <TbPlayerPlay />,
+    icon: <Icon name="play" size="sm" />,
   },
   {
     label: "Actual",
     value: "actual",
-    icon: <TbCircleFilled />,
+    icon: <Icon name="circleFilled" size="sm" />,
     disabled: true,
     tooltip: "Actual mode is not yet available.",
   },

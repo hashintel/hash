@@ -1,12 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { FaBars } from "react-icons/fa6";
-import {
-  TbLayoutSidebarLeftCollapse,
-  TbLayoutSidebarRightCollapse,
-} from "react-icons/tb";
 
-import { IconButton } from "../../../../components/icon-button";
+import { Button } from "../../../../components/button";
 import { Menu, type MenuItem } from "../../../../components/menu";
 import {
   EditorContext,
@@ -73,8 +68,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div className={topBarStyle}>
       <div className={leftSectionStyle}>
-        <IconButton
-          size="xs"
+        <Button
+          size="sm"
           variant="ghost"
           onClick={() => {
             setLeftSidebarOpen(!isLeftSidebarOpen);
@@ -83,19 +78,21 @@ export const TopBar: React.FC<TopBarProps> = ({
             }
           }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {isLeftSidebarOpen ? (
-            <TbLayoutSidebarLeftCollapse size={16} />
-          ) : (
-            <TbLayoutSidebarRightCollapse size={16} />
-          )}
-        </IconButton>
+          tooltip={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          tooltipDisplay="inline"
+          iconName="sidebar"
+        />
 
         <Menu
           trigger={
-            <IconButton aria-label="Menu" size="sm" variant="ghost">
-              <FaBars />
-            </IconButton>
+            <Button
+              aria-label="Menu"
+              size="sm"
+              variant="ghost"
+              tooltip="Menu"
+              tooltipDisplay="inline"
+              iconName="bars"
+            />
           }
           items={menuItems}
           animated

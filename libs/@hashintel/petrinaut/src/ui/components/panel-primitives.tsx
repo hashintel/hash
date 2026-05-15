@@ -1,6 +1,7 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
-import { TbX } from "react-icons/tb";
+
+import { Button } from "./button";
 
 /**
  * Shared visual primitives used by Dialog and Drawer.
@@ -46,21 +47,7 @@ export const closeButtonStyle = css({
   position: "absolute",
   top: "2",
   right: "2",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[30px]",
-  height: "[30px]",
-  fontSize: "base",
-  color: "neutral.s100",
-  backgroundColor: "[transparent]",
-  border: "[none]",
-  borderRadius: "lg",
-  cursor: "pointer",
   zIndex: "[3]",
-  _hover: {
-    backgroundColor: "neutral.bg.min.hover",
-  },
 });
 
 export const Card = ({
@@ -73,9 +60,15 @@ export const Card = ({
   <div className={cardStyle}>
     {children}
     {closeButton ?? (
-      <button type="button" className={closeButtonStyle} aria-label="Close">
-        <TbX />
-      </button>
+      <Button
+        className={closeButtonStyle}
+        variant="ghost"
+        size="sm"
+        aria-label="Close"
+        tooltip="Close"
+        tooltipDisplay="inline"
+        iconName="close"
+      />
     )}
   </div>
 );

@@ -1,8 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { LuLayers2 } from "react-icons/lu";
-import { PiFlaskBold } from "react-icons/pi";
-import { TbChartBar, TbPlus } from "react-icons/tb";
 
 import { Button } from "../../../../components/button";
 import type { SegmentOption } from "../../../../components/segment-group";
@@ -170,21 +168,21 @@ const modeOptions: SegmentOption[] = [
   {
     value: "scenarios",
     label: "Scenarios",
-    icon: <LuLayers2 size={16} />,
+    icon: <Icon name="layer" size="sm" />,
     hideLabel: true,
     tooltip: "Scenarios",
   },
   {
     value: "metrics",
     label: "Metrics",
-    icon: <TbChartBar size={16} />,
+    icon: <Icon name="chartBarSimple" size="sm" />,
     hideLabel: true,
     tooltip: "Metrics",
   },
   {
     value: "experiments",
     label: "Experiments",
-    icon: <PiFlaskBold size={16} />,
+    icon: <Icon name="flask" size="sm" />,
     hideLabel: true,
     tooltip: "Experiments not yet available",
     disabled: true,
@@ -343,7 +341,7 @@ export const SimulateView = () => {
               variant="ghost"
               tone="neutral"
               size="xs"
-              prefix={<TbPlus size={14} />}
+              prefix={<Icon name="plus" size="sm" />}
               onClick={() => setDrawer({ type: "create-scenario" })}
             >
               Create scenario
@@ -354,7 +352,7 @@ export const SimulateView = () => {
               variant="ghost"
               tone="neutral"
               size="xs"
-              prefix={<TbPlus size={14} />}
+              prefix={<Icon name="plus" size="sm" />}
               onClick={() => setDrawer({ type: "create-metric" })}
             >
               Create metric
@@ -365,7 +363,7 @@ export const SimulateView = () => {
               variant="ghost"
               tone="neutral"
               size="xs"
-              prefix={<TbPlus size={14} />}
+              prefix={<Icon name="plus" size="sm" />}
               onClick={() => setDrawer({ type: "create-experiment" })}
             >
               Create experiment

@@ -1,9 +1,8 @@
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef } from "react";
-import { FaXmark } from "react-icons/fa6";
 
+import { Button } from "../../../../components/button";
 import { GlassPanel } from "../../../../components/glass-panel";
-import { IconButton } from "../../../../components/icon-button";
 import {
   HorizontalTabsContent,
   HorizontalTabsHeader,
@@ -179,14 +178,15 @@ export const BottomPanel: React.FC = () => {
             subViews={subViews}
             activeTabId={activeTab}
           />
-          <IconButton
+          <Button
             size="xxs"
             variant="ghost"
             onClick={toggleBottomPanel}
             aria-label="Close panel"
-          >
-            <FaXmark size={14} />
-          </IconButton>
+            tooltip="Close panel"
+            tooltipDisplay="inline"
+            iconName="close"
+          />
         </div>
       </div>
 

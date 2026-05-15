@@ -1,14 +1,8 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { Icon } from "@hashintel/ds-components";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { MdCheck, MdOutlinePlayArrow } from "react-icons/md";
-import {
-  TbArrowBarToRight,
-  TbChartLine,
-  TbClock,
-  TbInfinity,
-  TbSettings,
-} from "react-icons/tb";
 
+import { Button } from "../../../../components/button";
 import { NumberInput } from "../../../../components/number-input";
 import { Popover } from "../../../../components/popover";
 import {
@@ -26,7 +20,7 @@ const contentWidthStyle = css({
 
 const menuItemStyle = cva({
   base: {
-    display: "flex",
+    display: "flex !important",
     alignItems: "center",
     gap: "2",
     width: "[100%]",
@@ -80,9 +74,7 @@ const menuItemTextStyle = css({
 });
 
 const checkIconStyle = css({
-  fontSize: "sm",
   color: "blue.s50",
-  flexShrink: 0,
 });
 
 const speedGridStyle = css({
@@ -98,6 +90,7 @@ const speedButtonStyle = cva({
     alignItems: "center",
     justifyContent: "center",
     padding: "2",
+    minWidth: "0",
     fontSize: "sm",
     fontWeight: "medium",
     color: "neutral.s120",
@@ -185,7 +178,7 @@ export const PlaybackSettingsMenu = () => {
             tooltip="Playback settings"
             ariaLabel="Playback settings"
           >
-            <TbSettings />
+            <Icon name="gear" />
           </ToolbarButton>
         </span>
       </Popover.Trigger>
@@ -197,68 +190,75 @@ export const PlaybackSettingsMenu = () => {
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>When pressing play</Popover.SectionLabel>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: playMode === "viewOnly",
                 disabled: !isViewOnlyAvailable,
               })}
               onClick={() => isViewOnlyAvailable && setPlayMode("viewOnly")}
               aria-disabled={!isViewOnlyAvailable}
-              title={
+              tooltip={
                 !isViewOnlyAvailable
                   ? "Available when there are computed frames"
                   : undefined
               }
             >
-              <MdOutlinePlayArrow className={menuItemIconStyle} />
+              <Icon name="play" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>
                 Play computed steps only
               </span>
               {playMode === "viewOnly" && (
-                <MdCheck className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} size="sm" />
               )}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: playMode === "computeBuffer",
                 disabled: !isComputeAvailable,
               })}
               onClick={() => isComputeAvailable && setPlayMode("computeBuffer")}
               aria-disabled={!isComputeAvailable}
-              title={
+              tooltip={
                 !isComputeAvailable
                   ? "Not available when simulation is complete"
                   : undefined
               }
             >
-              <TbChartLine className={menuItemIconStyle} />
+              <Icon name="chartLine" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>Play + compute buffer</span>
               {playMode === "computeBuffer" && (
-                <MdCheck className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} size="sm" />
               )}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: playMode === "computeMax",
                 disabled: !isComputeAvailable,
               })}
               onClick={() => isComputeAvailable && setPlayMode("computeMax")}
               aria-disabled={!isComputeAvailable}
-              title={
+              tooltip={
                 !isComputeAvailable
                   ? "Not available when simulation is complete"
                   : undefined
               }
             >
-              <TbArrowBarToRight className={menuItemIconStyle} />
+              <Icon
+                name="rightToLine"
+                className={menuItemIconStyle}
+                size="sm"
+              />
               <span className={menuItemTextStyle}>Play + compute max</span>
               {playMode === "computeMax" && (
-                <MdCheck className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} size="sm" />
               )}
-            </button>
+            </Button>
             <div className={popoverDividerStyle} />
           </Popover.SectionCard>
         </Popover.Section>
@@ -270,16 +270,17 @@ export const PlaybackSettingsMenu = () => {
             {speedRows.map((row) => (
               <div key={row[0]} className={speedGridStyle}>
                 {row.map((speed) => (
-                  <button
+                  <Button
                     key={speed}
-                    type="button"
+                    variant="ghost"
+                    size="sm"
                     className={speedButtonStyle({
                       selected: speed === playbackSpeed,
                     })}
                     onClick={() => setPlaybackSpeed(speed)}
                   >
                     {formatPlaybackSpeed(speed)}
-                  </button>
+                  </Button>
                 ))}
               </div>
             ))}
@@ -291,8 +292,9 @@ export const PlaybackSettingsMenu = () => {
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>Stopping conditions</Popover.SectionLabel>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: stoppingCondition === "indefinitely",
                 disabled: hasSimulation,
@@ -301,20 +303,21 @@ export const PlaybackSettingsMenu = () => {
                 !hasSimulation && handleStoppingConditionChange("indefinitely")
               }
               aria-disabled={hasSimulation}
-              title={
+              tooltip={
                 hasSimulation
                   ? "Reset simulation to change stopping conditions"
                   : undefined
               }
             >
-              <TbInfinity className={menuItemIconStyle} />
+              <Icon name="infinity" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>Run indefinitely</span>
               {stoppingCondition === "indefinitely" && (
-                <MdCheck className={checkIconStyle} />
+                <Icon name="check" className={checkIconStyle} size="sm" />
               )}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               className={menuItemStyle({
                 selected: stoppingCondition === "fixed",
                 disabled: hasSimulation,
@@ -323,18 +326,18 @@ export const PlaybackSettingsMenu = () => {
                 !hasSimulation && handleStoppingConditionChange("fixed")
               }
               aria-disabled={hasSimulation}
-              title={
+              tooltip={
                 hasSimulation
                   ? "Reset simulation to change stopping conditions"
                   : undefined
               }
             >
-              <TbClock className={menuItemIconStyle} />
+              <Icon name="clock" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>End at fixed time</span>
               {stoppingCondition === "fixed" && (
                 <>
                   <NumberInput
-                    size="xs"
+                    size="sm"
                     min={0.1}
                     step={0.1}
                     value={maxTime ?? 10}
@@ -362,12 +365,13 @@ export const PlaybackSettingsMenu = () => {
                 </>
               )}
               {stoppingCondition !== "fixed" && (
-                <MdCheck
-                  className={checkIconStyle}
-                  style={{ visibility: "hidden" }}
+                <Icon
+                  name="check"
+                  className={cx(checkIconStyle, css({ visibility: "hidden" }))}
+                  size="sm"
                 />
               )}
-            </button>
+            </Button>
             <div className={popoverDividerStyle} />
           </Popover.SectionCard>
         </Popover.Section>

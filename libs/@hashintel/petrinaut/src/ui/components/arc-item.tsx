@@ -1,9 +1,9 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
-import { FaChevronDown } from "react-icons/fa6";
-import { TbTrash } from "react-icons/tb";
 
+import { Button } from "./button";
 import { NumberInput } from "./number-input";
 import { Select, type SelectOption } from "./select";
 
@@ -99,10 +99,7 @@ const nameTextStyle = css({
 });
 
 const chevronStyle = css({
-  flexShrink: 0,
   color: "[rgba(0, 0, 0, 0.3)]",
-  display: "flex",
-  alignItems: "center",
 });
 
 const separatorContainerStyle = css({
@@ -196,18 +193,6 @@ const deleteContainerStyle = css({
   justifyContent: "center",
 });
 
-const deleteButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  background: "[none]",
-  border: "none",
-  padding: "[0]",
-  color: "[#ef4444]",
-  height: "[100%]",
-});
-
 // -- Select trigger style overrides for ArcItem -------------------------------
 
 const selectRootOverrideStyle = css({
@@ -284,7 +269,7 @@ export const ArcItem = ({
         style={{ backgroundColor: color ?? "#d4d4d4" }}
       />
       <span className={nameTextStyle}>{placeName}</span>
-      <FaChevronDown size={10} className={chevronStyle} />
+      <Icon name="chevronDown" size="xs" className={chevronStyle} />
     </div>
   );
 
@@ -354,14 +339,16 @@ export const ArcItem = ({
       />
       {onDelete && !disabled && (
         <div data-arc-delete="" className={deleteContainerStyle}>
-          <button
-            type="button"
-            className={deleteButtonStyle}
+          <Button
+            variant="ghost"
+            tone="error"
+            size="xs"
             onClick={onDelete}
             aria-label="Delete arc"
-          >
-            <TbTrash size={14} />
-          </button>
+            tooltip="Delete arc"
+            tooltipDisplay="inline"
+            iconName="trash"
+          />
         </div>
       )}
     </div>

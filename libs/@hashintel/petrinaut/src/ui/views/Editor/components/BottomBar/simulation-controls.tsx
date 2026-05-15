@@ -1,7 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { IoMdPause, IoMdPlay } from "react-icons/io";
-import { MdRotateLeft } from "react-icons/md";
 
 import { PlaybackContext } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
@@ -171,7 +170,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             disabled={isDisabled}
             ariaLabel="Reset simulation"
           >
-            <MdRotateLeft />
+            <Icon name="rotateLeft" />
           </ToolbarButton>
           <ToolbarDivider />
         </>
@@ -184,7 +183,11 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         disabled={isPlayDisabled}
         ariaLabel={getPlayPauseAriaLabel()}
       >
-        {isPlaybackPlaying ? <IoMdPause /> : <IoMdPlay />}
+        {isPlaybackPlaying ? (
+          <Icon name="pauseFilled" />
+        ) : (
+          <Icon name="playFilled" />
+        )}
       </ToolbarButton>
 
       {/* Frame controls - only visible when simulation exists */}

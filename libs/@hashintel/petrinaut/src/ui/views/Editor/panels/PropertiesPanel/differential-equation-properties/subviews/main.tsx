@@ -1,9 +1,8 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Button } from "../../../../../../components/button";
-import { IconButton } from "../../../../../../components/icon-button";
 import { Input } from "../../../../../../components/input";
 import { Menu } from "../../../../../../components/menu";
 import { Section, SectionList } from "../../../../../../components/section";
@@ -84,10 +83,6 @@ const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
-});
-
-const aiIconStyle = css({
-  fontSize: "base",
 });
 
 const DiffEqMainContent: React.FC = () => {
@@ -295,9 +290,14 @@ const DiffEqCodeAction: React.FC = () => {
     <Menu
       animated
       trigger={
-        <IconButton aria-label="More options" size="xs">
-          <TbDotsVertical />
-        </IconButton>
+        <Button
+          aria-label="More options"
+          tooltip="More options"
+          tooltipDisplay="inline"
+          variant="ghost"
+          size="xs"
+          iconName="ellipsisVertical"
+        />
       }
       items={[
         {
@@ -326,7 +326,7 @@ const DiffEqCodeAction: React.FC = () => {
               display="inline"
             >
               <div className={aiMenuItemStyle}>
-                <TbSparkles className={aiIconStyle} />
+                <Icon name="sparkles" size="sm" />
                 Generate with AI
               </div>
             </Tooltip>

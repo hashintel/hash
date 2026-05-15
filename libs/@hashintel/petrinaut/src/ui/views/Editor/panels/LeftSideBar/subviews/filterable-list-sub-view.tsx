@@ -1,10 +1,9 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ComponentType, ReactNode } from "react";
 import { Fragment, use, useEffect, useRef, useState } from "react";
-import { LuChevronRight, LuSearch } from "react-icons/lu";
-import { TbDots } from "react-icons/tb";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
 import type { MenuItem } from "../../../../../components/menu";
 import { Menu } from "../../../../../components/menu";
 import type {
@@ -158,7 +157,6 @@ const chevronStyle = cva({
   },
 });
 
-const CHEVRON_SIZE = 10;
 const NESTING_INDENT = 16;
 
 const emptyMessageStyle = css({
@@ -203,13 +201,15 @@ const FilterHeaderAction: React.FC<{
 
   return (
     <>
-      <IconButton
+      <Button
         aria-label="Search list"
+        tooltip="Search list"
+        tooltipDisplay="inline"
         size="xs"
+        variant="ghost"
+        iconName="search"
         onClick={() => setSearchOpen(true)}
-      >
-        <LuSearch />
-      </IconButton>
+      />
       {renderExtraAction?.()}
     </>
   );
@@ -228,14 +228,16 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
     <Menu
       animated
       trigger={
-        <IconButton
+        <Button
           aria-label="More options"
+          tooltip="More options"
+          tooltipDisplay="inline"
           size="xxs"
+          variant="ghost"
+          iconName="ellipsis"
           data-row-action
           onClick={(event) => event.stopPropagation()}
-        >
-          <TbDots />
-        </IconButton>
+        />
       }
       items={items}
       placement="bottom-end"
@@ -567,7 +569,7 @@ const FilterableListContent = <T extends FilterableListItem>({
               <div className={listItemContentStyle}>
                 {isItemGroup && (
                   <span className={chevronStyle({ expanded: !isCollapsed })}>
-                    <LuChevronRight size={CHEVRON_SIZE} />
+                    <Icon name="chevronRight" size="xxs" />
                   </span>
                 )}
                 {item.icon && (

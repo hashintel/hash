@@ -1,8 +1,8 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { LuLayers2 } from "react-icons/lu";
-import { TbTrash } from "react-icons/tb";
 
+import { Button } from "../../../../../../../components/button";
 import { NumberInput } from "../../../../../../../components/number-input";
 import type { SubView } from "../../../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
@@ -21,22 +21,6 @@ const simpleStateContainerStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[8px]",
-});
-
-const clearButtonStyle = css({
-  fontSize: "[10px]",
-  padding: "[1px 4px]",
-  border: "[1px solid rgba(0, 0, 0, 0.2)]",
-  borderRadius: "[3px]",
-  backgroundColor: "neutral.s00",
-  cursor: "pointer",
-  color: "[#666]",
-  display: "flex",
-  alignItems: "center",
-  gap: "[4px]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
-  },
 });
 
 const scenarioInfoStyle = css({
@@ -67,7 +51,7 @@ const ClearStateHeaderAction: React.FC = () => {
   if (selectedScenarioId) {
     return (
       <div className={scenarioInfoStyle}>
-        <LuLayers2 size={12} />
+        <Icon name="layer" size="xs" />
         Defined by scenario
       </div>
     );
@@ -86,10 +70,15 @@ const ClearStateHeaderAction: React.FC = () => {
   };
 
   return (
-    <button type="button" onClick={handleClear} className={clearButtonStyle}>
-      <TbTrash size={12} color="#a72b2bff" />
+    <Button
+      onClick={handleClear}
+      variant="subtle"
+      tone="error"
+      size="xxs"
+      iconName="trash"
+    >
       Clear state
-    </button>
+    </Button>
   );
 };
 

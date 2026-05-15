@@ -1,7 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import type { ComponentType } from "react";
 import { use } from "react";
-import { TbTrash } from "react-icons/tb";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import {
@@ -82,7 +82,7 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <TbTrash />,
+          icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
           onClick: deleteAction,

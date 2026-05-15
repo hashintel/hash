@@ -1,7 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import type { NodeProps } from "@xyflow/react";
 import { use } from "react";
-import { TbCircleFilled, TbMathFunction } from "react-icons/tb";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { PlaybackContext } from "../../../../react/playback/context";
@@ -106,10 +106,10 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           className={`${iconContainerBaseStyle} ${placeIconContainerStyle}`}
           style={{ color: typeColorBorder }}
         >
-          <TbCircleFilled />
+          <Icon name="circleFilled" />
           {data.dynamicsEnabled && (
             <div className={`${iconBadgeStyle} ${dynamicsBadgeStyle}`}>
-              <TbMathFunction />
+              <Icon name="function" size="xs" />
             </div>
           )}
         </div>

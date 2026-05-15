@@ -1,8 +1,8 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useMemo, useState } from "react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
-import { IconButton } from "../../../../../../../components/icon-button";
+import { Button } from "../../../../../../../components/button";
 import { Menu } from "../../../../../../../components/menu";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
 import type { SubView } from "../../../../../../../components/sub-view/types";
@@ -69,10 +69,6 @@ const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
-});
-
-const aiIconStyle = css({
-  fontSize: "base",
 });
 
 /**
@@ -267,9 +263,14 @@ const VisualizerHeaderAction: React.FC = () => {
         <Menu
           animated
           trigger={
-            <IconButton aria-label="More options" size="xs">
-              <TbDotsVertical />
-            </IconButton>
+            <Button
+              aria-label="More options"
+              tooltip="More options"
+              tooltipDisplay="inline"
+              variant="ghost"
+              size="xs"
+              iconName="ellipsisVertical"
+            />
           }
           items={[
             {
@@ -295,7 +296,7 @@ const VisualizerHeaderAction: React.FC = () => {
                   display="inline"
                 >
                   <div className={aiMenuItemStyle}>
-                    <TbSparkles className={aiIconStyle} />
+                    <Icon name="sparkles" size="sm" />
                     Generate with AI
                   </div>
                 </Tooltip>

@@ -1,9 +1,9 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { type ReactNode, use, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { TbX } from "react-icons/tb";
 
 import { PortalContainerContext } from "../../react/state/portal-container-context";
+import { Button } from "./button";
 import {
   Body,
   Card as PanelCard,
@@ -146,14 +146,16 @@ const Card = ({
 }) => (
   <PanelCard
     closeButton={
-      <button
-        type="button"
+      <Button
         className={closeButtonStyle}
+        variant="ghost"
+        size="sm"
         aria-label="Close"
+        tooltip="Close"
+        tooltipDisplay="inline"
+        iconName="close"
         onClick={onClose}
-      >
-        <TbX />
-      </button>
+      />
     }
   >
     {children}

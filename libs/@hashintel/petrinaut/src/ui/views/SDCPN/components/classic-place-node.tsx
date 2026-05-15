@@ -1,7 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { use } from "react";
-import { TbMathFunction } from "react-icons/tb";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
@@ -176,7 +176,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
       >
         {data.dynamicsEnabled && (
           <div className={dynamicsIconStyle}>
-            <TbMathFunction />
+            <Icon name="function" size="sm" />
           </div>
         )}
         <div className={labelContainerStyle}>{label}</div>

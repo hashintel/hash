@@ -1,9 +1,10 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use } from "react";
-import { GrMultiple } from "react-icons/gr";
-import { TbTrash } from "react-icons/tb";
 
-import { IconButton } from "../../../../components/icon-button";
+const MultipleIcon = () => <Icon name="layer" />;
+
+import { Button } from "../../../../components/button";
 import type { SubView } from "../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -78,26 +79,27 @@ const DeleteSelectionAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <IconButton
+    <Button
       aria-label="Delete selected"
       size="xs"
-      colorScheme="red"
+      variant="ghost"
+      tone="error"
+      iconName="trash"
       disabled={isReadOnly}
       onClick={() => {
         deleteItemsByIds(new Map(items.map((item) => [item.id, item])));
         clearSelection();
       }}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete selected"}
-    >
-      <TbTrash />
-    </IconButton>
+      tooltipDisplay="inline"
+    />
   );
 };
 
 const multiSelectionMainSubView: SubView = {
   id: "multi-selection-main",
   title: "Multiple Selection",
-  icon: GrMultiple,
+  icon: MultipleIcon,
   main: true,
   component: MultiSelectionContent,
   renderHeaderAction: () => <DeleteSelectionAction />,

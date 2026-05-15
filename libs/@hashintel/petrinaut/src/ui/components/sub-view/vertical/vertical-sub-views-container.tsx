@@ -1,6 +1,6 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import React, { Fragment, use, useEffect, useRef, useState } from "react";
-import { FaChevronRight } from "react-icons/fa6";
 import { Group, Panel, Separator } from "react-resizable-panels";
 
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
@@ -358,7 +358,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   id,
   title,
   tooltip,
-  icon: Icon,
+  icon: HeaderIcon,
   main = false,
   renderTitle,
   isExpanded,
@@ -373,9 +373,9 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   >
     {main ? (
       <div className={mainHeaderContentStyle}>
-        {Icon && (
+        {HeaderIcon && (
           <span className={headerIconStyle}>
-            <Icon size={HEADER_ICON_SIZE} />
+            <HeaderIcon size={HEADER_ICON_SIZE} />
           </span>
         )}
         {renderTitle ? (
@@ -406,7 +406,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
             isExpanded && sectionToggleIconExpandedStyle,
           )}
         >
-          <FaChevronRight size={9} />
+          <Icon name="chevronRight" size="xxs" />
         </div>
         <span className={sectionToggleLabelStyle}>
           {title}

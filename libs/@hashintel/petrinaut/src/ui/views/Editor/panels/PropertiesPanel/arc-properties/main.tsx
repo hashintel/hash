@@ -1,9 +1,10 @@
+import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use } from "react";
-import { PiScribbleLoopBold } from "react-icons/pi";
-import { TbTrash } from "react-icons/tb";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
+
+const ArcIcon = () => <Icon name="scribble" />;
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
 import { Select } from "../../../../../components/select";
@@ -138,26 +139,27 @@ const DeleteArcAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <IconButton
+    <Button
       aria-label="Delete"
       size="xs"
-      colorScheme="red"
+      variant="ghost"
+      tone="error"
+      iconName="trash"
       onClick={() => {
         removeArc(transitionId, arcDirection, placeId);
         clearSelection();
       }}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-    >
-      <TbTrash />
-    </IconButton>
+      tooltipDisplay="inline"
+    />
   );
 };
 
 const arcMainContentSubView: SubView = {
   id: "arc-main-content",
   title: "Arc",
-  icon: PiScribbleLoopBold,
+  icon: ArcIcon,
   main: true,
   component: ArcMainContent,
   renderHeaderAction: () => <DeleteArcAction />,

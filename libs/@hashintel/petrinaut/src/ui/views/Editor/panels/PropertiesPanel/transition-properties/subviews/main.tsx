@@ -1,13 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useState } from "react";
-import { TbTrash } from "react-icons/tb";
 
 import {
   ArcItem,
   ArcList,
   type PlaceOption,
 } from "../../../../../../components/arc-item";
-import { IconButton } from "../../../../../../components/icon-button";
+import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -248,16 +247,17 @@ const DeleteTransitionAction: React.FC = () => {
   const { removeTransition } = use(MutationContext);
 
   return (
-    <IconButton
+    <Button
       aria-label="Delete"
       size="xs"
-      colorScheme="red"
+      variant="ghost"
+      tone="error"
+      iconName="trash"
       onClick={() => removeTransition(transition.id)}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-    >
-      <TbTrash />
-    </IconButton>
+      tooltipDisplay="inline"
+    />
   );
 };
 

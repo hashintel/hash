@@ -1,7 +1,7 @@
+import { Icon } from "@hashintel/ds-components";
 import { use } from "react";
-import { TbPlus, TbTrash } from "react-icons/tb";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Button } from "../../../../../components/button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { TokenTypeIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -71,11 +71,14 @@ export const TypesSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <IconButton
+    <Button
       aria-label="Add token type"
       size="xs"
+      variant="ghost"
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add token type"}
+      tooltipDisplay="inline"
+      iconName="plus"
       onClick={() => {
         const existingColors = types.map((type) => type.displayColor);
         const existingNames = types.map((type) => type.name);
@@ -99,9 +102,7 @@ export const TypesSectionHeaderAction: React.FC = () => {
         addType(newType);
         selectItem({ type: "type", id });
       }}
-    >
-      <TbPlus />
-    </IconButton>
+    />
   );
 };
 
@@ -115,7 +116,7 @@ const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <TbTrash />,
+          icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
           onClick: () => removeType(item.id),

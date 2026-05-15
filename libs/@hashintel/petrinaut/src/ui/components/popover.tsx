@@ -2,10 +2,9 @@ import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ComponentProps, ReactNode } from "react";
-import { TbX } from "react-icons/tb";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
-import { IconButton } from "./icon-button";
+import { Button } from "./button";
 
 // -- Styles ------------------------------------------------------------------
 
@@ -38,23 +37,6 @@ const titleStyle = css({
   color: "neutral.s100",
   textTransform: "uppercase",
   letterSpacing: "[0.48px]",
-});
-
-const closeButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[24px]",
-  height: "[24px]",
-  fontSize: "sm",
-  color: "neutral.s100",
-  backgroundColor: "[transparent]",
-  border: "none",
-  borderRadius: "md",
-  cursor: "pointer",
-  _hover: {
-    backgroundColor: "neutral.bg.min.hover",
-  },
 });
 
 const sectionStyle = css({
@@ -113,14 +95,14 @@ const Header = ({ children }: { children: ReactNode }) => (
   <div className={headerStyle}>
     <ArkPopover.Title className={titleStyle}>{children}</ArkPopover.Title>
     <ArkPopover.CloseTrigger asChild>
-      <IconButton
+      <Button
         aria-label="Close"
         size="xs"
         variant="ghost"
-        className={closeButtonStyle}
-      >
-        <TbX />
-      </IconButton>
+        iconName="close"
+        tooltip="Close"
+        tooltipDisplay="inline"
+      />
     </ArkPopover.CloseTrigger>
   </div>
 );

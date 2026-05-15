@@ -1,10 +1,12 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import fuzzysort from "fuzzysort";
 import type { ComponentType, ReactNode } from "react";
 import { use, useEffect, useRef, useState } from "react";
-import { LuSearch } from "react-icons/lu";
 
-import { IconButton } from "../../../../../components/icon-button";
+const SearchIcon = () => <Icon name="search" />;
+
+import { Button } from "../../../../../components/button";
 import type { SubView } from "../../../../../components/sub-view/types";
 import {
   DifferentialEquationIcon,
@@ -421,20 +423,22 @@ const SearchHeaderAction: React.FC = () => {
   const { setSearchOpen } = use(EditorContext);
 
   return (
-    <IconButton
+    <Button
       aria-label="Close search"
+      tooltip="Close search"
+      tooltipDisplay="inline"
+      variant="ghost"
       size="xxs"
+      iconName="close"
       onClick={() => setSearchOpen(false)}
-    >
-      ✕
-    </IconButton>
+    />
   );
 };
 
 export const searchSubView: SubView = {
   id: "search",
   title: "Search",
-  icon: LuSearch,
+  icon: SearchIcon,
   component: SearchContent,
   renderTitle: () => <SearchTitle />,
   renderHeaderAction: () => <SearchHeaderAction />,
