@@ -62,12 +62,6 @@ function createDefinitionStore(
     }
   });
 
-  if (typeof window !== "undefined") {
-    window.addEventListener("beforeunload", () => {
-      unsubscribe();
-    });
-  }
-
   return {
     get: () => handle.doc() ?? EMPTY_SDCPN,
     subscribe(listener) {
