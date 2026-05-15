@@ -13,6 +13,7 @@ import { ExperimentTimeline } from "./experiment-timeline";
 
 const bodyStyle = css({
   overflowY: "auto",
+  paddingTop: "0",
 });
 
 const drawerStyle = css({
