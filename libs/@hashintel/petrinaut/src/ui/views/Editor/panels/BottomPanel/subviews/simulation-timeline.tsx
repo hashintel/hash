@@ -14,7 +14,7 @@ import { PlaybackContext } from "../../../../../../react/playback/context";
 import {
   type CompiledMetric,
   compileMetric,
-} from "../../../../../../core/simulation/authoring/compile-metric";
+} from "../../../../../../core/simulation/authoring/metric/compile-metric";
 import {
   SimulationContext,
   type SimulationFrameReader,
