@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { Button } from "./button";
 import { Section, SectionList } from "./section";
 
 const meta = {
@@ -82,19 +83,9 @@ export const WithHeaderAction: Story = {
       <Section
         title="Tokens"
         renderHeaderAction={() => (
-          <button
-            type="button"
-            style={{
-              fontSize: 11,
-              padding: "2px 8px",
-              borderRadius: 4,
-              border: "1px solid #ddd",
-              background: "white",
-              cursor: "pointer",
-            }}
-          >
+          <Button variant="subtle" size="xxs">
             Clear
-          </button>
+          </Button>
         )}
       >
         <Placeholder label="Content with action button in header" />

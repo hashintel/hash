@@ -149,7 +149,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
           <Icon name="squareFilled" />
           {data.lambdaType === "stochastic" && (
             <div className={`${iconBadgeStyle} ${stochasticBadgeStyle}`}>
-              <Icon name="lambda" />
+              <Icon name="lambda" size="xs" />
             </div>
           )}
         </div>

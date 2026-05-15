@@ -176,7 +176,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
       >
         {data.dynamicsEnabled && (
           <div className={dynamicsIconStyle}>
-            <Icon name="function" />
+            <Icon name="function" size="sm" />
           </div>
         )}
         <div className={labelContainerStyle}>{label}</div>

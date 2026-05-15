@@ -1,6 +1,7 @@
-import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
+
+import { Button } from "./button";
 
 /**
  * Shared visual primitives used by Dialog and Drawer.
@@ -73,9 +74,14 @@ export const Card = ({
   <div className={cardStyle}>
     {children}
     {closeButton ?? (
-      <button type="button" className={closeButtonStyle} aria-label="Close">
-        <Icon name="close" size="sm" />
-      </button>
+      <Button
+        className={closeButtonStyle}
+        variant="ghost"
+        aria-label="Close"
+        tooltip="Close"
+        tooltipDisplay="inline"
+        iconName="close"
+      />
     )}
   </div>
 );

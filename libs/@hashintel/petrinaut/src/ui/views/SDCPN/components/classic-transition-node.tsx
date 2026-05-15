@@ -214,12 +214,12 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       >
         {data.lambdaType === "stochastic" && (
           <div className={stochasticIconStyle}>
-            <Icon name="lambda" />
+            <Icon name="lambda" size="sm" />
           </div>
         )}
         <div className={labelStyle}>{label}</div>
         <div ref={boltRef} className={firingIndicatorStyle}>
-          <Icon name="lightning" />
+          <Icon name="lightning" size="sm" />
         </div>
       </div>
       <Handle

@@ -109,7 +109,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           <Icon name="circleFilled" />
           {data.dynamicsEnabled && (
             <div className={`${iconBadgeStyle} ${dynamicsBadgeStyle}`}>
-              <Icon name="function" />
+              <Icon name="function" size="xs" />
             </div>
           )}
         </div>

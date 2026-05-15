@@ -1,9 +1,9 @@
-import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { type ReactNode, use, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { PortalContainerContext } from "../../react/state/portal-container-context";
+import { Button } from "./button";
 import {
   Body,
   Card as PanelCard,
@@ -146,14 +146,15 @@ const Card = ({
 }) => (
   <PanelCard
     closeButton={
-      <button
-        type="button"
+      <Button
         className={closeButtonStyle}
+        variant="ghost"
         aria-label="Close"
+        tooltip="Close"
+        tooltipDisplay="inline"
+        iconName="close"
         onClick={onClose}
-      >
-        <Icon name="close" size="sm" />
-      </button>
+      />
     }
   >
     {children}

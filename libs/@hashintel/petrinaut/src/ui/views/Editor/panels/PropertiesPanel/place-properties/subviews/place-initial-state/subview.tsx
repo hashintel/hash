@@ -2,6 +2,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
+import { Button } from "../../../../../../../components/button";
 import { NumberInput } from "../../../../../../../components/number-input";
 import type { SubView } from "../../../../../../../components/sub-view/types";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
@@ -85,10 +86,16 @@ const ClearStateHeaderAction: React.FC = () => {
   };
 
   return (
-    <button type="button" onClick={handleClear} className={clearButtonStyle}>
-      <Icon name="trash" size="xs" className={css({ color: "[#a72b2bff]" })} />
+    <Button
+      onClick={handleClear}
+      className={clearButtonStyle}
+      variant="subtle"
+      tone="error"
+      size="xxs"
+      iconName="trash"
+    >
       Clear state
-    </button>
+    </Button>
   );
 };
 

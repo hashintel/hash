@@ -3,6 +3,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 
+import { Button } from "./button";
 import { NumberInput } from "./number-input";
 import { Select, type SelectOption } from "./select";
 
@@ -353,14 +354,16 @@ export const ArcItem = ({
       />
       {onDelete && !disabled && (
         <div data-arc-delete="" className={deleteContainerStyle}>
-          <button
-            type="button"
+          <Button
             className={deleteButtonStyle}
+            variant="ghost"
+            tone="error"
             onClick={onDelete}
             aria-label="Delete arc"
-          >
-            <Icon name="trash" size="sm" />
-          </button>
+            tooltip="Delete arc"
+            tooltipDisplay="inline"
+            iconName="trash"
+          />
         </div>
       )}
     </div>
