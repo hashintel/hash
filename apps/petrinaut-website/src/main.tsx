@@ -1,4 +1,5 @@
 import "@hashintel/petrinaut/styles.css";
+import "./app.css";
 import "./sentry/instrument";
 
 import * as Sentry from "@sentry/react";

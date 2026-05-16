@@ -1,12 +1,17 @@
 import type { ViewportAction } from "@hashintel/petrinaut/ui";
+import { css } from "@hashintel/ds-helpers/css";
 import * as Sentry from "@sentry/react";
 import { MdBugReport } from "react-icons/md";
 
-const feedbackButtonStyle: React.CSSProperties = {
-  backgroundColor: "#8b5cf6dd",
-  borderColor: "#7c3aed",
-  color: "#fff",
-};
+const feedbackButtonStyle = css({
+  backgroundColor: "purple.a85 !important",
+  borderColor: "purple.a100 !important",
+  color: "white !important",
+  _hover: {
+    backgroundColor: "purple.a80 !important",
+    borderColor: "purple.a85 !important",
+  },
+});
 
 export function useSentryFeedbackAction(): ViewportAction {
   // Wouldn't be optimized by React Compiler otherwise
@@ -17,7 +22,7 @@ export function useSentryFeedbackAction(): ViewportAction {
     icon: <MdBugReport size={14} />,
     label: "Give feedback",
     tooltip: "Give feedback",
-    style: feedbackButtonStyle,
+    className: feedbackButtonStyle,
     ref: (node) => {
       if (!node) {
         return;

@@ -109,19 +109,18 @@ export const ViewportControls: React.FC<{
         onOpenChange={(details) => setIsSettingsOpen(details.open)}
       />
       {viewportActions?.map((action) => (
-        <span key={action.key} style={action.style}>
-          <Button
-            ref={action.ref}
-            size="sm"
-            variant="subtle"
-            aria-label={action.label}
-            tooltip={action.tooltip}
-            tooltipDisplay="inline"
-            onClick={action.onClick}
-            className={action.className}
-            prefix={action.icon}
-          />
-        </span>
+        <Button
+          key={action.key}
+          ref={action.ref}
+          size="sm"
+          variant="subtle"
+          aria-label={action.label}
+          tooltip={action.tooltip}
+          tooltipDisplay="inline"
+          onClick={action.onClick}
+          className={action.className}
+          prefix={action.icon}
+        />
       ))}
     </div>
   );

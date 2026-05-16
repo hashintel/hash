@@ -96,11 +96,7 @@ const CursorModeDropdown: React.FC<{
           className={cursorTriggerStyle({ isActive: editionMode === "cursor" })}
           aria-label="Cursor mode"
         >
-          {cursorMode === "pan" ? (
-            <Icon name="hand" size="sm" />
-          ) : (
-            <Icon name="cursor" size="sm" />
-          )}
+          {cursorMode === "pan" ? <Icon name="hand" /> : <Icon name="cursor" />}
           <Icon name="chevronDown" size="xs" className={dropdownArrowStyle} />
         </button>
       }
