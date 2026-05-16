@@ -8,6 +8,7 @@ import {
   type MonteCarloFrameBuffer,
 } from "./frame-buffer";
 import type { MonteCarloRunState } from "./internal-types";
+import { getFrameTime, getMaxFrameNumber } from "./time";
 import type {
   MonteCarloAdvanceResult,
   MonteCarloRunConfig,
@@ -112,6 +113,7 @@ export function createRunState(
     simulation.frameLayout,
     initialView,
     currentFrame,
+    simulation.dt,
   );
 
   return {
@@ -131,7 +133,7 @@ export function createRunState(
     initialMarking,
     parameterValues: simulation.parameterValues,
     frameNumber: 0,
-    currentTime: 0,
+    maxFrameNumber: getMaxFrameNumber(config.maxTime, config.dt),
     rngState: seed,
     completionReason: null,
     error: null,
@@ -151,7 +153,7 @@ export function summarizeRun(run: MonteCarloRunState): MonteCarloRunSummary {
     status: run.status,
     seed: run.seed,
     frameNumber: run.frameNumber,
-    currentTime: run.currentTime,
+    currentTime: getFrameTime(run.frameNumber, run.simulation.dt),
     rngState: run.rngState,
     parameterValues: run.parameterValues,
     completionReason: run.completionReason,

@@ -279,13 +279,15 @@ export function updateTransitionTimers(
   ) {
     const transitionId = simulation.frameLayout.transitionIds[index]!;
     if (firedTransitions.has(transitionId)) {
+      frame.transitionElapsedFrames[index] = 0;
       frame.transitionElapsed[index] = 0;
       frame.transitionFiredFlags[index] = 1;
       frame.transitionFiringCounts[index] =
         (frame.transitionFiringCounts[index] ?? 0) + 1;
     } else {
-      frame.transitionElapsed[index] =
-        (frame.transitionElapsed[index] ?? 0) + simulation.dt;
+      const elapsedFrames = (frame.transitionElapsedFrames[index] ?? 0) + 1;
+      frame.transitionElapsedFrames[index] = elapsedFrames;
+      frame.transitionElapsed[index] = elapsedFrames * simulation.dt;
       frame.transitionFiredFlags[index] = 0;
     }
   }

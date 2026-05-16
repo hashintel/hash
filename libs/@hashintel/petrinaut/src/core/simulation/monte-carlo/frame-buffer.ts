@@ -10,6 +10,7 @@ export type MonteCarloFrameBuffer = {
   tokenValueCount: number;
   placeCounts: Uint32Array;
   placeOffsets: Uint32Array;
+  transitionElapsedFrames: Float64Array;
   transitionElapsed: Float64Array;
   transitionFiringCounts: Uint32Array;
   transitionFiredFlags: Uint8Array;
@@ -44,8 +45,11 @@ function createViews(
     placeOffsetsOffset + placeCount * Uint32Array.BYTES_PER_ELEMENT,
     Float64Array.BYTES_PER_ELEMENT,
   );
-  const transitionFiringCountsOffset =
+  const transitionElapsedFramesOffset =
     transitionElapsedOffset + transitionCount * Float64Array.BYTES_PER_ELEMENT;
+  const transitionFiringCountsOffset =
+    transitionElapsedFramesOffset +
+    transitionCount * Float64Array.BYTES_PER_ELEMENT;
   const transitionFiredFlagsOffset =
     transitionFiringCountsOffset +
     transitionCount * Uint32Array.BYTES_PER_ELEMENT;
@@ -60,6 +64,11 @@ function createViews(
     transitionElapsed: new Float64Array(
       buffer,
       transitionElapsedOffset,
+      transitionCount,
+    ),
+    transitionElapsedFrames: new Float64Array(
+      buffer,
+      transitionElapsedFramesOffset,
       transitionCount,
     ),
     transitionFiringCounts: new Uint32Array(
@@ -99,6 +108,7 @@ export function getMonteCarloFrameBufferByteLength(
     Float64Array.BYTES_PER_ELEMENT,
   );
   const transitionBytes =
+    transitionCount * Float64Array.BYTES_PER_ELEMENT +
     transitionCount * Float64Array.BYTES_PER_ELEMENT +
     transitionCount * Uint32Array.BYTES_PER_ELEMENT +
     transitionCount * Uint8Array.BYTES_PER_ELEMENT;
@@ -155,6 +165,7 @@ export function copyMonteCarloFrameBuffer(
 
   target.placeCounts.set(source.placeCounts);
   target.placeOffsets.set(source.placeOffsets);
+  target.transitionElapsedFrames.set(source.transitionElapsedFrames);
   target.transitionElapsed.set(source.transitionElapsed);
   target.transitionFiringCounts.set(source.transitionFiringCounts);
   target.transitionFiredFlags.set(source.transitionFiredFlags);
@@ -193,6 +204,7 @@ export function copyEngineFrameViewToMonteCarloFrameBuffer(
   layout: EngineFrameLayout,
   source: EngineFrameView,
   target: MonteCarloFrameBuffer,
+  dt: number,
 ): void {
   const tokenValueCount = source.tokenValues.length;
   if (target.tokenValueCapacity < tokenValueCount) {
@@ -219,7 +231,13 @@ export function copyEngineFrameViewToMonteCarloFrameBuffer(
       throw new Error(`Transition ${transitionId} not found in source frame`);
     }
 
-    target.transitionElapsed[index] = transitionState.timeSinceLastFiringMs;
+    const elapsedFrames = Math.max(
+      0,
+      Math.round(transitionState.timeSinceLastFiringMs / dt),
+    );
+
+    target.transitionElapsedFrames[index] = elapsedFrames;
+    target.transitionElapsed[index] = elapsedFrames * dt;
     target.transitionFiringCounts[index] = transitionState.firingCount;
     target.transitionFiredFlags[index] = transitionState.firedInThisFrame
       ? 1

@@ -53,7 +53,8 @@ export function computeTransitionEffect(
   }
 
   const [u1, candidateRngState] = nextRandom(run.rngState);
-  const timeSinceLastFiring = frame.transitionElapsed[transitionIndex] ?? 0;
+  const timeSinceLastFiring =
+    (frame.transitionElapsedFrames[transitionIndex] ?? 0) * run.simulation.dt;
   const inputPlacesWithValues = inputPlaces.filter(
     (place) => place.dimensions > 0 && place.arcType !== "inhibitor",
   );

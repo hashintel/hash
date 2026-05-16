@@ -61,6 +61,36 @@ const sdcpn: SDCPN = {
   ],
 };
 
+const selfLoopSdcpn: SDCPN = {
+  types: [],
+  places: [
+    {
+      id: "source",
+      name: "Source",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+  ],
+  transitions: [
+    {
+      id: "loop",
+      name: "Loop",
+      inputArcs: [{ placeId: "source", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "source", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda(() => true);",
+      transitionKernelCode: "export default TransitionKernel(() => ({}));",
+      x: 50,
+      y: 0,
+    },
+  ],
+  differentialEquations: [],
+  parameters: [],
+};
+
 function getPlaceDistributionFrame(
   frame: PlaceTokenCountDistributionFrame,
   placeId: string,
@@ -199,5 +229,32 @@ describe("MonteCarloSimulator", () => {
     expect(
       getPlaceDistributionFrame(distributionMetric.frames[2]!, "product").bins,
     ).toEqual([[2, 1]]);
+  });
+
+  it("derives completion and metric time from frame numbers", () => {
+    const distributionMetric = createPlaceTokenCountDistributionMetric();
+    const simulator = createMonteCarloSimulator({
+      sdcpn: selfLoopSdcpn,
+      runCount: 1,
+      initialMarking: { source: 1 },
+      seed: 100,
+      dt: 0.1,
+      maxTime: 1,
+      metrics: [distributionMetric],
+    });
+
+    const result = simulator.runUntilComplete();
+    const summary = simulator.getRunSummary(0);
+
+    expect(result.allFinished).toBe(true);
+    expect(summary.status).toBe("complete");
+    expect(summary.completionReason).toBe("maxTime");
+    expect(summary.frameNumber).toBe(10);
+    expect(summary.currentTime).toBe(1);
+    expect(distributionMetric.frames).toHaveLength(11);
+    expect(distributionMetric.frames.at(-1)).toMatchObject({
+      frameNumber: 10,
+      time: 1,
+    });
   });
 });

@@ -44,7 +44,7 @@ export function advanceRun(run: MonteCarloRunState): boolean {
   }
 
   try {
-    if (run.currentTime >= run.simulation.maxTime!) {
+    if (run.frameNumber >= run.maxFrameNumber) {
       completeRun(run, "maxTime");
       return false;
     }
@@ -81,9 +81,8 @@ export function advanceRun(run: MonteCarloRunState): boolean {
     run.nextFrame = run.currentFrame;
     run.currentFrame = workingFrame;
     run.frameNumber++;
-    run.currentTime += run.simulation.dt;
 
-    if (run.currentTime >= run.simulation.maxTime!) {
+    if (run.frameNumber >= run.maxFrameNumber) {
       completeRun(run, "maxTime");
     } else if (
       firedTransitions.size === 0 &&

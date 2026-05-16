@@ -6,6 +6,7 @@ import {
   summarizeRun,
   summarizeRuns,
 } from "./run-state";
+import { getFrameTime } from "./time";
 import type {
   MonteCarloAdvanceResult,
   MonteCarloRunSnapshot,
@@ -29,7 +30,6 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
   readonly #placeIds: readonly string[];
   readonly #placeNames: readonly string[];
   #frameNumber = 0;
-  #time = 0;
 
   /**
    * Validates simulator-level configuration and creates all run states.
@@ -87,7 +87,6 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
 
     if (advancedRuns > 0) {
       this.#frameNumber++;
-      this.#time += this.#runs[0]!.simulation.dt;
       this.observeMetricFrame();
     }
 
@@ -101,13 +100,7 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
     options: MonteCarloRunUntilCompleteOptions = {},
   ): MonteCarloAdvanceResult {
     const maxBatches =
-      options.maxBatches ??
-      Math.max(
-        1,
-        Math.ceil(
-          this.#runs[0]!.simulation.maxTime! / this.#runs[0]!.simulation.dt,
-        ) + 1,
-      );
+      options.maxBatches ?? Math.max(1, this.#runs[0]!.maxFrameNumber + 1);
     let result = summarizeRuns(this.#runs, 0);
 
     for (let batch = 0; batch < maxBatches && !result.allFinished; batch++) {
@@ -163,7 +156,7 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
     for (const metric of this.#metrics) {
       metric.observeFrame({
         frameNumber: this.#frameNumber,
-        time: this.#time,
+        time: getFrameTime(this.#frameNumber, this.#runs[0]!.simulation.dt),
         runCount: this.#runs.length,
         activeRunCount,
         completedRunCount,
