@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
@@ -18,16 +17,6 @@ import { EMPTY_SCENARIO_FORM_STATE } from "./scenario-form-defaults";
 import { ScenarioErrorDisplay } from "./scenario-error-display";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
 import { buildScenarioFromFormState } from "./scenario-mapping";
-
-const bodyStyle = css({
-  overflowY: "auto",
-  // Override Drawer.Body default `padding: 5`. Vertical padding on the scroll
-  // container would create a gap above sticky section headers (they would pin
-  // below it). Section headers/contents own their own vertical spacing.
-  paddingX: "5",
-  paddingY: "[0]",
-  flex: "1",
-});
 
 // -- Footer (subscribes to form + LSP state for submit gating) ----------------
 
@@ -96,7 +85,7 @@ const CreateScenarioBody = ({ form }: { form: ScenarioFormInstance }) => {
   }
 
   return (
-    <Drawer.Body className={bodyStyle}>
+    <Drawer.Body>
       <ScenarioFormBody
         form={form}
         parameters={petriNetDefinition.parameters}

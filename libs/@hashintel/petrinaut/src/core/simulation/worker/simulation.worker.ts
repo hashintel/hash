@@ -9,9 +9,13 @@
  */
 
 import { SDCPNItemError } from "../../errors";
-import { buildSimulation } from "../simulator/build-simulation";
-import { computeNextFrame } from "../simulator/compute-next-frame";
-import type { SimulationInstance } from "../simulator/types";
+import { buildSimulation } from "../engine/build-simulation";
+import { computeNextFrame } from "../engine/compute-next-frame";
+import type { SimulationInstance } from "../engine/types";
+import {
+  framePayloadFromEngineFrame,
+  type SimulationFramePayload,
+} from "./frame-payload";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 //
@@ -81,7 +85,7 @@ async function computeLoop(): Promise<void> {
     }
 
     // Compute a batch of frames
-    const framesToSend: typeof simulation.frames = [];
+    const framesToSend: SimulationFramePayload[] = [];
 
     for (let i = 0; i < batchSize; i++) {
       try {
@@ -90,7 +94,9 @@ async function computeLoop(): Promise<void> {
 
         simulation = updatedSimulation;
         const newFrame = simulation.frames[simulation.currentFrameNumber]!;
-        framesToSend.push(newFrame);
+        framesToSend.push(
+          framePayloadFromEngineFrame(newFrame, simulation.currentTime),
+        );
 
         // Check if simulation completed
         if (completionReason !== null) {
@@ -121,9 +127,15 @@ async function computeLoop(): Promise<void> {
     // Send computed frames
     if (framesToSend.length > 0) {
       if (framesToSend.length === 1) {
-        postTypedMessage({ type: "frame", frame: framesToSend[0]! });
+        postTypedMessage({
+          type: "frame",
+          frame: framesToSend[0]!,
+        });
       } else {
-        postTypedMessage({ type: "frames", frames: framesToSend });
+        postTypedMessage({
+          type: "frames",
+          frames: framesToSend,
+        });
       }
     }
 
@@ -143,13 +155,10 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
   switch (message.type) {
     case "init": {
       try {
-        // Convert serialized initialMarking back to Map
-        const initialMarking = new Map(message.initialMarking);
-
         // Build simulation (compiles user code)
         simulation = buildSimulation({
           sdcpn: message.sdcpn,
-          initialMarking,
+          initialMarking: message.initialMarking,
           parameterValues: message.parameterValues,
           seed: message.seed,
           dt: message.dt,
@@ -168,7 +177,13 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
         // Send initial frame
         const initialFrame = simulation.frames[0];
         if (initialFrame) {
-          postTypedMessage({ type: "frame", frame: initialFrame });
+          postTypedMessage({
+            type: "frame",
+            frame: framePayloadFromEngineFrame(
+              initialFrame,
+              simulation.currentTime,
+            ),
+          });
         }
 
         postTypedMessage({
@@ -250,14 +265,8 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
     }
 
     case "ack": {
-      lastAckedFrame = message.frameNumber;
+      lastAckedFrame = Math.max(lastAckedFrame, message.frameNumber);
       break;
     }
   }
 };
-
-// Signal that worker is ready
-postTypedMessage({
-  type: "ready",
-  initialFrameCount: 0,
-});

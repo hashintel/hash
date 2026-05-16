@@ -47,7 +47,7 @@ const DEFAULT_SIMULATION: SimulationContextValue = {
   error: null,
   errorItemId: null,
   parameterValues: {},
-  initialMarking: new Map(),
+  initialMarking: {},
   selectedScenarioId: null,
   scenarioParameterValues: {},
   compiledScenarioResult: null,

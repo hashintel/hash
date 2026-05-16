@@ -36,7 +36,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     isNotHoveredConnection,
     hoveredItem,
   } = use(EditorContext);
-  const { currentViewedFrame } = use(PlaybackContext);
+  const { currentFrameReader } = use(PlaybackContext);
   const { compactNodes } = use(UserSettingsContext);
 
   const dimensions = compactNodes
@@ -101,7 +101,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         label: transition.name,
         type: "transition",
         lambdaType: transition.lambdaType,
-        frame: currentViewedFrame?.transitions[transition.id] ?? null,
+        frame: currentFrameReader?.getTransitionState(transition.id) ?? null,
       },
     });
   }
@@ -153,7 +153,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         data: {
           weight: inputArc.weight,
           arcType: inputArc.type,
-          frame: currentViewedFrame?.transitions[transition.id] ?? null,
+          frame: currentFrameReader?.getTransitionState(transition.id) ?? null,
         },
       });
     }
@@ -201,7 +201,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         data: {
           weight: outputArc.weight,
           arcType: "standard" as const,
-          frame: currentViewedFrame?.transitions[transition.id] ?? null,
+          frame: currentFrameReader?.getTransitionState(transition.id) ?? null,
         },
       });
     }

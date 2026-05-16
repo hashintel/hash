@@ -137,8 +137,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = currentViewedFrame.places[id]?.tokenCount ?? null;
   } else if (isSimulateMode) {
     // In simulate mode but no simulation running - show initial marking
-    const marking = initialMarking.get(id);
-    tokenCount = marking?.count ?? 0;
+    const marking = initialMarking[id];
+    tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
   // Add zero width space to labels between pascal case points as text-wrapping breakpoints

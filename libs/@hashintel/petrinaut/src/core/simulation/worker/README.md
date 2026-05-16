@@ -1,14 +1,16 @@
 # Simulation Worker
 
-WebWorker for off-main-thread SDCPN simulation computation.
+Worker runtime for off-main-thread SDCPN simulation computation.
 
 ## Overview
 
-The worker computes simulation frames in batches, controlled by backpressure from the main thread. This keeps the UI responsive while allowing fast computation.
+The worker computes simulation frames in batches, controlled by backpressure
+from its host transport. This keeps the caller responsive while allowing fast
+computation.
 
 ## Messages
 
-**Main Thread → Worker:**
+**Host → Worker:**
 
 | Type              | Payload                                                                                      | Description                         |
 | ----------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
@@ -19,27 +21,35 @@ The worker computes simulation frames in batches, controlled by backpressure fro
 | `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                                                            | Reconfigure backpressure at runtime |
 | `ack`             | `{ frameNumber }`                                                                            | Acknowledge frame receipt           |
 
-**Worker → Main Thread:**
+**Worker → Host:**
 
 | Type       | Payload                                            | Description             |
 | ---------- | -------------------------------------------------- | ----------------------- |
 | `ready`    | `{ initialFrameCount }`                            | Initialization complete |
-| `frames`   | `{ frames: SimulationFrame[] }`                    | Batch of frames         |
+| `frame`    | `{ frame: SimulationFramePayload }`                | Single frame payload    |
+| `frames`   | `{ frames: SimulationFramePayload[] }`             | Batch of frame payloads |
 | `complete` | `{ reason: 'deadlock' \| 'maxTime', frameNumber }` | Simulation ended        |
 | `paused`   | `{ frameNumber }`                                  | Worker has paused       |
 | `error`    | `{ message, itemId: string \| null }`              | Error occurred          |
 
+`SimulationFramePayload.frame` is a binary `ArrayBuffer`. Host code should not
+read it directly; `runtime/frame-store.ts` specializes a `SimulationFrameReader`
+from the SDCPN snapshot and exposes that reader through the public simulation
+API.
+
 ## Backpressure
 
-The worker blocks computation until it receives an `ack` message, then computes up to `maxFramesAhead` frames beyond the acknowledged frame before waiting again.
+The worker blocks computation until it receives an `ack` message, then computes
+up to `maxFramesAhead` frames beyond the acknowledged frame before waiting
+again.
 
 **Key behavior:**
 
-- Worker starts with `lastAckedFrame = -1` (blocked until first ack)
-- PlaybackProvider controls ack calls based on play mode
-- If no ack is sent (viewOnly mode), no new frames are computed
+- Worker starts with `lastAckedFrame = -1` and blocks until the first ack.
+- Hosts should ack frames as they consume or persist them.
+- If no ack is sent, no new frames are computed after initialization.
 
-**Play mode configuration (set by PlaybackProvider):**
+**Common backpressure profiles:**
 
 | Play Mode        | maxFramesAhead | batchSize | Ack Behavior                     |
 | ---------------- | -------------- | --------- | -------------------------------- |
@@ -49,16 +59,19 @@ The worker blocks computation until it receives an `ack` message, then computes 
 
 ---
 
-## Consuming this worker from main-thread code
+## Consuming this worker from host code
 
-The previous `useSimulationWorker` React hook has been removed. Main-thread code now uses the standalone `createSimulation` factory from `/core` (see [`../../../rfc/0001-core-react-ui-split/05-simulation.md`](../../../rfc/0001-core-react-ui-split/05-simulation.md)):
+Host code should use the standalone `createSimulation` factory from `/core`:
 
 ```ts
-import { createSimulation } from "@hashintel/petrinaut";
+import { createSimulation } from "@hashintel/petrinaut/core";
 
 const sim = await createSimulation({
   sdcpn,
-  initialMarking,
+  initialMarking: {
+    queue: 10,
+    customer: [{ waitTime: 0 }],
+  },
   parameterValues,
   seed,
   dt,
@@ -69,4 +82,6 @@ const sim = await createSimulation({
 sim.run();
 ```
 
-The default `createWorker` factory used inside `<SimulationProvider>` lives in `./create-simulation-worker.ts`. It returns a `Promise<Worker>` that imports the worker module via Vite's `?worker&inline` syntax.
+The default browser worker factory lives in `./create-simulation-worker.ts`.
+It returns a `Promise<Worker>` that imports the worker module via Vite's
+`?worker&inline` syntax.

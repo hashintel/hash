@@ -122,6 +122,7 @@ export const Header = ({
 
 const bodyStyle = css({
   padding: "5",
+  paddingTop: "0",
   overflowY: "auto",
   flex: "[1]",
 });

@@ -11,6 +11,7 @@ import {
   type NetManagement,
 } from "./net-management-context";
 import { PlaybackProvider } from "./playback/provider";
+import { ExperimentsProvider } from "./experiments/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { SimulationProvider } from "./simulation/provider";
 import { EditorProvider } from "./state/editor-provider";
@@ -31,6 +32,7 @@ export type PetrinautProviderProps = {
    * issues with the inlined worker.
    */
   simulationWorkerFactory?: WorkerFactory;
+  monteCarloWorkerFactory?: WorkerFactory;
   /**
    * Optional language-server worker factory. Same shape as
    * `simulationWorkerFactory` — provided when the host needs to bundle the
@@ -50,6 +52,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   instance,
   netManagement,
   simulationWorkerFactory,
+  monteCarloWorkerFactory,
   lspWorkerFactory,
   children,
 }) => {
@@ -57,22 +60,26 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
     instance.handle.history,
   );
 
-  // Keyed by handle id so a net switch fully resets the LSP worker
-  // and its in-flight diagnostics.
+  // Keyed by handle id so a net switch fully resets net-scoped worker state.
   const inner = (
     <SDCPNProvider>
       <LanguageClientProvider
         key={instance.handle.id}
         workerFactory={lspWorkerFactory}
       >
-        <SimulationProvider workerFactory={simulationWorkerFactory}>
-          <PlaybackProvider>
-            <UserSettingsProvider>
-              <EditorProvider>
-                <MutationProvider>{children}</MutationProvider>
-              </EditorProvider>
-            </UserSettingsProvider>
-          </PlaybackProvider>
+        <SimulationProvider
+          key={instance.handle.id}
+          workerFactory={simulationWorkerFactory}
+        >
+          <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+            <PlaybackProvider>
+              <UserSettingsProvider>
+                <EditorProvider>
+                  <MutationProvider>{children}</MutationProvider>
+                </EditorProvider>
+              </UserSettingsProvider>
+            </PlaybackProvider>
+          </ExperimentsProvider>
         </SimulationProvider>
       </LanguageClientProvider>
     </SDCPNProvider>

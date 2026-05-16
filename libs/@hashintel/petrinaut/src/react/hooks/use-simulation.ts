@@ -1,9 +1,9 @@
 import { use } from "react";
 
 import type {
-  SimulationFrame,
+  SimulationFrameReader,
   SimulationFrameState,
-} from "../../core/simulation/types";
+} from "../../core/simulation";
 import {
   SimulationContext,
   type SimulationContextValue,
@@ -24,14 +24,16 @@ export function useSimulationFrameCount(): number {
 }
 
 /**
- * Async access to a specific frame by index. Resolves to `null` when the index
- * is out of range or no simulation exists.
+ * Async access to a specific frame reader by index. Resolves to `null` when
+ * the index is out of range or no simulation exists.
  */
-export function useGetSimulationFrame(): (
+export function useGetSimulationFrameReader(): (
   index: number,
-) => Promise<SimulationFrame | null> {
+) => Promise<SimulationFrameReader | null> {
   return use(SimulationContext).getFrame;
 }
+
+export const useGetSimulationFrame = useGetSimulationFrameReader;
 
 export type SimulationActionsBundle = {
   initialize: SimulationContextValue["initialize"];
@@ -87,4 +89,4 @@ export function useSimulationError(): {
   return { message: ctx.error, itemId: ctx.errorItemId };
 }
 
-export type { SimulationFrame, SimulationFrameState, SimulationState };
+export type { SimulationFrameReader, SimulationFrameState, SimulationState };

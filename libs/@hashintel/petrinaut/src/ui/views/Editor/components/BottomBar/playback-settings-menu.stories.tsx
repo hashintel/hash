@@ -50,7 +50,7 @@ const PlaybackSettingsMenuStory = ({
         error: null,
         errorItemId: null,
         parameterValues: {},
-        initialMarking: new Map(),
+        initialMarking: {},
         selectedScenarioId: null,
         scenarioParameterValues: {},
         compiledScenarioResult: null,
@@ -76,7 +76,7 @@ const PlaybackSettingsMenuStory = ({
     >
       <PlaybackContext
         value={{
-          currentFrame: null,
+          currentFrameReader: null,
           currentViewedFrame: null,
           playbackState: "Stopped",
           currentFrameIndex: 0,

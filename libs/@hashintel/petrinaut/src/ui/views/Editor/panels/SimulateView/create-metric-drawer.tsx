@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
@@ -6,7 +5,7 @@ import { Button } from "../../../../components/button";
 import { Drawer } from "../../../../components/drawer";
 import { metricSchema } from "../../../../../core/schemas/metric-schema";
 import { LanguageClientContext } from "../../../../../react/lsp/context";
-import { compileMetric } from "../../../../../core/simulation/compile-metric";
+import { compileMetric } from "../../../../../core/simulation/authoring/metric/compile-metric";
 import { MutationContext } from "../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import {
@@ -19,13 +18,6 @@ import { EMPTY_METRIC_FORM_STATE } from "./metric-form-defaults";
 import { summarizeMetricLspErrors } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
 import { ScenarioErrorDisplay } from "./scenario-error-display";
-
-const bodyStyle = css({
-  overflowY: "auto",
-  paddingX: "5",
-  paddingY: "[0]",
-  flex: "1",
-});
 
 // -- Footer -------------------------------------------------------------------
 
@@ -145,7 +137,7 @@ export const CreateMetricDrawer = ({
         <Drawer.Header description="A function over the simulation state that returns a number to plot on the timeline.">
           Create a metric
         </Drawer.Header>
-        <Drawer.Body className={bodyStyle}>
+        <Drawer.Body>
           <MetricFormBody
             form={form}
             idPrefix="create-"

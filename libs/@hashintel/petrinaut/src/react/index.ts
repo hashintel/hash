@@ -15,6 +15,13 @@ export {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
+export { ExperimentsContext } from "./experiments/context";
+export type {
+  CreateExperimentInput,
+  ExperimentRecord,
+  ExperimentStatus,
+  ExperimentsContextValue,
+} from "./experiments/context";
 
 // --- Error tracker DI ---
 export { ErrorTrackerContext } from "./error-tracker-context";

@@ -101,11 +101,9 @@ describe("simulation.worker", () => {
   });
 
   describe("initialization", () => {
-    it("posts ready message on load", () => {
-      // Worker posts ready on load
+    it("does not post ready before init", () => {
       const readyMessages = getMessages("ready");
-      expect(readyMessages).toHaveLength(1);
-      expect(readyMessages[0]?.initialFrameCount).toBe(0);
+      expect(readyMessages).toHaveLength(0);
     });
 
     it("initializes simulation with valid SDCPN", () => {
@@ -115,7 +113,7 @@ describe("simulation.worker", () => {
       sendToWorker({
         type: "init",
         sdcpn,
-        initialMarking: [["p1", { values: new Float64Array([1.0]), count: 1 }]],
+        initialMarking: { p1: [{ x: 1.0 }] },
         parameterValues: {},
         seed: 42,
         dt: 0.1,
@@ -140,9 +138,7 @@ describe("simulation.worker", () => {
       sendToWorker({
         type: "init",
         sdcpn,
-        initialMarking: [
-          ["nonexistent", { values: new Float64Array([1.0]), count: 1 }],
-        ],
+        initialMarking: { nonexistent: [{ x: 1.0 }] },
         parameterValues: {},
         seed: 42,
         dt: 0.1,
@@ -174,7 +170,7 @@ describe("simulation.worker", () => {
       sendToWorker({
         type: "init",
         sdcpn,
-        initialMarking: [["p1", { values: new Float64Array([1.0]), count: 1 }]],
+        initialMarking: { p1: [{ x: 1.0 }] },
         parameterValues: {},
         seed: 42,
         dt: 0.1,
@@ -198,7 +194,7 @@ describe("simulation.worker", () => {
       sendToWorker({
         type: "init",
         sdcpn,
-        initialMarking: [["p1", { values: new Float64Array([1.0]), count: 1 }]],
+        initialMarking: { p1: [{ x: 1.0 }] },
         parameterValues: {},
         seed: 42,
         dt: 0.1,
@@ -227,7 +223,7 @@ describe("simulation.worker", () => {
       sendToWorker({
         type: "init",
         sdcpn,
-        initialMarking: [["p1", { values: new Float64Array([1.0]), count: 1 }]],
+        initialMarking: { p1: [{ x: 1.0 }] },
         parameterValues: {},
         seed: 42,
         dt: 0.1,
@@ -256,7 +252,7 @@ describe("simulation.worker", () => {
       sendToWorker({
         type: "init",
         sdcpn,
-        initialMarking: [["p1", { values: new Float64Array([1.0]), count: 1 }]],
+        initialMarking: { p1: [{ x: 1.0 }] },
         parameterValues: {},
         seed: 42,
         dt: 0.1,

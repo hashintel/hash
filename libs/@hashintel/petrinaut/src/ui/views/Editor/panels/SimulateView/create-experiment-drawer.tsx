@@ -1,9 +1,11 @@
-import { Icon } from "@hashintel/ds-components";
+import { Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
 
 import { Button } from "../../../../components/button";
 import { Drawer } from "../../../../components/drawer";
+import { Input } from "../../../../components/input";
+import { NumberInput } from "../../../../components/number-input";
 import { Section, SectionList } from "../../../../components/section";
 import { Select } from "../../../../components/select";
 import { CodeEditor } from "../../../../monaco/code-editor";
@@ -11,6 +13,7 @@ import type {
   Scenario,
   ScenarioParameter,
 } from "../../../../../core/types/sdcpn";
+import { ExperimentsContext } from "../../../../../react/experiments/context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 
 // -- Styles -------------------------------------------------------------------
@@ -25,6 +28,12 @@ const labelStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.s120",
+});
+
+const gridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
+  gap: "3",
 });
 
 const paramRowStyle = css({
@@ -65,18 +74,21 @@ const emptyParamsStyle = css({
   color: "neutral.s80",
 });
 
-const codeEditorWrapperStyle = css({
-  minHeight: "[120px]",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "lg",
-  overflow: "hidden",
+const errorStyle = css({
+  fontSize: "sm",
+  color: "red.s100",
+  marginRight: "auto",
+  whiteSpace: "pre-wrap",
 });
 
 // -- Constants ----------------------------------------------------------------
 
+const DEFAULT_EXPERIMENT_NAME = "Experiment";
 const DEFAULT_SCENARIO_VALUE = "__default__";
+const DEFAULT_RUN_COUNT = "1000";
+const DEFAULT_SEED = "1";
+const DEFAULT_DT = "1";
+const DEFAULT_MAX_TIME = "180";
 
 // -- Component ----------------------------------------------------------------
 
@@ -107,19 +119,28 @@ const ScenarioParameterRow = ({
 interface CreateExperimentDrawerProps {
   open: boolean;
   onClose: () => void;
+  onCreated?: (experimentId: string) => void;
 }
 
 export const CreateExperimentDrawer = ({
   open,
   onClose,
+  onCreated,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
+  const { createExperiment } = use(ExperimentsContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
+  const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState(
     DEFAULT_SCENARIO_VALUE,
   );
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
-  const [predicates, setPredicates] = useState("");
+  const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
+  const [seed, setSeed] = useState(DEFAULT_SEED);
+  const [dt, setDt] = useState(DEFAULT_DT);
+  const [maxTime, setMaxTime] = useState(DEFAULT_MAX_TIME);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedScenario: Scenario | undefined =
     selectedScenarioId === DEFAULT_SCENARIO_VALUE
@@ -131,20 +152,117 @@ export const CreateExperimentDrawer = ({
     ...scenarios.map((s) => ({ value: s.id, label: s.name })),
   ];
 
+  const resetForm = () => {
+    setName(DEFAULT_EXPERIMENT_NAME);
+    setSelectedScenarioId(DEFAULT_SCENARIO_VALUE);
+    setParamValues({});
+    setRunCount(DEFAULT_RUN_COUNT);
+    setSeed(DEFAULT_SEED);
+    setDt(DEFAULT_DT);
+    setMaxTime(DEFAULT_MAX_TIME);
+    setError(null);
+    setIsSubmitting(false);
+  };
+
   const handleScenarioChange = (value: string) => {
     setSelectedScenarioId(value);
     setParamValues({});
+    setError(null);
+  };
+
+  const handleSubmit = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const experimentId = await createExperiment({
+        name,
+        scenarioId:
+          selectedScenarioId === DEFAULT_SCENARIO_VALUE
+            ? null
+            : selectedScenarioId,
+        scenarioParameterValues: paramValues,
+        runCount: Number(runCount),
+        seed: Number(seed),
+        dt: Number(dt),
+        maxTime: Number(maxTime),
+      });
+      resetForm();
+      onCreated?.(experimentId);
+    } catch (submitError) {
+      setIsSubmitting(false);
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : String(submitError),
+      );
+    }
   };
 
   return (
     <Drawer.Root open={open} onClose={onClose}>
       <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="Configure and run an experiment with a scenario and predicates">
+        <Drawer.Header description="Run a Monte Carlo experiment from the current model and scenario">
           Create an experiment
         </Drawer.Header>
         <Drawer.Body>
           <SectionList>
-            {/* -- Scenario Selection -------------------------------- */}
+            <Section title="Experiment" collapsible defaultOpen>
+              <div className={fieldStyle}>
+                <span className={labelStyle}>Name</span>
+                <Input
+                  size="md"
+                  value={name}
+                  onChange={(event) => setName(event.currentTarget.value)}
+                />
+              </div>
+              <div className={gridStyle}>
+                <div className={fieldStyle}>
+                  <span className={labelStyle}>Runs</span>
+                  <NumberInput
+                    size="md"
+                    min={1}
+                    step={1}
+                    value={runCount}
+                    onChange={(event) => setRunCount(event.currentTarget.value)}
+                  />
+                </div>
+                <div className={fieldStyle}>
+                  <span className={labelStyle}>Seed</span>
+                  <NumberInput
+                    size="md"
+                    step={1}
+                    value={seed}
+                    onChange={(event) => setSeed(event.currentTarget.value)}
+                  />
+                </div>
+                <div className={fieldStyle}>
+                  <span className={labelStyle}>Time step</span>
+                  <NumberInput
+                    size="md"
+                    min={0}
+                    step="any"
+                    value={dt}
+                    onChange={(event) => setDt(event.currentTarget.value)}
+                  />
+                </div>
+                <div className={fieldStyle}>
+                  <span className={labelStyle}>Max time</span>
+                  <NumberInput
+                    size="md"
+                    min={0}
+                    step="any"
+                    value={maxTime}
+                    onChange={(event) => setMaxTime(event.currentTarget.value)}
+                  />
+                </div>
+              </div>
+            </Section>
+
             <Section
               title="Scenario"
               collapsible
@@ -182,33 +300,37 @@ export const CreateExperimentDrawer = ({
                 )
               ) : null}
             </Section>
-
-            {/* -- Predicates ------------------------------------------- */}
-            <Section title="Predicates" collapsible defaultOpen>
-              <div className={codeEditorWrapperStyle}>
-                <CodeEditor
-                  language="typescript"
-                  value={predicates}
-                  onChange={(v) => setPredicates(v ?? "")}
-                  height="120px"
-                />
-              </div>
-            </Section>
           </SectionList>
         </Drawer.Body>
       </Drawer.Card>
       <Drawer.Footer>
-        <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+        {error ? <span className={errorStyle}>{error}</span> : null}
+        <Button
+          variant="subtle"
+          tone="neutral"
+          size="sm"
+          disabled={isSubmitting}
+          onClick={onClose}
+        >
           Cancel
         </Button>
         <Button
           variant="solid"
           tone="neutral"
           size="sm"
-          prefix={<Icon name="play" size="sm" />}
-          onClick={() => {}}
+          disabled={isSubmitting}
+          prefix={
+            isSubmitting ? (
+              <LoadingSpinner size="sm" variant="bars" />
+            ) : (
+              <Icon name="play" size="sm" />
+            )
+          }
+          onClick={() => {
+            void handleSubmit();
+          }}
         >
-          Play
+          {isSubmitting ? "Starting" : "Run"}
         </Button>
       </Drawer.Footer>
     </Drawer.Root>

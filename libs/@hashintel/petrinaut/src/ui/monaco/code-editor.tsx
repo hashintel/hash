@@ -9,7 +9,7 @@ import { MonacoContext } from "./context";
 
 // -- Single-line constants ----------------------------------------------------
 
-const SINGLE_LINE_HEIGHT = 18;
+const SINGLE_LINE_HEIGHT = 16;
 const SINGLE_LINE_PADDING_Y = 6;
 const SINGLE_LINE_TOTAL_HEIGHT = SINGLE_LINE_HEIGHT + SINGLE_LINE_PADDING_Y * 2;
 
@@ -214,6 +214,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         contextmenu: false,
         suggest: { showStatusBar: false },
         ...options,
+        tabFocusMode: true,
       }
     : {
         minimap: { enabled: false },

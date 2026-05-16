@@ -19,19 +19,21 @@ export {
 
 export {
   useGetSimulationFrame,
+  useGetSimulationFrameReader,
   useSimulationActions,
   useSimulationError,
   useSimulationFrameCount,
   useSimulationParameters,
   useSimulationStatus,
   type SimulationActionsBundle,
-  type SimulationFrame,
+  type SimulationFrameReader,
   type SimulationFrameState,
   type SimulationState,
 } from "./use-simulation";
 
 export {
   useCurrentFrame,
+  useCurrentFrameReader,
   useCurrentViewedFrame,
   useIsComputeAvailable,
   useIsViewOnlyAvailable,

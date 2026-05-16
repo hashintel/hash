@@ -10,6 +10,8 @@ export type PlaybackState = "Stopped" | "Playing" | "Paused";
  */
 export type PlayMode = "viewOnly" | "computeBuffer" | "computeMax";
 
+export type ComputePlayMode = Exclude<PlayMode, "viewOnly">;
+
 export const PLAYBACK_SPEEDS = [
   1,
   2,
@@ -28,23 +30,23 @@ export function formatPlaybackSpeed(speed: PlaybackSpeed): string {
 }
 
 /**
- * Backpressure configuration for a given play mode. Used to tell the
+ * Backpressure configuration for a compute play mode. Used to tell the
  * simulation worker how aggressively to compute new frames.
+ *
+ * `viewOnly` intentionally has no backpressure shape: it is a frame viewing
+ * mode, not a worker computation mode.
  */
 export type PlayModeBackpressure = {
   maxFramesAhead: number;
   batchSize: number;
 };
 
-export function getPlayModeBackpressure(mode: PlayMode): PlayModeBackpressure {
-  switch (mode) {
-    case "viewOnly":
-      return { maxFramesAhead: 0, batchSize: 0 };
-    case "computeBuffer":
-      return { maxFramesAhead: 40, batchSize: 10 };
-    case "computeMax":
-      return { maxFramesAhead: 10000, batchSize: 500 };
-  }
+export function getPlayModeBackpressure(
+  mode: ComputePlayMode,
+): PlayModeBackpressure {
+  return mode === "computeBuffer"
+    ? { maxFramesAhead: 40, batchSize: 10 }
+    : { maxFramesAhead: 10000, batchSize: 500 };
 }
 
 export type PlaybackSnapshot = {

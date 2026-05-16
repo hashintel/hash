@@ -38,14 +38,17 @@ const scenarioInfoStyle = css({
  * Only shown when not in simulation mode and there's data to clear.
  */
 const ClearStateHeaderAction: React.FC = () => {
-  const { place } = usePlacePropertiesContext();
+  const { place, placeType } = usePlacePropertiesContext();
   const { state, initialMarking, setInitialMarking, selectedScenarioId } =
     use(SimulationContext);
   const isSimulationNotRun = state === "NotRun";
 
   // Check if there's data to clear
-  const currentMarking = initialMarking.get(place.id);
-  const hasData = currentMarking && currentMarking.count > 0;
+  const currentMarking = initialMarking[place.id];
+  const hasData =
+    typeof currentMarking === "number"
+      ? currentMarking > 0
+      : (currentMarking?.length ?? 0) > 0;
 
   // When a scenario is selected, show a label instead of the clear button.
   if (selectedScenarioId) {
@@ -63,10 +66,10 @@ const ClearStateHeaderAction: React.FC = () => {
   }
 
   const handleClear = () => {
-    setInitialMarking(place.id, {
-      values: new Float64Array(0),
-      count: 0,
-    });
+    setInitialMarking(
+      place.id,
+      placeType && placeType.elements.length > 0 ? [] : 0,
+    );
   };
 
   return (
@@ -91,7 +94,7 @@ const PlaceInitialStateContent: React.FC = () => {
 
   const { initialMarking, setInitialMarking, selectedScenarioId } =
     use(SimulationContext);
-  const { currentFrame, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   // Determine if simulation is running (has frames)
   const hasSimulationFrames = totalFrames > 0;
@@ -113,12 +116,11 @@ const PlaceInitialStateContent: React.FC = () => {
 
     // Uncolored places: show token count
     let tokenCount = 0;
-    if (hasSimulationFrames && currentFrame) {
-      const placeState = currentFrame.places[place.id];
-      tokenCount = placeState?.count ?? 0;
+    if (hasSimulationFrames && currentFrameReader) {
+      tokenCount = currentFrameReader.getPlaceTokenCount(place.id);
     } else {
-      const marking = initialMarking.get(place.id);
-      tokenCount = marking?.count ?? 0;
+      const marking = initialMarking[place.id];
+      tokenCount = typeof marking === "number" ? marking : 0;
     }
 
     return (
@@ -140,12 +142,12 @@ const PlaceInitialStateContent: React.FC = () => {
   if (!placeType || placeType.elements.length === 0) {
     // Get token count from simulation frame or initial marking
     let currentTokenCount = 0;
-    if (hasSimulationFrames && currentFrame) {
-      const placeState = currentFrame.places[place.id];
-      currentTokenCount = placeState?.count ?? 0;
+    if (hasSimulationFrames && currentFrameReader) {
+      currentTokenCount = currentFrameReader.getPlaceTokenCount(place.id);
     } else {
-      const currentMarking = initialMarking.get(place.id);
-      currentTokenCount = currentMarking?.count ?? 0;
+      const currentMarking = initialMarking[place.id];
+      currentTokenCount =
+        typeof currentMarking === "number" ? currentMarking : 0;
     }
 
     return (
@@ -160,10 +162,7 @@ const PlaceInitialStateContent: React.FC = () => {
               0,
               Number.parseInt(event.target.value, 10) || 0,
             );
-            setInitialMarking(place.id, {
-              values: new Float64Array(0), // Empty array for places without type
-              count,
-            });
+            setInitialMarking(place.id, count);
           }}
           disabled={hasSimulationFrames}
           tooltip={hasSimulationFrames ? UI_MESSAGES.READ_ONLY_MODE : undefined}

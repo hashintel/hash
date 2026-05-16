@@ -20,7 +20,6 @@ export type { ViewportAction } from "./ui/types/viewport-action";
 // SDCPN deep-equality helper (also exported from `/ui`).
 export { isSDCPNEqual } from "./core/lib/deep-equal";
 
-// Phase 0 spike: handle-driven entry path. See rfc/0001-core-react-ui-split.
 export { createJsonDocHandle } from "./core/handle";
 export type {
   CreateJsonDocHandleOptions,
@@ -46,12 +45,16 @@ export {
 export type {
   BackpressureConfig,
   CreateSimulationConfig,
+  InitialMarking,
   Simulation,
   SimulationCompleteEvent,
   SimulationConfig,
   SimulationErrorEvent,
   SimulationEvent,
+  SimulationFrameReader,
+  SimulationFrameState,
   SimulationFrameSummary,
+  SimulationPlaceTokenValues,
   SimulationState,
   SimulationTransport,
   WorkerFactory,

@@ -2,8 +2,6 @@
 //
 // No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
 // SDCPN documents, simulation, LSP, and playback.
-//
-// See `rfc/0001-core-react-ui-split/` chapters 04, 05, 11 for design context.
 
 // --- Document ---
 export {
@@ -29,29 +27,51 @@ export type {
 
 // --- Simulation ---
 export {
+  createMonteCarloExperiment,
+  createMonteCarloSimulator,
+  createMonteCarloWorker,
+  createPlaceTokenCountDistributionMetric,
   createSimulation,
   createWorkerTransport,
 } from "./simulation";
 export type {
   BackpressureConfig,
+  CreateMonteCarloExperimentConfig,
   CreateSimulationConfig,
   Simulation,
   SimulationCompleteEvent,
   SimulationConfig,
   SimulationErrorEvent,
   SimulationEvent,
+  SimulationFrameReader,
+  SimulationFrameState,
   SimulationFrameSummary,
+  SimulationPlaceTokenValues,
   SimulationState,
   SimulationTransport,
   WorkerFactory,
-} from "./simulation";
-export type {
   InitialMarking,
-  SimulationFrame,
-  SimulationFrameState,
-  SimulationFrameState_Place,
-  SimulationFrameState_Transition,
-} from "./simulation/types";
+  MonteCarloAdvanceResult,
+  MonteCarloActiveRunPlaceCountsVisitor,
+  MonteCarloExperiment,
+  MonteCarloExperimentDistributions,
+  MonteCarloExperimentEvent,
+  MonteCarloExperimentState,
+  MonteCarloFrameMetric,
+  MonteCarloFrameMetricContext,
+  MonteCarloRunConfig,
+  MonteCarloRunSnapshot,
+  MonteCarloRunStatus,
+  MonteCarloRunSummary,
+  MonteCarloRunUntilCompleteOptions,
+  MonteCarloSimulator,
+  MonteCarloSimulatorConfig,
+  PlaceTokenCountDistributionBin,
+  PlaceTokenCountDistributionFrame,
+  PlaceTokenCountDistributionMetric,
+  PlaceTokenCountDistributionPlace,
+  MonteCarloWorkerProgress,
+} from "./simulation";
 
 // --- LSP ---
 export {
@@ -75,6 +95,7 @@ export {
 } from "./playback";
 export type {
   Playback,
+  ComputePlayMode,
   PlaybackSnapshot,
   PlaybackSpeed,
   PlaybackState,

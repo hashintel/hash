@@ -20,7 +20,7 @@ import {
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
-import { compileVisualizer } from "../../../../../../../../core/simulation/simulator/compile-visualizer";
+import { compileVisualizer } from "../../../../../../../lib/compile-visualizer";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { usePlacePropertiesContext } from "../../context";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
@@ -79,7 +79,7 @@ const VisualizerPreview: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
   const { initialMarking, parameterValues } = use(SimulationContext);
-  const { currentFrame, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   const defaultParameterValues = useDefaultParameterValues();
 
@@ -108,19 +108,19 @@ const VisualizerPreview: React.FC = () => {
   const tokens: Record<string, number>[] = [];
   let parameters: Record<string, number | boolean> = {};
 
-  if (totalFrames > 0 && currentFrame) {
-    const placeState = currentFrame.places[place.id];
-    if (!placeState) {
+  if (totalFrames > 0 && currentFrameReader) {
+    const placeTokenValues = currentFrameReader.getPlaceTokenValues(place.id);
+    if (!placeTokenValues) {
       return <div className={messageStyle}>Place not found in frame</div>;
     }
 
-    const { offset, count } = placeState;
-    const placeSize = count * dimensions;
-    const tokenValues = Array.from(
-      currentFrame.buffer.slice(offset, offset + placeSize),
-    );
+    const tokenValues = Array.from(placeTokenValues.values);
 
-    for (let tokenIndex = 0; tokenIndex < count; tokenIndex++) {
+    for (
+      let tokenIndex = 0;
+      tokenIndex < placeTokenValues.count;
+      tokenIndex++
+    ) {
       const token: Record<string, number> = {};
       for (let colIndex = 0; colIndex < dimensions; colIndex++) {
         const dimensionName = placeType.elements[colIndex]!.name;
@@ -132,14 +132,13 @@ const VisualizerPreview: React.FC = () => {
 
     parameters = mergeParameterValues(parameterValues, defaultParameterValues);
   } else {
-    const marking = initialMarking.get(place.id);
-    if (marking && marking.count > 0) {
-      for (let tokenIndex = 0; tokenIndex < marking.count; tokenIndex++) {
+    const marking = initialMarking[place.id];
+    if (Array.isArray(marking) && marking.length > 0) {
+      for (let tokenIndex = 0; tokenIndex < marking.length; tokenIndex++) {
         const token: Record<string, number> = {};
         for (let colIndex = 0; colIndex < dimensions; colIndex++) {
           const dimensionName = placeType.elements[colIndex]!.name;
-          token[dimensionName] =
-            marking.values[tokenIndex * dimensions + colIndex] ?? 0;
+          token[dimensionName] = marking[tokenIndex]?.[dimensionName] ?? 0;
         }
         tokens.push(token);
       }

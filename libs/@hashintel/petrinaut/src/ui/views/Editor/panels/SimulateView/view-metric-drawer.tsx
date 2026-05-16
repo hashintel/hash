@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
@@ -7,7 +6,7 @@ import { Drawer } from "../../../../components/drawer";
 import { metricSchema } from "../../../../../core/schemas/metric-schema";
 import type { Metric } from "../../../../../core/types/sdcpn";
 import { LanguageClientContext } from "../../../../../react/lsp/context";
-import { compileMetric } from "../../../../../core/simulation/compile-metric";
+import { compileMetric } from "../../../../../core/simulation/authoring/metric/compile-metric";
 import { MutationContext } from "../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import {
@@ -20,10 +19,6 @@ import {
 import { summarizeMetricLspErrors } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
 import { ScenarioErrorDisplay } from "./scenario-error-display";
-
-const bodyStyle = css({
-  paddingY: "[0]",
-});
 
 // -- Defaults -----------------------------------------------------------------
 
@@ -164,7 +159,7 @@ const ViewMetricContent = ({
     <>
       <Drawer.Card onClose={onClose}>
         <Drawer.Header>{metric.name}</Drawer.Header>
-        <Drawer.Body className={bodyStyle}>
+        <Drawer.Body>
           <MetricFormBody
             form={form}
             idPrefix="view-"

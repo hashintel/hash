@@ -26,10 +26,12 @@ export function usePlaybackMode(): PlayMode {
   return use(PlaybackContext).playMode;
 }
 
-/** Currently displayed frame data, or `null` if no simulation is running. */
-export function useCurrentFrame(): PlaybackContextValue["currentFrame"] {
-  return use(PlaybackContext).currentFrame;
+/** Reader for the currently displayed frame, or `null` if no simulation is running. */
+export function useCurrentFrameReader(): PlaybackContextValue["currentFrameReader"] {
+  return use(PlaybackContext).currentFrameReader;
 }
+
+export const useCurrentFrame = useCurrentFrameReader;
 
 /** Simplified, UI-shaped view of the current frame. */
 export function useCurrentViewedFrame(): PlaybackContextValue["currentViewedFrame"] {
