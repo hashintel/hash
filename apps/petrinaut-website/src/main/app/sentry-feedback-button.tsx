@@ -4,12 +4,12 @@ import * as Sentry from "@sentry/react";
 import { MdBugReport } from "react-icons/md";
 
 const feedbackButtonStyle = css({
-  backgroundColor: "purple.a90 !important",
-  borderColor: "purple.a120 !important",
+  backgroundColor: "purple.a85 !important",
+  borderColor: "purple.a100 !important",
   color: "white !important",
   _hover: {
-    backgroundColor: "purple.a85 !important",
-    borderColor: "purple.a100 !important",
+    backgroundColor: "purple.a80 !important",
+    borderColor: "purple.a85 !important",
   },
 });
 
