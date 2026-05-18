@@ -11,15 +11,18 @@ type NumberType<T extends boolean | undefined> = T extends true
   ? number
   : number | null;
 
+const integerBlockedKeys = new Set([".", "e", "E", "+"]);
+
 export const NumberInput = <RequiredType extends boolean | undefined>({
   type,
   value,
   min = 0,
   max = Number.MAX_SAFE_INTEGER,
-  pattern,
+  inputMode,
   onChange,
   onFocus,
   onBlur,
+  onKeyDown,
   ...props
 }: Omit<
   BaseInputProps,
@@ -48,7 +51,7 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
       min={min}
       max={max}
       step={type === "integer" ? 1 : undefined}
-      pattern={pattern ?? (type === "integer" ? "-?\\d+" : undefined)}
+      inputMode={(inputMode ?? type === "integer") ? "numeric" : "decimal"}
       onFocus={(event) => {
         onFocus?.(event);
         event.target.addEventListener("wheel", preventWheel, {
@@ -59,9 +62,23 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
         onBlur?.(event);
         event.target.removeEventListener("wheel", preventWheel);
       }}
+      onKeyDown={(event) => {
+        onKeyDown?.(event);
+        if (
+          type === "integer" &&
+          !event.defaultPrevented &&
+          integerBlockedKeys.has(event.key)
+        ) {
+          event.preventDefault();
+        }
+      }}
       onChange={(newValue, event) => {
-        const parsed =
+        const parsedRaw =
           type === "integer" ? parseInt(newValue, 10) : parseFloat(newValue);
+        const parsed =
+          type === "integer" && !Number.isNaN(parsedRaw)
+            ? Math.trunc(parsedRaw)
+            : parsedRaw;
         onChange(
           (Number.isNaN(parsed) ? null : parsed) as NumberType<RequiredType>,
           event,
