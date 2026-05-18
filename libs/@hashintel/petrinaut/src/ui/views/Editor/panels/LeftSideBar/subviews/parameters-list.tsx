@@ -81,7 +81,7 @@ const ParameterRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
           icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
-          onClick: () => removeParameter(item.id),
+          onClick: () => removeParameter({ parameterId: item.id }),
         },
       ]}
     />

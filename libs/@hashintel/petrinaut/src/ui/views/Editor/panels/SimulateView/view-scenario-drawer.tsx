@@ -148,13 +148,15 @@ const ViewScenarioContent = ({
       if (!result.success) {
         return;
       }
-      updateScenario(scenario.id, (draft) => {
-        // Replace each field on the immer/structuredClone draft.
-        draft.name = result.data.name;
-        draft.description = result.data.description;
-        draft.scenarioParameters = result.data.scenarioParameters;
-        draft.parameterOverrides = result.data.parameterOverrides;
-        draft.initialState = result.data.initialState;
+      updateScenario({
+        scenarioId: scenario.id,
+        update: {
+          name: result.data.name,
+          description: result.data.description,
+          scenarioParameters: result.data.scenarioParameters,
+          parameterOverrides: result.data.parameterOverrides,
+          initialState: result.data.initialState,
+        },
       });
       onClose();
     },

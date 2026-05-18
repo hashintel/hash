@@ -7,6 +7,7 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../../../core/types/sdcpn";
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { DiffEqPropertiesContext } from "./context";
 import { diffEqMainContentSubView } from "./subviews/main";
 
@@ -23,10 +24,7 @@ interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
   types: Color[];
   places: Place[];
-  updateDifferentialEquation: (
-    equationId: string,
-    updateFn: (equation: DifferentialEquation) => void,
-  ) => void;
+  updateDifferentialEquation: MutationContextValue["updateDifferentialEquation"];
 }
 
 export const DifferentialEquationProperties: React.FC<

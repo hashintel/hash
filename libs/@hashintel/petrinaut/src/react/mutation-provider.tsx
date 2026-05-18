@@ -1,7 +1,5 @@
 import { use, type ReactNode } from "react";
 
-import { generateArcId } from "../core/arc-id";
-import type { SDCPN } from "../core/types/sdcpn";
 import {
   MutationContext,
   type MutationContextValue,
@@ -11,10 +9,9 @@ import { useIsReadOnly } from "./state/use-is-read-only";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
 
 /**
- * Bridge: provides the legacy {@link MutationContext} surface, delegating all
- * writes to the Core instance's `mutate`. Read-only checks honour the editor
- * mode (which lives in `EditorContext`) — only `readonly` blocks scenario
- * mutations.
+ * Provides the mutation context surface, delegating all writes to the Core
+ * instance's actions. Read-only checks honour the editor mode (which lives in
+ * `EditorContext`) — only `readonly` blocks scenario mutations.
  */
 export const MutationProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -23,481 +20,193 @@ export const MutationProvider: React.FC<{ children: ReactNode }> = ({
   const { readonly } = use(SDCPNContext);
   const isReadOnly = useIsReadOnly();
 
-  function guardedMutate(fn: (sdcpn: SDCPN) => void): void {
+  function guardedMutate(callback: () => void): void {
     if (isReadOnly) {
       return;
     }
-    instance.mutate(fn);
+    callback();
   }
 
   /**
    * Scenario CRUD is allowed even in simulate mode (the Simulate panel is
    * where scenarios are managed). Only true `readonly` blocks them.
    */
-  function scenarioMutate(fn: (sdcpn: SDCPN) => void): void {
+  function scenarioMutate(callback: () => void): void {
     if (readonly) {
       return;
     }
-    instance.mutate(fn);
+    callback();
   }
 
   const value: MutationContextValue = {
     addPlace(place) {
-      guardedMutate((sdcpn) => {
-        sdcpn.places.push(place);
+      guardedMutate(() => {
+        instance.addPlace(place);
       });
     },
-    updatePlace(placeId, updateFn) {
-      guardedMutate((sdcpn) => {
-        for (const place of sdcpn.places) {
-          if (place.id === placeId) {
-            updateFn(place);
-            break;
-          }
-        }
+    updatePlace(input) {
+      guardedMutate(() => {
+        instance.updatePlace(input);
       });
     },
-    updatePlacePosition(placeId, position) {
-      guardedMutate((sdcpn) => {
-        for (const place of sdcpn.places) {
-          if (place.id === placeId) {
-            place.x = position.x;
-            place.y = position.y;
-            break;
-          }
-        }
+    updatePlacePosition(input) {
+      guardedMutate(() => {
+        instance.updatePlacePosition(input);
       });
     },
-    removePlace(placeId) {
-      guardedMutate((sdcpn) => {
-        for (const [placeIndex, place] of sdcpn.places.entries()) {
-          if (place.id === placeId) {
-            sdcpn.places.splice(placeIndex, 1);
-
-            // Iterate backwards to avoid skipping entries when splicing
-            for (const transition of sdcpn.transitions) {
-              for (let i = transition.inputArcs.length - 1; i >= 0; i--) {
-                if (transition.inputArcs[i]!.placeId === placeId) {
-                  transition.inputArcs.splice(i, 1);
-                }
-              }
-              for (let i = transition.outputArcs.length - 1; i >= 0; i--) {
-                if (transition.outputArcs[i]!.placeId === placeId) {
-                  transition.outputArcs.splice(i, 1);
-                }
-              }
-            }
-            break;
-          }
-        }
+    removePlace(input) {
+      guardedMutate(() => {
+        instance.removePlace(input);
       });
     },
     addTransition(transition) {
-      guardedMutate((sdcpn) => {
-        sdcpn.transitions.push(transition);
+      guardedMutate(() => {
+        instance.addTransition(transition);
       });
     },
-    updateTransition(transitionId, updateFn) {
-      guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
-          if (transition.id === transitionId) {
-            updateFn(transition);
-            break;
-          }
-        }
+    updateTransition(input) {
+      guardedMutate(() => {
+        instance.updateTransition(input);
       });
     },
-    updateTransitionPosition(transitionId, position) {
-      guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
-          if (transition.id === transitionId) {
-            transition.x = position.x;
-            transition.y = position.y;
-            break;
-          }
-        }
+    updateTransitionPosition(input) {
+      guardedMutate(() => {
+        instance.updateTransitionPosition(input);
       });
     },
-    removeTransition(transitionId) {
-      guardedMutate((sdcpn) => {
-        for (const [index, transition] of sdcpn.transitions.entries()) {
-          if (transition.id === transitionId) {
-            sdcpn.transitions.splice(index, 1);
-            break;
-          }
-        }
+    removeTransition(input) {
+      guardedMutate(() => {
+        instance.removeTransition(input);
       });
     },
-    addArc(transitionId, arcDirection, placeId, weight) {
-      guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
-          if (transition.id === transitionId) {
-            if (arcDirection === "input") {
-              transition["inputArcs"].push({
-                type: "standard",
-                placeId,
-                weight,
-              });
-            } else {
-              transition["outputArcs"].push({ placeId, weight });
-            }
-            break;
-          }
-        }
+    addArc(input) {
+      guardedMutate(() => {
+        instance.addArc(input);
       });
     },
-    removeArc(transitionId, arcDirection, placeId) {
-      guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
-          if (transition.id === transitionId) {
-            for (const [index, arc] of transition[
-              arcDirection === "input" ? "inputArcs" : "outputArcs"
-            ].entries()) {
-              if (arc.placeId === placeId) {
-                transition[
-                  arcDirection === "input" ? "inputArcs" : "outputArcs"
-                ].splice(index, 1);
-                break;
-              }
-            }
-            break;
-          }
-        }
+    removeArc(input) {
+      guardedMutate(() => {
+        instance.removeArc(input);
       });
     },
-    updateArcWeight(transitionId, arcDirection, placeId, weight) {
-      guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
-          if (transition.id === transitionId) {
-            for (const arc of transition[
-              arcDirection === "input" ? "inputArcs" : "outputArcs"
-            ]) {
-              if (arc.placeId === placeId) {
-                arc.weight = weight;
-                break;
-              }
-            }
-            break;
-          }
-        }
+    updateArcWeight(input) {
+      guardedMutate(() => {
+        instance.updateArcWeight(input);
       });
     },
-    updateArcType(transitionId, placeId, type) {
-      guardedMutate((sdcpn) => {
-        for (const transition of sdcpn.transitions) {
-          if (transition.id === transitionId) {
-            for (const arc of transition["inputArcs"]) {
-              if (arc.placeId === placeId) {
-                arc.type = type;
-                break;
-              }
-            }
-            break;
-          }
-        }
+    updateArcType(input) {
+      guardedMutate(() => {
+        instance.updateArcType(input);
+      });
+    },
+    updateArcPlace(input) {
+      guardedMutate(() => {
+        instance.updateArcPlace(input);
       });
     },
     addType(type) {
-      guardedMutate((sdcpn) => {
-        sdcpn.types.push(type);
+      guardedMutate(() => {
+        instance.addType(type);
       });
     },
-    updateType(typeId, updateFn) {
-      guardedMutate((sdcpn) => {
-        for (const type of sdcpn.types) {
-          if (type.id === typeId) {
-            updateFn(type);
-            break;
-          }
-        }
+    updateType(input) {
+      guardedMutate(() => {
+        instance.updateType(input);
       });
     },
-    removeType(typeId) {
-      guardedMutate((sdcpn) => {
-        for (const [index, type] of sdcpn.types.entries()) {
-          if (type.id === typeId) {
-            sdcpn.types.splice(index, 1);
-            break;
-          }
-        }
-        for (const place of sdcpn.places) {
-          if (place.colorId === typeId) {
-            place.colorId = null;
-          }
-        }
-        for (const equation of sdcpn.differentialEquations) {
-          if (equation.colorId === typeId) {
-            equation.colorId = "";
-          }
-        }
+    removeType(input) {
+      guardedMutate(() => {
+        instance.removeType(input);
+      });
+    },
+    addTypeElement(input) {
+      guardedMutate(() => {
+        instance.addTypeElement(input);
+      });
+    },
+    updateTypeElement(input) {
+      guardedMutate(() => {
+        instance.updateTypeElement(input);
+      });
+    },
+    removeTypeElement(input) {
+      guardedMutate(() => {
+        instance.removeTypeElement(input);
+      });
+    },
+    moveTypeElement(input) {
+      guardedMutate(() => {
+        instance.moveTypeElement(input);
       });
     },
     addDifferentialEquation(equation) {
-      guardedMutate((sdcpn) => {
-        sdcpn.differentialEquations.push(equation);
+      guardedMutate(() => {
+        instance.addDifferentialEquation(equation);
       });
     },
-    updateDifferentialEquation(equationId, updateFn) {
-      guardedMutate((sdcpn) => {
-        for (const equation of sdcpn.differentialEquations) {
-          if (equation.id === equationId) {
-            updateFn(equation);
-            break;
-          }
-        }
+    updateDifferentialEquation(input) {
+      guardedMutate(() => {
+        instance.updateDifferentialEquation(input);
       });
     },
-    removeDifferentialEquation(equationId) {
-      guardedMutate((sdcpn) => {
-        for (const [index, equation] of sdcpn.differentialEquations.entries()) {
-          if (equation.id === equationId) {
-            sdcpn.differentialEquations.splice(index, 1);
-            break;
-          }
-        }
-        for (const place of sdcpn.places) {
-          if (place.differentialEquationId === equationId) {
-            place.differentialEquationId = null;
-          }
-        }
+    removeDifferentialEquation(input) {
+      guardedMutate(() => {
+        instance.removeDifferentialEquation(input);
       });
     },
     addParameter(parameter) {
-      guardedMutate((sdcpn) => {
-        sdcpn.parameters.push(parameter);
+      guardedMutate(() => {
+        instance.addParameter(parameter);
       });
     },
-    updateParameter(parameterId, updateFn) {
-      guardedMutate((sdcpn) => {
-        for (const parameter of sdcpn.parameters) {
-          if (parameter.id === parameterId) {
-            updateFn(parameter);
-            break;
-          }
-        }
+    updateParameter(input) {
+      guardedMutate(() => {
+        instance.updateParameter(input);
       });
     },
-    removeParameter(parameterId) {
-      guardedMutate((sdcpn) => {
-        for (const [index, parameter] of sdcpn.parameters.entries()) {
-          if (parameter.id === parameterId) {
-            sdcpn.parameters.splice(index, 1);
-            break;
-          }
-        }
+    removeParameter(input) {
+      guardedMutate(() => {
+        instance.removeParameter(input);
       });
     },
     addScenario(scenario) {
-      scenarioMutate((sdcpn) => {
-        const scenarios = sdcpn.scenarios ?? [];
-        scenarios.push(scenario);
-        // eslint-disable-next-line no-param-reassign -- mutating draft inside immer/structuredClone
-        sdcpn.scenarios = scenarios;
+      scenarioMutate(() => {
+        instance.addScenario(scenario);
       });
     },
-    updateScenario(scenarioId, updateFn) {
-      scenarioMutate((sdcpn) => {
-        for (const scenario of sdcpn.scenarios ?? []) {
-          if (scenario.id === scenarioId) {
-            updateFn(scenario);
-            break;
-          }
-        }
+    updateScenario(input) {
+      scenarioMutate(() => {
+        instance.updateScenario(input);
       });
     },
-    removeScenario(scenarioId) {
-      scenarioMutate((sdcpn) => {
-        const scenarios = sdcpn.scenarios;
-        if (!scenarios) {
-          return;
-        }
-        for (const [index, scenario] of scenarios.entries()) {
-          if (scenario.id === scenarioId) {
-            scenarios.splice(index, 1);
-            break;
-          }
-        }
+    removeScenario(input) {
+      scenarioMutate(() => {
+        instance.removeScenario(input);
       });
     },
     addMetric(metric) {
-      scenarioMutate((sdcpn) => {
-        const metrics = sdcpn.metrics ?? [];
-        metrics.push(metric);
-        // eslint-disable-next-line no-param-reassign -- mutating draft inside immer/structuredClone
-        sdcpn.metrics = metrics;
+      scenarioMutate(() => {
+        instance.addMetric(metric);
       });
     },
-    updateMetric(metricId, updateFn) {
-      scenarioMutate((sdcpn) => {
-        for (const metric of sdcpn.metrics ?? []) {
-          if (metric.id === metricId) {
-            updateFn(metric);
-            break;
-          }
-        }
+    updateMetric(input) {
+      scenarioMutate(() => {
+        instance.updateMetric(input);
       });
     },
-    removeMetric(metricId) {
-      scenarioMutate((sdcpn) => {
-        const metrics = sdcpn.metrics;
-        if (!metrics) {
-          return;
-        }
-        for (const [index, metric] of metrics.entries()) {
-          if (metric.id === metricId) {
-            metrics.splice(index, 1);
-            break;
-          }
-        }
+    removeMetric(input) {
+      scenarioMutate(() => {
+        instance.removeMetric(input);
       });
     },
-    deleteItemsByIds(items) {
-      guardedMutate((sdcpn) => {
-        const placeIds = new Set<string>();
-        const transitionIds = new Set<string>();
-        const arcIds = new Set<string>();
-        const typeIds = new Set<string>();
-        const equationIds = new Set<string>();
-        const parameterIds = new Set<string>();
-
-        for (const [id, item] of items) {
-          switch (item.type) {
-            case "place":
-              placeIds.add(id);
-              break;
-            case "transition":
-              transitionIds.add(id);
-              break;
-            case "arc":
-              arcIds.add(id);
-              break;
-            case "type":
-              typeIds.add(id);
-              break;
-            case "differentialEquation":
-              equationIds.add(id);
-              break;
-            case "parameter":
-              parameterIds.add(id);
-              break;
-          }
-        }
-
-        const hasCanvasDeletes =
-          placeIds.size > 0 || transitionIds.size > 0 || arcIds.size > 0;
-
-        if (hasCanvasDeletes) {
-          for (let i = sdcpn.transitions.length - 1; i >= 0; i--) {
-            const transition = sdcpn.transitions[i]!;
-            if (transitionIds.has(transition.id)) {
-              sdcpn.transitions.splice(i, 1);
-              continue;
-            }
-
-            for (
-              let inputArcIndex = transition.inputArcs.length - 1;
-              inputArcIndex >= 0;
-              inputArcIndex--
-            ) {
-              const inputArc = transition.inputArcs[inputArcIndex]!;
-              const arcId = generateArcId({
-                inputId: inputArc.placeId,
-                outputId: transition.id,
-              });
-
-              if (arcIds.has(arcId) || placeIds.has(inputArc.placeId)) {
-                transition.inputArcs.splice(inputArcIndex, 1);
-              }
-            }
-
-            for (
-              let outputArcIndex = transition.outputArcs.length - 1;
-              outputArcIndex >= 0;
-              outputArcIndex--
-            ) {
-              const outputArc = transition.outputArcs[outputArcIndex]!;
-              const arcId = generateArcId({
-                inputId: transition.id,
-                outputId: outputArc.placeId,
-              });
-
-              if (arcIds.has(arcId) || placeIds.has(outputArc.placeId)) {
-                transition.outputArcs.splice(outputArcIndex, 1);
-              }
-            }
-          }
-
-          for (let i = sdcpn.places.length - 1; i >= 0; i--) {
-            if (placeIds.has(sdcpn.places[i]!.id)) {
-              sdcpn.places.splice(i, 1);
-            }
-          }
-        }
-
-        if (typeIds.size > 0) {
-          for (let i = sdcpn.types.length - 1; i >= 0; i--) {
-            if (typeIds.has(sdcpn.types[i]!.id)) {
-              sdcpn.types.splice(i, 1);
-            }
-          }
-          for (const place of sdcpn.places) {
-            if (place.colorId && typeIds.has(place.colorId)) {
-              place.colorId = null;
-            }
-          }
-          for (const equation of sdcpn.differentialEquations) {
-            if (typeIds.has(equation.colorId)) {
-              equation.colorId = "";
-            }
-          }
-        }
-
-        if (equationIds.size > 0) {
-          for (let i = sdcpn.differentialEquations.length - 1; i >= 0; i--) {
-            if (equationIds.has(sdcpn.differentialEquations[i]!.id)) {
-              sdcpn.differentialEquations.splice(i, 1);
-            }
-          }
-          for (const place of sdcpn.places) {
-            if (
-              place.differentialEquationId &&
-              equationIds.has(place.differentialEquationId)
-            ) {
-              place.differentialEquationId = null;
-            }
-          }
-        }
-
-        if (parameterIds.size > 0) {
-          for (let i = sdcpn.parameters.length - 1; i >= 0; i--) {
-            if (parameterIds.has(sdcpn.parameters[i]!.id)) {
-              sdcpn.parameters.splice(i, 1);
-            }
-          }
-        }
+    deleteItemsByIds(input) {
+      guardedMutate(() => {
+        instance.deleteItemsByIds(input);
       });
     },
-    commitNodePositions(commits) {
-      guardedMutate((sdcpn) => {
-        for (const { id, itemType, position } of commits) {
-          if (itemType === "place") {
-            for (const place of sdcpn.places) {
-              if (place.id === id) {
-                place.x = position.x;
-                place.y = position.y;
-                break;
-              }
-            }
-          } else {
-            for (const transition of sdcpn.transitions) {
-              if (transition.id === id) {
-                transition.x = position.x;
-                transition.y = position.y;
-                break;
-              }
-            }
-          }
-        }
+    commitNodePositions(input) {
+      guardedMutate(() => {
+        instance.commitNodePositions(input);
       });
     },
   };

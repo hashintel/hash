@@ -8,7 +8,7 @@ import { z } from "zod";
  * Valid:   "Quality Check", "Start Production", "My Transition 2"
  * Invalid: "", "   "
  */
-const displayNameSchema = z
+export const displayNameSchema = z
   .string()
   .trim()
   .check(

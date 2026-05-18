@@ -38,6 +38,8 @@ export type {
   EventStream,
   Petrinaut as PetrinautInstance,
 } from "./core/instance";
+export { createPetrinautActions } from "./core/actions";
+export type { MutationHelperFunctions } from "./core/actions";
 export {
   createSimulation,
   createWorkerTransport,

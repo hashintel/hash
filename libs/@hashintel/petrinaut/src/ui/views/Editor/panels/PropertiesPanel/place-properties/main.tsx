@@ -3,6 +3,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import type { Color, Place } from "../../../../../../core/types/sdcpn";
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { PlacePropertiesProvider } from "./context";
 import { placeMainContentSubView } from "./subviews/main";
@@ -25,7 +26,7 @@ const subViews: SubView[] = [
 interface PlacePropertiesProps {
   place: Place;
   types: Color[];
-  updatePlace: (placeId: string, updateFn: (place: Place) => void) => void;
+  updatePlace: MutationContextValue["updatePlace"];
 }
 
 export const PlaceProperties: React.FC<PlacePropertiesProps> = ({

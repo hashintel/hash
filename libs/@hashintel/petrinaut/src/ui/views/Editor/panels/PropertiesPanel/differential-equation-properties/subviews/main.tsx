@@ -1,6 +1,6 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
@@ -18,6 +18,7 @@ import {
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { validateDisplayName } from "../../../../../../../core/validation/display-name";
 import { useDiffEqPropertiesContext } from "../context";
 
 const colorDotStyle = css({
@@ -85,12 +86,24 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
+const errorMessageStyle = css({
+  fontSize: "xs",
+  color: "red.s100",
+});
+
 const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places, updateDifferentialEquation } =
     useDiffEqPropertiesContext();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState(differentialEquation.name);
+  const [nameError, setNameError] = useState<string | null>(null);
   const isReadOnly = useIsReadOnly();
+
+  useEffect(() => {
+    setNameInput(differentialEquation.name);
+    setNameError(null);
+  }, [differentialEquation.id, differentialEquation.name]);
 
   const placesUsingEquation = places.filter((place) => {
     if (!place.differentialEquationId) {
@@ -107,23 +120,19 @@ const DiffEqMainContent: React.FC = () => {
       setPendingTypeId(newTypeId);
       setShowConfirmDialog(true);
     } else {
-      updateDifferentialEquation(
-        differentialEquation.id,
-        (existingEquation) => {
-          existingEquation.colorId = newTypeId;
-        },
-      );
+      updateDifferentialEquation({
+        equationId: differentialEquation.id,
+        update: { colorId: newTypeId },
+      });
     }
   };
 
   const confirmTypeChange = () => {
     if (pendingTypeId !== null) {
-      updateDifferentialEquation(
-        differentialEquation.id,
-        (existingEquation) => {
-          existingEquation.colorId = pendingTypeId;
-        },
-      );
+      updateDifferentialEquation({
+        equationId: differentialEquation.id,
+        update: { colorId: pendingTypeId },
+      });
     }
     setShowConfirmDialog(false);
     setPendingTypeId(null);
@@ -138,23 +147,39 @@ const DiffEqMainContent: React.FC = () => {
     <SectionList>
       <Section title="Name">
         <Input
-          value={differentialEquation.name}
+          value={nameInput}
           onChange={(event) => {
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.name = event.target.value;
-              },
-            );
+            setNameInput(event.target.value);
+            if (nameError) {
+              setNameError(null);
+            }
+          }}
+          onBlur={() => {
+            const result = validateDisplayName(nameInput);
+
+            if (!result.valid) {
+              setNameError(result.error);
+              return;
+            }
+
+            setNameError(null);
+            if (result.name !== differentialEquation.name) {
+              updateDifferentialEquation({
+                equationId: differentialEquation.id,
+                update: { name: result.name },
+              });
+            }
           }}
           disabled={isReadOnly}
+          hasError={!!nameError}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
+        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
       </Section>
 
       <Section title="Associated Type">
         <Select
-          value={differentialEquation.colorId}
+          value={differentialEquation.colorId ?? undefined}
           onValueChange={handleTypeChange}
           options={types.map((type) => ({
             value: type.id,
@@ -262,12 +287,10 @@ const DiffEqMainContent: React.FC = () => {
           value={differentialEquation.code}
           height="100%"
           onChange={(newCode) => {
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.code = newCode ?? "";
-              },
-            );
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: { code: newCode ?? "" },
+            });
           }}
           options={{ readOnly: isReadOnly }}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
@@ -308,14 +331,14 @@ const DiffEqCodeAction: React.FC = () => {
               (tp) => tp.id === differentialEquation.colorId,
             );
 
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.code = equationType
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: {
+                code: equationType
                   ? generateDefaultDifferentialEquationCode(equationType)
-                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
+                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
               },
-            );
+            });
           },
         },
         {

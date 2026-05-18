@@ -1,68 +1,74 @@
 import { z } from "zod";
 
+import {
+  colorElementSchema as currentColorElementSchema,
+  colorSchema as currentColorSchema,
+  differentialEquationSchema as currentDifferentialEquationSchema,
+  inputArcSchema as currentInputArcSchema,
+  outputArcSchema as currentOutputArcSchema,
+  parameterSchema as currentParameterSchema,
+  placeSchema as currentPlaceSchema,
+  transitionSchema as currentTransitionSchema,
+} from "../schemas/entity-schemas";
+
 export const CLIPBOARD_FORMAT_VERSION = 1;
 
+const clipboardPlaceShape = currentPlaceSchema.omit({
+  showAsInitialState: true,
+}).shape;
+
 const inputArcSchema = z.object({
-  placeId: z.string(),
-  weight: z.number(),
+  ...currentInputArcSchema.shape,
   type: z.enum(["standard", "inhibitor"]).optional().default("standard"),
 });
 
 const outputArcSchema = z.object({
-  placeId: z.string(),
-  weight: z.number(),
+  ...currentOutputArcSchema.shape,
 });
 
+/*
+ * Clipboard payloads represent an in-memory selected subgraph rather than a
+ * full import/export file: positions and visual type fields are required, but
+ * scenarios/metrics are intentionally excluded.
+ */
 const placeSchema = z.object({
+  ...clipboardPlaceShape,
   id: z.string(),
   name: z.string(),
-  colorId: z.string().nullable(),
-  dynamicsEnabled: z.boolean(),
-  differentialEquationId: z.string().nullable(),
-  visualizerCode: z.string().optional(),
-  x: z.number(),
-  y: z.number(),
 });
 
 const transitionSchema = z.object({
+  ...currentTransitionSchema.shape,
   id: z.string(),
   name: z.string(),
   inputArcs: z.array(inputArcSchema),
   outputArcs: z.array(outputArcSchema),
-  lambdaType: z.enum(["predicate", "stochastic"]),
-  lambdaCode: z.string(),
-  transitionKernelCode: z.string(),
-  x: z.number(),
-  y: z.number(),
 });
 
 const colorElementSchema = z.object({
+  ...currentColorElementSchema.shape,
   elementId: z.string(),
   name: z.string(),
-  type: z.enum(["real", "integer", "boolean"]),
 });
 
 const colorSchema = z.object({
+  ...currentColorSchema.shape,
   id: z.string(),
   name: z.string(),
-  iconSlug: z.string(),
-  displayColor: z.string(),
   elements: z.array(colorElementSchema),
 });
 
 const differentialEquationSchema = z.object({
+  ...currentDifferentialEquationSchema.shape,
   id: z.string(),
   name: z.string(),
-  colorId: z.string(),
-  code: z.string(),
+  colorId: z.string().nullable(),
 });
 
 const parameterSchema = z.object({
+  ...currentParameterSchema.shape,
   id: z.string(),
   name: z.string(),
-  variableName: z.string(),
-  type: z.enum(["real", "integer", "boolean"]),
-  defaultValue: z.string(),
 });
 
 export const clipboardPayloadSchema = z.object({

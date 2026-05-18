@@ -64,7 +64,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
 
   // Generate files for each differential equation
   for (const de of sdcpn.differentialEquations) {
-    const sanitizedColorId = sanitizeColorId(de.colorId);
+    const sanitizedColorId = de.colorId ? sanitizeColorId(de.colorId) : null;
     const deDefsPath = getItemFilePath("differential-equation-defs", {
       id: de.id,
     });
@@ -72,17 +72,23 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
       id: de.id,
     });
     const parametersDefsPath = getItemFilePath("parameters-defs");
-    const colorDefsPath = getItemFilePath("color-defs", {
-      colorId: de.colorId,
-    });
+    const colorDefsPath = de.colorId
+      ? getItemFilePath("color-defs", {
+          colorId: de.colorId,
+        })
+      : null;
 
     // Type definitions file
     files.set(deDefsPath, {
       content: [
         `import type { Parameters } from "${parametersDefsPath}";`,
-        `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`,
+        colorDefsPath
+          ? `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`
+          : "",
         ``,
-        `type Tokens = Array<Color_${sanitizedColorId}>;`,
+        sanitizedColorId
+          ? `type Tokens = Array<Color_${sanitizedColorId}>;`
+          : `type Tokens = Array<number>;`,
         `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Tokens) => void;`,
       ].join("\n"),
     });
