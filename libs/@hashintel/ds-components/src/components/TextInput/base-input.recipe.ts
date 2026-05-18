@@ -307,14 +307,14 @@ export const baseInputRecipe = sva({
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
           _before: {
-            background: "transparent",
+            background: "[transparent]",
           },
         },
         clear: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
           _before: {
-            background: "transparent",
+            background: "[transparent]",
           },
         },
         adornment: {
