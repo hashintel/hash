@@ -80,12 +80,17 @@ export const baseInputRecipe = sva({
       _placeholder: { color: "neutral.s80" },
       _disabled: { cursor: "auto" },
 
-      // Hide the number scroll arrows in safari + firefox when not focused
+      // Hide the number step controls in safari + chrome when not focused.
+      // Use opacity (not appearance) so the controls still reserve layout
+      // space — otherwise the input would grow when focus reveals them.
       "&[type=number]:not(:focus)::-webkit-outer-spin-button, &[type=number]:not(:focus)::-webkit-inner-spin-button":
         {
-          WebkitAppearance: "none",
+          opacity: 0,
+          pointerEvents: "none",
         },
-      "&[type=number]:not(:focus)": {
+      // Firefox exposes no public selector for the spin buttons, so we can't
+      // reserve their space. Hide them permanently to keep the width stable.
+      "&[type=number]": {
         // @ts-expect-error moz-appearance is a valid firefox property
         "-moz-appearance": "textfield",
       },
