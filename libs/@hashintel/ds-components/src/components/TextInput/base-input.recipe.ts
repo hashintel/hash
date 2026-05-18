@@ -158,7 +158,7 @@ export const baseInputRecipe = sva({
       position: "absolute",
       zIndex: "1",
       right: "2",
-      paddingRight: "0.5",
+      paddingX: "0.5",
       display: "flex",
       alignItems: "center",
       color: "fg.muted",
@@ -282,6 +282,9 @@ export const baseInputRecipe = sva({
               borderColor: "var(--base-input-border-color)",
             },
           },
+          "&:not(.layer-style_disabled):hover [data-part='edit']": {
+            visibility: "hidden",
+          },
         },
         prefix: {
           paddingLeft: "1",
@@ -303,10 +306,16 @@ export const baseInputRecipe = sva({
         editIcon: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+          _before: {
+            background: "transparent",
+          },
         },
         clear: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+          _before: {
+            background: "transparent",
+          },
         },
         adornment: {
           position: "relative",
