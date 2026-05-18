@@ -1,4 +1,4 @@
-import type { Scenario } from "@hashintel/petrinaut-core/types/sdcpn";
+import type { Scenario } from "@hashintel/petrinaut-core";
 import type { ScenarioFormState } from "./scenario-form";
 
 /**

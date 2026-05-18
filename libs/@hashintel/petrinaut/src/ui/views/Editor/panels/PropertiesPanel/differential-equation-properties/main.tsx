@@ -6,7 +6,7 @@ import type {
   Color,
   DifferentialEquation,
   Place,
-} from "@hashintel/petrinaut-core/types/sdcpn";
+} from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { DiffEqPropertiesContext } from "./context";
 import { diffEqMainContentSubView } from "./subviews/main";

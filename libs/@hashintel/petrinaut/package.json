@@ -29,10 +29,6 @@
       "types": "./dist/main.d.d.ts",
       "default": "./dist/main.js"
     },
-    "./core": {
-      "types": "./dist/core.d.d.ts",
-      "default": "./dist/core.js"
-    },
     "./react": {
       "types": "./dist/react.d.d.ts",
       "default": "./dist/react.js"

@@ -10,11 +10,10 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
 export default defineConfig(({ command }) => ({
   build: {
     lib: {
-      // Four entry points: the legacy `main` (back-compat), plus the
-      // three-way split per RFC 0001. Each emits its own JS + dts bundle.
+      // Three entry points: the legacy `main` (back-compat), plus the
+      // React/UI split per RFC 0001. Each emits its own JS + dts bundle.
       entry: {
         main: "src/main.ts",
-        core: "src/core/index.ts",
         react: "src/react/index.ts",
         ui: "src/ui/index.ts",
       },

@@ -1,4 +1,4 @@
-import type { Metric } from "@hashintel/petrinaut-core/types/sdcpn";
+import type { Metric } from "@hashintel/petrinaut-core";
 import type { MetricFormState } from "./metric-form";
 
 /**

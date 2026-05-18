@@ -12,14 +12,14 @@ import { useLatest } from "../../../../../../react/hooks/use-latest";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../../react/playback/context";
 import {
-  type CompiledMetric,
   compileMetric,
-} from "@hashintel/petrinaut-core/simulation/authoring/metric/compile-metric";
+  buildMetricState,
+  type CompiledMetric,
+} from "@hashintel/petrinaut-core";
 import {
   SimulationContext,
   type SimulationFrameReader,
 } from "../../../../../../react/simulation/context";
-import { buildMetricState } from "@hashintel/petrinaut-core/simulation/frames/metric-state";
 import {
   EditorContext,
   type TimelineChartType,

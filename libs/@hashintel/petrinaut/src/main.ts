@@ -1,66 +1,52 @@
 export type { ErrorTracker } from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
 
-// SDCPN domain types (previously re-exported via the legacy `<Petrinaut>`
-// barrel). Kept on the back-compat surface so downstream consumers don't
-// need to switch import paths in the same change that retired the legacy
-// editor entry.
-export type {
-  Color,
-  DifferentialEquation,
-  MinimalNetMetadata,
-  MutateSDCPN,
-  Parameter,
-  Place,
-  SDCPN,
-  Transition,
-} from "@hashintel/petrinaut-core/types/sdcpn";
 export type { ViewportAction } from "./ui/types/viewport-action";
 
-// SDCPN deep-equality helper (also exported from `/ui`).
-export { isSDCPNEqual } from "@hashintel/petrinaut-core/lib/deep-equal";
-
-export { createJsonDocHandle } from "@hashintel/petrinaut-core/handle";
-export type {
-  CreateJsonDocHandleOptions,
-  DocChangeEvent,
-  DocHandleState,
-  DocumentId,
-  HistoryEntry,
-  PetrinautDocHandle,
-  PetrinautHistory,
-  PetrinautPatch,
-  ReadableStore,
-} from "@hashintel/petrinaut-core/handle";
-export { createPetrinaut } from "@hashintel/petrinaut-core/instance";
-export type {
-  CreatePetrinautConfig,
-  EventStream,
-  Petrinaut as PetrinautInstance,
-} from "@hashintel/petrinaut-core/instance";
-export { createPetrinautActions } from "@hashintel/petrinaut-core/actions";
-export type { MutationHelperFunctions } from "@hashintel/petrinaut-core/actions";
 export {
+  createJsonDocHandle,
+  createPetrinaut,
+  createPetrinautActions,
   createSimulation,
   createWorkerTransport,
-} from "@hashintel/petrinaut-core/simulation";
-export type {
-  BackpressureConfig,
-  CreateSimulationConfig,
-  InitialMarking,
-  Simulation,
-  SimulationCompleteEvent,
-  SimulationConfig,
-  SimulationErrorEvent,
-  SimulationEvent,
-  SimulationFrameReader,
-  SimulationFrameState,
-  SimulationFrameSummary,
-  SimulationPlaceTokenValues,
-  SimulationState,
-  SimulationTransport,
-  WorkerFactory,
-} from "@hashintel/petrinaut-core/simulation";
+  isSDCPNEqual,
+  type BackpressureConfig,
+  type Color,
+  type CreateJsonDocHandleOptions,
+  type CreatePetrinautConfig,
+  type CreateSimulationConfig,
+  type DifferentialEquation,
+  type DocChangeEvent,
+  type DocHandleState,
+  type DocumentId,
+  type EventStream,
+  type HistoryEntry,
+  type MinimalNetMetadata,
+  type MutateSDCPN,
+  type MutationHelperFunctions,
+  type Parameter,
+  type PetrinautDocHandle,
+  type PetrinautHistory,
+  type Petrinaut as PetrinautInstance,
+  type PetrinautPatch,
+  type Place,
+  type ReadableStore,
+  type InitialMarking,
+  type SDCPN,
+  type Simulation,
+  type SimulationCompleteEvent,
+  type SimulationConfig,
+  type SimulationErrorEvent,
+  type SimulationEvent,
+  type SimulationFrameReader,
+  type SimulationFrameState,
+  type SimulationFrameSummary,
+  type SimulationPlaceTokenValues,
+  type SimulationState,
+  type SimulationTransport,
+  type Transition,
+  type WorkerFactory,
+} from "@hashintel/petrinaut-core";
 export { Petrinaut } from "./ui/petrinaut";
 export type { PetrinautProps } from "./ui/petrinaut";
 

@@ -1,7 +1,7 @@
 import { Icon } from "@hashintel/ds-components";
 import { use, useState } from "react";
 
-import type { Metric } from "@hashintel/petrinaut-core/types/sdcpn";
+import type { Metric } from "@hashintel/petrinaut-core";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
 import { Table, type TableColumn } from "../../../../../components/table";

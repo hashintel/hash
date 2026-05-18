@@ -17,7 +17,7 @@ import {
 } from "../../../../../constants/entity-icons";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import type { SelectionItem } from "@hashintel/petrinaut-core/types/selection";
+import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
 

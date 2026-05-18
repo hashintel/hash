@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type { Color, Place } from "@hashintel/petrinaut-core/types/sdcpn";
+import type { Color, Place } from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 
 /**

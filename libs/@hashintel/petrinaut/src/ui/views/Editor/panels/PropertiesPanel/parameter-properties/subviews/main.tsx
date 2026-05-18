@@ -7,8 +7,10 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { ParameterIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { validateDisplayName } from "@hashintel/petrinaut-core/validation/display-name";
-import { validateVariableName } from "@hashintel/petrinaut-core/validation/variable-name";
+import {
+  validateDisplayName,
+  validateVariableName,
+} from "@hashintel/petrinaut-core";
 import { useParameterPropertiesContext } from "../context";
 
 const errorMessageStyle = css({

@@ -7,7 +7,7 @@ import {
   compactNodeDimensions,
 } from "../node-dimensions";
 import { PlaybackContext } from "../../../../react/playback/context";
-import { generateArcId } from "@hashintel/petrinaut-core/arc-id";
+import { generateArcId } from "@hashintel/petrinaut-core";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";

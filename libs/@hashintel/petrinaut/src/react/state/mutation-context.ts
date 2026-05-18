@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { MutationHelperFunctions } from "@hashintel/petrinaut-core/actions";
+import type { MutationHelperFunctions } from "@hashintel/petrinaut-core";
 
 export type MutationContextValue = MutationHelperFunctions;
 

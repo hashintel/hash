@@ -1,6 +1,6 @@
 import { use, type ReactNode } from "react";
 
-import { ARC_ID_PREFIX } from "@hashintel/petrinaut-core/arc-id";
+import { ARC_ID_PREFIX } from "@hashintel/petrinaut-core";
 import { NetManagementContext } from "./net-management-context";
 import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
 import { usePetrinautInstance } from "./use-petrinaut-instance";

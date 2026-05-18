@@ -5,8 +5,10 @@ import { act, render, type RenderResult } from "@testing-library/react";
 import { use } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { PlaceTokenCountDistributionFrame } from "@hashintel/petrinaut-core/simulation";
-import type { SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
+import {
+  type PlaceTokenCountDistributionFrame,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 import {
   NotificationsContext,
   type AddNotificationInput,
@@ -18,7 +20,7 @@ import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
   MonteCarloWorkerProgress,
-} from "@hashintel/petrinaut-core/simulation/monte-carlo/worker/messages";
+} from "@hashintel/petrinaut-core/workers/monte-carlo";
 
 const EMPTY_SDCPN: SDCPN = {
   places: [],

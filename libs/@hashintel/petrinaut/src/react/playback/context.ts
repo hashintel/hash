@@ -6,7 +6,7 @@ import {
   type PlaybackSpeed,
   type PlaybackState,
   type PlayMode,
-} from "@hashintel/petrinaut-core/playback";
+} from "@hashintel/petrinaut-core";
 import type {
   SimulationFrameReader,
   SimulationFrameState,

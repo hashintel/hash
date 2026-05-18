@@ -56,7 +56,6 @@ export type {
 export {
   createMonteCarloExperiment,
   createMonteCarloSimulator,
-  createMonteCarloWorker,
   createPlaceTokenCountDistributionMetric,
   createSimulation,
   createWorkerTransport,
@@ -78,6 +77,7 @@ export type {
   SimulationTransport,
   WorkerFactory,
   InitialMarking,
+  InitialPlaceMarking,
   MonteCarloAdvanceResult,
   MonteCarloActiveRunPlaceCountsVisitor,
   MonteCarloExperiment,
@@ -133,19 +133,17 @@ export type {
 } from "./playback";
 
 // --- Domain types ---
-export type {
-  Color,
-  DifferentialEquation,
-  ID,
-  MinimalNetMetadata,
-  MutateSDCPN,
-  Parameter,
-  Place,
-  SDCPN,
-  Transition,
-} from "./types/sdcpn";
+export type * from "./types/sdcpn";
+export { parseArcId } from "./types/selection";
+export type * from "./types/selection";
 
 // --- Pure utilities ---
+export {
+  ARC_ID_PREFIX,
+  ARC_ID_SEPARATOR,
+  generateArcId,
+  type ArcIdPrefix,
+} from "./arc-id";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,
@@ -153,3 +151,63 @@ export {
   mergeParameterValues,
 } from "./parameter-values";
 export { SDCPNItemError } from "./errors";
+export { isSDCPNEqual } from "./lib/deep-equal";
+export { getNodeConnections } from "./lib/get-connections";
+
+// --- Authoring helpers ---
+export {
+  DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+  DEFAULT_TRANSITION_KERNEL_CODE,
+  DEFAULT_VISUALIZER_CODE,
+  generateDefaultDifferentialEquationCode,
+  generateDefaultLambdaCode,
+  generateDefaultTransitionKernelCode,
+  generateDefaultVisualizerCode,
+} from "./default-codes";
+export {
+  compileMetric,
+  type CompiledMetric,
+  type CompileMetricOutcome,
+  type MetricPlaceState,
+  type MetricState,
+} from "./simulation/authoring/metric/compile-metric";
+export {
+  compileScenario,
+  type CompiledPlaceMarking,
+  type CompiledScenarioResult,
+  type CompileScenarioOptions,
+  type CompileScenarioOutcome,
+  type ScenarioCompilationError,
+  type ScenarioParameterValues,
+} from "./simulation/authoring/scenario/compile-scenario";
+export { buildMetricState } from "./simulation/frames/metric-state";
+export {
+  displayNameSchema,
+  validateDisplayName,
+} from "./validation/display-name";
+export { entityNameSchema, validateEntityName } from "./validation/entity-name";
+export { validateVariableName } from "./validation/variable-name";
+
+// --- File, clipboard, and editor protocol helpers ---
+export {
+  parseSDCPNFile,
+  type ImportResult,
+} from "./file-format/parse-sdcpn-file";
+export { serializeSDCPN } from "./file-format/serialize-sdcpn";
+export { sdcpnToTikZ } from "./file-format/sdcpn-to-tikz";
+export { pastePayloadIntoSDCPN } from "./clipboard/paste";
+export {
+  parseClipboardPayload,
+  serializeSelection,
+} from "./clipboard/serialize";
+export {
+  CLIPBOARD_FORMAT_VERSION,
+  clipboardPayloadSchema,
+  type ClipboardPayload,
+} from "./clipboard/types";
+export {
+  getDocumentUri,
+  getMetricDocumentUri,
+  getScenarioDocumentUri,
+  parseDocumentUri,
+} from "./lsp/lib/document-uris";

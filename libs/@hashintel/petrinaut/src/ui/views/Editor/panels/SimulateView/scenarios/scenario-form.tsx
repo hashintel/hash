@@ -15,7 +15,7 @@ import type {
   Parameter,
   Place,
   ScenarioParameter,
-} from "@hashintel/petrinaut-core/types/sdcpn";
+} from "@hashintel/petrinaut-core";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";

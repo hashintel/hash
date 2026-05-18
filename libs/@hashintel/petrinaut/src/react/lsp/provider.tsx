@@ -1,13 +1,13 @@
 import { use, useEffect, useState } from "react";
 
-import type { ReadableStore } from "@hashintel/petrinaut-core/handle";
 import {
   createLanguageClient,
-  createLanguageServerWorker,
+  type ReadableStore,
   type DiagnosticsSnapshot,
   type LanguageClient,
-} from "@hashintel/petrinaut-core/lsp";
-import type { LspWorkerFactory } from "@hashintel/petrinaut-core/lsp/transport";
+  type LspWorkerFactory,
+} from "@hashintel/petrinaut-core";
+import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/lsp";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
 import { LanguageClientContext } from "./context";

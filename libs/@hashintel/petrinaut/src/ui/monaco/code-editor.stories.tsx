@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { type ReactNode, useRef, useState } from "react";
 
-import type { SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 import { LanguageClientProvider } from "../../react/lsp/provider";
 import {
   SDCPNContext,

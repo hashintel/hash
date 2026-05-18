@@ -9,7 +9,7 @@ import type { SubView } from "../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import type { SelectionItem } from "@hashintel/petrinaut-core/types/selection";
+import type { SelectionItem } from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 

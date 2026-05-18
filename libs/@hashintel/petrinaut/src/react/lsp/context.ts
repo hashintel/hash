@@ -11,7 +11,7 @@ import type {
 import type {
   MetricSessionParams,
   ScenarioSessionParams,
-} from "@hashintel/petrinaut-core/lsp/worker/protocol";
+} from "@hashintel/petrinaut-core/workers/lsp";
 
 export interface LanguageClientContextValue {
   /** Per-URI diagnostics pushed from the language server. */

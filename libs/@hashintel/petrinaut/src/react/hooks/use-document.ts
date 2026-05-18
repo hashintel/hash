@@ -1,11 +1,11 @@
 import { use, useEffect, useRef } from "react";
 
-import type {
-  DocHandleState,
-  DocumentId,
-  PetrinautPatch,
-} from "@hashintel/petrinaut-core/handle";
-import type { SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
+import {
+  type DocHandleState,
+  type DocumentId,
+  type PetrinautPatch,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { usePetrinautInstance } from "../use-petrinaut-instance";
 import { useStore } from "../use-store";

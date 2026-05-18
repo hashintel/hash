@@ -3,8 +3,7 @@ import { use } from "react";
 
 import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
-import { metricSchema } from "@hashintel/petrinaut-core/schemas/metric-schema";
-import { compileMetric } from "@hashintel/petrinaut-core/simulation/authoring/metric/compile-metric";
+import { metricSchema, compileMetric } from "@hashintel/petrinaut-core";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";

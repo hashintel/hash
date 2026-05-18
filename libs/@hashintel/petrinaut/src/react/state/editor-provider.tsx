@@ -1,7 +1,10 @@
 import { use, useRef, useState } from "react";
 
-import { getNodeConnections } from "@hashintel/petrinaut-core/lib/get-connections";
-import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core/types/selection";
+import {
+  getNodeConnections,
+  type SelectionItem,
+  type SelectionMap,
+} from "@hashintel/petrinaut-core";
 import {
   type DraggingStateByNodeId,
   type EditorActions,

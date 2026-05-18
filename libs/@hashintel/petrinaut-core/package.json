@@ -30,25 +30,17 @@
       "types": "./dist/examples/index.d.d.ts",
       "import": "./dist/examples/index.js"
     },
-    "./lsp": {
-      "types": "./dist/lsp/index.d.d.ts",
-      "import": "./dist/lsp/index.js"
+    "./workers/lsp": {
+      "types": "./dist/workers/lsp.d.d.ts",
+      "import": "./dist/workers/lsp.js"
     },
-    "./playback": {
-      "types": "./dist/playback/index.d.d.ts",
-      "import": "./dist/playback/index.js"
+    "./workers/monte-carlo": {
+      "types": "./dist/workers/monte-carlo.d.d.ts",
+      "import": "./dist/workers/monte-carlo.js"
     },
-    "./simulation": {
-      "types": "./dist/simulation/index.d.d.ts",
-      "import": "./dist/simulation/index.js"
-    },
-    "./simulation/monte-carlo": {
-      "types": "./dist/simulation/monte-carlo/index.d.d.ts",
-      "import": "./dist/simulation/monte-carlo/index.js"
-    },
-    "./*": {
-      "types": "./dist/*.d.d.ts",
-      "import": "./dist/*.js"
+    "./workers/simulation": {
+      "types": "./dist/workers/simulation.d.d.ts",
+      "import": "./dist/workers/simulation.js"
     },
     "./package.json": "./package.json"
   },

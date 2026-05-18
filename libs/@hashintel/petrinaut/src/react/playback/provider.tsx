@@ -7,7 +7,7 @@ import {
   type Playback,
   type PlaybackSpeed,
   type PlayMode,
-} from "@hashintel/petrinaut-core/playback";
+} from "@hashintel/petrinaut-core";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import {

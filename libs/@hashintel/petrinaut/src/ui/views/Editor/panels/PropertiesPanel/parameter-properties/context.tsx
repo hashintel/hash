@@ -1,6 +1,6 @@
 import { createContext, use } from "react";
 
-import type { Parameter } from "@hashintel/petrinaut-core/types/sdcpn";
+import type { Parameter } from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 
 export interface ParameterPropertiesContextValue {

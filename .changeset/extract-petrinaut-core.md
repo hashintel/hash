@@ -3,4 +3,4 @@
 "@hashintel/petrinaut-core": patch
 ---
 
-Extract the headless Petrinaut core into `@hashintel/petrinaut-core` while retaining the `@hashintel/petrinaut/core` compatibility entry point.
+Extract the headless Petrinaut core into `@hashintel/petrinaut-core`, expose dedicated core worker entry points, and remove the `@hashintel/petrinaut/core` compatibility entry point.

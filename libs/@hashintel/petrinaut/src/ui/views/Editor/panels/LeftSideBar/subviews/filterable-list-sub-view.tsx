@@ -11,10 +11,7 @@ import type {
   SubViewResizeConfig,
 } from "../../../../../components/sub-view/types";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import type {
-  SelectionItem,
-  SelectionMap,
-} from "@hashintel/petrinaut-core/types/selection";
+import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 
 const listContainerStyle = css({
   display: "flex",

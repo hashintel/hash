@@ -13,7 +13,7 @@ import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { validateEntityName } from "@hashintel/petrinaut-core/validation/entity-name";
+import { validateEntityName } from "@hashintel/petrinaut-core";
 import { usePlacePropertiesContext } from "../context";
 
 const errorMessageStyle = css({

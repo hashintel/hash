@@ -9,7 +9,7 @@ import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import type { SelectionItemType } from "@hashintel/petrinaut-core/types/selection";
+import type { SelectionItemType } from "@hashintel/petrinaut-core";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",

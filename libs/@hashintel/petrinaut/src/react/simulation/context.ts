@@ -1,12 +1,12 @@
 import { createContext } from "react";
 
-import type { CompiledScenarioResult } from "@hashintel/petrinaut-core/simulation/authoring/scenario/compile-scenario";
-import type {
-  InitialMarking,
-  InitialPlaceMarking,
-  SimulationFrameReader,
-  SimulationFrameState,
-} from "@hashintel/petrinaut-core/simulation";
+import {
+  type CompiledScenarioResult,
+  type InitialMarking,
+  type InitialPlaceMarking,
+  type SimulationFrameReader,
+  type SimulationFrameState,
+} from "@hashintel/petrinaut-core";
 
 // Re-export for back-compat with existing consumers that import these from
 // the simulation context module.

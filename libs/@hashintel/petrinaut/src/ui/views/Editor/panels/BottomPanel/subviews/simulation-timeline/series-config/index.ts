@@ -1,10 +1,10 @@
-import type { CompiledMetric } from "@hashintel/petrinaut-core/simulation/authoring/metric/compile-metric";
-import type {
-  Color,
-  Metric,
-  Place,
-  Transition,
-} from "@hashintel/petrinaut-core/types/sdcpn";
+import {
+  type CompiledMetric,
+  type Color,
+  type Metric,
+  type Place,
+  type Transition,
+} from "@hashintel/petrinaut-core";
 import type { TimelineView } from "../../../../../../../../react/state/editor-context";
 import type { TimelineSeriesConfig } from "../types";
 import { buildMetricSeriesConfig } from "./metric";

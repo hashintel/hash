@@ -14,11 +14,11 @@ import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
-} from "@hashintel/petrinaut-core/default-codes";
+  validateDisplayName,
+} from "@hashintel/petrinaut-core";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { validateDisplayName } from "@hashintel/petrinaut-core/validation/display-name";
 import { useDiffEqPropertiesContext } from "../context";
 
 const colorDotStyle = css({
