@@ -158,6 +158,7 @@ export const baseInputRecipe = sva({
       position: "absolute",
       zIndex: "1",
       right: "2",
+      paddingRight: "0.5",
       display: "flex",
       alignItems: "center",
       color: "fg.muted",
