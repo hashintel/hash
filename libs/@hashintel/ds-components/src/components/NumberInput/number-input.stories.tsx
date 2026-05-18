@@ -163,7 +163,7 @@ export const Default: Story = () => (
           ))}
           {stateRows.flatMap((row) =>
             stateColumns.map((col) => {
-              const value = col.withValue ? row.label : "";
+              const value = col.withValue ? 1234 : null;
               const cellKey = `${row.key}-${col.key}`;
               return row.clearable ? (
                 <ClearableInput
@@ -206,13 +206,8 @@ export const Alignment: Story = () => (
     <span style={subheadingStyle}>Read-only</span>
     {alignments.map((align) => (
       <Fragment key={align}>
-        <Controlled value={`Align: ${align}`} onChange={noop} align={align} />
-        <Controlled
-          value={`Align: ${align}`}
-          onChange={noop}
-          align={align}
-          readonly
-        />
+        <Controlled value={1234} onChange={noop} align={align} />
+        <Controlled value={1234} onChange={noop} align={align} readonly />
       </Fragment>
     ))}
   </div>
@@ -284,7 +279,7 @@ export const Size: Story = () => (
       ...formInputSizes.map((size) => (
         <Controlled
           key={`${rv.label}-${size}`}
-          value={rv.label}
+          value={1234}
           onChange={noop}
           size={size}
           variant={rv.variant}
@@ -299,7 +294,7 @@ export const Size: Story = () => (
     {...formInputSizes.map((size) => (
       <ClearableInput
         key={`sink-${size}`}
-        value="Kitchen Sink"
+        value={1234567890}
         prefix={{ iconName: "search" }}
         suffix={{ text: "kg" }}
         loading
@@ -317,7 +312,7 @@ export const Widths: Story = () => (
         {widths.map((width) => (
           <Controlled
             key={width}
-            value={`Width: ${width}`}
+            value={1234567890}
             onChange={noop}
             variant={rv.variant}
             readonly={rv.readonly}
@@ -326,7 +321,7 @@ export const Widths: Story = () => (
         ))}
         {!rv.readonly && (
           <ClearableInput
-            value="Width: fitContent with all the trimmings"
+            value={1234567890}
             variant={rv.variant}
             width="fitContent"
             prefix={{ iconName: "search" }}
@@ -350,7 +345,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-text",
     props: {
-      value: "",
+      value: null,
       prefix: { text: "$" },
       placeholder: "Prefix text",
     },
@@ -358,7 +353,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-button",
     props: {
-      value: "",
+      value: null,
       prefix: { iconName: "search", onClick: noop },
       placeholder: "Prefix button",
     },
@@ -366,7 +361,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "suffix-text",
     props: {
-      value: "",
+      value: null,
       suffix: { text: "kg" },
       placeholder: "Suffix text",
     },
@@ -374,7 +369,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "suffix-button",
     props: {
-      value: "",
+      value: null,
       suffix: { iconName: "close", onClick: noop },
       placeholder: "Suffix button",
     },
@@ -382,7 +377,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-suffix",
     props: {
-      value: "",
+      value: null,
       prefix: { iconName: "search" },
       suffix: { text: "CMD+K" },
       placeholder: "Prefix + suffix",
@@ -391,7 +386,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-suffix-button",
     props: {
-      value: "",
+      value: null,
       prefix: { iconName: "search", onClick: noop },
       suffix: { iconName: "close", onClick: noop },
       placeholder: "Prefix + suffix button",
@@ -401,7 +396,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink",
     clearable: true,
     props: {
-      value: "Kitchen Sink",
+      value: 1234567890,
       prefix: { iconName: "search" },
       suffix: { text: "kg" },
       loading: true,
@@ -411,7 +406,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink-disabled",
     clearable: true,
     props: {
-      value: "Kitchen Sink Disabled",
+      value: 1234567890,
       prefix: { iconName: "search" },
       suffix: { text: "kg" },
       loading: true,
@@ -422,7 +417,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink-button-disabled",
     clearable: true,
     props: {
-      value: "Kitchen Sink Disabled",
+      value: 1234567890,
       prefix: { iconName: "search", onClick: noop, disabled: true },
       suffix: { iconName: "close", onClick: noop },
       loading: true,
@@ -433,7 +428,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink-invalid",
     clearable: true,
     props: {
-      value: "Kitchen Sink Invalid",
+      value: 1234567890,
       prefix: { iconName: "search" },
       suffix: { text: "kg" },
       loading: true,
@@ -443,7 +438,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-suffix-button-loading-invalid",
     props: {
-      value: "Invalid Buttons",
+      value: 1234567890,
       prefix: { iconName: "search", onClick: noop },
       suffix: { iconName: "close", onClick: noop },
       loading: true,
@@ -454,7 +449,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink-edit",
     clearable: true,
     props: {
-      value: "Kitchen Sink Edit Icon",
+      value: 1234567890,
       prefix: { iconName: "search" },
       suffix: { text: "kg" },
       loading: true,
@@ -464,7 +459,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-suffix-interactive-button",
     props: {
-      value: "",
+      value: null,
       prefix: {
         type: "interactive",
         content: (
