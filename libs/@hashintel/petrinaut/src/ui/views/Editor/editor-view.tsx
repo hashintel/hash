@@ -3,12 +3,14 @@ import { use, useRef, useState } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
-import { productionMachines } from "../../../examples/broken-machines";
-import { deploymentPipelineSDCPN } from "../../../examples/deployment-pipeline";
-import { satellitesSDCPN } from "../../../examples/satellites";
-import { probabilisticSatellitesSDCPN } from "../../../examples/satellites-launcher";
-import { sirModel } from "../../../examples/sir-model";
-import { supplyChainStochasticSDCPN } from "../../../examples/supply-chain-stochastic";
+import {
+  deploymentPipelineSDCPN,
+  probabilisticSatellitesSDCPN,
+  productionMachines,
+  satellitesSDCPN,
+  sirModel,
+  supplyChainStochasticSDCPN,
+} from "@hashintel/petrinaut-core/examples";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { calculateGraphLayout } from "../../lib/calculate-graph-layout";

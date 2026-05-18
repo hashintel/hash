@@ -121,7 +121,7 @@ number, while colored places use one record per token:
 ## Usage
 
 ```ts
-import { createSimulation } from "@hashintel/petrinaut/core";
+import { createSimulation } from "@hashintel/petrinaut-core";
 
 const simulation = await createSimulation({
   sdcpn,

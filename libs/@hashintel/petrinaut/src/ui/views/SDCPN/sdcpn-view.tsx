@@ -20,7 +20,7 @@ import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
-} from "../../../core/default-codes";
+} from "@hashintel/petrinaut-core/default-codes";
 import { EditorContext } from "../../../react/state/editor-context";
 import { MutationContext } from "../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";

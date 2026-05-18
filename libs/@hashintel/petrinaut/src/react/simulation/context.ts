@@ -1,12 +1,12 @@
 import { createContext } from "react";
 
-import type { CompiledScenarioResult } from "../../core/simulation/authoring/scenario/compile-scenario";
+import type { CompiledScenarioResult } from "@hashintel/petrinaut-core/simulation/authoring/scenario/compile-scenario";
 import type {
   InitialMarking,
   InitialPlaceMarking,
   SimulationFrameReader,
   SimulationFrameState,
-} from "../../core/simulation";
+} from "@hashintel/petrinaut-core/simulation";
 
 // Re-export for back-compat with existing consumers that import these from
 // the simulation context module.
@@ -21,7 +21,7 @@ export type {
  * Current state of the simulation lifecycle, as the editor UI consumes it.
  *
  * Note: this is the legacy 5-state shape; the canonical core state lives in
- * `@hashintel/petrinaut/core` (`SimulationState` from `core/simulation`) and
+ * `@hashintel/petrinaut-core` (`SimulationState` from `core/simulation`) and
  * has six values including `Initializing` and `Ready`. The provider maps
  * between the two.
  */

@@ -1,5 +1,5 @@
-import { SNAP_GRID_SIZE } from "../ui/constants/ui";
-import type { SDCPN } from "../core/types/sdcpn";
+import { GRID_SIZE } from "../grid-size";
+import type { SDCPN } from "../types/sdcpn";
 
 export const supplyChainStochasticSDCPN: {
   title: string;
@@ -14,8 +14,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: -12 * SNAP_GRID_SIZE,
-        y: 24 * SNAP_GRID_SIZE,
+        x: -12 * GRID_SIZE,
+        y: 24 * GRID_SIZE,
       },
       {
         id: "place__1",
@@ -23,8 +23,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: -12 * SNAP_GRID_SIZE,
-        y: 30 * SNAP_GRID_SIZE,
+        x: -12 * GRID_SIZE,
+        y: 30 * GRID_SIZE,
       },
       {
         id: "place__2",
@@ -32,8 +32,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 21 * SNAP_GRID_SIZE,
-        y: 27 * SNAP_GRID_SIZE,
+        x: 21 * GRID_SIZE,
+        y: 27 * GRID_SIZE,
       },
       {
         id: "place__3",
@@ -41,8 +41,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: "type__product",
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 53 * SNAP_GRID_SIZE,
-        y: 27 * SNAP_GRID_SIZE,
+        x: 53 * GRID_SIZE,
+        y: 27 * GRID_SIZE,
       },
       {
         id: "place__4",
@@ -50,8 +50,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 85 * SNAP_GRID_SIZE,
-        y: 35 * SNAP_GRID_SIZE,
+        x: 85 * GRID_SIZE,
+        y: 35 * GRID_SIZE,
       },
       {
         id: "place__5",
@@ -59,8 +59,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 85 * SNAP_GRID_SIZE,
-        y: 20 * SNAP_GRID_SIZE,
+        x: 85 * GRID_SIZE,
+        y: 20 * GRID_SIZE,
       },
       {
         id: "place__6",
@@ -68,8 +68,8 @@ export const supplyChainStochasticSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 117 * SNAP_GRID_SIZE,
-        y: 20 * SNAP_GRID_SIZE,
+        x: 117 * GRID_SIZE,
+        y: 20 * GRID_SIZE,
       },
     ],
     transitions: [
@@ -84,8 +84,8 @@ export const supplyChainStochasticSDCPN: {
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1);",
         transitionKernelCode: "",
-        x: 5 * SNAP_GRID_SIZE,
-        y: 27 * SNAP_GRID_SIZE,
+        x: 5 * GRID_SIZE,
+        y: 27 * GRID_SIZE,
       },
       {
         id: "transition__1",
@@ -102,8 +102,8 @@ export default TransitionKernel(() => {
     ],
   };
 });`,
-        x: 37 * SNAP_GRID_SIZE,
-        y: 27 * SNAP_GRID_SIZE,
+        x: 37 * GRID_SIZE,
+        y: 27 * GRID_SIZE,
       },
       {
         id: "transition__2",
@@ -117,8 +117,8 @@ export default Lambda((tokens, parameters) => {
   return tokens.QAQueue[0].quality >= quality_threshold;
 });`,
         transitionKernelCode: "",
-        x: 69 * SNAP_GRID_SIZE,
-        y: 20 * SNAP_GRID_SIZE,
+        x: 69 * GRID_SIZE,
+        y: 20 * GRID_SIZE,
       },
       {
         id: "transition__3",
@@ -132,8 +132,8 @@ export default Lambda((tokens, parameters) => {
   return tokens.QAQueue[0].quality < quality_threshold;
 });`,
         transitionKernelCode: "",
-        x: 69 * SNAP_GRID_SIZE,
-        y: 35 * SNAP_GRID_SIZE,
+        x: 69 * GRID_SIZE,
+        y: 35 * GRID_SIZE,
       },
       {
         id: "transition__4",
@@ -143,8 +143,8 @@ export default Lambda((tokens, parameters) => {
         lambdaType: "stochastic",
         lambdaCode: "export default Lambda(() => 1 / 3);",
         transitionKernelCode: "",
-        x: 101 * SNAP_GRID_SIZE,
-        y: 20 * SNAP_GRID_SIZE,
+        x: 101 * GRID_SIZE,
+        y: 20 * GRID_SIZE,
       },
     ],
     types: [

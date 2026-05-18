@@ -1,10 +1,10 @@
-import type { CompiledMetric } from "../../../../../../../../core/simulation/authoring/metric/compile-metric";
-import { buildMetricState } from "../../../../../../../../core/simulation/frames/metric-state";
+import type { CompiledMetric } from "@hashintel/petrinaut-core/simulation/authoring/metric/compile-metric";
+import { buildMetricState } from "@hashintel/petrinaut-core/simulation/frames/metric-state";
 import type {
   Color,
   Metric,
   Place,
-} from "../../../../../../../../core/types/sdcpn";
+} from "@hashintel/petrinaut-core/types/sdcpn";
 import { DEFAULT_COLORS } from "../default-colors";
 import type { TimelineSeriesConfig } from "../types";
 

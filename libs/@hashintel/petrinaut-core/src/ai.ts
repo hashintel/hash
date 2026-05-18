@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
+import { probabilisticSatellitesSDCPN } from "./examples/satellites-launcher";
 import {
   mutationActionInputSchemas,
   type MutationActionName,

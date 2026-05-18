@@ -4,7 +4,7 @@ import type {
   PlaybackSpeed,
   PlaybackState,
   PlayMode,
-} from "../../core/playback";
+} from "@hashintel/petrinaut-core/playback";
 import {
   PlaybackContext,
   type PlaybackContextValue,

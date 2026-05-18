@@ -1,4 +1,4 @@
-import type { SDCPN } from "../../core/types/sdcpn";
+import type { SDCPN } from "../types/sdcpn";
 
 /**
  * Recursively compare two values for structural equality.

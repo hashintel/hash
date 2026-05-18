@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-import type { ReadableStore } from "../core/handle";
+import type { ReadableStore } from "@hashintel/petrinaut-core/handle";
 
 export function useStore<T>(store: ReadableStore<T>): T {
   return useSyncExternalStore(

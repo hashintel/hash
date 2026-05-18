@@ -5,9 +5,9 @@ import { act, renderHook } from "@testing-library/react";
 import { type ReactNode, use } from "react";
 import { describe, expect, test, vi } from "vitest";
 
-import { createPetrinautActions } from "../core/actions";
-import type { Petrinaut } from "../core/instance";
-import type { SDCPN } from "../core/types/sdcpn";
+import { createPetrinautActions } from "@hashintel/petrinaut-core/actions";
+import type { Petrinaut } from "@hashintel/petrinaut-core/instance";
+import type { SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
 import {
   EditorContext,
   type EditorContextValue,

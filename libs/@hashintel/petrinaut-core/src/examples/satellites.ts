@@ -1,5 +1,5 @@
-import { SNAP_GRID_SIZE } from "../ui/constants/ui";
-import type { SDCPN } from "../core/types/sdcpn";
+import { GRID_SIZE } from "../grid-size";
+import type { SDCPN } from "../types/sdcpn";
 
 export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
   title: "Satellites in Orbit",
@@ -95,8 +95,8 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
     </svg>
   );
 });`,
-        x: -2 * SNAP_GRID_SIZE,
-        y: 7 * SNAP_GRID_SIZE,
+        x: -2 * GRID_SIZE,
+        y: 7 * GRID_SIZE,
       },
       {
         id: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
@@ -104,8 +104,8 @@ export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 36 * SNAP_GRID_SIZE,
-        y: 7 * SNAP_GRID_SIZE,
+        x: 36 * GRID_SIZE,
+        y: 7 * GRID_SIZE,
       },
     ],
     transitions: [
@@ -160,8 +160,8 @@ export default TransitionKernel((tokens) => {
     ]
   };
 })`,
-        x: 17 * SNAP_GRID_SIZE,
-        y: 13 * SNAP_GRID_SIZE,
+        x: 17 * GRID_SIZE,
+        y: 13 * GRID_SIZE,
       },
       {
         id: "716fe1e5-9b35-413f-83fe-99b28ba73945",
@@ -207,8 +207,8 @@ export default TransitionKernel((tokens) => {
     ]
   };
 })`,
-        x: 17 * SNAP_GRID_SIZE,
-        y: 2 * SNAP_GRID_SIZE,
+        x: 17 * GRID_SIZE,
+        y: 2 * GRID_SIZE,
       },
     ],
     types: [

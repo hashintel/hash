@@ -14,12 +14,12 @@ import { PlaybackContext } from "../../../../../../react/playback/context";
 import {
   type CompiledMetric,
   compileMetric,
-} from "../../../../../../core/simulation/authoring/metric/compile-metric";
+} from "@hashintel/petrinaut-core/simulation/authoring/metric/compile-metric";
 import {
   SimulationContext,
   type SimulationFrameReader,
 } from "../../../../../../react/simulation/context";
-import { buildMetricState } from "../../../../../../core/simulation/frames/metric-state";
+import { buildMetricState } from "@hashintel/petrinaut-core/simulation/frames/metric-state";
 import {
   EditorContext,
   type TimelineChartType,

@@ -7,7 +7,7 @@ import { Menu } from "../../../../../../../components/menu";
 import type { SubView } from "../../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { generateDefaultTransitionKernelCode } from "../../../../../../../../core/default-codes";
+import { generateDefaultTransitionKernelCode } from "@hashintel/petrinaut-core/default-codes";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";

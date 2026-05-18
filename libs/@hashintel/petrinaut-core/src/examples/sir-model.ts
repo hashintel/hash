@@ -1,5 +1,5 @@
-import { SNAP_GRID_SIZE } from "../ui/constants/ui";
-import type { SDCPN } from "../core/types/sdcpn";
+import { GRID_SIZE } from "../grid-size";
+import type { SDCPN } from "../types/sdcpn";
 
 export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
   title: "SIR Epidemic Model",
@@ -12,8 +12,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         dynamicsEnabled: false,
         differentialEquationId: null,
         showAsInitialState: true,
-        x: -29 * SNAP_GRID_SIZE,
-        y: 10 * SNAP_GRID_SIZE,
+        x: -29 * GRID_SIZE,
+        y: 10 * GRID_SIZE,
       },
       {
         id: "place__infected",
@@ -22,8 +22,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         dynamicsEnabled: false,
         differentialEquationId: null,
         showAsInitialState: true,
-        x: -13 * SNAP_GRID_SIZE,
-        y: 19 * SNAP_GRID_SIZE,
+        x: -13 * GRID_SIZE,
+        y: 19 * GRID_SIZE,
       },
       {
         id: "place__recovered",
@@ -31,8 +31,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 25 * SNAP_GRID_SIZE,
-        y: 13 * SNAP_GRID_SIZE,
+        x: 25 * GRID_SIZE,
+        y: 13 * GRID_SIZE,
       },
     ],
     transitions: [
@@ -62,8 +62,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           "export default Lambda((tokens, parameters) => parameters.infection_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    Infected: [{}, {}],\n  };\n});",
-        x: -10 * SNAP_GRID_SIZE,
-        y: 5 * SNAP_GRID_SIZE,
+        x: -10 * GRID_SIZE,
+        y: 5 * GRID_SIZE,
       },
       {
         id: "transition__recovery",
@@ -86,8 +86,8 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           "export default Lambda((tokens, parameters) => parameters.recovery_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    Recovered: [{}],\n  };\n});",
-        x: 6 * SNAP_GRID_SIZE,
-        y: 16 * SNAP_GRID_SIZE,
+        x: 6 * GRID_SIZE,
+        y: 16 * GRID_SIZE,
       },
     ],
     types: [],

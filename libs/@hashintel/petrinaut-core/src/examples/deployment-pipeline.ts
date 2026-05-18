@@ -1,5 +1,5 @@
-import { SNAP_GRID_SIZE } from "../ui/constants/ui";
-import type { SDCPN } from "../core/types/sdcpn";
+import { GRID_SIZE } from "../grid-size";
+import type { SDCPN } from "../types/sdcpn";
 
 export const deploymentPipelineSDCPN: {
   title: string;
@@ -14,8 +14,8 @@ export const deploymentPipelineSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: -8 * SNAP_GRID_SIZE,
-        y: -10 * SNAP_GRID_SIZE,
+        x: -8 * GRID_SIZE,
+        y: -10 * GRID_SIZE,
       },
       {
         id: "place__incident-being-investigated",
@@ -23,8 +23,8 @@ export const deploymentPipelineSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: -8 * SNAP_GRID_SIZE,
-        y: 10 * SNAP_GRID_SIZE,
+        x: -8 * GRID_SIZE,
+        y: 10 * GRID_SIZE,
       },
       {
         id: "place__deployment-in-progress",
@@ -32,8 +32,8 @@ export const deploymentPipelineSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 25 * SNAP_GRID_SIZE,
-        y: -10 * SNAP_GRID_SIZE,
+        x: 25 * GRID_SIZE,
+        y: -10 * GRID_SIZE,
       },
       {
         id: "place__completed-deployments",
@@ -41,8 +41,8 @@ export const deploymentPipelineSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 55 * SNAP_GRID_SIZE,
-        y: -10 * SNAP_GRID_SIZE,
+        x: 55 * GRID_SIZE,
+        y: -10 * GRID_SIZE,
       },
       {
         id: "place__resolved-incidents",
@@ -50,8 +50,8 @@ export const deploymentPipelineSDCPN: {
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
-        x: 25 * SNAP_GRID_SIZE,
-        y: 20 * SNAP_GRID_SIZE,
+        x: 25 * GRID_SIZE,
+        y: 20 * GRID_SIZE,
       },
     ],
     transitions: [
@@ -65,8 +65,8 @@ export const deploymentPipelineSDCPN: {
           "export default Lambda((tokens, parameters) => parameters.deployment_creation_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    DeploymentReady: [{}],\n  };\n});",
-        x: -30 * SNAP_GRID_SIZE,
-        y: -10 * SNAP_GRID_SIZE,
+        x: -30 * GRID_SIZE,
+        y: -10 * GRID_SIZE,
       },
       {
         id: "transition__incident-raised",
@@ -80,8 +80,8 @@ export const deploymentPipelineSDCPN: {
           "export default Lambda((tokens, parameters) => parameters.incident_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    IncidentBeingInvestigated: [{}],\n  };\n});",
-        x: -30 * SNAP_GRID_SIZE,
-        y: 10 * SNAP_GRID_SIZE,
+        x: -30 * GRID_SIZE,
+        y: 10 * GRID_SIZE,
       },
       {
         id: "transition__start-deployment",
@@ -108,8 +108,8 @@ export const deploymentPipelineSDCPN: {
         lambdaCode: "export default Lambda(() => true)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    DeploymentInProgress: [{}],\n  };\n});",
-        x: 8 * SNAP_GRID_SIZE,
-        y: -10 * SNAP_GRID_SIZE,
+        x: 8 * GRID_SIZE,
+        y: -10 * GRID_SIZE,
       },
       {
         id: "transition__finish-deployment",
@@ -126,8 +126,8 @@ export const deploymentPipelineSDCPN: {
         lambdaCode: "export default Lambda(() => true)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    CompletedDeployments: [{}],\n  };\n});",
-        x: 40 * SNAP_GRID_SIZE,
-        y: -10 * SNAP_GRID_SIZE,
+        x: 40 * GRID_SIZE,
+        y: -10 * GRID_SIZE,
       },
       {
         id: "transition__close-incident",
@@ -145,8 +145,8 @@ export const deploymentPipelineSDCPN: {
           "export default Lambda((tokens, parameters) => parameters.incident_resolution_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    ResolvedIncidents: [{}],\n  };\n});",
-        x: 8 * SNAP_GRID_SIZE,
-        y: 10 * SNAP_GRID_SIZE,
+        x: 8 * GRID_SIZE,
+        y: 10 * GRID_SIZE,
       },
     ],
     types: [],

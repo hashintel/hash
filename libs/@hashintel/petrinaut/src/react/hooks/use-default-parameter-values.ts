@@ -4,11 +4,11 @@ import {
   type DefaultParameterValues,
   deriveDefaultParameterValues,
   mergeParameterValues,
-} from "../../core/parameter-values";
+} from "@hashintel/petrinaut-core/parameter-values";
 import { SDCPNContext } from "../state/sdcpn-context";
 
 // Re-export the pure utilities for back-compat with existing import sites.
-// The canonical home is `@hashintel/petrinaut/core/parameter-values`.
+// The canonical home is `@hashintel/petrinaut-core/parameter-values`.
 export {
   type DefaultParameterValues,
   deriveDefaultParameterValues,

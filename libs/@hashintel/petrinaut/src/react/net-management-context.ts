@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
+import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
 
 /**
  * Net-management concerns that the host app owns: a list of other available

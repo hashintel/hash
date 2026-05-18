@@ -1,8 +1,8 @@
 import { type ReactNode } from "react";
 
-import type { Petrinaut } from "../core/instance";
-import type { LspWorkerFactory } from "../core/lsp/transport";
-import type { WorkerFactory } from "../core/simulation";
+import type { Petrinaut } from "@hashintel/petrinaut-core/instance";
+import type { LspWorkerFactory } from "@hashintel/petrinaut-core/lsp/transport";
+import type { WorkerFactory } from "@hashintel/petrinaut-core/simulation";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
 import { MutationProvider } from "./mutation-provider";

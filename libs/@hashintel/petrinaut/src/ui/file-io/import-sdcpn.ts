@@ -1,7 +1,7 @@
 import {
   type ImportResult,
   parseSDCPNFile,
-} from "../../core/file-format/parse-sdcpn-file";
+} from "@hashintel/petrinaut-core/file-format/parse-sdcpn-file";
 
 /**
  * Opens a file picker dialog, reads an SDCPN JSON file, and parses it via

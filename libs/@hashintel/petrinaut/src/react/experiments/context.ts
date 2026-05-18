@@ -3,7 +3,7 @@ import { createContext } from "react";
 import type {
   MonteCarloWorkerProgress,
   PlaceTokenCountDistributionFrame,
-} from "../../core/simulation";
+} from "@hashintel/petrinaut-core/simulation";
 
 export type ExperimentStatus =
   | "initializing"

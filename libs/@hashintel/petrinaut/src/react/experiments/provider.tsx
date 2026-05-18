@@ -7,10 +7,10 @@ import {
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
   type WorkerFactory,
-} from "../../core/simulation";
-import { compileScenario } from "../../core/simulation/authoring/scenario/compile-scenario";
-import { createMonteCarloWorker } from "../../core/simulation/monte-carlo/worker/create-monte-carlo-worker";
-import type { Scenario, ScenarioParameter } from "../../core/types/sdcpn";
+} from "@hashintel/petrinaut-core/simulation";
+import { compileScenario } from "@hashintel/petrinaut-core/simulation/authoring/scenario/compile-scenario";
+import { createMonteCarloWorker } from "@hashintel/petrinaut-core/simulation/monte-carlo/worker/create-monte-carlo-worker";
+import type { Scenario, ScenarioParameter } from "@hashintel/petrinaut-core/types/sdcpn";
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";

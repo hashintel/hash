@@ -1,6 +1,6 @@
 import { use, useEffect, useEffectEvent } from "react";
 
-import type { SelectionItem } from "../../../../../core/types/selection";
+import type { SelectionItem } from "@hashintel/petrinaut-core/types/selection";
 import { usePetrinautInstance } from "../../../../../react/use-petrinaut-instance";
 import type {
   CursorMode,

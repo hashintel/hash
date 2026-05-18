@@ -784,6 +784,7 @@ __metadata:
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@mantine/hooks": "npm:8.3.5"
     "@pandacss/dev": "npm:1.4.3"
     "@rolldown/plugin-babel": "npm:0.2.1"
@@ -7649,6 +7650,28 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@hashintel/petrinaut-core@workspace:*, @hashintel/petrinaut-core@workspace:^, @hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core"
+  dependencies:
+    "@babel/standalone": "npm:7.28.5"
+    "@types/babel__standalone": "npm:7.1.9"
+    "@types/node": "npm:22.18.13"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    immer: "npm:10.1.3"
+    oxlint: "npm:1.63.0"
+    oxlint-tsgolint: "npm:0.22.1"
+    rolldown: "npm:1.0.0"
+    rolldown-plugin-dts: "npm:0.25.0"
+    typescript: "npm:5.9.3"
+    uuid: "npm:14.0.0"
+    vite: "npm:8.0.12"
+    vitest: "npm:4.1.5"
+    vscode-languageserver-types: "npm:3.17.5"
+    zod: "npm:4.1.12"
+  languageName: unknown
+  linkType: soft
+
 "@hashintel/petrinaut@workspace:*, @hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
@@ -7660,6 +7683,7 @@ __metadata:
     "@fontsource-variable/jetbrains-mono": "npm:5.2.8"
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:^"
     "@hashintel/refractive": "workspace:^"
     "@monaco-editor/react": "npm:4.8.0-rc.3"
     "@pandacss/dev": "npm:1.4.3"
@@ -7678,7 +7702,6 @@ __metadata:
     babel-plugin-react-compiler: "npm:1.0.0"
     elkjs: "npm:0.11.0"
     fuzzysort: "npm:3.1.0"
-    immer: "npm:10.1.3"
     jsdom: "npm:24.1.3"
     lodash-es: "npm:4.18.1"
     monaco-editor: "npm:0.55.1"
@@ -7690,14 +7713,11 @@ __metadata:
     rolldown: "npm:1.0.0"
     rolldown-plugin-dts: "npm:0.25.0"
     storybook: "npm:10.3.6"
-    typescript: "npm:5.9.3"
     uplot: "npm:1.6.32"
     uuid: "npm:14.0.0"
     vite: "npm:8.0.12"
     vitest: "npm:4.1.5"
     vscode-languageserver-types: "npm:3.17.5"
-    web-worker: "npm:1.4.1"
-    zod: "npm:4.1.12"
   peerDependencies:
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:^"

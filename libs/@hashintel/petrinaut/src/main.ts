@@ -14,13 +14,13 @@ export type {
   Place,
   SDCPN,
   Transition,
-} from "./core/types/sdcpn";
+} from "@hashintel/petrinaut-core/types/sdcpn";
 export type { ViewportAction } from "./ui/types/viewport-action";
 
 // SDCPN deep-equality helper (also exported from `/ui`).
-export { isSDCPNEqual } from "./core/lib/deep-equal";
+export { isSDCPNEqual } from "@hashintel/petrinaut-core/lib/deep-equal";
 
-export { createJsonDocHandle } from "./core/handle";
+export { createJsonDocHandle } from "@hashintel/petrinaut-core/handle";
 export type {
   CreateJsonDocHandleOptions,
   DocChangeEvent,
@@ -31,19 +31,19 @@ export type {
   PetrinautHistory,
   PetrinautPatch,
   ReadableStore,
-} from "./core/handle";
-export { createPetrinaut } from "./core/instance";
+} from "@hashintel/petrinaut-core/handle";
+export { createPetrinaut } from "@hashintel/petrinaut-core/instance";
 export type {
   CreatePetrinautConfig,
   EventStream,
   Petrinaut as PetrinautInstance,
-} from "./core/instance";
-export { createPetrinautActions } from "./core/actions";
-export type { MutationHelperFunctions } from "./core/actions";
+} from "@hashintel/petrinaut-core/instance";
+export { createPetrinautActions } from "@hashintel/petrinaut-core/actions";
+export type { MutationHelperFunctions } from "@hashintel/petrinaut-core/actions";
 export {
   createSimulation,
   createWorkerTransport,
-} from "./core/simulation";
+} from "@hashintel/petrinaut-core/simulation";
 export type {
   BackpressureConfig,
   CreateSimulationConfig,
@@ -60,7 +60,7 @@ export type {
   SimulationState,
   SimulationTransport,
   WorkerFactory,
-} from "./core/simulation";
+} from "@hashintel/petrinaut-core/simulation";
 export { Petrinaut } from "./ui/petrinaut";
 export type { PetrinautProps } from "./ui/petrinaut";
 

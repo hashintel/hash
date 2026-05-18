@@ -11,9 +11,9 @@ import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
-import type { SDCPN } from "../../../../../../core/types/sdcpn";
+import type { SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { parseArcId } from "../../../../../../core/types/selection";
+import { parseArcId } from "@hashintel/petrinaut-core/types/selection";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 

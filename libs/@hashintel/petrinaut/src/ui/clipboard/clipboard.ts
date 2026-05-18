@@ -1,10 +1,10 @@
-import type { SDCPN } from "../../core/types/sdcpn";
-import type { SelectionMap } from "../../core/types/selection";
-import { pastePayloadIntoSDCPN } from "../../core/clipboard/paste";
+import type { SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
+import type { SelectionMap } from "@hashintel/petrinaut-core/types/selection";
+import { pastePayloadIntoSDCPN } from "@hashintel/petrinaut-core/clipboard/paste";
 import {
   parseClipboardPayload,
   serializeSelection,
-} from "../../core/clipboard/serialize";
+} from "@hashintel/petrinaut-core/clipboard/serialize";
 
 /**
  * Copy the current selection to the system clipboard.

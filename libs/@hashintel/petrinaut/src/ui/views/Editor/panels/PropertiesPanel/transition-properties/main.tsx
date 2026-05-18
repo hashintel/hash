@@ -6,7 +6,7 @@ import type {
   Color,
   Place,
   Transition,
-} from "../../../../../../core/types/sdcpn";
+} from "@hashintel/petrinaut-core/types/sdcpn";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { TransitionPropertiesProvider } from "./context";

@@ -4,7 +4,7 @@ import type {
   Color,
   Place,
   Transition,
-} from "../../../../../../core/types/sdcpn";
+} from "@hashintel/petrinaut-core/types/sdcpn";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 
 interface TransitionPropertiesContextValue {

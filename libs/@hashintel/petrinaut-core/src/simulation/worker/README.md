@@ -64,7 +64,7 @@ again.
 Host code should use the standalone `createSimulation` factory from `/core`:
 
 ```ts
-import { createSimulation } from "@hashintel/petrinaut/core";
+import { createSimulation } from "@hashintel/petrinaut-core";
 
 const sim = await createSimulation({
   sdcpn,

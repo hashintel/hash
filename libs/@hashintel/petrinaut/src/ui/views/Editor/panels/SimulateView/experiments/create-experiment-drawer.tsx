@@ -12,7 +12,7 @@ import { CodeEditor } from "../../../../../monaco/code-editor";
 import type {
   Scenario,
   ScenarioParameter,
-} from "../../../../../../core/types/sdcpn";
+} from "@hashintel/petrinaut-core/types/sdcpn";
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 

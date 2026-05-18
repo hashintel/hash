@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 
-import { sirModel } from "../../../../../../examples/sir-model";
+import { sirModel } from "@hashintel/petrinaut-core/examples";
 import {
   type CreateExperimentInput,
   ExperimentsContext,

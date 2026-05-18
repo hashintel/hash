@@ -6,11 +6,11 @@ import "./index.css";
 
 import { type FunctionComponent, useEffect, useMemo } from "react";
 
-import type { PetrinautDocHandle } from "../core/handle";
-import { createPetrinaut, type Petrinaut as Instance } from "../core/instance";
-import type { LspWorkerFactory } from "../core/lsp/transport";
-import type { WorkerFactory } from "../core/simulation";
-import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
+import type { PetrinautDocHandle } from "@hashintel/petrinaut-core/handle";
+import { createPetrinaut, type Petrinaut as Instance } from "@hashintel/petrinaut-core/instance";
+import type { LspWorkerFactory } from "@hashintel/petrinaut-core/lsp/transport";
+import type { WorkerFactory } from "@hashintel/petrinaut-core/simulation";
+import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
 import type { NetManagement } from "../react/net-management-context";
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import type { ViewportAction } from "./types/viewport-action";

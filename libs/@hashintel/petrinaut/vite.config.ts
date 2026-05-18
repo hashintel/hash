@@ -29,6 +29,7 @@ export default defineConfig(({ command }) => ({
       external: [
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
+        /^@hashintel\/petrinaut-core(\/.*)?$/,
         "react",
         "react-dom",
         "@xyflow/react",

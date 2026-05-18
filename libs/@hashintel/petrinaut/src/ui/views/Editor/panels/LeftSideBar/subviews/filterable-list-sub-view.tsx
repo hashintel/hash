@@ -14,7 +14,7 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import type {
   SelectionItem,
   SelectionMap,
-} from "../../../../../../core/types/selection";
+} from "@hashintel/petrinaut-core/types/selection";
 
 const listContainerStyle = css({
   display: "flex",

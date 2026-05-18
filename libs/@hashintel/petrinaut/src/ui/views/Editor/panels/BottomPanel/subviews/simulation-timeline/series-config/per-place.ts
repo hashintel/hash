@@ -1,4 +1,4 @@
-import type { Color, Place } from "../../../../../../../../core/types/sdcpn";
+import type { Color, Place } from "@hashintel/petrinaut-core/types/sdcpn";
 import { DEFAULT_COLORS } from "../default-colors";
 import type { TimelineSeriesConfig } from "../types";
 

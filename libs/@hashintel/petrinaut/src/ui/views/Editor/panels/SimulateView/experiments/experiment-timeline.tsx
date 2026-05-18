@@ -3,7 +3,7 @@ import { use, useEffect, useRef } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
-import type { PlaceTokenCountDistributionBin } from "../../../../../../core/simulation";
+import type { PlaceTokenCountDistributionBin } from "@hashintel/petrinaut-core/simulation";
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";

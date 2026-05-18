@@ -1,17 +1,17 @@
 import { use, useEffect, useState } from "react";
 
-import type { ReadableStore } from "../../core/handle";
+import type { ReadableStore } from "@hashintel/petrinaut-core/handle";
 import {
   createSimulation,
   type Simulation,
   type SimulationState as CoreSimulationState,
   type WorkerFactory,
-} from "../../core/simulation";
+} from "@hashintel/petrinaut-core/simulation";
 import {
   compileScenario,
   type CompiledScenarioResult,
-} from "../../core/simulation/authoring/scenario/compile-scenario";
-import { createSimulationWorker } from "../../core/simulation/worker/create-simulation-worker";
+} from "@hashintel/petrinaut-core/simulation/authoring/scenario/compile-scenario";
+import { createSimulationWorker } from "@hashintel/petrinaut-core/simulation/worker/create-simulation-worker";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";

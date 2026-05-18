@@ -12,7 +12,7 @@ import type {
   Parameter,
   Place,
   Transition,
-} from "../../../../../core/types/sdcpn";
+} from "@hashintel/petrinaut-core/types/sdcpn";
 import { MonacoProvider } from "../../../../monaco/provider";
 import {
   SDCPNContext,

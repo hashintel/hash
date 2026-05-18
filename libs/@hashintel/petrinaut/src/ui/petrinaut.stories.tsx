@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { sirModel } from "../examples/sir-model";
+import { sirModel } from "@hashintel/petrinaut-core/examples";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
 
 const meta = {

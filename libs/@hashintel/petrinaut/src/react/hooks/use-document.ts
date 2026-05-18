@@ -4,8 +4,8 @@ import type {
   DocHandleState,
   DocumentId,
   PetrinautPatch,
-} from "../../core/handle";
-import type { SDCPN } from "../../core/types/sdcpn";
+} from "@hashintel/petrinaut-core/handle";
+import type { SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { usePetrinautInstance } from "../use-petrinaut-instance";
 import { useStore } from "../use-store";

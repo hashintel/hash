@@ -1,7 +1,7 @@
 import { type ReactNode, useRef, useState } from "react";
 
-import { createJsonDocHandle, type PetrinautDocHandle } from "../core/handle";
-import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
+import { createJsonDocHandle, type PetrinautDocHandle } from "@hashintel/petrinaut-core/handle";
+import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
 import { Petrinaut } from "./petrinaut";
 
 const emptySDCPN: SDCPN = {

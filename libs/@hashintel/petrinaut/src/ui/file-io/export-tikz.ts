@@ -1,5 +1,5 @@
-import { sdcpnToTikZ } from "../../core/file-format/sdcpn-to-tikz";
-import type { SDCPN } from "../../core/types/sdcpn";
+import { sdcpnToTikZ } from "@hashintel/petrinaut-core/file-format/sdcpn-to-tikz";
+import type { SDCPN } from "@hashintel/petrinaut-core/types/sdcpn";
 import { downloadBlob, timestampedFilename } from "../lib/download-blob";
 
 /**
