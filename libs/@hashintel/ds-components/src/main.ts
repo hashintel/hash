@@ -7,6 +7,7 @@ export {
   LoadingSpinner,
   type LoadingSpinnerVariant,
 } from "./components/Loading/loading-spinner";
+export { NumberInput } from "./components/NumberInput/number-input";
 export {
   RadioGroup,
   type RadioGroupOption,
