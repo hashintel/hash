@@ -191,6 +191,7 @@ export const BaseInput = ({
   const hasBrowserControls = type === "number";
   const noAutocomplete = !!clearable || autocomplete === false;
   const showClear = !!(clearable && !disabled);
+  const hasIcons = !!loading || showClear;
 
   const classes = baseInputRecipe({
     variant,
@@ -201,6 +202,7 @@ export const BaseInput = ({
     disabled: !!disabled,
     loading: !!loading,
     hasBrowserControls,
+    hasIcons,
     willClear:
       showClear &&
       clearable.clearable &&
@@ -249,10 +251,6 @@ export const BaseInput = ({
       maxLength={maxLength}
       pattern={pattern}
       spellCheck={spellcheck}
-      // Suppress the input's default ~20ch intrinsic preferred width so it
-      // doesn't dictate grid column sizing when width="fitContent"; the
-      // sizer span drives the column width instead.
-      size={width === "fitContent" ? 1 : undefined}
       // there is no standard for turning off autocomplete, so we need to include all the
       // following properties to turn off autocomplete for most popular browsers + password managers
       autoComplete={noAutocomplete ? "off" : undefined}
@@ -286,13 +284,6 @@ export const BaseInput = ({
       {prefix != null && renderAdornment("prefix", prefix, size, classes)}
 
       <div className={classes.inputWrapper}>
-        {width === "fitContent" && (
-          <span aria-hidden="true" className={classes.sizer}>
-            {value !== null && value !== undefined && value.length > 0
-              ? value
-              : (placeholder ?? "")}
-          </span>
-        )}
         {input}
         {styledValue && !focused && (
           <div className={classes.styledValueOverlay}>{styledValue}</div>

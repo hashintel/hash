@@ -399,17 +399,9 @@ export const baseInputRecipe = sva({
           display: "inline-grid",
           minWidth: "[unset]",
         },
-        sizer: {
-          display: "[inline-block]",
-          gridArea: "[1 / 1]",
-          visibility: "hidden",
-          whiteSpace: "pre",
-          pointerEvents: "none",
-          minWidth: "[1ch]",
-          paddingY: "var(--form-padding-y)",
-        },
         input: {
           gridArea: "[1 / 1]",
+          fieldSizing: "content",
         },
         clear: {
           position: "relative",
@@ -439,11 +431,9 @@ export const baseInputRecipe = sva({
       },
     },
     willClear: { true: {} },
+    hasIcons: { true: {} },
     hasBrowserControls: {
       true: {
-        input: {
-          paddingRight: "1",
-        },
         clear: {
           position: "relative",
           right: "1",
@@ -617,6 +607,15 @@ export const baseInputRecipe = sva({
             // @ts-expect-error moz-appearance is a valid firefox property
             "-moz-appearance": "textfield",
           },
+        },
+      },
+    },
+    {
+      hasBrowserControls: true,
+      hasIcons: true,
+      css: {
+        input: {
+          paddingRight: "1",
         },
       },
     },
