@@ -1,0 +1,39 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
+    let %2: ?
+    let %3: ?
+    let %4: ?
+    let %5: Boolean
+    let %6: () -> ?
+    let %7: ?
+
+    bb0(): {
+        %2 = %1.metadata.record_id
+        %3 = %1.metadata.temporal_versioning
+        %4 = %1.properties
+        %5 = input LOAD flag
+
+        switchInt(%5) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %7 = 1
+
+        return %7
+    }
+
+    bb2(): {
+        %6 = ({def@99} as FnPtr)
+        %7 = apply %6
+
+        return %7
+    }
+}
+==================== Island (entry: bb0, target: postgres) =====================
+
+CASE WHEN (($7)::int) = 0 THEN (ROW(NULL, 2, ARRAY[]::int[], ARRAY[]::jsonb[])::continuation) WHEN (($7)::int) = 1 THEN (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) END

@@ -1,0 +1,17 @@
+════ SQL ═══════════════════════════════════════════════════════════════════════
+
+SELECT ("continuation_0_0"."row")."block" AS "continuation_0_0_block", ("continuation_0_0"."row")."locals" AS "continuation_0_0_locals", ("continuation_0_0"."row")."values" AS "continuation_0_0_values", ("continuation_1_0"."row")."block" AS "continuation_1_0_block", ("continuation_1_0"."row")."locals" AS "continuation_1_0_locals", ("continuation_1_0"."row")."values" AS "continuation_1_0_values"
+FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+INNER JOIN "entity_editions" AS "entity_editions_0_0_1"
+  ON "entity_editions_0_0_1"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
+CROSS JOIN LATERAL (SELECT (ROW(((NOT("entity_editions_0_0_1"."archived"))::boolean), NULL, NULL, NULL)::continuation) AS "row"
+OFFSET 0) AS "continuation_0_0"
+CROSS JOIN LATERAL (SELECT (ROW((("entity_temporal_metadata_0_0_0"."entity_uuid" = $3)::boolean), NULL, NULL, NULL)::continuation) AS "row"
+OFFSET 0) AS "continuation_1_0"
+WHERE "entity_temporal_metadata_0_0_0"."transaction_time" && $1 AND "entity_temporal_metadata_0_0_0"."decision_time" && $2 AND ("continuation_0_0"."row")."filter" IS NOT FALSE AND ("continuation_1_0"."row")."filter" IS NOT FALSE
+
+════ Parameters ════════════════════════════════════════════════════════════════
+
+$1: TemporalAxis(Transaction)
+$2: TemporalAxis(Decision)
+$3: Env(1, #0)

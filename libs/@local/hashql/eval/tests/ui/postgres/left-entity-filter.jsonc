@@ -1,0 +1,14 @@
+//@ run: skip reason="link_data is Option<LinkData>; accessing fields through Option requires unwrap/pattern-match not yet expressible in filter J-Expr"
+//@ description: Left entity UUID filter - LEFT OUTER JOIN on entity_has_left_entity
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "vertex.link_data.left_entity_id.entity_uuid",
+        ["input", "id", "::graph::types::knowledge::entity::EntityUuid"]
+      ]
+    ]
+  ]
+]

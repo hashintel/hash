@@ -1,0 +1,39 @@
+---
+source: libs/@local/hashql/eval/src/postgres/filter/tests.rs
+expression: report.to_string()
+---
+===================================== MIR ======================================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
+    let %2: Integer
+    let %3: Boolean
+
+    bb0(): {
+        %2 = input LOAD sel
+
+        switchInt(%2) -> [0: bb1(), 1: bb2(), 2: bb3(), 3: bb4(), otherwise: bb5()]
+    }
+
+    bb1(): {
+        return 1
+    }
+
+    bb2(): {
+        return 0
+    }
+
+    bb3(): {
+        return 1
+    }
+
+    bb4(): {
+        return 0
+    }
+
+    bb5(): {
+        return 1
+    }
+}
+==================== Island (entry: bb0, target: postgres) =====================
+
+CASE WHEN (($1)::int) = 0 THEN (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 1 THEN (ROW(((0)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 2 THEN (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 3 THEN (ROW(((0)::boolean), NULL, NULL, NULL)::continuation) ELSE (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) END

@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Comparison operators produce no type cast on operands
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      [">",
+        ["input", "x", "Integer"],
+        ["input", "y", "Integer"]
+      ]
+    ]
+  ]
+]

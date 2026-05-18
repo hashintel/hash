@@ -1,0 +1,27 @@
+//@ run: pass
+//@ description: Captured outer variable becomes env field access → Env parameter $N
+// biome-ignore format: readability
+["if", { "#literal": true },
+  ["let", "target_uuid",
+    ["input", "target", "::graph::types::knowledge::entity::EntityUuid"],
+    ["::graph::tail::collect",
+      ["::graph::body::filter",
+        ["::graph::head::entities", ["input", "time_axis", "_"]],
+        ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+          ["==",
+            "vertex.metadata.record_id.entity_id.entity_uuid",
+            "target_uuid"
+          ]
+        ]
+      ]
+    ]
+  ],
+  ["::graph::tail::collect",
+    ["::graph::body::filter",
+      ["::graph::head::entities", ["input", "time_axis", "_"]],
+      ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+        { "#literal": true }
+      ]
+    ]
+  ]
+]

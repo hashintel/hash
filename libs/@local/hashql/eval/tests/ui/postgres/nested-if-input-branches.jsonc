@@ -1,0 +1,28 @@
+//@ run: pass
+//@ description: Nested runtime branching - nested CASE WHEN from nested if with input discriminants
+// biome-ignore format: readability
+["::graph::tail::collect",
+  ["::graph::body::filter",
+    ["::graph::head::entities", ["input", "time_axis", "_"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["if",
+        ["input", "foo", "Boolean"],
+        ["if",
+          ["input", "bar", "Boolean"],
+          ["==",
+            "vertex.metadata.record_id.entity_id.entity_uuid",
+            ["input", "id_a", "::graph::types::knowledge::entity::EntityUuid"]
+          ],
+          ["==",
+            "vertex.metadata.record_id.entity_id.entity_uuid",
+            ["input", "id_b", "::graph::types::knowledge::entity::EntityUuid"]
+          ]
+        ],
+        ["==",
+          "vertex.metadata.record_id.entity_id.entity_uuid",
+          ["input", "id_c", "::graph::types::knowledge::entity::EntityUuid"]
+        ]
+      ]
+    ]
+  ]
+]

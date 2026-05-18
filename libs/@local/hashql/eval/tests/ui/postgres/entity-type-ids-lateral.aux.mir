@@ -1,0 +1,50 @@
+thunk {thunk#1}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD time_axis
+
+        return %0
+    }
+}
+
+thunk {thunk#2}() -> List<::graph::types::ontology::VersionedUrl> {
+    let %0: List<::graph::types::ontology::VersionedUrl>
+
+    bb0(): {
+        %0 = input LOAD expected_types
+
+        return %0
+    }
+}
+
+fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+    let %3: List<::graph::types::ontology::VersionedUrl>
+
+    bb0(): {                                                                    // postgres
+        %3 = input LOAD expected_types
+        %2 = %1.metadata.entity_type_ids == %3
+
+        return %2
+    }
+}
+
+thunk {thunk#4}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: List<::graph::types::knowledge::entity::Entity>
+    let %1: ()
+    let %2: ::graph::TimeAxis
+
+    bb0(): {
+        %2 = input LOAD time_axis
+        %1 = ()
+
+        graph read entities(%2)
+        |> filter({graph::read::filter@7}, %1)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%0): {
+        return %0
+    }
+}

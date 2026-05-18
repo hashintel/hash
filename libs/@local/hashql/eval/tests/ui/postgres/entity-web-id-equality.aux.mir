@@ -1,0 +1,50 @@
+thunk {thunk#1}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD time_axis
+
+        return %0
+    }
+}
+
+thunk {thunk#2}() -> ::graph::types::principal::actor_group::web::WebId {
+    let %0: ::graph::types::principal::actor_group::web::WebId
+
+    bb0(): {
+        %0 = input LOAD web
+
+        return %0
+    }
+}
+
+fn {graph::read::filter@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+    let %3: ::graph::types::principal::actor_group::web::WebId
+
+    bb0(): {                                                                    // postgres
+        %3 = input LOAD web
+        %2 = %1.metadata.record_id.entity_id.web_id == %3
+
+        return %2
+    }
+}
+
+thunk {thunk#4}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: List<::graph::types::knowledge::entity::Entity>
+    let %1: ()
+    let %2: ::graph::TimeAxis
+
+    bb0(): {
+        %2 = input LOAD time_axis
+        %1 = ()
+
+        graph read entities(%2)
+        |> filter({graph::read::filter@7}, %1)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%0): {
+        return %0
+    }
+}
