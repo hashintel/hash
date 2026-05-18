@@ -7,6 +7,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { PlaceTokenCountDistributionFrame } from "../../core/simulation";
 import type { SDCPN } from "../../core/types/sdcpn";
+import {
+  NotificationsContext,
+  type AddNotificationInput,
+} from "../notifications/context";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { ExperimentsContext, type ExperimentsContextValue } from "./context";
 import { ExperimentsProvider } from "./provider";
@@ -135,20 +139,34 @@ const ExperimentsContextConsumer = ({
 };
 
 const TestWrapper = ({
+  addNotification,
   worker,
   onContextValue,
 }: {
+  addNotification?: (notification: AddNotificationInput) => number;
   worker: FakeMonteCarloWorker;
   onContextValue: (value: ExperimentsContextValue) => void;
 }) => (
-  <SDCPNContext.Provider value={sdcpnContextValue}>
-    <ExperimentsProvider workerFactory={() => worker as unknown as Worker}>
-      <ExperimentsContextConsumer onContextValue={onContextValue} />
-    </ExperimentsProvider>
-  </SDCPNContext.Provider>
+  <NotificationsContext
+    value={{
+      addNotification: addNotification ?? (() => -1),
+      dismissNotification: () => {},
+    }}
+  >
+    <SDCPNContext.Provider value={sdcpnContextValue}>
+      <ExperimentsProvider workerFactory={() => worker as unknown as Worker}>
+        <ExperimentsContextConsumer onContextValue={onContextValue} />
+      </ExperimentsProvider>
+    </SDCPNContext.Provider>
+  </NotificationsContext>
 );
 
-function renderExperimentsProvider(worker: FakeMonteCarloWorker): {
+function renderExperimentsProvider(
+  worker: FakeMonteCarloWorker,
+  options: {
+    addNotification?: (notification: AddNotificationInput) => number;
+  } = {},
+): {
   getValue: () => ExperimentsContextValue;
   renderResult: RenderResult;
 } {
@@ -158,7 +176,11 @@ function renderExperimentsProvider(worker: FakeMonteCarloWorker): {
   };
 
   const renderResult = render(
-    <TestWrapper worker={worker} onContextValue={captureValue} />,
+    <TestWrapper
+      addNotification={options.addNotification}
+      worker={worker}
+      onContextValue={captureValue}
+    />,
   );
 
   return {
@@ -246,8 +268,11 @@ describe("ExperimentsProvider", () => {
   it("prevents window unload while a Monte Carlo experiment is active", async () => {
     const addEventListenerSpy = vi.spyOn(window, "addEventListener");
     const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+    const addNotification = vi.fn(() => 1);
     const worker = new FakeMonteCarloWorker();
-    const { getValue, renderResult } = renderExperimentsProvider(worker);
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      addNotification,
+    });
 
     try {
       await act(async () => {
@@ -292,6 +317,10 @@ describe("ExperimentsProvider", () => {
         worker.emit({ type: "complete", progress: makeProgress() });
       });
 
+      expect(addNotification).toHaveBeenCalledWith({
+        message: "Blocking experiment complete",
+        tone: "success",
+      });
       expect(removeEventListenerSpy).toHaveBeenCalledWith(
         "beforeunload",
         beforeUnloadHandler,

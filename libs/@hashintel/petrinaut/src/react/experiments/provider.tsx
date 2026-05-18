@@ -14,6 +14,7 @@ import type { Scenario, ScenarioParameter } from "../../core/types/sdcpn";
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
+import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
   type CreateExperimentInput,
@@ -131,6 +132,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   workerFactory,
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
+  const { addNotification } = use(NotificationsContext);
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
   const registrationsRef = useRef(
@@ -178,9 +180,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   };
 
   const registerExperimentHandle = (
-    experimentId: string,
+    experiment: ExperimentRecord,
     handle: MonteCarloExperiment,
   ) => {
+    const { id: experimentId, name: experimentName } = experiment;
+
     const sync = () => {
       patchExperiment(experimentId, {
         distributionFrames: handle.distributions.get().frames,
@@ -200,6 +204,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         });
       } else {
         sync();
+      }
+
+      if (event.type === "complete") {
+        addNotification({
+          message: `${experimentName} complete`,
+          tone: "success",
+        });
       }
 
       if (event.type === "complete" || event.type === "cancelled") {
@@ -296,7 +307,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         runCount: input.runCount,
         createWorker: workerFactoryRef.current,
       });
-      registerExperimentHandle(experimentId, handle);
+      registerExperimentHandle(experiment, handle);
       handle.start();
     } catch (error) {
       patchExperiment(experimentId, {

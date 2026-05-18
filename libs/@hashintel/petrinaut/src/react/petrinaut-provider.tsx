@@ -10,6 +10,7 @@ import {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
+import { NotificationsProvider } from "./notifications/provider";
 import { PlaybackProvider } from "./playback/provider";
 import { ExperimentsProvider } from "./experiments/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
@@ -67,20 +68,22 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
         key={instance.handle.id}
         workerFactory={lspWorkerFactory}
       >
-        <SimulationProvider
-          key={instance.handle.id}
-          workerFactory={simulationWorkerFactory}
-        >
-          <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-            <PlaybackProvider>
-              <UserSettingsProvider>
-                <EditorProvider>
-                  <MutationProvider>{children}</MutationProvider>
-                </EditorProvider>
-              </UserSettingsProvider>
-            </PlaybackProvider>
-          </ExperimentsProvider>
-        </SimulationProvider>
+        <NotificationsProvider>
+          <SimulationProvider
+            key={instance.handle.id}
+            workerFactory={simulationWorkerFactory}
+          >
+            <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+              <PlaybackProvider>
+                <UserSettingsProvider>
+                  <EditorProvider>
+                    <MutationProvider>{children}</MutationProvider>
+                  </EditorProvider>
+                </UserSettingsProvider>
+              </PlaybackProvider>
+            </ExperimentsProvider>
+          </SimulationProvider>
+        </NotificationsProvider>
       </LanguageClientProvider>
     </SDCPNProvider>
   );

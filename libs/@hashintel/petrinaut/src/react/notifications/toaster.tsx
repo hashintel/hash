@@ -1,6 +1,15 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
+import type { NotificationTone } from "./context";
+
+export type ToastNotification = {
+  id: number;
+  message: string;
+  tone: NotificationTone;
+  exiting: boolean;
+};
+
 const containerStyle = css({
   position: "absolute",
   top: "[40px]",
@@ -24,8 +33,6 @@ const exitingWrapperStyle = css({
 });
 
 const notificationStyle = css({
-  backgroundColor: "[rgba(34, 197, 94, 0.1)]",
-  color: "[#16a34a]",
   fontFamily: "[Inter, sans-serif]",
   fontSize: "[15px]",
   boxShadow: "[0 6px 12px rgba(0, 0, 0, 0.1)]",
@@ -35,39 +42,56 @@ const notificationStyle = css({
   userSelect: "none",
 });
 
-export type SimulationToast = {
-  id: number;
-  message: string;
-  exiting: boolean;
+const successNotificationStyle = css({
+  backgroundColor: "[rgba(34, 197, 94, 0.1)]",
+  color: "[#16a34a]",
+});
+
+const errorNotificationStyle = css({
+  backgroundColor: "[rgba(239, 68, 68, 0.1)]",
+  color: "[#dc2626]",
+});
+
+const neutralNotificationStyle = css({
+  backgroundColor: "neutral.s20",
+  color: "neutral.s120",
+});
+
+const getToneStyle = (tone: NotificationTone) => {
+  switch (tone) {
+    case "error":
+      return errorNotificationStyle;
+    case "neutral":
+      return neutralNotificationStyle;
+    case "success":
+      return successNotificationStyle;
+  }
 };
 
-/**
- * Renders transient toasts surfaced by `<SimulationProvider>` from the active
- * simulation's `events` stream. Today only "Simulation complete" is surfaced;
- * other event-types could surface here too.
- */
-export const SimulationToaster: React.FC<{ toasts: SimulationToast[] }> = ({
-  toasts,
+export const NotificationsToaster = ({
+  notifications,
+}: {
+  notifications: ToastNotification[];
 }) => {
-  if (toasts.length === 0) {
+  if (notifications.length === 0) {
     return null;
   }
 
   return (
     <div className={containerStyle}>
-      {toasts.map((toast) => (
+      {notifications.map((notification) => (
         <div
-          key={toast.id}
+          key={notification.id}
           className={cx(
             animationWrapperStyle,
-            toast.exiting && exitingWrapperStyle,
+            notification.exiting && exitingWrapperStyle,
           )}
         >
           <refractive.div
             refraction={{ radius: 31, blur: 3, bezelWidth: 20 }}
-            className={notificationStyle}
+            className={cx(notificationStyle, getToneStyle(notification.tone))}
           >
-            {toast.message}
+            {notification.message}
           </refractive.div>
         </div>
       ))}
