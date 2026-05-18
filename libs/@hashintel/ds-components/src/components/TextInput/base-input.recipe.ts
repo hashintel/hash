@@ -416,6 +416,10 @@ export const baseInputRecipe = sva({
         input: {
           gridArea: "[1 / 1]",
           fieldSizing: "content",
+          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
+            {
+              marginLeft: "1.5",
+            },
         },
         clear: {
           position: "relative",
