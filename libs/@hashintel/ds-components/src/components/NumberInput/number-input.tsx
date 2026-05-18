@@ -7,13 +7,9 @@ const preventWheel = (event: WheelEvent) => {
   event.preventDefault();
 };
 
-type NumberType<T extends boolean | undefined> = T extends true
-  ? number
-  : number | null;
-
 const integerBlockedKeys = new Set([".", "e", "E", "+"]);
 
-export const NumberInput = <RequiredType extends boolean | undefined>({
+export const NumberInput = ({
   type,
   value,
   min = 0,
@@ -31,10 +27,9 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
   type: "integer" | "float";
   value: number | null | undefined;
   onChange: (
-    value: NumberType<RequiredType>,
+    value: number | null,
     event: React.ChangeEvent<HTMLInputElement>,
   ) => void;
-  required?: RequiredType;
 }) => {
   if (
     type === "integer" ? max > Number.MAX_SAFE_INTEGER : max > Number.MAX_VALUE
@@ -83,10 +78,7 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
           type === "integer" && !Number.isNaN(parsedRaw)
             ? Math.trunc(parsedRaw)
             : parsedRaw;
-        onChange(
-          (Number.isNaN(parsed) ? null : parsed) as NumberType<RequiredType>,
-          event,
-        );
+        onChange(Number.isNaN(parsed) ? null : parsed, event);
       }}
     />
   );
