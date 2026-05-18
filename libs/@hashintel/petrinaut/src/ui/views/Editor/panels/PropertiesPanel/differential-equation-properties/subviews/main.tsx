@@ -148,7 +148,7 @@ const DiffEqMainContent: React.FC = () => {
 
       <Section title="Associated Type">
         <Select
-          value={differentialEquation.colorId}
+          value={differentialEquation.colorId ?? undefined}
           onValueChange={handleTypeChange}
           options={types.map((type) => ({
             value: type.id,

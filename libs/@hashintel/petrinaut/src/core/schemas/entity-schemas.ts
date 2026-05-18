@@ -197,7 +197,7 @@ export const differentialEquationSchema = z
     name: displayNameSchema.meta({
       description: "Human-readable dynamics name.",
     }),
-    colorId: idSchema.meta({
+    colorId: idSchema.nullable().meta({
       description:
         "ID of the colour/type whose token attributes this dynamics function updates.",
     }),

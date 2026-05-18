@@ -69,6 +69,7 @@ const differentialEquationSchema = z.object({
   ...currentDifferentialEquationSchema.shape,
   id: z.string(),
   name: z.string(),
+  colorId: z.string().nullable(),
 });
 
 const parameterSchema = z.object({

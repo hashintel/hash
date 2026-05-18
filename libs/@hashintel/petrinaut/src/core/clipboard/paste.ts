@@ -85,7 +85,9 @@ export function pastePayloadIntoSDCPN(
       id: newId,
       name: newName,
       // Remap colorId if the type was also copied, otherwise keep original
-      colorId: idMap.get(equation.colorId) ?? equation.colorId,
+      colorId: equation.colorId
+        ? (idMap.get(equation.colorId) ?? equation.colorId)
+        : null,
     });
     newItemIds.push({ type: "differentialEquation", id: newId });
   }

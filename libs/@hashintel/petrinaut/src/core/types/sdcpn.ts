@@ -60,7 +60,7 @@ export type Parameter = {
 export type DifferentialEquation = {
   id: ID;
   name: string;
-  colorId: ID;
+  colorId: ID | null;
   code: string;
 };
 

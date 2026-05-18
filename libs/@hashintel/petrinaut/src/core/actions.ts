@@ -317,7 +317,7 @@ export function createPetrinautActions(
         }
         for (const equation of sdcpn.differentialEquations) {
           if (equation.colorId === parsedTypeId) {
-            equation.colorId = "";
+            equation.colorId = null;
           }
         }
       });
@@ -562,8 +562,8 @@ export function createPetrinautActions(
             }
           }
           for (const equation of sdcpn.differentialEquations) {
-            if (typeIds.has(equation.colorId)) {
-              equation.colorId = "";
+            if (equation.colorId && typeIds.has(equation.colorId)) {
+              equation.colorId = null;
             }
           }
         }
