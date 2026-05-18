@@ -1,6 +1,6 @@
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { use } from "react";
+import { use, useState } from "react";
 
 import { Button } from "../../../../components/button";
 import { Popover } from "../../../../components/popover";
@@ -133,6 +133,7 @@ type RunningExperimentsPopoverProps = {
 export const RunningExperimentsPopover = ({
   onExperimentClick,
 }: RunningExperimentsPopoverProps) => {
+  const [open, setOpen] = useState(false);
   const { experiments } = use(ExperimentsContext);
   const activeExperiments = experiments.filter(isExperimentActive);
 
@@ -144,6 +145,8 @@ export const RunningExperimentsPopover = ({
 
   return (
     <Popover.Root
+      open={open}
+      onOpenChange={({ open: isOpen }) => setOpen(isOpen)}
       positioning={{ placement: "bottom-end", gutter: 8 }}
       lazyMount
       unmountOnExit
@@ -194,7 +197,10 @@ export const RunningExperimentsPopover = ({
                       key={experiment.id}
                       type="button"
                       className={cx(rowStyle, clickableRowStyle)}
-                      onClick={() => onExperimentClick(experiment)}
+                      onClick={() => {
+                        setOpen(false);
+                        onExperimentClick(experiment);
+                      }}
                     >
                       {rowContent}
                     </button>

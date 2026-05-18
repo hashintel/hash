@@ -19,6 +19,7 @@ import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import type { ViewportAction } from "../../types/viewport-action";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { ExperimentsContext } from "../../../react/experiments/context";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
@@ -119,7 +120,9 @@ export const EditorView = ({
     cursorMode,
     setCursorMode,
     clearSelection,
+    setSimulateViewMode,
   } = use(EditorContext);
+  const { setSelectedExperimentId } = use(ExperimentsContext);
 
   const { compactNodes } = use(UserSettingsContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
@@ -165,6 +168,12 @@ export const EditorView = ({
 
   function handleExportTikZ() {
     exportTikZ({ petriNetDefinition, title });
+  }
+
+  function handleRunningExperimentClick(experimentId: string) {
+    setGlobalMode("simulate");
+    setSimulateViewMode("experiments");
+    setSelectedExperimentId(experimentId);
   }
 
   async function handleImport() {
@@ -372,6 +381,9 @@ export const EditorView = ({
           hideNetManagementControls={hideNetManagementControls}
           mode={mode}
           onModeChange={setGlobalMode}
+          onRunningExperimentClick={(experiment) =>
+            handleRunningExperimentClick(experiment.id)
+          }
         />
 
         <Stack direction="row" className={rowContainerStyle}>

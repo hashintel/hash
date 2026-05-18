@@ -86,11 +86,6 @@ const experimentColumns = [
   },
 ] satisfies readonly TableColumn<ExperimentRecord>[];
 
-type ExperimentDrawerState =
-  | { type: "closed" }
-  | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" };
-
 const ExperimentList = ({
   experiments,
   selectedId,
@@ -124,17 +119,16 @@ const ExperimentList = ({
 };
 
 export const ExperimentsView = () => {
-  const [drawer, setDrawer] = useState<ExperimentDrawerState>({
-    type: "closed",
-  });
-  const { experiments } = use(ExperimentsContext);
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const {
+    experiments,
+    selectedExperiment,
+    selectedExperimentId,
+    setSelectedExperimentId,
+  } = use(ExperimentsContext);
 
-  const selectedExperiment =
-    drawer.type === "view-experiment"
-      ? experiments.find((experiment) => experiment.id === drawer.experimentId)
-      : undefined;
-
-  const closeDrawer = () => setDrawer({ type: "closed" });
+  const closeCreateDrawer = () => setIsCreateDrawerOpen(false);
+  const closeViewDrawer = () => setSelectedExperimentId(null);
 
   return (
     <SimulateSubviewFrame
@@ -145,7 +139,7 @@ export const ExperimentsView = () => {
           tone="neutral"
           size="sm"
           prefix={<Icon name="plus" size="sm" />}
-          onClick={() => setDrawer({ type: "create-experiment" })}
+          onClick={() => setIsCreateDrawerOpen(true)}
         >
           Create
         </Button>
@@ -153,26 +147,23 @@ export const ExperimentsView = () => {
     >
       <ExperimentList
         experiments={experiments}
-        selectedId={
-          drawer.type === "view-experiment" ? drawer.experimentId : null
-        }
-        onSelect={(id) =>
-          setDrawer({ type: "view-experiment", experimentId: id })
-        }
+        selectedId={selectedExperimentId}
+        onSelect={setSelectedExperimentId}
       />
 
       <CreateExperimentDrawer
-        open={drawer.type === "create-experiment"}
-        onClose={closeDrawer}
-        onCreated={(experimentId) =>
-          setDrawer({ type: "view-experiment", experimentId })
-        }
+        open={isCreateDrawerOpen}
+        onClose={closeCreateDrawer}
+        onCreated={(experimentId) => {
+          setIsCreateDrawerOpen(false);
+          setSelectedExperimentId(experimentId);
+        }}
       />
 
       <ViewExperimentDrawer
-        open={!!selectedExperiment}
-        onClose={closeDrawer}
-        experiment={selectedExperiment}
+        open={selectedExperiment !== null && !isCreateDrawerOpen}
+        onClose={closeViewDrawer}
+        experiment={selectedExperiment ?? undefined}
       />
     </SimulateSubviewFrame>
   );
