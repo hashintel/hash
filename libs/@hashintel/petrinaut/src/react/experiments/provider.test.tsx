@@ -331,4 +331,47 @@ describe("ExperimentsProvider", () => {
       removeEventListenerSpy.mockRestore();
     }
   });
+
+  it("notifies when a Monte Carlo experiment errors", async () => {
+    const addNotification = vi.fn(() => "notification-id");
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      addNotification,
+    });
+
+    try {
+      await act(async () => {
+        const createPromise = getValue().createExperiment({
+          name: "Erroring experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+        });
+
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      await act(async () => {
+        worker.emit({
+          type: "error",
+          message: "Worker failed",
+          itemId: null,
+        });
+      });
+
+      expect(getValue().selectedExperiment?.status).toBe("error");
+      expect(getValue().selectedExperiment?.error).toBe("Worker failed");
+      expect(addNotification).toHaveBeenCalledWith({
+        message: "Erroring experiment failed: Worker failed",
+        tone: "error",
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
 });

@@ -202,6 +202,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           error: event.message,
           status: "error",
         });
+        addNotification({
+          message: `${experimentName} failed: ${event.message}`,
+          tone: "error",
+        });
       } else {
         sync();
       }
