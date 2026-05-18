@@ -3,11 +3,11 @@ import { use, useEffect, useRef } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
-import type { PlaceTokenCountDistributionBin } from "../../../../../core/simulation";
-import { useElementSize } from "../../../../../react/hooks/use-element-size";
-import type { ExperimentRecord } from "../../../../../react/experiments/context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { Select } from "../../../../components/select";
+import type { PlaceTokenCountDistributionBin } from "../../../../../../core/simulation";
+import type { ExperimentRecord } from "../../../../../../react/experiments/context";
+import { useElementSize } from "../../../../../../react/hooks/use-element-size";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { Select } from "../../../../../components/select";
 
 const UPlot = uPlot;
 

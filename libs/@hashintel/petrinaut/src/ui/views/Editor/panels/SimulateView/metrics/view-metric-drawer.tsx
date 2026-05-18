@@ -1,35 +1,48 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "../../../../components/button";
-import { Drawer } from "../../../../components/drawer";
-import { metricSchema } from "../../../../../core/schemas/metric-schema";
-import { LanguageClientContext } from "../../../../../react/lsp/context";
-import { compileMetric } from "../../../../../core/simulation/authoring/metric/compile-metric";
-import { MutationContext } from "../../../../../react/state/mutation-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { Button } from "../../../../../components/button";
+import { Drawer } from "../../../../../components/drawer";
+import { metricSchema } from "../../../../../../core/schemas/metric-schema";
+import { compileMetric } from "../../../../../../core/simulation/authoring/metric/compile-metric";
+import type { Metric } from "../../../../../../core/types/sdcpn";
+import { LanguageClientContext } from "../../../../../../react/lsp/context";
+import { MutationContext } from "../../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   MetricFormBody,
   type MetricFormInstance,
+  type MetricFormState,
   useMetricForm,
   useMetricLspSession,
 } from "./metric-form";
-import { EMPTY_METRIC_FORM_STATE } from "./metric-form-defaults";
 import { summarizeMetricLspErrors } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
-import { ScenarioErrorDisplay } from "./scenario-error-display";
+import { DrawerErrorDisplay } from "../drawer-error-display";
+
+// -- Defaults -----------------------------------------------------------------
+
+function buildDefaultsFromMetric(metric: Metric): MetricFormState {
+  return {
+    name: metric.name,
+    description: metric.description ?? "",
+    code: metric.code,
+  };
+}
 
 // -- Footer -------------------------------------------------------------------
 
-const CreateMetricFooter = ({
+const ViewMetricFooter = ({
   form,
   compileError,
   metricSessionId,
+  onDelete,
   onClose,
 }: {
   form: MetricFormInstance;
   compileError: string | null;
   metricSessionId: string;
+  onDelete: () => void;
   onClose: () => void;
 }) => {
   const canSubmit = useStore(form.store, (state) => state.canSubmit);
@@ -53,9 +66,12 @@ const CreateMetricFooter = ({
 
   return (
     <Drawer.Footer>
-      <ScenarioErrorDisplay count={totalErrorCount} firstMessage={firstError} />
+      <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
+      <Button variant="subtle" tone="error" size="sm" onClick={onDelete}>
+        Delete
+      </Button>
       <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
-        Cancel
+        Close
       </Button>
       <Button
         variant="solid"
@@ -67,61 +83,67 @@ const CreateMetricFooter = ({
           (hasLspErrors
             ? "Fix the errors in the metric code before saving."
             : (compileError ??
-              (isDefaultValue
-                ? "Make changes to enable creation."
-                : undefined)))
+              (isDefaultValue ? "No changes to save." : undefined)))
         }
         onClick={() => {
           void form.handleSubmit();
         }}
       >
-        Create
+        Save
       </Button>
     </Drawer.Footer>
   );
 };
 
-// -- Drawer wrapper -----------------------------------------------------------
+// -- Inner content (remounts when metric changes via `key`) ------------------
 
-interface CreateMetricDrawerProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-export const CreateMetricDrawer = ({
-  open,
+const ViewMetricContent = ({
+  metric,
   onClose,
-}: CreateMetricDrawerProps) => {
+}: {
+  metric: Metric;
+  onClose: () => void;
+}) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { addMetric } = use(MutationContext);
+  const { updateMetric, removeMetric } = use(MutationContext);
 
+  // Names of OTHER metrics — exclude the one being edited so it can keep
+  // its current name without triggering the "already exists" error.
   const existingMetricNames = new Set(
-    (petriNetDefinition.metrics ?? []).map((m) => m.name),
+    (petriNetDefinition.metrics ?? [])
+      .filter((m) => m.id !== metric.id)
+      .map((m) => m.name),
   );
 
   const form = useMetricForm(
-    EMPTY_METRIC_FORM_STATE,
-    (value, ctx) => {
-      const metric = buildMetricFromFormState(value, crypto.randomUUID());
-      const result = metricSchema.safeParse(metric);
+    buildDefaultsFromMetric(metric),
+    (value) => {
+      const updated = buildMetricFromFormState(value, metric.id);
+      const result = metricSchema.safeParse(updated);
       if (!result.success) {
         return;
       }
-      addMetric(result.data);
+      updateMetric({
+        metricId: metric.id,
+        update: {
+          name: result.data.name,
+          description: result.data.description,
+          code: result.data.code,
+        },
+      });
       onClose();
-      ctx.reset();
     },
     { existingMetricNames },
   );
 
-  // Compile-check the code live so the user sees errors before submitting.
+  // Compile-check the live code.
   const values = useStore(form.store, (state) => state.values);
   const compileOutcome =
     values.code.trim() === ""
       ? null
       : compileMetric({
-          id: "__preview__",
-          name: values.name || "metric",
+          id: metric.id,
+          name: values.name || metric.name,
           code: values.code,
         });
   const compileError =
@@ -131,26 +153,50 @@ export const CreateMetricDrawer = ({
   // diagnostics summary to the same session.
   const metricSessionId = useMetricLspSession(values.code);
 
+  const handleDelete = () => {
+    removeMetric({ metricId: metric.id });
+    onClose();
+  };
+
   return (
-    <Drawer.Root open={open} onClose={onClose}>
+    <>
       <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="A function over the simulation state that returns a number to plot on the timeline.">
-          Create a metric
-        </Drawer.Header>
+        <Drawer.Header>{metric.name}</Drawer.Header>
         <Drawer.Body>
           <MetricFormBody
             form={form}
-            idPrefix="create-"
+            idPrefix="view-"
             metricSessionId={metricSessionId}
           />
         </Drawer.Body>
       </Drawer.Card>
-      <CreateMetricFooter
+      <ViewMetricFooter
         form={form}
         compileError={compileError}
         metricSessionId={metricSessionId}
+        onDelete={handleDelete}
         onClose={onClose}
       />
-    </Drawer.Root>
+    </>
   );
 };
+
+// -- Component ----------------------------------------------------------------
+
+interface ViewMetricDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  metric: Metric | undefined;
+}
+
+export const ViewMetricDrawer = ({
+  open,
+  onClose,
+  metric,
+}: ViewMetricDrawerProps) => (
+  <Drawer.Root open={open} onClose={onClose}>
+    {metric ? (
+      <ViewMetricContent key={metric.id} metric={metric} onClose={onClose} />
+    ) : null}
+  </Drawer.Root>
+);

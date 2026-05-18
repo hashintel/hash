@@ -2,23 +2,23 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
 
-import { Button } from "../../../../components/button";
-import { Input } from "../../../../components/input";
-import { Section, SectionList } from "../../../../components/section";
-import { Select } from "../../../../components/select";
-import type { SpreadsheetColumn } from "../../../../components/spreadsheet";
-import { Spreadsheet } from "../../../../components/spreadsheet";
-import { Switch } from "../../../../components/switch";
+import { Button } from "../../../../../components/button";
+import { Input } from "../../../../../components/input";
+import { NumberInput } from "../../../../../components/number-input";
+import { Section, SectionList } from "../../../../../components/section";
+import { Select } from "../../../../../components/select";
+import type { SpreadsheetColumn } from "../../../../../components/spreadsheet";
+import { Spreadsheet } from "../../../../../components/spreadsheet";
+import { Switch } from "../../../../../components/switch";
 import type {
   Color,
   Parameter,
   Place,
   ScenarioParameter,
-} from "../../../../../core/types/sdcpn";
-import { LanguageClientContext } from "../../../../../react/lsp/context";
-import { CodeEditor } from "../../../../monaco/code-editor";
-import { getScenarioDocumentUri } from "../../../../monaco/editor-paths";
-import { NumberInput } from "../../../../components/number-input";
+} from "../../../../../../core/types/sdcpn";
+import { LanguageClientContext } from "../../../../../../react/lsp/context";
+import { CodeEditor } from "../../../../../monaco/code-editor";
+import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";
 
 // -- Form styles --------------------------------------------------------------
 

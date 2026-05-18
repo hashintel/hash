@@ -12,8 +12,8 @@ import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { CreateScenarioDrawer } from "../../SimulateView/create-scenario-drawer";
-import { ViewScenarioDrawer } from "../../SimulateView/view-scenario-drawer";
+import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
+import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 
 // -- Styles -------------------------------------------------------------------
 

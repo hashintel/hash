@@ -1,20 +1,20 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "../../../../components/button";
-import { Drawer } from "../../../../components/drawer";
-import { scenarioSchema } from "../../../../../core/schemas/scenario-schema";
-import type { Color } from "../../../../../core/types/sdcpn";
-import { LanguageClientContext } from "../../../../../react/lsp/context";
-import { MutationContext } from "../../../../../react/state/mutation-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { Button } from "../../../../../components/button";
+import { Drawer } from "../../../../../components/drawer";
+import { scenarioSchema } from "../../../../../../core/schemas/scenario-schema";
+import type { Color } from "../../../../../../core/types/sdcpn";
+import { LanguageClientContext } from "../../../../../../react/lsp/context";
+import { MutationContext } from "../../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   ScenarioFormBody,
   type ScenarioFormInstance,
   useScenarioForm,
 } from "./scenario-form";
 import { EMPTY_SCENARIO_FORM_STATE } from "./scenario-form-defaults";
-import { ScenarioErrorDisplay } from "./scenario-error-display";
+import { DrawerErrorDisplay } from "../drawer-error-display";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
 import { buildScenarioFromFormState } from "./scenario-mapping";
 
@@ -47,7 +47,7 @@ const CreateScenarioFooter = ({
 
   return (
     <Drawer.Footer>
-      <ScenarioErrorDisplay count={totalErrorCount} firstMessage={firstError} />
+      <DrawerErrorDisplay count={totalErrorCount} firstMessage={firstError} />
       <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
         Cancel
       </Button>

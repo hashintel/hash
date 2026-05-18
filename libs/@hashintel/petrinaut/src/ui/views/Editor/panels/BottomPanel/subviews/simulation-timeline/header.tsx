@@ -4,8 +4,8 @@ import { Button } from "../../../../../../components/button";
 import { SegmentGroup } from "../../../../../../components/segment-group";
 import { Select } from "../../../../../../components/select";
 
-import { CreateMetricDrawer } from "../../../SimulateView/create-metric-drawer";
-import { ViewMetricDrawer } from "../../../SimulateView/view-metric-drawer";
+import { CreateMetricDrawer } from "../../../SimulateView/metrics/create-metric-drawer";
+import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
 import {
   EditorContext,
   type TimelineChartType,

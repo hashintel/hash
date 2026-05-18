@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { LanguageClientProvider } from "../../../../../react/lsp/provider";
-import { MonacoProvider } from "../../../../monaco/provider";
+import { MonacoProvider } from "../../../../../monaco/provider";
+import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
 import {
   SDCPNContext,
   type SDCPNContextValue,
-} from "../../../../../react/state/sdcpn-context";
+} from "../../../../../../react/state/sdcpn-context";
 import { CreateScenarioForm } from "./create-scenario-drawer";
 
 // -- Stub data ----------------------------------------------------------------

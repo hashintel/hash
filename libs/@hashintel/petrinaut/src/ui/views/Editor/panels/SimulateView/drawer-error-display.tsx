@@ -31,7 +31,7 @@ const messageStyle = css({
   minWidth: "[0]",
 });
 
-interface ScenarioErrorDisplayProps {
+interface DrawerErrorDisplayProps {
   count: number;
   firstMessage?: string;
 }
@@ -40,10 +40,10 @@ interface ScenarioErrorDisplayProps {
  * Compact error summary for drawer footers: a red badge showing the count
  * and the first error message truncated with ellipsis.
  */
-export const ScenarioErrorDisplay = ({
+export const DrawerErrorDisplay = ({
   count,
   firstMessage,
-}: ScenarioErrorDisplayProps) => {
+}: DrawerErrorDisplayProps) => {
   if (count === 0) {
     return null;
   }

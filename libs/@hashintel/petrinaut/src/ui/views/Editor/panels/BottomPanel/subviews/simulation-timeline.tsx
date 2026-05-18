@@ -26,8 +26,8 @@ import {
   type TimelineView,
 } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { CreateMetricDrawer } from "../../SimulateView/create-metric-drawer";
-import { ViewMetricDrawer } from "../../SimulateView/view-metric-drawer";
+import { CreateMetricDrawer } from "../../SimulateView/metrics/create-metric-drawer";
+import { ViewMetricDrawer } from "../../SimulateView/metrics/view-metric-drawer";
 
 // -- Styles -------------------------------------------------------------------
 

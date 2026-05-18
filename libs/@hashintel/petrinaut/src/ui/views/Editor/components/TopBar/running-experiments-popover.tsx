@@ -1,9 +1,10 @@
 import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
 import { Button } from "../../../../components/button";
 import { Popover } from "../../../../components/popover";
+import { TableStatusBadge } from "../../../../components/table";
 import {
   ExperimentsContext,
   isExperimentActive,
@@ -23,8 +24,6 @@ const triggerCountStyle = css({
 const listStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[1px]",
-  padding: "1",
   maxHeight: "[280px]",
   overflowY: "auto",
 });
@@ -34,18 +33,33 @@ const rowStyle = css({
   gridTemplateColumns: "[minmax(0, 1fr) auto]",
   gap: "2",
   alignItems: "center",
-  paddingX: "2",
+  paddingX: "3",
   paddingY: "2",
-  borderRadius: "lg",
+  borderBottomWidth: "[1px]",
+  borderBottomStyle: "solid",
+  borderBottomColor: "neutral.bd.subtle",
+  background: "[none]",
+  borderTop: "[none]",
+  borderLeft: "[none]",
+  borderRight: "[none]",
+  textAlign: "left",
+  width: "full",
   _hover: {
     backgroundColor: "neutral.s10",
   },
+  _last: {
+    borderBottomWidth: "[0]",
+  },
+});
+
+const clickableRowStyle = css({
+  cursor: "pointer",
 });
 
 const rowMainStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "[3px]",
+  gap: "[2px]",
   minWidth: "[0]",
 });
 
@@ -66,27 +80,6 @@ const experimentMetaStyle = css({
   whiteSpace: "nowrap",
 });
 
-const statusPillStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  borderRadius: "full",
-  paddingX: "2",
-  height: "[22px]",
-  backgroundColor: "blue.s20",
-  color: "neutral.s120",
-  fontSize: "xs",
-  fontWeight: "medium",
-});
-
-const statusDotStyle = css({
-  width: "[6px]",
-  height: "[6px]",
-  borderRadius: "full",
-  backgroundColor: "blue.s60",
-  flexShrink: 0,
-});
-
 const progressBarStyle = css({
   gridColumn: "[1 / -1]",
   height: "[4px]",
@@ -102,7 +95,7 @@ const progressFillStyle = css({
 });
 
 function formatStatus(status: ExperimentRecord["status"]): string {
-  return status === "initializing" ? "Starting" : "Running";
+  return status === "initializing" ? "Initializing" : "Running";
 }
 
 function formatProgress(experiment: ExperimentRecord): string {
@@ -123,7 +116,23 @@ function getProgressPercent(experiment: ExperimentRecord): number {
   return Math.min(100, (progress.time / experiment.maxTime) * 100);
 }
 
-export const RunningExperimentsPopover = () => {
+const ExperimentStatusBadge = ({
+  status,
+}: {
+  status: ExperimentRecord["status"];
+}) => (
+  <TableStatusBadge loading tone="active">
+    {formatStatus(status)}
+  </TableStatusBadge>
+);
+
+type RunningExperimentsPopoverProps = {
+  onExperimentClick?: (experiment: ExperimentRecord) => void;
+};
+
+export const RunningExperimentsPopover = ({
+  onExperimentClick,
+}: RunningExperimentsPopoverProps) => {
   const { experiments } = use(ExperimentsContext);
   const activeExperiments = experiments.filter(isExperimentActive);
 
@@ -144,7 +153,7 @@ export const RunningExperimentsPopover = () => {
           size="md"
           variant="ghost"
           aria-label={`Show ${countLabel} Monte Carlo simulations`}
-          tooltip="Running Monte Carlo simulations"
+          tooltip="Running Experiments"
           tooltipDisplay="inline"
           prefix={<Icon name="flask" size="sm" />}
         >
@@ -153,34 +162,51 @@ export const RunningExperimentsPopover = () => {
       </Popover.Trigger>
 
       <Popover.Content className={contentWidthStyle}>
-        <Popover.Header>Running Monte Carlo</Popover.Header>
+        <Popover.Header>Running Experiments</Popover.Header>
         <Popover.Section>
           <Popover.SectionCard>
-            <Popover.SectionLabel>Active simulations</Popover.SectionLabel>
             <div className={listStyle}>
-              {activeExperiments.map((experiment) => (
-                <div key={experiment.id} className={rowStyle}>
-                  <div className={rowMainStyle}>
-                    <span className={experimentNameStyle}>
-                      {experiment.name}
-                    </span>
-                    <span className={experimentMetaStyle}>
-                      {experiment.scenarioName ?? "Default"} -{" "}
-                      {formatProgress(experiment)}
-                    </span>
+              {activeExperiments.map((experiment) => {
+                const rowContent = (
+                  <>
+                    <div className={rowMainStyle}>
+                      <span className={experimentNameStyle}>
+                        {experiment.name}
+                      </span>
+                      <span className={experimentMetaStyle}>
+                        {experiment.scenarioName ?? "Default"} -{" "}
+                        {formatProgress(experiment)}
+                      </span>
+                    </div>
+                    <ExperimentStatusBadge status={experiment.status} />
+                    <div className={progressBarStyle}>
+                      <div
+                        className={progressFillStyle}
+                        style={{ width: `${getProgressPercent(experiment)}%` }}
+                      />
+                    </div>
+                  </>
+                );
+
+                if (onExperimentClick) {
+                  return (
+                    <button
+                      key={experiment.id}
+                      type="button"
+                      className={cx(rowStyle, clickableRowStyle)}
+                      onClick={() => onExperimentClick(experiment)}
+                    >
+                      {rowContent}
+                    </button>
+                  );
+                }
+
+                return (
+                  <div key={experiment.id} className={rowStyle}>
+                    {rowContent}
                   </div>
-                  <span className={statusPillStyle}>
-                    <span className={statusDotStyle} />
-                    {formatStatus(experiment.status)}
-                  </span>
-                  <div className={progressBarStyle}>
-                    <div
-                      className={progressFillStyle}
-                      style={{ width: `${getProgressPercent(experiment)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Popover.SectionCard>
         </Popover.Section>
