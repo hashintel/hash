@@ -29,8 +29,8 @@ export type PetrinautAiTool<InputSchema extends z.ZodType> = {
 };
 
 export type PetrinautAiTools = {
-  [Name in keyof typeof petrinautAiMutationToolInputSchemas]: PetrinautAiTool<
-    (typeof petrinautAiMutationToolInputSchemas)[Name]
+  [Name in keyof typeof petrinautAiToolInputSchemas]: PetrinautAiTool<
+    (typeof petrinautAiToolInputSchemas)[Name]
   >;
 };
 
@@ -73,7 +73,7 @@ const getLatestNetDefinitionToolInputSchema = z
   .strictObject({})
   .describe("Get the latest complete Petrinaut SDCPN net definition.");
 
-export const petrinautAiMutationToolInputSchemas = {
+export const petrinautAiToolInputSchemas = {
   ...mutationActionInputSchemas,
   [getLatestNetDefinitionToolName]: getLatestNetDefinitionToolInputSchema,
 };

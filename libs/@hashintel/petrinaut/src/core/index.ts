@@ -37,7 +37,6 @@ export {
   getLatestNetDefinitionToolName,
   metricSchema,
   parameterSchema,
-  petrinautAiMutationToolInputSchemas,
   petrinautAiMutationTools,
   petrinautAiPrompt,
   petrinautAiTools,

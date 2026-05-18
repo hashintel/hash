@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   createPetrinautMutationAiToolCallbacks,
-  petrinautAiMutationToolInputSchemas,
+  petrinautAiToolInputSchemas,
   petrinautAiTools,
 } from "./ai";
 import { createJsonDocHandle } from "./handle";
@@ -11,7 +11,7 @@ import { createPetrinaut } from "./instance";
 describe("Petrinaut AI core exports", () => {
   test("tool metadata stays aligned with input schemas and has no execute", () => {
     expect(Object.keys(petrinautAiTools).sort()).toEqual(
-      Object.keys(petrinautAiMutationToolInputSchemas).sort(),
+      Object.keys(petrinautAiToolInputSchemas).sort(),
     );
 
     for (const tool of Object.values(petrinautAiTools)) {
