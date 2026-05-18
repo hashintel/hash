@@ -188,6 +188,10 @@ export const BaseInput = ({
     ...(inputRef ? [inputRef] : []),
   ]);
 
+  const hasBrowserControls = type === "number";
+  const noAutocomplete = !!clearable || autocomplete === false;
+  const showClear = !!(clearable && !disabled);
+
   const classes = baseInputRecipe({
     variant,
     size,
@@ -196,6 +200,11 @@ export const BaseInput = ({
     invalid: !!invalid,
     disabled: !!disabled,
     loading: !!loading,
+    hasBrowserControls,
+    willClear:
+      showClear &&
+      clearable.clearable &&
+      (value === null || value === undefined),
   });
 
   if (readonly) {
@@ -210,9 +219,6 @@ export const BaseInput = ({
       </span>
     );
   }
-
-  const noAutocomplete = !!clearable || autocomplete === false;
-  const showClear = !!(clearable && !disabled);
 
   const input = (
     <input
@@ -278,7 +284,9 @@ export const BaseInput = ({
       <div className={classes.inputWrapper}>
         {width === "fitContent" && (
           <span aria-hidden="true" className={classes.sizer}>
-            {value != null && value.length > 0 ? value : (placeholder ?? "")}
+            {value !== null && value !== undefined && value.length > 0
+              ? value
+              : (placeholder ?? "")}
           </span>
         )}
         {input}

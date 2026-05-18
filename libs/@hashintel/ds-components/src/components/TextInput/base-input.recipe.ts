@@ -166,7 +166,8 @@ export const baseInputRecipe = sva({
         content: "''",
         position: "absolute",
         insetY: "[calc(var(--form-padding-y) * -1)]",
-        insetX: "-1.5",
+        right: "0",
+        left: "-1.5",
         background: "white",
         zIndex: "-2",
         borderRightRadius: "var(--base-input-border-radius)",
@@ -437,6 +438,25 @@ export const baseInputRecipe = sva({
         },
       },
     },
+    willClear: { true: {} },
+    hasBrowserControls: {
+      true: {
+        input: {
+          paddingRight: "1",
+        },
+        clear: {
+          position: "relative",
+          right: "1",
+          gridArea: "[1 / 2]",
+        },
+        editIcon: {
+          position: "relative",
+          right: "1",
+          gridArea: "[1 / 2]",
+          paddingX: "0.5",
+        },
+      },
+    },
   },
   compoundVariants: [
     {
@@ -580,6 +600,23 @@ export const baseInputRecipe = sva({
       css: {
         root: {
           "--base-input-padding-x": "spacing.2",
+        },
+      },
+    },
+    {
+      hasBrowserControls: true,
+      willClear: true,
+      css: {
+        input: {
+          // Hide the number scroll arrows in safari + firefox when not focused
+          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
+            {
+              WebkitAppearance: "none",
+            },
+          "&[type=number]": {
+            // @ts-expect-error moz-appearance is a valid firefox property
+            "-moz-appearance": "textfield",
+          },
         },
       },
     },
