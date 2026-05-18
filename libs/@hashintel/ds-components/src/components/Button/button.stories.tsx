@@ -249,8 +249,8 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
             {/* eslint-enable */}
           </Fragment>
         ))}
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */}
         <Button
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */
           {...(args as any)}
           variant={variant}
           iconName="star"
