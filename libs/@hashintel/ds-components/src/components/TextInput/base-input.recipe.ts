@@ -9,7 +9,6 @@ export const baseInputRecipe = sva({
     "inputWrapper",
     "input",
     "hiddenInput",
-    "sizer",
     "prefix",
     "suffix",
     "adornment",
@@ -99,9 +98,6 @@ export const baseInputRecipe = sva({
     hiddenInput: {
       color: "[transparent]",
       caretColor: "[transparent]",
-    },
-    sizer: {
-      display: "none",
     },
     prefix: {
       borderLeftRadius: "var(--base-input-border-radius)",
@@ -474,15 +470,6 @@ export const baseInputRecipe = sva({
     },
   },
   compoundVariants: [
-    {
-      variant: "default",
-      width: "fitContent",
-      css: {
-        sizer: {
-          paddingX: "var(--base-input-padding-x)",
-        },
-      },
-    },
     {
       variant: "subtle",
       loading: true,
