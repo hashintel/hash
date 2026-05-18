@@ -51,7 +51,7 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
       min={min}
       max={max}
       step={type === "integer" ? 1 : undefined}
-      inputMode={(inputMode ?? type === "integer") ? "numeric" : "decimal"}
+      inputMode={inputMode ?? (type === "integer" ? "numeric" : "decimal")}
       onFocus={(event) => {
         onFocus?.(event);
         event.target.addEventListener("wheel", preventWheel, {
