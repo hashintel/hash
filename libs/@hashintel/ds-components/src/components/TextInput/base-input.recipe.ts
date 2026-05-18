@@ -169,9 +169,9 @@ export const baseInputRecipe = sva({
       color: "fg.muted",
       cursor: "pointer",
       _before: {
-        content: "''",
+        content: "'\\200B'",
         position: "absolute",
-        insetY: "[calc(var(--form-padding-y) * -1)]",
+        paddingY: "[var(--form-padding-y)]",
         insetX: "0",
         background: "white",
         zIndex: "-2",
@@ -194,9 +194,9 @@ export const baseInputRecipe = sva({
       _hover: { color: "neutral.s125" },
       _focus: { _after: { background: "neutral.s30" }, outline: "none" },
       _before: {
-        content: "''",
+        content: "'\\200B'",
         position: "absolute",
-        insetY: "[calc(var(--form-padding-y) * -1)]",
+        paddingY: "[var(--form-padding-y)]",
         insetX: "0",
         background: "white",
         zIndex: "-2",
