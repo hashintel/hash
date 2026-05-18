@@ -21,6 +21,7 @@ export const baseInputRecipe = sva({
     "editIcon",
     "clear",
     "clearIcon",
+    "hideClear",
     "styledValueOverlay",
     "readonly",
   ],
@@ -190,7 +191,7 @@ export const baseInputRecipe = sva({
         content: "''",
         position: "absolute",
         insetY: "[calc(var(--form-padding-y) * -1)]",
-        insetX: "-1.5",
+        insetX: "0",
         background: "white",
         zIndex: "-2",
         borderRightRadius: "var(--base-input-border-radius)",
@@ -205,6 +206,9 @@ export const baseInputRecipe = sva({
     },
     clearIcon: {
       padding: "0.5",
+    },
+    hideClear: {
+      visibility: "hidden !important",
     },
     styledValueOverlay: {
       position: "absolute",

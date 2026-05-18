@@ -212,7 +212,7 @@ export const BaseInput = ({
   }
 
   const noAutocomplete = !!clearable || autocomplete === false;
-  const showClear = !!(clearable?.clearable && value && !disabled);
+  const showClear = !!(clearable && !disabled);
 
   const input = (
     <input
@@ -301,7 +301,10 @@ export const BaseInput = ({
               clearable.onClear();
               internalRef.current?.focus();
             }}
-            className={classes.clear}
+            className={cx(
+              classes.clear,
+              (!clearable.clearable || !value) && classes.hideClear,
+            )}
             aria-label="Clear input"
           >
             <Icon

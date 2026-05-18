@@ -27,14 +27,14 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
   ...props
 }: Omit<
   BaseInputProps,
-  "type" | "maxLength" | "pattern" | "spellcheck" | "value" | "onChange"
+  "type" | "maxLength" | "spellcheck" | "value" | "onChange"
 > & {
   value: number | null | undefined;
   onChange: (value: NumberType<RequiredType>) => void;
   required?: RequiredType;
 }) => {
-  // eslint-disable-next-line no-console
   if (max > Number.MAX_SAFE_INTEGER) {
+    // eslint-disable-next-line no-console
     console.error("The max number should be a safe js integer value");
   }
 
