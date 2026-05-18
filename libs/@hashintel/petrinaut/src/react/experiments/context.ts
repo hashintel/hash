@@ -38,6 +38,12 @@ export type ExperimentRecord = {
   distributionFrames: readonly PlaceTokenCountDistributionFrame[];
 };
 
+export function isExperimentActive(experiment: ExperimentRecord): boolean {
+  return (
+    experiment.status === "initializing" || experiment.status === "running"
+  );
+}
+
 export type ExperimentsContextValue = {
   experiments: readonly ExperimentRecord[];
   selectedExperimentId: string | null;

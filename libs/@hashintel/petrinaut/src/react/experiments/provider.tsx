@@ -11,6 +11,7 @@ import {
 import { compileScenario } from "../../core/simulation/authoring/scenario/compile-scenario";
 import { createMonteCarloWorker } from "../../core/simulation/monte-carlo/worker/create-monte-carlo-worker";
 import type { Scenario, ScenarioParameter } from "../../core/types/sdcpn";
+import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { SDCPNContext } from "../state/sdcpn-context";
@@ -20,6 +21,7 @@ import {
   type ExperimentStatus,
   ExperimentsContext,
   type ExperimentsContextValue,
+  isExperimentActive,
 } from "./context";
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
@@ -138,6 +140,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const [selectedExperimentId, setSelectedExperimentId] = useState<
     string | null
   >(null);
+  useBlockWindowClose({ shouldBlock: experiments.some(isExperimentActive) });
 
   useEffect(() => {
     const registrations = registrationsRef.current;

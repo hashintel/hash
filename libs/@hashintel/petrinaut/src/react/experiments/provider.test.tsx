@@ -242,4 +242,64 @@ describe("ExperimentsProvider", () => {
 
     renderResult.unmount();
   });
+
+  it("prevents window unload while a Monte Carlo experiment is active", async () => {
+    const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await act(async () => {
+        const createPromise = getValue().createExperiment({
+          name: "Blocking experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+        });
+
+        await flushWorkerSetup();
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      const beforeUnloadCall = addEventListenerSpy.mock.calls.find(
+        ([eventName]) => eventName === "beforeunload",
+      );
+      expect(beforeUnloadCall).toBeDefined();
+
+      const beforeUnloadHandler = beforeUnloadCall![1] as (
+        event: BeforeUnloadEvent,
+      ) => void;
+      const beforeUnloadEvent = new Event("beforeunload", {
+        cancelable: true,
+      }) as BeforeUnloadEvent;
+      Object.defineProperty(beforeUnloadEvent, "returnValue", {
+        configurable: true,
+        value: undefined,
+        writable: true,
+      });
+
+      beforeUnloadHandler(beforeUnloadEvent);
+
+      expect(beforeUnloadEvent.defaultPrevented).toBe(true);
+      expect(beforeUnloadEvent.returnValue).toBe("");
+
+      await act(async () => {
+        worker.emit({ type: "complete", progress: makeProgress() });
+      });
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        "beforeunload",
+        beforeUnloadHandler,
+      );
+    } finally {
+      renderResult.unmount();
+      addEventListenerSpy.mockRestore();
+      removeEventListenerSpy.mockRestore();
+    }
+  });
 });

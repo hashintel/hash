@@ -10,6 +10,7 @@ import {
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
+import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
 
 const topBarStyle = css({
@@ -111,6 +112,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       <ModeSelector mode={mode} onChange={onModeChange} />
 
       <div className={rightSectionStyle}>
+        <RunningExperimentsPopover />
         {undoRedo && <VersionHistoryButton />}
       </div>
     </div>
