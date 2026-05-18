@@ -233,7 +233,7 @@ export const Button = (props: ButtonProps) => {
         target={isInactive ? undefined : props.target}
         download={isInactive ? undefined : props.download || undefined}
         tabIndex={isInactive ? -1 : props.tabIndex}
-        aria-label={tooltip}
+        aria-label={props["aria-label"] ?? (!children ? tooltip : undefined)}
       >
         {content}
       </a>
@@ -246,7 +246,7 @@ export const Button = (props: ButtonProps) => {
         ref={ref as React.Ref<HTMLButtonElement>}
         type={(props as ButtonElementOnlyProps).type ?? "button"}
         disabled={disabled || loading}
-        aria-label={tooltip}
+        aria-label={props["aria-label"] ?? (!children ? tooltip : undefined)}
       >
         {content}
       </button>
