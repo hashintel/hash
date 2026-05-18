@@ -9,11 +9,11 @@ export type AddNotificationInput = {
 };
 
 export type NotificationsContextValue = {
-  addNotification: (notification: AddNotificationInput) => number;
-  dismissNotification: (id: number) => void;
+  addNotification: (notification: AddNotificationInput) => string;
+  dismissNotification: (id: string) => void;
 };
 
 export const NotificationsContext = createContext<NotificationsContextValue>({
-  addNotification: () => -1,
+  addNotification: () => "",
   dismissNotification: () => {},
 });

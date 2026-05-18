@@ -143,13 +143,13 @@ const TestWrapper = ({
   worker,
   onContextValue,
 }: {
-  addNotification?: (notification: AddNotificationInput) => number;
+  addNotification?: (notification: AddNotificationInput) => string;
   worker: FakeMonteCarloWorker;
   onContextValue: (value: ExperimentsContextValue) => void;
 }) => (
   <NotificationsContext
     value={{
-      addNotification: addNotification ?? (() => -1),
+      addNotification: addNotification ?? (() => ""),
       dismissNotification: () => {},
     }}
   >
@@ -164,7 +164,7 @@ const TestWrapper = ({
 function renderExperimentsProvider(
   worker: FakeMonteCarloWorker,
   options: {
-    addNotification?: (notification: AddNotificationInput) => number;
+    addNotification?: (notification: AddNotificationInput) => string;
   } = {},
 ): {
   getValue: () => ExperimentsContextValue;
@@ -268,7 +268,7 @@ describe("ExperimentsProvider", () => {
   it("prevents window unload while a Monte Carlo experiment is active", async () => {
     const addEventListenerSpy = vi.spyOn(window, "addEventListener");
     const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
-    const addNotification = vi.fn(() => 1);
+    const addNotification = vi.fn(() => "notification-id");
     const worker = new FakeMonteCarloWorker();
     const { getValue, renderResult } = renderExperimentsProvider(worker, {
       addNotification,

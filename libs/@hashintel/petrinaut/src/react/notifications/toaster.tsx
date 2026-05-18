@@ -1,100 +1,66 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
-import { refractive } from "@hashintel/refractive";
+import {
+  Toast,
+  Toaster as ArkToaster,
+  createToaster,
+} from "@ark-ui/react/toast";
+import { Portal } from "@ark-ui/react/portal";
+import { css } from "@hashintel/ds-helpers/css";
 
-import type { NotificationTone } from "./context";
+import { usePortalContainerRef } from "../state/portal-container-context";
 
-export type ToastNotification = {
-  id: number;
-  message: string;
-  tone: NotificationTone;
-  exiting: boolean;
-};
+export const notificationsToaster = createToaster({
+  gap: 8,
+  offsets: "16px",
+  placement: "bottom-end",
+  removeDelay: 200,
+});
 
-const containerStyle = css({
-  position: "absolute",
-  top: "[40px]",
-  left: "[50%]",
-  transform: "[translateX(-50%)]",
-  zIndex: "[10000]",
+const toastRootStyle = css({
+  translate: "[var(--x, 0) var(--y, 0)]",
+  scale: "[var(--scale, 1)]",
+  zIndex: "[var(--z-index, 2147483647)]",
+  opacity: "[var(--opacity, 1)]",
+  willChange: "[translate, opacity, scale]",
+  transition: "[translate 300ms, scale 300ms, opacity 300ms, box-shadow 300ms]",
+  transitionTimingFunction: "[cubic-bezier(0.21, 1.02, 0.73, 1)]",
   display: "flex",
-  flexDirection: "column",
   alignItems: "center",
-  gap: "[8px]",
-  pointerEvents: "none",
-});
-
-const animationWrapperStyle = css({
-  animation: "fadeIn 0.2s ease-out",
-  pointerEvents: "auto",
-});
-
-const exitingWrapperStyle = css({
-  animation: "fadeOut 0.2s ease-in forwards",
-});
-
-const notificationStyle = css({
-  fontFamily: "[Inter, sans-serif]",
-  fontSize: "[15px]",
-  boxShadow: "[0 6px 12px rgba(0, 0, 0, 0.1)]",
-  padding: "[20px 40px]",
-  maxWidth: "[600px]",
-  textAlign: "center",
+  minHeight: "[26px]",
+  width: "[max-content]",
+  maxWidth: "[320px]",
+  borderRadius: "lg",
+  boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.24)]",
+  paddingX: "4",
+  paddingY: "3",
   userSelect: "none",
+  backgroundColor: "neutral.s120",
+  color: "neutral.s00",
+  '&[data-state="closed"]': {
+    transition: "[translate 300ms, scale 300ms, opacity 300ms]",
+    transitionTimingFunction: "[cubic-bezier(0.06, 0.71, 0.55, 1)]",
+  },
+  '&[data-type="error"]': {
+    backgroundColor: "red.s100",
+  },
 });
 
-const successNotificationStyle = css({
-  backgroundColor: "[rgba(34, 197, 94, 0.1)]",
-  color: "[#16a34a]",
+const toastTitleStyle = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  fontSize: "xs",
+  fontWeight: "medium",
+  lineHeight: "[14px]",
 });
 
-const errorNotificationStyle = css({
-  backgroundColor: "[rgba(239, 68, 68, 0.1)]",
-  color: "[#dc2626]",
-});
-
-const neutralNotificationStyle = css({
-  backgroundColor: "neutral.s20",
-  color: "neutral.s120",
-});
-
-const getToneStyle = (tone: NotificationTone) => {
-  switch (tone) {
-    case "error":
-      return errorNotificationStyle;
-    case "neutral":
-      return neutralNotificationStyle;
-    case "success":
-      return successNotificationStyle;
-  }
-};
-
-export const NotificationsToaster = ({
-  notifications,
-}: {
-  notifications: ToastNotification[];
-}) => {
-  if (notifications.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className={containerStyle}>
-      {notifications.map((notification) => (
-        <div
-          key={notification.id}
-          className={cx(
-            animationWrapperStyle,
-            notification.exiting && exitingWrapperStyle,
-          )}
-        >
-          <refractive.div
-            refraction={{ radius: 31, blur: 3, bezelWidth: 20 }}
-            className={cx(notificationStyle, getToneStyle(notification.tone))}
-          >
-            {notification.message}
-          </refractive.div>
-        </div>
-      ))}
-    </div>
-  );
-};
+export const NotificationsToaster = () => (
+  <Portal container={usePortalContainerRef()}>
+    <ArkToaster toaster={notificationsToaster}>
+      {(toast) => (
+        <Toast.Root className={toastRootStyle}>
+          <Toast.Title className={toastTitleStyle}>{toast.title}</Toast.Title>
+        </Toast.Root>
+      )}
+    </ArkToaster>
+  </Portal>
+);
