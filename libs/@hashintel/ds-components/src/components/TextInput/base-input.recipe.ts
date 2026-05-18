@@ -78,6 +78,16 @@ export const baseInputRecipe = sva({
       borderRadius: "var(--base-input-border-radius)",
       _placeholder: { color: "neutral.s80" },
       _disabled: { cursor: "auto" },
+
+      // Hide the number scroll arrows in safari + firefox when not focused
+      "&[type=number]:not(:focus)::-webkit-outer-spin-button, &[type=number]:not(:focus)::-webkit-inner-spin-button":
+        {
+          WebkitAppearance: "none",
+        },
+      "&[type=number]:not(:focus)": {
+        // @ts-expect-error moz-appearance is a valid firefox property
+        "-moz-appearance": "textfield",
+      },
     },
     hiddenInput: {
       color: "[transparent]",

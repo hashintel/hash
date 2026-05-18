@@ -20,6 +20,8 @@ type NumberType<T extends boolean | undefined> = T extends true
 
 export const NumberInput = <RequiredType extends boolean | undefined>({
   value,
+  min = 0,
+  max = Number.MAX_SAFE_INTEGER,
   onChange,
   onFocus,
   ...props
@@ -31,11 +33,18 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
   onChange: (value: NumberType<RequiredType>) => void;
   required?: RequiredType;
 }) => {
+  // eslint-disable-next-line no-console
+  if (max > Number.MAX_SAFE_INTEGER) {
+    console.error("The max number should be a safe js integer value");
+  }
+
   return (
     <BaseInput
       {...props}
       type="number"
       value={value?.toString() ?? null}
+      min={min}
+      max={max}
       onFocus={(event) => {
         onFocus?.(event);
         preventNumberScroll(event);
