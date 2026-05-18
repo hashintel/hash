@@ -39,16 +39,29 @@ const rowVariants: RowVariant[] = [
 
 const noop = () => {};
 
-const Controlled = (props: NumberInputProps) => {
+const Controlled = ({
+  type = "integer",
+  ...props
+}: Omit<NumberInputProps, "type"> & {
+  type?: "integer" | "float";
+}) => {
   const [value, setValue] = useState(props.value ?? null);
   return (
-    <NumberInput {...props} value={value} onChange={(val) => setValue(val)} />
+    <NumberInput
+      {...props}
+      value={value}
+      onChange={(val) => setValue(val)}
+      type={type}
+    />
   );
 };
 
-const ClearableInput = (
-  props: Omit<NumberInputProps, "clearable" | "onChange">,
-) => {
+const ClearableInput = ({
+  type = "integer",
+  ...props
+}: Omit<NumberInputProps, "clearable" | "onChange" | "type"> & {
+  type?: "integer" | "float";
+}) => {
   const [value, setValue] = useState(props.value ?? null);
   return (
     <NumberInput
@@ -56,6 +69,7 @@ const ClearableInput = (
       value={value}
       onChange={(val) => setValue(val)}
       clearable={{ clearable: true, onClear: () => setValue(null) }}
+      type={type}
     />
   );
 };
@@ -65,7 +79,7 @@ const StyledNumberInput = ({
   ...props
 }: Omit<
   NumberInputProps,
-  "value" | "onChange" | "styledValue" | "clearable"
+  "value" | "onChange" | "styledValue" | "clearable" | "type"
 > & {
   clearable?: boolean;
 }) => {
@@ -75,6 +89,7 @@ const StyledNumberInput = ({
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
+      type="integer"
       clearable={
         clearable
           ? { clearable: true, onClear: () => setValue(null) }
@@ -141,7 +156,13 @@ export default {
   title: "Components/NumberInput",
 } satisfies StoryDefault;
 
-export const Default: Story = () => (
+const StateGrid = ({
+  type,
+  filledValue,
+}: {
+  type: "integer" | "float";
+  filledValue: number;
+}) => (
   <div className={sectionStyle}>
     {variants.map((variant) => (
       <div key={variant} className={groupStyle}>
@@ -163,7 +184,7 @@ export const Default: Story = () => (
           ))}
           {stateRows.flatMap((row) =>
             stateColumns.map((col) => {
-              const value = col.withValue ? 1234 : null;
+              const value = col.withValue ? filledValue : null;
               const cellKey = `${row.key}-${col.key}`;
               return row.clearable ? (
                 <ClearableInput
@@ -171,6 +192,7 @@ export const Default: Story = () => (
                   value={value}
                   variant={variant}
                   readonly={col.readonly}
+                  type={type}
                   {...row.extraProps}
                 />
               ) : (
@@ -180,6 +202,7 @@ export const Default: Story = () => (
                   onChange={noop}
                   variant={variant}
                   readonly={col.readonly}
+                  type={type}
                   {...row.extraProps}
                 />
               );
@@ -189,6 +212,14 @@ export const Default: Story = () => (
       </div>
     ))}
   </div>
+);
+
+export const Default: Story = () => (
+  <StateGrid type="integer" filledValue={1234} />
+);
+
+export const Float: Story = () => (
+  <StateGrid type="float" filledValue={1234.56} />
 );
 
 export const Alignment: Story = () => (
@@ -338,7 +369,7 @@ export const Widths: Story = () => (
 type PrefixSuffixRow = {
   key: string;
   clearable?: boolean;
-  props: Omit<NumberInputProps, "variant" | "width" | "onChange">;
+  props: Omit<NumberInputProps, "variant" | "width" | "onChange" | "type">;
 };
 
 const prefixSuffixRows: PrefixSuffixRow[] = [

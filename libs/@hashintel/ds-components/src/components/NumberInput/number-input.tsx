@@ -12,9 +12,11 @@ type NumberType<T extends boolean | undefined> = T extends true
   : number | null;
 
 export const NumberInput = <RequiredType extends boolean | undefined>({
+  type,
   value,
   min = 0,
   max = Number.MAX_SAFE_INTEGER,
+  pattern,
   onChange,
   onFocus,
   onBlur,
@@ -23,11 +25,17 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
   BaseInputProps,
   "type" | "maxLength" | "spellcheck" | "value" | "onChange"
 > & {
+  type: "integer" | "float";
   value: number | null | undefined;
-  onChange: (value: NumberType<RequiredType>) => void;
+  onChange: (
+    value: NumberType<RequiredType>,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => void;
   required?: RequiredType;
 }) => {
-  if (max > Number.MAX_SAFE_INTEGER) {
+  if (
+    type === "integer" ? max > Number.MAX_SAFE_INTEGER : max > Number.MAX_VALUE
+  ) {
     // eslint-disable-next-line no-console
     console.error("The max number should be a safe js integer value");
   }
@@ -39,6 +47,8 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
       value={value?.toString() ?? null}
       min={min}
       max={max}
+      step={type === "integer" ? 1 : undefined}
+      pattern={pattern ?? (type === "integer" ? "-?\\d+" : undefined)}
       onFocus={(event) => {
         onFocus?.(event);
         event.target.addEventListener("wheel", preventWheel, {
@@ -50,18 +60,12 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
         event.target.removeEventListener("wheel", preventWheel);
       }}
       onChange={(newValue, event) => {
-        if (event.target.checkValidity()) {
-          if (newValue) {
-            // There is a valid number, and it's valid.
-            onChange(parseInt(newValue, 10));
-          } else {
-            // If valid, and there's no value, it must not be required; return null.
-            onChange(null as NumberType<RequiredType>);
-          }
-        } else if (!newValue) {
-          // We must have a required field and the user is emptying the value. This is not allowed, so return 0
-          onChange(0);
-        }
+        const parsed =
+          type === "integer" ? parseInt(newValue, 10) : parseFloat(newValue);
+        onChange(
+          (Number.isNaN(parsed) ? null : parsed) as NumberType<RequiredType>,
+          event,
+        );
       }}
     />
   );
