@@ -197,7 +197,7 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
         })}
       >
         {formInputSizes.map((size) => (
-          <>
+          <Fragment key={size}>
             {/* eslint-disable -- spreading union-typed Ladle args triggers false TS errors from RequireAtLeastOne/ExclusifyUnion distribution */}
             <Button
               {...(args as any)}
@@ -231,6 +231,7 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
               variant={variant}
               iconName="star"
               size={size}
+              tooltip="Star"
             >
               {undefined}
             </Button>
@@ -246,10 +247,16 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
               {undefined}
             </ButtonComponent>
             {/* eslint-enable */}
-          </>
+          </Fragment>
         ))}
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */}
-        <Button {...(args as any)} variant={variant} iconName="star" loading>
+        <Button
+          {...(args as any)}
+          variant={variant}
+          iconName="star"
+          loading
+          tooltip="Star"
+        >
           {undefined}
         </Button>
       </div>

@@ -5,6 +5,7 @@ import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 import type { FormInputSize } from "../../util/form-shared";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
+import { Tooltip } from "../Tooltip/tooltip";
 import { styles } from "./button.recipe";
 
 export type Variant = "solid" | "subtle" | "ghost" | "link" | "linkSubtle";
@@ -35,6 +36,10 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     onKeyDown?: React.ButtonHTMLAttributes<Element>["onKeyDown"];
     onFocus?: React.ButtonHTMLAttributes<Element>["onFocus"];
     onBlur?: React.ButtonHTMLAttributes<Element>["onBlur"];
+    tooltipOptions?: Omit<
+      React.ComponentProps<typeof Tooltip>,
+      "children" | "content"
+    >;
   } & RequireAtLeastOne<{
     tooltip?: string;
     children?: React.ReactNode;
@@ -127,6 +132,7 @@ export const Button = (props: ButtonProps) => {
     onFocus,
     onBlur,
     tabIndex,
+    tooltipOptions,
     ...rest
   } = props;
 
@@ -190,7 +196,6 @@ export const Button = (props: ButtonProps) => {
 
   const sharedProps = {
     className: cx(classes.button, className),
-    title: tooltip,
     tabIndex,
     "aria-pressed": pressed,
     "aria-busy": loading,
@@ -211,10 +216,12 @@ export const Button = (props: ButtonProps) => {
     onBlur,
   };
 
+  let element: React.ReactElement;
+
   if ("href" in props) {
     const isInactive = disabled || loading;
 
-    return (
+    element = (
       <a
         {...sharedProps}
         {...(isInactive
@@ -230,17 +237,27 @@ export const Button = (props: ButtonProps) => {
         {content}
       </a>
     );
+  } else {
+    element = (
+      <button
+        {...sharedProps}
+        {...(sharedEventHandlers as React.DOMAttributes<HTMLButtonElement>)}
+        ref={ref as React.Ref<HTMLButtonElement>}
+        type={(props as ButtonElementOnlyProps).type ?? "button"}
+        disabled={disabled || loading}
+      >
+        {content}
+      </button>
+    );
   }
 
-  return (
-    <button
-      {...sharedProps}
-      {...(sharedEventHandlers as React.DOMAttributes<HTMLButtonElement>)}
-      ref={ref as React.Ref<HTMLButtonElement>}
-      type={(props as ButtonElementOnlyProps).type ?? "button"}
-      disabled={disabled || loading}
-    >
-      {content}
-    </button>
-  );
+  if (tooltip) {
+    return (
+      <Tooltip {...tooltipOptions} content={tooltip}>
+        {element}
+      </Tooltip>
+    );
+  }
+
+  return element;
 };
