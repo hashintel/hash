@@ -88,6 +88,7 @@ const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[32px]",
+  background: "neutral.s10",
 });
 
 const groupStyle = css({

@@ -430,6 +430,15 @@ export const baseInputRecipe = sva({
       },
     },
     willClear: { true: {} },
+    editAndClear: {
+      true: {
+        editIcon: {
+          _before: {
+            left: "[calc(var(--spacing-1\\.5) * -1 - 1px)]",
+          },
+        },
+      },
+    },
     hasIcons: { true: {} },
     hasBrowserControls: {
       true: {
@@ -615,6 +624,17 @@ export const baseInputRecipe = sva({
       css: {
         input: {
           paddingRight: "1",
+        },
+      },
+    },
+    {
+      hasBrowserControls: true,
+      editAndClear: true,
+      css: {
+        editIcon: {
+          _before: {
+            left: "0",
+          },
         },
       },
     },

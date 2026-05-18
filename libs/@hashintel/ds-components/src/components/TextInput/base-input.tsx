@@ -203,6 +203,7 @@ export const BaseInput = ({
     loading: !!loading,
     hasBrowserControls,
     hasIcons,
+    editAndClear: showClear && showEditIcon,
     willClear:
       showClear &&
       clearable.clearable &&
