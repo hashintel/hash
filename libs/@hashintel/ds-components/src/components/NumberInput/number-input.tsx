@@ -1,5 +1,19 @@
 import { BaseInput, type BaseInputProps } from "../TextInput/base-input";
 
+// Disable scrolling over a number input while it is focused
+// this prevents accidental changing of input while scrolling
+const preventNumberScroll: React.FocusEventHandler<HTMLInputElement> = (
+  event,
+) => {
+  event.target.addEventListener(
+    "wheel",
+    (event2) => {
+      event2.preventDefault();
+    },
+    { passive: false },
+  );
+};
+
 type NumberType<T extends boolean | undefined> = T extends true
   ? number
   : number | null;
@@ -7,6 +21,7 @@ type NumberType<T extends boolean | undefined> = T extends true
 export const NumberInput = <RequiredType extends boolean | undefined>({
   value,
   onChange,
+  onFocus,
   ...props
 }: Omit<
   BaseInputProps,
@@ -21,6 +36,10 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
       {...props}
       type="number"
       value={value?.toString() ?? null}
+      onFocus={(event) => {
+        onFocus?.(event);
+        preventNumberScroll(event);
+      }}
       onChange={(newValue, event) => {
         if (event.target.checkValidity()) {
           if (newValue) {
