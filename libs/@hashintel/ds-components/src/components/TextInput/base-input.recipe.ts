@@ -30,6 +30,7 @@ export const baseInputRecipe = sva({
       ...formWidths.base,
       display: "inline-flex",
       width: "[fit-content]",
+      minWidth: "[min-content]",
       position: "relative",
       border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
