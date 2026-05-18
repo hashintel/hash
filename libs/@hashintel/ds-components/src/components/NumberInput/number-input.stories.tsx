@@ -96,9 +96,11 @@ const StyledNumberInput = ({
           : undefined
       }
       styledValue={
-        <span style={{ color: "green", fontWeight: "bold" }}>
-          {Number(value).toLocaleString() || value}
-        </span>
+        value === null ? null : (
+          <span style={{ color: "green", fontWeight: "bold" }}>
+            {value.toLocaleString()}
+          </span>
+        )
       }
     />
   );

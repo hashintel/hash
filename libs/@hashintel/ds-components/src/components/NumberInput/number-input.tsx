@@ -40,7 +40,11 @@ export const NumberInput = <RequiredType extends boolean | undefined>({
     type === "integer" ? max > Number.MAX_SAFE_INTEGER : max > Number.MAX_VALUE
   ) {
     // eslint-disable-next-line no-console
-    console.error("The max number should be a safe js integer value");
+    console.error(
+      type === "integer"
+        ? "The max number should be a safe js integer value"
+        : "The max number should be a safe float value",
+    );
   }
 
   return (
