@@ -522,13 +522,13 @@ describe("MutationProvider (instance bridge)", () => {
 
       expect(getSdcpn().types).toHaveLength(0);
       expect(getSdcpn().places[0]!.colorId).toBeNull();
-      expect(getSdcpn().differentialEquations[0]!.colorId).toBe("");
+      expect(getSdcpn().differentialEquations[0]!.colorId).toBeNull();
     });
 
     test("removeDifferentialEquation cascades to clear differentialEquationId on places", () => {
       const sdcpn = makeSDCPN({
         differentialEquations: [
-          { id: "eq-1", name: "Eq1", colorId: "", code: "" },
+          { id: "eq-1", name: "Eq1", colorId: null, code: "" },
         ],
         places: [
           {
