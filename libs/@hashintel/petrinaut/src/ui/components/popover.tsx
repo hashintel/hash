@@ -6,63 +6,63 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import { Button } from "./button";
 
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 
 // -- Styles ------------------------------------------------------------------
 
 const contentStyle = css({
-  backgroundColor: "neutral.s25",
-  borderRadius: "xl",
-  boxShadow: "[0px 0px 0px 1px rgba(0, 0, 0, 0.08)]",
-  overflow: "hidden",
-  zIndex: "dropdown",
-  transformOrigin: "var(--transform-origin)",
-  userSelect: "none",
-  '&[data-state="open"]': {
-    animation: "popover-in 150ms ease-out",
-  },
-  '&[data-state="closed"]': {
-    animation: "popover-out 100ms ease-in",
-  },
+	backgroundColor: "neutral.s25",
+	borderRadius: "xl",
+	boxShadow: "[0px 0px 0px 1px rgba(0, 0, 0, 0.08)]",
+	overflow: "hidden",
+	zIndex: "dropdown",
+	transformOrigin: "var(--transform-origin)",
+	userSelect: "none",
+	'&[data-state="open"]': {
+		animation: "popover-in 150ms ease-out",
+	},
+	'&[data-state="closed"]': {
+		animation: "popover-out 100ms ease-in",
+	},
 });
 
 const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  paddingX: "3",
-  paddingY: "2",
+	display: "flex",
+	alignItems: "center",
+	justifyContent: "space-between",
+	paddingX: "3",
+	paddingY: "2",
 });
 
 const titleStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s100",
-  textTransform: "uppercase",
-  letterSpacing: "[0.48px]",
+	fontSize: "xs",
+	fontWeight: "medium",
+	color: "neutral.s100",
+	textTransform: "uppercase",
+	letterSpacing: "[0.48px]",
 });
 
 const sectionStyle = css({
-  paddingX: "1",
-  paddingBottom: "1",
+	paddingX: "1",
+	paddingBottom: "1",
 });
 
 const sectionCardStyle = css({
-  backgroundColor: "neutral.s00",
-  borderRadius: "lg",
-  boxShadow:
-    "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
-  overflow: "hidden",
-  padding: "1",
+	backgroundColor: "neutral.s00",
+	borderRadius: "lg",
+	boxShadow:
+		"[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
+	overflow: "hidden",
+	padding: "1",
 });
 
 const sectionLabelStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s100",
-  paddingX: "2",
-  paddingTop: "2",
-  paddingBottom: "1.5",
+	fontSize: "xs",
+	fontWeight: "medium",
+	color: "neutral.s100",
+	paddingX: "2",
+	paddingTop: "2",
+	paddingBottom: "1.5",
 });
 
 // -- Subcomponents -----------------------------------------------------------
@@ -72,63 +72,64 @@ const sectionLabelStyle = css({
  * Wraps Portal + Positioner + Content from Ark UI.
  */
 const Content = ({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
+	children,
+	className,
+	...props
+}: HTMLAttributes<HTMLDivElement> & {
+	children: ReactNode;
+	className?: string;
 }) => {
-  const portalContainerRef = usePortalContainerRef();
+	const portalContainerRef = usePortalContainerRef();
 
-  return (
-    <Portal container={portalContainerRef}>
-      <ArkPopover.Positioner>
-        <ArkPopover.Content className={cx(contentStyle, className)}>
-          {children}
-        </ArkPopover.Content>
-      </ArkPopover.Positioner>
-    </Portal>
-  );
+	return (
+		<Portal container={portalContainerRef}>
+			<ArkPopover.Positioner>
+				<ArkPopover.Content className={cx(contentStyle, className)} {...props}>
+					{children}
+				</ArkPopover.Content>
+			</ArkPopover.Positioner>
+		</Portal>
+	);
 };
 
 /**
  * Popover header with a title and close button.
  */
 const Header = ({ children }: { children: ReactNode }) => (
-  <div className={headerStyle}>
-    <ArkPopover.Title className={titleStyle}>{children}</ArkPopover.Title>
-    <ArkPopover.CloseTrigger asChild>
-      <Button
-        aria-label="Close"
-        size="xs"
-        variant="ghost"
-        iconName="close"
-        tooltip="Close"
-        tooltipDisplay="inline"
-      />
-    </ArkPopover.CloseTrigger>
-  </div>
+	<div className={headerStyle}>
+		<ArkPopover.Title className={titleStyle}>{children}</ArkPopover.Title>
+		<ArkPopover.CloseTrigger asChild>
+			<Button
+				aria-label="Close"
+				size="xs"
+				variant="ghost"
+				iconName="close"
+				tooltip="Close"
+				tooltipDisplay="inline"
+			/>
+		</ArkPopover.CloseTrigger>
+	</div>
 );
 
 /**
  * Padded section wrapper inside popover content.
  */
 const Section = ({ children }: { children: ReactNode }) => (
-  <div className={sectionStyle}>{children}</div>
+	<div className={sectionStyle}>{children}</div>
 );
 
 /**
  * White card with subtle shadow, used to group related items inside a Section.
  */
 const SectionCard = ({ children }: { children: ReactNode }) => (
-  <div className={sectionCardStyle}>{children}</div>
+	<div className={sectionCardStyle}>{children}</div>
 );
 
 /**
  * Label for a section card.
  */
 const SectionLabel = ({ children }: { children: ReactNode }) => (
-  <div className={sectionLabelStyle}>{children}</div>
+	<div className={sectionLabelStyle}>{children}</div>
 );
 
 // -- Compound export ---------------------------------------------------------
@@ -136,11 +137,11 @@ const SectionLabel = ({ children }: { children: ReactNode }) => (
 export type PopoverRootProps = ComponentProps<typeof ArkPopover.Root>;
 
 export const Popover = {
-  Root: ArkPopover.Root,
-  Trigger: ArkPopover.Trigger,
-  Content,
-  Header,
-  Section,
-  SectionCard,
-  SectionLabel,
+	Root: ArkPopover.Root,
+	Trigger: ArkPopover.Trigger,
+	Content,
+	Header,
+	Section,
+	SectionCard,
+	SectionLabel,
 };

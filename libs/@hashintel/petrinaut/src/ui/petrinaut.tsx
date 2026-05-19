@@ -21,7 +21,7 @@ import { EditorView } from "./views/Editor/editor-view";
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
-} from "./views/Editor/panels/AiAssistant/types";
+} from "./views/Editor/panels/ai-assistant-panel";
 
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 

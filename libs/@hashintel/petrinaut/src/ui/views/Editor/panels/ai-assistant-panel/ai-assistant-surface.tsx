@@ -1,5 +1,5 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   type PointerEvent as ReactPointerEvent,
   useEffect,
@@ -7,22 +7,14 @@ import {
   useState,
 } from "react";
 import ReactMarkdown from "react-markdown";
-import {
-  TbCheck,
-  TbChevronUp,
-  TbList,
-  TbLoader2,
-  TbPlayerStopFilled,
-  TbSend,
-  TbTrash,
-  TbX,
-} from "react-icons/tb";
+import { TbCheck, TbChevronUp, TbList, TbLoader2, TbX } from "react-icons/tb";
 
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import { IconButton } from "../../../../components/icon-button";
+import { Button } from "../../../../components/button";
 import { Input } from "../../../../components/input";
 import {
   getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
   petrinautAiMutationTools,
 } from "../../../../../core/ai";
 import type { SelectionItem } from "../../../../../core/types/selection";
@@ -261,23 +253,95 @@ const messageStyle = cva({
 });
 
 const markdownStyle = css({
-  "& p": {
-    margin: "[0]",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
+  "& > :first-child": {
+    marginTop: "[0]",
   },
-  "& p + p": {
-    marginTop: "2",
+  "& > :last-child": {
+    marginBottom: "[0]",
+  },
+  "& p": {
+    marginY: "2",
+  },
+  "& h1, & h2, & h3, & h4, & h5, & h6": {
+    marginTop: "3",
+    marginBottom: "1",
+    fontWeight: "semibold",
+    lineHeight: "[1.25]",
+    color: "neutral.s110",
+  },
+  "& h1": {
+    fontSize: "[15px]",
+  },
+  "& h2, & h3": {
+    fontSize: "sm",
+  },
+  "& h4, & h5, & h6": {
+    fontSize: "xs",
   },
   "& ul, & ol": {
-    marginTop: "1",
-    marginBottom: "1",
+    marginY: "2",
     paddingLeft: "5",
   },
-  "& code": {
+  "& ul": {
+    listStyleType: "disc",
+  },
+  "& ol": {
+    listStyleType: "decimal",
+  },
+  "& li": {
+    marginY: "1",
+  },
+  "& li > p": {
+    marginY: "1",
+  },
+  "& a": {
+    color: "blue.s90",
+    textDecorationLine: "underline",
+    textUnderlineOffset: "[2px]",
+  },
+  "& blockquote": {
+    marginY: "2",
+    marginX: "[0]",
+    borderLeftWidth: "[3px]",
+    borderLeftStyle: "solid",
+    borderLeftColor: "neutral.a40",
+    paddingLeft: "3",
+    color: "neutral.s90",
+  },
+  "& pre": {
+    marginY: "2",
+    overflowX: "auto",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.a30",
+    borderRadius: "md",
+    backgroundColor: "neutral.s20",
+    padding: "2",
+  },
+  "& :not(pre) > code": {
     fontFamily: "mono",
     fontSize: "xs",
     backgroundColor: "neutral.s20",
     borderRadius: "sm",
     paddingX: "1",
+  },
+  "& pre code": {
+    display: "block",
+    minWidth: "[max-content]",
+    backgroundColor: "[transparent]",
+    padding: "[0]",
+    fontFamily: "mono",
+    fontSize: "xs",
+    lineHeight: "[1.5]",
+  },
+  "& hr": {
+    marginY: "3",
+    borderWidth: "[0]",
+    borderTopWidth: "thin",
+    borderTopStyle: "solid",
+    borderTopColor: "neutral.a30",
   },
 });
 
@@ -678,6 +742,9 @@ const getToolSummaryFromPart = (part: RenderableToolPart): AiToolSummary => {
   if (toolName === getLatestNetDefinitionToolName) {
     return { title: "Checked latest net definition" };
   }
+  if (toolName === getNetCompilationErrorsToolName) {
+    return { title: "Checked net compilation errors" };
+  }
 
   const output = part.output;
   if (typeof output === "object" && output !== null) {
@@ -730,7 +797,10 @@ const getToolTone = ({
     return "danger";
   }
 
-  if (toolName === getLatestNetDefinitionToolName) {
+  if (
+    toolName === getLatestNetDefinitionToolName ||
+    toolName === getNetCompilationErrorsToolName
+  ) {
     return "neutral";
   }
 
@@ -808,7 +878,10 @@ const getMessageRenderItems = (
     if (isToolPart(part)) {
       const tool = toToolRenderItem(message, part);
 
-      if (tool.toolName === getLatestNetDefinitionToolName) {
+      if (
+        tool.toolName === getLatestNetDefinitionToolName ||
+        tool.toolName === getNetCompilationErrorsToolName
+      ) {
         flushTools();
         pendingTools.push(tool);
         flushTools();
@@ -914,7 +987,9 @@ const ReasoningPart = ({
       <Collapsible.Content className={collapsibleContentStyle}>
         <div className={reasoningBodyStyle}>
           {renderedText ? (
-            <ReactMarkdown>{renderedText}</ReactMarkdown>
+            <div className={markdownStyle}>
+              <ReactMarkdown>{renderedText}</ReactMarkdown>
+            </div>
           ) : (
             <div className={reasoningLoadingStyle}>
               <TbLoader2
@@ -1140,26 +1215,28 @@ export const AiAssistantSurface = ({
         <div className={headerStyle}>
           <div className={tabStyle({ active: true })}>Petrinaut AI</div>
           <div style={{ flex: 1 }} />
-          <IconButton
+          <Button
             size="xs"
             variant="ghost"
-            colorScheme="red"
+            tone="error"
             className={headerButtonStyle}
             aria-label="Clear AI chat"
             disabled={messages.length === 0}
             onClick={onClearMessages}
-          >
-            <TbTrash size={14} />
-          </IconButton>
-          <IconButton
+            iconName="trash"
+            tooltip="Clear AI chat"
+            tooltipDisplay="inline"
+          />
+          <Button
             size="xs"
             variant="ghost"
             className={headerButtonStyle}
             aria-label="Close AI assistant"
             onClick={onClose}
-          >
-            <TbX size={14} />
-          </IconButton>
+            iconName="close"
+            tooltip="Close AI assistant"
+            tooltipDisplay="inline"
+          />
         </div>
 
         <div className={messagesStyle}>
@@ -1247,11 +1324,11 @@ export const AiAssistantSurface = ({
               }
               aria-label="Message Petrinaut AI"
             />
-            <IconButton
+            <Button
               type={isBusy ? "button" : "submit"}
               size="sm"
               variant={isBusy ? "subtle" : "solid"}
-              colorScheme={isBusy ? "gray" : "brand"}
+              tone={isBusy ? "neutral" : "brand"}
               disabled={!isBusy && !canSubmit}
               aria-label={isBusy ? "Stop AI response" : "Send message"}
               onClick={() => {
@@ -1259,9 +1336,10 @@ export const AiAssistantSurface = ({
                   onStop();
                 }
               }}
-            >
-              {isBusy ? <TbPlayerStopFilled size={14} /> : <TbSend size={14} />}
-            </IconButton>
+              iconName={isBusy ? "stopFilled" : "arrowUp"}
+              tooltip={isBusy ? "Stop AI response" : "Send message"}
+              tooltipDisplay="inline"
+            />
           </div>
         </form>
       </div>

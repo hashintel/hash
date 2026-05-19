@@ -5,28 +5,38 @@ import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 import {
   createPetrinautMutationAiToolCallbacks,
   getLatestNetDefinitionToolName,
-  petrinautAiMutationToolInputSchemas,
+  getNetCompilationErrorsToolName,
+  mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
   type PetrinautAiMutationToolInput,
   type PetrinautAiMutationToolName,
-} from "../../../../../core/ai";
-import type { Petrinaut } from "../../../../../core/instance";
-import type { SDCPN } from "../../../../../core/types/sdcpn";
-import { PetrinautInstanceContext } from "../../../../../react/instance-context";
+} from "../../../../core/ai";
+import type { Petrinaut } from "../../../../core/instance";
+import type { SDCPN } from "../../../../core/types/sdcpn";
+import { PetrinautInstanceContext } from "../../../../react/instance-context";
+import { LanguageClientContext } from "../../../../react/lsp/context";
 import {
   EditorContext,
   type EditorContextValue,
-} from "../../../../../react/state/editor-context";
-import { PANEL_MARGIN } from "../../../../constants/ui";
-import type { PetrinautAiAssistant } from "../../../../petrinaut";
-import { AiAssistantSurface } from "./assistant-surface";
+} from "../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import { PANEL_MARGIN } from "../../../constants/ui";
+import type { PetrinautAiAssistant } from "../../../petrinaut";
+import { AiAssistantSurface } from "./ai-assistant-panel/ai-assistant-surface";
+import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
+import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
 import {
   type AiToolOutput,
   type AiToolCall,
   type AiToolTarget,
   summarizePetrinautAiToolCall,
   toPetrinautAiToolOutput,
-} from "./tool-summaries";
-import type { PetrinautAiMessage } from "./types";
+} from "./ai-assistant-panel/tool-summaries";
+import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
+
+export type {
+  PetrinautAiMessage,
+  PetrinautAiTransport,
+} from "./ai-assistant-panel/types";
 
 const selectTarget = (
   target: AiToolTarget,
@@ -127,6 +137,41 @@ const safelyAddToolOutput = (
   });
 };
 
+const waitForDiagnosticsRefresh = async ({
+  consumePendingMutationDiagnosticsVersion,
+  diagnosticsVersionRef,
+}: {
+  consumePendingMutationDiagnosticsVersion: () => number | null;
+  diagnosticsVersionRef: { current: number };
+}) => {
+  const pendingVersion = consumePendingMutationDiagnosticsVersion();
+
+  if (
+    pendingVersion === null ||
+    diagnosticsVersionRef.current > pendingVersion
+  ) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    const timeoutAt = Date.now() + 1_000;
+
+    const check = () => {
+      if (
+        diagnosticsVersionRef.current > pendingVersion ||
+        Date.now() >= timeoutAt
+      ) {
+        resolve();
+        return;
+      }
+
+      setTimeout(check, 25);
+    };
+
+    check();
+  });
+};
+
 const applyPetrinautAiTool = <Name extends PetrinautAiMutationToolName>({
   definition,
   input,
@@ -160,6 +205,7 @@ export const AiAssistantPanel = ({
   onInitialMessageConsumed?: () => void;
 }) => {
   const instance = use(PetrinautInstanceContext);
+  const { diagnosticsByUri } = use(LanguageClientContext);
   const {
     hasSelection,
     isAiAssistantOpen,
@@ -170,8 +216,67 @@ export const AiAssistantPanel = ({
     setSimulateDrawer,
     setSimulateViewMode,
   } = use(EditorContext);
+  const { petriNetDefinition } = use(SDCPNContext);
   const [input, setInput] = useState("");
   const submittedInitialMessageRef = useRef<string | null>(null);
+  const diagnosticsContextRef = useRef("No current TypeScript diagnostics.");
+  const diagnosticsVersionRef = useRef(0);
+  const pendingMutationDiagnosticsVersionRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    diagnosticsVersionRef.current += 1;
+  }, [diagnosticsByUri]);
+
+  useEffect(() => {
+    diagnosticsContextRef.current = formatDiagnosticsForAi({
+      definition: petriNetDefinition,
+      diagnosticsByUri,
+    });
+  }, [diagnosticsByUri, petriNetDefinition]);
+
+  const [diagnosticsTransportState, setDiagnosticsTransportState] = useState(
+    () => ({
+      source: aiAssistant.transport,
+      transport: createDiagnosticsAwareAiTransport({
+        getDiagnosticsContext: () => diagnosticsContextRef.current,
+        transport: aiAssistant.transport,
+        waitForDiagnosticsRefresh: () =>
+          waitForDiagnosticsRefresh({
+            consumePendingMutationDiagnosticsVersion: () => {
+              const pendingVersion =
+                pendingMutationDiagnosticsVersionRef.current;
+              pendingMutationDiagnosticsVersionRef.current = null;
+              return pendingVersion;
+            },
+            diagnosticsVersionRef,
+          }),
+      }),
+    }),
+  );
+
+  useEffect(() => {
+    if (diagnosticsTransportState.source === aiAssistant.transport) {
+      return;
+    }
+
+    setDiagnosticsTransportState({
+      source: aiAssistant.transport,
+      transport: createDiagnosticsAwareAiTransport({
+        getDiagnosticsContext: () => diagnosticsContextRef.current,
+        transport: aiAssistant.transport,
+        waitForDiagnosticsRefresh: () =>
+          waitForDiagnosticsRefresh({
+            consumePendingMutationDiagnosticsVersion: () => {
+              const pendingVersion =
+                pendingMutationDiagnosticsVersionRef.current;
+              pendingMutationDiagnosticsVersionRef.current = null;
+              return pendingVersion;
+            },
+            diagnosticsVersionRef,
+          }),
+      }),
+    });
+  }, [aiAssistant.transport, diagnosticsTransportState.source]);
 
   const {
     error,
@@ -183,7 +288,7 @@ export const AiAssistantPanel = ({
     stop,
   } = useChat<PetrinautAiMessage>({
     messages: aiAssistant.messages,
-    transport: aiAssistant.transport,
+    transport: diagnosticsTransportState.transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     onFinish: ({ messages: finishedMessages }) => {
       aiAssistant.onMessages?.(finishedMessages);
@@ -206,6 +311,23 @@ export const AiAssistantPanel = ({
           });
           return;
         }
+        if (toolCall.toolName === getNetCompilationErrorsToolName) {
+          await waitForDiagnosticsRefresh({
+            consumePendingMutationDiagnosticsVersion: () => {
+              const pendingVersion =
+                pendingMutationDiagnosticsVersionRef.current;
+              pendingMutationDiagnosticsVersionRef.current = null;
+              return pendingVersion;
+            },
+            diagnosticsVersionRef,
+          });
+          safelyAddToolOutput(addToolOutput, {
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output: diagnosticsContextRef.current,
+          });
+          return;
+        }
 
         if (!isPetrinautAiMutationToolName(toolCall.toolName)) {
           throw new Error(`Unknown Petrinaut AI tool: ${toolCall.toolName}`);
@@ -214,6 +336,8 @@ export const AiAssistantPanel = ({
         const toolInput = petrinautAiMutationToolInputSchemas[
           toolCall.toolName
         ].parse(toolCall.input);
+        pendingMutationDiagnosticsVersionRef.current =
+          diagnosticsVersionRef.current;
         const output = applyPetrinautAiTool({
           definition: instance.definition.get(),
           input: toolInput,
@@ -226,13 +350,13 @@ export const AiAssistantPanel = ({
           toolCallId: toolCall.toolCallId,
           output,
         });
-      } catch (error) {
+      } catch (toolError) {
         logToolCallError({
-          error,
+          error: toolError,
           input: toolCall.input,
           toolName: toolCall.toolName,
         });
-        throw error;
+        throw toolError;
       }
     },
   });

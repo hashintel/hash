@@ -5,7 +5,7 @@
 // `<PetrinautProvider>` (`/react`).
 
 export { Petrinaut } from "./petrinaut";
-export type { PetrinautAiMessage } from "./views/Editor/panels/AiAssistant/types";
+export type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,

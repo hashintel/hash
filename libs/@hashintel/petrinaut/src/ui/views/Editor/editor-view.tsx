@@ -1,5 +1,4 @@
 import { use, useRef, useState } from "react";
-import { TbSend } from "react-icons/tb";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
@@ -13,7 +12,7 @@ import {
 
 import { ExperimentsContext } from "../../../react/experiments/context";
 import { Box } from "../../components/box";
-import { IconButton } from "../../components/icon-button";
+import { Button } from "../../components/button";
 import { Input } from "../../components/input";
 import { Stack } from "../../components/stack";
 import { importSDCPN } from "../../file-io/import-sdcpn";
@@ -39,7 +38,7 @@ import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
-import { AiAssistantPanel } from "./panels/AiAssistant/panel";
+import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { runAutoLayout } from "./run-auto-layout";
 
 import type { ViewportAction } from "../../types/viewport-action";
@@ -252,16 +251,17 @@ const EmptyAiHero = ({
 						aria-label="Describe the process you want to create"
 						size="lg"
 					/>
-					<IconButton
+					<Button
 						type="submit"
 						size="lg"
 						variant="solid"
-						colorScheme="brand"
+						tone="brand"
 						disabled={!canSubmit}
 						aria-label="Send first AI assistant message"
-					>
-						<TbSend size={18} />
-					</IconButton>
+						iconName="arrowUp"
+						tooltip="Send first AI assistant message"
+						tooltipDisplay="inline"
+					/>
 				</div>
 			</form>
 		</div>

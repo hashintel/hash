@@ -69,14 +69,22 @@ function createToolBundle<const InputSchemas extends Record<string, z.ZodType>>(
 }
 
 export const getLatestNetDefinitionToolName = "getLatestNetDefinition";
+export const getNetCompilationErrorsToolName = "getNetCompilationErrors";
 
 const getLatestNetDefinitionToolInputSchema = z
   .strictObject({})
   .describe("Get the latest complete Petrinaut SDCPN net definition.");
 
+const getNetCompilationErrorsToolInputSchema = z
+  .strictObject({})
+  .describe(
+    "Get the current TypeScript diagnostics for the Petrinaut net code. Use this after editing lambdas, kernels, differential equations, scenarios, or metrics to check whether the model compiles.",
+  );
+
 export const petrinautAiToolInputSchemas = {
   ...mutationActionInputSchemas,
   [getLatestNetDefinitionToolName]: getLatestNetDefinitionToolInputSchema,
+  [getNetCompilationErrorsToolName]: getNetCompilationErrorsToolInputSchema,
 };
 
 export const petrinautAiMutationTools = createToolBundle(
@@ -88,6 +96,10 @@ export const petrinautAiTools = {
   [getLatestNetDefinitionToolName]: {
     description: getSchemaDescription(getLatestNetDefinitionToolInputSchema),
     inputSchema: getLatestNetDefinitionToolInputSchema,
+  },
+  [getNetCompilationErrorsToolName]: {
+    description: getSchemaDescription(getNetCompilationErrorsToolInputSchema),
+    inputSchema: getNetCompilationErrorsToolInputSchema,
   },
 } satisfies PetrinautAiTools;
 
@@ -112,6 +124,7 @@ export const petrinautAiPrompt = `You are an expert assistant for building Stoch
 
 Use the provided tools to directly modify the current net. The tools use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions.
 You can check the latest complete net definition at any point using the ${getLatestNetDefinitionToolName} tool. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types.
+You can check current TypeScript compilation diagnostics at any point using the ${getNetCompilationErrorsToolName} tool.
 
 When the user's intent, requirements, constraints, or preferred modelling process are ambiguous, ask a concise follow-up question before making changes. If the request is clear, proceed with small, purposeful tool calls.
 

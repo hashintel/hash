@@ -2,6 +2,7 @@ import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
 
 import type {
   getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,
   PetrinautAiToolInput,
@@ -19,6 +20,10 @@ type PetrinautAiUiTools = {
   [getLatestNetDefinitionToolName]: {
     input: PetrinautAiToolInput<typeof getLatestNetDefinitionToolName>;
     output: SDCPN;
+  };
+  [getNetCompilationErrorsToolName]: {
+    input: PetrinautAiToolInput<typeof getNetCompilationErrorsToolName>;
+    output: string;
   };
 };
 

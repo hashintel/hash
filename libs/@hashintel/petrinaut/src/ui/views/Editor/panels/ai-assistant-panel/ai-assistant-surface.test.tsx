@@ -11,7 +11,7 @@ import {
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { SDCPN } from "../../../../../core/types/sdcpn";
-import { AiAssistantSurface } from "./assistant-surface";
+import { AiAssistantSurface } from "./ai-assistant-surface";
 import type { PetrinautAiMessage } from "./types";
 
 const noop = () => {};

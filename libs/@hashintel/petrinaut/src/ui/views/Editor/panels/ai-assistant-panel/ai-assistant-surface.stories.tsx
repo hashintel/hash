@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import { AiAssistantSurface } from "./assistant-surface";
+import { AiAssistantSurface } from "./ai-assistant-surface";
 import type { PetrinautAiMessage } from "./types";
 
 const meta = {

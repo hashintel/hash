@@ -29,6 +29,7 @@ export {
   createPetrinautMutationAiToolCallbacks,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
   metricSchema,
   parameterSchema,
   petrinautAiMutationTools,
