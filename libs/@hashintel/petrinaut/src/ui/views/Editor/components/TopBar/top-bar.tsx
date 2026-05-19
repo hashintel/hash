@@ -3,6 +3,7 @@ import { use } from "react";
 
 import { Button } from "../../../../components/button";
 import { Menu, type MenuItem } from "../../../../components/menu";
+import type { ExperimentRecord } from "../../../../../react/experiments/context";
 import {
   EditorContext,
   type EditorState,
@@ -10,6 +11,7 @@ import {
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
+import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
 
 const topBarStyle = css({
@@ -51,6 +53,7 @@ interface TopBarProps {
   hideNetManagementControls: boolean;
   mode: EditorState["globalMode"];
   onModeChange: (mode: EditorState["globalMode"]) => void;
+  onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -60,6 +63,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   hideNetManagementControls,
   mode,
   onModeChange,
+  onRunningExperimentClick,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
     use(EditorContext);
@@ -111,6 +115,9 @@ export const TopBar: React.FC<TopBarProps> = ({
       <ModeSelector mode={mode} onChange={onModeChange} />
 
       <div className={rightSectionStyle}>
+        <RunningExperimentsPopover
+          onExperimentClick={onRunningExperimentClick}
+        />
         {undoRedo && <VersionHistoryButton />}
       </div>
     </div>

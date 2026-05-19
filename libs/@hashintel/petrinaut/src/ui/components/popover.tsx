@@ -15,6 +15,7 @@ const contentStyle = css({
   overflow: "hidden",
   zIndex: "dropdown",
   transformOrigin: "var(--transform-origin)",
+  userSelect: "none",
   '&[data-state="open"]': {
     animation: "popover-in 150ms ease-out",
   },

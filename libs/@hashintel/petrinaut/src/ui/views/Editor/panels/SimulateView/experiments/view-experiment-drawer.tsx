@@ -2,13 +2,13 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
 
-import { Button } from "../../../../components/button";
-import { Drawer } from "../../../../components/drawer";
-import { Section, SectionList } from "../../../../components/section";
+import { Button } from "../../../../../components/button";
+import { Drawer } from "../../../../../components/drawer";
+import { Section, SectionList } from "../../../../../components/section";
 import {
   ExperimentsContext,
   type ExperimentRecord,
-} from "../../../../../react/experiments/context";
+} from "../../../../../../react/experiments/context";
 import { ExperimentTimeline } from "./experiment-timeline";
 
 const bodyStyle = css({

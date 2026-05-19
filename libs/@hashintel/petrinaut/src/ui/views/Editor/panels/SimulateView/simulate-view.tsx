@@ -1,27 +1,17 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useState } from "react";
+import type { ComponentType } from "react";
+import { use } from "react";
 
-import { Button } from "../../../../components/button";
 import type { SegmentOption } from "../../../../components/segment-group";
 import { SegmentGroup } from "../../../../components/segment-group";
-import { Stack } from "../../../../components/stack";
-import type { Metric, Scenario } from "../../../../../core/types/sdcpn";
-import {
-  ExperimentsContext,
-  type ExperimentRecord,
-} from "../../../../../react/experiments/context";
 import {
   EditorContext,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { CreateExperimentDrawer } from "./create-experiment-drawer";
-import { CreateMetricDrawer } from "./create-metric-drawer";
-import { CreateScenarioDrawer } from "./create-scenario-drawer";
-import { ViewExperimentDrawer } from "./view-experiment-drawer";
-import { ViewMetricDrawer } from "./view-metric-drawer";
-import { ViewScenarioDrawer } from "./view-scenario-drawer";
+import { ExperimentsView } from "./experiments/experiments-view";
+import { MetricsView } from "./metrics/metrics-view";
+import { ScenariosView } from "./scenarios/scenarios-view";
 
 // -- Layout styles -------------------------------------------------------------
 
@@ -30,6 +20,7 @@ const containerStyle = css({
   flexDirection: "row",
   width: "full",
   height: "full",
+  backgroundColor: "neutral.s00",
 });
 
 const sidebarStyle = css({
@@ -42,139 +33,6 @@ const sidebarStyle = css({
   borderRightStyle: "solid",
   borderRightColor: "neutral.s40",
   flexShrink: 0,
-});
-
-const mainContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  flex: "1",
-  minWidth: "[0]",
-  height: "full",
-});
-
-const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  height: "[52px]",
-  paddingLeft: "[18px]",
-  paddingRight: "[20px]",
-  paddingY: "[12px]",
-  borderBottomWidth: "[1px]",
-  borderBottomStyle: "solid",
-  borderBottomColor: "neutral.s40",
-  flexShrink: 0,
-});
-
-const headerTitleStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-});
-
-const contentStyle = css({
-  flex: "1",
-  display: "flex",
-  flexDirection: "column",
-  minHeight: "[0]",
-  overflowY: "auto",
-});
-
-// -- Scenario list styles ------------------------------------------------------
-
-const tableStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  width: "full",
-});
-
-const tableHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  paddingX: "[20px]",
-  paddingY: "[8px]",
-  borderBottomWidth: "[1px]",
-  borderBottomStyle: "solid",
-  borderBottomColor: "neutral.a10",
-  flexShrink: 0,
-});
-
-const tableHeaderCellStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s80",
-  textTransform: "uppercase",
-  letterSpacing: "[0.05em]",
-});
-
-const nameColumnStyle = css({
-  width: "[200px]",
-  flexShrink: 0,
-});
-
-const descriptionColumnStyle = css({
-  flex: "1",
-  minWidth: "[0]",
-});
-
-const statusColumnStyle = css({
-  width: "[110px]",
-  flexShrink: 0,
-});
-
-const runColumnStyle = css({
-  width: "[90px]",
-  flexShrink: 0,
-});
-
-const tableRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  paddingX: "[20px]",
-  paddingY: "[12px]",
-  borderBottomWidth: "[1px]",
-  borderBottomStyle: "solid",
-  borderBottomColor: "neutral.a10",
-  cursor: "pointer",
-  transition: "[background-color 0.1s ease]",
-  background: "[none]",
-  border: "[none]",
-  width: "full",
-  textAlign: "left",
-  _hover: {
-    backgroundColor: "neutral.bg.subtle.hover",
-  },
-});
-
-const selectedRowStyle = css({
-  backgroundColor: "neutral.bg.subtle.hover",
-});
-
-const scenarioNameStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-});
-
-const scenarioDescriptionStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s80",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-});
-
-const emptyStateStyle = css({
-  flex: "1",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "neutral.s80",
-  fontSize: "sm",
 });
 
 // -- Mode options --------------------------------------------------------------
@@ -203,222 +61,18 @@ const modeOptions: SegmentOption[] = [
   },
 ];
 
-// -- Scenario list component ---------------------------------------------------
-
-const ScenarioList = ({
-  scenarios,
-  selectedId,
-  onSelect,
-}: {
-  scenarios: Scenario[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) => {
-  if (scenarios.length === 0) {
-    return <div className={emptyStateStyle}>No scenarios yet</div>;
-  }
-
-  return (
-    <div className={tableStyle} role="table">
-      <div className={tableHeaderStyle} role="row">
-        <span className={`${tableHeaderCellStyle} ${nameColumnStyle}`}>
-          Name
-        </span>
-        <span className={`${tableHeaderCellStyle} ${descriptionColumnStyle}`}>
-          Description
-        </span>
-      </div>
-
-      {scenarios.map((scenario) => (
-        <button
-          key={scenario.id}
-          type="button"
-          className={`${tableRowStyle}${scenario.id === selectedId ? ` ${selectedRowStyle}` : ""}`}
-          onClick={() => onSelect(scenario.id)}
-        >
-          <div className={nameColumnStyle}>
-            <span className={scenarioNameStyle}>{scenario.name}</span>
-          </div>
-          <div className={descriptionColumnStyle}>
-            <span className={scenarioDescriptionStyle}>
-              {scenario.description ?? ""}
-            </span>
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-};
-
-// -- Metric list component -----------------------------------------------------
-
-const MetricList = ({
-  metrics,
-  selectedId,
-  onSelect,
-}: {
-  metrics: Metric[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) => {
-  if (metrics.length === 0) {
-    return <div className={emptyStateStyle}>No metrics yet</div>;
-  }
-
-  return (
-    <div className={tableStyle} role="table">
-      <div className={tableHeaderStyle} role="row">
-        <span className={`${tableHeaderCellStyle} ${nameColumnStyle}`}>
-          Name
-        </span>
-        <span className={`${tableHeaderCellStyle} ${descriptionColumnStyle}`}>
-          Description
-        </span>
-      </div>
-
-      {metrics.map((metric) => (
-        <button
-          key={metric.id}
-          type="button"
-          className={`${tableRowStyle}${metric.id === selectedId ? ` ${selectedRowStyle}` : ""}`}
-          onClick={() => onSelect(metric.id)}
-        >
-          <div className={nameColumnStyle}>
-            <span className={scenarioNameStyle}>{metric.name}</span>
-          </div>
-          <div className={descriptionColumnStyle}>
-            <span className={scenarioDescriptionStyle}>
-              {metric.description ?? ""}
-            </span>
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-};
-
-// -- Experiment list component ------------------------------------------------
-
-function formatExperimentStatus(status: ExperimentRecord["status"]): string {
-  switch (status) {
-    case "initializing":
-      return "Initializing";
-    case "running":
-      return "Running";
-    case "complete":
-      return "Complete";
-    case "error":
-      return "Error";
-    case "cancelled":
-      return "Cancelled";
-  }
-}
-
-const ExperimentList = ({
-  experiments,
-  selectedId,
-  onSelect,
-}: {
-  experiments: readonly ExperimentRecord[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) => {
-  if (experiments.length === 0) {
-    return <div className={emptyStateStyle}>No experiments yet</div>;
-  }
-
-  return (
-    <div className={tableStyle} role="table">
-      <div className={tableHeaderStyle} role="row">
-        <span className={`${tableHeaderCellStyle} ${nameColumnStyle}`}>
-          Name
-        </span>
-        <span className={`${tableHeaderCellStyle} ${descriptionColumnStyle}`}>
-          Scenario
-        </span>
-        <span className={`${tableHeaderCellStyle} ${runColumnStyle}`}>
-          Runs
-        </span>
-        <span className={`${tableHeaderCellStyle} ${statusColumnStyle}`}>
-          Status
-        </span>
-      </div>
-
-      {experiments.map((experiment) => (
-        <button
-          key={experiment.id}
-          type="button"
-          className={`${tableRowStyle}${experiment.id === selectedId ? ` ${selectedRowStyle}` : ""}`}
-          onClick={() => onSelect(experiment.id)}
-        >
-          <div className={nameColumnStyle}>
-            <span className={scenarioNameStyle}>{experiment.name}</span>
-          </div>
-          <div className={descriptionColumnStyle}>
-            <span className={scenarioDescriptionStyle}>
-              {experiment.scenarioName ?? "Default"}
-            </span>
-          </div>
-          <div className={runColumnStyle}>
-            <span className={scenarioDescriptionStyle}>
-              {experiment.runCount}
-            </span>
-          </div>
-          <div className={statusColumnStyle}>
-            <span className={scenarioDescriptionStyle}>
-              {formatExperimentStatus(experiment.status)}
-            </span>
-          </div>
-        </button>
-      ))}
-    </div>
-  );
-};
+const views = {
+  scenarios: ScenariosView,
+  metrics: MetricsView,
+  experiments: ExperimentsView,
+} satisfies Record<SimulateViewMode, ComponentType>;
 
 // -- Component -----------------------------------------------------------------
-
-type DrawerState =
-  | { type: "closed" }
-  | { type: "view-scenario"; scenarioId: string }
-  | { type: "create-scenario" }
-  | { type: "view-metric"; metricId: string }
-  | { type: "create-metric" }
-  | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" };
 
 export const SimulateView = () => {
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
-  const [drawer, setDrawer] = useState<DrawerState>({ type: "closed" });
-
-  const { petriNetDefinition } = use(SDCPNContext);
-  const scenarios = petriNetDefinition.scenarios ?? [];
-  const metrics = petriNetDefinition.metrics ?? [];
-  const { experiments } = use(ExperimentsContext);
-
-  const selectedScenario =
-    drawer.type === "view-scenario"
-      ? scenarios.find((s) => s.id === drawer.scenarioId)
-      : undefined;
-
-  const selectedMetric =
-    drawer.type === "view-metric"
-      ? metrics.find((m) => m.id === drawer.metricId)
-      : undefined;
-
-  const selectedExperiment =
-    drawer.type === "view-experiment"
-      ? experiments.find((experiment) => experiment.id === drawer.experimentId)
-      : undefined;
-
-  const closeDrawer = () => setDrawer({ type: "closed" });
-
-  const title =
-    mode === "scenarios"
-      ? "Scenarios"
-      : mode === "metrics"
-        ? "Metrics"
-        : "Experiments";
+  const ActiveView = views[mode];
 
   return (
     <div className={containerStyle}>
@@ -432,126 +86,7 @@ export const SimulateView = () => {
         />
       </div>
 
-      <Stack className={mainContainerStyle}>
-        <div className={headerStyle}>
-          <span className={headerTitleStyle}>{title}</span>
-          {mode === "scenarios" && (
-            <Button
-              variant="ghost"
-              tone="neutral"
-              size="xs"
-              prefix={<Icon name="plus" size="sm" />}
-              onClick={() => setDrawer({ type: "create-scenario" })}
-            >
-              Create scenario
-            </Button>
-          )}
-          {mode === "metrics" && (
-            <Button
-              variant="ghost"
-              tone="neutral"
-              size="xs"
-              prefix={<Icon name="plus" size="sm" />}
-              onClick={() => setDrawer({ type: "create-metric" })}
-            >
-              Create metric
-            </Button>
-          )}
-          {mode === "experiments" && (
-            <Button
-              variant="ghost"
-              tone="neutral"
-              size="xs"
-              prefix={<Icon name="plus" size="sm" />}
-              onClick={() => setDrawer({ type: "create-experiment" })}
-            >
-              Create experiment
-            </Button>
-          )}
-        </div>
-
-        {mode === "scenarios" && (
-          <>
-            <div className={contentStyle}>
-              <ScenarioList
-                scenarios={scenarios}
-                selectedId={
-                  drawer.type === "view-scenario" ? drawer.scenarioId : null
-                }
-                onSelect={(id) =>
-                  setDrawer({ type: "view-scenario", scenarioId: id })
-                }
-              />
-            </div>
-
-            <CreateScenarioDrawer
-              open={drawer.type === "create-scenario"}
-              onClose={closeDrawer}
-            />
-
-            <ViewScenarioDrawer
-              open={!!selectedScenario}
-              onClose={closeDrawer}
-              scenario={selectedScenario}
-            />
-          </>
-        )}
-        {mode === "metrics" && (
-          <>
-            <div className={contentStyle}>
-              <MetricList
-                metrics={metrics}
-                selectedId={
-                  drawer.type === "view-metric" ? drawer.metricId : null
-                }
-                onSelect={(id) =>
-                  setDrawer({ type: "view-metric", metricId: id })
-                }
-              />
-            </div>
-
-            <CreateMetricDrawer
-              open={drawer.type === "create-metric"}
-              onClose={closeDrawer}
-            />
-
-            <ViewMetricDrawer
-              open={!!selectedMetric}
-              onClose={closeDrawer}
-              metric={selectedMetric}
-            />
-          </>
-        )}
-        {mode === "experiments" && (
-          <>
-            <div className={contentStyle}>
-              <ExperimentList
-                experiments={experiments}
-                selectedId={
-                  drawer.type === "view-experiment" ? drawer.experimentId : null
-                }
-                onSelect={(id) =>
-                  setDrawer({ type: "view-experiment", experimentId: id })
-                }
-              />
-            </div>
-
-            <CreateExperimentDrawer
-              open={drawer.type === "create-experiment"}
-              onClose={closeDrawer}
-              onCreated={(experimentId) =>
-                setDrawer({ type: "view-experiment", experimentId })
-              }
-            />
-
-            <ViewExperimentDrawer
-              open={!!selectedExperiment}
-              onClose={closeDrawer}
-              experiment={selectedExperiment}
-            />
-          </>
-        )}
-      </Stack>
+      <ActiveView />
     </div>
   );
 };
