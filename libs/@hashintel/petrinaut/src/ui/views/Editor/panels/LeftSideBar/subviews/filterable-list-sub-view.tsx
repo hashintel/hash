@@ -10,6 +10,7 @@ import type {
   SubView,
   SubViewResizeConfig,
 } from "../../../../../components/sub-view/types";
+import { clampIndex } from "../../../../../lib/clamp-index";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 
@@ -162,13 +163,6 @@ const emptyMessageStyle = css({
   fontSize: "sm",
   color: "neutral.s65",
 });
-
-const clampIndex = (index: number | null, itemCount: number): number | null => {
-  if (index === null || itemCount === 0) {
-    return null;
-  }
-  return Math.min(index, itemCount - 1);
-};
 
 interface FilterableListItem {
   id: string;

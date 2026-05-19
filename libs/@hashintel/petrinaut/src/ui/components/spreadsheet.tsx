@@ -12,13 +12,6 @@ export interface SpreadsheetProps {
   onChange?: (data: number[][]) => void;
 }
 
-type SourceKeyedValue<T> = {
-  sourceData: number[][];
-  value: T;
-};
-
-type TableDataDraft = SourceKeyedValue<number[][]>;
-
 type CellPosition = {
   row: number;
   col: number;
@@ -197,125 +190,89 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const isReadOnly = !onChange;
   const colCount = columns.length;
 
-  const [tableDataDraft, setTableDataDraft] = useState<TableDataDraft | null>(
+  // Fully controlled — the parent owns `data` and receives edits via
+  // `onChange`. Selection / focus / editing state is local UI state, clamped
+  // against the current `data` so stale positions are masked rather than
+  // synced via an effect.
+  const tableData = data.length > 0 ? data : [];
+
+  const [selectedRowState, setSelectedRow] = useState<number | null>(null);
+  const [focusedCellState, setFocusedCell] = useState<CellPosition | null>(
     null,
   );
-  const [selectedRowState, setSelectedRowState] = useState<SourceKeyedValue<
-    number | null
-  > | null>(null);
-  const [focusedCellState, setFocusedCellState] =
-    useState<SourceKeyedValue<CellPosition | null> | null>(null);
-  const [editingCellState, setEditingCellState] =
-    useState<SourceKeyedValue<CellPosition | null> | null>(null);
+  const [editingCellState, setEditingCell] = useState<CellPosition | null>(
+    null,
+  );
   const [editingValue, setEditingValue] = useState<string>("");
   const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const tableData =
-    tableDataDraft?.sourceData === data
-      ? tableDataDraft.value
-      : data.length > 0
-        ? data
-        : [];
-
-  const getInteractionValue = <T,>(
-    state: SourceKeyedValue<T> | null,
-    fallback: T,
-  ) =>
-    state && (data.length > 0 || Object.is(state.sourceData, data))
-      ? state.value
-      : fallback;
-
-  const selectedRow = getInteractionValue(selectedRowState, null);
-  const focusedCell = getInteractionValue(focusedCellState, null);
-  const editingCell = getInteractionValue(editingCellState, null);
-
-  const setSelectedRow = (value: number | null) => {
-    setSelectedRowState({ sourceData: data, value });
-  };
-
-  const setFocusedCell = (value: CellPosition | null) => {
-    setFocusedCellState({ sourceData: data, value });
-  };
-
-  const setEditingCell = (value: CellPosition | null) => {
-    setEditingCellState({ sourceData: data, value });
-  };
-
-  const setTableData = (update: (currentData: number[][]) => number[][]) => {
-    setTableDataDraft((currentDraft) => {
-      const currentData =
-        currentDraft?.sourceData === data
-          ? currentDraft.value
-          : data.length > 0
-            ? data
-            : [];
-
-      return {
-        sourceData: data,
-        value: update(currentData),
-      };
-    });
-  };
+  const selectedRow =
+    selectedRowState !== null && selectedRowState < tableData.length
+      ? selectedRowState
+      : null;
+  const focusedCell =
+    focusedCellState && focusedCellState.row <= tableData.length
+      ? focusedCellState
+      : null;
+  const editingCell =
+    editingCellState && editingCellState.row <= tableData.length
+      ? editingCellState
+      : null;
 
   const updateCell = (row: number, col: number, value: number) => {
-    setTableData((prev) => {
-      let newData: number[][];
+    let newData: number[][];
 
-      // If editing the phantom row (last row), create a new actual row
-      if (row === prev.length) {
-        newData = [...prev, Array(colCount).fill(0) as number[]];
-        if (newData[row]) {
-          newData[row][col] = value;
-        }
-      } else {
-        newData = prev.map((rowData, index) =>
-          index === row ? [...rowData] : rowData,
-        );
-        if (newData[row]) {
-          newData[row][col] = value;
-        }
+    // If editing the phantom row (last row), create a new actual row
+    if (row === tableData.length) {
+      newData = [...tableData, Array(colCount).fill(0) as number[]];
+      if (newData[row]) {
+        newData[row][col] = value;
       }
+    } else {
+      newData = tableData.map((rowData, index) =>
+        index === row ? [...rowData] : rowData,
+      );
+      if (newData[row]) {
+        newData[row][col] = value;
+      }
+    }
 
-      onChange?.(newData);
-      return newData;
-    });
+    onChange?.(newData);
   };
 
   const removeRow = (rowIndex: number) => {
-    setTableData((prev) => {
-      const newData: number[][] = prev.filter((_, index) => index !== rowIndex);
-      onChange?.(newData);
+    const newData: number[][] = tableData.filter(
+      (_, index) => index !== rowIndex,
+    );
+    onChange?.(newData);
 
-      // Select next or previous row after deletion
-      if (newData.length > 0) {
-        if (rowIndex >= newData.length) {
-          setSelectedRow(newData.length - 1);
-          setTimeout(() => {
-            const rowCell = document.querySelector(
-              `td[data-row="${newData.length - 1}"]`,
-            );
-            if (rowCell instanceof HTMLElement) {
-              rowCell.focus();
-            }
-          }, 0);
-        } else {
-          setSelectedRow(rowIndex);
-          setTimeout(() => {
-            const rowCell = document.querySelector(
-              `td[data-row="${rowIndex}"]`,
-            );
-            if (rowCell instanceof HTMLElement) {
-              rowCell.focus();
-            }
-          }, 0);
-        }
+    // Select next or previous row after deletion
+    if (newData.length > 0) {
+      if (rowIndex >= newData.length) {
+        setSelectedRow(newData.length - 1);
+        setTimeout(() => {
+          const rowCell = document.querySelector(
+            `td[data-row="${newData.length - 1}"]`,
+          );
+          if (rowCell instanceof HTMLElement) {
+            rowCell.focus();
+          }
+        }, 0);
       } else {
-        setSelectedRow(null);
+        setSelectedRow(rowIndex);
+        setTimeout(() => {
+          const rowCell = document.querySelector(
+            `td[data-row="${rowIndex}"]`,
+          );
+          if (rowCell instanceof HTMLElement) {
+            rowCell.focus();
+          }
+        }, 0);
       }
-
-      return newData;
-    });
+    } else {
+      setSelectedRow(null);
+    }
   };
 
   const handleKeyDown = (

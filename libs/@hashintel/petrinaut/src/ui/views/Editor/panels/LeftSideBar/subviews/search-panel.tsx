@@ -15,6 +15,7 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
+import { clampIndex } from "../../../../../lib/clamp-index";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
@@ -130,13 +131,6 @@ const emptyResultsStyle = css({
 
 const ICON_SIZE = 12;
 const DEFAULT_ICON_COLOR = "#9ca3af";
-
-const clampIndex = (index: number | null, itemCount: number): number | null => {
-  if (index === null || itemCount === 0) {
-    return null;
-  }
-  return Math.min(index, itemCount - 1);
-};
 
 // -- Search item types --------------------------------------------------------
 

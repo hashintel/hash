@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
   createJsonDocHandle,
@@ -29,8 +29,8 @@ type HandlesByNetId = Record<string, PetrinautDocHandle>;
  * Self-contained wrapper around {@link Petrinaut} that manages a small
  * in-memory net registry, mirroring the shape of the demo-site's `DevApp`.
  *
- * Intended for Storybook stories — owns one handle per net id (via a ref
- * map), so per-net history survives switching between nets.
+ * Intended for Storybook stories — owns one handle per net id, so per-net
+ * history survives switching between nets.
  */
 export const PetrinautStoryProvider = ({
   initialTitle = "New Process",
@@ -56,9 +56,16 @@ export const PetrinautStoryProvider = ({
     "net-1": createJsonDocHandle({ id: "net-1", initial: initialDefinition }),
   }));
 
+  // Track which handles have an active subscription so adding a new net only
+  // wires up the new handle instead of tearing down every existing one.
+  const unsubscribersRef = useRef<Map<string, () => void>>(new Map());
+
   useEffect(() => {
-    const unsubscribers = Object.values(handlesByNetId).map((handle) =>
-      handle.subscribe((event) => {
+    for (const handle of Object.values(handlesByNetId)) {
+      if (unsubscribersRef.current.has(handle.id)) {
+        continue;
+      }
+      const off = handle.subscribe((event) => {
         setNets((prev) => {
           const stored = prev[handle.id];
           if (!stored) {
@@ -66,15 +73,20 @@ export const PetrinautStoryProvider = ({
           }
           return { ...prev, [handle.id]: { ...stored, sdcpn: event.next } };
         });
-      }),
-    );
-
-    return () => {
-      for (const unsubscribe of unsubscribers) {
-        unsubscribe();
-      }
-    };
+      });
+      unsubscribersRef.current.set(handle.id, off);
+    }
   }, [handlesByNetId]);
+
+  useEffect(
+    () => () => {
+      for (const off of unsubscribersRef.current.values()) {
+        off();
+      }
+      unsubscribersRef.current.clear();
+    },
+    [],
+  );
 
   const existingNets: MinimalNetMetadata[] = Object.values(nets).map((net) => ({
     netId: net.id,

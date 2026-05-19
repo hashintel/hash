@@ -3,10 +3,19 @@ import { useLayoutEffect, useRef } from "react";
 /**
  * Returns a ref that always contains the latest value.
  *
- * This hook is useful when you need to access the current value of a prop or state
- * inside a callback or effect without adding it to the dependency array. The ref
- * is updated in a layout effect, so passive effects observe the latest value
- * without reading or writing refs during render.
+ * Useful for reading the current value of a prop or state from inside a
+ * callback or passive effect without adding it to the dependency array.
+ *
+ * The ref is updated in a layout effect, so it's safe to read `.current` from:
+ *   - event handlers and other callbacks fired after commit
+ *   - `requestAnimationFrame` / `setTimeout` callbacks
+ *   - `useEffect` (passive) bodies and their cleanups
+ *
+ * It is NOT safe to read `.current` during render in any component, or from a
+ * `useLayoutEffect` that runs before this hook's layout effect — most notably
+ * a layout effect in a descendant component (child layout effects run before
+ * parent layout effects). If you need to read from those positions, pass the
+ * value directly instead of going through this ref.
  *
  * @example
  * ```ts
