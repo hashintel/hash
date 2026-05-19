@@ -7714,10 +7714,10 @@ __metadata:
     rolldown-plugin-dts: "npm:0.25.0"
     storybook: "npm:10.3.6"
     uplot: "npm:1.6.32"
+    use-sync-external-store: "npm:1.6.0"
     uuid: "npm:14.0.0"
     vite: "npm:8.0.12"
     vitest: "npm:4.1.5"
-    vscode-languageserver-types: "npm:3.17.5"
   peerDependencies:
     "@hashintel/ds-components": "workspace:^"
     "@hashintel/ds-helpers": "workspace:^"
@@ -45275,7 +45275,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-sync-external-store@npm:^1.2.2, use-sync-external-store@npm:^1.4.0, use-sync-external-store@npm:^1.5.0, use-sync-external-store@npm:^1.6.0":
+"use-sync-external-store@npm:1.6.0, use-sync-external-store@npm:^1.2.2, use-sync-external-store@npm:^1.4.0, use-sync-external-store@npm:^1.5.0, use-sync-external-store@npm:^1.6.0":
   version: 1.6.0
   resolution: "use-sync-external-store@npm:1.6.0"
   peerDependencies:

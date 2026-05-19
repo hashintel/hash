@@ -102,15 +102,28 @@ export type {
 
 // --- LSP ---
 export {
+  CompletionItemKind,
   createLanguageClient,
   createWorkerLspTransport,
+  DiagnosticSeverity,
+  MarkupKind,
+  Position,
+  Range,
 } from "./lsp";
 export type {
+  CompletionItem,
+  CompletionList,
   CreateLanguageClientConfig,
+  Diagnostic,
   DiagnosticsSnapshot,
+  DocumentUri,
+  Hover,
   LanguageClient,
   LspTransport,
   LspWorkerFactory,
+  MarkupContent,
+  SignatureHelp,
+  TextDocumentIdentifier,
 } from "./lsp";
 
 // --- Playback ---

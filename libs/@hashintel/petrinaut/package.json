@@ -69,8 +69,8 @@
     "monaco-editor": "0.55.1",
     "react-resizable-panels": "4.6.5",
     "uplot": "1.6.32",
-    "uuid": "14.0.0",
-    "vscode-languageserver-types": "3.17.5"
+    "use-sync-external-store": "1.6.0",
+    "uuid": "14.0.0"
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "workspace:*",

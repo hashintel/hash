@@ -4,7 +4,7 @@ import {
   type MarkupContent,
   Position,
   type SignatureHelp,
-} from "vscode-languageserver-types";
+} from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
 import { MonacoContext } from "./context";

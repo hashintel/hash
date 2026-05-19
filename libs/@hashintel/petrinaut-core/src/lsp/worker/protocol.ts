@@ -8,12 +8,9 @@
  * Custom extensions:
  * - `sdcpn/didChange` for structural model changes (not per-document).
  *
- * Note: this module deliberately does **not** re-export upstream LSP types
- * (`Diagnostic`, `Position`, `Hover`, …). Consumers import them directly from
- * `vscode-languageserver-types`. Re-exporting them broke the `rolldown-plugin-dts`
- * bundler with duplicate-export errors when both `/core/lsp` and `/react/lsp`
- * appeared in the dts graph (upstream issue
- * [sxzz/rolldown-plugin-dts#209](https://github.com/sxzz/rolldown-plugin-dts/issues/209)).
+ * `@hashintel/petrinaut-core` re-exports the LSP types/enums consumed by the
+ * public Petrinaut APIs, so downstream packages do not need to depend on this
+ * upstream package directly.
  */
 import type {
   Diagnostic,

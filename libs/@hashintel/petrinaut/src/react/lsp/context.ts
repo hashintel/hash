@@ -6,7 +6,7 @@ import type {
   Hover,
   Position,
   SignatureHelp,
-} from "vscode-languageserver-types";
+} from "@hashintel/petrinaut-core";
 
 import type {
   MetricSessionParams,

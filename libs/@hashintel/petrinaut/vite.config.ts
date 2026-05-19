@@ -32,11 +32,6 @@ export default defineConfig(({ command }) => ({
         "react-dom",
         "@xyflow/react",
         "@babel/standalone",
-        // Externalising prevents the dts bundler from inlining the upstream
-        // namespace-merged types (`DocumentUri`, `Position`, …) which trigger
-        // sxzz/rolldown-plugin-dts#209 "Duplicated export" errors when
-        // reached from multiple entries.
-        "vscode-languageserver-types",
         // Pure-CJS dep pulled in transitively by @tanstack/react-form →
         // @tanstack/react-store. Rolldown can't safely transform its
         // `require("react")` when react is external, so it falls back to a

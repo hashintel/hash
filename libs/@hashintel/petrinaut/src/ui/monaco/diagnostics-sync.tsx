@@ -1,7 +1,6 @@
 import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 import { Suspense, use, useEffect, useRef } from "react";
-import type { Diagnostic } from "vscode-languageserver-types";
-import { DiagnosticSeverity } from "vscode-languageserver-types";
+import { type Diagnostic, DiagnosticSeverity } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
 import { MonacoContext } from "./context";

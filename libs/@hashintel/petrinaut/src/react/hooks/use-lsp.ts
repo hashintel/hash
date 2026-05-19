@@ -1,5 +1,5 @@
 import { use } from "react";
-import type { Diagnostic, DocumentUri } from "vscode-languageserver-types";
+import type { Diagnostic, DocumentUri } from "@hashintel/petrinaut-core";
 import {
   LanguageClientContext,
   type LanguageClientContextValue,
