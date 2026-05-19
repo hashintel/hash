@@ -3,6 +3,7 @@ import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "../../../../../../components/button";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
@@ -10,7 +11,6 @@ import { Tooltip } from "../../../../../../components/tooltip";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
@@ -111,11 +111,6 @@ const dimensionNameInputStyle = css({
   flex: "[1]",
 });
 
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-});
-
 type ElementNameInputState = Record<
   string,
   { sourceName: string; value: string }
@@ -152,10 +147,6 @@ const TypeMainContent: React.FC = () => {
   const isDisabled = useIsReadOnly();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const nameField = useDraftField({
-    sourceId: type.id,
-    sourceValue: type.name,
-  });
   const [elementNameInputs, setElementNameInputs] =
     useState<ElementNameInputState>({});
 
@@ -284,37 +275,19 @@ const TypeMainContent: React.FC = () => {
   return (
     <SectionList>
       <Section title="Name">
-        <Input
-          value={nameField.value}
-          onChange={(event) => {
-            nameField.setValue(event.target.value);
-            if (nameField.error) {
-              nameField.setError(null);
-            }
-          }}
-          onBlur={() => {
-            const result = validateDisplayName(nameField.value);
-
-            if (!result.valid) {
-              nameField.setError(result.error);
-              return;
-            }
-
-            nameField.setError(null);
-            if (result.name !== type.name) {
-              updateType({
-                typeId: type.id,
-                update: { name: result.name },
-              });
-            }
-          }}
+        <DraftFieldInput
+          sourceId={type.id}
+          sourceValue={type.name}
+          validate={validateDisplayName}
+          onCommit={(name) =>
+            updateType({
+              typeId: type.id,
+              update: { name },
+            })
+          }
           disabled={isDisabled}
-          hasError={!!nameField.error}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {nameField.error && (
-          <div className={errorMessageStyle}>{nameField.error}</div>
-        )}
       </Section>
 
       <Section title="Color">

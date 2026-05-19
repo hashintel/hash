@@ -2,9 +2,16 @@ import { useEffect, useRef } from "react";
 
 /**
  * Hook to track the previous firingCount and compute the delta.
+ *
+ * Reading the ref during render is the whole point — we need to compare the
+ * current render's value with the value committed by the previous effect run.
+ * That requires opting out of two things:
+ *   - the React Compiler, via `"use no memo"` (or it would memoize past the read)
+ *   - the `react-hooks-js/refs` lint rule (which forbids ref reads in render)
+ * Both are intentional and load-bearing — do not remove either.
  */
 export function useFiringDelta(firingCount: number | null): number | null {
-  "use no memo"; // Intentionally reads ref during render — incompatible with React Compiler
+  "use no memo";
   const prevFiringCountRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -17,7 +24,7 @@ export function useFiringDelta(firingCount: number | null): number | null {
     return null;
   }
 
-  /* eslint-disable react-hooks-js/refs -- This hook intentionally compares the current render with the previous committed frame. */
+  /* eslint-disable react-hooks-js/refs -- see the function-level comment. */
   const previousFiringCount = prevFiringCountRef.current;
 
   // On first render (ref not yet initialized) or no change, return null

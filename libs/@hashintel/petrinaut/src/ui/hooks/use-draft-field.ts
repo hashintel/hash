@@ -15,6 +15,11 @@ type DraftFieldState<T> = {
  * switches entity, or the canonical source value changes, stale draft/error
  * state is discarded without a prop-to-state syncing effect.
  *
+ * `sourceValue` is compared with `Object.is`, so it must be a primitive (or a
+ * reference-stable object held across renders). Passing a freshly built
+ * object literal each render would discard the draft on every parent
+ * re-render. Existing callers pass strings (entity names) and are fine.
+ *
  * @example
  * ```ts
  * const nameDraft = useDraftField({

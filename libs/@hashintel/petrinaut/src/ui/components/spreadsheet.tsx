@@ -262,9 +262,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       } else {
         setSelectedRow(rowIndex);
         setTimeout(() => {
-          const rowCell = document.querySelector(
-            `td[data-row="${rowIndex}"]`,
-          );
+          const rowCell = document.querySelector(`td[data-row="${rowIndex}"]`);
           if (rowCell instanceof HTMLElement) {
             rowCell.focus();
           }

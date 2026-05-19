@@ -7,20 +7,14 @@ import {
   type PlaceOption,
 } from "../../../../../../components/arc-item";
 import { Button } from "../../../../../../components/button";
-import { Input } from "../../../../../../components/input";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { MutationContext } from "../../../../../../../react/state/mutation-context";
-import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 import { useTransitionPropertiesContext } from "../context";
-
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-});
 
 const emptyArcMessageStyle = css({
   fontSize: "xs",
@@ -38,11 +32,6 @@ const TransitionMainContent: React.FC = () => {
     updateArcPlace,
     removeArc,
   } = useTransitionPropertiesContext();
-
-  const nameField = useDraftField({
-    sourceId: transition.id,
-    sourceValue: transition.name,
-  });
 
   const getPlaceColor = (placeId: string): string | undefined => {
     const place = places.find((pl) => pl.id === placeId);
@@ -121,37 +110,19 @@ const TransitionMainContent: React.FC = () => {
   return (
     <SectionList>
       <Section title="Name">
-        <Input
-          value={nameField.value}
-          onChange={(event) => {
-            nameField.setValue(event.target.value);
-            if (nameField.error) {
-              nameField.setError(null);
-            }
-          }}
-          onBlur={() => {
-            const result = validateDisplayName(nameField.value);
-
-            if (!result.valid) {
-              nameField.setError(result.error);
-              return;
-            }
-
-            nameField.setError(null);
-            if (result.name !== transition.name) {
-              updateTransition({
-                transitionId: transition.id,
-                update: { name: result.name },
-              });
-            }
-          }}
+        <DraftFieldInput
+          sourceId={transition.id}
+          sourceValue={transition.name}
+          validate={validateDisplayName}
+          onCommit={(name) =>
+            updateTransition({
+              transitionId: transition.id,
+              update: { name },
+            })
+          }
           disabled={isReadOnly}
-          hasError={!!nameField.error}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {nameField.error && (
-          <div className={errorMessageStyle}>{nameField.error}</div>
-        )}
       </Section>
 
       <Section title="Input Arcs" collapsible>

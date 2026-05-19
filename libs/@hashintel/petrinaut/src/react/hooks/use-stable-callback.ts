@@ -17,6 +17,10 @@ import { useCallback, useEffect, useRef } from "react";
  * }, [value, stableOnChange]);
  * ```
  *
+ * The `Args`/`Return` split preserves parameter names via tuple inference but
+ * does NOT preserve overloads or function-with-properties types. If you
+ * need either, capture the function in a ref directly instead.
+ *
  * @param callback - The callback function to stabilize
  * @returns A stable function that forwards calls to the latest callback
  */
