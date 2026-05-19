@@ -52,5 +52,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "codegen": "true",
+    "prepack": "turbo run codegen --filter @hashintel/ds-helpers >&2"
   }
 }
