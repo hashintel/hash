@@ -9,7 +9,7 @@
  */
 
 import { SDCPNItemError } from "../../errors";
-import type { WorkerGlobalScopeLike } from "../../environment";
+import { createWorkerThreadRuntime } from "../../environment";
 import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";
 import type { SimulationInstance } from "../engine/types";
@@ -19,8 +19,10 @@ import {
 } from "./frame-payload";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
-declare const self: WorkerGlobalScopeLike<ToWorkerMessage, ToMainMessage>;
-declare const setTimeout: (handler: () => void, timeout?: number) => unknown;
+const workerRuntime = createWorkerThreadRuntime<
+  ToWorkerMessage,
+  ToMainMessage
+>();
 
 //
 // Default Configuration
@@ -66,7 +68,7 @@ let batchSize = DEFAULT_BATCH_SIZE;
  * Post a typed message to the main thread.
  */
 function postTypedMessage(message: ToMainMessage): void {
-  self.postMessage(message);
+  workerRuntime.postMessage(message);
 }
 
 /**
@@ -82,9 +84,7 @@ async function computeLoop(): Promise<void> {
       currentFrameNumber - lastAckedFrame >= maxFramesAhead
     ) {
       // Yield and wait for ack
-      await new Promise((resolve) => {
-        setTimeout(() => resolve(undefined), 10);
-      });
+      await workerRuntime.delay(10);
       continue;
     }
 
@@ -144,18 +144,14 @@ async function computeLoop(): Promise<void> {
     }
 
     // Yield to allow message processing
-    await new Promise((resolve) => {
-      setTimeout(() => resolve(undefined), 0);
-    });
+    await workerRuntime.delay(0);
   }
 }
 
 /**
  * Handle incoming messages from main thread.
  */
-self.onmessage = (event) => {
-  const message = event.data;
-
+workerRuntime.onMessage((message) => {
   switch (message.type) {
     case "init": {
       try {
@@ -273,4 +269,4 @@ self.onmessage = (event) => {
       break;
     }
   }
-};
+});

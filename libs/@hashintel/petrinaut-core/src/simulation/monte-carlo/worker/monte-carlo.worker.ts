@@ -1,5 +1,5 @@
 import { SDCPNItemError } from "../../../errors";
-import type { WorkerGlobalScopeLike } from "../../../environment";
+import { createWorkerThreadRuntime } from "../../../environment";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 import { createPlaceTokenCountDistributionMetric } from "../metrics";
 import type { PlaceTokenCountDistributionMetric } from "../metrics";
@@ -11,11 +11,10 @@ import type {
   MonteCarloWorkerProgress,
 } from "./messages";
 
-declare const self: WorkerGlobalScopeLike<
+const workerRuntime = createWorkerThreadRuntime<
   MonteCarloToWorkerMessage,
   MonteCarloToMainMessage
->;
-declare const setTimeout: (handler: () => void, timeout?: number) => unknown;
+>();
 
 const DEFAULT_BATCH_SIZE = 4;
 
@@ -28,7 +27,7 @@ let lastSentDistributionFrameCount = 0;
 let latestProgress: MonteCarloWorkerProgress | null = null;
 
 function postTypedMessage(message: MonteCarloToMainMessage): void {
-  self.postMessage(message);
+  workerRuntime.postMessage(message);
 }
 
 function progressFromResult(
@@ -125,15 +124,11 @@ async function computeLoop(): Promise<void> {
       }
     }
 
-    await new Promise((resolve) => {
-      setTimeout(() => resolve(undefined), 0);
-    });
+    await workerRuntime.delay(0);
   }
 }
 
-self.onmessage = (event) => {
-  const message = event.data;
-
+workerRuntime.onMessage((message) => {
   switch (message.type) {
     case "init": {
       try {
@@ -193,4 +188,4 @@ self.onmessage = (event) => {
       break;
     }
   }
-};
+});

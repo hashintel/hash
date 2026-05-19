@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type {
   AbortSignalLike,
-  MessageEventLike,
+  WorkerMessageEnvelope,
   WorkerLike,
 } from "../../environment";
 import type { ToMainMessage, ToWorkerMessage } from "../worker/messages";
@@ -268,7 +268,7 @@ describe("createSimulation (createWorker flavour)", () => {
   it("builds a transport from the factory and routes messages through it", async () => {
     // Stand-in Worker — captures postMessage and lets us trigger 'message' events.
     type WorkerMessageHandler = (
-      event: MessageEventLike<ToMainMessage>,
+      event: WorkerMessageEnvelope<ToMainMessage>,
     ) => void;
 
     const sentToWorker: ToWorkerMessage[] = [];

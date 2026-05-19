@@ -7,12 +7,12 @@
  * `@hashintel/petrinaut-core` to include DOM types.
  */
 
-export type MessageEventLike<TMessage = unknown> = {
+export type WorkerMessageEnvelope<TMessage = unknown> = {
   readonly data: TMessage;
 };
 
-export type MessageListener<TMessage = unknown> = (
-  event: MessageEventLike<TMessage>,
+export type WorkerMessageHandler<TMessage = unknown> = (
+  event: WorkerMessageEnvelope<TMessage>,
 ) => void;
 
 export interface WorkerLike<
@@ -22,11 +22,11 @@ export interface WorkerLike<
   postMessage(message: TOutboundMessage): void;
   addEventListener(
     type: "message",
-    listener: MessageListener<TInboundMessage>,
+    listener: WorkerMessageHandler<TInboundMessage>,
   ): void;
   removeEventListener?(
     type: "message",
-    listener: MessageListener<TInboundMessage>,
+    listener: WorkerMessageHandler<TInboundMessage>,
   ): void;
   terminate(): void;
 }
@@ -48,10 +48,47 @@ export interface AbortSignalLike {
   removeEventListener(type: "abort", listener: () => void): void;
 }
 
-export interface WorkerGlobalScopeLike<
+type WorkerScriptGlobal<
   TInboundMessage = unknown,
   TOutboundMessage = unknown,
-> {
+> = {
   postMessage(message: TOutboundMessage): void;
-  onmessage: MessageListener<TInboundMessage> | null;
+  addEventListener(
+    type: "message",
+    listener: WorkerMessageHandler<TInboundMessage>,
+  ): void;
+};
+
+// Worker entrypoints still run inside real worker globals, but core's public
+// TypeScript config intentionally does not depend on DOM or Node ambient libs.
+// Keep those runtime-only globals private to this file so worker modules use
+// the abstract WorkerThreadRuntime facade instead of redeclaring them locally.
+declare const self: WorkerScriptGlobal;
+declare const setTimeout: (handler: () => void, timeout?: number) => unknown;
+
+export interface WorkerThreadRuntime<TInboundMessage, TOutboundMessage> {
+  postMessage(message: TOutboundMessage): void;
+  onMessage(listener: (message: TInboundMessage) => void): void;
+  delay(timeout?: number): Promise<void>;
+}
+
+export function createWorkerThreadRuntime<
+  TInboundMessage,
+  TOutboundMessage,
+>(): WorkerThreadRuntime<TInboundMessage, TOutboundMessage> {
+  const scope = self as WorkerScriptGlobal<TInboundMessage, TOutboundMessage>;
+
+  return {
+    postMessage(message) {
+      scope.postMessage(message);
+    },
+    onMessage(listener) {
+      scope.addEventListener("message", ({ data }) => listener(data));
+    },
+    delay(timeout) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(undefined), timeout);
+      });
+    },
+  };
 }

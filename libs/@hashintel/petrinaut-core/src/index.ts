@@ -140,10 +140,7 @@ export type * from "./types/selection";
 // --- Pure utilities ---
 export type {
   AbortSignalLike,
-  MessageEventLike,
-  MessageListener,
   WorkerFactoryLike,
-  WorkerGlobalScopeLike,
   WorkerLike,
 } from "./environment";
 export {

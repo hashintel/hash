@@ -7,7 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MessageEventLike } from "../../environment";
+import type { WorkerMessageEnvelope } from "../../environment";
 import type { SDCPN } from "../../types/sdcpn";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
@@ -16,21 +16,19 @@ let postedMessages: ToMainMessage[] = [];
 
 // Store the message handler
 let messageHandler:
-  | ((event: MessageEventLike<ToWorkerMessage>) => void)
+  | ((event: WorkerMessageEnvelope<ToWorkerMessage>) => void)
   | null = null;
 
-// Mock self.postMessage and self.onmessage
+// Mock self.postMessage and message subscriptions.
 const mockSelf = {
   postMessage: (message: ToMainMessage) => {
     postedMessages.push(message);
   },
-  set onmessage(handler:
-    | ((event: MessageEventLike<ToWorkerMessage>) => void)
-    | null,) {
+  addEventListener(
+    _type: "message",
+    handler: (event: WorkerMessageEnvelope<ToWorkerMessage>) => void,
+  ) {
     messageHandler = handler;
-  },
-  get onmessage() {
-    return messageHandler;
   },
 };
 

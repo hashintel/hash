@@ -19,7 +19,7 @@ import {
   type SignatureInformation,
 } from "vscode-languageserver-types";
 
-import type { WorkerGlobalScopeLike } from "../../environment";
+import { createWorkerThreadRuntime } from "../../environment";
 import type { SDCPN } from "../../types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
@@ -38,7 +38,7 @@ import type {
   ServerMessage,
 } from "./protocol";
 
-declare const self: WorkerGlobalScopeLike<ClientMessage, ServerMessage>;
+const workerRuntime = createWorkerThreadRuntime<ClientMessage, ServerMessage>();
 
 // ---------------------------------------------------------------------------
 // Server state
@@ -53,7 +53,7 @@ const scenarioSessions = new Map<string, ScenarioSessionData>();
 const metricSessions = new Map<string, MetricSessionData>();
 
 function respond(id: number, result: unknown): void {
-  self.postMessage({
+  workerRuntime.postMessage({
     jsonrpc: "2.0",
     id,
     result,
@@ -61,7 +61,7 @@ function respond(id: number, result: unknown): void {
 }
 
 function respondError(id: number, message: string): void {
-  self.postMessage({
+  workerRuntime.postMessage({
     jsonrpc: "2.0",
     id,
     error: { code: -32603, message },
@@ -140,7 +140,7 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
     }
   }
 
-  self.postMessage({
+  workerRuntime.postMessage({
     jsonrpc: "2.0",
     method: "textDocument/publishDiagnostics",
     params,
@@ -207,7 +207,7 @@ let pendingScenarioInits: ScenarioSessionData[] = [];
 /** Same queueing strategy for metric sessions. */
 let pendingMetricInits: MetricSessionData[] = [];
 
-self.onmessage = ({ data }) => {
+workerRuntime.onMessage((data) => {
   try {
     switch (data.method) {
       // --- Notifications (no response) ---
@@ -502,4 +502,4 @@ self.onmessage = ({ data }) => {
       respondError(data.id, err instanceof Error ? err.message : String(err));
     }
   }
-};
+});
