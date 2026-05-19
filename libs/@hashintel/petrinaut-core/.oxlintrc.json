@@ -89,11 +89,11 @@
       {
         "patterns": [
           {
-            "group": [
-              "@local/*",
-              "@hashintel/petrinaut",
-              "@hashintel/petrinaut/*"
-            ],
+            "group": ["@local/*"],
+            "message": "You cannot use unpublished local packages in a published package."
+          },
+          {
+            "group": ["@hashintel/petrinaut", "@hashintel/petrinaut/*"],
             "message": "Core must stay headless and must not depend on the UI package."
           }
         ]
