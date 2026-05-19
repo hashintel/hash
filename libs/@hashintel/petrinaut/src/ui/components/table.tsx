@@ -1,6 +1,11 @@
 import { Icon, type IconName, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import type { CSSProperties, ReactNode } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  MouseEvent,
+  ReactNode,
+} from "react";
 
 type TableCellTone = "emphasis" | "subtle";
 
@@ -52,6 +57,12 @@ const tableHeaderStyle = css({
   flexShrink: 0,
 });
 
+const tableBodyStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  width: "full",
+});
+
 const tableHeaderCellStyle = css({
   display: "flex",
   alignItems: "center",
@@ -71,6 +82,7 @@ const tableRowStyle = css({
   gap: "[24px]",
   minHeight: "[56px]",
   paddingX: "[20px]",
+  paddingY: "[12px]",
   borderBottomWidth: "[1px]",
   borderBottomStyle: "solid",
   borderBottomColor: "neutral.bd.subtle",
@@ -84,27 +96,12 @@ const selectedRowStyle = css({
   backgroundColor: "neutral.s05",
 });
 
-const tableRowButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[24px]",
-  alignSelf: "stretch",
-  flex: "1",
-  minWidth: "[0]",
+const selectableTableRowStyle = css({
   cursor: "pointer",
-  background: "[none]",
-  border: "[none]",
-  paddingY: "[12px]",
-  textAlign: "left",
-});
-
-const tableRowCellsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[24px]",
-  flex: "1",
-  minWidth: "[0]",
-  paddingY: "[12px]",
+  outline: "none",
+  _focusVisible: {
+    boxShadow: "[inset 0 0 0 2px {colors.neutral.a25}]",
+  },
 });
 
 const tableCellStyle = css({
@@ -208,6 +205,40 @@ const renderCellContent = (
   return content;
 };
 
+function handleSelectableRowKeyDown<Row>(
+  event: KeyboardEvent<HTMLDivElement>,
+  row: Row,
+  onRowSelect: (row: Row) => void,
+) {
+  if (event.target !== event.currentTarget) {
+    return;
+  }
+
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+
+  event.preventDefault();
+  onRowSelect(row);
+}
+
+function handleSelectableRowClick<Row>(
+  event: MouseEvent<HTMLDivElement>,
+  row: Row,
+  onRowSelect: (row: Row) => void,
+) {
+  const target = event.target;
+
+  if (
+    target instanceof Element &&
+    target.closest("[data-table-action-cell]") !== null
+  ) {
+    return;
+  }
+
+  onRowSelect(row);
+}
+
 export const TableStatusBadge = ({
   children,
   iconName,
@@ -250,59 +281,95 @@ export function Table<Row>({
     return <div className={tableEmptyStateStyle}>{emptyLabel}</div>;
   }
 
+  const columnCount = columns.length + (renderActions ? 1 : 0);
+  const actionColumnIndex = columns.length + 1;
+
   return (
-    <div className={tableStyle} role="table">
-      <div className={tableHeaderStyle} role="row">
-        {columns.map((column) => (
-          <span
-            key={column.id}
-            className={tableHeaderCellStyle}
-            style={getColumnStyle(column)}
-          >
-            {column.header}
-          </span>
-        ))}
-        {renderActions ? <span className={tableActionCellStyle} /> : null}
+    <div
+      aria-colcount={columnCount}
+      aria-rowcount={rows.length + 1}
+      className={tableStyle}
+      role="table"
+    >
+      <div role="rowgroup">
+        <div aria-rowindex={1} className={tableHeaderStyle} role="row">
+          {columns.map((column, columnIndex) => (
+            <span
+              key={column.id}
+              aria-colindex={columnIndex + 1}
+              className={tableHeaderCellStyle}
+              role="columnheader"
+              style={getColumnStyle(column)}
+            >
+              {column.header}
+            </span>
+          ))}
+          {renderActions ? (
+            <span
+              aria-colindex={actionColumnIndex}
+              aria-label="Actions"
+              className={tableActionCellStyle}
+              role="columnheader"
+            />
+          ) : null}
+        </div>
       </div>
 
-      {rows.map((row) => {
-        const rowId = getRowId(row);
-        const cells = columns.map((column) => (
-          <div
-            key={column.id}
-            className={tableCellStyle}
-            style={getColumnStyle(column)}
-          >
-            {renderCellContent(column.render(row), column.tone)}
-          </div>
-        ));
+      <div className={tableBodyStyle} role="rowgroup">
+        {rows.map((row, rowIndex) => {
+          const rowId = getRowId(row);
+          const isSelected = rowId === selectedRowId;
+          const cells = columns.map((column, columnIndex) => (
+            <div
+              key={column.id}
+              aria-colindex={columnIndex + 1}
+              className={tableCellStyle}
+              role="cell"
+              style={getColumnStyle(column)}
+            >
+              {renderCellContent(column.render(row), column.tone)}
+            </div>
+          ));
 
-        return (
-          <div
-            key={rowId}
-            className={cx(
-              tableRowStyle,
-              rowId === selectedRowId ? selectedRowStyle : undefined,
-            )}
-            role="row"
-          >
-            {onRowSelect ? (
-              <button
-                type="button"
-                className={tableRowButtonStyle}
-                onClick={() => onRowSelect(row)}
-              >
-                {cells}
-              </button>
-            ) : (
-              <div className={tableRowCellsStyle}>{cells}</div>
-            )}
-            {renderActions ? (
-              <div className={tableActionCellStyle}>{renderActions(row)}</div>
-            ) : null}
-          </div>
-        );
-      })}
+          return (
+            <div
+              key={rowId}
+              aria-rowindex={rowIndex + 2}
+              aria-selected={onRowSelect ? isSelected : undefined}
+              className={cx(
+                tableRowStyle,
+                onRowSelect ? selectableTableRowStyle : undefined,
+                isSelected ? selectedRowStyle : undefined,
+              )}
+              role="row"
+              tabIndex={onRowSelect ? 0 : undefined}
+              onClick={
+                onRowSelect
+                  ? (event) => handleSelectableRowClick(event, row, onRowSelect)
+                  : undefined
+              }
+              onKeyDown={
+                onRowSelect
+                  ? (event) =>
+                      handleSelectableRowKeyDown(event, row, onRowSelect)
+                  : undefined
+              }
+            >
+              {cells}
+              {renderActions ? (
+                <div
+                  aria-colindex={actionColumnIndex}
+                  className={tableActionCellStyle}
+                  data-table-action-cell=""
+                  role="cell"
+                >
+                  {renderActions(row)}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

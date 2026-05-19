@@ -141,7 +141,7 @@ export const RunningExperimentsPopover = ({
     return null;
   }
 
-  const countLabel = `${activeExperiments.length} running`;
+  const countLabel = `${activeExperiments.length} active`;
 
   return (
     <Popover.Root
@@ -156,7 +156,7 @@ export const RunningExperimentsPopover = ({
           size="md"
           variant="ghost"
           aria-label={`Show ${countLabel} Monte Carlo simulations`}
-          tooltip="Running Experiments"
+          tooltip="Active Experiments"
           tooltipDisplay="inline"
           prefix={<Icon name="flask" size="sm" />}
         >
@@ -165,7 +165,7 @@ export const RunningExperimentsPopover = ({
       </Popover.Trigger>
 
       <Popover.Content className={contentWidthStyle}>
-        <Popover.Header>Running Experiments</Popover.Header>
+        <Popover.Header>Active Experiments</Popover.Header>
         <Popover.Section>
           <Popover.SectionCard>
             <div className={listStyle}>
