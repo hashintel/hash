@@ -34,7 +34,8 @@ css(), cva(), token(), jsx runtime for consumers
 
 Boundary rules:
 
-- never add a dependency edge from `ds-helpers` back to `ds-components`
+- never add a runtime or package-manager dependency edge from `ds-helpers` back to `ds-components`
+- build orchestration may invoke `ds-components` codegen to materialize `styled-system/**`, but `ds-components` remains the source owner
 - never move source-of-truth token or preset code into this package
 - if you need to regenerate this package, run `yarn workspace @hashintel/ds-components codegen`
 

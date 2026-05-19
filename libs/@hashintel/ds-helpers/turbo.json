@@ -6,8 +6,13 @@
       "dependsOn": []
     },
     "codegen": {
-      "cache": false,
       "dependsOn": ["@hashintel/ds-components#codegen"],
+      "inputs": [
+        "package.json",
+        "turbo.json",
+        "../ds-components/panda.config.ts",
+        "../ds-components/src/**"
+      ],
       "outputs": ["styled-system/**"]
     }
   }
