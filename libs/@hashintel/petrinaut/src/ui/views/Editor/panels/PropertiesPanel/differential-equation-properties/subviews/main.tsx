@@ -1,6 +1,6 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
@@ -19,6 +19,7 @@ import {
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { useDiffEqPropertiesContext } from "../context";
 
 const colorDotStyle = css({
@@ -96,14 +97,11 @@ const DiffEqMainContent: React.FC = () => {
     useDiffEqPropertiesContext();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
-  const [nameInput, setNameInput] = useState(differentialEquation.name);
-  const [nameError, setNameError] = useState<string | null>(null);
+  const nameField = useDraftField({
+    sourceId: differentialEquation.id,
+    sourceValue: differentialEquation.name,
+  });
   const isReadOnly = useIsReadOnly();
-
-  useEffect(() => {
-    setNameInput(differentialEquation.name);
-    setNameError(null);
-  }, [differentialEquation.id, differentialEquation.name]);
 
   const placesUsingEquation = places.filter((place) => {
     if (!place.differentialEquationId) {
@@ -147,22 +145,22 @@ const DiffEqMainContent: React.FC = () => {
     <SectionList>
       <Section title="Name">
         <Input
-          value={nameInput}
+          value={nameField.value}
           onChange={(event) => {
-            setNameInput(event.target.value);
-            if (nameError) {
-              setNameError(null);
+            nameField.setValue(event.target.value);
+            if (nameField.error) {
+              nameField.setError(null);
             }
           }}
           onBlur={() => {
-            const result = validateDisplayName(nameInput);
+            const result = validateDisplayName(nameField.value);
 
             if (!result.valid) {
-              setNameError(result.error);
+              nameField.setError(result.error);
               return;
             }
 
-            setNameError(null);
+            nameField.setError(null);
             if (result.name !== differentialEquation.name) {
               updateDifferentialEquation({
                 equationId: differentialEquation.id,
@@ -171,10 +169,12 @@ const DiffEqMainContent: React.FC = () => {
             }
           }}
           disabled={isReadOnly}
-          hasError={!!nameError}
+          hasError={!!nameField.error}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
+        {nameField.error && (
+          <div className={errorMessageStyle}>{nameField.error}</div>
+        )}
       </Section>
 
       <Section title="Associated Type">

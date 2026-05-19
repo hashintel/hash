@@ -131,6 +131,13 @@ const emptyResultsStyle = css({
 const ICON_SIZE = 12;
 const DEFAULT_ICON_COLOR = "#9ca3af";
 
+const clampIndex = (index: number | null, itemCount: number): number | null => {
+  if (index === null || itemCount === 0) {
+    return null;
+  }
+  return Math.min(index, itemCount - 1);
+};
+
 // -- Search item types --------------------------------------------------------
 
 interface SearchableItem {
@@ -211,7 +218,7 @@ const SearchContent: React.FC = () => {
   } = use(EditorContext);
   const allItems = useSearchableItems();
   const [query, setQuery] = useState("");
-  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -241,25 +248,19 @@ const SearchContent: React.FC = () => {
             key: "name",
             threshold: -1000,
           })
-          .map((result) => ({
-            item: result.obj,
-            highlighted: result.highlight((match, i) => (
+	          .map((result) => ({
+	            item: result.obj,
+	            highlighted: result.highlight((match, i) => (
               <span key={i} className={highlightStyle}>
                 {match}
               </span>
             )),
-          }));
+	          }));
+  const focusedIndex = clampIndex(focusedIndexState, results.length);
 
-  // Clamp focusedIndex when results shrink and truncate stale row refs
+  // Truncate stale row refs when results change.
   useEffect(() => {
     rowRefs.current.length = results.length;
-    if (results.length === 0) {
-      setFocusedIndex(null);
-    } else {
-      setFocusedIndex((prev) =>
-        prev !== null ? Math.min(prev, results.length - 1) : prev,
-      );
-    }
   }, [results.length]);
 
   // Scroll focused item into view

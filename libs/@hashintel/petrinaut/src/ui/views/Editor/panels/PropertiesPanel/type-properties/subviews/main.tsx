@@ -1,5 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import { Button } from "../../../../../../components/button";
@@ -10,6 +10,7 @@ import { Tooltip } from "../../../../../../components/tooltip";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
@@ -115,12 +116,10 @@ const errorMessageStyle = css({
   color: "red.s100",
 });
 
-const getElementNameInputs = (
-  elements: { elementId: string; name: string }[],
-) =>
-  Object.fromEntries(
-    elements.map((element) => [element.elementId, element.name]),
-  );
+type ElementNameInputState = Record<
+  string,
+  { sourceName: string; value: string }
+>;
 
 const slugifyToIdentifier = (input: string): string => {
   let slug = input
@@ -153,20 +152,19 @@ const TypeMainContent: React.FC = () => {
   const isDisabled = useIsReadOnly();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [nameInput, setNameInput] = useState(type.name);
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [elementNameInputs, setElementNameInputs] = useState<
-    Record<string, string>
-  >(() => getElementNameInputs(type.elements));
+  const nameField = useDraftField({
+    sourceId: type.id,
+    sourceValue: type.name,
+  });
+  const [elementNameInputs, setElementNameInputs] =
+    useState<ElementNameInputState>({});
 
-  useEffect(() => {
-    setNameInput(type.name);
-    setNameError(null);
-  }, [type.id, type.name]);
-
-  useEffect(() => {
-    setElementNameInputs(getElementNameInputs(type.elements));
-  }, [type.elements]);
+  const getElementNameInputValue = (
+    element: (typeof type.elements)[number],
+  ): string => {
+    const input = elementNameInputs[element.elementId];
+    return input?.sourceName === element.name ? input.value : element.name;
+  };
 
   const handleAddElement = () => {
     let maxNumber = 0;
@@ -193,16 +191,24 @@ const TypeMainContent: React.FC = () => {
   };
 
   const handleUpdateElementName = (elementId: string, newName: string) => {
+    const element = type.elements.find((item) => item.elementId === elementId);
+    if (!element) {
+      return;
+    }
     setElementNameInputs((currentInputs) => ({
       ...currentInputs,
-      [elementId]: newName,
+      [elementId]: { sourceName: element.name, value: newName },
     }));
   };
 
   const setElementNameInput = (elementId: string, name: string) => {
+    const element = type.elements.find((item) => item.elementId === elementId);
+    if (!element) {
+      return;
+    }
     setElementNameInputs((currentInputs) => ({
       ...currentInputs,
-      [elementId]: name,
+      [elementId]: { sourceName: element.name, value: name },
     }));
   };
 
@@ -279,22 +285,22 @@ const TypeMainContent: React.FC = () => {
     <SectionList>
       <Section title="Name">
         <Input
-          value={nameInput}
+          value={nameField.value}
           onChange={(event) => {
-            setNameInput(event.target.value);
-            if (nameError) {
-              setNameError(null);
+            nameField.setValue(event.target.value);
+            if (nameField.error) {
+              nameField.setError(null);
             }
           }}
           onBlur={() => {
-            const result = validateDisplayName(nameInput);
+            const result = validateDisplayName(nameField.value);
 
             if (!result.valid) {
-              setNameError(result.error);
+              nameField.setError(result.error);
               return;
             }
 
-            setNameError(null);
+            nameField.setError(null);
             if (result.name !== type.name) {
               updateType({
                 typeId: type.id,
@@ -303,10 +309,12 @@ const TypeMainContent: React.FC = () => {
             }
           }}
           disabled={isDisabled}
-          hasError={!!nameError}
+          hasError={!!nameField.error}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
+        {nameField.error && (
+          <div className={errorMessageStyle}>{nameField.error}</div>
+        )}
       </Section>
 
       <Section title="Color">
@@ -378,7 +386,7 @@ const TypeMainContent: React.FC = () => {
 
                 {/* Name input */}
                 <Input
-                  value={elementNameInputs[element.elementId] ?? element.name}
+                  value={getElementNameInputValue(element)}
                   onChange={(event) => {
                     handleUpdateElementName(
                       element.elementId,

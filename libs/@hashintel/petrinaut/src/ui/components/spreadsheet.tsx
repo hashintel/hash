@@ -1,5 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 export interface SpreadsheetColumn {
   id: string;
@@ -11,6 +11,18 @@ export interface SpreadsheetProps {
   data: number[][];
   onChange?: (data: number[][]) => void;
 }
+
+type SourceKeyedValue<T> = {
+  sourceData: number[][];
+  value: T;
+};
+
+type TableDataDraft = SourceKeyedValue<number[][]>;
+
+type CellPosition = {
+  row: number;
+  col: number;
+};
 
 const wrapperStyle = css({
   display: "flex",
@@ -185,37 +197,64 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const isReadOnly = !onChange;
   const colCount = columns.length;
 
-  const [tableData, setTableData] = useState<number[][]>(data);
-  const [selectedRow, setSelectedRow] = useState<number | null>(null);
-  const [focusedCell, setFocusedCell] = useState<{
-    row: number;
-    col: number;
-  } | null>(null);
-  const [editingCell, setEditingCell] = useState<{
-    row: number;
-    col: number;
-  } | null>(null);
+  const [tableDataDraft, setTableDataDraft] =
+    useState<TableDataDraft | null>(null);
+  const [selectedRowState, setSelectedRowState] =
+    useState<SourceKeyedValue<number | null> | null>(null);
+  const [focusedCellState, setFocusedCellState] =
+    useState<SourceKeyedValue<CellPosition | null> | null>(null);
+  const [editingCellState, setEditingCellState] =
+    useState<SourceKeyedValue<CellPosition | null> | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
   const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync internal state when data prop changes externally
-  useEffect(() => {
-    setTableData((prev) => {
-      if (
-        prev.length === data.length &&
-        prev.every((row, i) => row === data[i])
-      ) {
-        return prev;
-      }
-      return data.length > 0 ? data : [];
+  const tableData =
+    tableDataDraft?.sourceData === data
+      ? tableDataDraft.value
+      : data.length > 0
+        ? data
+        : [];
+
+  const getInteractionValue = <T,>(
+    state: SourceKeyedValue<T> | null,
+    fallback: T,
+  ) =>
+    state && (data.length > 0 || Object.is(state.sourceData, data))
+      ? state.value
+      : fallback;
+
+  const selectedRow = getInteractionValue(selectedRowState, null);
+  const focusedCell = getInteractionValue(focusedCellState, null);
+  const editingCell = getInteractionValue(editingCellState, null);
+
+  const setSelectedRow = (value: number | null) => {
+    setSelectedRowState({ sourceData: data, value });
+  };
+
+  const setFocusedCell = (value: CellPosition | null) => {
+    setFocusedCellState({ sourceData: data, value });
+  };
+
+  const setEditingCell = (value: CellPosition | null) => {
+    setEditingCellState({ sourceData: data, value });
+  };
+
+  const setTableData = (update: (currentData: number[][]) => number[][]) => {
+    setTableDataDraft((currentDraft) => {
+      const currentData =
+        currentDraft?.sourceData === data
+          ? currentDraft.value
+          : data.length > 0
+            ? data
+            : [];
+
+      return {
+        sourceData: data,
+        value: update(currentData),
+      };
     });
-    if (data.length === 0) {
-      setSelectedRow(null);
-      setFocusedCell(null);
-      setEditingCell(null);
-    }
-  }, [data]);
+  };
 
   const updateCell = (row: number, col: number, value: number) => {
     setTableData((prev) => {

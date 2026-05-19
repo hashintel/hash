@@ -163,6 +163,13 @@ const emptyMessageStyle = css({
   color: "neutral.s65",
 });
 
+const clampIndex = (index: number | null, itemCount: number): number | null => {
+  if (index === null || itemCount === 0) {
+    return null;
+  }
+  return Math.min(index, itemCount - 1);
+};
+
 interface FilterableListItem {
   id: string;
   icon?: ComponentType<{ size: number }>;
@@ -263,8 +270,8 @@ const FilterableListContent = <T extends FilterableListItem>({
     setSelection,
   } = use(EditorContext);
 
-  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
+  const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
+  const [anchorIndexState, setAnchorIndex] = useState<number | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
     () => new Set(),
   );
@@ -309,6 +316,9 @@ const FilterableListContent = <T extends FilterableListItem>({
     }
   }
 
+  const focusedIndex = clampIndex(focusedIndexState, flatRows.length);
+  const anchorIndex = clampIndex(anchorIndexState, flatRows.length);
+
   const toggleGroup = (groupId: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -321,20 +331,9 @@ const FilterableListContent = <T extends FilterableListItem>({
     });
   };
 
-  // Clamp focus/anchor when visible rows change and truncate stale row refs
+  // Truncate stale row refs when visible rows change.
   useEffect(() => {
     rowRefs.current.length = flatRows.length;
-    if (flatRows.length === 0) {
-      setFocusedIndex(null);
-      setAnchorIndex(null);
-    } else {
-      setFocusedIndex((prev) =>
-        prev !== null ? Math.min(prev, flatRows.length - 1) : prev,
-      );
-      setAnchorIndex((prev) =>
-        prev !== null ? Math.min(prev, flatRows.length - 1) : prev,
-      );
-    }
   }, [flatRows.length]);
 
   // Scroll focused item into view

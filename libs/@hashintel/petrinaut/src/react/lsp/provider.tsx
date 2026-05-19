@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   createLanguageClient,
@@ -8,6 +8,7 @@ import {
   type LspWorkerFactory,
 } from "@hashintel/petrinaut-core";
 import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/lsp";
+import { createValueStore } from "../create-value-store";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
 import { LanguageClientContext } from "./context";
@@ -41,32 +42,41 @@ export const LanguageClientProvider: React.FC<{
    * disposes any client that ends up unused, including ones created by
    * StrictMode's simulated remount cycle.
    */
-  const [client, setClient] = useState<LanguageClient | null>(null);
+  const [clientStore] = useState(() =>
+    createValueStore<LanguageClient | null>(null),
+  );
+  const client = useSyncExternalStore(
+    (listener) => clientStore.subscribe(listener),
+    () => clientStore.getSnapshot(),
+    () => clientStore.getSnapshot(),
+  );
 
   useEffect(() => {
     const c = createLanguageClient({
       createWorker: workerFactory ?? createLanguageServerWorker,
     });
-    setClient(c);
+    clientStore.set(c);
     return () => {
       c.dispose();
-      setClient((current) => (current === c ? null : current));
+      if (clientStore.getSnapshot() === c) {
+        clientStore.set(null);
+      }
     };
-  }, [workerFactory]);
+  }, [clientStore, workerFactory]);
 
   // Sync the SDCPN to the server: initialize on first mount, didChange after.
-  const [initialized, setInitialized] = useState(false);
+  const initializedClientRef = useRef<LanguageClient | null>(null);
   useEffect(() => {
     if (!client) {
       return;
     }
-    if (!initialized) {
+    if (initializedClientRef.current !== client) {
       client.initialize(petriNetDefinition);
-      setInitialized(true);
+      initializedClientRef.current = client;
     } else {
       client.notifySDCPNChanged(petriNetDefinition);
     }
-  }, [petriNetDefinition, client, initialized]);
+  }, [petriNetDefinition, client]);
 
   // Subscribe to diagnostics from the client. Use an empty fallback store
   // before the client is created so hook order stays stable.

@@ -1,12 +1,12 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 /**
  * Returns a ref that always contains the latest value.
  *
  * This hook is useful when you need to access the current value of a prop or state
  * inside a callback or effect without adding it to the dependency array. The ref
- * is updated synchronously during render, so it's immediately available to other
- * effects in the same render cycle.
+ * is updated in a layout effect, so passive effects observe the latest value
+ * without reading or writing refs during render.
  *
  * @example
  * ```ts
@@ -25,12 +25,11 @@ import { useRef } from "react";
  * @returns A ref object whose `.current` property is always the latest value
  */
 export function useLatest<T>(value: T): React.RefObject<T> {
-  "use no memo"; // Intentionally writes ref during render — incompatible with React Compiler
   const ref = useRef(value);
 
-  // Update synchronously during render (not in effect) so the ref is
-  // immediately available to other effects in the same render cycle
-  ref.current = value;
+  useLayoutEffect(() => {
+    ref.current = value;
+  }, [value]);
 
   return ref;
 }

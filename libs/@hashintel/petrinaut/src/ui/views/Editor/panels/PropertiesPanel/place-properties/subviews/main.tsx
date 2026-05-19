@@ -13,6 +13,7 @@ import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 import { usePlacePropertiesContext } from "../context";
 
@@ -50,18 +51,13 @@ const PlaceMainContent: React.FC = () => {
     petriNetDefinition: { differentialEquations, types: availableTypes },
   } = use(SDCPNContext);
 
-  // State for name input validation
-  const [nameInputValue, setNameInputValue] = useState(place.name);
-  const [nameError, setNameError] = useState<string | null>(null);
+  const nameField = useDraftField({
+    sourceId: place.id,
+    sourceValue: place.name,
+  });
   const [isNameInputFocused, setIsNameInputFocused] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const rootDivRef = useRef<HTMLDivElement>(null);
-
-  // Update local state when place changes
-  useEffect(() => {
-    setNameInputValue(place.name);
-    setNameError(null);
-  }, [place.id, place.name]);
 
   // Handle clicks outside when name input is focused
   useEffect(() => {
@@ -89,14 +85,14 @@ const PlaceMainContent: React.FC = () => {
   }, [isNameInputFocused]);
 
   const handleNameBlur = () => {
-    const result = validateEntityName(nameInputValue);
+    const result = validateEntityName(nameField.value);
 
     if (!result.valid) {
-      setNameError(result.error);
+      nameField.setError(result.error);
       return;
     }
 
-    setNameError(null);
+    nameField.setError(null);
     if (result.name !== place.name) {
       updatePlace({
         placeId: place.id,
@@ -116,12 +112,11 @@ const PlaceMainContent: React.FC = () => {
         <Section title="Name">
           <Input
             ref={nameInputRef}
-            value={nameInputValue}
+            value={nameField.value}
             onChange={(event) => {
-              setNameInputValue(event.target.value);
-              // Clear error when user starts typing
-              if (nameError) {
-                setNameError(null);
+              nameField.setValue(event.target.value);
+              if (nameField.error) {
+                nameField.setError(null);
               }
             }}
             onFocus={() => setIsNameInputFocused(true)}
@@ -130,10 +125,12 @@ const PlaceMainContent: React.FC = () => {
               handleNameBlur();
             }}
             disabled={isReadOnly}
-            hasError={!!nameError}
+            hasError={!!nameField.error}
             tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           />
-          {nameError && <div className={errorMessageStyle}>{nameError}</div>}
+          {nameField.error && (
+            <div className={errorMessageStyle}>{nameField.error}</div>
+          )}
         </Section>
 
         <Section

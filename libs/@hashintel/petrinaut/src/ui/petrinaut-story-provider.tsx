@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import {
   createJsonDocHandle,
@@ -23,6 +23,8 @@ type StoredNet = {
   sdcpn: SDCPN;
 };
 
+type HandlesByNetId = Record<string, PetrinautDocHandle>;
+
 /**
  * Self-contained wrapper around {@link Petrinaut} that manages a small
  * in-memory net registry, mirroring the shape of the demo-site's `DevApp`.
@@ -43,8 +45,6 @@ export const PetrinautStoryProvider = ({
   readonly?: boolean;
   children?: ReactNode;
 }) => {
-  "use no memo"; // getOrCreateHandle intentionally lazy-initialises a ref-held Map during render — same pattern as the demo-site DevApp.
-
   const [nets, setNets] = useState<Record<string, StoredNet>>(() => {
     const id = "net-1";
     return {
@@ -52,29 +52,29 @@ export const PetrinautStoryProvider = ({
     };
   });
   const [currentNetId, setCurrentNetId] = useState<string>("net-1");
+  const [handlesByNetId, setHandlesByNetId] = useState<HandlesByNetId>(() => ({
+    "net-1": createJsonDocHandle({ id: "net-1", initial: initialDefinition }),
+  }));
 
-  const handlesRef = useRef<Map<string, PetrinautDocHandle>>(new Map());
+  useEffect(() => {
+    const unsubscribers = Object.values(handlesByNetId).map((handle) =>
+      handle.subscribe((event) => {
+        setNets((prev) => {
+          const stored = prev[handle.id];
+          if (!stored) {
+            return prev;
+          }
+          return { ...prev, [handle.id]: { ...stored, sdcpn: event.next } };
+        });
+      }),
+    );
 
-  const getOrCreateHandle = (net: StoredNet): PetrinautDocHandle => {
-    const existing = handlesRef.current.get(net.id);
-    if (existing) {
-      return existing;
-    }
-    const handle = createJsonDocHandle({ id: net.id, initial: net.sdcpn });
-    handlesRef.current.set(net.id, handle);
-
-    handle.subscribe((event) => {
-      setNets((prev) => {
-        const stored = prev[net.id];
-        if (!stored) {
-          return prev;
-        }
-        return { ...prev, [net.id]: { ...stored, sdcpn: event.next } };
-      });
-    });
-
-    return handle;
-  };
+    return () => {
+      for (const unsubscribe of unsubscribers) {
+        unsubscribe();
+      }
+    };
+  }, [handlesByNetId]);
 
   const existingNets: MinimalNetMetadata[] = Object.values(nets).map((net) => ({
     netId: net.id,
@@ -87,6 +87,14 @@ export const PetrinautStoryProvider = ({
     title: string;
   }) => {
     const id = `net-${Date.now()}`;
+    const handle = createJsonDocHandle({
+      id,
+      initial: params.petriNetDefinition,
+    });
+    setHandlesByNetId((prev) => ({
+      ...prev,
+      [id]: handle,
+    }));
     setNets((prev) => ({
       ...prev,
       [id]: { id, title: params.title, sdcpn: params.petriNetDefinition },
@@ -109,7 +117,11 @@ export const PetrinautStoryProvider = ({
   };
 
   const currentNet = nets[currentNetId]!;
-  const handle = getOrCreateHandle(currentNet);
+  const handle = handlesByNetId[currentNetId];
+
+  if (!handle) {
+    return null;
+  }
 
   return (
     <>

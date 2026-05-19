@@ -20,15 +20,14 @@ import { useCallback, useEffect, useRef } from "react";
  * @param callback - The callback function to stabilize
  * @returns A stable function that forwards calls to the latest callback
  */
-export function useStableCallback<T extends (...args: never[]) => unknown>(
-  callback: T,
-): T {
-  "use no memo"; // useCallback with `as T` cast is not an inline function expression — incompatible with React Compiler
+export function useStableCallback<Args extends unknown[], Return>(
+  callback: (...args: Args) => Return,
+): (...args: Args) => Return {
   const ref = useRef(callback);
 
   useEffect(() => {
     ref.current = callback;
   }, [callback]);
 
-  return useCallback(((...args) => ref.current(...args)) as T, []);
+  return useCallback((...args: Args) => ref.current(...args), []);
 }

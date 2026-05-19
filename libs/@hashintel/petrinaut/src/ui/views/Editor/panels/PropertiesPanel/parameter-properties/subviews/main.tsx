@@ -1,12 +1,11 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useEffect, useState } from "react";
-
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import type { SubView } from "../../../../../../components/sub-view/types";
 import { ParameterIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import {
   validateDisplayName,
   validateVariableName,
@@ -22,20 +21,14 @@ const ParameterMainContent: React.FC = () => {
   const { parameter, updateParameter } = useParameterPropertiesContext();
   const isDisabled = useIsReadOnly();
 
-  const [nameInput, setNameInput] = useState(parameter.name);
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [varNameInput, setVarNameInput] = useState(parameter.variableName);
-  const [varNameError, setVarNameError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setNameInput(parameter.name);
-    setNameError(null);
-  }, [parameter.id, parameter.name]);
-
-  useEffect(() => {
-    setVarNameInput(parameter.variableName);
-    setVarNameError(null);
-  }, [parameter.id, parameter.variableName]);
+  const nameField = useDraftField({
+    sourceId: parameter.id,
+    sourceValue: parameter.name,
+  });
+  const variableNameField = useDraftField({
+    sourceId: parameter.id,
+    sourceValue: parameter.variableName,
+  });
 
   const handleUpdateDefaultValue = (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -50,22 +43,22 @@ const ParameterMainContent: React.FC = () => {
     <SectionList>
       <Section title="Name">
         <Input
-          value={nameInput}
+          value={nameField.value}
           onChange={(event) => {
-            setNameInput(event.target.value);
-            if (nameError) {
-              setNameError(null);
+            nameField.setValue(event.target.value);
+            if (nameField.error) {
+              nameField.setError(null);
             }
           }}
           onBlur={() => {
-            const result = validateDisplayName(nameInput);
+            const result = validateDisplayName(nameField.value);
 
             if (!result.valid) {
-              setNameError(result.error);
+              nameField.setError(result.error);
               return;
             }
 
-            setNameError(null);
+            nameField.setError(null);
             if (result.name !== parameter.name) {
               updateParameter({
                 parameterId: parameter.id,
@@ -74,30 +67,32 @@ const ParameterMainContent: React.FC = () => {
             }
           }}
           disabled={isDisabled}
-          hasError={!!nameError}
+          hasError={!!nameField.error}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
+        {nameField.error && (
+          <div className={errorMessageStyle}>{nameField.error}</div>
+        )}
       </Section>
 
       <Section title="Variable Name">
         <Input
-          value={varNameInput}
+          value={variableNameField.value}
           onChange={(event) => {
-            setVarNameInput(event.target.value);
-            if (varNameError) {
-              setVarNameError(null);
+            variableNameField.setValue(event.target.value);
+            if (variableNameField.error) {
+              variableNameField.setError(null);
             }
           }}
           onBlur={() => {
-            const result = validateVariableName(varNameInput);
+            const result = validateVariableName(variableNameField.value);
 
             if (!result.valid) {
-              setVarNameError(result.error);
+              variableNameField.setError(result.error);
               return;
             }
 
-            setVarNameError(null);
+            variableNameField.setError(null);
             if (result.name !== parameter.variableName) {
               updateParameter({
                 parameterId: parameter.id,
@@ -107,11 +102,11 @@ const ParameterMainContent: React.FC = () => {
           }}
           disabled={isDisabled}
           monospace
-          hasError={!!varNameError}
+          hasError={!!variableNameField.error}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {varNameError && (
-          <div className={errorMessageStyle}>{varNameError}</div>
+        {variableNameField.error && (
+          <div className={errorMessageStyle}>{variableNameField.error}</div>
         )}
       </Section>
 

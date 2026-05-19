@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useState } from "react";
+import { use } from "react";
 
 import {
   ArcItem,
@@ -13,6 +13,7 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { MutationContext } from "../../../../../../../react/state/mutation-context";
+import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 import { useTransitionPropertiesContext } from "../context";
 
@@ -38,13 +39,10 @@ const TransitionMainContent: React.FC = () => {
     removeArc,
   } = useTransitionPropertiesContext();
 
-  const [nameInputValue, setNameInputValue] = useState(transition.name);
-  const [nameError, setNameError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setNameInputValue(transition.name);
-    setNameError(null);
-  }, [transition.id, transition.name]);
+  const nameField = useDraftField({
+    sourceId: transition.id,
+    sourceValue: transition.name,
+  });
 
   const getPlaceColor = (placeId: string): string | undefined => {
     const place = places.find((pl) => pl.id === placeId);
@@ -124,22 +122,22 @@ const TransitionMainContent: React.FC = () => {
     <SectionList>
       <Section title="Name">
         <Input
-          value={nameInputValue}
+          value={nameField.value}
           onChange={(event) => {
-            setNameInputValue(event.target.value);
-            if (nameError) {
-              setNameError(null);
+            nameField.setValue(event.target.value);
+            if (nameField.error) {
+              nameField.setError(null);
             }
           }}
           onBlur={() => {
-            const result = validateDisplayName(nameInputValue);
+            const result = validateDisplayName(nameField.value);
 
             if (!result.valid) {
-              setNameError(result.error);
+              nameField.setError(result.error);
               return;
             }
 
-            setNameError(null);
+            nameField.setError(null);
             if (result.name !== transition.name) {
               updateTransition({
                 transitionId: transition.id,
@@ -148,10 +146,12 @@ const TransitionMainContent: React.FC = () => {
             }
           }}
           disabled={isReadOnly}
-          hasError={!!nameError}
+          hasError={!!nameField.error}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
+        {nameField.error && (
+          <div className={errorMessageStyle}>{nameField.error}</div>
+        )}
       </Section>
 
       <Section title="Input Arcs" collapsible>
