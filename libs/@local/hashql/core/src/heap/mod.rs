@@ -97,6 +97,7 @@ mod bump;
 mod clone;
 mod convert;
 mod iter;
+mod pool;
 mod scratch;
 mod transfer;
 
@@ -110,6 +111,7 @@ pub use self::{
     clone::{CloneIn, TryCloneIn},
     convert::{FromIn, IntoIn},
     iter::{CollectIn, FromIteratorIn},
+    pool::{ScratchPool, ScratchPoolGuard},
     scratch::Scratch,
     transfer::TransferInto,
 };

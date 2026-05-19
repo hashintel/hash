@@ -12,12 +12,12 @@ pub(in crate::module::std_lib) mod bool;
 pub(in crate::module::std_lib) mod cmp;
 pub(in crate::module::std_lib) mod json;
 pub(in crate::module::std_lib) mod math;
-pub(in crate::module::std_lib) mod option;
+pub mod option;
 pub(in crate::module::std_lib) mod result;
-pub(in crate::module::std_lib) mod url;
-pub(in crate::module::std_lib) mod uuid;
+pub mod url;
+pub mod uuid;
 
-pub(crate) fn func<'heap>(
+pub(in crate::module::std_lib) fn func<'heap>(
     lib: &StandardLibrary<'_, 'heap>,
     def: &mut ModuleDef<'heap>,
 

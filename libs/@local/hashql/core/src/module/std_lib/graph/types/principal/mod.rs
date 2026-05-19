@@ -1,4 +1,4 @@
-pub(in crate::module::std_lib) mod actor_group;
+pub mod actor_group;
 
 use crate::{
     heap::Heap,

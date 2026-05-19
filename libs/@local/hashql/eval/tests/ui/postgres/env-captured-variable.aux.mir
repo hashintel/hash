@@ -16,7 +16,7 @@ fn {graph::read::filter@27}(%0: (), %1: ::graph::types::knowledge::entity::Entit
 
 thunk {thunk#8}() -> List<::graph::types::knowledge::entity::Entity> {
     let %0: ::graph::types::knowledge::entity::EntityUuid
-    let %1: ::graph::TimeAxis
+    let %1: ::graph::temporal::PinnedTransactionTimeTemporalAxes | ::graph::temporal::PinnedDecisionTimeTemporalAxes
     let %2: List<::graph::types::knowledge::entity::Entity>
     let %3: (::graph::types::knowledge::entity::EntityUuid,)
 

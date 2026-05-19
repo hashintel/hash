@@ -1,26 +1,26 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-<?26: Number>(a:0: ?26, b:0: ?26): ?26 -> ::core::math::add(a:0, b:0)
+<?30: Number>(a:0: ?30, b:0: ?30): ?30 -> ::core::math::add(a:0, b:0)
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-<?29: Number>(a:0: ?29, b:0: ?29): ?29 -> ::core::math::add(a:0, b:0)
+<?33: Number>(a:0: ?33, b:0: ?33): ?33 -> ::core::math::add(a:0, b:0)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ <?29: Number>(a:0: ?29, b:0: ?29): ?29 -> ::core::math::add(a:0, b:0)
-└→ <T:0?29: Number>(T:0?29, T:0?29) -> T:0?29
+┌─ <?33: Number>(a:0: ?33, b:0: ?33): ?33 -> ::core::math::add(a:0, b:0)
+└→ <T:0?33: Number>(T:0?33, T:0?33) -> T:0?33
 
 ┌─ ::core::math::add(a:0, b:0)
 └→ _0«Number»
 
 ┌─ ::core::math::add
-└→ <T?27: Number, U?28: Number>(T?27«Number», U?28«Number») ->
-       (T?27«Number» | U?28«Number»)
+└→ <T?31: Number, U?32: Number>(T?31«Number», U?32«Number») ->
+       (T?31«Number» | U?32«Number»)
 
 ┌─ a:0
-└→ ?26«Number»
+└→ ?30«Number»
 
 ┌─ b:0
-└→ ?26«Number»
+└→ ?30«Number»
 
