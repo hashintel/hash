@@ -24,7 +24,13 @@ export default defineConfig(({ command }) => ({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: ["@babel/standalone", "vscode-languageserver-types"],
+      external: [
+        "@babel/standalone",
+        "immer",
+        "uuid",
+        "vscode-languageserver-types",
+        "zod",
+      ],
     },
     sourcemap: true,
     minify: true,
