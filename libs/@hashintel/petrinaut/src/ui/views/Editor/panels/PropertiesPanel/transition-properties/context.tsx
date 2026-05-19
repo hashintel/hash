@@ -1,10 +1,6 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type {
-  Color,
-  Place,
-  Transition,
-} from "../../../../../../core/types/sdcpn";
+import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 
 interface TransitionPropertiesContextValue {

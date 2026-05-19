@@ -8,7 +8,7 @@ import { SegmentGroup } from "../../../../../../../components/segment-group";
 import type { SubView } from "../../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { generateDefaultLambdaCode } from "../../../../../../../../core/default-codes";
+import { generateDefaultLambdaCode } from "@hashintel/petrinaut-core";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";

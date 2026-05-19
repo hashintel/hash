@@ -47,4 +47,4 @@ export type {
   Petrinaut,
   PetrinautDocHandle,
   ReadableStore,
-} from "../core";
+} from "@hashintel/petrinaut-core";

@@ -1,3 +1,7 @@
+import { GRID_SIZE } from "@hashintel/petrinaut-core";
+
+export { CODE_FONT_FAMILY } from "./fonts";
+
 /**
  * UI-related constants for the Petrinaut editor.
  *
@@ -7,12 +11,8 @@
  * NOTE: SubView registries live in ./ui-subviews.ts to avoid import cycles.
  */
 
-// Code font — used by panda.config.ts (fonts.mono token) and by Monaco editor
-// which needs the actual font name (can't resolve CSS variables).
-export const CODE_FONT_FAMILY = "'JetBrains Mono Variable', monospace";
-
 // Canvas grid
-export const SNAP_GRID_SIZE = 15;
+export const SNAP_GRID_SIZE = GRID_SIZE;
 
 // Panel margin (spacing around panels)
 export const PANEL_MARGIN = 0;

@@ -1,4 +1,4 @@
-import type { Transition } from "../../../../../../../../core/types/sdcpn";
+import type { Transition } from "@hashintel/petrinaut-core";
 import { DEFAULT_COLORS } from "../default-colors";
 import type { TimelineSeriesConfig } from "../types";
 

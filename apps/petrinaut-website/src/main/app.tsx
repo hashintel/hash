@@ -2,8 +2,8 @@ import type {
   MinimalNetMetadata,
   PetrinautDocHandle,
   SDCPN,
-} from "@hashintel/petrinaut/core";
-import { createJsonDocHandle } from "@hashintel/petrinaut/core";
+} from "@hashintel/petrinaut-core";
+import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 import { produce } from "immer";
 import { useEffect, useState } from "react";

@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 import { defineConfig } from "@pandacss/dev";
 import { scopedThemeConfig } from "@hashintel/ds-components/preset";
 
-import { CODE_FONT_FAMILY } from "./src/ui/constants/ui";
+import { CODE_FONT_FAMILY } from "./src/ui/constants/fonts";
 
 export const DS_COMPONENTS_BUILD_INFO_SUBPATH =
   "@hashintel/ds-components/panda.buildinfo.json";

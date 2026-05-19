@@ -3,8 +3,11 @@ import { use } from "react";
 
 import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
-import { scenarioSchema } from "../../../../../../core/schemas/scenario-schema";
-import type { Color, Scenario } from "../../../../../../core/types/sdcpn";
+import {
+  scenarioSchema,
+  type Color,
+  type Scenario,
+} from "@hashintel/petrinaut-core";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";

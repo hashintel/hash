@@ -10,7 +10,7 @@ import { Tooltip } from "../../../../../../components/tooltip";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { validateDisplayName } from "../../../../../../../core/validation/display-name";
+import { validateDisplayName } from "@hashintel/petrinaut-core";
 import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
 

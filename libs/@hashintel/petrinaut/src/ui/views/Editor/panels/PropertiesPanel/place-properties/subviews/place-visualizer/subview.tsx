@@ -12,7 +12,7 @@ import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
-} from "../../../../../../../../core/default-codes";
+} from "@hashintel/petrinaut-core";
 import {
   mergeParameterValues,
   useDefaultParameterValues,

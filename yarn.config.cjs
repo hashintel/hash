@@ -15,6 +15,11 @@ const enforcedDevDependencies = {
   crossEnv: { commands: ["cross-env"], ident: "cross-env" },
 };
 
+const allowedUnscriptedDevDependencies = {
+  // Bundled into the LSP worker, not required by published package consumers.
+  "@hashintel/petrinaut-core": new Set(["typescript"]),
+};
+
 const ignoredDependencies = [
   "@sentry/webpack-plugin",
   // Petrinaut uses Vite 8 and Storybook 10
@@ -254,6 +259,14 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
       if (!value) {
         if (!dependencies[key]) {
           // dependency does not exist, so doesn't need to be enforced, as it doesn't exist
+          continue;
+        }
+
+        if (
+          allowedUnscriptedDevDependencies[workspace.ident]?.has(
+            dependencies[key].ident,
+          )
+        ) {
           continue;
         }
 

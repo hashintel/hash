@@ -7,4 +7,4 @@ export {
   getMetricDocumentUri,
   getScenarioDocumentUri,
   parseDocumentUri,
-} from "../../core/lsp/lib/document-uris";
+} from "@hashintel/petrinaut-core";

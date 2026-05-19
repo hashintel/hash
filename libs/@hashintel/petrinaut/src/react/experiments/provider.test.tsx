@@ -5,8 +5,11 @@ import { act, render, type RenderResult } from "@testing-library/react";
 import { use } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { PlaceTokenCountDistributionFrame } from "../../core/simulation";
-import type { SDCPN } from "../../core/types/sdcpn";
+import {
+  type PlaceTokenCountDistributionFrame,
+  type SDCPN,
+  type WorkerLike,
+} from "@hashintel/petrinaut-core";
 import {
   NotificationsContext,
   type AddNotificationInput,
@@ -18,7 +21,7 @@ import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
   MonteCarloWorkerProgress,
-} from "../../core/simulation/monte-carlo/worker/messages";
+} from "@hashintel/petrinaut-core/workers/monte-carlo";
 
 const EMPTY_SDCPN: SDCPN = {
   places: [],
@@ -154,7 +157,14 @@ const TestWrapper = ({
     }}
   >
     <SDCPNContext.Provider value={sdcpnContextValue}>
-      <ExperimentsProvider workerFactory={() => worker as unknown as Worker}>
+      <ExperimentsProvider
+        workerFactory={() =>
+          worker as WorkerLike<
+            MonteCarloToWorkerMessage,
+            MonteCarloToMainMessage
+          >
+        }
+      >
         <ExperimentsContextConsumer onContextValue={onContextValue} />
       </ExperimentsProvider>
     </SDCPNContext.Provider>

@@ -2,7 +2,7 @@ import type {
   HistoryEntry,
   PetrinautHistory,
   ReadableStore,
-} from "../core/handle";
+} from "@hashintel/petrinaut-core";
 import type { UndoRedoContextValue } from "./state/undo-redo-context";
 import { useStore } from "./use-store";
 

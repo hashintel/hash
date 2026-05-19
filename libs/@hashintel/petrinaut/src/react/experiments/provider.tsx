@@ -3,14 +3,15 @@ import { v4 as generateUuid } from "uuid";
 
 import {
   createMonteCarloExperiment,
+  compileScenario,
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
   type WorkerFactory,
-} from "../../core/simulation";
-import { compileScenario } from "../../core/simulation/authoring/scenario/compile-scenario";
-import { createMonteCarloWorker } from "../../core/simulation/monte-carlo/worker/create-monte-carlo-worker";
-import type { Scenario, ScenarioParameter } from "../../core/types/sdcpn";
+  type Scenario,
+  type ScenarioParameter,
+} from "@hashintel/petrinaut-core";
+import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";

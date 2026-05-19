@@ -3,7 +3,7 @@ import { use, useEffect, useRef } from "react";
 
 import { recenterToFitViewport, getViewportRect } from "../../../lib/viewport";
 import { EditorContext } from "../../../../react/state/editor-context";
-import { parseArcId } from "../../../../core/types/selection";
+import { parseArcId } from "@hashintel/petrinaut-core";
 
 const RE_CENTER_PADDING = 20;
 

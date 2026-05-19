@@ -1,24 +1,16 @@
 import { use, useEffect, useState } from "react";
 
-import type { ReadableStore } from "../../core/handle";
 import {
   createLanguageClient,
+  type ReadableStore,
   type DiagnosticsSnapshot,
   type LanguageClient,
-} from "../../core/lsp";
-import type { LspWorkerFactory } from "../../core/lsp/transport";
+  type LspWorkerFactory,
+} from "@hashintel/petrinaut-core";
+import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/lsp";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
 import { LanguageClientContext } from "./context";
-
-/** Dynamically import and instantiate the language server worker (inlined as blob URL). */
-async function createLanguageServerWorker(): Promise<Worker> {
-  const LanguageServerWorker = await import(
-    "../../core/lsp/worker/language-server.worker.ts?worker&inline"
-  );
-  // eslint-disable-next-line new-cap
-  return new LanguageServerWorker.default();
-}
 
 const EMPTY_DIAGNOSTICS_SNAPSHOT: DiagnosticsSnapshot = {
   byUri: new Map(),

@@ -9,10 +9,7 @@ import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
 import { Select } from "../../../../../components/select";
 import { CodeEditor } from "../../../../../monaco/code-editor";
-import type {
-  Scenario,
-  ScenarioParameter,
-} from "../../../../../../core/types/sdcpn";
+import type { Scenario, ScenarioParameter } from "@hashintel/petrinaut-core";
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 

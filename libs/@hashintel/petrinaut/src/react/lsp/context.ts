@@ -6,12 +6,12 @@ import type {
   Hover,
   Position,
   SignatureHelp,
-} from "vscode-languageserver-types";
+} from "@hashintel/petrinaut-core";
 
 import type {
   MetricSessionParams,
   ScenarioSessionParams,
-} from "../../core/lsp/worker/protocol";
+} from "@hashintel/petrinaut-core/workers/lsp";
 
 export interface LanguageClientContextValue {
   /** Per-URI diagnostics pushed from the language server. */

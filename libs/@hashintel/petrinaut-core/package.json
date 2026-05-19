@@ -1,0 +1,77 @@
+{
+  "name": "@hashintel/petrinaut-core",
+  "version": "0.0.0",
+  "description": "Headless Petrinaut core APIs",
+  "license": "(MIT OR Apache-2.0)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hashintel/hash.git",
+    "directory": "libs/@hashintel/petrinaut-core"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "LICENSE",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "README.md",
+    "package.json"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./examples": {
+      "types": "./dist/examples/index.d.d.ts",
+      "import": "./dist/examples/index.js"
+    },
+    "./workers/lsp": {
+      "types": "./dist/workers/lsp.d.d.ts",
+      "import": "./dist/workers/lsp.js"
+    },
+    "./workers/monte-carlo": {
+      "types": "./dist/workers/monte-carlo.d.d.ts",
+      "import": "./dist/workers/monte-carlo.js"
+    },
+    "./workers/simulation": {
+      "types": "./dist/workers/simulation.d.d.ts",
+      "import": "./dist/workers/simulation.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vite build",
+    "lint:tsc": "tsgo --noEmit",
+    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
+    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
+    "prepublishOnly": "turbo run build",
+    "test:unit": "vitest"
+  },
+  "dependencies": {
+    "@babel/standalone": "7.28.5",
+    "immer": "10.1.3",
+    "uuid": "14.0.0",
+    "vscode-languageserver-types": "3.17.5",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/babel__standalone": "7.1.9",
+    "@types/node": "22.18.13",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
+    "rolldown": "1.0.0",
+    "rolldown-plugin-dts": "0.25.0",
+    "typescript": "5.9.3",
+    "vite": "8.0.12",
+    "vitest": "4.1.5"
+  }
+}

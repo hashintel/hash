@@ -1,5 +1,5 @@
 import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
-import type { SDCPN } from "../../../core/types/sdcpn";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../react/state/mutation-context";
 
 type NodeDimensions = {

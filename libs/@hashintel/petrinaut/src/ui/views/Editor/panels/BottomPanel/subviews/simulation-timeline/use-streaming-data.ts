@@ -1,10 +1,10 @@
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { use, useEffect, useRef, useSyncExternalStore } from "react";
 import {
-  type CompiledMetric,
   compileMetric,
-} from "../../../../../../../core/simulation/authoring/metric/compile-metric";
-import type { Metric } from "../../../../../../../core/types/sdcpn";
+  type CompiledMetric,
+  type Metric,
+} from "@hashintel/petrinaut-core";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { buildTimelineSeriesConfig } from "./series-config";

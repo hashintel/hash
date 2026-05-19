@@ -9,7 +9,7 @@ export type { PetrinautProps } from "./petrinaut";
 
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).
-export { isSDCPNEqual } from "../core/lib/deep-equal";
+export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 
 // Viewport action — shape consumers use to add custom buttons to the
 // viewport-controls panel. Lives in /ui because it carries `React.ReactNode`.

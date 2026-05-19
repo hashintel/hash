@@ -3,7 +3,7 @@ import { use } from "react";
 import type {
   SimulationFrameReader,
   SimulationFrameState,
-} from "../../core/simulation";
+} from "@hashintel/petrinaut-core";
 import {
   SimulationContext,
   type SimulationContextValue,

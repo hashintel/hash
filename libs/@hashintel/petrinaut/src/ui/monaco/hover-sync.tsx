@@ -1,7 +1,6 @@
 import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 import { Suspense, use, useEffect } from "react";
-import type { Hover } from "vscode-languageserver-types";
-import { MarkupKind, Position } from "vscode-languageserver-types";
+import { type Hover, MarkupKind, Position } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
 import { MonacoContext } from "./context";
