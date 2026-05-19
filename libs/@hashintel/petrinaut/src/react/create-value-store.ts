@@ -4,7 +4,7 @@ export type ValueStore<T> = {
   subscribe: (listener: () => void) => () => void;
 };
 
-export const createValueStore = <T,>(initial: T): ValueStore<T> => {
+export const createValueStore = <T>(initial: T): ValueStore<T> => {
   let current = initial;
   const listeners = new Set<() => void>();
 

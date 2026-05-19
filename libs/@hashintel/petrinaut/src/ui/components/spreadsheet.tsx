@@ -197,10 +197,12 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const isReadOnly = !onChange;
   const colCount = columns.length;
 
-  const [tableDataDraft, setTableDataDraft] =
-    useState<TableDataDraft | null>(null);
-  const [selectedRowState, setSelectedRowState] =
-    useState<SourceKeyedValue<number | null> | null>(null);
+  const [tableDataDraft, setTableDataDraft] = useState<TableDataDraft | null>(
+    null,
+  );
+  const [selectedRowState, setSelectedRowState] = useState<SourceKeyedValue<
+    number | null
+  > | null>(null);
   const [focusedCellState, setFocusedCellState] =
     useState<SourceKeyedValue<CellPosition | null> | null>(null);
   const [editingCellState, setEditingCellState] =

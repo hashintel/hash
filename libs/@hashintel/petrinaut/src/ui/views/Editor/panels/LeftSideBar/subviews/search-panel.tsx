@@ -248,14 +248,14 @@ const SearchContent: React.FC = () => {
             key: "name",
             threshold: -1000,
           })
-	          .map((result) => ({
-	            item: result.obj,
-	            highlighted: result.highlight((match, i) => (
+          .map((result) => ({
+            item: result.obj,
+            highlighted: result.highlight((match, i) => (
               <span key={i} className={highlightStyle}>
                 {match}
               </span>
             )),
-	          }));
+          }));
   const focusedIndex = clampIndex(focusedIndexState, results.length);
 
   // Truncate stale row refs when results change.
