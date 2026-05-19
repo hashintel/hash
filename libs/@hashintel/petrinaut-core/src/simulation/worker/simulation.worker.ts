@@ -9,6 +9,7 @@
  */
 
 import { SDCPNItemError } from "../../errors";
+import type { WorkerGlobalScopeLike } from "../../environment";
 import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";
 import type { SimulationInstance } from "../engine/types";
@@ -17,6 +18,9 @@ import {
   type SimulationFramePayload,
 } from "./frame-payload";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
+
+declare const self: WorkerGlobalScopeLike<ToWorkerMessage, ToMainMessage>;
+declare const setTimeout: (handler: () => void, timeout?: number) => unknown;
 
 //
 // Default Configuration
@@ -79,7 +83,7 @@ async function computeLoop(): Promise<void> {
     ) {
       // Yield and wait for ack
       await new Promise((resolve) => {
-        setTimeout(resolve, 10);
+        setTimeout(() => resolve(undefined), 10);
       });
       continue;
     }
@@ -141,7 +145,7 @@ async function computeLoop(): Promise<void> {
 
     // Yield to allow message processing
     await new Promise((resolve) => {
-      setTimeout(resolve, 0);
+      setTimeout(() => resolve(undefined), 0);
     });
   }
 }
@@ -149,7 +153,7 @@ async function computeLoop(): Promise<void> {
 /**
  * Handle incoming messages from main thread.
  */
-self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
+self.onmessage = (event) => {
   const message = event.data;
 
   switch (message.type) {

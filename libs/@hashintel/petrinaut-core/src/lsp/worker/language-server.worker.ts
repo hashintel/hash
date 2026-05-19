@@ -19,6 +19,7 @@ import {
   type SignatureInformation,
 } from "vscode-languageserver-types";
 
+import type { WorkerGlobalScopeLike } from "../../environment";
 import type { SDCPN } from "../../types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
@@ -36,6 +37,8 @@ import type {
   ScenarioSessionParams,
   ServerMessage,
 } from "./protocol";
+
+declare const self: WorkerGlobalScopeLike<ClientMessage, ServerMessage>;
 
 // ---------------------------------------------------------------------------
 // Server state
@@ -204,7 +207,7 @@ let pendingScenarioInits: ScenarioSessionData[] = [];
 /** Same queueing strategy for metric sessions. */
 let pendingMetricInits: MetricSessionData[] = [];
 
-self.onmessage = ({ data }: MessageEvent<ClientMessage>) => {
+self.onmessage = ({ data }) => {
   try {
     switch (data.method) {
       // --- Notifications (no response) ---

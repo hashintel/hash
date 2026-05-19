@@ -9,4 +9,3 @@ export {
   type LspTransport,
   type LspWorkerFactory,
 } from "./transport";
-export { createLanguageServerWorker } from "./worker/create-language-server-worker";

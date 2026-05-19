@@ -1,14 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../../.config/oxlint/react-compiler.json"],
   "plugins": ["import", "unicorn", "typescript"],
   "categories": {
     "correctness": "error"
   },
   "env": {
     "builtin": true,
-    "es2026": true,
-    "browser": true
+    "es2026": true
   },
   "rules": {
     "array-callback-return": ["error", { "allowImplicit": true }],
@@ -55,6 +53,30 @@
       "error",
       { "name": "isFinite", "message": "Use Number.isFinite instead" },
       { "name": "isNaN", "message": "Use Number.isNaN instead" },
+      {
+        "name": "AbortSignal",
+        "message": "Use AbortSignalLike from ./src/environment instead."
+      },
+      {
+        "name": "MessageEvent",
+        "message": "Use MessageEventLike from ./src/environment instead."
+      },
+      {
+        "name": "Worker",
+        "message": "Use WorkerLike from ./src/environment instead."
+      },
+      {
+        "name": "document",
+        "message": "Core must not depend on browser document globals."
+      },
+      {
+        "name": "navigator",
+        "message": "Core must not depend on browser navigator globals."
+      },
+      {
+        "name": "window",
+        "message": "Core must not depend on browser window globals."
+      },
       "event",
       "name",
       "length",
@@ -67,7 +89,11 @@
       {
         "patterns": [
           {
-            "group": ["@local/*", "@hashintel/petrinaut", "@hashintel/petrinaut/*"],
+            "group": [
+              "@local/*",
+              "@hashintel/petrinaut",
+              "@hashintel/petrinaut/*"
+            ],
             "message": "Core must stay headless and must not depend on the UI package."
           }
         ]

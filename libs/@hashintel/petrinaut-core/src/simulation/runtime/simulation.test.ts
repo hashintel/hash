@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type {
+  AbortSignalLike,
+  MessageEventLike,
+  WorkerLike,
+} from "../../environment";
 import type { ToMainMessage, ToWorkerMessage } from "../worker/messages";
 import type { SimulationFramePayload } from "../worker/frame-payload";
 import type { SDCPN } from "../../types/sdcpn";
@@ -28,6 +33,32 @@ function makeFrame(time: number): SimulationFramePayload {
   return {
     time,
     frame,
+  };
+}
+
+function makeAbortControllerLike(): {
+  signal: AbortSignalLike;
+  abort(): void;
+} {
+  const listeners = new Set<() => void>();
+  const signal: AbortSignalLike = {
+    aborted: false,
+    addEventListener(_type, listener) {
+      listeners.add(listener);
+    },
+    removeEventListener(_type, listener) {
+      listeners.delete(listener);
+    },
+  };
+
+  return {
+    signal,
+    abort() {
+      (signal as { aborted: boolean }).aborted = true;
+      for (const listener of listeners) {
+        listener();
+      }
+    },
   };
 }
 
@@ -213,7 +244,7 @@ describe("createSimulation (transport flavour)", () => {
 
   it("rejects when an AbortSignal fires during init", async () => {
     const mock = makeMockTransport();
-    const ctrl = new AbortController();
+    const ctrl = makeAbortControllerLike();
 
     const promise = createSimulation({
       transport: mock.transport,
@@ -236,7 +267,9 @@ describe("createSimulation (transport flavour)", () => {
 describe("createSimulation (createWorker flavour)", () => {
   it("builds a transport from the factory and routes messages through it", async () => {
     // Stand-in Worker — captures postMessage and lets us trigger 'message' events.
-    type WorkerMessageHandler = (event: MessageEvent<ToMainMessage>) => void;
+    type WorkerMessageHandler = (
+      event: MessageEventLike<ToMainMessage>,
+    ) => void;
 
     const sentToWorker: ToWorkerMessage[] = [];
     let messageHandler: WorkerMessageHandler | null = null;
@@ -255,7 +288,7 @@ describe("createSimulation (createWorker flavour)", () => {
       terminate() {
         terminated = true;
       },
-    } as unknown as Worker;
+    } satisfies WorkerLike<ToWorkerMessage, ToMainMessage>;
 
     const promise = createSimulation({
       createWorker: () => fakeWorker,
@@ -276,11 +309,7 @@ describe("createSimulation (createWorker flavour)", () => {
     // Simulate the worker reporting ready.
     expect(messageHandler).not.toBeNull();
     const handler = messageHandler as unknown as WorkerMessageHandler;
-    handler(
-      new MessageEvent<ToMainMessage>("message", {
-        data: { type: "ready", initialFrameCount: 0 },
-      }),
-    );
+    handler({ data: { type: "ready", initialFrameCount: 0 } });
 
     const sim = await promise;
     expect(sim.status.get()).toBe("Ready");

@@ -1,3 +1,4 @@
+import type { WorkerFactoryLike, WorkerLike } from "../environment";
 import type { ClientMessage, ServerMessage } from "./worker/protocol";
 
 /**
@@ -15,7 +16,7 @@ export interface LspTransport {
   terminate(): void;
 }
 
-export type LspWorkerFactory = () => Worker | Promise<Worker>;
+export type LspWorkerFactory = WorkerFactoryLike<ClientMessage, ServerMessage>;
 
 /**
  * Wrap a `Worker` factory in an {@link LspTransport}. Messages sent before the
@@ -25,7 +26,7 @@ export function createWorkerLspTransport(
   createWorker: LspWorkerFactory,
 ): LspTransport {
   const listeners = new Set<(message: ServerMessage) => void>();
-  let worker: Worker | null = null;
+  let worker: WorkerLike<ClientMessage, ServerMessage> | null = null;
   let terminated = false;
   const queued: ClientMessage[] = [];
 
@@ -35,7 +36,7 @@ export function createWorkerLspTransport(
       return;
     }
     worker = w;
-    w.addEventListener("message", (event: MessageEvent<ServerMessage>) => {
+    w.addEventListener("message", (event) => {
       for (const listener of listeners) {
         listener(event.data);
       }

@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "target": "es2024",
-    "lib": ["dom", "dom.iterable", "ESNext"],
+    "lib": ["ESNext"],
+    "types": [],
     "module": "preserve",
     "moduleResolution": "bundler",
     "strict": true,
@@ -14,5 +15,5 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src"]
 }

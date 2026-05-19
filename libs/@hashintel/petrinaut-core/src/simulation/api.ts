@@ -1,3 +1,4 @@
+import type { AbortSignalLike, WorkerFactoryLike } from "../environment";
 import type { ReadableStore } from "../handle";
 import type { EventStream } from "../instance";
 import type { Color, Place, SDCPN } from "../types/sdcpn";
@@ -26,7 +27,7 @@ export interface SimulationTransport {
   terminate(): void;
 }
 
-export type WorkerFactory = () => Worker | Promise<Worker>;
+export type WorkerFactory = WorkerFactoryLike;
 
 /**
  * Initial token distribution for starting a simulation.
@@ -55,13 +56,13 @@ export type SimulationConfig = {
   maxTime: number | null;
   backpressure?: BackpressureConfig;
   /** Optional cancellation. Aborting tears down the simulation. */
-  signal?: AbortSignal;
+  signal?: AbortSignalLike;
 };
 
 /**
  * Top-level config for `createSimulation`. Provide exactly one of:
  *
- * - `createWorker`: a `Worker` factory; the function builds a transport for you.
+ * - `createWorker`: a worker-like factory; the function builds a transport for you.
  * - `transport`: a pre-built {@link SimulationTransport}; ownership transfers
  *   to the simulation (it will be terminated on `simulation.dispose()`).
  */

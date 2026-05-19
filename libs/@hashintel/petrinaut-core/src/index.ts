@@ -138,6 +138,14 @@ export { parseArcId } from "./types/selection";
 export type * from "./types/selection";
 
 // --- Pure utilities ---
+export type {
+  AbortSignalLike,
+  MessageEventLike,
+  MessageListener,
+  WorkerFactoryLike,
+  WorkerGlobalScopeLike,
+  WorkerLike,
+} from "./environment";
 export {
   ARC_ID_PREFIX,
   ARC_ID_SEPARATOR,

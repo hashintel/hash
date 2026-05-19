@@ -12,9 +12,12 @@ const emptySDCPN: SDCPN = {
   parameters: [],
 };
 
+const cloneSDCPN = (sdcpn: SDCPN): SDCPN =>
+  JSON.parse(JSON.stringify(sdcpn)) as SDCPN;
+
 const createInstance = (initial: SDCPN = emptySDCPN) =>
   createPetrinaut({
-    document: createJsonDocHandle({ initial: structuredClone(initial) }),
+    document: createJsonDocHandle({ initial: cloneSDCPN(initial) }),
   });
 
 const callActionWithUnknownInput = <Input>(
@@ -237,7 +240,7 @@ describe("Petrinaut core actions", () => {
 
   test("does not mutate readonly instances", () => {
     const instance = createPetrinaut({
-      document: createJsonDocHandle({ initial: structuredClone(emptySDCPN) }),
+      document: createJsonDocHandle({ initial: cloneSDCPN(emptySDCPN) }),
       readonly: true,
     });
 

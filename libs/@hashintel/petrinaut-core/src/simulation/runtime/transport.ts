@@ -1,4 +1,4 @@
-import type { ToMainMessage } from "../worker/messages";
+import type { WorkerLike } from "../../environment";
 import type { SimulationTransport, WorkerFactory } from "../api";
 
 /**
@@ -9,7 +9,7 @@ export function createWorkerTransport(
   createWorker: WorkerFactory,
 ): SimulationTransport {
   const listeners = new Set<(message: unknown) => void>();
-  let worker: Worker | null = null;
+  let worker: WorkerLike | null = null;
   let terminated = false;
   const queued: unknown[] = [];
 
@@ -19,7 +19,7 @@ export function createWorkerTransport(
       return;
     }
     worker = w;
-    w.addEventListener("message", (event: MessageEvent<ToMainMessage>) => {
+    w.addEventListener("message", (event) => {
       for (const listener of listeners) {
         listener(event.data);
       }

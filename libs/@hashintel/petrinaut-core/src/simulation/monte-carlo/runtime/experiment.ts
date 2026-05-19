@@ -1,5 +1,6 @@
 import type { ReadableStore } from "../../../handle";
 import type { EventStream } from "../../../instance";
+import type { AbortSignalLike } from "../../../environment";
 import type {
   InitialMarking,
   SimulationTransport,
@@ -40,7 +41,7 @@ export type CreateMonteCarloExperimentConfig = {
   maxTime: number;
   runCount: number;
   batchSize?: number;
-  signal?: AbortSignal;
+  signal?: AbortSignalLike;
 } & (
   | { createWorker: WorkerFactory; transport?: never }
   | { transport: SimulationTransport; createWorker?: never }
@@ -155,12 +156,9 @@ export function createMonteCarloExperiment(
     const onAbort = () => {
       if (!settled) {
         settled = true;
-        reject(
-          new DOMException(
-            "Monte Carlo experiment start aborted",
-            "AbortError",
-          ),
-        );
+        const error = new Error("Monte Carlo experiment start aborted");
+        error.name = "AbortError";
+        reject(error);
       }
       cleanupTransport({ sendCancel: true });
     };

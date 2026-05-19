@@ -1,6 +1,5 @@
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { replacePlugin } from "rolldown/plugins";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 
@@ -59,30 +58,6 @@ export default defineConfig(({ command }) => ({
     cssMinify: "esbuild",
   },
 
-  define: {
-    "process.versions": JSON.stringify({ pnp: undefined }),
-  },
-
-  worker: {
-    plugins: () => [
-      replacePlugin({
-        // Consumer Webpack config seem to `define` `typeof window` to `"object"` by default.
-        // This causes crashes in Web Workers, since `window` is not defined there.
-        "typeof window": '"undefined"',
-        // TypeScript's internals reference process, process.versions.pnp, etc.
-        "typeof process": "'undefined'",
-        "typeof process.versions.pnp": "'undefined'",
-      }),
-      // Separate replacePlugin for call-expression replacements:
-      // 1. Empty end delimiter because \b can't match after `)` (non-word → non-word).
-      // 2. Negative lookbehind skips the function definition (`function isNodeLikeSystem`).
-      replacePlugin(
-        { "isNodeLikeSystem()": "false" },
-        { delimiters: ["(?<!function )\\b", ""] },
-      ),
-    ],
-  },
-
   plugins: [
     esmExternalRequirePlugin({
       external: [
@@ -90,7 +65,6 @@ export default defineConfig(({ command }) => ({
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
-        "typescript",
       ],
     }),
 

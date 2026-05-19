@@ -7,6 +7,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { MessageEventLike } from "../../environment";
 import type { SDCPN } from "../../types/sdcpn";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
@@ -14,8 +15,9 @@ import type { ToMainMessage, ToWorkerMessage } from "./messages";
 let postedMessages: ToMainMessage[] = [];
 
 // Store the message handler
-let messageHandler: ((event: MessageEvent<ToWorkerMessage>) => void) | null =
-  null;
+let messageHandler:
+  | ((event: MessageEventLike<ToWorkerMessage>) => void)
+  | null = null;
 
 // Mock self.postMessage and self.onmessage
 const mockSelf = {
@@ -23,7 +25,7 @@ const mockSelf = {
     postedMessages.push(message);
   },
   set onmessage(handler:
-    | ((event: MessageEvent<ToWorkerMessage>) => void)
+    | ((event: MessageEventLike<ToWorkerMessage>) => void)
     | null,) {
     messageHandler = handler;
   },
@@ -35,7 +37,7 @@ const mockSelf = {
 // Helper to simulate sending a message to the worker
 function sendToWorker(message: ToWorkerMessage): void {
   if (messageHandler) {
-    messageHandler({ data: message } as MessageEvent<ToWorkerMessage>);
+    messageHandler({ data: message });
   }
 }
 

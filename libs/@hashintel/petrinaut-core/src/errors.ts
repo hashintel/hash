@@ -12,6 +12,14 @@ export class SDCPNItemError extends Error {
     this.itemId = itemId;
 
     // Maintains proper stack trace for where our error was thrown
-    Error.captureStackTrace(this, SDCPNItemError);
+    const captureStackTrace = (
+      Error as ErrorConstructor & {
+        captureStackTrace?: (
+          target: object,
+          constructor?: typeof SDCPNItemError,
+        ) => void;
+      }
+    ).captureStackTrace;
+    captureStackTrace?.(this, SDCPNItemError);
   }
 }

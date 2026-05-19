@@ -1,4 +1,5 @@
 import { SDCPNItemError } from "../../../errors";
+import type { WorkerGlobalScopeLike } from "../../../environment";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 import { createPlaceTokenCountDistributionMetric } from "../metrics";
 import type { PlaceTokenCountDistributionMetric } from "../metrics";
@@ -9,6 +10,12 @@ import type {
   MonteCarloToWorkerMessage,
   MonteCarloWorkerProgress,
 } from "./messages";
+
+declare const self: WorkerGlobalScopeLike<
+  MonteCarloToWorkerMessage,
+  MonteCarloToMainMessage
+>;
+declare const setTimeout: (handler: () => void, timeout?: number) => unknown;
 
 const DEFAULT_BATCH_SIZE = 4;
 
@@ -119,12 +126,12 @@ async function computeLoop(): Promise<void> {
     }
 
     await new Promise((resolve) => {
-      setTimeout(resolve, 0);
+      setTimeout(() => resolve(undefined), 0);
     });
   }
 }
 
-self.onmessage = (event: MessageEvent<MonteCarloToWorkerMessage>) => {
+self.onmessage = (event) => {
   const message = event.data;
 
   switch (message.type) {

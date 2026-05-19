@@ -19,7 +19,6 @@ export type {
 export {
   createMonteCarloExperiment,
   createMonteCarloSimulator,
-  createMonteCarloWorker,
   createPlaceTokenCountDistributionMetric,
 } from "./monte-carlo";
 export type {

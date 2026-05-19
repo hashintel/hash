@@ -145,7 +145,9 @@ export function createSimulation(
     const onAbort = () => {
       if (!settled) {
         settled = true;
-        reject(new DOMException("Simulation start aborted", "AbortError"));
+        const error = new Error("Simulation start aborted");
+        error.name = "AbortError";
+        reject(error);
       }
       handle.dispose();
     };

@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type PlaceTokenCountDistributionFrame,
   type SDCPN,
+  type WorkerLike,
 } from "@hashintel/petrinaut-core";
 import {
   NotificationsContext,
@@ -156,7 +157,14 @@ const TestWrapper = ({
     }}
   >
     <SDCPNContext.Provider value={sdcpnContextValue}>
-      <ExperimentsProvider workerFactory={() => worker as unknown as Worker}>
+      <ExperimentsProvider
+        workerFactory={() =>
+          worker as WorkerLike<
+            MonteCarloToWorkerMessage,
+            MonteCarloToMainMessage
+          >
+        }
+      >
         <ExperimentsContextConsumer onContextValue={onContextValue} />
       </ExperimentsProvider>
     </SDCPNContext.Provider>

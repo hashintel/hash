@@ -1,7 +1,6 @@
 export { createMonteCarloSimulator } from "./monte-carlo-simulator";
 export { createPlaceTokenCountDistributionMetric } from "./metrics";
 export { createMonteCarloExperiment } from "./runtime/experiment";
-export { createMonteCarloWorker } from "./worker/create-monte-carlo-worker";
 export type {
   MonteCarloAdvanceResult,
   MonteCarloRunConfig,
