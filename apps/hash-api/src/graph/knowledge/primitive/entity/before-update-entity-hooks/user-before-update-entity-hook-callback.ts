@@ -20,7 +20,6 @@ import {
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { GraphQLError } from "graphql";
 
-import { isUserEmailVerified } from "../../../../../auth/ory-kratos";
 import * as Error from "../../../../../graphql/error";
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
 import type { ImpureGraphContext } from "../../../../context-types";
@@ -32,7 +31,10 @@ import {
   shortnameMaximumLength,
   shortnameMinimumLength,
 } from "../../../system-types/account.fields";
-import { getUserFromEntity } from "../../../system-types/user";
+import {
+  getUserFromEntity,
+  getUserVerifiedEmails,
+} from "../../../system-types/user";
 import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
 
 /**
@@ -199,16 +201,34 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
        * we need to forbid them from completing account signup
        * and prevent them from receiving ownership of the web.
        */
-      if (!(await userHasAccessToHash(context, authentication, user))) {
+      const accessResult = await userHasAccessToHash(
+        context,
+        authentication,
+        user,
+      );
+
+      if (!accessResult.allowed) {
         throw Error.forbidden(
           "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
         );
       }
 
-      if (!(await isUserEmailVerified(user.kratosIdentityId))) {
-        throw Error.forbidden(
-          "You must verify your email address before completing account setup.",
+      const allowedEmails = accessResult.allowedEmails ?? [];
+
+      if (allowedEmails.length > 0) {
+        const verifiedEmails = await getUserVerifiedEmails(
+          context,
+          authentication,
+          {
+            user,
+          },
         );
+
+        if (!allowedEmails.some((email) => verifiedEmails.includes(email))) {
+          throw Error.forbidden(
+            "You must verify your email address before completing account setup.",
+          );
+        }
       }
 
       if (!updatedShortname || !updatedDisplayName) {
