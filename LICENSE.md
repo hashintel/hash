@@ -8,6 +8,7 @@
 # License
 
 The vast majority of the HASH monorepo contains **open-source code** variously licensed under either:
+
 - the [MIT License] and [Apache License 2.0] dually (default); or
 - the [GNU Affero General Public License 3.0].
 

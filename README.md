@@ -168,11 +168,10 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 9. Log in
 
    When the HASH API is started, three users are automatically seeded for development purposes. Their passwords are all `password`.
-
    - `alice@example.com`, `bob@example.com` – regular users
    - `admin@example.com` – an admin
-  
-  Note: seeding only runs when `NODE_ENV=development`, start the Graph API separately using `yarn start:graph` then launch the app using `yarn dev` in a separate terminal to start it in development environment.
+
+   Note: seeding only runs when `NODE_ENV=development`, start the Graph API separately using `yarn start:graph` then launch the app using `yarn dev` in a separate terminal to start it in development environment.
 
 ##### Running the browser plugin
 

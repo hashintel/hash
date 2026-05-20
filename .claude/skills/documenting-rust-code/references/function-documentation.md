@@ -212,7 +212,7 @@ Add `# Performance` sections for performance-critical functions:
 
 ## Complete Example
 
-```rust
+````rust
 /// Validates and creates a new entity in the system.
 ///
 /// Takes the provided `properties` and validates them against the entity's
@@ -265,7 +265,7 @@ pub fn create_entity(
     web_id: WebId,
     account: &Account,
 ) -> Result<EntityId, Report<EntityError>> {
-```
+````
 
 ---
 
