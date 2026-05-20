@@ -1,5 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import {
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 
@@ -7,6 +14,7 @@ import { Button } from "../../../../../components/button";
 import { SegmentGroup } from "../../../../../components/segment-group";
 import { Select } from "../../../../../components/select";
 import type { SubView } from "../../../../../components/sub-view/types";
+import { createValueStore } from "../../../../../../react/create-value-store";
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { useLatest } from "../../../../../../react/hooks/use-latest";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
@@ -599,29 +607,35 @@ function useStreamingData(): {
     compiledMetric.fn,
   ]);
 
-  const storeRef = useRef<StreamingStore>(
-    createEmptyStore(seriesConfig.series),
+  const [streamingStore] = useState(() =>
+    createValueStore<StreamingStore>(createEmptyStore(seriesConfig.series)),
+  );
+  const store = useSyncExternalStore(
+    (listener) => streamingStore.subscribe(listener),
+    () => streamingStore.getSnapshot(),
+    () => streamingStore.getSnapshot(),
   );
   const processedRef = useRef(0);
   const [, setRevision] = useState(0);
 
   // Reset store when the series structure changes (view switch or net edits).
   useEffect(() => {
-    storeRef.current = createEmptyStore(seriesConfig.series);
+    const nextStore = createEmptyStore(seriesConfig.series);
+    streamingStore.set(nextStore);
     processedRef.current = 0;
-    setRevision((r) => r + 1);
-  }, [seriesConfig.series]);
+  }, [seriesConfig.series, streamingStore]);
 
   // Stream new frames into the store
   useEffect(() => {
     let cancelled = false;
 
     const fetchData = async () => {
-      const store = storeRef.current;
+      const initialStore = streamingStore.getSnapshot();
 
       if (totalFrames === 0) {
-        if (store.length > 0) {
-          storeRef.current = createEmptyStore(store.places);
+        if (initialStore.length > 0) {
+          const nextStore = createEmptyStore(initialStore.places);
+          streamingStore.set(nextStore);
           processedRef.current = 0;
           setRevision((r) => r + 1);
         }
@@ -630,7 +644,8 @@ function useStreamingData(): {
 
       // Handle simulation restart
       if (totalFrames < processedRef.current) {
-        storeRef.current = createEmptyStore(store.places);
+        const nextStore = createEmptyStore(initialStore.places);
+        streamingStore.set(nextStore);
         processedRef.current = 0;
         setRevision((r) => r + 1);
       }
@@ -646,9 +661,10 @@ function useStreamingData(): {
       }
 
       // Push new data directly into existing arrays — O(k) where k = new frames
-      const cols = storeRef.current.columns;
+      const activeStore = streamingStore.getSnapshot();
+      const cols = activeStore.columns;
       const timeCol = cols[0]!;
-      const seriesCount = storeRef.current.places.length;
+      const seriesCount = activeStore.places.length;
       const { extract } = seriesConfig;
 
       for (const frame of newFrames) {
@@ -658,8 +674,8 @@ function useStreamingData(): {
         }
       }
 
-      storeRef.current.length = timeCol.length;
-      storeRef.current.revision++;
+      activeStore.length = timeCol.length;
+      activeStore.revision++;
       processedRef.current = totalFrames;
 
       // Single state update to trigger React re-render
@@ -670,10 +686,10 @@ function useStreamingData(): {
     return () => {
       cancelled = true;
     };
-  }, [getFramesInRange, totalFrames, seriesConfig]);
+  }, [getFramesInRange, totalFrames, seriesConfig, streamingStore]);
 
   return {
-    store: storeRef.current,
+    store,
     metricError: compiledMetric.error,
   };
 }

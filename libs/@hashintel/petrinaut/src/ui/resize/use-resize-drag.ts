@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useLatest } from "../../react/hooks/use-latest";
+
 export type ResizeDirection = "horizontal" | "vertical";
 
 interface UseResizeDragOptions {
@@ -41,16 +43,11 @@ export const useResizeDrag = ({
   onDragEnd,
   direction,
 }: UseResizeDragOptions) => {
-  "use no memo"; // Intentionally writes refs during render — incompatible with React Compiler
   const [isResizing, setIsResizing] = useState(false);
   const startPosRef = useRef(0);
   const overlayRef = useRef<HTMLDivElement | null>(null);
-
-  // Keep callbacks in refs so the mousemove handler always calls the latest version
-  const onDragRef = useRef(onDrag);
-  onDragRef.current = onDrag;
-  const onDragEndRef = useRef(onDragEnd);
-  onDragEndRef.current = onDragEnd;
+  const onDragRef = useLatest(onDrag);
+  const onDragEndRef = useLatest(onDragEnd);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent) => {
@@ -68,13 +65,13 @@ export const useResizeDrag = ({
         direction === "vertical" ? event.clientY : event.clientX;
       onDragRef.current(currentPos - startPosRef.current);
     },
-    [direction],
+    [direction, onDragRef],
   );
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false);
     onDragEndRef.current?.();
-  }, []);
+  }, [onDragEndRef]);
 
   useEffect(() => {
     if (!isResizing) {

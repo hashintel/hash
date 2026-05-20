@@ -1,9 +1,9 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "../../../../../../components/button";
-import { Input } from "../../../../../../components/input";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Menu } from "../../../../../../components/menu";
 import { Section, SectionList } from "../../../../../../components/section";
 import { Select } from "../../../../../../components/select";
@@ -86,24 +86,12 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-});
-
 const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places, updateDifferentialEquation } =
     useDiffEqPropertiesContext();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
-  const [nameInput, setNameInput] = useState(differentialEquation.name);
-  const [nameError, setNameError] = useState<string | null>(null);
   const isReadOnly = useIsReadOnly();
-
-  useEffect(() => {
-    setNameInput(differentialEquation.name);
-    setNameError(null);
-  }, [differentialEquation.id, differentialEquation.name]);
 
   const placesUsingEquation = places.filter((place) => {
     if (!place.differentialEquationId) {
@@ -146,35 +134,19 @@ const DiffEqMainContent: React.FC = () => {
   return (
     <SectionList>
       <Section title="Name">
-        <Input
-          value={nameInput}
-          onChange={(event) => {
-            setNameInput(event.target.value);
-            if (nameError) {
-              setNameError(null);
-            }
-          }}
-          onBlur={() => {
-            const result = validateDisplayName(nameInput);
-
-            if (!result.valid) {
-              setNameError(result.error);
-              return;
-            }
-
-            setNameError(null);
-            if (result.name !== differentialEquation.name) {
-              updateDifferentialEquation({
-                equationId: differentialEquation.id,
-                update: { name: result.name },
-              });
-            }
-          }}
+        <DraftFieldInput
+          sourceId={differentialEquation.id}
+          sourceValue={differentialEquation.name}
+          validate={validateDisplayName}
+          onCommit={(name) =>
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: { name },
+            })
+          }
           disabled={isReadOnly}
-          hasError={!!nameError}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
       </Section>
 
       <Section title="Associated Type">

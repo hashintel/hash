@@ -1,6 +1,6 @@
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 
 import { Button } from "../../../../../../../components/button";
 import { Menu } from "../../../../../../../components/menu";
@@ -76,6 +76,8 @@ const aiMenuItemStyle = css({
  * using simulation frame data or initial marking.
  */
 const VisualizerPreview: React.FC = () => {
+  "use no memo"; // User-authored visualizer code is compiled into a component at runtime.
+
   const { place, placeType } = usePlacePropertiesContext();
 
   const { initialMarking, parameterValues } = use(SimulationContext);
@@ -157,6 +159,7 @@ const VisualizerPreview: React.FC = () => {
 
   return (
     <VisualizerErrorBoundary>
+      {/* eslint-disable-next-line react-hooks-js/static-components -- Runtime visualizer code intentionally creates a component from user input. */}
       <VisualizerComponent tokens={tokens} parameters={parameters} />
     </VisualizerErrorBoundary>
   );
@@ -228,10 +231,14 @@ const VisualizerHeaderAction: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { globalMode } = use(EditorContext);
 
-  const [savedVisualizerCode, setSavedVisualizerCode] = useState<
-    string | undefined
-  >(undefined);
-  useEffect(() => setSavedVisualizerCode(undefined), [place.id]);
+  const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
+    placeId: string;
+    code: string;
+  } | null>(null);
+  const savedVisualizerCode =
+    savedVisualizerCodeState?.placeId === place.id
+      ? savedVisualizerCodeState.code
+      : undefined;
 
   const hasVisualizer = place.visualizerCode !== undefined;
 
@@ -253,7 +260,10 @@ const VisualizerHeaderAction: React.FC = () => {
               });
             } else {
               if (place.visualizerCode) {
-                setSavedVisualizerCode(place.visualizerCode);
+                setSavedVisualizerCodeState({
+                  placeId: place.id,
+                  code: place.visualizerCode,
+                });
               }
               updatePlace({
                 placeId: place.id,
