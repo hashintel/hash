@@ -339,7 +339,7 @@ thunk check_low:0() -> (Integer) -> Boolean {
 
 thunk {thunk#8}() -> Boolean {
     bb0(): {
-        return 0
+        return false
     }
 }
 

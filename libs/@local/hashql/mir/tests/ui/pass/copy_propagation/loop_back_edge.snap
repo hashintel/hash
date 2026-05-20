@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hashql/mir/src/pass/transform/cp/tests.rs
+source: libs/@local/hashql/mir/src/pass/transform/copy_propagation/tests.rs
 expression: value
 ---
 fn {closure@4294967040}() -> Boolean {
@@ -8,7 +8,7 @@ fn {closure@4294967040}() -> Boolean {
     let %2: Boolean
 
     bb0(): {
-        %2 = 1
+        %2 = true
 
         goto -> bb1(1)
     }
@@ -32,7 +32,7 @@ fn {closure@4294967040}() -> Boolean {
     let %2: Boolean
 
     bb0(): {
-        %2 = 1
+        %2 = true
 
         goto -> bb1(1)
     }
@@ -40,7 +40,7 @@ fn {closure@4294967040}() -> Boolean {
     bb1(%0): {
         %1 = %0 == %0
 
-        switchInt(1) -> [0: bb2(), 1: bb1(2)]
+        switchInt(true) -> [0: bb2(), 1: bb1(2)]
     }
 
     bb2(): {

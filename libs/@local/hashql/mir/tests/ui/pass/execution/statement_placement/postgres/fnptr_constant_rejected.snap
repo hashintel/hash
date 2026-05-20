@@ -8,7 +8,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
 
     bb0(): {
         %2 = ({def@99} as FnPtr)
-        %3 = 1                                                                  // cost: 4
+        %3 = true                                                               // cost: 4
 
         return %3
     }
