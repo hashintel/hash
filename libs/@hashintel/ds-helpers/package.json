@@ -55,6 +55,6 @@
   },
   "scripts": {
     "codegen": "node -e \"process.exit(0)\"",
-    "prepack": "node -e \"const { spawnSync } = require('node:child_process'); const result = spawnSync('turbo', ['run', 'codegen', '--filter', '@hashintel/ds-helpers'], { shell: process.platform === 'win32', stdio: ['ignore', 'pipe', 'inherit'] }); if (result.stdout) process.stderr.write(result.stdout); process.exit(result.status ?? 1);\""
+    "prepack": "turbo run codegen --filter @hashintel/ds-helpers"
   }
 }
