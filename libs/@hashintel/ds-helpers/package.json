@@ -54,7 +54,7 @@
     "access": "public"
   },
   "scripts": {
-    "codegen": "true",
+    "codegen": "node -e \"process.exit(0)\"",
     "prepack": "turbo run codegen --filter @hashintel/ds-helpers"
   }
 }
