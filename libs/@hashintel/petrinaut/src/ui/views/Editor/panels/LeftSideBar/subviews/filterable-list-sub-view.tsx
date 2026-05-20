@@ -243,18 +243,20 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
   );
 };
 
-const FilterableListContent = <T extends FilterableListItem>({
+const NonEmptyFilterableListContent = <T extends FilterableListItem>({
   items,
   getSelectionItem,
   renderItem,
   renderRowMenu: RenderRowMenu,
-  emptyMessage,
+  collapsedGroups,
+  toggleGroup,
 }: {
   items: T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
   renderRowMenu?: ComponentType<{ item: T }>;
-  emptyMessage: string;
+  collapsedGroups: Set<string>;
+  toggleGroup: (groupId: string) => void;
 }) => {
   const {
     isSelected: checkIsSelected,
@@ -266,9 +268,6 @@ const FilterableListContent = <T extends FilterableListItem>({
 
   const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
   const [anchorIndexState, setAnchorIndex] = useState<number | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set(),
-  );
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -312,18 +311,6 @@ const FilterableListContent = <T extends FilterableListItem>({
 
   const focusedIndex = clampIndex(focusedIndexState, flatRows.length);
   const anchorIndex = clampIndex(anchorIndexState, flatRows.length);
-
-  const toggleGroup = (groupId: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-      return next;
-    });
-  };
 
   // Truncate stale row refs when visible rows change.
   useEffect(() => {
@@ -627,10 +614,61 @@ const FilterableListContent = <T extends FilterableListItem>({
           </Fragment>
         );
       })}
-      {items.length === 0 && (
-        <div className={emptyMessageStyle}>{emptyMessage}</div>
-      )}
     </div>
+  );
+};
+
+const FilterableListContent = <T extends FilterableListItem>({
+  items,
+  getSelectionItem,
+  renderItem,
+  renderRowMenu,
+  emptyMessage,
+}: {
+  items: T[];
+  getSelectionItem: (item: T) => SelectionItem;
+  renderItem: (item: T, isSelected: boolean) => ReactNode;
+  renderRowMenu?: ComponentType<{ item: T }>;
+  emptyMessage: string;
+}) => {
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  if (items.length === 0) {
+    return (
+      <div
+        className={listContainerStyle}
+        role="listbox"
+        aria-multiselectable="true"
+        tabIndex={0}
+      >
+        <div className={emptyMessageStyle}>{emptyMessage}</div>
+      </div>
+    );
+  }
+
+  return (
+    <NonEmptyFilterableListContent
+      items={items}
+      getSelectionItem={getSelectionItem}
+      renderItem={renderItem}
+      renderRowMenu={renderRowMenu}
+      collapsedGroups={collapsedGroups}
+      toggleGroup={toggleGroup}
+    />
   );
 };
 
