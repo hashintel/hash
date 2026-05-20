@@ -1,3 +1,4 @@
+// Formatting is disabled for `Prism` to ensure that it is imported first, as it otherwise throws an error
 import Prism from "prismjs"; // oxfmt-ignore
 import "prismjs/components/prism-json";
 import "prismjs/components/prism-json5";
