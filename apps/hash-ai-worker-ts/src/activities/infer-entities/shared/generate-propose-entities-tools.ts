@@ -1,3 +1,9 @@
+import { generateSimplifiedTypeId } from "./generate-simplified-type-id.js";
+import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties.js";
+
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
+import type { PropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties.js";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
@@ -5,12 +11,6 @@ import type {
   ProposedEntitySchemaOrData,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { JSONSchema } from "openai/lib/jsonschema";
-
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
-import { generateSimplifiedTypeId } from "./generate-simplified-type-id.js";
-import type { PropertyValueWithSimplifiedProperties } from "./map-simplified-properties-to-properties.js";
-import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereferenced-properties.js";
 
 export type ProposeEntitiesToolName = "abandon_entities" | "create_entities";
 

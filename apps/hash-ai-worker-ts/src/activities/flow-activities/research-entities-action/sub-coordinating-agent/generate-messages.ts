@@ -1,14 +1,15 @@
 import dedent from "dedent";
 
-import type {
-  LlmMessageTextContent,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
 import { generateOutstandingTasksDescription } from "../shared/coordinator-tools.js";
 import {
   simplifyClaimForLlmConsumption,
   simplifyEntityTypeForLlmConsumption,
 } from "../shared/simplify-for-llm-consumption.js";
+
+import type {
+  LlmMessageTextContent,
+  LlmUserMessage,
+} from "../../../shared/get-llm-response/llm-message.js";
 import type { SubCoordinatingAgentInput } from "./input.js";
 import type { SubCoordinatingAgentState } from "./state.js";
 

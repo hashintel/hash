@@ -1,15 +1,17 @@
+import { Box, Stack, Typography } from "@mui/material";
+import { useState } from "react";
+
 import { Select, TextField } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
-import { Box, Stack, Typography } from "@mui/material";
-import type { FormEvent } from "react";
-import { useState } from "react";
 
 import { Button } from "../../../shared/ui/button";
 import { MenuItem } from "../../../shared/ui/menu-item";
 import { Modal } from "../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { UrlInput } from "../../shared/url-input";
+
+import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
+import type { FormEvent } from "react";
 
 type FormFieldMetadata = {
   label: string;

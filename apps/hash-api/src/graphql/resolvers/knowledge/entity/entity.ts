@@ -1,4 +1,3 @@
-import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   mustHaveAtLeastOne,
@@ -16,7 +15,6 @@ import {
   deletePolicyById,
   queryPolicies,
 } from "@local/hash-graph-sdk/policy";
-import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
 
 import {
   canUserReadEntity,
@@ -31,6 +29,10 @@ import {
   isEntityLinkEntity,
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
+import { AuthorizationSubjectKind } from "../../../api-types.gen";
+import * as Error from "../../../error";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type {
   MutationAddEntityViewerArgs,
   MutationArchiveEntitiesArgs,
@@ -47,10 +49,9 @@ import type {
   QueryValidateEntityArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import { AuthorizationSubjectKind } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
-import * as Error from "../../../error";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
+import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,

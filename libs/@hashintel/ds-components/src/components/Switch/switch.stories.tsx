@@ -1,6 +1,6 @@
-import type { Story, StoryDefault } from "@ladle/react";
-
 import { Switch, type SwitchProps } from "./switch";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Legacy/Switch",

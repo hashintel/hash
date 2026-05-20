@@ -1,11 +1,10 @@
-import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
-
 import type { QueryOperationInput } from "../entity.js";
 import type {
   GraphResolveDepths,
   PropertyTypeRootType,
   Subgraph,
 } from "../subgraph.js";
+import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 export type QueryPropertyTypesData = {
   graphResolveDepths?: Partial<

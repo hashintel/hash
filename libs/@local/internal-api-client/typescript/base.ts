@@ -12,7 +12,6 @@
  * Do not edit the class manually.
  */
 
-import { Configuration } from "./configuration.js";
 // Some imports not used depending on template conditions
 // @ts-ignore
 import globalAxios, {
@@ -20,6 +19,8 @@ import globalAxios, {
   AxiosInstance,
   AxiosRequestConfig,
 } from "axios";
+
+import { Configuration } from "./configuration.js";
 
 export const BASE_PATH = "http://localhost".replace(/\/+$/, "");
 

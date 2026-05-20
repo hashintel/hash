@@ -1,12 +1,14 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { MiniMapNodeProps, MiniMapProps } from "@xyflow/react";
 import { MiniMap as ReactFlowMiniMap, useStore } from "@xyflow/react";
 import { use } from "react";
 
+import { css } from "@hashintel/ds-helpers/css";
+
+import { EditorContext } from "../../../../react/state/editor-context";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { hexToHsl } from "../../../lib/hsl-color";
-import { EditorContext } from "../../../../react/state/editor-context";
+
 import type { NodeType } from "../reactflow-types";
+import type { MiniMapNodeProps, MiniMapProps } from "@xyflow/react";
 
 const miniMapClassName = css({
   backgroundColor: "white.a95",

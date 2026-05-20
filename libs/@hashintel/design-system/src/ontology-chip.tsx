@@ -1,9 +1,10 @@
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography, typographyClasses } from "@mui/material";
-import type { ForwardRefRenderFunction } from "react";
 import { forwardRef, useMemo } from "react";
 
 import { IconRainbowHash } from "./icon-rainbow-hash";
+
+import type { SxProps, Theme } from "@mui/material";
+import type { ForwardRefRenderFunction } from "react";
 
 // @todo make this take the id
 const OntologyChip: ForwardRefRenderFunction<

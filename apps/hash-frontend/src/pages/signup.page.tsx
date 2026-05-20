@@ -1,11 +1,28 @@
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
-import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
+import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
+
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
+import {
+  acceptOrgInvitationMutation,
+  getPendingInvitationByEntityIdQuery,
+} from "../graphql/queries/knowledge/org.queries";
+import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
+import { getPlainLayout } from "../shared/layout";
+import { Button } from "../shared/ui";
+import { useAuthInfo } from "./shared/auth-info-context";
+import { AuthLayout } from "./shared/auth-layout";
+import { parseGraphQLError } from "./shared/auth-utils";
+import { VerifyEmailStep } from "./shared/verify-email-step";
+import { AcceptOrgInvitation } from "./signup.page/accept-org-invitation";
+import { AccountSetupForm } from "./signup.page/account-setup-form";
+import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
+import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
+import { SignupSteps } from "./signup.page/signup-steps";
+
 import type {
   AcceptOrgInvitationMutation,
   AcceptOrgInvitationMutationVariables,
@@ -13,25 +30,10 @@ import type {
   GetPendingInvitationByEntityIdQueryVariables,
   HasAccessToHashQuery,
 } from "../graphql/api-types.gen";
-import {
-  acceptOrgInvitationMutation,
-  getPendingInvitationByEntityIdQuery,
-} from "../graphql/queries/knowledge/org.queries";
-import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
 import type { NextPageWithLayout } from "../shared/layout";
-import { getPlainLayout } from "../shared/layout";
 import type { ButtonProps } from "../shared/ui";
-import { Button } from "../shared/ui";
-import { useAuthInfo } from "./shared/auth-info-context";
-import { AuthLayout } from "./shared/auth-layout";
-import { parseGraphQLError } from "./shared/auth-utils";
-import { VerifyEmailStep } from "./shared/verify-email-step";
-import { AcceptOrgInvitation } from "./signup.page/accept-org-invitation";
 import type { AccountSetupFormData } from "./signup.page/account-setup-form";
-import { AccountSetupForm } from "./signup.page/account-setup-form";
-import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
-import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
-import { SignupSteps } from "./signup.page/signup-steps";
+import type { EntityId } from "@blockprotocol/type-system";
 
 const LoginButton = styled((props: ButtonProps) => (
   <Button variant="secondary" size="small" {...props} />

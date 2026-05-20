@@ -1,4 +1,3 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   type Dispatch,
   type ReactNode,
@@ -6,6 +5,18 @@ import {
   useState,
 } from "react";
 
+import {
+  SDCPNContext,
+  type SDCPNContextValue,
+} from "../../../../../react/state/sdcpn-context";
+import { MonacoProvider } from "../../../../monaco/provider";
+import { DifferentialEquationProperties } from "./differential-equation-properties/main";
+import { ParameterProperties } from "./parameter-properties/main";
+import { PlaceProperties } from "./place-properties/main";
+import { TransitionProperties } from "./transition-properties/main";
+import { TypeProperties } from "./type-properties/main";
+
+import type { MutationContextValue } from "../../../../../react/state/mutation-context";
 import type {
   Color,
   DifferentialEquation,
@@ -13,17 +24,7 @@ import type {
   Place,
   Transition,
 } from "@hashintel/petrinaut-core";
-import { MonacoProvider } from "../../../../monaco/provider";
-import {
-  SDCPNContext,
-  type SDCPNContextValue,
-} from "../../../../../react/state/sdcpn-context";
-import type { MutationContextValue } from "../../../../../react/state/mutation-context";
-import { DifferentialEquationProperties } from "./differential-equation-properties/main";
-import { ParameterProperties } from "./parameter-properties/main";
-import { PlaceProperties } from "./place-properties/main";
-import { TransitionProperties } from "./transition-properties/main";
-import { TypeProperties } from "./type-properties/main";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 // ---------------------------------------------------------------------------
 // Fake data

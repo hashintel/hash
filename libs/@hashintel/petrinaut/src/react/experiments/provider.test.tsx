@@ -10,6 +10,7 @@ import {
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
+
 import {
   NotificationsContext,
   type AddNotificationInput,
@@ -17,6 +18,7 @@ import {
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { ExperimentsContext, type ExperimentsContextValue } from "./context";
 import { ExperimentsProvider } from "./provider";
+
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,

@@ -1,4 +1,3 @@
-import { BellLightIcon } from "@hashintel/design-system";
 import {
   breadcrumbsClasses,
   buttonClasses,
@@ -7,11 +6,14 @@ import {
 } from "@mui/material";
 import { NextSeo } from "next-seo";
 
-import type { NextPageWithLayout } from "../shared/layout";
+import { BellLightIcon } from "@hashintel/design-system";
+
 import { getLayoutWithSidebar } from "../shared/layout";
 import { NotificationsTable } from "./notifications.page/notifications-table";
 import { NotificationsWithLinksContextProvider } from "./notifications.page/notifications-with-links-context";
 import { TopContextBar } from "./shared/top-context-bar";
+
+import type { NextPageWithLayout } from "../shared/layout";
 
 const NotificationsPage: NextPageWithLayout = () => {
   return (

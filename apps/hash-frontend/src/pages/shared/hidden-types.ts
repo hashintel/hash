@@ -1,8 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   googleEntityTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Entity types the user may have entities of that should be excluded from view in the UI

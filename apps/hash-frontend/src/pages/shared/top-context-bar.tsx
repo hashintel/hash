@@ -1,12 +1,4 @@
-import type {
-  DataTypeWithMetadata,
-  Entity,
-  EntityTypeWithMetadata,
-} from "@blockprotocol/type-system";
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   Collapse,
@@ -15,18 +7,28 @@ import {
   Typography,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, ReactElement, ReactNode } from "react";
 import { useMemo, useState } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { isItemArchived } from "../../shared/is-archived";
 import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
-import type { MenuItemProps } from "../../shared/ui/menu-item";
-import type { BreadcrumbsProps } from "./breadcrumbs";
 import { Breadcrumbs } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
 import { isItemType } from "./top-context-bar/util";
+
+import type { MenuItemProps } from "../../shared/ui/menu-item";
+import type { BreadcrumbsProps } from "./breadcrumbs";
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import type { SxProps, Theme } from "@mui/material";
+import type { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export { useContextBarActionsContext } from "./top-context-bar/context-bar-actions-context";
 export { isItemType as isItemEntityType };

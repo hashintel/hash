@@ -1,4 +1,3 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
 import {
@@ -8,6 +7,8 @@ import {
 } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "BottomBar / PlaybackSettingsMenu",

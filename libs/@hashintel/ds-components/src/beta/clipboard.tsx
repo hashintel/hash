@@ -3,9 +3,10 @@
 /* eslint-disable import/no-extraneous-dependencies */
 
 import { Clipboard } from "@ark-ui/react/clipboard";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { type ComponentProps, forwardRef } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { clipboardSlotRecipe } from "./clipboard.recipe";
 

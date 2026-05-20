@@ -1,10 +1,11 @@
 import { randomBytes } from "node:crypto";
 
 import { timingSafeCompare } from "@local/hash-backend-utils/crypto";
-import type { RequestHandler } from "express";
 
 import { isDevEnv } from "../lib/env-config";
 import { hydraAdmin } from "./ory-hydra";
+
+import type { RequestHandler } from "express";
 
 const CSRF_COOKIE_NAME = "_csrf_consent";
 

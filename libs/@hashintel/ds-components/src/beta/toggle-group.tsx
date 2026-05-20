@@ -1,10 +1,12 @@
 "use client";
 
 import { ToggleGroup } from "@ark-ui/react/toggle-group";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { toggleGroupSlotRecipe } from "./toggle-group.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(toggleGroupSlotRecipe);
 

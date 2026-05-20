@@ -1,9 +1,9 @@
+import { getFileEntityFromGcpStorageUri } from "./google-cloud-storage.js";
+
+import type { LlmMessage } from "../llm-message.js";
 import type { Content } from "@google-cloud/vertexai";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-
-import type { LlmMessage } from "../llm-message.js";
-import { getFileEntityFromGcpStorageUri } from "./google-cloud-storage.js";
 
 export const mapGoogleMessagesToLlmMessages = (params: {
   messages: Content[];

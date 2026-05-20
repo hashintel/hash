@@ -1,8 +1,3 @@
-import type { GenerateContentResponse } from "@google-cloud/vertexai";
-import type { OpenAI } from "openai";
-import type { JSONSchema } from "openai/lib/jsonschema";
-
-import type { PermittedOpenAiModel } from "../openai-client.js";
 import {
   type AnthropicApiProvider,
   type AnthropicMessagesCreateParams,
@@ -14,7 +9,12 @@ import {
   isPermittedGoogleAiModel,
   type PermittedGoogleAiModel,
 } from "./google-vertex-ai-client.js";
+
+import type { PermittedOpenAiModel } from "../openai-client.js";
 import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
+import type { GenerateContentResponse } from "@google-cloud/vertexai";
+import type { OpenAI } from "openai";
+import type { JSONSchema } from "openai/lib/jsonschema";
 
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;

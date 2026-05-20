@@ -1,7 +1,8 @@
+import { use, useCallback, useEffect } from "react";
+
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
-import { use, useCallback, useEffect } from "react";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import {

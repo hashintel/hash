@@ -1,3 +1,5 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import {
   createKratosIdentity,
   kratosIdentityApi,
@@ -7,7 +9,6 @@ import {
   checkEntityPermission,
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createUser,
   getUser,
@@ -16,7 +17,6 @@ import {
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -35,7 +35,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { deleteUser, resetGraph } from "../../../admin-server";
 import {
@@ -43,6 +42,9 @@ import {
   createTestOrg,
   generateRandomShortname,
 } from "../../../util";
+
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { EntityId } from "@blockprotocol/type-system";
 
 const logger = new Logger({
   environment: "test",

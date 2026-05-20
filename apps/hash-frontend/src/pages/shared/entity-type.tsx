@@ -1,11 +1,7 @@
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-  OntologyTypeVersion,
-  PropertyType,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import { Box, Container, Typography } from "@mui/material";
+import { NextSeo } from "next-seo";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import {
   atLeastOne,
   extractVersion,
@@ -13,19 +9,14 @@ import {
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import {
   EntityTypeFormProvider,
   getEntityTypeFromFormData,
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { OntologyElementMetadata } from "@local/hash-graph-sdk/ontology";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
-import { Box, Container, Typography } from "@mui/material";
-import { NextSeo } from "next-seo";
-import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useIsSpecialEntityType } from "../../shared/entity-types-context/hooks";
 import { isTypeArchived } from "../../shared/is-archived";
@@ -59,6 +50,17 @@ import {
 } from "./shared/type-editor-styling";
 import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
+
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  PropertyType,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
+import type { OntologyElementMetadata } from "@local/hash-graph-sdk/ontology";
 
 type EntityTypeProps = {
   webId?: WebId | null;

@@ -1,35 +1,37 @@
 import { useMutation } from "@apollo/client";
-import type { WebId } from "@blockprotocol/type-system";
+import { Box, Typography } from "@mui/material";
+import { useCallback, useState } from "react";
+import { Controller, FormProvider, useForm } from "react-hook-form";
+
 import { Select, TextField } from "@hashintel/design-system";
-import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { validateDisplayName } from "@local/hash-graph-sdk/user-entity-restrictions";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { ProfileURLPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useState } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
 
 import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
 import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
+import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import { Button, MenuItem } from "../../../../shared/ui";
+import { UrlInput } from "../../../shared/url-input";
+import { ServiceAccountsInput } from "./service-accounts-input";
+
 import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import type {
   ServiceAccountKind,
   User,
   UserServiceAccount,
 } from "../../../../lib/user-and-org";
-import { Button, MenuItem } from "../../../../shared/ui";
-import { UrlInput } from "../../../shared/url-input";
-import { ServiceAccountsInput } from "./service-accounts-input";
+import type { WebId } from "@blockprotocol/type-system";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { ProfileURLPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FunctionComponent } from "react";
 
 export type UserProfileFormServiceAccount = {
   existingLinkEntity?: HashLinkEntity;

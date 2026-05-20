@@ -3,13 +3,15 @@ import {
   createListCollection,
   Select as ArkSelect,
 } from "@ark-ui/react/select";
+import { useMemo } from "react";
+
 import { Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
-import { useMemo } from "react";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import { withTooltip } from "./hoc/with-tooltip";
+
+import type { ReactNode } from "react";
 
 // -- Helpers ------------------------------------------------------------------
 

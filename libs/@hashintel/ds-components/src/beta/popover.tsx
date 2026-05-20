@@ -2,10 +2,12 @@
 
 import { ark } from "@ark-ui/react/factory";
 import { Popover } from "@ark-ui/react/popover";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { popoverSlotRecipe } from "./popover.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withRootProvider, withContext } = createStyleContext(popoverSlotRecipe);
 

@@ -1,4 +1,3 @@
-import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import {
   atLeastOne,
   extractBaseUrl,
@@ -7,7 +6,6 @@ import {
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
-import type { Filter } from "@local/hash-graph-client";
 import {
   type HashEntity,
   queryEntities,
@@ -26,29 +24,16 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  EnabledFeatureFlagsPropertyValue,
-  User as UserEntity,
-} from "@local/hash-isomorphic-utils/system-types/user";
 
-import type {
-  KratosUserIdentity,
-  KratosUserIdentityTraits,
-} from "../../../auth/ory-kratos";
 import { kratosIdentityApi } from "../../../auth/ory-kratos";
 import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
 import { systemAccountId } from "../../system-account";
 import {
   createEntity,
@@ -60,12 +45,28 @@ import {
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
-import type { OrgMembership } from "./org-membership";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
   getOrgMembershipOrg,
 } from "./org-membership";
+
+import type {
+  KratosUserIdentity,
+  KratosUserIdentityTraits,
+} from "../../../auth/ory-kratos";
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { OrgMembership } from "./org-membership";
+import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type {
+  EnabledFeatureFlagsPropertyValue,
+  User as UserEntity,
+} from "@local/hash-isomorphic-utils/system-types/user";
 
 export type User = {
   accountId: UserId;

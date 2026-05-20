@@ -3,8 +3,9 @@
 /* eslint-disable react/no-array-index-key */
 
 import { Carousel, useCarouselContext } from "@ark-ui/react/carousel";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { type ComponentProps, forwardRef } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { carouselSlotRecipe } from "./carousel.recipe";
 

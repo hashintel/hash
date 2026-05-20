@@ -1,10 +1,12 @@
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { ListItemIcon, listItemIconClasses, ListItemText } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import type { ReactElement } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../../../../ui";
+
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { ReactElement } from "react";
 
 export const SidebarMenuItem = ({
   title,

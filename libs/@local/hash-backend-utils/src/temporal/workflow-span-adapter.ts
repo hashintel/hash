@@ -1,3 +1,6 @@
+import { makeWorkflowExporter } from "@temporalio/interceptors-opentelemetry";
+
+import type { OpenTelemetrySetup } from "../opentelemetry.js";
 /**
  * Bridge between `@temporalio/interceptors-opentelemetry` (which pins
  * `@opentelemetry/sdk-trace-base@^1`) and our `@opentelemetry/sdk-trace-base@2`
@@ -25,9 +28,6 @@
 import type { SpanContext } from "@opentelemetry/api";
 import type { ExportResult } from "@opentelemetry/core";
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
-import { makeWorkflowExporter } from "@temporalio/interceptors-opentelemetry";
-
-import type { OpenTelemetrySetup } from "../opentelemetry.js";
 
 /**
  * v1-shaped fields that may appear on spans produced by Temporal's

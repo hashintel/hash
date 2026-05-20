@@ -1,15 +1,17 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { useCallback } from "react";
+
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { setParentPage } from "../../graphql/queries/page.queries";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
 import type {
   SetParentPageMutation,
   SetParentPageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { setParentPage } from "../../graphql/queries/page.queries";
-import { getAccountPagesVariables } from "../../shared/account-pages-variables";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const useReorderPage = () => {
   const [setParentPageFn, { loading }] = useMutation<

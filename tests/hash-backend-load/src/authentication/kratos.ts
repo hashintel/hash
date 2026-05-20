@@ -1,8 +1,10 @@
-import type { WebId } from "@blockprotocol/type-system";
+import { Configuration, FrontendApi } from "@ory/client";
+
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+
+import type { WebId } from "@blockprotocol/type-system";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Configuration, FrontendApi } from "@ory/client";
 
 export type SessionContext = {
   session: {

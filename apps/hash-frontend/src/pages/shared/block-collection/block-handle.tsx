@@ -1,18 +1,20 @@
-import type { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
-import { isBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { Box } from "@mui/material";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import type { ForwardRefRenderFunction } from "react";
 import { forwardRef } from "react";
+
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { isBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 
 import { BlockConfigMenu } from "./block-config-menu/block-config-menu";
 import { useBlockContext } from "./block-context";
 import { BlockContextMenu } from "./block-context-menu/block-context-menu";
 import { useBlockView } from "./block-view";
+
+import type { JsonObject } from "@blockprotocol/core";
+import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
+import type { ForwardRefRenderFunction } from "react";
 
 type BlockHandleProps = {
   deleteBlock: () => void;

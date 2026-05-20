@@ -1,17 +1,19 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-import type { DraggableAttributes } from "@dnd-kit/core";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import type { PopoverPosition } from "@mui/material";
 import { Box, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { CSSProperties, MouseEvent } from "react";
 import { forwardRef, useState } from "react";
+
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../../pages/shared/block-collection/page-title/page-title";
 import { PageIconButton } from "../../../../page-icon-button";
 import { Link } from "../../../../ui";
 import { PageMenu } from "./page-menu";
+
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { DraggableAttributes } from "@dnd-kit/core";
+import type { PopoverPosition } from "@mui/material";
+import type { CSSProperties, MouseEvent } from "react";
 
 interface DragProps {
   isSorting?: boolean;

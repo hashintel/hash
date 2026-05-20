@@ -1,21 +1,23 @@
 import { useMutation } from "@apollo/client";
-import type { WebId } from "@blockprotocol/type-system";
+import { useRouter } from "next/router";
+import { useCallback } from "react";
+
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import { useRouter } from "next/router";
-import { useCallback } from "react";
 
-import type {
-  CreatePageMutation,
-  CreatePageMutationVariables,
-} from "../../graphql/api-types.gen";
 import { PageType } from "../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
+
+import type {
+  CreatePageMutation,
+  CreatePageMutationVariables,
+} from "../../graphql/api-types.gen";
+import type { WebId } from "@blockprotocol/type-system";
 
 export const useCreatePage = ({
   shortname,

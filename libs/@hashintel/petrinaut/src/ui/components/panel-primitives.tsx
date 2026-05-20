@@ -1,7 +1,8 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
 
 import { Button } from "./button";
+
+import type { ReactNode } from "react";
 
 /**
  * Shared visual primitives used by Dialog and Drawer.

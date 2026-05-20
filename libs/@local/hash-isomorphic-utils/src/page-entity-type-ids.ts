@@ -1,10 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
 import { generateVersionedUrlMatchingFilter } from "./graph-queries.js";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "./ontology-type-ids.js";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export const pageEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.canvas.entityTypeId,

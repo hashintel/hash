@@ -8,15 +8,16 @@
  * @see ../ARCHITECTURE.md for system overview
  */
 
-import { SDCPNItemError } from "../../errors";
 import { createWorkerThreadRuntime } from "../../environment";
+import { SDCPNItemError } from "../../errors";
 import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";
-import type { SimulationInstance } from "../engine/types";
 import {
   framePayloadFromEngineFrame,
   type SimulationFramePayload,
 } from "./frame-payload";
+
+import type { SimulationInstance } from "../engine/types";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 const workerRuntime = createWorkerThreadRuntime<

@@ -1,15 +1,17 @@
 import { useQuery } from "@apollo/client";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
+
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { countEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
+import { useAuthInfo } from "../pages/shared/auth-info-context";
+import { usePollInterval } from "./use-poll-interval";
 
 import type {
   CountEntitiesQuery,
   CountEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
-import { countEntitiesQuery } from "../graphql/queries/knowledge/entity.queries";
-import { useAuthInfo } from "../pages/shared/auth-info-context";
-import { usePollInterval } from "./use-poll-interval";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type DraftEntitiesCountContextValue = {
   count?: number;

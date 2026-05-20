@@ -1,17 +1,4 @@
 import { useMutation } from "@apollo/client";
-import type {
-  EntityId,
-  PropertyArrayWithMetadata,
-} from "@blockprotocol/type-system";
-import { Chip, Select } from "@hashintel/design-system";
-import {
-  type FeatureFlag,
-  featureFlags,
-} from "@local/hash-isomorphic-utils/feature-flags";
-import {
-  blockProtocolDataTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   Box,
   type SxProps,
@@ -21,13 +8,18 @@ import {
 } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
+import { Chip, Select } from "@hashintel/design-system";
+import {
+  type FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
+import {
+  blockProtocolDataTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { useUsers } from "../../components/hooks/use-users";
-import type {
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import type { NextPageWithLayout } from "../../shared/layout";
 import { Link, MenuItem } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import {
@@ -37,8 +29,18 @@ import {
   type VirtualizedTableColumn,
   type VirtualizedTableRow,
 } from "../shared/virtualized-table";
-import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
 import { getAdminLayout } from "./admin-page-layout";
+
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../graphql/api-types.gen";
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
+import type {
+  EntityId,
+  PropertyArrayWithMetadata,
+} from "@blockprotocol/type-system";
 
 const noValueTableCellContent = (
   <Typography component="i" sx={{ color: ({ palette }) => palette.gray[50] }}>

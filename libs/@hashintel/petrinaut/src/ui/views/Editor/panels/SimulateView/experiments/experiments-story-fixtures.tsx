@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 
 import { sirModel } from "@hashintel/petrinaut-core/examples";
+
 import {
   type CreateExperimentInput,
   ExperimentsContext,
@@ -13,6 +14,7 @@ import {
   type EditorContextValue,
   type SimulateViewMode,
 } from "../../../../../../react/state/editor-context";
+
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 
 export const sirSdcpnContextValue: SDCPNContextValue = {

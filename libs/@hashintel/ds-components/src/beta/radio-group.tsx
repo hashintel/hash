@@ -1,10 +1,12 @@
 "use client";
 
 import { RadioGroup } from "@ark-ui/react/radio-group";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { radioGroupSlotRecipe } from "./radio-group.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(radioGroupSlotRecipe);
 

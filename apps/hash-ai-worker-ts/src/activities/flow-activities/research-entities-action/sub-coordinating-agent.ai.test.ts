@@ -1,5 +1,4 @@
 import "../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import {
   existsSync,
   mkdirSync,
@@ -16,6 +15,7 @@ import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entit
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { runSubCoordinatingAgent } from "./sub-coordinating-agent.js";
+
 import type { SubCoordinatingAgentState } from "./sub-coordinating-agent/state.js";
 
 const __filename = fileURLToPath(import.meta.url);

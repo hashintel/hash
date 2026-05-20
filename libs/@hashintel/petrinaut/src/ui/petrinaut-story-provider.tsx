@@ -6,6 +6,7 @@ import {
   type MinimalNetMetadata,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
+
 import { Petrinaut } from "./petrinaut";
 
 const emptySDCPN: SDCPN = {

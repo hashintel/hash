@@ -4,11 +4,13 @@
 
 import { Accordion } from "@ark-ui/react/accordion";
 import { ark } from "@ark-ui/react/factory";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { ChevronDownIcon } from "lucide-react";
-import type { ComponentProps } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { accordionSlotRecipe } from "./accordion.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(accordionSlotRecipe);
 

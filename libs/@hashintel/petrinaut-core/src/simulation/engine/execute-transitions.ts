@@ -1,10 +1,11 @@
-import type { ID } from "../../types/sdcpn";
 import {
   createEngineFrame,
   materializeEngineFrame,
 } from "../frames/internal-frame";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
+
+import type { ID } from "../../types/sdcpn";
 import type {
   EngineFrame,
   EngineFrameLayout,

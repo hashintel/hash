@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type { Color, Place } from "../../types/sdcpn";
 import {
   createEngineFrame,
   createEngineFrameLayout,
@@ -9,6 +8,8 @@ import {
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import { removeTokensFromSimulationFrame as removeTokensFromEngineFrame } from "./remove-tokens-from-simulation-frame";
+
+import type { Color, Place } from "../../types/sdcpn";
 import type { EngineFrame } from "./types";
 
 type TestFrame = EngineFrame & { layout: EngineFrameLayout };

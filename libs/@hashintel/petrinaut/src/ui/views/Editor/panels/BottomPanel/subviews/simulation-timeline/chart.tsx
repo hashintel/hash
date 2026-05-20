@@ -1,20 +1,22 @@
 import { use, useEffect, useMemo, useRef } from "react";
-import type { FC, RefObject } from "react";
 import uPlot from "uplot";
-import "uplot/dist/uPlot.min.css";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
+import "uplot/dist/uPlot.min.css";
+
 import { useLatest } from "../../../../../../../react/hooks/use-latest";
 import { useStableCallback } from "../../../../../../../react/hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../../../react/playback/context";
-import type { TimelineChartType } from "../../../../../../../react/state/editor-context";
 import {
   tooltipDotStyle,
   tooltipLabelStyle,
   tooltipStyle,
   tooltipValueStyle,
 } from "./styles";
+
+import type { TimelineChartType } from "../../../../../../../react/state/editor-context";
 import type { StreamingStore, TimelineSeriesMeta } from "./types";
+import type { FC, RefObject } from "react";
 
 function buildRunData(
   store: StreamingStore,

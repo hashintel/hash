@@ -1,8 +1,10 @@
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import type { ReactElement } from "react";
+
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import { useEntityEditor } from "../../entity-editor-context";
+
+import type { ReactElement } from "react";
 
 export const PropertiesTooltip = ({
   children,

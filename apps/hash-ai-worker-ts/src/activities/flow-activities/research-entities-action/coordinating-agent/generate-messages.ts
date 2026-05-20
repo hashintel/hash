@@ -1,15 +1,16 @@
 import dedent from "dedent";
 
-import type { LlmMessageTextContent } from "../../../shared/get-llm-response/llm-message.js";
 import { generateOutstandingTasksDescription } from "../shared/coordinator-tools.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
 import {
   simplifyEntityTypeForLlmConsumption,
   simplifyProposedEntityForLlmConsumption,
 } from "../shared/simplify-for-llm-consumption.js";
+
+import type { LlmMessageTextContent } from "../../../shared/get-llm-response/llm-message.js";
+import type {
+  CoordinatingAgentInput,
+  CoordinatingAgentState,
+} from "../shared/coordinators.js";
 
 export const generateProgressReport = (params: {
   input: CoordinatingAgentInput;

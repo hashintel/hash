@@ -1,5 +1,6 @@
+import { format } from "date-fns";
+
 import { getEntityRevision } from "@blockprotocol/graph/stdlib";
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractVersion,
@@ -18,10 +19,9 @@ import {
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { format } from "date-fns";
 
 import { gridHeaderBaseFont } from "../../../../../components/grid/grid";
+
 import type {
   EntitiesTableColumn,
   EntitiesTableColumnKey,
@@ -31,6 +31,8 @@ import type {
   GenerateEntitiesTableDataParams,
   VisibleDataTypeIdsByPropertyBaseUrl,
 } from "../../types";
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const staticColumnDefinitionsByKey: Record<
   Exclude<EntitiesTableColumnKey, "entityLabel">,

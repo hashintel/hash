@@ -1,7 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
-
 import { sirModel } from "@hashintel/petrinaut-core/examples";
+
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Petrinaut",

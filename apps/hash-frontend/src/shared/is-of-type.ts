@@ -1,10 +1,11 @@
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+
 import type {
   DataTypeWithMetadata,
   Entity,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
 export const isType = (
   item:

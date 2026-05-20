@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
+
 import type { SDCPN } from "./types/sdcpn";
 
 const emptySDCPN: SDCPN = {

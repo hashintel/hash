@@ -1,23 +1,24 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "../../../../../components/button";
-import { Drawer } from "../../../../../components/drawer";
 import {
   scenarioSchema,
   type Color,
   type Scenario,
 } from "@hashintel/petrinaut-core";
+
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { Button } from "../../../../../components/button";
+import { Drawer } from "../../../../../components/drawer";
+import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   ScenarioFormBody,
   type ScenarioFormInstance,
   type ScenarioFormState,
   useScenarioForm,
 } from "./scenario-form";
-import { DrawerErrorDisplay } from "../drawer-error-display";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
 import { buildScenarioFromFormState } from "./scenario-mapping";
 

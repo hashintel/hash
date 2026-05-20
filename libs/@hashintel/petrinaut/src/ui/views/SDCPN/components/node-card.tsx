@@ -1,8 +1,10 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { Handle, Position } from "@xyflow/react";
-import type { ReactNode } from "react";
+
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { handleStyling } from "../styles/styling";
+
+import type { ReactNode } from "react";
 
 export type SelectionVariant =
   | "resource"

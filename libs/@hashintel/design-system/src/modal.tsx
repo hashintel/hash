@@ -1,14 +1,15 @@
+import { Box, Modal as MuiModal } from "@mui/material";
+import clsx from "clsx";
+import { useEffect, useRef } from "react";
+
+import { fluidFontClassName } from "./fluid-fonts";
+
 import type {
   ModalProps as MuiModalProps,
   SxProps,
   Theme,
 } from "@mui/material";
-import { Box, Modal as MuiModal } from "@mui/material";
-import clsx from "clsx";
 import type { FunctionComponent } from "react";
-import { useEffect, useRef } from "react";
-
-import { fluidFontClassName } from "./fluid-fonts";
 
 export type ModalProps = MuiModalProps & {
   contentStyle?: SxProps<Theme>;

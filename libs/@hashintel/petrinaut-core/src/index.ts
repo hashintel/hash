@@ -19,11 +19,7 @@ export {
 
 // --- Instance ---
 export { createPetrinaut } from "./instance";
-export type {
-  CreatePetrinautConfig,
-  EventStream,
-  Petrinaut,
-} from "./instance";
+export type { CreatePetrinautConfig, EventStream, Petrinaut } from "./instance";
 export { createPetrinautActions } from "./actions";
 export type { MutationHelperFunctions } from "./actions";
 

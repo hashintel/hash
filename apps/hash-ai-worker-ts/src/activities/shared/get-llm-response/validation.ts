@@ -1,10 +1,11 @@
 import _Ajv from "ajv";
 import _addFormats from "ajv-formats";
-import type { JSONSchema } from "openai/lib/jsonschema";
 
 import { logger } from "../activity-logger.js";
 import { stringify } from "../stringify.js";
+
 import type { LlmToolDefinition } from "./types.js";
+import type { JSONSchema } from "openai/lib/jsonschema";
 
 const Ajv = _Ajv as unknown as typeof _Ajv.default;
 const addFormats = _addFormats as unknown as typeof _addFormats.default;

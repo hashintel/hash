@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation } from "./build-simulation";
+
 import type { SimulationInput } from "./types";
 
 describe("buildSimulation", () => {

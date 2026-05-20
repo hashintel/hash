@@ -1,9 +1,9 @@
-import type { Node, Schema } from "prosemirror-model";
+import { textualContentPropertyTypeBaseUrl } from "./entity-store.js";
 
 import type { TextProperties } from "./entity.js";
-import { textualContentPropertyTypeBaseUrl } from "./entity-store.js";
 import type { ComponentNode } from "./prosemirror.js";
 import type { TextToken } from "./types.js";
+import type { Node, Schema } from "prosemirror-model";
 
 export const textBlockNodesFromTokens = (
   tokens: TextToken[],

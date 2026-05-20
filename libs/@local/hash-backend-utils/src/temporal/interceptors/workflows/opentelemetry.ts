@@ -12,6 +12,7 @@ import {
   OpenTelemetryInternalsInterceptor,
   OpenTelemetryOutboundInterceptor,
 } from "@temporalio/interceptors-opentelemetry";
+
 import type { WorkflowInterceptors } from "@temporalio/workflow";
 
 export const interceptors = (): WorkflowInterceptors => ({

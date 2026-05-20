@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type { Color, Place } from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { Color, Place } from "@hashintel/petrinaut-core";
 
 /**
  * Context for providing place-specific data to subview components

@@ -1,4 +1,5 @@
 import { defineConfig } from "@pandacss/dev";
+
 import { scopedThemeConfig } from "@hashintel/ds-components/preset";
 
 /**

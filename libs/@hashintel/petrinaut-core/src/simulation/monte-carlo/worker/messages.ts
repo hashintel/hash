@@ -1,5 +1,5 @@
-import type { InitialMarking } from "../../api";
 import type { SDCPN } from "../../../types/sdcpn";
+import type { InitialMarking } from "../../api";
 import type { PlaceTokenCountDistributionFrame } from "../metrics";
 import type { MonteCarloAdvanceResult } from "../types";
 

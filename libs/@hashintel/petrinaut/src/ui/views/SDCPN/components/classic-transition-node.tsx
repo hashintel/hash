@@ -1,12 +1,14 @@
-import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { use, useEffect, useRef } from "react";
 
+import { Icon } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
 import { EditorContext } from "../../../../react/state/editor-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
-import type { TransitionNodeType } from "../reactflow-types";
 import { handleStyling } from "../styles/styling";
+
+import type { TransitionNodeType } from "../reactflow-types";
 
 const FIRING_ANIMATION_DURATION_MS = 300;
 

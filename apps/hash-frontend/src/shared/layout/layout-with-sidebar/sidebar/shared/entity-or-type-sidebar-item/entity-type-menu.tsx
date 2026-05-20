@@ -1,17 +1,19 @@
-import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { faAdd, faLink, faList } from "@fortawesome/free-solid-svg-icons";
-import { ArrowUpRightIcon } from "@hashintel/design-system";
 import { Menu } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindMenu } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useState } from "react";
+
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import { ArrowUpRightIcon } from "@hashintel/design-system";
 
 import { useEntityTypesContextRequired } from "../../../../../entity-types-context/hooks/use-entity-types-context-required";
 import { useFrozenValue } from "../../../../../frozen";
 import { FavoriteMenuItem } from "./shared/favorite-menu-item";
 import { SidebarMenuItem } from "./shared/sidebar-menu-item";
+
+import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
 
 type EntityTypeMenuProps = {
   entityTypeId: VersionedUrl;

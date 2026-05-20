@@ -1,20 +1,22 @@
+import * as Sentry from "@sentry/node";
+
 import { timingSafeCompare } from "@local/hash-backend-utils/crypto";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
-import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { Session } from "@ory/kratos-client";
-import * as Sentry from "@sentry/node";
-import type { AxiosError } from "axios";
-import type { Express, Request, RequestHandler } from "express";
 
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
 import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { hydraAdmin } from "./ory-hydra";
-import type { KratosUserIdentity } from "./ory-kratos";
 import { isUserEmailVerified, kratosFrontendApi } from "./ory-kratos";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { User } from "../graph/knowledge/system-types/user";
+import type { KratosUserIdentity } from "./ory-kratos";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { Session } from "@ory/kratos-client";
+import type { AxiosError } from "axios";
+import type { Express, Request, RequestHandler } from "express";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 

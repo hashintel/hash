@@ -1,8 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Button } from "./button";
 import { Popover } from "./popover";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components / Popover",

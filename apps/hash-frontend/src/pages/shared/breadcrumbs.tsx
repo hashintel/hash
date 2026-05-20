@@ -1,5 +1,4 @@
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
   Box,
   Breadcrumbs as MuiBreadcrumbs,
@@ -13,10 +12,13 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import type { ReactNode } from "react";
+
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 
 import { Button, MenuItem } from "../../shared/ui";
 import { PAGE_TITLE_PLACEHOLDER } from "./block-collection/page-title/page-title";
+
+import type { ReactNode } from "react";
 
 export type Breadcrumb = {
   title: string;

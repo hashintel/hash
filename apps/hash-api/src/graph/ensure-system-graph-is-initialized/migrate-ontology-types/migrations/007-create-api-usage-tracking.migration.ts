@@ -1,18 +1,19 @@
-import type { Entity } from "@blockprotocol/type-system";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { logger } from "../../../../logger";
 import { createEntity } from "../../../knowledge/primitive/entity";
 import { getOrgByShortname } from "../../../knowledge/system-types/org";
-import type { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashDataTypeId,
   getEntitiesByType,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
+import type { Entity } from "@blockprotocol/type-system";
+import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const migrate: MigrationFunction = async ({
   context,

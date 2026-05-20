@@ -1,9 +1,10 @@
 import { ListRegularIcon } from "@hashintel/design-system";
-import type { SvgIconProps } from "@mui/material";
-import type { ReactElement } from "react";
 
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
+
+import type { SvgIconProps } from "@mui/material";
+import type { ReactElement } from "react";
 
 export type VisualizerView = "Table" | "Graph" | "Grid";
 

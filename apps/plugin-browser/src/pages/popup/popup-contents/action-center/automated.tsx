@@ -1,4 +1,3 @@
-import { MenuItem, Select } from "@hashintel/design-system";
 import {
   Box,
   FormControlLabel,
@@ -7,7 +6,8 @@ import {
   Typography,
 } from "@mui/material";
 
-import type { LocalStorage } from "../../../../shared/storage";
+import { MenuItem, Select } from "@hashintel/design-system";
+
 import { useStorageSync } from "../../../shared/use-storage-sync";
 import { SelectScope } from "./automated/select-scope";
 import { ModelSelector } from "./shared/model-selector";
@@ -18,6 +18,8 @@ import {
   type TabPanelProps,
 } from "./shared/tab-props";
 import { SwitchWithDarkMode } from "./switch-with-dark-mode";
+
+import type { LocalStorage } from "../../../../shared/storage";
 
 const DevelopmentTargetApiSwitcher = () => {
   const [apiTarget, setApiTarget] = useStorageSync("apiOrigin", API_ORIGIN);

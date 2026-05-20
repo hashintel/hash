@@ -5,7 +5,6 @@
  * also consume EditorContext, which imports numeric constants from ui.ts.
  */
 
-import type { SubView } from "../components/sub-view/types";
 import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/diagnostics";
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline";
@@ -14,6 +13,8 @@ import { entitiesTreeSubView } from "../views/Editor/panels/LeftSideBar/subviews
 import { nodesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nodes-list";
 import { parametersListSubView } from "../views/Editor/panels/LeftSideBar/subviews/parameters-list";
 import { typesListSubView } from "../views/Editor/panels/LeftSideBar/subviews/types-list";
+
+import type { SubView } from "../components/sub-view/types";
 
 export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
   nodesListSubView,

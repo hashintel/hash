@@ -1,10 +1,12 @@
 "use client";
 
 import { Collapsible } from "@ark-ui/react/collapsible";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { collapsibleSlotRecipe } from "./collapsible.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(collapsibleSlotRecipe);
 

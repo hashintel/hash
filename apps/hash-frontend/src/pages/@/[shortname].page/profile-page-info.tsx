@@ -1,13 +1,4 @@
-import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
-import {
-  Avatar,
-  FontAwesomeIcon,
-  IconButton,
-  PenRegularIcon,
-} from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 import {
   Box,
   Divider,
@@ -17,17 +8,28 @@ import {
   Typography,
 } from "@mui/material";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import type { FunctionComponent, ReactNode } from "react";
 import { useMemo } from "react";
 
+import {
+  Avatar,
+  FontAwesomeIcon,
+  IconButton,
+  PenRegularIcon,
+} from "@hashintel/design-system";
+import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
+
 import { useOrgsWithLinks } from "../../../components/hooks/use-orgs-with-links";
-import type { Org, User } from "../../../lib/user-and-org";
 import { CalendarDayRegularIcon } from "../../../shared/icons/calendar-day-regular-icon";
 import { CustomLinkIcon } from "../../../shared/icons/custom-link-icon";
 import { Link } from "../../../shared/ui/link";
 import { getImageUrlFromEntityProperties } from "../../shared/get-file-properties";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
+
+import type { Org, User } from "../../../lib/user-and-org";
 import type { ProfilePageTab } from "./util";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent, ReactNode } from "react";
 
 const InfoItem: FunctionComponent<{
   icon: ReactNode;

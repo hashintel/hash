@@ -1,4 +1,5 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
+
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 // TODO: Segmented Control should just be implemented as in the Figma.

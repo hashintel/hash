@@ -1,11 +1,13 @@
 import { ark } from "@ark-ui/react/factory";
 import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
+
 import { Icon } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
+
+import type { ReactNode } from "react";
 
 const tooltipContentStyle = css({
   backgroundColor: "neutral.s120",

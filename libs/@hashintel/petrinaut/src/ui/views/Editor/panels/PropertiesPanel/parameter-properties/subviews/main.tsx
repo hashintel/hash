@@ -1,15 +1,17 @@
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { Input } from "../../../../../../components/input";
-import { Section, SectionList } from "../../../../../../components/section";
-import type { SubView } from "../../../../../../components/sub-view/types";
-import { ParameterIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import {
   validateDisplayName,
   validateVariableName,
 } from "@hashintel/petrinaut-core";
+
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
+import { Input } from "../../../../../../components/input";
+import { Section, SectionList } from "../../../../../../components/section";
+import { ParameterIcon } from "../../../../../../constants/entity-icons";
+import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useParameterPropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const ParameterMainContent: React.FC = () => {
   const { parameter, updateParameter } = useParameterPropertiesContext();

@@ -1,5 +1,6 @@
-import { Icon } from "@hashintel/ds-components";
 import { use, useState } from "react";
+
+import { Icon } from "@hashintel/ds-components";
 
 import {
   ExperimentsContext,

@@ -1,13 +1,13 @@
-import type { Entity } from "@blockprotocol/type-system";
-import type { UserPermissions } from "@local/hash-graph-sdk/authorization";
-
 import {
   checkEntityPermission,
   checkPermissionsOnEntity,
 } from "../../../../graph/knowledge/primitive/entity";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { Entity } from "@blockprotocol/type-system";
+import type { UserPermissions } from "@local/hash-graph-sdk/authorization";
 
 export const checkUserPermissionsOnEntity: ResolverFn<
   UserPermissions,

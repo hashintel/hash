@@ -1,9 +1,3 @@
-import type {
-  BaseUrl,
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   Box,
   Checkbox,
@@ -15,9 +9,17 @@ import {
 } from "@mui/material";
 import { useMemo } from "react";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
+
 import { Button } from "../../../shared/ui/button";
 import { Modal } from "../../../shared/ui/modal";
+
 import type { EntityTypeDependent } from "./use-entity-type-dependents";
+import type {
+  BaseUrl,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 type UpgradeDependentsModalProps = {
   dependents: Record<BaseUrl, EntityTypeDependent>;

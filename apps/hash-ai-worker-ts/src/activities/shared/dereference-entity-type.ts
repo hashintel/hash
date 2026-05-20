@@ -1,9 +1,21 @@
-import type { Subgraph } from "@blockprotocol/graph";
 import {
   getDataTypeById,
   getEntityTypeAndParentsById,
   getPropertyTypeById,
 } from "@blockprotocol/graph/stdlib";
+import {
+  atLeastOne,
+  compareOntologyTypeVersions,
+  componentsFromVersionedUrl,
+  extractBaseUrl,
+  extractVersion,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
+
+import type { Subgraph } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   DataType,
@@ -16,18 +28,7 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  atLeastOne,
-  compareOntologyTypeVersions,
-  componentsFromVersionedUrl,
-  extractBaseUrl,
-  extractVersion,
-} from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-
-import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
 type MinimalDataType = DistributiveOmit<DataType, "$schema" | "kind" | "allOf">;
 

@@ -1,6 +1,6 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useRef } from "react";
+
+import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
 import { PortalContainerContext } from "../../../../../react/state/portal-container-context";
@@ -16,6 +16,8 @@ import {
   sirSdcpnContextValue,
 } from "./experiments/experiments-story-fixtures";
 import { SimulateView } from "./simulate-view";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Experiments / SimulateView",

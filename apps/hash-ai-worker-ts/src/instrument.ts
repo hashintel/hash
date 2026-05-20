@@ -1,3 +1,5 @@
+import { GrpcInstrumentation } from "@opentelemetry/instrumentation-grpc";
+
 /**
  * OpenTelemetry bootstrap for the AI worker. Imported as the very first
  * statement of `main.ts` so the auto-instrumentations can patch http
@@ -8,7 +10,6 @@ import {
   createUndiciInstrumentation,
   registerOpenTelemetry,
 } from "@local/hash-backend-utils/opentelemetry";
-import { GrpcInstrumentation } from "@opentelemetry/instrumentation-grpc";
 
 /**
  * Setup handles. `undefined` when no `HASH_OTLP_ENDPOINT` is configured

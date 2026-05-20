@@ -1,10 +1,10 @@
-import type { DrawArgs } from "@glideapps/glide-data-grid";
-
 import { getCellHorizontalPadding, getYCenter } from "../../utils";
 import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
 import { InteractableManager } from "../interactable-manager";
+
 import type { Interactable } from "../interactable-manager/types";
 import type { TooltipCell } from "./types";
+import type { DrawArgs } from "@glideapps/glide-data-grid";
 
 const iconSize = 16;
 const iconGap = 10;

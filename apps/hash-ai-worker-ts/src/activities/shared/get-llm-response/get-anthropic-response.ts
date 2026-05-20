@@ -1,16 +1,9 @@
-import type { APIError, RateLimitError } from "@anthropic-ai/sdk/error";
-import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 
 import { logger } from "../activity-logger.js";
 import { isActivityCancelled } from "../get-flow-context.js";
 import { stringify } from "../stringify.js";
-import type {
-  AnthropicApiProvider,
-  AnthropicMessagesCreateParams,
-  AnthropicMessagesCreateResponse,
-} from "./anthropic-client.js";
 import {
   anthropicMessageModelToMaxOutput,
   createAnthropicMessagesWithTools,
@@ -23,15 +16,25 @@ import {
   maxRetryCount,
   serverErrorRetryStartingDelay,
 } from "./constants.js";
-import type {
-  LlmMessageToolUseContent,
-  LlmUserMessage,
-} from "./llm-message.js";
 import {
   mapAnthropicMessageToLlmMessage,
   mapLlmMessageToAnthropicMessage,
 } from "./llm-message.js";
 import { logLlmRequest, logLlmServerError } from "./log-llm-request.js";
+import {
+  getInputValidationErrors,
+  sanitizeInputBeforeValidation,
+} from "./validation.js";
+
+import type {
+  AnthropicApiProvider,
+  AnthropicMessagesCreateParams,
+  AnthropicMessagesCreateResponse,
+} from "./anthropic-client.js";
+import type {
+  LlmMessageToolUseContent,
+  LlmUserMessage,
+} from "./llm-message.js";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,
@@ -42,10 +45,8 @@ import type {
   LlmUsage,
   ParsedLlmToolCall,
 } from "./types.js";
-import {
-  getInputValidationErrors,
-  sanitizeInputBeforeValidation,
-} from "./validation.js";
+import type { APIError, RateLimitError } from "@anthropic-ai/sdk/error";
+import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 const mapLlmToolDefinitionToAnthropicToolDefinition = (
   tool: LlmToolDefinition,
@@ -135,9 +136,7 @@ const isServerError = (error: unknown): error is APIError =>
   error.status >= 500 &&
   error.status < 600;
 
-const switchProvider = (
-  provider: AnthropicApiProvider,
-): AnthropicApiProvider =>
+const switchProvider = (provider: AnthropicApiProvider): AnthropicApiProvider =>
   provider === "anthropic" ? "amazon-bedrock" : "anthropic";
 
 const createAnthropicMessagesWithToolsWithBackoff = async (params: {

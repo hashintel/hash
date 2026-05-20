@@ -1,5 +1,4 @@
 import { useLocalStorage } from "@mantine/hooks";
-import type { PropsWithChildren, RefObject } from "react";
 import {
   createContext,
   useCallback,
@@ -9,6 +8,9 @@ import {
   useState,
 } from "react";
 
+import { useEventHandlers } from "./use-event-handlers";
+import { useSetDrawSettings } from "./use-set-draw-settings";
+
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
@@ -17,8 +19,7 @@ import type {
 import type { GraphVizFilters } from "./filter-control";
 import type { GraphState } from "./state";
 import type { RegisterEventsArgs } from "./use-event-handlers";
-import { useEventHandlers } from "./use-event-handlers";
-import { useSetDrawSettings } from "./use-set-draw-settings";
+import type { PropsWithChildren, RefObject } from "react";
 
 export type GraphContextType<
   NodeSizing extends DynamicNodeSizing | StaticNodeSizing,

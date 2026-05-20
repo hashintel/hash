@@ -1,3 +1,4 @@
+import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 /**
  * LSP-inspired protocol types for the language server WebWorker.
  *
@@ -18,8 +19,6 @@ import type {
   Position,
   TextDocumentIdentifier,
 } from "vscode-languageserver-types";
-
-import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 
 /**
  * Parameters for `textDocument/publishDiagnostics` notification.

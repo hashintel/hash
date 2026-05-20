@@ -1,8 +1,9 @@
 "use client";
 
 import { useCarouselContext } from "@ark-ui/react/carousel";
-import { Center } from "@hashintel/ds-helpers/jsx";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+
+import { Center } from "@hashintel/ds-helpers/jsx";
 
 import { Button } from "../button";
 import * as Carousel from "../carousel";

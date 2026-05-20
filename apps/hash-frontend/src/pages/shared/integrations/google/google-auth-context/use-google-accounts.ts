@@ -1,4 +1,6 @@
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
 import {
   deserializeQueryEntitiesResponse,
   type HashEntity,
@@ -9,15 +11,15 @@ import {
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
-import { useMemo } from "react";
+
+import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { useAuthenticatedUser } from "../../../auth-info-context";
 
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { useAuthenticatedUser } from "../../../auth-info-context";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 
 type UseGoogleAccountsResult = {
   accounts: HashEntity<GoogleAccount>[];

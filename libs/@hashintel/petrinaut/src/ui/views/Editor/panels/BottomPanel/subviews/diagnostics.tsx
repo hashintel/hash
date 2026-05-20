@@ -1,14 +1,16 @@
-import { Icon, Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
-import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
 import { use, useCallback, useMemo, useState } from "react";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import { Icon, Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { parseDocumentUri } from "../../../../../monaco/editor-paths";
+
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",

@@ -1,4 +1,5 @@
 import { createContext } from "react";
+
 import type {
   CompletionList,
   Diagnostic,
@@ -7,7 +8,6 @@ import type {
   Position,
   SignatureHelp,
 } from "@hashintel/petrinaut-core";
-
 import type {
   MetricSessionParams,
   ScenarioSessionParams,

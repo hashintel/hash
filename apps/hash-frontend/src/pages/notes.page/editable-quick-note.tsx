@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { BaseUrl, WebId } from "@blockprotocol/type-system";
+import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
+import { useCallback, useMemo, useState } from "react";
+
 import {
   extractEntityUuidFromEntityId,
   splitEntityId,
@@ -12,31 +13,14 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { getBlockCollectionTraversalPath } from "@local/hash-isomorphic-utils/block-collection";
 import { isHashTextBlock } from "@local/hash-isomorphic-utils/blocks-constants";
-import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  ArchivedPropertyValueWithMetadata,
-  NoteProperties,
-} from "@local/hash-isomorphic-utils/system-types/note";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import { useAccountPages } from "../../components/hooks/use-account-pages";
-import type {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../graphql/api-types.gen";
 import {
   archiveEntityMutation,
   updateEntityMutation,
@@ -49,10 +33,28 @@ import { NoteStickyRegularIcon } from "../../shared/icons/note-sticky-regular-ic
 import { UndoRegularIcon } from "../../shared/icons/undo-regular-icon";
 import { Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
-import { BlockCollection } from "../shared/block-collection/block-collection";
 import { getBlockCollectionContents } from "../shared/block-collection-contents";
-import type { PageWithParentLink } from "./convert-quick-note-to-page-modal";
+import { BlockCollection } from "../shared/block-collection/block-collection";
 import { ConvertQuickNoteToPageModal } from "./convert-quick-note-to-page-modal";
+
+import type {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../graphql/api-types.gen";
+import type { PageWithParentLink } from "./convert-quick-note-to-page-modal";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { BaseUrl, WebId } from "@blockprotocol/type-system";
+import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
+import type {
+  ArchivedPropertyValueWithMetadata,
+  NoteProperties,
+} from "@local/hash-isomorphic-utils/system-types/note";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { FunctionComponent } from "react";
 
 const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
   amount,

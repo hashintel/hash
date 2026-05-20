@@ -1,18 +1,20 @@
-import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+import { generateDefaultLambdaCode } from "@hashintel/petrinaut-core";
+
+import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { Button } from "../../../../../../../components/button";
 import { Menu } from "../../../../../../../components/menu";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
-import type { SubView } from "../../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { generateDefaultLambdaCode } from "@hashintel/petrinaut-core";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { useTransitionPropertiesContext } from "../../context";
+
+import type { SubView } from "../../../../../../../components/sub-view/types";
 
 const contentStyle = css({
   display: "flex",

@@ -1,5 +1,6 @@
-import { Stack } from "@hashintel/ds-helpers/jsx";
 import { EuroIcon, InfoIcon, UserIcon } from "lucide-react";
+
+import { Stack } from "@hashintel/ds-helpers/jsx";
 
 import { Input } from "../input";
 import { InputGroup } from "../input-group";

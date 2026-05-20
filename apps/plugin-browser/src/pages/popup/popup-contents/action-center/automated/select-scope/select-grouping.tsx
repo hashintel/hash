@@ -1,13 +1,11 @@
+import { Stack, Typography } from "@mui/material";
+
 import {
   Autocomplete,
   EntityTypeIcon,
   MenuItem,
 } from "@hashintel/design-system";
-import type { SvgIconProps, SxProps, Theme } from "@mui/material";
-import { Stack, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 
-import type { LocalStorage } from "../../../../../../shared/storage";
 import {
   darkModeBorderColor,
   darkModeInputBackgroundColor,
@@ -15,6 +13,10 @@ import {
 } from "../../../../../shared/style-values";
 import { inputPropsSx, menuItemSx } from "../../shared/autocomplete-sx";
 import { GlobePointerIcon } from "./globe-pointer-icon";
+
+import type { LocalStorage } from "../../../../../../shared/storage";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 type GroupingOption = {
   value: LocalStorage["automaticInferenceConfig"]["displayGroupedBy"];

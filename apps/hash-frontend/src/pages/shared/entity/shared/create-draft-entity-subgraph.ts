@@ -1,3 +1,6 @@
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
 import type {
   EntityRevisionId,
   EntityRootType,
@@ -9,8 +12,6 @@ import type {
   EntityMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 export const createDraftEntitySubgraph = ({
   currentSubgraph,

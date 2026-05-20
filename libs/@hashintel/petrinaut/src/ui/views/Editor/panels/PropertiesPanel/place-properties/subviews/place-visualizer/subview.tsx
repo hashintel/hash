@@ -1,29 +1,31 @@
-import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { use, useMemo, useState } from "react";
 
-import { Button } from "../../../../../../../components/button";
-import { Menu } from "../../../../../../../components/menu";
-import { SegmentGroup } from "../../../../../../../components/segment-group";
-import type { SubView } from "../../../../../../../components/sub-view/types";
-import { Switch } from "../../../../../../../components/switch";
-import { Tooltip } from "../../../../../../../components/tooltip";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
 } from "@hashintel/petrinaut-core";
+
 import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../../../../../../react/hooks/use-default-parameter-values";
-import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
-import { compileVisualizer } from "../../../../../../../lib/compile-visualizer";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { Button } from "../../../../../../../components/button";
+import { Menu } from "../../../../../../../components/menu";
+import { SegmentGroup } from "../../../../../../../components/segment-group";
+import { Switch } from "../../../../../../../components/switch";
+import { Tooltip } from "../../../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { compileVisualizer } from "../../../../../../../lib/compile-visualizer";
+import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { usePlacePropertiesContext } from "../../context";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
+
+import type { SubView } from "../../../../../../../components/sub-view/types";
 
 type ViewMode = "code" | "preview" | "split";
 

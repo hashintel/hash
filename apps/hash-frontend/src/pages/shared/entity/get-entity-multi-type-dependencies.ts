@@ -1,4 +1,3 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getIncomingLinkAndSourceEntities,
   getLeftEntityForLinkEntity,
@@ -11,6 +10,8 @@ import {
   type EntityId,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
+
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 
 const addEntityTypeIdsToSet = (
   uniqueJoinedMultiEntityTypeIds: Set<string>,

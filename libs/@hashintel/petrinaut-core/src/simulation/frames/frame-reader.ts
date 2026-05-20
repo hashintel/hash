@@ -1,15 +1,16 @@
-import type { SDCPN } from "../../types/sdcpn";
-import type {
-  SimulationFrameReader,
-  SimulationFrameState,
-  SimulationPlaceTokenValues,
-} from "../api";
 import {
   createEngineFrameLayout,
   readEngineFrame,
   type EngineFrame,
   type EngineFrameLayout,
 } from "./internal-frame";
+
+import type { SDCPN } from "../../types/sdcpn";
+import type {
+  SimulationFrameReader,
+  SimulationFrameState,
+  SimulationPlaceTokenValues,
+} from "../api";
 
 function createSimulationFrameReader(
   layout: EngineFrameLayout,

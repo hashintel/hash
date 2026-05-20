@@ -1,13 +1,14 @@
+import { createWorkerTransport } from "../../runtime/transport";
+
+import type { AbortSignalLike } from "../../../environment";
 import type { ReadableStore } from "../../../handle";
 import type { EventStream } from "../../../instance";
-import type { AbortSignalLike } from "../../../environment";
+import type { SDCPN } from "../../../types/sdcpn";
 import type {
   InitialMarking,
   SimulationTransport,
   WorkerFactory,
 } from "../../api";
-import { createWorkerTransport } from "../../runtime/transport";
-import type { SDCPN } from "../../../types/sdcpn";
 import type { PlaceTokenCountDistributionFrame } from "../metrics";
 import type {
   MonteCarloToMainMessage,

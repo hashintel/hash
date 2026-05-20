@@ -1,12 +1,14 @@
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { createContext, useContext, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { useDataTypesContext } from "../../data-types-context";
+
 import type { InheritedConstraints } from "../data-type-constraints/types";
 import type { DataTypeFormData } from "../data-type-form";
+import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
 
 const useInheritedConstraintsValue = (): InheritedConstraints => {
   const { dataTypes } = useDataTypesContext();

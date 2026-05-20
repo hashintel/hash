@@ -10,6 +10,13 @@ import {
   type Petrinaut,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
+
+import { PetrinautInstanceContext } from "./instance-context";
+import { MutationProvider } from "./mutation-provider";
+import {
+  SimulationContext,
+  type SimulationContextValue,
+} from "./simulation/context";
 import {
   EditorContext,
   type EditorContextValue,
@@ -22,12 +29,6 @@ import {
   UserSettingsContext,
   type UserSettingsContextValue,
 } from "./state/user-settings-context";
-import { PetrinautInstanceContext } from "./instance-context";
-import { MutationProvider } from "./mutation-provider";
-import {
-  SimulationContext,
-  type SimulationContextValue,
-} from "./simulation/context";
 
 // ---------------------------------------------------------------------------
 // Helpers

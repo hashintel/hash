@@ -1,3 +1,4 @@
+import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -19,8 +20,6 @@ import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
-
-import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
 
 export type EntitiesTableRowPropertyCell = {
   isArray: boolean;

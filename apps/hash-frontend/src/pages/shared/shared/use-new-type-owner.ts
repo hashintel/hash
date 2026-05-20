@@ -1,9 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
 import { useGetWebIdForShortname } from "../../../components/hooks/use-get-account-id-for-shortname";
 import { useAuthInfo } from "../auth-info-context";
 import { useActiveWorkspace } from "../workspace-context";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Decide the webId of a new type that a user is creating within the context of another type,

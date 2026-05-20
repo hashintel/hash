@@ -49,9 +49,9 @@
   },
   "scripts": {
     "build": "vite build",
-    "lint:tsc": "tsgo --noEmit",
-    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsgo --noEmit",
     "prepublishOnly": "turbo run build",
     "test:unit": "vitest"
   },

@@ -1,5 +1,3 @@
-import type { WebId } from "@blockprotocol/type-system";
-
 import type { ScheduleOverlapPolicyDataType } from "../system-types/shared.js";
 import type {
   FlowActionDefinitionId,
@@ -7,6 +5,7 @@ import type {
   FlowDefinition,
   FlowTrigger,
 } from "./types.js";
+import type { WebId } from "@blockprotocol/type-system";
 
 /**
  * Interval-based schedule specification.

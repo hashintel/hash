@@ -3,12 +3,14 @@
 /* eslint-disable import/no-extraneous-dependencies, react/no-array-index-key, @typescript-eslint/prefer-nullish-coalescing */
 
 import { Pagination, usePaginationContext } from "@ark-ui/react/pagination";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { EllipsisIcon } from "lucide-react";
-import type { ComponentProps } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { IconButton } from "./icon-button";
 import { paginationSlotRecipe } from "./pagination.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(paginationSlotRecipe);
 
@@ -22,8 +24,7 @@ export const NextTrigger = withContext(Pagination.NextTrigger, "nextTrigger");
 
 export { PaginationContext as Context } from "@ark-ui/react/pagination";
 
-export interface PaginationItemsProps
-  extends React.HTMLAttributes<HTMLElement> {
+export interface PaginationItemsProps extends React.HTMLAttributes<HTMLElement> {
   render: (page: {
     type: "page";
     value: number;

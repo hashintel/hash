@@ -2,10 +2,12 @@
 
 import { ark } from "@ark-ui/react/factory";
 import { Fieldset } from "@ark-ui/react/fieldset";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { fieldsetSlotRecipe } from "./fieldset.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(fieldsetSlotRecipe);
 

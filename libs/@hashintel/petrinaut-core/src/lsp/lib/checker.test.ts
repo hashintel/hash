@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { SDCPN } from "../../types/sdcpn";
 import { checkSDCPN } from "./checker";
 import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { createSDCPN } from "./helper/create-sdcpn";
+
+import type { SDCPN } from "../../types/sdcpn";
 
 /** Create a server, sync the SDCPN, and run diagnostics. */
 function check(sdcpn: SDCPN) {

@@ -1,7 +1,9 @@
-import type { TextFieldProps } from "@hashintel/design-system";
-import { TextField } from "@hashintel/design-system";
-import type { MergedValueSchema } from "@local/hash-isomorphic-utils/data-types";
 import { format, formatISO, parseISO } from "date-fns";
+
+import { TextField } from "@hashintel/design-system";
+
+import type { TextFieldProps } from "@hashintel/design-system";
+import type { MergedValueSchema } from "@local/hash-isomorphic-utils/data-types";
 import type { Ref } from "react";
 
 /**

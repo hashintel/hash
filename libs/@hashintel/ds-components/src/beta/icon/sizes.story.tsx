@@ -1,5 +1,6 @@
-import { Wrap } from "@hashintel/ds-helpers/jsx";
 import { DiamondIcon } from "lucide-react";
+
+import { Wrap } from "@hashintel/ds-helpers/jsx";
 
 import { Icon } from "../icon";
 

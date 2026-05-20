@@ -1,7 +1,7 @@
 import { Effect, pipe, Stream } from "effect";
 
-import { Request } from "../models/request/index.js";
 import { MutableBuffer } from "../../binary/index.js";
+import { Request } from "../models/request/index.js";
 
 export const make = <E, R>(
   stream: Stream.Stream<Request.Request, E, R>,

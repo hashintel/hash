@@ -1,3 +1,12 @@
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
+
+import type {
+  ArrayExpectedValue,
+  CustomExpectedValue,
+  CustomExpectedValueData,
+  Property,
+} from "./shared/expected-value-types";
+import type { PropertyTypeFormValues } from "./shared/property-type-form-values";
 import type {
   BaseUrl,
   OneOfSchema,
@@ -9,15 +18,6 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
-
-import type {
-  ArrayExpectedValue,
-  CustomExpectedValue,
-  CustomExpectedValueData,
-  Property,
-} from "./shared/expected-value-types";
-import type { PropertyTypeFormValues } from "./shared/property-type-form-values";
 
 const getPrimitiveSchema = ($ref: VersionedUrl): PropertyTypeReference => ({
   $ref,

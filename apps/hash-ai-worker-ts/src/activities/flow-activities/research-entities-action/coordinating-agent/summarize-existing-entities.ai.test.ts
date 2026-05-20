@@ -1,4 +1,5 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
+import { expect, test } from "vitest";
 
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
@@ -7,7 +8,6 @@ import {
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { expect, test } from "vitest";
 
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { summarizeExistingEntities } from "./summarize-existing-entities.js";

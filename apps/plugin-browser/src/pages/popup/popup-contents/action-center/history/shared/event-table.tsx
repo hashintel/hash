@@ -1,4 +1,3 @@
-import type { TableProps } from "@mui/material";
 import {
   Table,
   TableBody,
@@ -7,6 +6,8 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
+
+import type { TableProps } from "@mui/material";
 
 const borderRadius = "8px";
 

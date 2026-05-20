@@ -4,15 +4,15 @@
  * Code that needs to be accessible from outside the worker is in @local/hash-isomorphic-utils/src/flows/signals.ts
  */
 
+import { defineSignal } from "@temporalio/workflow";
+
+import type { CoordinatingAgentState } from "../activities/flow-activities/research-entities-action/shared/coordinators.js";
 import type {
   ExternalInputRequestSignal,
   FlowSignalType,
   ProgressLogBase,
   ProgressLogSignal,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { defineSignal } from "@temporalio/workflow";
-
-import type { CoordinatingAgentState } from "../activities/flow-activities/research-entities-action/shared/coordinators.js";
 
 /** Record progress logs from an activity to allow for inspection of work before the activity completes */
 export const logProgressSignal = defineSignal<[ProgressLogSignal]>(

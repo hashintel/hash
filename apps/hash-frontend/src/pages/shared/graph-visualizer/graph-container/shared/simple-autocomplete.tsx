@@ -1,12 +1,14 @@
-import { Autocomplete } from "@hashintel/design-system";
 import { Box, outlinedInputClasses } from "@mui/material";
-import type { CSSProperties, ReactElement, ReactNode, RefObject } from "react";
 import { createContext, forwardRef, useContext, useMemo } from "react";
 import { VariableSizeList } from "react-window";
+
+import { Autocomplete } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { useGraphContext } from "./graph-context";
 import { GraphVizTooltip } from "./graph-viz-tooltip";
+
+import type { CSSProperties, ReactElement, ReactNode, RefObject } from "react";
 
 const Row = ({
   data,

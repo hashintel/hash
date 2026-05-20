@@ -1,5 +1,6 @@
-import { ArrowRightRegularIcon, BugIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
+
+import { ArrowRightRegularIcon, BugIcon } from "@hashintel/design-system";
 
 import { EnvelopeRegularIcon } from "../../shared/icons/envelope-regular-icon";
 import { Button } from "../../shared/ui/button";

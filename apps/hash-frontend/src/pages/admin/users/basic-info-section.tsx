@@ -1,23 +1,25 @@
 import { useMutation } from "@apollo/client";
-import type { BaseUrl } from "@blockprotocol/type-system";
-import { Autocomplete, Chip } from "@hashintel/design-system";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
-import type {
-  EnabledFeatureFlagsPropertyValueWithMetadata,
-  UserProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box, Stack, Typography } from "@mui/material";
 import { type FunctionComponent, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+
+import { Autocomplete, Chip } from "@hashintel/design-system";
+import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+
+import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
+import { Button } from "../../../shared/ui";
 
 import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../../../lib/user-and-org";
-import { Button } from "../../../shared/ui";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type {
+  EnabledFeatureFlagsPropertyValueWithMetadata,
+  UserProperties,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 
 type BasicInfoFormData = Pick<MinimalUser, "enabledFeatureFlags">;
 

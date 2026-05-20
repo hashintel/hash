@@ -1,7 +1,7 @@
-import type {
-  EntityType,
-  OntologyTypeVersion,
-} from "@blockprotocol/type-system";
+import { Box, Stack, Tooltip, Typography } from "@mui/material";
+import { useRef, useState } from "react";
+import { Controller } from "react-hook-form";
+
 import {
   extractBaseUrl,
   extractVersion,
@@ -14,11 +14,7 @@ import {
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { useEntityTypeFormContext } from "@hashintel/type-editor";
-import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import { useRef, useState } from "react";
-import { Controller } from "react-hook-form";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { generateLinkParameters } from "../../../../shared/generate-link-parameters";
@@ -30,6 +26,12 @@ import { useTextSize } from "../../use-text-size";
 import { EntityTypeDescription } from "../entity-type-description";
 import { EntityTypeInverse } from "../entity-type-inverse";
 import { EntityTypePlural } from "../entity-type-plural";
+
+import type {
+  EntityType,
+  OntologyTypeVersion,
+} from "@blockprotocol/type-system";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
 interface EntityTypeHeaderProps {
   currentVersion: OntologyTypeVersion;

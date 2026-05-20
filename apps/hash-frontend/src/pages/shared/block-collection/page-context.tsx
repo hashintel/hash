@@ -1,8 +1,9 @@
+import { createContext, useContext, useMemo, useRef, useState } from "react";
+
 import type { EntityId } from "@blockprotocol/type-system";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import type { EditorView } from "prosemirror-view";
 import type { FunctionComponent, PropsWithChildren, RefObject } from "react";
-import { createContext, useContext, useMemo, useRef, useState } from "react";
 
 interface EditorContext {
   view: EditorView;

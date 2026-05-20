@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type { InputArc, OutputArc, Place, Transition } from "../../types/sdcpn";
 import {
   createEngineFrame,
   createEngineFrameLayout,
@@ -11,6 +10,8 @@ import {
   checkTransitionEnablement,
   isTransitionStructurallyEnabled,
 } from "./check-transition-enablement";
+
+import type { InputArc, OutputArc, Place, Transition } from "../../types/sdcpn";
 import type { EngineFrame } from "./types";
 
 const transitionState = {

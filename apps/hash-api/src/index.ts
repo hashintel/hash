@@ -1,8 +1,26 @@
 import http from "node:http";
 import { promisify } from "node:util";
 
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import KeyvRedis from "@keyv/redis";
+import * as Sentry from "@sentry/node";
+import bodyParser from "body-parser";
+import cors from "cors";
+import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
+import { RuntimeException } from "effect/Cause";
+import express, { raw } from "express";
+import { create as handlebarsCreate } from "express-handlebars";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
+import helmet from "helmet";
+import { StatsD } from "hot-shots";
+import {
+  createProxyMiddleware,
+  fixRequestBody,
+  responseInterceptor,
+} from "http-proxy-middleware";
+import httpTerminator from "http-terminator";
+import Keyv from "keyv";
+import { customAlphabet } from "nanoid";
+
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
@@ -23,26 +41,6 @@ import {
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import * as Sentry from "@sentry/node";
-import bodyParser from "body-parser";
-import cors from "cors";
-import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
-import { RuntimeException } from "effect/Cause";
-import type { ErrorRequestHandler, Request, Response } from "express";
-import express, { raw } from "express";
-import { create as handlebarsCreate } from "express-handlebars";
-import type { Options as RateLimitOptions } from "express-rate-limit";
-import { ipKeyGenerator, rateLimit } from "express-rate-limit";
-import helmet from "helmet";
-import { StatsD } from "hot-shots";
-import {
-  createProxyMiddleware,
-  fixRequestBody,
-  responseInterceptor,
-} from "http-proxy-middleware";
-import httpTerminator from "http-terminator";
-import Keyv from "keyv";
-import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
 import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
@@ -94,6 +92,10 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
+
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import type { ErrorRequestHandler, Request, Response } from "express";
+import type { Options as RateLimitOptions } from "express-rate-limit";
 
 const app = express();
 

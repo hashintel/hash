@@ -1,15 +1,17 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { PopoverPosition } from "@mui/material";
 import { ListItemIcon, ListItemText, Menu } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindMenu } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
+import { FontAwesomeIcon } from "@hashintel/design-system";
+
 import { MenuItem } from "../../../../ui";
+
+import type { EntityId } from "@blockprotocol/type-system";
+import type { PopoverPosition } from "@mui/material";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
 
 type PageMenuProps = {
   popupState: PopupState;

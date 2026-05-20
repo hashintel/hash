@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { SimulationTransport } from "../../api";
+import { createMonteCarloExperiment } from "./experiment";
+
 import type { SDCPN } from "../../../types/sdcpn";
+import type { SimulationTransport } from "../../api";
 import type { PlaceTokenCountDistributionFrame } from "../metrics";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
   MonteCarloWorkerProgress,
 } from "../worker/messages";
-import { createMonteCarloExperiment } from "./experiment";
 
 const empty = (): SDCPN => ({
   places: [],

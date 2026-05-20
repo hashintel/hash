@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+
 import type { FunctionComponent, ReactNode } from "react";
 
 interface CollabPositionIndicatorProps {

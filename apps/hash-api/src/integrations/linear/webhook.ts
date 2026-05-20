@@ -1,17 +1,13 @@
 import crypto from "node:crypto";
 
-import type { WebId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { tupleIncludes } from "@local/advanced-types/includes";
 import { timingSafeCompare } from "@local/hash-backend-utils/crypto";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
-import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { supportedLinearTypes } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import type { RequestHandler } from "express";
 
-import type { ImpureGraphContext } from "../../graph/context-types";
 import {
   getAllLinearIntegrationsWithLinearOrgId,
   getSyncedWebsForLinearIntegration,
@@ -19,6 +15,11 @@ import {
 import { getLinearSecretValueByHashWebEntityId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
+
+import type { ImpureGraphContext } from "../../graph/context-types";
+import type { WebId } from "@blockprotocol/type-system";
+import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { RequestHandler } from "express";
 
 type LinearWebhookPayload = {
   action: "create" | "update" | "delete";

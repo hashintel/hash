@@ -1,3 +1,20 @@
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  ontologyTypeRecordIdToVersionedUrl,
+} from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import {
+  getEntityTypeById,
+  hasPermissionForEntityTypes,
+} from "@local/hash-graph-sdk/entity-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
+
+import { getWebShortname } from "./util";
+
+import type { ImpureGraphFunction } from "../../context-types";
 import type {
   EntityType,
   EntityTypeMetadata,
@@ -8,29 +25,13 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  ENTITY_TYPE_META_SCHEMA,
-  ontologyTypeRecordIdToVersionedUrl,
-} from "@blockprotocol/type-system";
-import { NotFoundError } from "@local/hash-backend-utils/error";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   ArchiveEntityTypeParams,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
-import {
-  getEntityTypeById,
-  hasPermissionForEntityTypes,
-} from "@local/hash-graph-sdk/entity-type";
 import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-
-import type { ImpureGraphFunction } from "../../context-types";
-import { getWebShortname } from "./util";
 
 export const checkPermissionsOnEntityType: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },

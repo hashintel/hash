@@ -7,8 +7,9 @@ import {
   createMonteCarloFrameBuffer,
   type MonteCarloFrameBuffer,
 } from "./frame-buffer";
-import type { MonteCarloRunState } from "./internal-types";
 import { getFrameTime, getMaxFrameNumber } from "./time";
+
+import type { MonteCarloRunState } from "./internal-types";
 import type {
   MonteCarloAdvanceResult,
   MonteCarloRunConfig,

@@ -1,6 +1,7 @@
 import { type ComponentProps, Fragment } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
+
 import { useLadleIsPreview } from "../hooks/use-ladle-control";
 
 export const PreviewFrame = ({

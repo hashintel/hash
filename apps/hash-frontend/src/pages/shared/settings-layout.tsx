@@ -1,18 +1,19 @@
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import type { PropsWithChildren, ReactElement } from "react";
 import { useMemo } from "react";
 
-import type { Org } from "../../lib/user-and-org";
 import { HouseSolidIcon } from "../../shared/icons/house-solid-icon";
 import { LockSolidIcon } from "../../shared/icons/lock-solid-icon";
 import { PeopleGroupIcon } from "../../shared/icons/people-group-icon";
 import { PlugSolidIcon } from "../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "./auth-info-context";
-import type { SidebarItemData } from "./settings-layout/settings-sidebar";
 import { SettingsSidebar } from "./settings-layout/settings-sidebar";
 import { TopContextBar } from "./top-context-bar";
+
+import type { Org } from "../../lib/user-and-org";
+import type { SidebarItemData } from "./settings-layout/settings-sidebar";
+import type { PropsWithChildren, ReactElement } from "react";
 
 const generateMenuLinks = (
   organizations: { org: Org }[],

@@ -1,12 +1,11 @@
-import { InfinityLightIcon } from "@hashintel/design-system";
-import type { Subtype } from "@local/advanced-types/subtype";
-import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box, Container, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
+import { InfinityLightIcon } from "@hashintel/design-system";
+import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
@@ -23,14 +22,17 @@ import {
   flowTableRowHeight,
   FlowTableWebChip,
 } from "./shared/flow-tables";
+import { VirtualizedTable } from "./shared/virtualized-table";
+import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
+
+import type { NextPageWithLayout } from "../shared/layout";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
 } from "./shared/virtualized-table";
-import { VirtualizedTable } from "./shared/virtualized-table";
-import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
 import type { VirtualizedTableSort } from "./shared/virtualized-table/header/sort";
+import type { Subtype } from "@local/advanced-types/subtype";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 

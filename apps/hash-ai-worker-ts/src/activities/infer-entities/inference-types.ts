@@ -1,3 +1,6 @@
+import type { DereferencedEntityTypeWithSimplifiedKeys } from "../shared/dereference-entity-type.js";
+import type { LlmUsage } from "../shared/get-llm-response/types.js";
+import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -5,10 +8,6 @@ import type {
   InferredEntityChangeResult,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type OpenAI from "openai";
-
-import type { DereferencedEntityTypeWithSimplifiedKeys } from "../shared/dereference-entity-type.js";
-import type { LlmUsage } from "../shared/get-llm-response/types.js";
-import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 
 export type CompletionPayload = Omit<
   OpenAI.ChatCompletionCreateParams,

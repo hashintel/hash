@@ -1,15 +1,17 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
-import { FeatherRegularIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { Box, Container, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 
-import type { ButtonProps } from "../../../shared/ui";
+import { FeatherRegularIcon } from "@hashintel/design-system";
+import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
+
 import { Link } from "../../../shared/ui";
 import { AcceptDraftEntityButton } from "../accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../discard-draft-entity-button";
+
+import type { ButtonProps } from "../../../shared/ui";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 const buttonSx: ButtonProps["sx"] = ({ palette }) => ({
   minWidth: 0,

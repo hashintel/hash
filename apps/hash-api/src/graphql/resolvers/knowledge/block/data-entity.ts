@@ -1,13 +1,13 @@
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-
 import {
   getBlockById,
   getBlockData,
 } from "../../../../graph/knowledge/system-types/block";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedBlockGQL } from "../graphql-mapping";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 export const blockChildEntityResolver: ResolverFn<
   Promise<SerializedEntity>,

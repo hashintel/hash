@@ -1,3 +1,8 @@
+import { validateBaseUrl } from "@blockprotocol/type-system";
+
+import { stringIsNonNegativeInteger } from "../../util.js";
+
+import type { EntityRevisionId } from "../entity.js";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -7,10 +12,6 @@ import type {
   OntologyTypeVersion,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { validateBaseUrl } from "@blockprotocol/type-system";
-
-import { stringIsNonNegativeInteger } from "../../util.js";
-import type { EntityRevisionId } from "../entity.js";
 
 export type DataTypeVertex = {
   kind: "dataType";

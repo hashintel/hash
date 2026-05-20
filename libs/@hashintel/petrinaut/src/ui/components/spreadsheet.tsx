@@ -1,5 +1,6 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { useRef, useState } from "react";
+
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 export interface SpreadsheetColumn {
   id: string;

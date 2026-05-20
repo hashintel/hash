@@ -1,20 +1,15 @@
 import { useQuery } from "@apollo/client";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../../../../../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../../../../../graphql/queries/knowledge/entity.queries";
 import { ClaimsTable } from "../../../../../shared/claims-table";
 import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
@@ -23,6 +18,13 @@ import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 import { TableSkeleton } from "./shared/table-skeleton";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../../../../../../graphql/api-types.gen";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 
 type ClaimsTableProps = {
   proposedEntities: Pick<ProposedEntity, "claims" | "localEntityId">[];

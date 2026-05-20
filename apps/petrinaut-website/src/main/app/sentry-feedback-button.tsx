@@ -1,7 +1,9 @@
-import type { ViewportAction } from "@hashintel/petrinaut/ui";
-import { css } from "@hashintel/ds-helpers/css";
 import * as Sentry from "@sentry/react";
 import { MdBugReport } from "react-icons/md";
+
+import { css } from "@hashintel/ds-helpers/css";
+
+import type { ViewportAction } from "@hashintel/petrinaut/ui";
 
 const feedbackButtonStyle = css({
   backgroundColor: "purple.a85 !important",

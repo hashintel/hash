@@ -1,3 +1,44 @@
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  extractWebIdFromEntityId,
+  isEntityId,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  getDraftEntityByEntityId,
+  textualContentPropertyTypeBaseUrl,
+} from "@local/hash-isomorphic-utils/entity-store";
+
+import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
+import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
+import { useBlockContext } from "../../pages/shared/block-collection/block-context";
+import { WorkspaceContext } from "../../pages/shared/workspace-context";
+import { useBlockProtocolArchiveEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
+import { useBlockProtocolCreateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
+import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
+import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
+import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
+import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
+import { RemoteBlock } from "../remote-block/remote-block";
+import { fetchEmbedCode } from "./fetch-embed-code";
+
+import type {
+  ArchiveEntityMessageCallback,
+  CreateEntityMessageCallback,
+  UpdateEntityMessageCallback,
+  UploadFileRequestCallback,
+} from "../hooks/block-protocol-functions/knowledge/knowledge-shim";
+import type { RemoteBlockProps } from "../remote-block/remote-block";
 import type {
   BlockGraphProperties,
   EntityRevisionId,
@@ -13,50 +54,11 @@ import type {
   PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  extractWebIdFromEntityId,
-  isEntityId,
-} from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { EntityPermissionsMap } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
-import {
-  getDraftEntityByEntityId,
-  textualContentPropertyTypeBaseUrl,
-} from "@local/hash-isomorphic-utils/entity-store";
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { FunctionComponent } from "react";
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
-import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
-import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
-import { useBlockContext } from "../../pages/shared/block-collection/block-context";
-import { WorkspaceContext } from "../../pages/shared/workspace-context";
-import type {
-  ArchiveEntityMessageCallback,
-  CreateEntityMessageCallback,
-  UpdateEntityMessageCallback,
-  UploadFileRequestCallback,
-} from "../hooks/block-protocol-functions/knowledge/knowledge-shim";
-import { useBlockProtocolArchiveEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import { useBlockProtocolCreateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-file-upload";
-import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
-import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
-import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import type { RemoteBlockProps } from "../remote-block/remote-block";
-import { RemoteBlock } from "../remote-block/remote-block";
-import { fetchEmbedCode } from "./fetch-embed-code";
 
 export type BlockLoaderProps = {
   blockCollectionSubgraph?: Subgraph<EntityRootType<HashEntity>>;

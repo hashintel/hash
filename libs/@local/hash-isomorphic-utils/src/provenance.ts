@@ -1,6 +1,6 @@
-import type { SourceProvenance } from "@blockprotocol/type-system";
-
 import { generateUuid } from "./generate-uuid.js";
+
+import type { SourceProvenance } from "@blockprotocol/type-system";
 
 /**
  * Deduplicate a list of sources, merging values as appropriate (see inline comments).

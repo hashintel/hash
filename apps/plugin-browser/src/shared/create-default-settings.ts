@@ -1,7 +1,7 @@
-import type { WebId } from "@blockprotocol/type-system";
-
 import { defaultProductionRules } from "../pages/popup/popup-contents/action-center/default-production-rules";
+
 import type { PersistedUserSettings } from "./storage";
+import type { WebId } from "@blockprotocol/type-system";
 
 export const createDefaultSettings = ({
   userWebWebId,

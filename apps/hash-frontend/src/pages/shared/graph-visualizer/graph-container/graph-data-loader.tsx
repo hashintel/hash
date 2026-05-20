@@ -1,12 +1,14 @@
-import { customColors } from "@hashintel/design-system/theme";
 import { useLoadGraph, useSigma } from "@react-sigma/core";
 import { MultiDirectedGraph } from "graphology";
 import { memo, useEffect } from "react";
 
+import { customColors } from "@hashintel/design-system/theme";
+
 import { useGraphContext } from "./shared/graph-context";
+import { useLayout } from "./use-layout";
+
 import type { GraphVizEdge, GraphVizNode } from "./shared/types";
 import type { RegisterEventsArgs } from "./shared/use-event-handlers";
-import { useLayout } from "./use-layout";
 
 export type GraphLoaderProps = {
   edges: GraphVizEdge[];

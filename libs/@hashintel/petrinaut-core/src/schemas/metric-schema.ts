@@ -1,8 +1,9 @@
 import { z } from "zod";
 
-import type { Metric } from "../types/sdcpn";
 import { displayNameSchema } from "../validation/display-name";
 import { idSchema } from "./entity-schemas";
+
+import type { Metric } from "../types/sdcpn";
 
 export const metricSchema = z
   .strictObject({

@@ -1,7 +1,8 @@
-import { CopyRegularIcon, IconButton } from "@hashintel/design-system";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
+
+import { CopyRegularIcon, IconButton } from "@hashintel/design-system";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import { GridEditorWrapper } from "./entity/entity-editor/shared/grid-editor-wrapper";
 

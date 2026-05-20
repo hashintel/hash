@@ -1,11 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import type { Color } from "@hashintel/petrinaut-core";
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { TypePropertiesContext } from "./context";
 import { typeMainContentSubView } from "./subviews/main";
+
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { Color } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",

@@ -3,13 +3,14 @@
 /* eslint-disable import/no-extraneous-dependencies, @typescript-eslint/no-empty-object-type */
 
 import { FileUpload, useFileUploadContext } from "@ark-ui/react/file-upload";
+import { FileIcon, XIcon } from "lucide-react";
+import { type ComponentProps, forwardRef, useMemo } from "react";
+
 import {
   createStyleContext,
   type HTMLStyledProps,
   Stack,
 } from "@hashintel/ds-helpers/jsx";
-import { FileIcon, XIcon } from "lucide-react";
-import { type ComponentProps, forwardRef, useMemo } from "react";
 
 import { fileUploadSlotRecipe } from "./file-upload.recipe";
 import { Span } from "./span";

@@ -1,12 +1,14 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { useReactFlow } from "@xyflow/react";
 import { use, useState } from "react";
 
+import { css, cva } from "@hashintel/ds-helpers/css";
+
+import { EditorContext } from "../../../../react/state/editor-context";
 import { Button } from "../../../components/button";
 import { PANEL_MARGIN } from "../../../constants/ui";
-import { EditorContext } from "../../../../react/state/editor-context";
-import type { ViewportAction } from "../../../types/viewport-action";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
+
+import type { ViewportAction } from "../../../types/viewport-action";
 
 const BASE_OFFSET = 12;
 

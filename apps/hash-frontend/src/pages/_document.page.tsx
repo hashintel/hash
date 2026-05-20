@@ -1,7 +1,8 @@
 import createEmotionServer from "@emotion/server/create-instance";
-import { createEmotionCache } from "@hashintel/design-system/theme";
 import NextDocument, { Head, Html, Main, NextScript } from "next/document";
 import { Children } from "react";
+
+import { createEmotionCache } from "@hashintel/design-system/theme";
 
 type CustomDocumentProps = {
   nonce?: string;

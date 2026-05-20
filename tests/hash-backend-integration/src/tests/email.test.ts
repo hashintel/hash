@@ -1,9 +1,9 @@
 import "./load-test-env";
+import { it } from "vitest";
 
 import { AwsSesEmailTransporter } from "@apps/hash-api/src/email/transporters";
 import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { it } from "vitest";
 
 it("can send an email", async ({ skip }) => {
   if (process.env.HASH_DEV_INTEGRATION_EMAIL === undefined) {

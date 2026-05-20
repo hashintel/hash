@@ -1,6 +1,11 @@
-import { cx } from "@hashintel/ds-helpers/css";
 import { useRef, useState } from "react";
 import { useMergeRefs } from "use-callback-ref";
+
+import { cx } from "@hashintel/ds-helpers/css";
+
+import { Icon } from "../Icon/icon";
+import { LoadingSpinner } from "../Loading/loading-spinner";
+import { baseInputRecipe } from "./base-input.recipe";
 
 import type {
   FormInputSize,
@@ -8,9 +13,6 @@ import type {
   SharedInputProps,
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
-import { Icon } from "../Icon/icon";
-import { LoadingSpinner } from "../Loading/loading-spinner";
-import { baseInputRecipe } from "./base-input.recipe";
 
 export type BaseInputProps = {
   /** The html type of the input element (text/number etc) */

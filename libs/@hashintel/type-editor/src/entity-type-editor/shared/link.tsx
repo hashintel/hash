@@ -1,3 +1,5 @@
+import { useCustomizationSettings } from "../../shared/customization-context";
+
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   HTMLProps,
@@ -5,8 +7,6 @@ import type {
   MouseEvent,
   PropsWithChildren,
 } from "react";
-
-import { useCustomizationSettings } from "../../shared/customization-context";
 
 export const Link = ({
   children,

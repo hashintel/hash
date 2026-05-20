@@ -1,10 +1,12 @@
 "use client";
 
 import { PinInput } from "@ark-ui/react/pin-input";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { pinInputSlotRecipe } from "./pin-input.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(pinInputSlotRecipe);
 

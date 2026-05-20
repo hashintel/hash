@@ -1,6 +1,6 @@
-import type { TextFieldProps } from "@hashintel/design-system";
-import { TextField } from "@hashintel/design-system";
 import { outlinedInputClasses } from "@mui/material";
+
+import { TextField } from "@hashintel/design-system";
 
 import {
   darkModeBorderColor,
@@ -8,6 +8,8 @@ import {
   darkModeInputColor,
   darkModePlaceholderColor,
 } from "../../../shared/style-values";
+
+import type { TextFieldProps } from "@hashintel/design-system";
 
 export const TextFieldWithDarkMode = (props: TextFieldProps) => {
   return (

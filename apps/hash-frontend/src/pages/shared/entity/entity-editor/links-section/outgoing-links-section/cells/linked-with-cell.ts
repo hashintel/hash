@@ -1,6 +1,5 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+
 import { customColors } from "@hashintel/design-system/theme";
 
 import {
@@ -10,11 +9,14 @@ import {
 import { drawCellFadeOutGradient } from "../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../../../../../../components/grid/utils/interactable-manager";
-import type { Interactable } from "../../../../../../../components/grid/utils/interactable-manager/types";
 import { getImageUrlFromEntityProperties } from "../../../../../get-file-properties";
-import type { LinkRow } from "../types";
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";
 import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";
+
+import type { Interactable } from "../../../../../../../components/grid/utils/interactable-manager/types";
+import type { LinkRow } from "../types";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 export interface LinkedWithCellProps {
   readonly kind: "linked-with-cell";

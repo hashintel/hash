@@ -1,10 +1,10 @@
-import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import browser from "webextension-polyfill";
 
 import type {
   GetTabContentRequest,
   GetTabContentReturn,
 } from "../../../shared/messages";
+import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 
 export const getWebsiteContent = async (urls: string[]) => {
   const firstPage = urls[0];

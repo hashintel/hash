@@ -1,12 +1,13 @@
-import type { EdgeChange, NodeChange } from "@xyflow/react";
 import { use } from "react";
 
-import { snapPositionToGrid } from "../../../lib/snap-position-to-grid";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { MutationContext } from "../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
-import type { SelectionMap } from "@hashintel/petrinaut-core";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
+import { snapPositionToGrid } from "../../../lib/snap-position-to-grid";
+
+import type { SelectionMap } from "@hashintel/petrinaut-core";
+import type { EdgeChange, NodeChange } from "@xyflow/react";
 
 /**
  * A hook that provides a callback to apply ReactFlow node changes to the SDCPN store.

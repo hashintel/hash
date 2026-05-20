@@ -1,14 +1,5 @@
 import { faEdit } from "@fortawesome/free-regular-svg-icons";
 import {
-  addPopperPositionClassPopperModifier,
-  FontAwesomeIcon,
-  getInputProps,
-  inputLabelProps,
-  popperPlacementPopperNoRadius,
-  TextField,
-} from "@hashintel/design-system";
-import type { BoxProps } from "@mui/material";
-import {
   Box,
   Checkbox,
   ClickAwayListener,
@@ -21,7 +12,6 @@ import {
   TableCell,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -31,8 +21,20 @@ import {
   useWatch,
 } from "react-hook-form";
 
-import type { EntityTypeEditorFormData } from "../../shared/form-types";
+import {
+  addPopperPositionClassPopperModifier,
+  FontAwesomeIcon,
+  getInputProps,
+  inputLabelProps,
+  popperPlacementPopperNoRadius,
+  TextField,
+} from "@hashintel/design-system";
+
 import { useIsReadonly } from "../../shared/read-only-context";
+
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { BoxProps } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 const useFrozenValue = <T extends ReactNode>(
   value: T,

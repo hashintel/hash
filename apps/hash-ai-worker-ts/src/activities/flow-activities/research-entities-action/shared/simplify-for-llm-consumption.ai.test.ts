@@ -1,5 +1,4 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";

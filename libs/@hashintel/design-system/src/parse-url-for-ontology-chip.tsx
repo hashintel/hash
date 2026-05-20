@@ -1,5 +1,6 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { validateVersionedUrl } from "@blockprotocol/type-system";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export const parseUrlForOntologyChip = (url: VersionedUrl) => {
   const validationResult = validateVersionedUrl(url);

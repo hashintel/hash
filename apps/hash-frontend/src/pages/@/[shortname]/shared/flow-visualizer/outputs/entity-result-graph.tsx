@@ -1,15 +1,17 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { EntityForGraphChart } from "@hashintel/block-design-system";
-import { LoadingSpinner } from "@hashintel/design-system";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { useTheme } from "@mui/material";
 import { useMemo } from "react";
+
+import { LoadingSpinner } from "@hashintel/design-system";
 
 import { EntityGraphVisualizer } from "../../../../../shared/entity-graph-visualizer";
 import { useSlideStack } from "../../../../../shared/slide-stack";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
+
+import type { EntityId } from "@blockprotocol/type-system";
+import type { EntityForGraphChart } from "@hashintel/block-design-system";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
 type EntityResultGraphProps = {
   closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;

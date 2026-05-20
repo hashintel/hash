@@ -1,5 +1,6 @@
 import { useLazyQuery, useMutation, useQuery } from "@apollo/client";
-import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import { createContext, useCallback, useContext, useMemo } from "react";
+
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import {
@@ -9,13 +10,14 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  ArchivedPropertyValueWithMetadata,
-  Notification,
-  ReadAtPropertyValueWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/commentnotification";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+
+import {
+  countEntitiesQuery,
+  updateEntitiesMutation,
+  updateEntityMutation,
+} from "../graphql/queries/knowledge/entity.queries";
+import { useAuthInfo } from "../pages/shared/auth-info-context";
+import { usePollInterval } from "./use-poll-interval";
 
 import type {
   CountEntitiesQuery,
@@ -27,13 +29,13 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../graphql/api-types.gen";
-import {
-  countEntitiesQuery,
-  updateEntitiesMutation,
-  updateEntityMutation,
-} from "../graphql/queries/knowledge/entity.queries";
-import { useAuthInfo } from "../pages/shared/auth-info-context";
-import { usePollInterval } from "./use-poll-interval";
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import type {
+  ArchivedPropertyValueWithMetadata,
+  Notification,
+  ReadAtPropertyValueWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/commentnotification";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type NotificationCountContextValues = {
   numberOfUnreadNotifications?: number;

@@ -1,14 +1,14 @@
-import type { ClosedDataType } from "@blockprotocol/type-system";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   getIconForDataType,
   identifierTypeTitles,
   measurementTypeTitles,
 } from "@hashintel/design-system";
-import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 import type { CustomIcon } from "../../../../../../../../components/grid/utils/custom-grid-icons";
 import type { EditorType } from "./types";
+import type { ClosedDataType } from "@blockprotocol/type-system";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 interface EditorSpec {
   gridIcon: CustomIcon;

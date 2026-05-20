@@ -1,10 +1,12 @@
 "use client";
 
 import { Progress } from "@ark-ui/react/progress";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { progressSlotRecipe } from "./progress.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(progressSlotRecipe);
 

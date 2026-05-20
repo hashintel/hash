@@ -1,10 +1,10 @@
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-
 import { createOrg } from "../../../../graph/knowledge/system-types/org";
 import { createOrgMembershipLinkEntity } from "../../../../graph/knowledge/system-types/org-membership";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { MutationCreateOrgArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 export const createOrgResolver: ResolverFn<
   Promise<SerializedEntity>,

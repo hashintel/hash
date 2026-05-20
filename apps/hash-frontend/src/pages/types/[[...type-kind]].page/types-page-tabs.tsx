@@ -1,8 +1,8 @@
-import type { FunctionComponent } from "react";
-
 import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
+
 import type { TabId } from "../[[...type-kind]].page";
+import type { FunctionComponent } from "react";
 
 const tabIds = [
   "all",

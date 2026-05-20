@@ -1,9 +1,11 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+
+import { css } from "@hashintel/ds-helpers/css";
 
 import { Button } from "./button";
 import { Dialog } from "./dialog";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components / Dialog",

@@ -1,13 +1,15 @@
-import type { SentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
+import { proxySinks, setHandler } from "@temporalio/workflow";
+
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
+
+import { getExternalInputResponseQuery } from "../../shared/queries.js";
+import { externalInputRequestSignal } from "../../shared/signals.js";
+
+import type { SentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import type {
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { proxySinks, setHandler } from "@temporalio/workflow";
-
-import { getExternalInputResponseQuery } from "../../shared/queries.js";
-import { externalInputRequestSignal } from "../../shared/signals.js";
 
 const sinks = proxySinks<SentrySinks>();
 

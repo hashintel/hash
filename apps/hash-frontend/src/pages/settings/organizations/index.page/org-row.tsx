@@ -1,17 +1,18 @@
 import { useMutation } from "@apollo/client";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
-import type {
-  RemoveUserFromOrgMutation,
-  RemoveUserFromOrgMutationVariables,
-} from "../../../../graphql/api-types.gen";
 import { removeUserFromOrgMutation } from "../../../../graphql/queries/knowledge/org.queries";
-import type { Org } from "../../../../lib/user-and-org";
 import { Link } from "../../../../shared/ui/link";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { OrgContextMenu } from "./org-row/org-context-menu";
+
+import type {
+  RemoveUserFromOrgMutation,
+  RemoveUserFromOrgMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import type { Org } from "../../../../lib/user-and-org";
 
 export const OrgRow = ({ org }: { org: Org }) => {
   const { authenticatedUser, refetch } = useAuthenticatedUser();

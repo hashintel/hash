@@ -1,13 +1,14 @@
 /* eslint-disable no-param-reassign -- Monte Carlo frame buffers are mutable by design. */
 import { computePlaceNextState } from "../engine/compute-place-next-state";
-import type { EngineFrameLayout, SimulationInstance } from "../engine/types";
 import {
   copyMonteCarloFrameBuffer,
   type MonteCarloFrameBuffer,
 } from "./frame-buffer";
-import type { MonteCarloRunState, PlaceID } from "./internal-types";
 import { getPlaceIndex } from "./layout";
 import { ensureFrameCapacity } from "./run-state";
+
+import type { EngineFrameLayout, SimulationInstance } from "../engine/types";
+import type { MonteCarloRunState, PlaceID } from "./internal-types";
 
 /**
  * Copies the current frame into the next-frame buffer and applies continuous

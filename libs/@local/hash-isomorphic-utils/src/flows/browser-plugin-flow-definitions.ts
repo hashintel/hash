@@ -1,4 +1,4 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
+import { browserInferenceFlowOutput } from "./browser-plugin-flow-types.js";
 
 import type {
   AiFlowActionDefinitionId,
@@ -11,8 +11,8 @@ import type {
   ManualInferenceTriggerInputName,
   ManualInferenceTriggerInputs,
 } from "./browser-plugin-flow-types.js";
-import { browserInferenceFlowOutput } from "./browser-plugin-flow-types.js";
 import type { FlowDefinition } from "./types.js";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const manualBrowserInferenceFlowDefinition: FlowDefinition<AiFlowActionDefinitionId> =
   {

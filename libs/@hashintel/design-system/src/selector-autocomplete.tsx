@@ -1,5 +1,4 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import type { AutocompleteProps, PaperProps, PopperProps } from "@mui/material";
 import {
   Autocomplete,
   ClickAwayListener,
@@ -7,11 +6,9 @@ import {
   Typography,
 } from "@mui/material";
 import clsx from "clsx";
-import type { Ref } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
-import type { ButtonProps } from "./button";
 import { Button } from "./button";
 import { Chip } from "./chip";
 import { GRID_CLICK_IGNORE_CLASS } from "./constants";
@@ -23,9 +20,13 @@ import {
   popperPlacementInputNoBorder,
   popperPlacementInputNoRadius,
 } from "./popper-placement-modifier";
-import type { SelectorAutocompleteOptionProps } from "./selector-autocomplete/selector-autocomplete-option";
 import { SelectorAutocompleteOption } from "./selector-autocomplete/selector-autocomplete-option";
 import { TextField } from "./text-field";
+
+import type { ButtonProps } from "./button";
+import type { SelectorAutocompleteOptionProps } from "./selector-autocomplete/selector-autocomplete-option";
+import type { AutocompleteProps, PaperProps, PopperProps } from "@mui/material";
+import type { Ref } from "react";
 
 export const TYPE_SELECTOR_HEIGHT = 57;
 

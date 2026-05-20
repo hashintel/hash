@@ -1,17 +1,19 @@
-import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
-import type { ComponentType } from "react";
 import { use } from "react";
 
-import type { SegmentOption } from "../../../../components/segment-group";
-import { SegmentGroup } from "../../../../components/segment-group";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import {
   EditorContext,
   type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
+import { SegmentGroup } from "../../../../components/segment-group";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
+
+import type { SegmentOption } from "../../../../components/segment-group";
+import type { ComponentType } from "react";
 
 // -- Layout styles -------------------------------------------------------------
 

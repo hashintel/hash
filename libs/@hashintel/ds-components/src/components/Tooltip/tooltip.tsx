@@ -1,7 +1,8 @@
 import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
-import { cx } from "@hashintel/ds-helpers/css";
 import { useEffect, useRef } from "react";
+
+import { cx } from "@hashintel/ds-helpers/css";
 
 import {
   contentStyles,

@@ -1,12 +1,13 @@
 /* eslint-disable react/destructuring-assignment, react/button-has-type, @typescript-eslint/prefer-nullish-coalescing */
 import { cx } from "@hashintel/ds-helpers/css";
-import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 
-import type { FormInputSize } from "../../util/form-shared";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { Tooltip } from "../Tooltip/tooltip";
 import { styles } from "./button.recipe";
+
+import type { FormInputSize } from "../../util/form-shared";
+import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 
 export type Variant = "solid" | "subtle" | "ghost" | "link" | "linkSubtle";
 export type Tone = "neutral" | "brand" | "error"; // success, warning, etc

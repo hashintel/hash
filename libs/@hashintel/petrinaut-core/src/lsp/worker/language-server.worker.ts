@@ -20,16 +20,17 @@ import {
 } from "vscode-languageserver-types";
 
 import { createWorkerThreadRuntime } from "../../environment";
-import type { SDCPN } from "../../types/sdcpn";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
+import { offsetToPosition, positionToOffset } from "../lib/position-utils";
+import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
+
+import type { SDCPN } from "../../types/sdcpn";
 import type {
   MetricSessionData,
   ScenarioSessionData,
 } from "../lib/generate-virtual-files";
-import { offsetToPosition, positionToOffset } from "../lib/position-utils";
-import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 import type {
   ClientMessage,
   MetricSessionParams,

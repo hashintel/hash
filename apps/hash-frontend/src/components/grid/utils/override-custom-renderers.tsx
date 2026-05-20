@@ -1,10 +1,11 @@
-import type { DataEditorProps } from "@glideapps/glide-data-grid";
 import { isObjectEditorCallbackResult } from "@glideapps/glide-data-grid";
 import { type ReactNode, type RefObject } from "react";
 
 import { useSlideStack } from "../../../pages/shared/slide-stack";
 import { useScrollLock } from "../../../shared/use-scroll-lock";
 import { InteractableManager } from "./interactable-manager";
+
+import type { DataEditorProps } from "@glideapps/glide-data-grid";
 
 /**
  * Lock scrolling outside when a Grid editor overlay is open.
@@ -22,7 +23,9 @@ import { InteractableManager } from "./interactable-manager";
  */
 const ScrollLockWrapper = ({
   children,
-}: { children: ReactNode | Promise<ReactNode> }) => {
+}: {
+  children: ReactNode | Promise<ReactNode>;
+}) => {
   const { currentSlideRef } = useSlideStack();
 
   useScrollLock(true, currentSlideRef?.current ?? document.body);

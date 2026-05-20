@@ -1,6 +1,7 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
 import { getFlowRunById } from "@local/hash-backend-utils/flows";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
+
+import * as Error from "../../error";
+import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
 import type {
   FlowRun,
@@ -8,8 +9,8 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import * as Error from "../../error";
-import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 
 export const getFlowRunByIdResolver: ResolverFn<
   FlowRun | SparseFlowRun,

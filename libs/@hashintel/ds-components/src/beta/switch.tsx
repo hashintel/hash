@@ -2,8 +2,9 @@
 
 import { ark } from "@ark-ui/react/factory";
 import { Switch, useSwitchContext } from "@ark-ui/react/switch";
-import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
 import { type ComponentProps, forwardRef, type ReactNode } from "react";
+
+import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
 
 import { switchSlotRecipe } from "./switch.recipe";
 
@@ -43,8 +44,9 @@ export const Indicator = forwardRef<HTMLSpanElement, IndicatorProps>(
   },
 );
 
-interface ThumbIndicatorProps
-  extends ComponentProps<typeof StyledThumbIndicator> {
+interface ThumbIndicatorProps extends ComponentProps<
+  typeof StyledThumbIndicator
+> {
   fallback?: React.ReactNode | undefined;
 }
 

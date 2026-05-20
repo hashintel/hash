@@ -1,8 +1,13 @@
 import { useMutation } from "@apollo/client";
-import type { WebId } from "@blockprotocol/type-system";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { useCallback } from "react";
+
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+
+import {
+  createFileFromUrl,
+  requestFileUpload,
+} from "../../../../graphql/queries/knowledge/file.queries";
+import { uploadFileToStorageProvider } from "../../../../shared/upload-to-storage-provider";
 
 import type {
   CreateFileFromUrlMutation,
@@ -10,12 +15,9 @@ import type {
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import {
-  createFileFromUrl,
-  requestFileUpload,
-} from "../../../../graphql/queries/knowledge/file.queries";
-import { uploadFileToStorageProvider } from "../../../../shared/upload-to-storage-provider";
 import type { UploadFileRequestCallback } from "./knowledge-shim";
+import type { WebId } from "@blockprotocol/type-system";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const useBlockProtocolFileUpload = (
   webId?: WebId,

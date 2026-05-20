@@ -5,12 +5,14 @@ import {
   type Place,
   type Transition,
 } from "@hashintel/petrinaut-core";
-import type { TimelineView } from "../../../../../../../../react/state/editor-context";
-import type { TimelineSeriesConfig } from "../types";
+
 import { buildMetricSeriesConfig } from "./metric";
 import { buildPerPlaceSeriesConfig } from "./per-place";
 import { buildPerTransitionSeriesConfig } from "./per-transition";
 import { buildPerTypeSeriesConfig } from "./per-type";
+
+import type { TimelineView } from "../../../../../../../../react/state/editor-context";
+import type { TimelineSeriesConfig } from "../types";
 
 /**
  * Selects the timeline series builder for the active timeline view.

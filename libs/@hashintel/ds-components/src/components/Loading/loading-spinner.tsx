@@ -1,9 +1,11 @@
-import { cx } from "@hashintel/ds-helpers/css";
 import { useId } from "react";
+
+import { cx } from "@hashintel/ds-helpers/css";
+
+import { styles } from "./loading-spinner.recipe";
 
 import type { DataAttributes } from "../../util/dom";
 import type { FormInputSize } from "../../util/form-shared";
-import { styles } from "./loading-spinner.recipe";
 
 export type LoadingSpinnerVariant = "default" | "bars";
 

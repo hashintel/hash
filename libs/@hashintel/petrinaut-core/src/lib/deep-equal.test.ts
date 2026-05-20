@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { SDCPN } from "../types/sdcpn";
 import { isSDCPNEqual } from "./deep-equal";
+
+import type { SDCPN } from "../types/sdcpn";
 
 const emptyNet: SDCPN = {
   places: [],

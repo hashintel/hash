@@ -1,13 +1,15 @@
-import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
+import { Stack, svgIconClasses, Tooltip, Typography } from "@mui/material";
+
 import {
   ArrowRightRegularIcon,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
-import { Stack, svgIconClasses, Tooltip, Typography } from "@mui/material";
 
 import { ChipIconButton } from "./chip-icon-button";
+
+import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 
 type VersionUpgradeIndicatorProps = {
   currentVersion: OntologyTypeVersion;

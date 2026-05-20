@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { SDCPN } from "../../types/sdcpn";
-import { createMonteCarloSimulator } from "./monte-carlo-simulator";
 import { createPlaceTokenCountDistributionMetric } from "./metrics";
+import { createMonteCarloSimulator } from "./monte-carlo-simulator";
+
+import type { SDCPN } from "../../types/sdcpn";
 import type { PlaceTokenCountDistributionFrame } from "./metrics";
 
 const sdcpn: SDCPN = {

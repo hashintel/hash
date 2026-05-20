@@ -1,10 +1,8 @@
-import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
 
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
 import { logProgress } from "../../shared/log-progress.js";
-import type { Claim } from "../shared/claims.js";
-import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js";
 import {
   getSomeToolCallResults,
@@ -18,12 +16,16 @@ import {
   stopWorkers,
 } from "./shared/coordinators.js";
 import { deduplicateClaims } from "./shared/deduplicate-claims.js";
-import type { DuplicateReport } from "./shared/deduplicate-entities.js";
 import { deduplicateEntities } from "./shared/deduplicate-entities.js";
 import { createInitialPlan } from "./sub-coordinating-agent/create-initial-plan.js";
-import type { SubCoordinatingAgentInput } from "./sub-coordinating-agent/input.js";
 import { requestSubCoordinatorActions } from "./sub-coordinating-agent/request-sub-coordinator-actions.js";
+
+import type { Claim } from "../shared/claims.js";
+import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { DuplicateReport } from "./shared/deduplicate-entities.js";
+import type { SubCoordinatingAgentInput } from "./sub-coordinating-agent/input.js";
 import type { SubCoordinatingAgentState } from "./sub-coordinating-agent/state.js";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 const handleStopReturn = async (
   shouldStopStatus: {

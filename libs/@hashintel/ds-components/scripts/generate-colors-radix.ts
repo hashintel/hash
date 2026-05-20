@@ -10,8 +10,10 @@
 
 import fs from "node:fs";
 import { join } from "node:path";
-import Color from "colorjs.io";
+
 import * as radixColors from "@radix-ui/colors";
+import Color from "colorjs.io";
+
 import { withSemantics, type PaletteKind } from "../src/preset/tokens/utils";
 
 const OUTPUT_DIR = "src/preset/tokens/gen/colors";

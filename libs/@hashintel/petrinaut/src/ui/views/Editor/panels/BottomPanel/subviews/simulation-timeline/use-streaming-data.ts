@@ -1,13 +1,16 @@
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { use, useEffect, useRef, useSyncExternalStore } from "react";
+
 import {
   compileMetric,
   type CompiledMetric,
   type Metric,
 } from "@hashintel/petrinaut-core";
+
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { buildTimelineSeriesConfig } from "./series-config";
+
 import type {
   StreamingStore,
   TimelineFrame,

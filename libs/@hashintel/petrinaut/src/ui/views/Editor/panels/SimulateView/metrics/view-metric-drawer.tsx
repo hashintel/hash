@@ -1,16 +1,18 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { Button } from "../../../../../components/button";
-import { Drawer } from "../../../../../components/drawer";
 import {
   metricSchema,
   compileMetric,
   type Metric,
 } from "@hashintel/petrinaut-core";
+
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { Button } from "../../../../../components/button";
+import { Drawer } from "../../../../../components/drawer";
+import { DrawerErrorDisplay } from "../drawer-error-display";
 import {
   MetricFormBody,
   type MetricFormInstance,
@@ -20,7 +22,6 @@ import {
 } from "./metric-form";
 import { summarizeMetricLspErrors } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
-import { DrawerErrorDisplay } from "../drawer-error-display";
 
 // -- Defaults -----------------------------------------------------------------
 

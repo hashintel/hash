@@ -1,25 +1,21 @@
+import { Context } from "@temporalio/activity";
+import dedent from "dedent";
+import { CodeInterpreter, Sandbox } from "e2b";
+
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   resolvePayloadValue,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
-import type { AiActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { FormattedText } from "@local/hash-isomorphic-utils/flows/types";
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
-import dedent from "dedent";
-import { CodeInterpreter, Sandbox } from "e2b";
-import type { OpenAI } from "openai";
 
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -29,11 +25,17 @@ import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
 } from "../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities.js";
 import { openAiSeed } from "../shared/open-ai-seed.js";
+
+import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { FormattedText } from "@local/hash-isomorphic-utils/flows/types";
+import type { Status } from "@local/status";
+import type { OpenAI } from "openai";
 
 const answerTools: LlmToolDefinition[] = [
   {

@@ -1,4 +1,3 @@
-import type { SxProps, Theme } from "@mui/material";
 import { Box } from "@mui/material";
 /* eslint-disable no-restricted-imports */
 import Table from "@mui/material/Table";
@@ -6,22 +5,24 @@ import TableBody from "@mui/material/TableBody";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-/* eslint-enable no-restricted-imports */
-import type { ComponentPropsWithoutRef, ReactElement } from "react";
 import { forwardRef, useCallback, useMemo } from "react";
-import type { TableComponents } from "react-virtuoso";
 import { TableVirtuoso } from "react-virtuoso";
 
-import type { ColumnMetadata } from "./virtualized-table/header";
 import {
   HeaderContent,
   virtualizedTableHeaderHeight,
 } from "./virtualized-table/header";
+
+import type { ColumnMetadata } from "./virtualized-table/header";
 import type { TableFilterProps } from "./virtualized-table/header/filter";
 import type {
   TableSortProps,
   VirtualizedTableSort,
 } from "./virtualized-table/header/sort";
+import type { SxProps, Theme } from "@mui/material";
+/* eslint-enable no-restricted-imports */
+import type { ComponentPropsWithoutRef, ReactElement } from "react";
+import type { TableComponents } from "react-virtuoso";
 
 export const defaultCellSx = {
   padding: "5px 14px",

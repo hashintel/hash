@@ -1,12 +1,5 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import type {
-  EntityAuthorizationSubject,
-  MutationResolvers,
-  PendingOrgInvitation,
-  QueryResolvers,
-  Resolvers,
-} from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
@@ -27,10 +20,10 @@ import { generatePluralResolver } from "./generation/generate-plural";
 import { isGenerationAvailableResolver } from "./generation/is-generation-available";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
 import { syncLinearIntegrationWithWebsMutation } from "./integrations/linear/sync-linear-integration-with-webs";
-import { blocksResolver } from "./knowledge/block/block";
-import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
 import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents";
+import { blocksResolver } from "./knowledge/block/block";
+import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { commentAuthorResolver } from "./knowledge/comment/author";
 import { createCommentResolver } from "./knowledge/comment/comment";
 import { deleteCommentResolver } from "./knowledge/comment/delete";
@@ -113,6 +106,14 @@ import {
   unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
+
+import type {
+  EntityAuthorizationSubject,
+  MutationResolvers,
+  PendingOrgInvitation,
+  QueryResolvers,
+  Resolvers,
+} from "../api-types.gen";
 
 export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Query: Required<QueryResolvers>;

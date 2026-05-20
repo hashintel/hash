@@ -1,7 +1,3 @@
-import { TextField } from "@hashintel/design-system";
-import { validateDisplayName } from "@local/hash-graph-sdk/user-entity-restrictions";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import type { BoxProps } from "@mui/material";
 import {
   Box,
   InputAdornment,
@@ -9,14 +5,20 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
+
+import { TextField } from "@hashintel/design-system";
+import { validateDisplayName } from "@local/hash-graph-sdk/user-entity-restrictions";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
 import { useShortnameInput } from "../../components/hooks/use-shortname-input";
 import { ChevronRightRegularIcon } from "../../shared/icons/chevron-right-regular-icon";
 import { CircleRegularInfoIcon } from "../../shared/icons/circle-info-regular-icon";
 import { TriangleExclamationRegularIcon } from "../../shared/icons/triangle-exclamation-regular-icon";
 import { Button, Link } from "../../shared/ui";
+
+import type { BoxProps } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
 
 const inputWidth = 250;
 

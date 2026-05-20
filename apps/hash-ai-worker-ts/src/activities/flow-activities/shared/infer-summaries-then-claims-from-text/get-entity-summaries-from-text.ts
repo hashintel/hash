@@ -1,21 +1,23 @@
+import dedent from "dedent";
+
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../../shared/get-llm-response.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+
+import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
+import type {
+  LlmParams,
+  LlmToolDefinition,
+} from "../../../shared/get-llm-response/types.js";
 import type {
   EntityId,
   EntityUuid,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import dedent from "dedent";
-
-import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
-import { getFlowContext } from "../../../shared/get-flow-context.js";
-import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type {
-  LlmParams,
-  LlmToolDefinition,
-} from "../../../shared/get-llm-response/types.js";
-import { graphApiClient } from "../../../shared/graph-api-client.js";
 
 export type LocalEntitySummary = {
   localId: EntityId;

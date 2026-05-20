@@ -1,7 +1,6 @@
-import type { BlockVariant } from "@blockprotocol/core";
-import type { EntityId } from "@blockprotocol/type-system";
-import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
+import { NodeSelection, TextSelection } from "prosemirror-state";
+import { createContext, createRef, useContext } from "react";
+
 import {
   entityStorePluginState,
   subscribeToEntityStore,
@@ -10,21 +9,24 @@ import {
   findComponentNode,
   isEntityNode,
 } from "@local/hash-isomorphic-utils/prosemirror";
-import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import type { Node } from "prosemirror-model";
-import { NodeSelection, TextSelection } from "prosemirror-state";
-import type { EditorView, NodeView } from "prosemirror-view";
-import { createContext, createRef, useContext } from "react";
 
 import { getBlockDomId } from "../../../shared/get-block-dom-id";
 import { BlockContext } from "./block-context";
 import { BlockHandle } from "./block-handle";
 import { BlockHighlight } from "./block-highlight";
-import type { RenderPortal } from "./block-portals";
 import { CollabPositionIndicators } from "./collab-position-indicators";
 import { CreateBlockCommentButton } from "./comments/create-block-comment-button";
 import { InsertBlock } from "./insert-block";
 import styles from "./style.module.css";
+
+import type { RenderPortal } from "./block-portals";
+import type { BlockVariant } from "@blockprotocol/core";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
+import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
+import type { Node } from "prosemirror-model";
+import type { EditorView, NodeView } from "prosemirror-view";
 
 /** used to detect whether or not a context value was provided */
 const nullBlockView = {};

@@ -1,6 +1,7 @@
 import { use, useEffect } from "react";
 
 import { generateArcId, type SelectionMap } from "@hashintel/petrinaut-core";
+
 import { EditorContext } from "./editor-context";
 import { SDCPNContext } from "./sdcpn-context";
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { Portal } from "@ark-ui/react/portal";
-import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { MapPinIcon } from "lucide-react";
 import { useState } from "react";
+
+import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 
 import * as Avatar from "../avatar";
 import * as HoverCard from "../hover-card";

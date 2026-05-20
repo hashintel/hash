@@ -1,10 +1,12 @@
-import { isComponentNode } from "@local/hash-isomorphic-utils/prosemirror";
 import { InputRule } from "prosemirror-inputrules";
+import { TextSelection } from "prosemirror-state";
+import urlRegexSafe from "url-regex-safe";
+
+import { isComponentNode } from "@local/hash-isomorphic-utils/prosemirror";
+
 import type { Mark, Node } from "prosemirror-model";
 import type { EditorState } from "prosemirror-state";
-import { TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
-import urlRegexSafe from "url-regex-safe";
 
 export const selectionContainsText = (state: EditorState) => {
   const content = state.selection.content().content;

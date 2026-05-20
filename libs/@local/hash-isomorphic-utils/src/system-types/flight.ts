@@ -3,13 +3,6 @@
  */
 
 import type {
-  ArrayMetadata,
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
-
-import type {
   Aircraft,
   AircraftOutgoingLinkAndTarget,
   AircraftOutgoingLinksByLinkEntityTypeId,
@@ -55,6 +48,12 @@ import type {
   TimezonePropertyValue,
   TimezonePropertyValueWithMetadata,
 } from "./shared.js";
+import type {
+  ArrayMetadata,
+  Confidence,
+  ObjectMetadata,
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 
 export type {
   Aircraft,

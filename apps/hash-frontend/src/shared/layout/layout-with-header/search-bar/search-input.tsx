@@ -1,5 +1,4 @@
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
   Box,
   InputAdornment,
@@ -8,14 +7,17 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useRef } from "react";
+
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 
 import { SearchIcon } from "../../../icons";
 import {
   useSetKeyboardShortcuts,
   useUnsetKeyboardShortcuts,
 } from "../../../keyboard-shortcuts-context";
+
+import type { FunctionComponent } from "react";
 
 const ClearSearchIcon: FunctionComponent<{
   clearSearch: () => void;

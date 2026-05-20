@@ -1,9 +1,7 @@
-import type {
-  BaseUrl,
-  DataType,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { Box, Stack, Typography } from "@mui/material";
+import { useEffect, useMemo } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+
 import {
   compareOntologyTypeVersions,
   extractBaseUrl,
@@ -12,14 +10,18 @@ import {
 import { DataTypeSelector, TypeCard } from "@hashintel/design-system";
 import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box, Stack, Typography } from "@mui/material";
-import { useEffect, useMemo } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
 
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { Link } from "../../../shared/ui/link";
 import { useDataTypesContext } from "../data-types-context";
+
 import type { DataTypeFormData } from "./data-type-form";
+import type {
+  BaseUrl,
+  DataType,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 type DataTypeParent = {
   dataType: DataType;

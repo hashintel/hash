@@ -1,5 +1,11 @@
-import type { Subgraph } from "@blockprotocol/graph";
+import { useTheme } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
+
 import { getEntityTypeById } from "@blockprotocol/graph/stdlib";
+import { isEntityId } from "@blockprotocol/type-system";
+import { EChart } from "@hashintel/design-system";
+
+import type { Subgraph } from "@blockprotocol/graph";
 import type {
   EntityId,
   EntityMetadata,
@@ -7,17 +13,13 @@ import type {
   PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { isEntityId } from "@blockprotocol/type-system";
 import type {
   Chart,
   ECOption,
   GraphEdge,
   GraphNode,
 } from "@hashintel/design-system";
-import { EChart } from "@hashintel/design-system";
 import type { BoxProps } from "@mui/material";
-import { useTheme } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
 
 export type EntityForGraphChart = {
   linkData?: LinkData;

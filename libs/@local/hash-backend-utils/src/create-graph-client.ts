@@ -1,17 +1,18 @@
 import { inspect } from "node:util";
 
+import { HttpAgent, HttpsAgent } from "agentkeepalive";
+import axios from "axios";
+
 import {
   Configuration,
   GraphApi as GraphApiClient,
 } from "@local/hash-graph-client";
-import type { Status } from "@local/status";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
-import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
-import { HttpAgent, HttpsAgent } from "agentkeepalive";
-import type { AxiosError, InternalAxiosRequestConfig } from "axios";
-import axios from "axios";
 
 import type { Logger } from "./logger.js";
+import type { Status } from "@local/status";
+import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
+import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 type GraphApi = GraphApiClient;
 

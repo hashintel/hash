@@ -3,10 +3,7 @@ import { createContext } from "react";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
 export type SDCPNProviderProps = {
-  createNewNet: (params: {
-    petriNetDefinition: SDCPN;
-    title: string;
-  }) => void;
+  createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   existingNets: MinimalNetMetadata[];
   loadPetriNet: (petriNetId: string) => void;
   petriNetId: string | null;

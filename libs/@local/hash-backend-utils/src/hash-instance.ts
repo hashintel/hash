@@ -1,21 +1,23 @@
+import { backOff } from "exponential-backoff";
+
 import {
   type ActorEntityUuid,
   extractBaseUrl,
 } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { EntityTypeMismatchError, NotFoundError } from "./error.js";
+
+import type { GraphApi } from "@local/hash-graph-client";
+import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   HASHInstance,
   HASHInstance as HASHInstanceEntity,
   HASHInstanceProperties,
 } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import { backOff } from "exponential-backoff";
-
-import { EntityTypeMismatchError, NotFoundError } from "./error.js";
 
 export type HashInstance = {
   entity: HashEntity<HASHInstance>;

@@ -1,5 +1,4 @@
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
-import type { BoxProps, SelectProps as MuiSelectProps } from "@mui/material";
 import {
   Box,
   Collapse,
@@ -9,10 +8,12 @@ import {
   Select as MuiSelect,
   Typography,
 } from "@mui/material";
-import type { ReactElement, ReactNode, Ref } from "react";
 import { forwardRef } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
+
+import type { BoxProps, SelectProps as MuiSelectProps } from "@mui/material";
+import type { ReactElement, ReactNode, Ref } from "react";
 
 export type SelectProps<T = unknown> = {
   children: ReactNode;

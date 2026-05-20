@@ -1,15 +1,16 @@
-import { Icon } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
 
-import { Button } from "../../../../components/button";
-import { Popover } from "../../../../components/popover";
-import { TableStatusBadge } from "../../../../components/table";
+import { Icon } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
+
 import {
   ExperimentsContext,
   isExperimentActive,
   type ExperimentRecord,
 } from "../../../../../react/experiments/context";
+import { Button } from "../../../../components/button";
+import { Popover } from "../../../../components/popover";
+import { TableStatusBadge } from "../../../../components/table";
 
 const contentWidthStyle = css({
   width: "[320px]",

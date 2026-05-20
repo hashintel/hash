@@ -1,11 +1,13 @@
+import { useMemo } from "react";
+
 import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
-import { useMemo } from "react";
 
 import { Button } from "./button";
 import { NumberInput } from "./number-input";
 import { Select, type SelectOption } from "./select";
+
+import type { ReactNode } from "react";
 
 // -- Types -------------------------------------------------------------------
 

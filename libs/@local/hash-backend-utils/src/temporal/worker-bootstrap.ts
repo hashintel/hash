@@ -12,11 +12,6 @@
 import * as http from "node:http";
 import { createRequire } from "node:module";
 
-import type {
-  ActivityInterceptorsFactory,
-  WorkerOptions,
-  WorkflowBundleOption,
-} from "@temporalio/worker";
 import {
   DefaultLogger,
   defaultSinks,
@@ -25,8 +20,6 @@ import {
   Worker,
 } from "@temporalio/worker";
 
-import type { Logger } from "../logger.js";
-import type { OpenTelemetrySetup } from "../opentelemetry.js";
 import {
   OpenTelemetryActivityInboundInterceptor,
   OpenTelemetryActivityOutboundInterceptor,
@@ -34,6 +27,14 @@ import {
 import { SentryActivityInboundInterceptor } from "./interceptors/activities/sentry.js";
 import { sentrySinks } from "./sinks/sentry.js";
 import { makeV2WorkflowSink } from "./workflow-span-adapter.js";
+
+import type { Logger } from "../logger.js";
+import type { OpenTelemetrySetup } from "../opentelemetry.js";
+import type {
+  ActivityInterceptorsFactory,
+  WorkerOptions,
+  WorkflowBundleOption,
+} from "@temporalio/worker";
 
 const require = createRequire(import.meta.url);
 
@@ -271,12 +272,8 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
     },
     interceptors: {
       workflowModules: [
-        require.resolve(
-          "@local/hash-backend-utils/temporal/interceptors/workflows/sentry",
-        ),
-        require.resolve(
-          "@local/hash-backend-utils/temporal/interceptors/workflows/opentelemetry",
-        ),
+        require.resolve("@local/hash-backend-utils/temporal/interceptors/workflows/sentry"),
+        require.resolve("@local/hash-backend-utils/temporal/interceptors/workflows/opentelemetry"),
       ],
       activity: activityInterceptors,
     },

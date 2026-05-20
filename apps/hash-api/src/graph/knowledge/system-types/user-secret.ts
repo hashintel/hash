@@ -1,3 +1,14 @@
+import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
+import { createUserSecretPath } from "@local/hash-backend-utils/vault";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { createEntity } from "../primitive/entity";
+import { createLinkEntity } from "../primitive/link-entity";
+
 import type {
   EntityId,
   EntityUuid,
@@ -6,24 +17,14 @@ import type {
   UserId,
   WebId,
 } from "@blockprotocol/type-system";
-import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
 import type {
   UserSecretService,
   VaultClient,
 } from "@local/hash-backend-utils/vault";
-import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Auth } from "googleapis";
-
-import { createEntity } from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
 
 type CreateUserSecretParams<T extends object> = {
   /**

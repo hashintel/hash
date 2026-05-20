@@ -1,13 +1,14 @@
 import { Sha256 } from "@aws-crypto/sha256-js";
 import { defaultProvider as credentialProvider } from "@aws-sdk/credential-provider-node";
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { HttpRequest, type IHttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
 import { type AxiosInstance } from "axios";
 import axios, { AxiosError, AxiosHeaders } from "axios";
 
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
+
 import type { Logger } from "./logger.js";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 
 const toBase64 = (str: string) => Buffer.from(str, "utf8").toString("base64");
 
@@ -349,11 +350,7 @@ export class VaultClient {
   }
 }
 
-export const createVaultClient = async ({
-  logger,
-}: {
-  logger: Logger;
-}) => {
+export const createVaultClient = async ({ logger }: { logger: Logger }) => {
   if (
     !process.env.HASH_VAULT_HOST ||
     !process.env.HASH_VAULT_PORT ||

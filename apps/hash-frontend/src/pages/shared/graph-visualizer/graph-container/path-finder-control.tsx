@@ -1,20 +1,13 @@
-import { IconDiagramNestedLight, Select } from "@hashintel/design-system";
-import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { Box, Stack, Switch } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
 import { dijkstra, edgePathFromNodePath } from "graphology-shortest-path";
-import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { IconDiagramNestedLight, Select } from "@hashintel/design-system";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { GrayToBlueIconButton } from "../../gray-to-blue-icon-button";
-import type {
-  GenerateSimplePathsRequestMessage,
-  GenerateSimplePathsResultMessage,
-  NodeData,
-  Path,
-  SimplePathSort,
-} from "./path-finder-control/types";
 import { simplePathSorts } from "./path-finder-control/types";
 import {
   ControlPanel,
@@ -25,7 +18,16 @@ import { useGraphContext } from "./shared/graph-context";
 import { IntegerInput } from "./shared/integer-input";
 import { SimpleAutocomplete } from "./shared/simple-autocomplete";
 import { selectSx } from "./shared/styles";
+
+import type {
+  GenerateSimplePathsRequestMessage,
+  GenerateSimplePathsResultMessage,
+  NodeData,
+  Path,
+  SimplePathSort,
+} from "./path-finder-control/types";
 import type { GraphVizNode } from "./shared/types";
+import type { FunctionComponent } from "react";
 
 type TypeData = {
   label: string;

@@ -1,15 +1,16 @@
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
-import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
-import type { LinkedWithCell } from "../linked-with-cell";
 import {
   createDraftLinkEntity,
   LinkedEntityListEditor,
 } from "./linked-entity-list-editor";
 import { LinkedEntitySelector } from "./linked-entity-selector";
+
+import type { LinkedWithCell } from "../linked-with-cell";
+import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,

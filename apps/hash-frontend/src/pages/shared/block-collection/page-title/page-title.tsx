@@ -1,16 +1,17 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { styled, TextareaAutosize } from "@mui/material";
+import { useEffect, useState } from "react";
+
+import { useUpdatePageTitle } from "../../../../components/hooks/use-update-page-title";
+import { usePageContext } from "../page-context";
+import { cleanUpTitle, focusEditorBeginning } from "./utils";
+
+import type { EntityId } from "@blockprotocol/type-system";
 import type {
   ChangeEventHandler,
   FocusEventHandler,
   FunctionComponent,
   KeyboardEventHandler,
 } from "react";
-import { useEffect, useState } from "react";
-
-import { useUpdatePageTitle } from "../../../../components/hooks/use-update-page-title";
-import { usePageContext } from "../page-context";
-import { cleanUpTitle, focusEditorBeginning } from "./utils";
 
 export const PAGE_TITLE_FONT_SIZE = "var(--step-4)";
 export const PAGE_TITLE_LINE_HEIGHT = 1.23;

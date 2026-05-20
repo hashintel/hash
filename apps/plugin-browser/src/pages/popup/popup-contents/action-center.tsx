@@ -1,21 +1,18 @@
 import {
-  ListRegularIcon,
-  PlusIcon,
-  WandMagicSparklesIcon,
-} from "@hashintel/design-system";
-import type { SvgIconProps, TabProps as MuiTabProps } from "@mui/material";
-import {
   Box,
   Stack,
   Tab as MuiTab,
   Tabs as MuiTabs,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import type { Tabs } from "webextension-polyfill";
+
+import {
+  ListRegularIcon,
+  PlusIcon,
+  WandMagicSparklesIcon,
+} from "@hashintel/design-system";
 
 import { createDefaultSettings } from "../../../shared/create-default-settings";
-import type { LocalStorage } from "../../../shared/storage";
 import {
   darkModeBorderColor,
   lightModeBorderColor,
@@ -27,6 +24,11 @@ import { OneOff } from "./action-center/one-off";
 import { generateTabA11yProps } from "./action-center/shared/tab-props";
 import { Avatar } from "./shared/avatar";
 import { popupWidth } from "./shared/sizing";
+
+import type { LocalStorage } from "../../../shared/storage";
+import type { SvgIconProps, TabProps as MuiTabProps } from "@mui/material";
+import type { FunctionComponent } from "react";
+import type { Tabs } from "webextension-polyfill";
 
 const generateCommonTabProps = (
   active: boolean,

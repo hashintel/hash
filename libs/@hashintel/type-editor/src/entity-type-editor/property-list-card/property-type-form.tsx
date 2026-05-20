@@ -1,10 +1,10 @@
-import type { BaseUrl } from "@blockprotocol/type-system";
-
 import { useOntologyFunctions } from "../../shared/ontology-functions-context";
-import type { TypeFormProps } from "../shared/type-form";
 import { TypeForm } from "../shared/type-form";
 import { ExpectedValueSelector } from "./property-type-form/expected-value-selector";
+
+import type { TypeFormProps } from "../shared/type-form";
 import type { PropertyTypeFormValues } from "./shared/property-type-form-values";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 export const PropertyTypeForm = ({
   baseUrl,

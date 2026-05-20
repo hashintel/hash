@@ -1,24 +1,26 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
 
+import { css } from "@hashintel/ds-helpers/css";
+
+import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { Button } from "../../../../../components/button";
 import { Input } from "../../../../../components/input";
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
 import { Select } from "../../../../../components/select";
-import type { SpreadsheetColumn } from "../../../../../components/spreadsheet";
 import { Spreadsheet } from "../../../../../components/spreadsheet";
 import { Switch } from "../../../../../components/switch";
+import { CodeEditor } from "../../../../../monaco/code-editor";
+import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";
+
+import type { SpreadsheetColumn } from "../../../../../components/spreadsheet";
 import type {
   Color,
   Parameter,
   Place,
   ScenarioParameter,
 } from "@hashintel/petrinaut-core";
-import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { CodeEditor } from "../../../../../monaco/code-editor";
-import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";
 
 // -- Form styles --------------------------------------------------------------
 

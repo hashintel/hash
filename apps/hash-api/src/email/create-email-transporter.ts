@@ -10,6 +10,7 @@ import { isDevEnv, isProdEnv, isTestEnv } from "../lib/env-config";
 import { logger } from "../logger";
 import { AwsSesEmailTransporter, DummyEmailTransporter } from "./transporters";
 import { SmtpEmailTransporter } from "./transporters/smtp-email-transporter";
+
 import type { EmailTransporter } from "./transporters/types";
 
 const transporterType = process.env.HASH_EMAIL_TRANSPORTER;

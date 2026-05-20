@@ -1,6 +1,9 @@
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use, useMemo } from "react";
 
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+
+import { EditorContext } from "../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import {
@@ -11,8 +14,6 @@ import {
   LEFT_SIDEBAR_SUBVIEWS,
   LEFT_SIDEBAR_TREE_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { searchSubView } from "./subviews/search-panel";
 
 const glassPanelBaseStyle = css({

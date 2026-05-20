@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
 import { Fragment, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 
 import { BlockContextProvider } from "./block-context";
+
+import type { ReactNode } from "react";
 
 export interface PortalProps {
   draftId: string;

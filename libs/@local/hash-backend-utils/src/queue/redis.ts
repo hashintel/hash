@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
 
+import { sleep } from "../utils.js";
+
+import type { QueueExclusiveConsumer, QueueProducer } from "./adapter.js";
 import type {
   RedisClientType,
   RedisFunctions,
@@ -7,9 +10,6 @@ import type {
   RedisScripts,
   TypeMapping,
 } from "redis";
-
-import { sleep } from "../utils.js";
-import type { QueueExclusiveConsumer, QueueProducer } from "./adapter.js";
 
 // The interval on which a consumer which owns the queue will re-affirm their ownership.
 const QUEUE_CONSUMER_OWNERSHIP_HEARTBEAT_MS = 3_000;
@@ -28,8 +28,7 @@ export class RedisQueueProducer<
   F extends RedisFunctions = {},
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   S extends RedisScripts = {},
-> implements QueueProducer
-{
+> implements QueueProducer {
   readonly #client: RedisClientType<M, F, S, 3, TypeMapping>;
 
   constructor(client: RedisClientType<M, F, S, 3, TypeMapping>) {
@@ -51,8 +50,7 @@ export class RedisQueueExclusiveConsumer<
   F extends RedisFunctions = {},
   // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   S extends RedisScripts = {},
-> implements QueueExclusiveConsumer
-{
+> implements QueueExclusiveConsumer {
   readonly #client: RedisClientType<M, F, S, 3, TypeMapping>;
 
   // A unique identifier for this consumer. Used to signify ownership of the queue.

@@ -1,4 +1,3 @@
-import { generateArcId } from "./arc-id";
 import {
   colorSchema,
   differentialEquationSchema,
@@ -10,6 +9,8 @@ import {
   transitionSchema,
   type MutationActionInput,
 } from "./action-schemas";
+import { generateArcId } from "./arc-id";
+
 import type { SDCPN } from "./types/sdcpn";
 
 export type MutationHelperFunctions = {

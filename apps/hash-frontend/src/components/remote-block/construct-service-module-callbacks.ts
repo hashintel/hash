@@ -1,5 +1,6 @@
-import type { ServiceEmbedderMessageCallbacks } from "@blockprotocol/service";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+
+import type { ServiceEmbedderMessageCallbacks } from "@blockprotocol/service";
 
 type ServiceFunction =
   ServiceEmbedderMessageCallbacks[keyof ServiceEmbedderMessageCallbacks];

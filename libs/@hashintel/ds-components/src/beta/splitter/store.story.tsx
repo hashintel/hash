@@ -1,6 +1,7 @@
 "use client";
 
 import { useSplitter } from "@ark-ui/react/splitter";
+
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
 import { Button } from "../button";

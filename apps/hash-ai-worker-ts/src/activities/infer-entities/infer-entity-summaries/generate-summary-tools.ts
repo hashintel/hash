@@ -1,18 +1,19 @@
-import type { JsonObject } from "@blockprotocol/core";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { validateVersionedUrl } from "@blockprotocol/type-system";
-import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { JSONSchema } from "openai/lib/jsonschema";
+
+import { stringify } from "../../shared/stringify.js";
+import { generateToolLinkFields } from "../shared/generate-propose-entities-tools.js";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
-import { stringify } from "../../shared/stringify.js";
 import type {
   DereferencedEntityTypesByTypeId,
   ProposedEntitySummary,
 } from "../inference-types.js";
-import { generateToolLinkFields } from "../shared/generate-propose-entities-tools.js";
+import type { JsonObject } from "@blockprotocol/core";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
+import type { JSONSchema } from "openai/lib/jsonschema";
 
 type FunctionName = "could_not_infer_entities" | "register_entity_summaries";
 

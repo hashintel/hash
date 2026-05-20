@@ -1,6 +1,5 @@
 import ts from "typescript";
 
-import type { SDCPN } from "../../types/sdcpn";
 import {
   createLanguageServiceHost,
   type LanguageServiceHostController,
@@ -13,6 +12,8 @@ import {
   type MetricSessionData,
   type ScenarioSessionData,
 } from "./generate-virtual-files";
+
+import type { SDCPN } from "../../types/sdcpn";
 
 /**
  * Adjusts diagnostic positions to account for injected prefix and suffix.

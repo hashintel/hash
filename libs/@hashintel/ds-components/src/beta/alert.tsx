@@ -3,9 +3,10 @@
 /* eslint-disable import/no-extraneous-dependencies */
 
 import { ark } from "@ark-ui/react/factory";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { InfoIcon } from "lucide-react";
 import { type ComponentProps, forwardRef } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { alertSlotRecipe } from "./alert.recipe";
 

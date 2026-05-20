@@ -1,8 +1,10 @@
-import { EditableField } from "@hashintel/block-design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { useController, useFormContext } from "react-hook-form";
 
+import { EditableField } from "@hashintel/block-design-system";
+
 import { AltTitleGroup } from "./shared/alt-title-group";
+
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
 interface EntityTypePluralProps {
   isLinkType: boolean;

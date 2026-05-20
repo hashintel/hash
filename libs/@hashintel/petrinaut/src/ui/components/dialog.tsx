@@ -1,7 +1,7 @@
 import { Dialog as ArkDialog } from "@ark-ui/react/dialog";
 import { Portal } from "@ark-ui/react/portal";
+
 import { css, cx } from "@hashintel/ds-helpers/css";
-import type { ComponentProps, ReactNode } from "react";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import { Button } from "./button";
@@ -13,6 +13,8 @@ import {
   Header as PanelHeader,
   outerStyle,
 } from "./panel-primitives";
+
+import type { ComponentProps, ReactNode } from "react";
 
 // -- Dialog-specific styles ---------------------------------------------------
 

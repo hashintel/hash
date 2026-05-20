@@ -2,10 +2,12 @@
 
 import { Dialog } from "@ark-ui/react/dialog";
 import { ark } from "@ark-ui/react/factory";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { drawerSlotRecipe } from "./drawer.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withRootProvider, withContext } = createStyleContext(drawerSlotRecipe);
 

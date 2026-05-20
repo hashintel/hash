@@ -1,4 +1,3 @@
-import type { LinkProps as MuiLinkProps } from "@mui/material";
 import {
   // eslint-disable-next-line no-restricted-imports
   Link as MuiLink,
@@ -6,14 +5,16 @@ import {
 } from "@mui/material";
 import clsx from "clsx";
 // eslint-disable-next-line no-restricted-imports
-import type { LinkProps as NextLinkProps } from "next/link";
-// eslint-disable-next-line no-restricted-imports
 import NextLink from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
 
 import { generateLinkParameters } from "../generate-link-parameters";
 import { Button } from "./button";
+
+import type { LinkProps as MuiLinkProps } from "@mui/material";
+// eslint-disable-next-line no-restricted-imports
+import type { LinkProps as NextLinkProps } from "next/link";
 
 /**
  * This component is based on https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js

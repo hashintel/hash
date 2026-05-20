@@ -1,11 +1,13 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
-import type { EditorProps, Monaco } from "@monaco-editor/react";
-import type { editor } from "monaco-editor";
 import { Suspense, use, useRef } from "react";
+
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { Tooltip } from "../components/tooltip";
 import { CODE_FONT_FAMILY } from "../constants/ui";
 import { MonacoContext } from "./context";
+
+import type { EditorProps, Monaco } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 
 // -- Single-line constants ----------------------------------------------------
 

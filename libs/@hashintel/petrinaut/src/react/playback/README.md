@@ -72,7 +72,7 @@ Playback auto-pauses when reaching the end of available frames (if simulation is
   <PlaybackProvider>
     <App />
   </PlaybackProvider>
-</SimulationProvider>
+</SimulationProvider>;
 
 // In component:
 const playback = use(PlaybackContext);

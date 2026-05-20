@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import type { SelectionItem } from "./types/selection";
 import {
   arcDirectionSchema,
   colorElementSchema,
@@ -15,6 +14,8 @@ import {
 } from "./schemas/entity-schemas";
 import { metricSchema as simulationMetricSchema } from "./schemas/metric-schema";
 import { scenarioSchema as simulationScenarioSchema } from "./schemas/scenario-schema";
+
+import type { SelectionItem } from "./types/selection";
 
 export {
   arcDirectionSchema,

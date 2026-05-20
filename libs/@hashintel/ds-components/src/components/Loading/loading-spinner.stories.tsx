@@ -1,9 +1,10 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { Story, StoryDefault } from "@ladle/react";
 
 import { formInputSizes } from "../../util/form-shared";
-import type { LoadingSpinnerVariant } from "./loading-spinner";
 import { LoadingSpinner } from "./loading-spinner";
+
+import type { LoadingSpinnerVariant } from "./loading-spinner";
+import type { Story, StoryDefault } from "@ladle/react";
 
 type LoadingSpinnerProps = React.ComponentProps<typeof LoadingSpinner>;
 

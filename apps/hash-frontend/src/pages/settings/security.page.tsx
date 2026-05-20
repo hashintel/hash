@@ -1,17 +1,14 @@
-import { Modal, TextField } from "@hashintel/design-system";
 import { Box, Divider, Grid, Typography } from "@mui/material";
-import type { SettingsFlow, UpdateSettingsFlowBody } from "@ory/client";
 import {
   isUiNodeImageAttributes,
   isUiNodeInputAttributes,
   isUiNodeTextAttributes,
 } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { NextPageWithLayout } from "../../shared/layout";
+import { Modal, TextField } from "@hashintel/design-system";
+
 import { Button } from "../../shared/ui";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { formatKratosMessage } from "../shared/format-kratos-message";
@@ -22,6 +19,11 @@ import {
 import { getSettingsLayout } from "../shared/settings-layout";
 import { useKratosErrorHandler } from "../shared/use-kratos-flow-error-handler";
 import { SettingsPageContainer } from "./shared/settings-page-container";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { SettingsFlow, UpdateSettingsFlowBody } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { FormEventHandler } from "react";
 
 const getUiTextValue = (text: unknown): string | undefined => {
   if (typeof text === "string") {
@@ -527,7 +529,9 @@ const SecurityPage: NextPageWithLayout = () => {
                   )
                 }
                 helperText={passwordInputUiNode?.messages.map(
-                  ({ id, text }) => <Typography key={id}>{text}</Typography>,
+                  ({ id, text }) => (
+                    <Typography key={id}>{text}</Typography>
+                  ),
                 )}
                 required
               />

@@ -2,9 +2,10 @@ import {
   Button as DsButton,
   type ButtonProps as DsButtonProps,
 } from "@hashintel/ds-components";
-import type { ComponentType } from "react";
 
 import { withTooltip } from "./hoc/with-tooltip";
+
+import type { ComponentType } from "react";
 
 /**
  * Wrap the ds-components Button to:

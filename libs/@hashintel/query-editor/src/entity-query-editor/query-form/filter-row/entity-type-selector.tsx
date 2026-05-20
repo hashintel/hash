@@ -1,12 +1,14 @@
-import type { EntityType } from "@blockprotocol/type-system";
-import { MenuItem, OntologyChip } from "@hashintel/design-system";
 import { FormControl, listClasses } from "@mui/material";
 import { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 
+import { MenuItem, OntologyChip } from "@hashintel/design-system";
+
 import { useReadonlyContext } from "../../readonly-context";
-import type { FormValues } from "../../types";
 import { RHFSelect } from "./rhf-select";
+
+import type { FormValues } from "../../types";
+import type { EntityType } from "@blockprotocol/type-system";
 
 export const EntityTypeSelector = ({
   index,

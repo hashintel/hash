@@ -6,13 +6,14 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getOrCreateOwningWebId } from "../../system-webs-and-entities";
-import type { MigrationFunction } from "../types";
 import {
   createSystemPropertyTypeIfNotExists,
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,
   upgradeEntitiesToNewTypeVersion,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
 
 /**
  * This migration adds tracking properties to the HASH Instance entity type:

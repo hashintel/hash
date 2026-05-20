@@ -1,4 +1,3 @@
-import type { Server } from "node:http";
 import { performance } from "node:perf_hooks";
 
 import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
@@ -10,25 +9,28 @@ import {
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
 import { expressMiddleware } from "@as-integrations/express5";
 import { makeExecutableSchema } from "@graphql-tools/schema";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
-import type { Logger } from "@local/hash-backend-utils/logger";
-import type { TemporalClient } from "@local/hash-backend-utils/temporal";
-import type { VaultClient } from "@local/hash-backend-utils/vault";
+import * as Sentry from "@sentry/node";
+
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 import {
   getHashClientTypeFromRequest,
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
-import * as Sentry from "@sentry/node";
-import type { StatsD } from "hot-shots";
-import type Keyv from "keyv";
 
 import { getActorIdFromRequest } from "../auth/get-actor-id";
+import { isProdEnv } from "../lib/env-config";
+import { resolvers } from "./resolvers";
+
 import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
-import { isProdEnv } from "../lib/env-config";
 import type { GraphQLContext } from "./context";
-import { resolvers } from "./resolvers";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { TemporalClient } from "@local/hash-backend-utils/temporal";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
+import type { StatsD } from "hot-shots";
+import type Keyv from "keyv";
+import type { Server } from "node:http";
 
 const statsPlugin = ({
   statsd,

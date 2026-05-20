@@ -1,7 +1,9 @@
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Tooltip } from "@mui/material";
+
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import type { ReactNode } from "react";
 
 export const ValueChip = ({

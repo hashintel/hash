@@ -1,5 +1,6 @@
 import { isValueEmpty } from "./is-value-empty";
 import { flattenAllItemsOfTree } from "./property-table/flatten";
+
 import type { PropertyRow } from "./property-table/types";
 
 /**

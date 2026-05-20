@@ -1,8 +1,5 @@
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import { GraphQLError } from "graphql";
+
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
@@ -17,13 +14,10 @@ import {
   shortnamePropertyBaseUrl,
   userSelfUpdatablePropertyBaseUrls,
 } from "@local/hash-graph-sdk/user-entity-restrictions";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { GraphQLError } from "graphql";
 
 import { isUserEmailVerified } from "../../../../../auth/ory-kratos";
 import * as Error from "../../../../../graphql/error";
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
-import type { ImpureGraphContext } from "../../../../context-types";
 import { systemAccountId } from "../../../../system-account";
 import {
   shortnameContainsInvalidCharacter,
@@ -33,7 +27,15 @@ import {
   shortnameMinimumLength,
 } from "../../../system-types/account.fields";
 import { getUserFromEntity } from "../../../system-types/user";
+
+import type { ImpureGraphContext } from "../../../../context-types";
 import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 /**
  * Properties that have special handling in this hook beyond the general whitelist.

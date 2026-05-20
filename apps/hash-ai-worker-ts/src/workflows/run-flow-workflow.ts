@@ -1,6 +1,16 @@
-import type { ProxyFlowActivity } from "@local/hash-backend-utils/flows";
+import {
+  ActivityCancellationType,
+  proxyActivities,
+} from "@temporalio/workflow";
+
 import { processFlowWorkflow } from "@local/hash-backend-utils/flows/process-flow-workflow";
 import { type AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
+
+import { heartbeatTimeoutSeconds } from "../shared/heartbeats.js";
+import { setQueryAndSignalHandlers } from "./run-flow-workflow/set-query-and-signal-handlers.js";
+
+import type { createFlowActivities } from "../activities/flow-activities.js";
+import type { ProxyFlowActivity } from "@local/hash-backend-utils/flows";
 import type {
   RunAiFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -9,14 +19,6 @@ import type {
   FlowDefinition,
   FlowTrigger,
 } from "@local/hash-isomorphic-utils/flows/types";
-import {
-  ActivityCancellationType,
-  proxyActivities,
-} from "@temporalio/workflow";
-
-import type { createFlowActivities } from "../activities/flow-activities.js";
-import { heartbeatTimeoutSeconds } from "../shared/heartbeats.js";
-import { setQueryAndSignalHandlers } from "./run-flow-workflow/set-query-and-signal-handlers.js";
 
 type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
 

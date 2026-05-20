@@ -1,3 +1,10 @@
+import isString from "lodash/isString";
+import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
+import { Node, Schema } from "prosemirror-model";
+import { EditorState, Plugin, Transaction } from "prosemirror-state";
+import { Step } from "prosemirror-transform";
+import { EditorView } from "prosemirror-view";
+
 /* eslint-disable */
 // @ts-nocheck
 /**
@@ -16,12 +23,7 @@ import {
   EntityStorePluginAction,
 } from "@local/hash-isomorphic-utils/entity-store-plugin";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import isString from "lodash/isString";
-import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
-import { Node, Schema } from "prosemirror-model";
-import { EditorState, Plugin, Transaction } from "prosemirror-state";
-import { Step } from "prosemirror-transform";
-import { EditorView } from "prosemirror-view";
+
 import { AbortingPromise, GET, POST } from "./http";
 import { StatusError } from "./status-error";
 

@@ -6,6 +6,7 @@ import {
   type PetrinautPatch,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
+
 import { SDCPNContext } from "../state/sdcpn-context";
 import { usePetrinautInstance } from "../use-petrinaut-instance";
 import { useStore } from "../use-store";

@@ -10,6 +10,7 @@ import {
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
 import { createSimulationWorker } from "@hashintel/petrinaut-core/workers/simulation";
+
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";

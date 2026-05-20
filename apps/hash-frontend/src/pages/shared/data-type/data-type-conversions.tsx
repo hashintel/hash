@@ -1,11 +1,8 @@
 import { useQuery } from "@apollo/client";
-import type {
-  BaseUrl,
-  Conversions,
-  DataType,
-  DataTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { Box, Typography } from "@mui/material";
+import { useMemo } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+
 import {
   compareOntologyTypeVersions,
   extractBaseUrl,
@@ -13,14 +10,7 @@ import {
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
-import { Box, Typography } from "@mui/material";
-import { useMemo } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
 
-import type {
-  FindDataTypeConversionTargetsQuery,
-  FindDataTypeConversionTargetsQueryVariables,
-} from "../../../graphql/api-types.gen";
 import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { Link } from "../../../shared/ui/link";
@@ -28,8 +18,20 @@ import { useDataTypesContext } from "../data-types-context";
 import { useSlideStack } from "../slide-stack";
 import { ConversionEditor } from "./data-type-conversions/conversion-editor";
 import { ConversionTargetEditor } from "./data-type-conversions/conversion-target-editor";
-import type { DataTypeFormData } from "./data-type-form";
 import { useInheritedConstraints } from "./shared/use-inherited-constraints";
+
+import type {
+  FindDataTypeConversionTargetsQuery,
+  FindDataTypeConversionTargetsQueryVariables,
+} from "../../../graphql/api-types.gen";
+import type { DataTypeFormData } from "./data-type-form";
+import type {
+  BaseUrl,
+  Conversions,
+  DataType,
+  DataTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 type CombinedConversions = Record<
   BaseUrl,

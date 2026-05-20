@@ -1,18 +1,20 @@
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
+
 import { getFormDataFromEntityType } from "../../get-form-data-from-entity-type";
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
+
 import type {
   EntityTypeEditorFormData,
   EntityTypeEditorLinkData,
   EntityTypeEditorPropertyData,
 } from "../../shared/form-types";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 export type InheritanceData = {
   /**

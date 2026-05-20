@@ -1,10 +1,10 @@
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-
-import type { ImpureGraphContext } from "../graph/context-types";
 import {
   getUserPendingInvitations,
   type User,
 } from "../graph/knowledge/system-types/user";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 
 const isArrayOfStrings = (value: unknown): value is string[] => {
   return (

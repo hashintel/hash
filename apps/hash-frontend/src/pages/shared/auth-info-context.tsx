@@ -1,22 +1,4 @@
 import { useApolloClient } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-  intervalForTimestamp,
-} from "@blockprotocol/graph/stdlib";
-import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
-import {
-  currentTimestamp,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
-import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { VerifiableIdentityAddress } from "@ory/client";
-import type { AxiosError } from "axios";
-import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
   useCallback,
@@ -27,13 +9,33 @@ import {
   useState,
 } from "react";
 
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+  intervalForTimestamp,
+} from "@blockprotocol/graph/stdlib";
+import {
+  currentTimestamp,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
+import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
-import type { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import type { User } from "../../lib/user-and-org";
 import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 import { oryKratosClient } from "./ory-kratos";
+
+import type { MeQuery } from "../../graphql/api-types.gen";
+import type { User } from "../../lib/user-and-org";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
+import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { VerifiableIdentityAddress } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { FunctionComponent, ReactElement } from "react";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;

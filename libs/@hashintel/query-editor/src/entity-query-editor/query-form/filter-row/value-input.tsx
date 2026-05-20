@@ -1,7 +1,9 @@
-import { TextField } from "@hashintel/design-system";
 import { useFormContext } from "react-hook-form";
 
+import { TextField } from "@hashintel/design-system";
+
 import { useReadonlyContext } from "../../readonly-context";
+
 import type { FormValues } from "../../types";
 
 export const ValueInput = ({ index }: { index: number }) => {

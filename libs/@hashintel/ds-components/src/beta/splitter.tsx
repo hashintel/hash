@@ -1,10 +1,12 @@
 "use client";
 
 import { Splitter } from "@ark-ui/react/splitter";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { splitterSlotRecipe } from "./splitter.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(splitterSlotRecipe);
 

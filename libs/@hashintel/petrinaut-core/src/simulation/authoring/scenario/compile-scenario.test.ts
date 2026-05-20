@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 import { compileScenario } from "./compile-scenario";
+
+import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 
 // -- Helpers ------------------------------------------------------------------
 

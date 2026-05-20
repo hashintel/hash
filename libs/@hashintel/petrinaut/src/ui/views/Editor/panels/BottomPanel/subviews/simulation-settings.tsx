@@ -1,19 +1,21 @@
-import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
 
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+import { SimulationContext } from "../../../../../../react/simulation/context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Select } from "../../../../../components/select";
 import { Slider } from "../../../../../components/slider";
 import { Switch } from "../../../../../components/switch";
-import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
-import { SimulationContext } from "../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 
 // -- Styles -------------------------------------------------------------------
 

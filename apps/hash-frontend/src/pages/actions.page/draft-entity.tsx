@@ -1,24 +1,26 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { Box, Checkbox, Typography } from "@mui/material";
+import { useMemo } from "react";
+
 import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { Box, Checkbox, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
 
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
 import { Link } from "../../shared/ui";
 import { useSlideStack } from "../shared/slide-stack";
 import { useEntityHref } from "../shared/use-entity-href";
-import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
 import { useDraftEntities } from "./draft-entities-context";
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
 import { DraftEntityWeb } from "./draft-entity/draft-entity-web";
+
+import type { EntityTypeDisplayInfoByBaseUrl } from "./draft-entities/types";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
+import type { FunctionComponent } from "react";
 
 export const DraftEntity: FunctionComponent<{
   closedMultiEntityTypesRootMap?: ClosedMultiEntityTypesRootMap;

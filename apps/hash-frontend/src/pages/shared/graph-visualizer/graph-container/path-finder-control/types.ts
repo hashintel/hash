@@ -1,6 +1,5 @@
-import type { SerializedGraph } from "graphology-types";
-
 import type { GraphVizNode } from "../shared/types";
+import type { SerializedGraph } from "graphology-types";
 
 export type NodeData = GraphVizNode & {
   disabled?: boolean;

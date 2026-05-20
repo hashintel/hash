@@ -1,17 +1,18 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { Button } from "../../../../../../components/button";
-import { SegmentGroup } from "../../../../../../components/segment-group";
-import { Select } from "../../../../../../components/select";
 
-import { CreateMetricDrawer } from "../../../SimulateView/metrics/create-metric-drawer";
-import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
+import { css } from "@hashintel/ds-helpers/css";
+
 import {
   EditorContext,
   type TimelineChartType,
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { Button } from "../../../../../../components/button";
+import { SegmentGroup } from "../../../../../../components/segment-group";
+import { Select } from "../../../../../../components/select";
+import { CreateMetricDrawer } from "../../../SimulateView/metrics/create-metric-drawer";
+import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
 
 const CHART_TYPE_OPTIONS = [
   { value: "run", label: "Run" },

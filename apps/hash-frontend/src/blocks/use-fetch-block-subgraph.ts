@@ -1,4 +1,22 @@
 import { useLazyQuery } from "@apollo/client";
+import { useCallback } from "react";
+
+import { currentTimestamp, splitEntityId } from "@blockprotocol/type-system";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+  SubgraphAndPermissions as SubgraphAndPermissionsGQL,
+} from "../graphql/api-types.gen";
 import type {
   EntityRootType,
   KnowledgeGraphVertices,
@@ -11,23 +29,6 @@ import type {
   PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { currentTimestamp, splitEntityId } from "@blockprotocol/type-system";
-import {
-  deserializeQueryEntitySubgraphResponse,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
-import {
-  almostFullOntologyResolveDepths,
-  currentTimeInstantTemporalAxes,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { useCallback } from "react";
-
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-  SubgraphAndPermissions as SubgraphAndPermissionsGQL,
-} from "../graphql/api-types.gen";
 
 type SubgraphAndPermissions = Omit<SubgraphAndPermissionsGQL, "subgraph"> & {
   subgraph: Subgraph<EntityRootType>;

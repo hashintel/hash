@@ -1,4 +1,5 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { Box } from "@mui/material";
+
 import {
   isValueMetadata,
   type PropertyMetadata,
@@ -6,10 +7,11 @@ import {
 } from "@blockprotocol/type-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { Box } from "@mui/material";
 
 import { ValueChip } from "../../../../../value-chip";
+
 import type { HistoryEvent } from "../../shared/types";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 
 const createValueText = (value: PropertyValue, metadata: PropertyMetadata) => {
   if (isValueMetadata(metadata)) {

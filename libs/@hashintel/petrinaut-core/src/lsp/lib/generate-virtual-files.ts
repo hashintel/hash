@@ -1,6 +1,7 @@
+import { getItemFilePath } from "./file-paths";
+
 import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 import type { VirtualFile } from "./create-language-service-host";
-import { getItemFilePath } from "./file-paths";
 
 /**
  * Sanitizes a color ID to be a valid TypeScript identifier.

@@ -1,8 +1,9 @@
-import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import { deleteUserByEmail } from "./delete-user";
 import { getKratosVerificationCode } from "./get-kratos-verification-code";
+
+import type { Page } from "@playwright/test";
 
 /**
  * `deleteUserByEmail` intentionally preserves the user's web principal so

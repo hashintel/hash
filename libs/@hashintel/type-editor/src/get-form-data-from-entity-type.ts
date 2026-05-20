@@ -1,6 +1,5 @@
-import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
-
 import type { EntityTypeEditorFormData } from "./shared/form-types";
+import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
 
 type Entries<T> = {
   [K in keyof T]: [K, T[K]];

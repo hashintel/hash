@@ -11,7 +11,9 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+
+import * as Error from "../../../error";
+import { graphQLContextToImpureGraphContext } from "../../util";
 
 import type {
   Query,
@@ -19,8 +21,7 @@ import type {
   UserUsageRecords,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import * as Error from "../../../error";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 export const getUsageRecordsResolver: ResolverFn<
   Query["getUsageRecords"],

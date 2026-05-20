@@ -1,9 +1,32 @@
 import { useMutation } from "@apollo/client";
-import type { MultiFilter } from "@blockprotocol/graph";
+import { Box, Typography } from "@mui/material";
+import { useCallback, useMemo, useState } from "react";
+
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
+import { IconButton, Modal, XMarkRegularIcon } from "@hashintel/design-system";
+import { EntityQueryEditor } from "@hashintel/query-editor";
+import {
+  blockProtocolEntityTypes,
+  blockProtocolLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
+import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
+import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
+import { usePropertyTypes } from "../../../../shared/property-types-context";
+import { useAuthenticatedUser } from "../../auth-info-context";
+import { useBlockContext } from "../block-context";
+
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import type { MultiFilter } from "@blockprotocol/graph";
 import type {
   BaseUrl,
   EntityId,
@@ -11,34 +34,13 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { ModalProps } from "@hashintel/design-system";
-import { IconButton, Modal, XMarkRegularIcon } from "@hashintel/design-system";
-import { EntityQueryEditor } from "@hashintel/query-editor";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  blockProtocolEntityTypes,
-  blockProtocolLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   Query,
   QueryProperties,
   QueryPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
-import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
-
-import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
-import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import type {
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
-import { useLatestEntityTypesOptional } from "../../../../shared/entity-types-context/hooks";
-import { usePropertyTypes } from "../../../../shared/property-types-context";
-import { useAuthenticatedUser } from "../../auth-info-context";
-import { useBlockContext } from "../block-context";
 
 export const BlockSelectDataModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {

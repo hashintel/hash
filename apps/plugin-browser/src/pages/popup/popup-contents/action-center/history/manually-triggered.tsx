@@ -1,11 +1,13 @@
-import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { TableCell, TableRow } from "@mui/material";
 import { useMemo } from "react";
 
-import type { MinimalFlowRun } from "../../../../../shared/storage";
+import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+
 import { EventTable } from "./shared/event-table";
 import { HistoryRow } from "./shared/history-row";
 import { TableLabel } from "./shared/table-label";
+
+import type { MinimalFlowRun } from "../../../../../shared/storage";
 
 export const ManuallyTriggered = ({
   flowRuns: unfilteredFlowRuns,

@@ -1,12 +1,13 @@
 import { z } from "zod";
 
-import { probabilisticSatellitesSDCPN } from "./examples/satellites-launcher";
 import {
   mutationActionInputSchemas,
   type MutationActionName,
 } from "./action-schemas";
-import type { Petrinaut } from "./instance";
+import { probabilisticSatellitesSDCPN } from "./examples/satellites-launcher";
 import { typedKeys } from "./lib/typed-entries";
+
+import type { Petrinaut } from "./instance";
 
 export {
   colorSchema,

@@ -1,23 +1,17 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
+import { Box } from "@mui/material";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
-import { Box } from "@mui/material";
-import { useMemo } from "react";
 
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../../../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { LinksIcon } from "../../../../shared/icons/svg";
 import { SectionEmptyState } from "../../../@/[shortname]/shared/section-empty-state";
@@ -29,6 +23,14 @@ import {
   linksTableRowHeight,
   maxLinksTableHeight,
 } from "./links-section/shared/table-styling";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../../../../graphql/api-types.gen";
+import type { EntityRootType } from "@blockprotocol/graph";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 
 export const ClaimsSection = () => {
   const { entity, onEntityClick, isLocalDraftOnly } = useEntityEditor();

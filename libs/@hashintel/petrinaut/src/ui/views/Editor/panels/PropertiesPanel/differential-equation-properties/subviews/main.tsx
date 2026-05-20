@@ -1,25 +1,27 @@
-import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 
-import { Button } from "../../../../../../components/button";
-import { DraftFieldInput } from "../../../../../../components/draft-field-input";
-import { Menu } from "../../../../../../components/menu";
-import { Section, SectionList } from "../../../../../../components/section";
-import { Select } from "../../../../../../components/select";
-import type { SubView } from "../../../../../../components/sub-view/types";
-import { Tooltip } from "../../../../../../components/tooltip";
-import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
   validateDisplayName,
 } from "@hashintel/petrinaut-core";
+
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { Button } from "../../../../../../components/button";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
+import { Menu } from "../../../../../../components/menu";
+import { Section, SectionList } from "../../../../../../components/section";
+import { Select } from "../../../../../../components/select";
+import { Tooltip } from "../../../../../../components/tooltip";
+import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
+import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useDiffEqPropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const colorDotStyle = css({
   width: "[12px]",

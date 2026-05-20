@@ -1,6 +1,7 @@
+import { beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   createPolicy,
@@ -10,15 +11,16 @@ import {
   resolvePoliciesForActor,
   updatePolicyById,
 } from "@local/hash-graph-sdk/policy";
+
+import { resetGraph } from "../../admin-server";
+import { createTestImpureGraphContext, createTestUser } from "../../util";
+
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import type {
   Policy,
   PolicyCreationParams,
   ResolvedPolicy,
 } from "@rust/hash-graph-authorization/types";
-import { beforeAll, describe, expect, it } from "vitest";
-
-import { resetGraph } from "../../admin-server";
-import { createTestImpureGraphContext, createTestUser } from "../../util";
 
 const logger = new Logger({
   environment: "test",
