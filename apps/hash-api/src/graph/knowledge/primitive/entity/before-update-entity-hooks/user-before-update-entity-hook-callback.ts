@@ -213,9 +213,9 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
         );
       }
 
-      const allowedEmails = accessResult.allowedEmails ?? [];
+      const onlyForEmails = accessResult.onlyForEmails ?? [];
 
-      if (allowedEmails.length > 0) {
+      if (onlyForEmails.length > 0) {
         const verifiedEmails = await getUserVerifiedEmails(
           context,
           authentication,
@@ -224,7 +224,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
           },
         );
 
-        if (!allowedEmails.some((email) => verifiedEmails.includes(email))) {
+        if (!onlyForEmails.some((email) => verifiedEmails.includes(email))) {
           throw Error.forbidden(
             "You must verify your email address before completing account setup.",
           );

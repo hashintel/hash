@@ -47,7 +47,11 @@ export const userHasAccessToHash = async (
   context: ImpureGraphContext,
   authentication: AuthenticationContext,
   user: User | null,
-): Promise<{ allowed: boolean; allowedEmails?: string[] }> => {
+): Promise<{
+  allowed: boolean;
+  /** If present, the user is allowed access only with respect to these emails */
+  onlyForEmails?: string[];
+}> => {
   if (!user) {
     return { allowed: false };
   }
@@ -68,7 +72,7 @@ export const userHasAccessToHash = async (
   );
 
   if (allowedEmails.length > 0) {
-    return { allowed: true, allowedEmails };
+    return { allowed: true, onlyForEmails: allowedEmails };
   }
 
   const pendingInvitations = await getUserPendingInvitations(
