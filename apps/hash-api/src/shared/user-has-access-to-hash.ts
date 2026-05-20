@@ -47,24 +47,32 @@ export const userHasAccessToHash = async (
   context: ImpureGraphContext,
   authentication: AuthenticationContext,
   user: User | null,
-) => {
+): Promise<{
+  allowed: boolean;
+  /** If present, the user is allowed access only with respect to these emails */
+  onlyForEmails?: string[];
+}> => {
   if (!user) {
-    return false;
+    return { allowed: false };
   }
 
   if (!userEmailAllowList) {
-    return true;
+    return { allowed: true };
   }
 
   if (user.isAccountSignupComplete) {
     /**
      * If the user has completed account registration, they are allowed access.
      */
-    return true;
+    return { allowed: true };
   }
 
-  if (user.emails.some((email) => userEmailAllowList.includes(email))) {
-    return true;
+  const allowedEmails = user.emails.filter((email) =>
+    userEmailAllowList.includes(email),
+  );
+
+  if (allowedEmails.length > 0) {
+    return { allowed: true, onlyForEmails: allowedEmails };
   }
 
   const pendingInvitations = await getUserPendingInvitations(
@@ -73,5 +81,5 @@ export const userHasAccessToHash = async (
     { user },
   );
 
-  return pendingInvitations.length > 0;
+  return { allowed: pendingInvitations.length > 0 };
 };

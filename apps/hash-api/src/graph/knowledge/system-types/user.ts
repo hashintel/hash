@@ -42,7 +42,10 @@ import type {
   KratosUserIdentity,
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
-import { kratosIdentityApi } from "../../../auth/ory-kratos";
+import {
+  getVerifiedEmailsFromKratosIdentity,
+  kratosIdentityApi,
+} from "../../../auth/ory-kratos";
 import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
 import type {
@@ -127,21 +130,46 @@ const getEmailsFromKratos = async (
   }
 };
 
+export const getUserVerifiedEmails: ImpureGraphFunction<
+  { user: User },
+  Promise<string[]>
+> = async (_, __, { user }) => {
+  const { data: identity } = await kratosIdentityApi.getIdentity({
+    id: user.kratosIdentityId,
+  });
+
+  return getVerifiedEmailsFromKratosIdentity(identity);
+};
+
 /**
- * Lookup a Kratos identity by email address.
- * Returns the kratosIdentityId if found, null otherwise.
+ * For a given email address, check if it is associated with a Kratos identity,
+ * and if so if it is verified.
  */
-const getKratosIdentityIdByEmail = async (
+export const checkEmailVerificationAndUsageStatus = async (
   email: string,
-): Promise<string | null> => {
+): Promise<
+  | { status: "email-not-found" }
+  | { status: "verified"; kratosIdentityId: string }
+  | { status: "not-verified"; kratosIdentityId: string }
+> => {
   try {
     const { data: identities } = await kratosIdentityApi.listIdentities({
       credentialsIdentifier: email,
     });
-    return identities.length > 0 ? identities[0]!.id : null;
+
+    if (identities.length === 0) {
+      return { status: "email-not-found" };
+    }
+
+    const verifiedEmails = getVerifiedEmailsFromKratosIdentity(identities[0]!);
+    if (verifiedEmails.includes(email)) {
+      return { status: "verified", kratosIdentityId: identities[0]!.id };
+    } else {
+      return { status: "not-verified", kratosIdentityId: identities[0]!.id };
+    }
   } catch (error) {
     logger.warn("Failed to lookup Kratos identity", { email, error });
-    return null;
+    return { status: "email-not-found" };
   }
 };
 
@@ -180,41 +208,31 @@ export const getUserFromEntity: PureGraphFunction<
 };
 
 /**
- * Get a user by any available identifier.
+ * Get a user by a stable identifier.
  * Emails are always fetched from Kratos (the source of truth) since DB-level
  * masking hides them from non-owners.
  *
  * @param params.entityId - the entity id of the user
  * @param params.shortname - the shortname of the user
  * @param params.kratosIdentityId - the kratos identity id of the user
- * @param params.emails - the emails of the user
  */
 export const getUser: ImpureGraphFunction<
   | {
       entityId: EntityId;
-      emails?: [string, ...string[]];
     }
   | {
       shortname: string;
-      emails?: [string, ...string[]];
-      includeDrafts?: boolean;
     }
   | {
       kratosIdentityId: string;
       emails?: [string, ...string[]];
-      includeDrafts?: boolean;
-    }
-  | {
-      emails: [string, ...string[]];
-      kratosIdentityId?: string;
-      includeDrafts?: boolean;
     },
   Promise<User | null>
 > = async (context, authentication, params) => {
   const knownShortname = "shortname" in params ? params.shortname : null;
 
-  let emails = params.emails;
-  let kratosIdentityId =
+  let emails = "emails" in params ? params.emails : undefined;
+  const kratosIdentityId =
     "kratosIdentityId" in params ? params.kratosIdentityId : null;
 
   let entity: HashEntity<UserEntity>;
@@ -234,14 +252,6 @@ export const getUser: ImpureGraphFunction<
     }
   } else {
     let queryFilter: Filter;
-
-    if (emails && !kratosIdentityId && !knownShortname) {
-      // If we would have the shortname, we could use it to find the user, but we don't have it so we use the email to find the kratos Identity ID.
-      kratosIdentityId = await getKratosIdentityIdByEmail(emails[0]);
-      if (!kratosIdentityId) {
-        return null;
-      }
-    }
 
     if (kratosIdentityId) {
       queryFilter = {
@@ -284,7 +294,7 @@ export const getUser: ImpureGraphFunction<
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: !!params.includeDrafts,
+      includeDrafts: false,
       includePermissions: false,
     });
 
@@ -369,7 +379,6 @@ export const createUser: ImpureGraphFunction<
 
   const existingUserWithKratosIdentityId = await getUser(ctx, authentication, {
     kratosIdentityId,
-    emails,
   });
 
   if (existingUserWithKratosIdentityId) {
@@ -657,20 +666,17 @@ export const getUserPendingInvitations: ImpureGraphFunction<
           },
           {
             any: [
-              {
+              ...user.emails.map((email) => ({
                 equal: [
                   {
-                    /**
-                     * @todo H-4936 update when users can have more than one email
-                     */
                     path: [
                       "properties",
                       systemPropertyTypes.email.propertyTypeBaseUrl,
                     ],
                   },
-                  { parameter: user.emails[0] },
+                  { parameter: email },
                 ],
-              },
+              })),
               ...(user.shortname
                 ? [
                     {
