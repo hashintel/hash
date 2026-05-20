@@ -1,14 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 require("setimmediate");
 
-import type {
-  DataType,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { fluidFontClassName, theme } from "@hashintel/design-system/theme";
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
+
+import { fluidFontClassName, theme } from "@hashintel/design-system/theme";
 
 import { InheritanceRow } from "./entity-type-editor/inheritance-row";
 import { LinkListCard } from "./entity-type-editor/link-list-card";
@@ -16,10 +11,17 @@ import { PropertyListCard } from "./entity-type-editor/property-list-card";
 import { CustomizationContext } from "./shared/customization-context";
 import { DataTypesOptionsContextProvider } from "./shared/data-types-options-context";
 import { EntityTypesOptionsContextProvider } from "./shared/entity-types-options-context";
-import type { EditorOntologyFunctions } from "./shared/ontology-functions-context";
 import { OntologyFunctionsContext } from "./shared/ontology-functions-context";
 import { PropertyTypesOptionsContextProvider } from "./shared/property-types-options-context";
 import { ReadonlyContext } from "./shared/read-only-context";
+
+import type { EditorOntologyFunctions } from "./shared/ontology-functions-context";
+import type {
+  DataType,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 export {
   Controller as EntityTypeFormController,

@@ -3,11 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Checkbox, useCheckboxContext } from "@ark-ui/react/checkbox";
-import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
-import type { HTMLStyledProps } from "@hashintel/ds-helpers/types";
 import { type ComponentProps, forwardRef } from "react";
 
+import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
+
 import { checkboxSlotRecipe } from "./checkbox.recipe";
+
+import type { HTMLStyledProps } from "@hashintel/ds-helpers/types";
 
 const { withProvider, withContext } = createStyleContext(checkboxSlotRecipe);
 

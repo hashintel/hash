@@ -18,10 +18,10 @@ import "prismjs/components/prism-markdown";
 import "prismjs/components/prism-python";
 import "prismjs/components/prism-rust";
 import "prismjs/components/prism-typescript";
-
-import type { BoxProps } from "@mui/material";
 import { Box } from "@mui/material";
 import DOMPurify from "dompurify";
+
+import type { BoxProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 /**

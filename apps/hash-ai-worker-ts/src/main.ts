@@ -28,18 +28,20 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { config } from "dotenv-flow";
+import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
+
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { createCommonFlowActivities } from "@local/hash-backend-utils/flows";
-import type { WorkflowSource } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 import { runWorker } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import { config } from "dotenv-flow";
-import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 
 import { createAiActivities, createGraphActivities } from "./activities.js";
 import { createFlowActivities } from "./activities/flow-activities.js";
 import { logger } from "./shared/logger.js";
+
+import type { WorkflowSource } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

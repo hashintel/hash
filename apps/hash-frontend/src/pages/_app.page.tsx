@@ -7,49 +7,34 @@ require("setimmediate");
 
 import "./globals.scss";
 import "./prism.css";
-
 import { ApolloProvider } from "@apollo/client/react";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { EmotionCache } from "@emotion/react";
 import { CacheProvider } from "@emotion/react";
-import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
-import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { ErrorBoundary, getClient } from "@sentry/nextjs";
-import type { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
-import type { FunctionComponent } from "react";
 import { Suspense, useEffect, useState } from "react";
 
-import type {
-  GetHashInstanceSettingsQueryQuery,
-  HasAccessToHashQuery,
-  MeQuery,
-} from "../graphql/api-types.gen";
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import { createEmotionCache, theme } from "@hashintel/design-system/theme";
+import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+
 import { getHashInstanceSettings } from "../graphql/queries/knowledge/hash-instance.queries";
 import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
-import type { MinimalUser } from "../lib/user-and-org";
 import { constructMinimalUser } from "../lib/user-and-org";
 import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { InvitesContextProvider } from "../shared/invites-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import { NotificationCountContextProvider } from "../shared/notification-count-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 import { ErrorFallback } from "./_app.page/error-fallback";
-import type { AppPage } from "./shared/_app.util";
 import { redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
@@ -58,6 +43,22 @@ import { type IdentityTraits, oryKratosClient } from "./shared/ory-kratos";
 import { setSentryUser } from "./shared/sentry";
 import { SlideStackProvider } from "./shared/slide-stack";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
+
+import type {
+  GetHashInstanceSettingsQueryQuery,
+  HasAccessToHashQuery,
+  MeQuery,
+} from "../graphql/api-types.gen";
+import type { MinimalUser } from "../lib/user-and-org";
+import type { NextPageWithLayout } from "../shared/layout";
+import type { AppPage } from "./shared/_app.util";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EmotionCache } from "@emotion/react";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { User } from "@local/hash-isomorphic-utils/system-types/user";
+import type { AppProps as NextAppProps } from "next/app";
+import type { FunctionComponent } from "react";
 
 const clientSideEmotionCache = createEmotionCache();
 
