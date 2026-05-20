@@ -1,4 +1,3 @@
-import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 /**
  * LSP-inspired protocol types for the language server WebWorker.
  *
@@ -13,6 +12,7 @@ import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
  * public Petrinaut APIs, so downstream packages do not need to depend on this
  * upstream package directly.
  */
+import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 import type {
   Diagnostic,
   DocumentUri,

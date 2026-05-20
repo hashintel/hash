@@ -7,7 +7,6 @@ import isString from "lodash/isString";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { Step } from "prosemirror-transform";
 
-
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
 import {
   EntityStore,

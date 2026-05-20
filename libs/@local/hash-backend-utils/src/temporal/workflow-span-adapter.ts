@@ -1,6 +1,3 @@
-import { makeWorkflowExporter } from "@temporalio/interceptors-opentelemetry";
-
-import type { OpenTelemetrySetup } from "../opentelemetry.js";
 /**
  * Bridge between `@temporalio/interceptors-opentelemetry` (which pins
  * `@opentelemetry/sdk-trace-base@^1`) and our `@opentelemetry/sdk-trace-base@2`
@@ -25,6 +22,9 @@ import type { OpenTelemetrySetup } from "../opentelemetry.js";
  * `@temporalio/interceptors-opentelemetry-v2` (PR
  * https://github.com/temporalio/sdk-typescript/pull/1951) is released.
  */
+import { makeWorkflowExporter } from "@temporalio/interceptors-opentelemetry";
+
+import type { OpenTelemetrySetup } from "../opentelemetry.js";
 import type { SpanContext } from "@opentelemetry/api";
 import type { ExportResult } from "@opentelemetry/core";
 import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";

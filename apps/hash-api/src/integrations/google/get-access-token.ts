@@ -5,6 +5,7 @@ import type {
   GetGoogleTokenResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
 import type { RequestHandler } from "express";
+
 /**
  * Get an access token for use in the client where unavoidable, e.g. to use the Google File Picker.
  * Access tokens last for 1 hour.
