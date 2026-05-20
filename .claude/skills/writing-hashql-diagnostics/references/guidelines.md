@@ -62,10 +62,10 @@ A complete diagnostic tells a story:
 | --------------------------- | ---------------------------------------------------------- |
 | Start with lowercase        | `"expected semicolon"`, not `"Expected semicolon"`         |
 | No trailing punctuation     | `"missing field"`, not `"missing field."`                  |
-| Use backticks for code      | `"expected \`bool\`, found \`String\`"`                    |
+| Use backticks for code      | ``"expected `bool`, found `String`"``                      |
 | Use "invalid" not "illegal" | `"invalid identifier"`, not `"illegal identifier"`         |
 | Be matter-of-fact           | `"type mismatch"`, not `"sorry, types don't match"`        |
-| Be specific                 | `"cannot find variable \`x\`"`, not `"variable not found"` |
+| Be specific                 | ``"cannot find variable `x`"``, not `"variable not found"` |
 
 ### Good vs Bad Messages
 
