@@ -634,7 +634,7 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 export const getUserPendingInvitations: ImpureGraphFunction<
   { user: User },
   Promise<PendingOrgInvitation[]>
-> = async (context, authentication, { user }) => {
+> = async (context, _authentication, { user }) => {
   /**
    * The system account is used to manage invitations on behalf of the user,
    * because the user does not have permissions on them,
@@ -645,13 +645,6 @@ export const getUserPendingInvitations: ImpureGraphFunction<
   const systemAccountAuthentication = {
     actorId: systemAccountId,
   };
-  const verifiedEmails = await getUserVerifiedEmails(context, authentication, {
-    user,
-  });
-
-  if (verifiedEmails.length === 0 && !user.shortname) {
-    return [];
-  }
 
   const { subgraph: invitationSubgraph } = await queryEntitySubgraph(
     context,
@@ -673,7 +666,7 @@ export const getUserPendingInvitations: ImpureGraphFunction<
           },
           {
             any: [
-              ...verifiedEmails.map((email) => ({
+              ...user.emails.map((email) => ({
                 equal: [
                   {
                     path: [
