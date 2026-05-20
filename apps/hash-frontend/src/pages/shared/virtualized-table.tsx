@@ -5,6 +5,7 @@ import TableBody from "@mui/material/TableBody";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+/* eslint-enable no-restricted-imports */
 import { forwardRef, useCallback, useMemo } from "react";
 import { TableVirtuoso } from "react-virtuoso";
 
@@ -20,7 +21,6 @@ import type {
   VirtualizedTableSort,
 } from "./virtualized-table/header/sort";
 import type { SxProps, Theme } from "@mui/material";
-/* eslint-enable no-restricted-imports */
 import type { ComponentPropsWithoutRef, ReactElement } from "react";
 import type { TableComponents } from "react-virtuoso";
 

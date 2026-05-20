@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign -- Monte Carlo run state is mutable by design. */
 import {
   applyTokenAdditions,
   applyTokenRemovals,
@@ -8,7 +9,6 @@ import {
 } from "./frame-operations";
 import { computeTransitionEffect } from "./transition-effect";
 
-/* eslint-disable no-param-reassign -- Monte Carlo run state is mutable by design. */
 import type { SimulationCompletionReason } from "../engine/compute-next-frame";
 import type { MonteCarloRunState, PlaceID } from "./internal-types";
 
