@@ -159,12 +159,20 @@ export const inviteUserToOrgResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationInviteUserToOrgArgs
-> = async (_, { userEmail, userShortname, orgWebId }, graphQLContext) => {
+> = async (
+  _,
+  { userEmail: unnormalisedUserEmail, userShortname, orgWebId },
+  graphQLContext,
+) => {
   const { authentication } = graphQLContext;
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   let existingUserToInvite: User | null = null;
+
+  const userEmail = unnormalisedUserEmail
+    ? unnormalisedUserEmail.trim().toLowerCase()
+    : null;
 
   if (userEmail) {
     const emailCheckResult =
