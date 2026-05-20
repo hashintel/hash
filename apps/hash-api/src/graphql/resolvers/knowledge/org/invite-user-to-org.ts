@@ -170,7 +170,7 @@ export const inviteUserToOrgResolver: ResolverFn<
     const emailCheckResult =
       await checkEmailVerificationAndUsageStatus(userEmail);
 
-    if (emailCheckResult.status === "verified") {
+    if (emailCheckResult.status !== "email-not-found") {
       const existingUser = await getUser(context, authentication, {
         kratosIdentityId: emailCheckResult.kratosIdentityId,
       });
@@ -180,8 +180,6 @@ export const inviteUserToOrgResolver: ResolverFn<
       } else {
         throw Error.notFound(`User with email ${userEmail} not found`);
       }
-    } else if (emailCheckResult.status === "not-verified") {
-      throw Error.badRequest("User must verify their email address first.");
     }
   } else if (userShortname) {
     existingUserToInvite = await getUser(context, authentication, {

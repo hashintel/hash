@@ -225,11 +225,13 @@ export const getUser: ImpureGraphFunction<
     }
   | {
       kratosIdentityId: string;
+      emails?: [string, ...string[]];
     },
   Promise<User | null>
 > = async (context, authentication, params) => {
   const knownShortname = "shortname" in params ? params.shortname : null;
 
+  let emails = "emails" in params ? params.emails : undefined;
   const kratosIdentityId =
     "kratosIdentityId" in params ? params.kratosIdentityId : null;
 
@@ -309,7 +311,7 @@ export const getUser: ImpureGraphFunction<
     entity = userEntity;
   }
 
-  const emails = atLeastOne(
+  emails ??= atLeastOne(
     await getEmailsFromKratos(
       entity.properties[
         "https://hash.ai/@h/types/property-type/kratos-identity-id/"
