@@ -4,11 +4,11 @@ import { Fragment, useState } from "react";
 
 import type { FormInputWidth } from "../../util/form-shared";
 import { formInputSizes } from "../../util/form-shared";
-import { TextInput } from "./text-input";
+import { NumberInput } from "./number-input";
 
-type TextInputProps = React.ComponentProps<typeof TextInput>;
-type Variant = NonNullable<TextInputProps["variant"]>;
-type Align = NonNullable<TextInputProps["align"]>;
+type NumberInputProps = React.ComponentProps<typeof NumberInput>;
+type Variant = NonNullable<NumberInputProps["variant"]>;
+type Align = NonNullable<NumberInputProps["align"]>;
 
 const variants = ["default", "subtle"] as const satisfies readonly Variant[];
 const alignments = [
@@ -39,23 +39,37 @@ const rowVariants: RowVariant[] = [
 
 const noop = () => {};
 
-const Controlled = (props: TextInputProps) => {
-  const [value, setValue] = useState(String(props.value ?? ""));
+const Controlled = ({
+  type = "integer",
+  ...props
+}: Omit<NumberInputProps, "type"> & {
+  type?: "integer" | "float";
+}) => {
+  const [value, setValue] = useState(props.value ?? null);
   return (
-    <TextInput {...props} value={value} onChange={(val) => setValue(val)} />
-  );
-};
-
-const ClearableInput = (
-  props: Omit<TextInputProps, "clearable" | "onChange">,
-) => {
-  const [value, setValue] = useState(String(props.value ?? ""));
-  return (
-    <TextInput
+    <NumberInput
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
-      clearable={{ clearable: true, onClear: () => setValue("") }}
+      type={type}
+    />
+  );
+};
+
+const ClearableInput = ({
+  type = "integer",
+  ...props
+}: Omit<NumberInputProps, "clearable" | "onChange" | "type"> & {
+  type?: "integer" | "float";
+}) => {
+  const [value, setValue] = useState(props.value ?? null);
+  return (
+    <NumberInput
+      {...props}
+      value={value}
+      onChange={(val) => setValue(val)}
+      clearable={{ clearable: true, onClear: () => setValue(null) }}
+      type={type}
     />
   );
 };
@@ -63,22 +77,30 @@ const ClearableInput = (
 const StyledNumberInput = ({
   clearable,
   ...props
-}: Omit<TextInputProps, "value" | "onChange" | "styledValue" | "clearable"> & {
+}: Omit<
+  NumberInputProps,
+  "value" | "onChange" | "styledValue" | "clearable" | "type"
+> & {
   clearable?: boolean;
 }) => {
-  const [value, setValue] = useState("1234567890");
+  const [value, setValue] = useState<number | null>(1234567890);
   return (
-    <TextInput
+    <NumberInput
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
+      type="integer"
       clearable={
-        clearable ? { clearable: true, onClear: () => setValue("") } : undefined
+        clearable
+          ? { clearable: true, onClear: () => setValue(null) }
+          : undefined
       }
       styledValue={
-        <span style={{ color: "green", fontWeight: "bold" }}>
-          {Number(value).toLocaleString() || value}
-        </span>
+        value === null ? null : (
+          <span style={{ color: "green", fontWeight: "bold" }}>
+            {value.toLocaleString()}
+          </span>
+        )
       }
     />
   );
@@ -88,7 +110,6 @@ const sectionStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[32px]",
-  background: "neutral.s10",
 });
 
 const groupStyle = css({
@@ -134,10 +155,16 @@ const stateColumns = [
 ];
 
 export default {
-  title: "Components/TextInput",
+  title: "Components/NumberInput",
 } satisfies StoryDefault;
 
-export const Default: Story = () => (
+const StateGrid = ({
+  type,
+  filledValue,
+}: {
+  type: "integer" | "float";
+  filledValue: number;
+}) => (
   <div className={sectionStyle}>
     {variants.map((variant) => (
       <div key={variant} className={groupStyle}>
@@ -159,7 +186,7 @@ export const Default: Story = () => (
           ))}
           {stateRows.flatMap((row) =>
             stateColumns.map((col) => {
-              const value = col.withValue ? row.label : "";
+              const value = col.withValue ? filledValue : null;
               const cellKey = `${row.key}-${col.key}`;
               return row.clearable ? (
                 <ClearableInput
@@ -167,6 +194,7 @@ export const Default: Story = () => (
                   value={value}
                   variant={variant}
                   readonly={col.readonly}
+                  type={type}
                   {...row.extraProps}
                 />
               ) : (
@@ -176,6 +204,7 @@ export const Default: Story = () => (
                   onChange={noop}
                   variant={variant}
                   readonly={col.readonly}
+                  type={type}
                   {...row.extraProps}
                 />
               );
@@ -185,6 +214,14 @@ export const Default: Story = () => (
       </div>
     ))}
   </div>
+);
+
+export const Default: Story = () => (
+  <StateGrid type="integer" filledValue={1234} />
+);
+
+export const Float: Story = () => (
+  <StateGrid type="float" filledValue={1234.56} />
 );
 
 export const Alignment: Story = () => (
@@ -202,13 +239,8 @@ export const Alignment: Story = () => (
     <span style={subheadingStyle}>Read-only</span>
     {alignments.map((align) => (
       <Fragment key={align}>
-        <Controlled value={`Align: ${align}`} onChange={noop} align={align} />
-        <Controlled
-          value={`Align: ${align}`}
-          onChange={noop}
-          align={align}
-          readonly
-        />
+        <Controlled value={1234} onChange={noop} align={align} />
+        <Controlled value={1234} onChange={noop} align={align} readonly />
       </Fragment>
     ))}
   </div>
@@ -280,7 +312,7 @@ export const Size: Story = () => (
       ...formInputSizes.map((size) => (
         <Controlled
           key={`${rv.label}-${size}`}
-          value={rv.label}
+          value={1234}
           onChange={noop}
           size={size}
           variant={rv.variant}
@@ -295,7 +327,7 @@ export const Size: Story = () => (
     {...formInputSizes.map((size) => (
       <ClearableInput
         key={`sink-${size}`}
-        value="Kitchen Sink"
+        value={1234567890}
         prefix={{ iconName: "search" }}
         suffix={{ text: "kg" }}
         loading
@@ -313,7 +345,7 @@ export const Widths: Story = () => (
         {widths.map((width) => (
           <Controlled
             key={width}
-            value={`Width: ${width}`}
+            value={1234567890}
             onChange={noop}
             variant={rv.variant}
             readonly={rv.readonly}
@@ -322,7 +354,7 @@ export const Widths: Story = () => (
         ))}
         {!rv.readonly && (
           <ClearableInput
-            value="Width: fitContent with all the trimmings"
+            value={1234567890}
             variant={rv.variant}
             width="fitContent"
             prefix={{ iconName: "search" }}
@@ -339,14 +371,14 @@ export const Widths: Story = () => (
 type PrefixSuffixRow = {
   key: string;
   clearable?: boolean;
-  props: Omit<TextInputProps, "variant" | "width" | "onChange">;
+  props: Omit<NumberInputProps, "variant" | "width" | "onChange" | "type">;
 };
 
 const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-text",
     props: {
-      value: "",
+      value: null,
       prefix: { text: "$" },
       placeholder: "Prefix text",
     },
@@ -354,7 +386,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-button",
     props: {
-      value: "",
+      value: null,
       prefix: { iconName: "search", onClick: noop },
       placeholder: "Prefix button",
     },
@@ -362,7 +394,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "suffix-text",
     props: {
-      value: "",
+      value: null,
       suffix: { text: "kg" },
       placeholder: "Suffix text",
     },
@@ -370,7 +402,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "suffix-button",
     props: {
-      value: "",
+      value: null,
       suffix: { iconName: "close", onClick: noop },
       placeholder: "Suffix button",
     },
@@ -378,7 +410,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-suffix",
     props: {
-      value: "",
+      value: null,
       prefix: { iconName: "search" },
       suffix: { text: "CMD+K" },
       placeholder: "Prefix + suffix",
@@ -387,7 +419,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-suffix-button",
     props: {
-      value: "",
+      value: null,
       prefix: { iconName: "search", onClick: noop },
       suffix: { iconName: "close", onClick: noop },
       placeholder: "Prefix + suffix button",
@@ -397,7 +429,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink",
     clearable: true,
     props: {
-      value: "Kitchen Sink",
+      value: 1234567890,
       prefix: { iconName: "search" },
       suffix: { text: "kg" },
       loading: true,
@@ -407,7 +439,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink-disabled",
     clearable: true,
     props: {
-      value: "Kitchen Sink Disabled",
+      value: 1234567890,
       prefix: { iconName: "search" },
       suffix: { text: "kg" },
       loading: true,
@@ -418,7 +450,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink-button-disabled",
     clearable: true,
     props: {
-      value: "Kitchen Sink Disabled",
+      value: 1234567890,
       prefix: { iconName: "search", onClick: noop, disabled: true },
       suffix: { iconName: "close", onClick: noop },
       loading: true,
@@ -429,7 +461,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink-invalid",
     clearable: true,
     props: {
-      value: "Kitchen Sink Invalid",
+      value: 1234567890,
       prefix: { iconName: "search" },
       suffix: { text: "kg" },
       loading: true,
@@ -439,7 +471,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-suffix-button-loading-invalid",
     props: {
-      value: "Invalid Buttons",
+      value: 1234567890,
       prefix: { iconName: "search", onClick: noop },
       suffix: { iconName: "close", onClick: noop },
       loading: true,
@@ -450,7 +482,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
     key: "kitchen-sink-edit",
     clearable: true,
     props: {
-      value: "Kitchen Sink Edit Icon",
+      value: 1234567890,
       prefix: { iconName: "search" },
       suffix: { text: "kg" },
       loading: true,
@@ -460,7 +492,7 @@ const prefixSuffixRows: PrefixSuffixRow[] = [
   {
     key: "prefix-suffix-interactive-button",
     props: {
-      value: "",
+      value: null,
       prefix: {
         type: "interactive",
         content: (
