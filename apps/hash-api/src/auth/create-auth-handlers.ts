@@ -163,10 +163,7 @@ export const getUserAndSession = async ({
         ({ value }) => value === primaryEmailAddress,
       )?.verified === true;
 
-    let user = await getUser(context, authentication, {
-      kratosIdentityId,
-      emails: traits.emails,
-    });
+    let user = await getUser(context, authentication, { kratosIdentityId });
 
     if (!user) {
       const hashInstance = await getHashInstance(context, authentication);

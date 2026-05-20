@@ -37,6 +37,7 @@ import {
   type Org,
 } from "../../../../graph/knowledge/system-types/org";
 import {
+  checkEmailVerificationAndUsageStatus,
   getUser,
   isUserMemberOfOrg,
   type User,
@@ -166,9 +167,22 @@ export const inviteUserToOrgResolver: ResolverFn<
   let existingUserToInvite: User | null = null;
 
   if (userEmail) {
-    existingUserToInvite = await getUser(context, authentication, {
-      emails: [userEmail],
-    });
+    const emailCheckResult =
+      await checkEmailVerificationAndUsageStatus(userEmail);
+
+    if (emailCheckResult.status === "verified") {
+      const existingUser = await getUser(context, authentication, {
+        kratosIdentityId: emailCheckResult.kratosIdentityId,
+      });
+
+      if (existingUser) {
+        existingUserToInvite = existingUser;
+      } else {
+        throw Error.notFound(`User with email ${userEmail} not found`);
+      }
+    } else if (emailCheckResult.status === "not-verified") {
+      throw Error.badRequest("User must verify their email address first.");
+    }
   } else if (userShortname) {
     existingUserToInvite = await getUser(context, authentication, {
       shortname: userShortname,
