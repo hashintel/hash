@@ -16,12 +16,15 @@
       // materialize the publishable generated artifact before packing.
       "dependsOn": ["@hashintel/ds-components#codegen"],
       // Cache key inputs are the package metadata plus the source package files
-      // that control generated styled-system output. The generated output itself
-      // remains ignored by git and is restored by Turbo from `outputs` below.
+      // and scripts that control generated styled-system output. The generated
+      // output itself remains ignored by git and is restored by Turbo from
+      // `outputs` below.
       "inputs": [
         "package.json",
         "turbo.json",
+        "../ds-components/package.json",
         "../ds-components/panda.config.ts",
+        "../ds-components/scripts/**",
         "../ds-components/src/**"
       ],
       // `styled-system/**` is the only publishable artifact this package needs
