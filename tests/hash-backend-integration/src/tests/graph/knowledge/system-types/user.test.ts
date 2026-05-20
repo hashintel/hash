@@ -255,7 +255,7 @@ describe("User model class", () => {
         }),
       ).rejects.toMatchObject({
         response: {
-          status: 400,
+          status: 404,
         },
       });
 
