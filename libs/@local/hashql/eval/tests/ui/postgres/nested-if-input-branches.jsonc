@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Nested runtime branching - nested CASE WHEN from nested if with input discriminants
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

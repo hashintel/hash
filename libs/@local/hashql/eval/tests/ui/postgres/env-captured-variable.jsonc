@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Captured outer variable becomes env field access → Env parameter $N
-// biome-ignore format: readability
+// prettier-ignore
 ["if", { "#literal": true },
   ["let", "target_uuid",
     ["input", "target", "::graph::types::knowledge::entity::EntityUuid"],

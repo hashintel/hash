@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Let bindings propagate correctly in graph operations
-// biome-ignore format: readability
+// prettier-ignore
 ["let", "foo", {"#literal": 2},
 ["::graph::tail::collect",
   ["::graph::body::filter",

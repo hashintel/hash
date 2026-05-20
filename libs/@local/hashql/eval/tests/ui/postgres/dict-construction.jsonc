@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Dict aggregate from entity fields - AggregateKind::Dict → jsonb_build_object with key-value pairs
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

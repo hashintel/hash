@@ -9,9 +9,7 @@
  *
  * @see https://prismjs.com
  */
-// disabled simple-import-sort, because `Prism` needs to imported first here, otherwise it throws an error
-// eslint-disable-next-line simple-import-sort/imports
-import Prism from "prismjs";
+import Prism from "prismjs"; // oxfmt-ignore
 
 import "prismjs/components/prism-javascript";
 import "prismjs/components/prism-json";

@@ -340,8 +340,11 @@ export const create = (projectDirectory: string) =>
           },
         ],
 
+        // Import ordering and sorting is handled by oxfmt
+        "import/first": "off",
+        "import/order": "off",
         "simple-import-sort/exports": "error",
-        "simple-import-sort/imports": "error",
+        "simple-import-sort/imports": "off",
         "unicorn/filename-case": "error",
 
         "unicorn/import-style": [

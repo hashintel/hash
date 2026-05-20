@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Entity type IDs access triggers LEFT JOIN LATERAL subquery with unnest + jsonb_agg
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

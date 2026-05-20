@@ -1,4 +1,3 @@
-/* eslint simple-import-sort/imports: "off", sort-imports: ["error", { ignoreDeclarationSort: true, ignoreMemberSort: true, ignoreCase: false }] */
 import { cx } from "@hashintel/ds-helpers/css";
 import type { DataAttributes } from "../../util/dom";
 import ArrowDown from "./svgs/regular/arrow-down.svg";

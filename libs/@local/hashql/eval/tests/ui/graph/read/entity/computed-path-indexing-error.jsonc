@@ -1,6 +1,6 @@
 //@ run: fail
 //@ description: Test error when using computed paths for indexing in filter expressions
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],

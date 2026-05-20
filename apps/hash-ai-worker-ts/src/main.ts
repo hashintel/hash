@@ -1,8 +1,6 @@
-/* eslint-disable import/first, import/order, simple-import-sort/imports */
-
 // Must be the first import so OTEL auto-instrumentations can patch
 // http / grpc / Sentry's own monkey-patches before they apply.
-import { otelSetup } from "./instrument.js";
+import { otelSetup } from "./instrument.js"; // oxfmt-ignore
 
 import * as Sentry from "@sentry/node";
 

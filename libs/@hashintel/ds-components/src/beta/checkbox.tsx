@@ -27,7 +27,6 @@ export {
 } from "@ark-ui/react/checkbox";
 
 // styled.svg is typed too broadly to satisfy strict TS in this context
-// biome-ignore lint/suspicious/noExplicitAny: union type too complex for TS
 const StyledSvg = styled.svg as React.ComponentType<any>;
 
 export const Indicator = forwardRef<SVGSVGElement, HTMLStyledProps<"svg">>(

@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Runtime branching - input parameter as discriminant forces CASE WHEN in SQL
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

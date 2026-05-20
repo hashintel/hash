@@ -1,6 +1,4 @@
-// disabled simple-import-sort, because `Prism` needs to imported first here, otherwise it throws an error
-// eslint-disable-next-line simple-import-sort/imports
-import Prism from "prismjs";
+import Prism from "prismjs"; // oxfmt-ignore
 import "prismjs/components/prism-json";
 import "prismjs/components/prism-json5";
 
@@ -178,17 +176,17 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
             word-break: normal;
             word-wrap: normal;
             line-height: 1.5;
-          
+
             -moz-tab-size: 4;
             -o-tab-size: 4;
             tab-size: 4;
-          
+
             -webkit-hyphens: none;
             -moz-hyphens: none;
             -ms-hyphens: none;
             hyphens: none;
           }
-          
+
           /* Code blocks */
           pre[class*="language-"] {
             padding: 10em;
@@ -196,34 +194,34 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
             overflow: auto;
             border-radius: 0.3em;
           }
-          
+
           :not(pre) > code[class*="language-"],
           pre[class*="language-"] {
             background: #272822;
           }
-          
+
           /* Inline code */
           :not(pre) > code[class*="language-"] {
             padding: 0.1em;
             border-radius: 0.3em;
             white-space: normal;
           }
-          
+
           .token.comment,
           .token.prolog,
           .token.doctype,
           .token.cdata {
             color: #8292a2;
           }
-          
+
           .token.punctuation {
             color: #f8f8f2;
           }
-          
+
           .token.namespace {
             opacity: 0.7;
           }
-          
+
           .token.property,
           .token.tag,
           .token.constant,
@@ -231,12 +229,12 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
           .token.deleted {
             color: #b0a2ff;
           }
-          
+
           .token.boolean,
           .token.number {
             color: #ae81ff;
           }
-          
+
           .token.selector,
           .token.attr-name,
           .token.string,
@@ -245,7 +243,7 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
           .token.inserted {
             color: #35c9eb;
           }
-          
+
           .token.operator,
           .token.entity,
           .token.url,
@@ -254,23 +252,23 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
           .token.variable {
             color: #c4c1c9;
           }
-          
+
           .token.atrule,
           .token.attr-value,
           .token.function,
           .token.class-name {
             color: #e6db74;
           }
-          
+
           .token.keyword {
             color: #66d9ef;
           }
-          
+
           .token.regex,
           .token.important {
             color: #f58c4b;
           }
-          
+
           .token.important,
           .token.bold {
             font-weight: bold;
@@ -278,7 +276,7 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
           .token.italic {
             font-style: italic;
           }
-          
+
           .token.entity {
             cursor: help;
           }

@@ -81,7 +81,7 @@
     "@yarnpkg/types": "^4.0.1",
     "lefthook": "2.0.0",
     "npm-run-all2": "8.0.4",
-    "oxfmt": "0.50.0"
+    "oxfmt": "0.49.0"
   },
   "resolutions": {
     "@artilleryio/int-commons@npm:2.11.0": "patch:@artilleryio/int-commons@npm%3A2.11.0#~/.yarn/patches/@artilleryio-int-commons-npm-2.11.0-5b69c05121.patch",

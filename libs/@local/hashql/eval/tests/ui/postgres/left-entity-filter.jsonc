@@ -1,6 +1,6 @@
 //@ run: skip reason="link_data is Option<LinkData>; accessing fields through Option requires unwrap/pattern-match not yet expressible in filter J-Expr"
 //@ description: Left entity UUID filter - LEFT OUTER JOIN on entity_has_left_entity
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

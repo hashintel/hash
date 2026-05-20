@@ -1,6 +1,6 @@
 //@ run: skip reason="property subscript requires a concrete entity type; the type system cannot resolve unknown field access on vertex.properties yet"
 //@ description: Property field equality - json_extract_path on entity_editions.properties
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Input parameter as comparison operand - tests RValue::Input compilation and parameter dedup
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],
