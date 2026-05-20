@@ -20,6 +20,7 @@ import {
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { GraphQLError } from "graphql";
 
+import { isUserEmailVerified } from "../../../../../auth/ory-kratos";
 import * as Error from "../../../../../graphql/error";
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
 import type { ImpureGraphContext } from "../../../../context-types";
@@ -229,6 +230,10 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
             "You must verify your email address before completing account setup.",
           );
         }
+      } else if (!(await isUserEmailVerified(user.kratosIdentityId))) {
+        throw Error.forbidden(
+          "You must verify your email address before completing account setup.",
+        );
       }
 
       if (!updatedShortname || !updatedDisplayName) {
