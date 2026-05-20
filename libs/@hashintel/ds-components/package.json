@@ -58,7 +58,7 @@
     "dev:lib": "tsup --config tsup.config.ts --watch",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:eslint": "eslint --cache --fix .",
-    "fix:format": "biome format --write",
+    "fix:format": "oxfmt --write",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:eslint": "eslint --cache --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",

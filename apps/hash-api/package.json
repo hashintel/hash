@@ -11,7 +11,7 @@
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false --import ./src/instrument.mjs ./src/index.ts",
     "fix:eslint": "eslint --fix .",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
-    "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; biome format --write ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
+    "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; oxfmt --write --ignore-path /dev/null ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx --import ./src/instrument.mjs ./src/index.ts",

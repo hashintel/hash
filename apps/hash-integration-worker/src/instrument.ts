@@ -1,10 +1,10 @@
-import { GrpcInstrumentation } from "@opentelemetry/instrumentation-grpc";
-
 /**
  * OpenTelemetry bootstrap for the integration worker. Imported as the
  * very first statement of `main.ts` so the auto-instrumentations can
  * patch http and gRPC modules before any other code requires them.
  */
+import { GrpcInstrumentation } from "@opentelemetry/instrumentation-grpc";
+
 import {
   createHttpInstrumentation,
   createUndiciInstrumentation,
