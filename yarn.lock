@@ -375,7 +375,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     ajv: "npm:8.18.0"
     ajv-formats: "npm:3.0.1"
-    axios: "npm:1.15.1"
+    axios: "npm:1.16.1"
     cache-manager: "npm:5.7.6"
     dedent: "npm:1.7.0"
     dotenv-flow: "npm:3.3.0"
@@ -454,7 +454,7 @@ __metadata:
     "@ory/client": "npm:1.22.7"
     "@ory/hydra-client": "npm:25.4.0"
     "@ory/kratos-client": "npm:25.4.0"
-    "@rudderstack/rudder-sdk-node": "npm:3.0.5"
+    "@rudderstack/rudder-sdk-node": "npm:3.0.8"
     "@sentry/node": "npm:10.42.0"
     "@snowplow/node-tracker": "npm:4.6.8"
     "@temporalio/client": "npm:1.12.1"
@@ -475,7 +475,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     agentkeepalive: "npm:4.6.0"
     app-root-path: "npm:3.1.0"
-    axios: "npm:1.15.1"
+    axios: "npm:1.16.1"
     body-parser: "npm:2.2.1"
     clipboardy: "npm:5.0.0"
     cors: "npm:2.8.5"
@@ -600,7 +600,7 @@ __metadata:
     "@types/url-regex-safe": "npm:1.0.2"
     "@vercel/edge-config": "npm:0.4.1"
     "@welldone-software/why-did-you-render": "npm:10.0.1"
-    axios: "npm:1.15.1"
+    axios: "npm:1.16.1"
     buffer: "npm:6.0.3"
     clsx: "npm:2.1.1"
     date-fns: "npm:4.1.0"
@@ -715,7 +715,7 @@ __metadata:
     "@temporalio/workflow": "npm:1.12.1"
     "@types/dotenv-flow": "npm:3.3.3"
     agentkeepalive: "npm:4.6.0"
-    axios: "npm:1.15.1"
+    axios: "npm:1.16.1"
     cache-manager: "npm:5.7.6"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.39.4"
@@ -9255,7 +9255,7 @@ __metadata:
     "@types/wait-on": "npm:5.3.4"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     agentkeepalive: "npm:4.6.0"
-    axios: "npm:1.15.1"
+    axios: "npm:1.16.1"
     cache-manager: "npm:5.7.6"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.39.4"
@@ -9283,7 +9283,7 @@ __metadata:
     "@openapitools/openapi-generator-cli": "npm:2.31.1"
     "@rust/hash-graph-api": "workspace:*"
     "@types/node": "npm:22.18.13"
-    axios: "npm:1.15.1"
+    axios: "npm:1.16.1"
     fix-esm-import-path: "npm:1.10.3"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
@@ -9375,7 +9375,7 @@ __metadata:
   dependencies:
     "@openapitools/openapi-generator-cli": "npm:2.31.1"
     "@types/node": "npm:22.18.13"
-    axios: "npm:1.15.1"
+    axios: "npm:1.16.1"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
   languageName: unknown
@@ -15121,11 +15121,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rudderstack/rudder-sdk-node@npm:3.0.5":
-  version: 3.0.5
-  resolution: "@rudderstack/rudder-sdk-node@npm:3.0.5"
+"@rudderstack/rudder-sdk-node@npm:3.0.8":
+  version: 3.0.8
+  resolution: "@rudderstack/rudder-sdk-node@npm:3.0.8"
   dependencies:
-    axios: "npm:1.15.1"
+    axios: "npm:1.16.1"
     axios-retry: "npm:4.5.0"
     bull: "npm:4.16.5"
     component-type: "npm:2.0.0"
@@ -15136,11 +15136,10 @@ __metadata:
     ms: "npm:2.1.3"
     remove-trailing-slash: "npm:0.1.1"
     tslib: "npm:2.8.1"
-    uuid: "npm:11.1.0"
   dependenciesMeta:
     bull:
       optional: true
-  checksum: 10c0/21aeb7475c66472187a51554bbf409d06acb14816222af7f6ff094e77a9836b8b4a80e109c734ee63c8ac49f0a4828efaefd9eb1b557bc0864f5ad0f32fbb134
+  checksum: 10c0/aa646c9003b78ad178ac7f63deebd4241a9ddaa1f17b7263cd650285b4cb304793cd5beed9085f60fbe279e18f3ba26354ea1a109394f418b7a4d61948c4b38c
   languageName: node
   linkType: hard
 
@@ -23198,14 +23197,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.15.1, axios@npm:^1.12.2, axios@npm:^1.14.0, axios@npm:^1.6.1":
-  version: 1.15.1
-  resolution: "axios@npm:1.15.1"
+"axios@npm:1.16.1, axios@npm:^1.12.2, axios@npm:^1.14.0, axios@npm:^1.6.1":
+  version: 1.16.1
+  resolution: "axios@npm:1.16.1"
   dependencies:
-    follow-redirects: "npm:^1.15.11"
+    follow-redirects: "npm:^1.16.0"
     form-data: "npm:^4.0.5"
+    https-proxy-agent: "npm:^5.0.1"
     proxy-from-env: "npm:^2.1.0"
-  checksum: 10c0/f8b5f3aa954cc1da283e32ad81882967a371dfec7dcc75174fcae93093daeb5399aec2ec587d04779f46b00ff1c297ac9edf3fa596452d6a3d455ce5b58093a4
+  checksum: 10c0/2f77e37e6552bbff8a772d058fb09500198e9188c6b20dc799d82dbe12a8cb506f6eed4e4e62a9ba612a35cbab496faa26d68f9bff14a53af6d15c3e136391a7
   languageName: node
   linkType: hard
 
@@ -29348,7 +29348,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.0.0, follow-redirects@npm:^1.15.11":
+"follow-redirects@npm:^1.0.0, follow-redirects@npm:^1.16.0":
   version: 1.16.0
   resolution: "follow-redirects@npm:1.16.0"
   peerDependenciesMeta:
@@ -31387,7 +31387,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"https-proxy-agent@npm:^5.0.0":
+"https-proxy-agent@npm:^5.0.0, https-proxy-agent@npm:^5.0.1":
   version: 5.0.1
   resolution: "https-proxy-agent@npm:5.0.1"
   dependencies:
@@ -45348,15 +45348,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:11.1.0, uuid@npm:^11.0.1, uuid@npm:^11.0.3, uuid@npm:^11.1.0":
-  version: 11.1.0
-  resolution: "uuid@npm:11.1.0"
-  bin:
-    uuid: dist/esm/bin/uuid
-  checksum: 10c0/34aa51b9874ae398c2b799c88a127701408cd581ee89ec3baa53509dd8728cbb25826f2a038f9465f8b7be446f0fbf11558862965b18d21c993684297628d4d3
-  languageName: node
-  linkType: hard
-
 "uuid@npm:14.0.0":
   version: 14.0.0
   resolution: "uuid@npm:14.0.0"
@@ -45381,6 +45372,15 @@ __metadata:
   bin:
     uuid: dist/bin/uuid
   checksum: 10c0/eab18c27fe4ab9fb9709a5d5f40119b45f2ec8314f8d4cf12ce27e4c6f4ffa4a6321dc7db6c515068fa373c075b49691ba969f0010bf37f44c37ca40cd6bf7fe
+  languageName: node
+  linkType: hard
+
+"uuid@npm:^11.0.1, uuid@npm:^11.0.3, uuid@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "uuid@npm:11.1.0"
+  bin:
+    uuid: dist/esm/bin/uuid
+  checksum: 10c0/34aa51b9874ae398c2b799c88a127701408cd581ee89ec3baa53509dd8728cbb25826f2a038f9465f8b7be446f0fbf11558862965b18d21c993684297628d4d3
   languageName: node
   linkType: hard
 
