@@ -24,6 +24,11 @@ selfservice:
     password:
       enabled: true
 
+    profile:
+      # HASH treats email ownership as a verified authorization signal.
+      # Do not let users mutate identity traits through Kratos settings flows.
+      enabled: false
+
     link:
       config:
         # The link method is disabled (we use the code method instead).

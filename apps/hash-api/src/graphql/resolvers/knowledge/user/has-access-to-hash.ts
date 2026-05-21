@@ -10,9 +10,11 @@ export const hasAccessToHashResolver: ResolverFn<
   GraphQLContext,
   Record<string, never>
 > = async (_, __, context) => {
-  return userHasAccessToHash(
-    graphQLContextToImpureGraphContext(context),
-    context.authentication,
-    context.user ?? null,
-  );
+  return (
+    await userHasAccessToHash(
+      graphQLContextToImpureGraphContext(context),
+      context.authentication,
+      context.user ?? null,
+    )
+  ).allowed;
 };

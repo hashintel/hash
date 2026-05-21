@@ -1,4 +1,5 @@
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
+import { getUserVerifiedEmails } from "../../../../graph/knowledge/system-types/user";
 import { systemAccountId } from "../../../../graph/system-account";
 import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
@@ -63,7 +64,15 @@ export const declineOrgInvitationResolver: ResolverFn<
   }
 
   if ("email" in invitation) {
-    if (!user.emails.includes(invitation.email)) {
+    const verifiedEmails = await getUserVerifiedEmails(
+      context,
+      graphQLContext.authentication,
+      {
+        user,
+      },
+    );
+
+    if (!verifiedEmails.includes(invitation.email)) {
       throw Error.notFound("Invitation for user not found");
     }
   } else if ("shortname" in invitation) {

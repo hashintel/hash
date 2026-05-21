@@ -26,6 +26,13 @@ export type KratosUserIdentity = Omit<Identity, "traits"> & {
   traits: KratosUserIdentityTraits;
 };
 
+export const getVerifiedEmailsFromKratosIdentity = (
+  identity: Pick<Identity, "verifiable_addresses">,
+): string[] =>
+  (identity.verifiable_addresses ?? [])
+    .filter((address) => address.verified === true)
+    .map(({ value }) => value);
+
 export const createKratosIdentity = async (
   params: Omit<CreateIdentityBody, "schema_id" | "traits"> & {
     traits: KratosUserIdentityTraits;
@@ -78,9 +85,7 @@ export const isUserEmailVerified = async (
     id: kratosIdentityId,
   });
 
-  return (
-    identity.verifiable_addresses?.some(({ verified }) => verified) ?? false
-  );
+  return getVerifiedEmailsFromKratosIdentity(identity).length > 0;
 };
 
 /**

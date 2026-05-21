@@ -31,6 +31,7 @@ import {
   type Org,
 } from "../../../../graph/knowledge/system-types/org";
 import {
+  checkEmailVerificationAndUsageStatus,
   getUser,
   isUserMemberOfOrg,
   type User,
@@ -160,17 +161,36 @@ export const inviteUserToOrgResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationInviteUserToOrgArgs
-> = async (_, { userEmail, userShortname, orgWebId }, graphQLContext) => {
+> = async (
+  _,
+  { userEmail: unnormalisedUserEmail, userShortname, orgWebId },
+  graphQLContext,
+) => {
   const { authentication } = graphQLContext;
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   let existingUserToInvite: User | null = null;
 
+  const userEmail = unnormalisedUserEmail
+    ? unnormalisedUserEmail.trim().toLowerCase()
+    : null;
+
   if (userEmail) {
-    existingUserToInvite = await getUser(context, authentication, {
-      emails: [userEmail],
-    });
+    const emailCheckResult =
+      await checkEmailVerificationAndUsageStatus(userEmail);
+
+    if (emailCheckResult.status !== "email-not-found") {
+      const existingUser = await getUser(context, authentication, {
+        kratosIdentityId: emailCheckResult.kratosIdentityId,
+      });
+
+      if (existingUser) {
+        existingUserToInvite = existingUser;
+      } else {
+        throw Error.notFound(`User with email ${userEmail} not found`);
+      }
+    }
   } else if (userShortname) {
     existingUserToInvite = await getUser(context, authentication, {
       shortname: userShortname,

@@ -15,6 +15,7 @@ import {
   type Org,
 } from "../../../../graph/knowledge/system-types/org";
 import {
+  getUserVerifiedEmails,
   isUserMemberOfOrg,
   joinOrg,
 } from "../../../../graph/knowledge/system-types/user";
@@ -66,7 +67,15 @@ export const acceptOrgInvitationResolver: ResolverFn<
   let isForUser: boolean;
 
   if (isInvitationByEmail(invitation)) {
-    isForUser = user.emails.includes(
+    const verifiedEmails = await getUserVerifiedEmails(
+      context,
+      graphQLContext.authentication,
+      {
+        user,
+      },
+    );
+
+    isForUser = verifiedEmails.includes(
       invitation.properties["https://hash.ai/@h/types/property-type/email/"],
     );
   } else if (isInvitationByShortname(invitation)) {

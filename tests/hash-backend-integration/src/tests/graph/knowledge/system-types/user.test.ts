@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   createKratosIdentity,
+  deleteKratosIdentity,
+  kratosFrontendApi,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
@@ -197,6 +199,78 @@ describe("User model class", () => {
     expect(fetchedUser).not.toBeNull();
 
     expect(fetchedUser).toEqual(createdUser);
+  });
+
+  it("prevents users from amending Kratos profile traits directly", async () => {
+    const email = "kratos-profile-update@example.com";
+    const injectedEmail = "injected-profile-update@example.com";
+    const password = "password";
+
+    const identity = await createKratosIdentity({
+      traits: {
+        emails: [email],
+      },
+      credentials: {
+        password: {
+          config: {
+            password,
+          },
+        },
+      },
+    });
+
+    try {
+      const { data: loginFlow } = await kratosFrontendApi.createNativeLoginFlow(
+        {},
+      );
+
+      const { data: login } = await kratosFrontendApi.updateLoginFlow({
+        flow: loginFlow.id,
+        updateLoginFlowBody: {
+          identifier: email,
+          method: "password",
+          password,
+        },
+      });
+
+      const sessionToken = login.session_token;
+
+      if (!sessionToken) {
+        throw new Error("Expected Kratos to return a native session token.");
+      }
+
+      const { data: settingsFlow } =
+        await kratosFrontendApi.createNativeSettingsFlow({
+          xSessionToken: sessionToken,
+        });
+
+      await expect(
+        kratosFrontendApi.updateSettingsFlow({
+          flow: settingsFlow.id,
+          updateSettingsFlowBody: {
+            method: "profile",
+            traits: {
+              emails: [email, injectedEmail],
+            },
+          },
+          xSessionToken: sessionToken,
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          status: 404,
+        },
+      });
+
+      const { data: updatedIdentity } = await kratosIdentityApi.getIdentity({
+        id: identity.id,
+      });
+
+      expect(updatedIdentity.traits).toMatchObject({
+        emails: [email],
+      });
+    } finally {
+      await deleteKratosIdentity({ kratosIdentityId: identity.id });
+    }
   });
 
   it("can join an org", async () => {
