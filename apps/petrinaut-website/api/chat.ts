@@ -15,9 +15,9 @@ declare const process: {
 };
 
 const DEFAULT_MODEL = "gpt-5.5-2026-04-23";
-const MAX_REQUEST_BYTES = 1024 * 1024;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 20;
+const RATE_LIMIT_MAX_TRACKED_CLIENTS = 10_000;
 
 const requestSchema = z.object({
   id: z.string().optional(),
@@ -37,41 +37,11 @@ const petrinautAiValidationTools = Object.fromEntries(
 
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 
-const getAllowedOrigins = (): Set<string> => {
-  const configured = process.env.PETRINAUT_AI_ALLOWED_ORIGINS;
-  const origins = new Set(
-    configured
-      ?.split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean) ?? [],
-  );
-
-  const vercelUrl = process.env.VERCEL_URL;
-  if (vercelUrl) {
-    origins.add(`https://${vercelUrl}`);
-  }
-
-  return origins;
+const jsonResponse = (body: unknown, init: ResponseInit = {}) => {
+  const headers = new Headers(init.headers);
+  headers.set("content-type", "application/json");
+  return new Response(JSON.stringify(body), { ...init, headers });
 };
-
-const mergeHeaders = (...headers: (HeadersInit | undefined)[]): Headers => {
-  const merged = new Headers();
-  for (const headerSet of headers) {
-    if (!headerSet) {
-      continue;
-    }
-    new Headers(headerSet).forEach((value, key) => {
-      merged.set(key, value);
-    });
-  }
-  return merged;
-};
-
-const jsonResponse = (body: unknown, init: ResponseInit = {}) =>
-  new Response(JSON.stringify(body), {
-    ...init,
-    headers: mergeHeaders({ "content-type": "application/json" }, init.headers),
-  });
 
 const logChatFailure = (
   reason: string,
@@ -87,36 +57,43 @@ const validationErrorBody = (
     ? { error: "Invalid chat messages" }
     : { error: "Invalid chat messages", detail: error.message };
 
-const corsHeaders = (request: Request): HeadersInit => {
-  const origin = request.headers.get("origin");
-  return origin &&
-    (process.env.VERCEL_ENV !== "production" || getAllowedOrigins().has(origin))
-    ? { "access-control-allow-origin": origin, vary: "Origin" }
-    : { vary: "Origin" };
-};
-
-const isAllowedOrigin = (request: Request): boolean => {
-  if (process.env.VERCEL_ENV !== "production") {
-    return true;
+/**
+ * Resolve the public client IP for rate-limiting.
+ *
+ * Vercel's edge overwrites `x-forwarded-for` with the real client IP and
+ * refuses to forward externally-set values, so the header cannot be spoofed
+ * by the caller. `x-vercel-forwarded-for` carries the same value but is also
+ * immune to a custom proxy placed in front of Vercel.
+ *
+ * See https://vercel.com/docs/edge-network/headers/request-headers
+ */
+const resolveClientIp = (request: Request): string | null => {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    const first = forwardedFor.split(",")[0]?.trim();
+    if (first) {
+      return first;
+    }
   }
-
-  const origin = request.headers.get("origin");
-  return origin !== null && getAllowedOrigins().has(origin);
+  return request.headers.get("x-vercel-forwarded-for");
 };
 
-const getClientKey = (request: Request): string =>
-  request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-  request.headers.get("x-real-ip") ??
-  request.headers.get("user-agent") ??
-  "unknown";
-
-const checkRateLimit = (request: Request): boolean => {
-  const key = getClientKey(request);
+const checkRateLimit = (clientIp: string): boolean => {
   const now = Date.now();
-  const current = rateLimitBuckets.get(key);
+  const current = rateLimitBuckets.get(clientIp);
 
   if (!current || current.resetAt <= now) {
-    rateLimitBuckets.set(key, {
+    // The bucket map only grows; on a warm function instance with many unique
+    // clients it would accumulate indefinitely. When we cross the cap, drop
+    // every expired bucket in one sweep before inserting the new one.
+    if (rateLimitBuckets.size >= RATE_LIMIT_MAX_TRACKED_CLIENTS) {
+      for (const [key, bucket] of rateLimitBuckets) {
+        if (bucket.resetAt <= now) {
+          rateLimitBuckets.delete(key);
+        }
+      }
+    }
+    rateLimitBuckets.set(clientIp, {
       count: 1,
       resetAt: now + RATE_LIMIT_WINDOW_MS,
     });
@@ -131,48 +108,35 @@ const checkRateLimit = (request: Request): boolean => {
   return true;
 };
 
+/**
+ * API endpoint to proxy requests for AI assistance to OpenAI.
+ */
 export default async function handler(request: Request): Promise<Response> {
   if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: mergeHeaders(corsHeaders(request), {
-        "access-control-allow-headers": "content-type",
-        "access-control-allow-methods": "POST, OPTIONS",
-      }),
-    });
+    // We'll always serve this same-origin so we don't need any CORS config
+    return new Response(null, { status: 204 });
   }
 
   if (request.method !== "POST") {
-    logChatFailure("Rejected unsupported method", {
-      method: request.method,
-    });
+    logChatFailure("Rejected unsupported method", { method: request.method });
+    return jsonResponse({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  const clientIp = resolveClientIp(request);
+  if (process.env.VERCEL_ENV === "production" && !clientIp) {
+    // Vercel's edge always sets x-forwarded-for in production. If it isn't
+    // present, the request reached us through an unexpected path and we have
+    // no way to rate-limit it - reject conservatively rather than fail open.
+    logChatFailure("Rejected production request with no resolvable client IP");
     return jsonResponse(
-      { error: "Method not allowed" },
-      {
-        headers: corsHeaders(request),
-        status: 405,
-      },
+      { error: "Could not determine client IP" },
+      { status: 400 },
     );
   }
 
-  if (!isAllowedOrigin(request)) {
-    logChatFailure("Rejected disallowed origin", {
-      origin: request.headers.get("origin"),
-    });
-    return jsonResponse({ error: "Origin not allowed" }, { status: 403 });
-  }
-
-  if (!checkRateLimit(request)) {
-    logChatFailure("Rejected rate-limited request", {
-      clientKey: getClientKey(request),
-    });
-    return jsonResponse(
-      { error: "Rate limit exceeded" },
-      {
-        headers: corsHeaders(request),
-        status: 429,
-      },
-    );
+  if (clientIp && !checkRateLimit(clientIp)) {
+    logChatFailure("Rejected rate-limited request", { clientIp });
+    return jsonResponse({ error: "Rate limit exceeded" }, { status: 429 });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -180,70 +144,22 @@ export default async function handler(request: Request): Promise<Response> {
     logChatFailure("Missing OpenAI API key");
     return jsonResponse(
       { error: "OPENAI_API_KEY is not configured" },
-      {
-        headers: corsHeaders(request),
-        status: 500,
-      },
-    );
-  }
-
-  const contentLength = Number(request.headers.get("content-length") ?? "0");
-  if (contentLength > MAX_REQUEST_BYTES) {
-    logChatFailure("Rejected oversized request by content-length", {
-      contentLength,
-      maxRequestBytes: MAX_REQUEST_BYTES,
-    });
-    return jsonResponse(
-      { error: "Request too large" },
-      {
-        headers: corsHeaders(request),
-        status: 413,
-      },
-    );
-  }
-
-  const rawBody = await request.text();
-  const rawBodyBytes = new TextEncoder().encode(rawBody).byteLength;
-  if (rawBodyBytes > MAX_REQUEST_BYTES) {
-    logChatFailure("Rejected oversized request body", {
-      maxRequestBytes: MAX_REQUEST_BYTES,
-      rawBodyBytes,
-    });
-    return jsonResponse(
-      { error: "Request too large" },
-      {
-        headers: corsHeaders(request),
-        status: 413,
-      },
+      { status: 500 },
     );
   }
 
   let body: unknown;
   try {
-    body = JSON.parse(rawBody);
+    body = await request.json();
   } catch (error) {
     logChatFailure("Rejected invalid JSON", { error });
-    return jsonResponse(
-      { error: "Invalid JSON" },
-      {
-        headers: corsHeaders(request),
-        status: 400,
-      },
-    );
+    return jsonResponse({ error: "Invalid JSON" }, { status: 400 });
   }
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
-    logChatFailure("Rejected invalid chat request", {
-      error: parsed.error,
-    });
-    return jsonResponse(
-      { error: "Invalid chat request" },
-      {
-        headers: corsHeaders(request),
-        status: 400,
-      },
-    );
+    logChatFailure("Rejected invalid chat request", { error: parsed.error });
+    return jsonResponse({ error: "Invalid chat request" }, { status: 400 });
   }
 
   const validatedMessages = await safeValidateUIMessages<UIMessage>({
@@ -256,7 +172,6 @@ export default async function handler(request: Request): Promise<Response> {
       error: validatedMessages.error,
     });
     return jsonResponse(validationErrorBody(validatedMessages.error), {
-      headers: corsHeaders(request),
       status: 400,
     });
   }
@@ -284,8 +199,5 @@ export default async function handler(request: Request): Promise<Response> {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    headers: corsHeaders(request),
-    sendReasoning: true,
-  });
+  return result.toUIMessageStreamResponse({ sendReasoning: true });
 }

@@ -5,5 +5,10 @@
   },
   "buildCommand": "./vercel-build.sh",
   "installCommand": "./vercel-install.sh",
-  "outputDirectory": "./dist"
+  "outputDirectory": "./dist",
+  "functions": {
+    "api/chat.ts": {
+      "maxDuration": 60
+    }
+  }
 }
