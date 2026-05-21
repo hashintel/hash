@@ -30,7 +30,7 @@ const applyCspHeaders = (
   return response;
 };
 
-export const middleware = async (request: NextRequest) => {
+export const proxy = async (request: NextRequest) => {
   const nonce = generateNonce();
   const cspHeader = buildCspHeader(nonce);
 
