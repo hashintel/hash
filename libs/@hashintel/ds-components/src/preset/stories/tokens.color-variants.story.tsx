@@ -329,7 +329,7 @@ const BdColumn = () => (
 );
 
 const PaletteSection = ({ palette }: { palette: string }) => (
-  <Box colorPalette={palette as "black"}>
+  <Box colorPalette={palette as "bg.min"}>
     <h2
       className={css({
         textStyle: "lg",
