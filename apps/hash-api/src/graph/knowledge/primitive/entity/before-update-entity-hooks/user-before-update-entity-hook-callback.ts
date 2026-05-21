@@ -30,6 +30,8 @@ import {
   getUserFromEntity,
   getUserVerifiedEmails,
 } from "../../../system-types/user";
+
+import type { ImpureGraphContext } from "../../../../context-types";
 import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
 import type {
   ActorEntityUuid,

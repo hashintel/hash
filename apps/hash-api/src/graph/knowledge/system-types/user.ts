@@ -31,10 +31,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import type {
-  KratosUserIdentity,
-  KratosUserIdentityTraits,
-} from "../../../auth/ory-kratos";
 import {
   getVerifiedEmailsFromKratosIdentity,
   kratosIdentityApi,
