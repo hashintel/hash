@@ -19,37 +19,6 @@ const contentWidthStyle = css({
 	width: "[280px]",
 });
 
-const logPlaybackControlsDebug = ({
-	hypothesisId,
-	location,
-	message,
-	data,
-}: {
-	hypothesisId: string;
-	location: string;
-	message: string;
-	data: Record<string, unknown>;
-}) => {
-	// #region agent log
-	fetch("http://127.0.0.1:7370/ingest/051d6616-30f1-4a11-bffa-57e53758d60f", {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			"X-Debug-Session-Id": "699661",
-		},
-		body: JSON.stringify({
-			sessionId: "699661",
-			runId: "initial",
-			hypothesisId,
-			location,
-			message,
-			data,
-			timestamp: Date.now(),
-		}),
-	}).catch(() => {});
-	// #endregion
-};
-
 const menuItemStyle = cva({
 	base: {
 		display: "flex !important",
@@ -187,95 +156,9 @@ export const PlaybackSettingsMenu = () => {
 	const stoppingCondition: "indefinitely" | "fixed" =
 		maxTime === null ? "indefinitely" : "fixed";
 
-	useEffect(() => {
-		logPlaybackControlsDebug({
-			hypothesisId: "C,E",
-			location: "playback-settings-menu.tsx:state-effect",
-			message: "Playback settings state observed",
-			data: {
-				simulationState,
-				maxTime,
-				stoppingCondition,
-				playbackSpeed,
-				playMode,
-				isViewOnlyAvailable,
-				isComputeAvailable,
-			},
-		});
-	}, [
-		isComputeAvailable,
-		isViewOnlyAvailable,
-		maxTime,
-		playbackSpeed,
-		playMode,
-		simulationState,
-		stoppingCondition,
-	]);
-
-	useEffect(() => {
-		const handlePointerDown = (event: PointerEvent) => {
-			const target = event.target as Element | null;
-			const elementAtPoint = document.elementFromPoint(
-				event.clientX,
-				event.clientY,
-			);
-			const popoverPositioner = document.querySelector(
-				'[data-scope="popover"][data-part="positioner"]',
-			);
-			const popoverContent = document.querySelector(
-				'[data-scope="popover"][data-part="content"]',
-			);
-
-			logPlaybackControlsDebug({
-				hypothesisId: "A,B,D",
-				location: "playback-settings-menu.tsx:document-pointerdown",
-				message: "Document pointerdown captured",
-				data: {
-					clientX: event.clientX,
-					clientY: event.clientY,
-					targetTag: target?.tagName,
-					targetText: target?.textContent?.trim().slice(0, 80),
-					targetAriaLabel: target?.getAttribute("aria-label"),
-					elementAtPointTag: elementAtPoint?.tagName,
-					elementAtPointText: elementAtPoint?.textContent?.trim().slice(0, 80),
-					elementAtPointAriaLabel: elementAtPoint?.getAttribute("aria-label"),
-					popoverPositionerPointerEvents: popoverPositioner
-						? getComputedStyle(popoverPositioner).pointerEvents
-						: null,
-					popoverContentPointerEvents: popoverContent
-						? getComputedStyle(popoverContent).pointerEvents
-						: null,
-					isInsidePopoverContent:
-						!!popoverContent && !!target && popoverContent.contains(target),
-				},
-			});
-		};
-
-		document.addEventListener("pointerdown", handlePointerDown, {
-			capture: true,
-		});
-
-		return () => {
-			document.removeEventListener("pointerdown", handlePointerDown, {
-				capture: true,
-			});
-		};
-	}, []);
-
 	const handleStoppingConditionChange = (
 		condition: "indefinitely" | "fixed",
 	) => {
-		logPlaybackControlsDebug({
-			hypothesisId: "C,E",
-			location: "playback-settings-menu.tsx:handleStoppingConditionChange",
-			message: "Stopping condition click handler invoked",
-			data: {
-				requestedCondition: condition,
-				hasSimulation,
-				currentMaxTime: maxTime,
-			},
-		});
-
 		if (condition === "indefinitely") {
 			setMaxTime(null);
 		} else {
@@ -289,14 +172,6 @@ export const PlaybackSettingsMenu = () => {
 			positioning={{ placement: "top", gutter: 8 }}
 			lazyMount
 			unmountOnExit
-			onOpenChange={(details) => {
-				logPlaybackControlsDebug({
-					hypothesisId: "A,D",
-					location: "playback-settings-menu.tsx:popover-open-change",
-					message: "Playback settings popover open state changed",
-					data: { open: details.open },
-				});
-			}}
 		>
 			<Popover.Trigger asChild>
 				<span style={{ display: "inline-flex" }}>
@@ -309,23 +184,7 @@ export const PlaybackSettingsMenu = () => {
 				</span>
 			</Popover.Trigger>
 
-			<Popover.Content
-				className={contentWidthStyle}
-				onPointerDownCapture={(event: PointerEvent) => {
-					const target = event.target as Element | null;
-
-					logPlaybackControlsDebug({
-						hypothesisId: "A,B",
-						location: "playback-settings-menu.tsx:content-pointerdown",
-						message: "Popover content pointerdown captured",
-						data: {
-							targetTag: target?.tagName,
-							targetText: target?.textContent?.trim().slice(0, 80),
-							targetAriaLabel: target?.getAttribute("aria-label"),
-						},
-					});
-				}}
-			>
+			<Popover.Content className={contentWidthStyle}>
 				<Popover.Header>Playback Controls</Popover.Header>
 
 				{/* When pressing play section */}
@@ -339,18 +198,7 @@ export const PlaybackSettingsMenu = () => {
 								selected: playMode === "viewOnly",
 								disabled: !isViewOnlyAvailable,
 							})}
-							onClick={() => {
-								logPlaybackControlsDebug({
-									hypothesisId: "B,C,E",
-									location: "playback-settings-menu.tsx:view-only-click",
-									message: "View-only play mode click handler invoked",
-									data: {
-										isViewOnlyAvailable,
-										currentPlayMode: playMode,
-									},
-								});
-								isViewOnlyAvailable && setPlayMode("viewOnly");
-							}}
+							onClick={() => isViewOnlyAvailable && setPlayMode("viewOnly")}
 							aria-disabled={!isViewOnlyAvailable}
 							tooltip={
 								!isViewOnlyAvailable
@@ -373,18 +221,7 @@ export const PlaybackSettingsMenu = () => {
 								selected: playMode === "computeBuffer",
 								disabled: !isComputeAvailable,
 							})}
-							onClick={() => {
-								logPlaybackControlsDebug({
-									hypothesisId: "B,C,E",
-									location: "playback-settings-menu.tsx:compute-buffer-click",
-									message: "Compute-buffer play mode click handler invoked",
-									data: {
-										isComputeAvailable,
-										currentPlayMode: playMode,
-									},
-								});
-								isComputeAvailable && setPlayMode("computeBuffer");
-							}}
+							onClick={() => isComputeAvailable && setPlayMode("computeBuffer")}
 							aria-disabled={!isComputeAvailable}
 							tooltip={
 								!isComputeAvailable
@@ -405,18 +242,7 @@ export const PlaybackSettingsMenu = () => {
 								selected: playMode === "computeMax",
 								disabled: !isComputeAvailable,
 							})}
-							onClick={() => {
-								logPlaybackControlsDebug({
-									hypothesisId: "B,C,E",
-									location: "playback-settings-menu.tsx:compute-max-click",
-									message: "Compute-max play mode click handler invoked",
-									data: {
-										isComputeAvailable,
-										currentPlayMode: playMode,
-									},
-								});
-								isComputeAvailable && setPlayMode("computeMax");
-							}}
+							onClick={() => isComputeAvailable && setPlayMode("computeMax")}
 							aria-disabled={!isComputeAvailable}
 							tooltip={
 								!isComputeAvailable
@@ -452,18 +278,7 @@ export const PlaybackSettingsMenu = () => {
 										className={speedButtonStyle({
 											selected: speed === playbackSpeed,
 										})}
-										onClick={() => {
-											logPlaybackControlsDebug({
-												hypothesisId: "B,E",
-												location: "playback-settings-menu.tsx:speed-click",
-												message: "Playback speed click handler invoked",
-												data: {
-													requestedSpeed: speed,
-													currentPlaybackSpeed: playbackSpeed,
-												},
-											});
-											setPlaybackSpeed(speed);
-										}}
+										onClick={() => setPlaybackSpeed(speed)}
 									>
 										{formatPlaybackSpeed(speed)}
 									</Button>
@@ -485,16 +300,9 @@ export const PlaybackSettingsMenu = () => {
 								selected: stoppingCondition === "indefinitely",
 								disabled: hasSimulation,
 							})}
-							onClick={() => {
-								logPlaybackControlsDebug({
-									hypothesisId: "B,C,E",
-									location: "playback-settings-menu.tsx:indefinite-click",
-									message:
-										"Indefinite stopping condition click handler invoked",
-									data: { hasSimulation, stoppingCondition },
-								});
-								!hasSimulation && handleStoppingConditionChange("indefinitely");
-							}}
+							onClick={() =>
+								!hasSimulation && handleStoppingConditionChange("indefinitely")
+							}
 							aria-disabled={hasSimulation}
 							tooltip={
 								hasSimulation
@@ -515,15 +323,9 @@ export const PlaybackSettingsMenu = () => {
 								selected: stoppingCondition === "fixed",
 								disabled: hasSimulation,
 							})}
-							onClick={() => {
-								logPlaybackControlsDebug({
-									hypothesisId: "B,C,E",
-									location: "playback-settings-menu.tsx:fixed-click",
-									message: "Fixed stopping condition click handler invoked",
-									data: { hasSimulation, stoppingCondition },
-								});
-								!hasSimulation && handleStoppingConditionChange("fixed");
-							}}
+							onClick={() =>
+								!hasSimulation && handleStoppingConditionChange("fixed")
+							}
 							aria-disabled={hasSimulation}
 							tooltip={
 								hasSimulation

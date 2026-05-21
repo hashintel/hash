@@ -40,9 +40,7 @@ Requires linking to a Vercel project. If you don't have access, go for Option B 
 ```sh
 cd apps/petrinaut-website
 
-# first-time setup
-npx vercel link
-npx vercel env pull        # writes the project's env vars into .env.local
+npx vercel link # first-time setup
 
 npx vercel dev             # builds + serves on http://localhost:3000
 ```

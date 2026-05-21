@@ -107,11 +107,17 @@ export const DevApp = () => {
 		useLocalStorageAiMessages();
 	const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
 	const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
-	const firstNet = Object.values(storedSDCPNsForDisplay)[0] ?? null;
+
+	// Pick the most recently modified net
+	const mostRecentlyModifiedNet =
+		Object.values(storedSDCPNsForDisplay).sort(
+			(a, b) =>
+				new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
+		)[0] ?? null;
 
 	// The net currently selected in the UI.
 	const [currentNetId, setCurrentNetId] = useState<string | null>(
-		() => firstNet?.id ?? null,
+		() => mostRecentlyModifiedNet?.id ?? null,
 	);
 
 	// Metadata and persisted SDCPN snapshot for the selected net.
@@ -121,7 +127,9 @@ export const DevApp = () => {
 
 	// Live editable document handle for the selected net only.
 	const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(() =>
-		firstNet ? createActiveHandle(firstNet) : null,
+		mostRecentlyModifiedNet
+			? createActiveHandle(mostRecentlyModifiedNet)
+			: null,
 	);
 
 	useEffect(() => {
