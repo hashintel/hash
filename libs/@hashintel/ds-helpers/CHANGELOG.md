@@ -1,5 +1,11 @@
 # @hashintel/ds-helpers
 
+## 0.2.1
+
+### Patch Changes
+
+- [#8732](https://github.com/hashintel/hash/pull/8732) [`c0c9498`](https://github.com/hashintel/hash/commit/c0c9498dc4f648814a80fc6e8df3598ff8a108ac) Thanks [@lunelson](https://github.com/lunelson)! - Publish the generated `styled-system` files in the package tarball.
+
 ## 0.2.0
 
 ### Minor Changes

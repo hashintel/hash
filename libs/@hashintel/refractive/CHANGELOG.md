@@ -1,5 +1,11 @@
 # @hashintel/refractive
 
+## 0.0.4
+
+### Patch Changes
+
+- [#8724](https://github.com/hashintel/hash/pull/8724) [`d3ac60c`](https://github.com/hashintel/hash/commit/d3ac60c5509bd2d5a478f2e5a56433c59d353f7b) Thanks [@kube](https://github.com/kube)! - Fix SSR issues by only rendering browser-dependent Refractive filters on the client.
+
 ## 0.0.3
 
 ### Patch Changes
