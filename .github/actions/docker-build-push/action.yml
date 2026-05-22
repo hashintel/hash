@@ -1,28 +1,13 @@
 name: Build Docker image
-description: Build and push Docker image
+description: Build and push Docker image. AWS credentials must be configured upstream.
 
 inputs:
   GITHUB_TOKEN:
     description: GitHub token for API access
     required: true
-  AWS_ACCESS_KEY_ID:
-    description: AWS access key id
-    required: true
-  AWS_SECRET_ACCESS_KEY:
-    description: AWS secret access key
-    required: true
-  AWS_SESSION_TOKEN:
-    description: AWS session token
-    required: true
-  AWS_REGION:
-    description: AWS region
-    required: true
   AWS_ECR_URL:
     description: AWS ECR url
     required: true
-  ROLE_ARN:
-    description: IAM role ARN to assume for ECR access (cross-account)
-    required: false
   SHORTNAME:
     description: Name of the thing that is being built. Keep path-friendly, please don't use special characters or spaces.
     required: true
@@ -47,14 +32,7 @@ inputs:
 runs:
   using: composite
   steps:
-    # Set up AWS ECR login
     - uses: ./.github/actions/docker-ecr-login
-      with:
-        AWS_ACCESS_KEY_ID: ${{ inputs.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
-        AWS_SESSION_TOKEN: ${{ inputs.AWS_SESSION_TOKEN }}
-        AWS_REGION: ${{ inputs.AWS_REGION }}
-        ROLE_ARN: ${{ inputs.ROLE_ARN }}
 
     - name: Cache Docker layers
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0

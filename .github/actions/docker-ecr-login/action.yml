@@ -1,41 +1,12 @@
 name: Docker ECR login
-description: Authenticate with AWS, sigh Docker into ECR
-
-inputs:
-  AWS_ACCESS_KEY_ID:
-    description: AWS access key id
-    required: true
-  AWS_SECRET_ACCESS_KEY:
-    description: AWS secret access key
-    required: true
-  AWS_SESSION_TOKEN:
-    description: AWS session token
-    required: true
-  AWS_REGION:
-    description: AWS region
-    required: true
-  ROLE_ARN:
-    description: IAM role ARN to assume for ECR access (cross-account)
-    required: false
+description: Log Docker into ECR and set up Buildx. AWS credentials must be configured upstream.
 
 runs:
   using: composite
   steps:
-    # Set up AWS ECR login
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
-      with:
-        aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
-        aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
-        aws-region: ${{ inputs.AWS_REGION }}
-        role-to-assume: ${{ inputs.ROLE_ARN }}
-        role-duration-seconds: 900
-
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
-    # Configure Docker with Buildx
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
