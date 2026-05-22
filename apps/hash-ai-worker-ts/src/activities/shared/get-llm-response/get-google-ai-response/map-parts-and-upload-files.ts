@@ -1,3 +1,7 @@
+import { useFileSystemPathFromEntity } from "../../use-file-system-file-from-url.js";
+import { uploadFileToGcpStorage } from "./google-cloud-storage.js";
+
+import type { LlmMessage } from "../llm-message.js";
 import type { PropertyValue } from "@blockprotocol/type-system";
 import type {
   FileDataPart,
@@ -6,10 +10,6 @@ import type {
   Part,
   TextPart,
 } from "@google-cloud/vertexai";
-
-import { useFileSystemPathFromEntity } from "../../use-file-system-file-from-url.js";
-import type { LlmMessage } from "../llm-message.js";
-import { uploadFileToGcpStorage } from "./google-cloud-storage.js";
 
 export const mapLlmContentToGooglePartAndUploadFiles = async (
   content: LlmMessage["content"][number],

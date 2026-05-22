@@ -1,8 +1,10 @@
-import type { DetailedFlowField } from "@local/hash-isomorphic-utils/flows/types";
+import { parseResolveInfo } from "graphql-parse-resolve-info";
+
 import { detailedFlowFields } from "@local/hash-isomorphic-utils/flows/types";
+
+import type { DetailedFlowField } from "@local/hash-isomorphic-utils/flows/types";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ResolveTree } from "graphql-parse-resolve-info";
-import { parseResolveInfo } from "graphql-parse-resolve-info";
 
 /**
  * Works for both `getFlowRuns` (returns `PaginatedFlowRuns` wrapping `FlowRun`)

@@ -1,13 +1,10 @@
-import { CaretDownSolidIcon } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
+import { CaretDownSolidIcon } from "@hashintel/design-system";
+
 import { useStatusForSteps } from "../../../../../shared/flow-runs-context";
 import { formatTimeTaken } from "../shared/format-time-taken";
-import type {
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "../shared/types";
 import {
   ErrorIcon,
   GroupStepStatus,
@@ -15,6 +12,11 @@ import {
   SuccessIcon,
   WaitingIcon,
 } from "./group-status/group-step-status";
+
+import type {
+  GroupWithEdgesAndNodes,
+  UngroupedEdgesAndNodes,
+} from "../shared/types";
 
 export const GroupStatus = ({
   groupData,

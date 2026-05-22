@@ -1,5 +1,4 @@
 import { Box, Stack, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
 
 import { FilterLightIcon } from "../../../../../shared/icons/filter-light-icon";
@@ -10,7 +9,9 @@ import {
   NodeTypeFilters,
 } from "./filter-control/node-type-filters";
 import { useGraphContext } from "./graph-context";
+
 import type { GraphVizNode } from "./types";
+import type { FunctionComponent } from "react";
 
 type NodeTypesInData = {
   [nodeTypeId: string]: {

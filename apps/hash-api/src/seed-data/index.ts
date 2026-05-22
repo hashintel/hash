@@ -1,18 +1,19 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import type { Logger } from "@local/hash-backend-utils/logger";
 
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { Org } from "../graph/knowledge/system-types/org";
 import {
   createOrg,
   getOrgByShortname,
 } from "../graph/knowledge/system-types/org";
 import { createOrgMembershipLinkEntity } from "../graph/knowledge/system-types/org-membership";
-import type { User } from "../graph/knowledge/system-types/user";
 import { joinOrg } from "../graph/knowledge/system-types/user";
-import type { PageDefinition } from "./seed-pages";
 import { seedPages } from "./seed-pages";
 import { ensureUsersAreSeeded } from "./seed-users";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { Org } from "../graph/knowledge/system-types/org";
+import type { User } from "../graph/knowledge/system-types/user";
+import type { PageDefinition } from "./seed-pages";
+import type { Logger } from "@local/hash-backend-utils/logger";
 
 // Seed Org with some pages.
 const seedOrg = async (params: {

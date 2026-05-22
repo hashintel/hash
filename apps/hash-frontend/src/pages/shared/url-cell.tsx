@@ -1,8 +1,9 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 
 import { getCellHorizontalPadding } from "../../components/grid/utils";
 import { drawUrlAsLink } from "../../components/grid/utils/draw-url-as-link";
+
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 export interface UrlCellProps {
   readonly kind: "url-cell";

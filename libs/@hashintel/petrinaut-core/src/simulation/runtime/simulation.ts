@@ -1,3 +1,6 @@
+import { createInMemorySimulationFrameStore } from "./frame-store";
+import { createWorkerTransport } from "./transport";
+
 import type { ReadableStore } from "../../handle";
 import type { EventStream } from "../../instance";
 import type {
@@ -9,10 +12,8 @@ import type {
   SimulationState,
   SimulationTransport,
 } from "../api";
-import { createWorkerTransport } from "./transport";
-import type { ToMainMessage } from "../worker/messages";
 import type { SimulationFramePayload } from "../worker/frame-payload";
-import { createInMemorySimulationFrameStore } from "./frame-store";
+import type { ToMainMessage } from "../worker/messages";
 
 function createReadableStore<T>(initial: T): ReadableStore<T> & {
   set(next: T): void;

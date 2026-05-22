@@ -1,12 +1,14 @@
-import type { PropertyType } from "@blockprotocol/type-system";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/theme";
 import { chipClasses, Tooltip } from "@mui/material";
 import { Stack } from "@mui/system";
+
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { useCustomizationSettings } from "../../shared/customization-context";
 import { useDataTypesOptions } from "../../shared/data-types-options-context";
 import { usePropertyTypesOptions } from "../../shared/property-types-options-context";
+
+import type { PropertyType } from "@blockprotocol/type-system";
 
 export const PropertyExpectedValues = ({
   property,

@@ -1,15 +1,8 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import type {
-  AutocompleteProps as MUIAutocompleteProps,
-  InputProps,
-  PaperProps,
-  PopperProps,
-} from "@mui/material";
 import {
   Autocomplete as MUIAutocomplete,
   outlinedInputClasses,
 } from "@mui/material";
-import type { Ref } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
@@ -20,6 +13,14 @@ import {
   popperPlacementInputNoRadius,
 } from "./popper-placement-modifier";
 import { TextField } from "./text-field";
+
+import type {
+  AutocompleteProps as MUIAutocompleteProps,
+  InputProps,
+  PaperProps,
+  PopperProps,
+} from "@mui/material";
+import type { Ref } from "react";
 
 type AutocompleteProps<
   T,

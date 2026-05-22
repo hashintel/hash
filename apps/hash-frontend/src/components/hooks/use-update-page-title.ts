@@ -1,13 +1,14 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
 import { useCallback } from "react";
+
+import { updatePage } from "../../graphql/queries/page.queries";
+import { useGetPageRefetchQueries } from "./shared/get-page-refetch-queries";
 
 import type {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../graphql/api-types.gen";
-import { updatePage } from "../../graphql/queries/page.queries";
-import { useGetPageRefetchQueries } from "./shared/get-page-refetch-queries";
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const useUpdatePageTitle = () => {
   const [updatePageFn, { loading: updatePageTitleLoading }] = useMutation<

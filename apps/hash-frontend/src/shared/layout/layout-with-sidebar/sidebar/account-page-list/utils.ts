@@ -1,8 +1,8 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { UniqueIdentifier } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 
 import type { SimplePage } from "../../../../../components/hooks/use-account-pages";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { UniqueIdentifier } from "@dnd-kit/core";
 
 export interface TreeItem {
   page: SimplePage;

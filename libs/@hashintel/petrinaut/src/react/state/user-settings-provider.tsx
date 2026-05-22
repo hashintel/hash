@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 
+import {
+  defaultUserSettings,
+  UserSettingsContext,
+} from "./user-settings-context";
+
 import type {
   BottomPanelTab,
   CursorMode,
@@ -9,10 +14,6 @@ import type {
   ArcRendering,
   SubViewSectionSettings,
   UserSettings,
-} from "./user-settings-context";
-import {
-  defaultUserSettings,
-  UserSettingsContext,
 } from "./user-settings-context";
 
 const STORAGE_KEY = "petrinaut:user-settings";

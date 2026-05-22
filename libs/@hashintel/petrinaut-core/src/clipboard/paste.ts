@@ -1,7 +1,8 @@
 import { v4 as generateUuid } from "uuid";
 
-import type { SDCPN } from "../types/sdcpn";
 import { deduplicateName } from "./deduplicate-name";
+
+import type { SDCPN } from "../types/sdcpn";
 import type { ClipboardPayload } from "./types";
 
 /** Offset pasted nodes so they don't overlap originals */

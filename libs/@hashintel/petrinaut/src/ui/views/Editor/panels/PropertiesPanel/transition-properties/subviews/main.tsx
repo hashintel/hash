@@ -1,6 +1,9 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
+import { css } from "@hashintel/ds-helpers/css";
+import { validateDisplayName } from "@hashintel/petrinaut-core";
+
+import { MutationContext } from "../../../../../../../react/state/mutation-context";
 import {
   ArcItem,
   ArcList,
@@ -9,12 +12,11 @@ import {
 import { Button } from "../../../../../../components/button";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
-import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { MutationContext } from "../../../../../../../react/state/mutation-context";
-import { validateDisplayName } from "@hashintel/petrinaut-core";
 import { useTransitionPropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const emptyArcMessageStyle = css({
   fontSize: "xs",

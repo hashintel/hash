@@ -1,6 +1,7 @@
+import { use } from "react";
+
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { use } from "react";
 
 import { PlaybackContext } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";

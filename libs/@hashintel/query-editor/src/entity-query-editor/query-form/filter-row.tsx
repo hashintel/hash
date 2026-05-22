@@ -1,11 +1,10 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Stack } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+
 import { useReadonlyContext } from "../readonly-context";
-import type { FormValues } from "../types";
 import { ChainOperatorSelector } from "./filter-row/chain-operator-selector";
 import { EntityTypeSelector } from "./filter-row/entity-type-selector";
 import { OperatorSelector } from "./filter-row/operator-selector";
@@ -14,6 +13,9 @@ import { SelectorGroupWrapper } from "./filter-row/selector-group-wrapper";
 import { TypeSelector } from "./filter-row/type-selector";
 import { fieldOperators } from "./filter-row/utils";
 import { ValueInput } from "./filter-row/value-input";
+
+import type { FormValues } from "../types";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 
 interface FilterRowProps {
   index: number;

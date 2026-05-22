@@ -1,14 +1,15 @@
 import { use } from "react";
 
+import {
+  PlaybackContext,
+  type PlaybackContextValue,
+} from "../playback/context";
+
 import type {
   PlaybackSpeed,
   PlaybackState,
   PlayMode,
 } from "@hashintel/petrinaut-core";
-import {
-  PlaybackContext,
-  type PlaybackContextValue,
-} from "../playback/context";
 
 export function usePlaybackState(): PlaybackState {
   return use(PlaybackContext).playbackState;

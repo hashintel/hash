@@ -1,5 +1,6 @@
-import { Divider, HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { GithubIcon, GitlabIcon } from "lucide-react";
+
+import { Divider, HStack, Stack } from "@hashintel/ds-helpers/jsx";
 
 import { Button } from "../button";
 import * as Card from "../card";

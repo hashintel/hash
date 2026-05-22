@@ -2,6 +2,7 @@
 
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
+
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
 import * as Select from "../select";

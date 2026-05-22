@@ -14,8 +14,8 @@ export const updateJson = async (
   transform(json);
 
   const { stdout: output } = await execa(
-    "biome",
-    ["format", `--stdin-file-path=${jsonFilePath}`],
+    "oxfmt",
+    [`--stdin-filepath=${jsonFilePath}`],
     {
       input: JSON.stringify(json, null, 2),
     },

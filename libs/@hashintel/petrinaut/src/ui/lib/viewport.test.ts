@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { recenterToFitViewport } from "./viewport";
 import { getNodesBounds } from "@xyflow/react";
+import { describe, expect, it } from "vitest";
+
+import { recenterToFitViewport } from "./viewport";
+
 import type {
   PetrinautReactFlowInstance,
   NodeType,

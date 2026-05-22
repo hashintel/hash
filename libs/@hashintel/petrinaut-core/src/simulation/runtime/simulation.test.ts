@@ -1,19 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  AbortSignalLike,
-  WorkerMessageEnvelope,
-  WorkerLike,
-} from "../../environment";
-import type { ToMainMessage, ToWorkerMessage } from "../worker/messages";
-import type { SimulationFramePayload } from "../worker/frame-payload";
-import type { SDCPN } from "../../types/sdcpn";
-import type { SimulationFrameSummary, SimulationTransport } from "../api";
 import {
   createEngineFrame,
   createEngineFrameLayout,
 } from "../frames/internal-frame";
 import { createSimulation } from "./simulation";
+
+import type {
+  AbortSignalLike,
+  WorkerMessageEnvelope,
+  WorkerLike,
+} from "../../environment";
+import type { SDCPN } from "../../types/sdcpn";
+import type { SimulationFrameSummary, SimulationTransport } from "../api";
+import type { SimulationFramePayload } from "../worker/frame-payload";
+import type { ToMainMessage, ToWorkerMessage } from "../worker/messages";
 
 const empty = (): SDCPN => ({
   places: [],

@@ -1,18 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
-import type { MenuItemProps } from "@hashintel/design-system";
-import {
-  faCheck,
-  FontAwesomeIcon,
-  IconButton,
-  MenuItem,
-  OntologyChip,
-  parseUrlForOntologyChip,
-} from "@hashintel/design-system";
-import { fluidFontClassName } from "@hashintel/design-system/theme";
-import type { TooltipProps } from "@mui/material";
 import {
   Box,
   Divider,
@@ -36,12 +23,27 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { MouseEventHandler } from "react";
 import { Fragment, useCallback, useId, useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
-import type { EntityTypeEditorFormData } from "../../shared/form-types";
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import {
+  faCheck,
+  FontAwesomeIcon,
+  IconButton,
+  MenuItem,
+  OntologyChip,
+  parseUrlForOntologyChip,
+} from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
+
 import { useIsReadonly } from "../../shared/read-only-context";
+
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { MenuItemProps } from "@hashintel/design-system";
+import type { TooltipProps } from "@mui/material";
+import type { MouseEventHandler } from "react";
 
 export const TYPE_MENU_CELL_WIDTH = 70;
 

@@ -1,16 +1,17 @@
-import type { WebId } from "@blockprotocol/type-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 
 import { createEntity } from "../../../../graph/knowledge/primitive/entity";
 import { systemAccountId } from "../../../../graph/system-account";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type {
   MutationSubmitEarlyAccessFormArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { WebId } from "@blockprotocol/type-system";
+import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 
 export const submitEarlyAccessFormResolver: ResolverFn<
   Promise<boolean>,

@@ -1,9 +1,10 @@
-import type { ErrorProps } from "next/error";
 import { NextSeo } from "next-seo";
 
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithHeader } from "../shared/layout";
 import { NotFound } from "./shared/not-found";
+
+import type { NextPageWithLayout } from "../shared/layout";
+import type { ErrorProps } from "next/error";
 
 const NotFoundPage: NextPageWithLayout<ErrorProps> = () => {
   return (

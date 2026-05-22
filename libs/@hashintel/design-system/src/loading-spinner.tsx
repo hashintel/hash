@@ -1,4 +1,5 @@
 import { Box, CircularProgress, circularProgressClasses } from "@mui/material";
+
 import type { FunctionComponent } from "react";
 
 const DEFAULT_THICKNESS = 5;

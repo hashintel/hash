@@ -22,12 +22,12 @@
  * `@temporalio/interceptors-opentelemetry-v2` (PR
  * https://github.com/temporalio/sdk-typescript/pull/1951) is released.
  */
-import type { SpanContext } from "@opentelemetry/api";
-import type { ExportResult } from "@opentelemetry/core";
-import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 import { makeWorkflowExporter } from "@temporalio/interceptors-opentelemetry";
 
 import type { OpenTelemetrySetup } from "../opentelemetry.js";
+import type { SpanContext } from "@opentelemetry/api";
+import type { ExportResult } from "@opentelemetry/core";
+import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 
 /**
  * v1-shaped fields that may appear on spans produced by Temporal's

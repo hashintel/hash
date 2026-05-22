@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { SDCPN } from "../../types/sdcpn";
 import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
+
+import type { SDCPN } from "../../types/sdcpn";
 
 describe("computeNextFrame", () => {
   it("should compute next frame with dynamics and transitions", () => {

@@ -1,11 +1,4 @@
 import type {
-  DataTypeWithMetadata,
-  Entity,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
-
-import type {
   DataTypeVertex,
   EntityIdWithInterval,
   EntityTypeVertex,
@@ -17,6 +10,12 @@ import type {
   PropertyTypeVertex,
   Subgraph,
 } from "../../types/subgraph.js";
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 
 /**
  * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`

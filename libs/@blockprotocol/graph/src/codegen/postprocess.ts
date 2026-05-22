@@ -1,4 +1,3 @@
-import type { PostprocessContext } from "./context/postprocess.js";
 import { addMetadataDependenciesToFiles } from "./postprocess/add-metadata-dependencies-to-files.js";
 import { allocateTypesToFiles } from "./postprocess/allocate-types-to-files.js";
 import { appendIdentifierDefinitionsToFileContents } from "./postprocess/append-identifier-definitions-to-file-contents.js";
@@ -10,6 +9,8 @@ import { prepareFileContents } from "./postprocess/prepare-file-contents.js";
 import { prependBannerComments } from "./postprocess/prepend-banner-comments.js";
 import { prependImportsAndExports } from "./postprocess/prepend-imports-and-exports.js";
 import { writeToFiles } from "./postprocess/write-to-files.js";
+
+import type { PostprocessContext } from "./context/postprocess.js";
 
 export const postprocess = async (context: PostprocessContext) => {
   allocateTypesToFiles(context);

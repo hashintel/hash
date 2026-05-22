@@ -1,11 +1,12 @@
 "use client";
 
-import type { HTMLStyledProps } from "@hashintel/ds-helpers/jsx";
 import { forwardRef } from "react";
 
 import { AbsoluteCenter } from "./absolute-center";
 import { Span } from "./span";
 import { Spinner } from "./spinner";
+
+import type { HTMLStyledProps } from "@hashintel/ds-helpers/jsx";
 
 export interface LoaderProps extends HTMLStyledProps<"span"> {
   /**
@@ -32,10 +33,8 @@ export interface LoaderProps extends HTMLStyledProps<"span"> {
 
 export const Loader = forwardRef<HTMLSpanElement, LoaderProps>((props, ref) => {
   const {
-    spinner = (
-      // @ts-expect-error - "inherit" is not a valid color token
-      <Spinner size="inherit" borderWidth="0.125em" color="inherit" />
-    ),
+    // @ts-expect-error - "inherit" is not a valid color token
+    spinner = <Spinner size="inherit" borderWidth="0.125em" color="inherit" />,
     spinnerPlacement = "start",
     children,
     text,

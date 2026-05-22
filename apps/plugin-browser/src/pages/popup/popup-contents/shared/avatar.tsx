@@ -1,6 +1,7 @@
+import { Box, Stack } from "@mui/material";
+
 import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack } from "@mui/material";
 
 const linkSxProperties: SxProps<Theme> = {
   cursor: "pointer",

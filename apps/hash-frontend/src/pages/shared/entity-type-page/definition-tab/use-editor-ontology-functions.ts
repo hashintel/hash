@@ -1,19 +1,10 @@
+import { useCallback } from "react";
+
 import {
   getEntityTypeById,
   getPropertyTypeById,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
 import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
-import type {
-  EditorOntologyFunctions,
-  EntityTypeEditorProps,
-} from "@hashintel/type-editor";
-import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
@@ -26,6 +17,17 @@ import { useRefetchPropertyTypes } from "../../../../shared/property-types-conte
 import { canUserEditType } from "../../../../shared/readonly-mode";
 import { useAuthInfo } from "../../auth-info-context";
 import { useGenerateTypeUrlsForUser } from "../../use-generate-type-urls-for-user";
+
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type {
+  EditorOntologyFunctions,
+  EntityTypeEditorProps,
+} from "@hashintel/type-editor";
 
 export const useEditorOntologyFunctions = (
   webId: WebId | null,

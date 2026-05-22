@@ -1,16 +1,18 @@
-import { TerminalLightIcon } from "@hashintel/design-system";
-import { workerFlowFilterParam } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { Box, Container, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
+import { TerminalLightIcon } from "@hashintel/design-system";
+import { workerFlowFilterParam } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+
 import { getLayoutWithSidebar } from "../shared/layout";
 import { WorkersHeader } from "../shared/workers-header";
 import { FlowDefinitionsContextProvider } from "./shared/flow-definitions-context";
 import { FlowRunsContextProvider } from "./shared/flow-runs-context";
 import { FlowRunTable } from "./workers.page/flow-run-table";
 import { FlowSchedulesTable } from "./workers.page/flow-schedules-table";
+
+import type { NextPageWithLayout } from "../shared/layout";
 
 const defaultRowsPerPage = 20;
 

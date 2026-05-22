@@ -1,13 +1,15 @@
-import type { EntityId } from "@blockprotocol/type-system";
+import { useCallback } from "react";
+
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import { useCallback } from "react";
 
 import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../pages/shared/block-collection-contents";
 import { getAccountPagesVariables } from "../../../shared/account-pages-variables";
+
+import type { EntityId } from "@blockprotocol/type-system";
 
 /**
  * Some aspects of a page, e.g. the icon and title, are shown in multiple places:

@@ -1,8 +1,6 @@
-/* eslint-disable import/first, import/order, simple-import-sort/imports */
-
 // Must be the first import so OTEL auto-instrumentations can patch
 // http / grpc / Sentry's own monkey-patches before they apply.
-import { otelSetup } from "./instrument.js";
+import { otelSetup } from "./instrument.js"; // oxfmt-ignore
 
 import * as Sentry from "@sentry/node";
 
@@ -30,18 +28,20 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { config } from "dotenv-flow";
+
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { createCommonFlowActivities } from "@local/hash-backend-utils/flows";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { WorkflowSource } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 import { runWorker } from "@local/hash-backend-utils/temporal/worker-bootstrap";
-import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import { config } from "dotenv-flow";
 
 import { createFlowActivities } from "./activities/flow-activities.js";
 import * as linearActivities from "./activities/linear-activities.js";
 import * as workflows from "./workflows.js";
+
+import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { WorkflowSource } from "@local/hash-backend-utils/temporal/worker-bootstrap";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -1,10 +1,10 @@
+import { intervalForTimestamp } from "../interval.js";
+
+import type { Subgraph } from "../../types/subgraph.js";
 import type {
   ClosedTemporalBound,
   TemporalInterval,
 } from "@blockprotocol/type-system";
-
-import type { Subgraph } from "../../types/subgraph.js";
-import { intervalForTimestamp } from "../interval.js";
 
 /**
  * For a given {@link Subgraph} that supports temporal versioning, this returns a {@link TimeInterval} that spans

@@ -1,11 +1,11 @@
+import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 import unicorn from "eslint-plugin-unicorn";
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
-
-import type { ESConfig } from "../utils.js";
 
 import { create as createBase } from "./base.js";
+
+import type { ESConfig } from "../utils.js";
 
 export const create = (projectDirectory: string) =>
   [

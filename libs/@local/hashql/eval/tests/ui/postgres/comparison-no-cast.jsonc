@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Comparison operators produce no type cast on operands
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

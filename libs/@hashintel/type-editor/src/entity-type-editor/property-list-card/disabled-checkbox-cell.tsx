@@ -1,5 +1,3 @@
-import { fluidFontClassName } from "@hashintel/design-system/theme";
-import type { TableCellProps } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -8,7 +6,11 @@ import {
   Tooltip,
 } from "@mui/material";
 
+import { fluidFontClassName } from "@hashintel/design-system/theme";
+
 import { EntityTypeTableCenteredCell } from "../shared/entity-type-table";
+
+import type { TableCellProps } from "@mui/material";
 
 export const DisabledCheckboxCell = ({
   title,

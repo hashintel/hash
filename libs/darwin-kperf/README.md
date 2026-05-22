@@ -6,7 +6,7 @@
 
 **Rust bindings to Apple's `kperf` kernel performance monitoring framework.**
 
-> **⚠️ Experimental.** These crates depend on Apple's *private* `kperf.framework`
+> **⚠️ Experimental.** These crates depend on Apple's _private_ `kperf.framework`
 > and `kperfdata.framework`, which are not part of any public SDK and carry no ABI
 > stability guarantee. Apple may change struct layouts, function signatures, or
 > remove symbols entirely in any macOS update. Additionally, meaningful testing
@@ -17,12 +17,12 @@
 
 ## Crates
 
-| Crate | Description |
-| --- | --- |
-| [`darwin-kperf`](.) | Safe Rust API for configuring and sampling performance counters |
-| [`darwin-kperf-sys`](sys) | Raw FFI bindings to `kperf.framework` and `kperfdata.framework` |
-| [`darwin-kperf-events`](events) | Apple Silicon PMU event definitions (M1-M5), auto-generated from plist databases |
-| [`darwin-kperf-criterion`](criterion) | Criterion.rs measurement plugin for hardware-counter benchmarking |
+| Crate                                 | Description                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------- |
+| [`darwin-kperf`](.)                   | Safe Rust API for configuring and sampling performance counters                  |
+| [`darwin-kperf-sys`](sys)             | Raw FFI bindings to `kperf.framework` and `kperfdata.framework`                  |
+| [`darwin-kperf-events`](events)       | Apple Silicon PMU event definitions (M1-M5), auto-generated from plist databases |
+| [`darwin-kperf-criterion`](criterion) | Criterion.rs measurement plugin for hardware-counter benchmarking                |
 
 ## Platform support
 

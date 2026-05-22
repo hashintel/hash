@@ -1,13 +1,12 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
-
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import isEqual from "lodash/isEqual.js";
 import { test } from "vitest";
 
-import type { LlmParams } from "./get-llm-response/types.js";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
 import { judgeTestData } from "./judge-ai-output-optimize/judge-test-data.js";
 import {
   judgeAiOutputs,
@@ -15,6 +14,8 @@ import {
   judgeSystemPrompt,
 } from "./judge-ai-outputs.js";
 import { optimizeSystemPrompt } from "./optimize-system-prompt.js";
+
+import type { LlmParams } from "./get-llm-response/types.js";
 import type { MetricDefinition } from "./optimize-system-prompt/types.js";
 
 const metrics: MetricDefinition[] = judgeTestData.map(

@@ -1,10 +1,12 @@
-import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import type { FunctionComponent } from "react";
 import { useMemo } from "react";
+
+import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 
 import { LinkLabelWithSourceAndDestination } from "../../link-label-with-source-and-destination";
 import { SectionWrapper } from "../../section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
+
+import type { FunctionComponent } from "react";
 
 export const LinkSection: FunctionComponent = () => {
   const {

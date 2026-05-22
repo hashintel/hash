@@ -1,10 +1,11 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import { Box } from "@mui/material";
 
 import { useEntityEditor } from "../../../../../entity-editor-context";
 import { RowAction } from "../../../../../properties-section/property-table/cells/value-cell/array-editor/row-action";
 import { ValueChip } from "../../../../../properties-section/property-table/cells/value-cell/array-editor/value-chip";
+
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const LinkedEntityListRow = ({
   closeEditor,

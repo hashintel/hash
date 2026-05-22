@@ -1,11 +1,13 @@
+import { camelCase } from "lodash-es";
+
+import { typedEntries } from "@local/advanced-types/typed-entries";
+
 import type {
   Entity as BpEntity,
   EntityMetadata,
   PropertyObject,
 } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { camelCase } from "lodash-es";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */
 type CamelCase<S extends string> = S extends
@@ -44,17 +46,14 @@ export const simplifyProperties = <T extends PropertyObject>(
   properties: T,
 ): SimpleProperties<T> => {
   // this function is only called with property objects that follow the HASH URL/bp scheme
-  return typedEntries(properties).reduce(
-    (acc, [key, value]) => {
-      // fallback to a non-simplified key if the key is not in the expected format
-      const id = key.split("/").at(-2);
-      const simplified = id ? camelCase(id) : key;
+  return typedEntries(properties).reduce((acc, [key, value]) => {
+    // fallback to a non-simplified key if the key is not in the expected format
+    const id = key.split("/").at(-2);
+    const simplified = id ? camelCase(id) : key;
 
-      return {
-        ...acc,
-        [simplified]: value,
-      };
-    },
-    {} as SimpleProperties<T>,
-  );
+    return {
+      ...acc,
+      [simplified]: value,
+    };
+  }, {} as SimpleProperties<T>);
 };

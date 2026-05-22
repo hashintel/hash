@@ -1,6 +1,7 @@
-import { Select } from "@hashintel/design-system";
 import { outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef } from "react";
+
+import { Select } from "@hashintel/design-system";
 
 import { Button } from "../../../../shared/ui/button";
 import { MenuItem } from "../../../../shared/ui/menu-item";

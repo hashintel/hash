@@ -1,5 +1,4 @@
 import { advanceRun } from "./advance-run";
-import type { MonteCarloRunState } from "./internal-types";
 import {
   createRunState,
   getRunSnapshot,
@@ -7,6 +6,9 @@ import {
   summarizeRuns,
 } from "./run-state";
 import { getFrameTime } from "./time";
+
+import type { MonteCarloRunState } from "./internal-types";
+import type { MonteCarloFrameMetric } from "./metrics/types";
 import type {
   MonteCarloAdvanceResult,
   MonteCarloRunSnapshot,
@@ -15,7 +17,6 @@ import type {
   MonteCarloSimulator,
   MonteCarloSimulatorConfig,
 } from "./types";
-import type { MonteCarloFrameMetric } from "./metrics/types";
 
 /**
  * Coordinates a fixed set of independent Monte Carlo runs.

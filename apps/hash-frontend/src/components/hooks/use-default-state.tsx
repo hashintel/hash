@@ -1,6 +1,7 @@
 import { useLocalStorage } from "@mantine/hooks";
-import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useState } from "react";
+
+import type { Dispatch, SetStateAction } from "react";
 
 export const useDefaultState = <
   T extends object | number | string | boolean | null | undefined,

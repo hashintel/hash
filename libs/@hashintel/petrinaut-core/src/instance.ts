@@ -1,12 +1,13 @@
+import {
+  createPetrinautActions,
+  type MutationHelperFunctions,
+} from "./actions";
+
 import type {
   PetrinautDocHandle,
   PetrinautPatch,
   ReadableStore,
 } from "./handle";
-import {
-  createPetrinautActions,
-  type MutationHelperFunctions,
-} from "./actions";
 import type { SDCPN } from "./types/sdcpn";
 
 const EMPTY_SDCPN: SDCPN = {

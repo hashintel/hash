@@ -4,8 +4,9 @@
 
 import { ark } from "@ark-ui/react/factory";
 import { Slider, useSliderContext } from "@ark-ui/react/slider";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { type ComponentProps, forwardRef } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { sliderSlotRecipe } from "./slider.recipe";
 

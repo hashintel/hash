@@ -1,19 +1,21 @@
-import type { EntityType } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
-import { EntityOrTypeIcon, IconButton } from "@hashintel/design-system";
-import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import type { BoxProps } from "@mui/material";
 import { Box, styled, Tooltip, Typography } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
 import { useRef } from "react";
+
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import { EntityOrTypeIcon, IconButton } from "@hashintel/design-system";
+import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 
 import { useEntityTypesContextRequired } from "../../../../entity-types-context/hooks/use-entity-types-context-required";
 import { EllipsisRegularIcon } from "../../../../icons/ellipsis-regular-icon";
 import { Link } from "../../../../ui";
 import { EntityMenu } from "./entity-or-type-sidebar-item/entity-menu";
 import { EntityTypeMenu } from "./entity-or-type-sidebar-item/entity-type-menu";
+
+import type { EntityType } from "@blockprotocol/type-system";
+import type { BoxProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 const Container = styled((props: BoxProps & { selected: boolean }) => (
   <Box component="li" {...props} />

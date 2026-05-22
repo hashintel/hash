@@ -1,15 +1,14 @@
-import type { Subgraph } from "@blockprotocol/graph";
 import { getEntityRevisionsByEntityId } from "@blockprotocol/graph/stdlib";
-import type { Entity, EntityId, LinkEntity } from "@blockprotocol/type-system";
+
+import {
+  isDraftBlockEntity,
+  textualContentPropertyTypeBaseUrl,
+} from "./entity-store.js";
 
 import type {
   DraftEntity,
   EntityStore,
   EntityStoreType,
-} from "./entity-store.js";
-import {
-  isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl,
 } from "./entity-store.js";
 import type {
   Block,
@@ -18,6 +17,8 @@ import type {
 import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
 import type { HasIndexedContent, Text } from "./system-types/shared.js";
 import type { TextToken } from "./types.js";
+import type { Subgraph } from "@blockprotocol/graph";
+import type { Entity, EntityId, LinkEntity } from "@blockprotocol/type-system";
 
 export type BlockEntity = Omit<Block, "blockChildEntity"> & {
   blockChildEntity: Entity;

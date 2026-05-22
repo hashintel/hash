@@ -1,12 +1,14 @@
 import { faBell } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Tooltip, useTheme } from "@mui/material";
-import type { FunctionComponent } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { useInvites } from "../../invites-context";
 import { useNotificationCount } from "../../notification-count-context";
 import { Link } from "../../ui";
 import { HeaderIconButtonWithCount } from "./shared/header-icon-button-with-count";
+
+import type { FunctionComponent } from "react";
 
 export const NotificationsDropdown: FunctionComponent = () => {
   const theme = useTheme();

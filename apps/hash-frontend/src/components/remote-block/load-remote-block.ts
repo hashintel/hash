@@ -1,8 +1,8 @@
-import type { ReactElement } from "react";
-
 import { blockDependencies } from "../../../block.dependencies";
 import { memoizeFetchFunction } from "../../lib/memoize";
 import { crossFrameFetchFn } from "../sandbox/framed-block/util";
+
+import type { ReactElement } from "react";
 
 export type UnknownBlock =
   | string

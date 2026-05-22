@@ -9,9 +9,10 @@ import {
   Toaster as ArkToaster,
   useToastContext,
 } from "@ark-ui/react/toast";
-import { createStyleContext, Stack, styled } from "@hashintel/ds-helpers/jsx";
 import { CheckCircleIcon, CircleAlertIcon, CircleXIcon } from "lucide-react";
 import { forwardRef } from "react";
+
+import { createStyleContext, Stack, styled } from "@hashintel/ds-helpers/jsx";
 
 import { CloseButton } from "./close-button";
 import { Icon, type IconProps } from "./icon";

@@ -1,3 +1,10 @@
+import { mapAirline } from "./build-graph/airline.js";
+import { mapAirport } from "./build-graph/airport.js";
+import { mapArrivesAt } from "./build-graph/arrives-at.js";
+import { mapDepartsFrom } from "./build-graph/departs-from.js";
+import { mapFlight } from "./build-graph/flight.js";
+
+import type { AeroApiScheduledFlight } from "./types.js";
 import type {
   ProvidedEntityEditionProvenance,
   TypeIdsAndPropertiesForEntity,
@@ -14,13 +21,6 @@ import type {
   Airline as HashAirline,
   Airport as HashAirport,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-
-import { mapAirline } from "./build-graph/airline.js";
-import { mapAirport } from "./build-graph/airport.js";
-import { mapArrivesAt } from "./build-graph/arrives-at.js";
-import { mapDepartsFrom } from "./build-graph/departs-from.js";
-import { mapFlight } from "./build-graph/flight.js";
-import type { AeroApiScheduledFlight } from "./types.js";
 
 /**
  * A proposed entity or link to be created or matched against existing entities.

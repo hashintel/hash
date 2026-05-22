@@ -15,23 +15,23 @@ import {
 import { GenericTag } from "effect/Context";
 import { isUint8ArrayList, Uint8ArrayList } from "uint8arraylist";
 
+import { MutableBuffer } from "../binary/index.js";
 import { createProto } from "../utils.js";
 import {
   type RequestId,
   Request as WireRequest,
 } from "../wire-protocol/models/request/index.js";
-import { MutableBuffer } from "../binary/index.js";
 import {
   type Response as WireResponse,
   ResponseFlags,
 } from "../wire-protocol/models/response/index.js";
 import { ResponseFromBytesStream } from "../wire-protocol/stream/index.js";
-import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
-
 import * as internalTransport from "./internal/transport.js";
 import * as Request from "./Request.js";
 import * as Transaction from "./Transaction.js";
 import * as Transport from "./Transport.js";
+
+import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Connection");
 

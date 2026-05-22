@@ -8,7 +8,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
-    "generate": "openapi-generator-cli generate && biome format --write",
+    "generate": "openapi-generator-cli generate && oxfmt --write --ignore-path /dev/null",
     "validate": "openapi-generator-cli validate"
   },
   "dependencies": {

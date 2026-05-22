@@ -3,9 +3,8 @@
  * This defines the main types and type-guards used when working with the Graph module.
  */
 
-import type { Entity } from "@blockprotocol/type-system";
-
 import type { EntityVertexId, Subgraph } from "./types.js";
+import type { Entity } from "@blockprotocol/type-system";
 
 export type {
   ConstrainsLinkDestinationsOnEdge,

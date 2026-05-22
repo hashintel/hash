@@ -1,8 +1,9 @@
-import type { BoxProps } from "@mui/material";
 import { Box, Container } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 import { HashIcon } from "../../shared/icons/hash-icon";
+
+import type { BoxProps } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
 export const AuthLayout: FunctionComponent<
   PropsWithChildren & {

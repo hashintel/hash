@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Test type assertions (is operator) in filter expressions
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],

@@ -1,4 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
+
 import type { PropsWithChildren } from "react";
 
 export const AltTitleGroup = ({

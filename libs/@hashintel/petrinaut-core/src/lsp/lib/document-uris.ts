@@ -1,3 +1,5 @@
+import { getItemFilePath } from "./file-paths";
+
 /**
  * Single source of truth for mapping between:
  * - Document URIs (`inmemory://sdcpn/...`) used by Monaco and the LSP protocol
@@ -5,7 +7,6 @@
  * - Item types + IDs used by the SDCPN domain model
  */
 import type { ItemType } from "./checker";
-import { getItemFilePath } from "./file-paths";
 
 // ---------------------------------------------------------------------------
 // Scenario item types

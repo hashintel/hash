@@ -1,14 +1,15 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { SubView } from "../../../../../components/sub-view/types";
-import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { TransitionPropertiesProvider } from "./context";
 import { transitionMainContentSubView } from "./subviews/main";
 import { transitionFiringTimeSubView } from "./subviews/transition-firing-time/subview";
 import { transitionResultsSubView } from "./subviews/transition-results/subview";
+
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",

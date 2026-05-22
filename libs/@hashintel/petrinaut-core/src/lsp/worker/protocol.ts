@@ -12,14 +12,13 @@
  * public Petrinaut APIs, so downstream packages do not need to depend on this
  * upstream package directly.
  */
+import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 import type {
   Diagnostic,
   DocumentUri,
   Position,
   TextDocumentIdentifier,
 } from "vscode-languageserver-types";
-
-import type { SDCPN, ScenarioParameter } from "../../types/sdcpn";
 
 /**
  * Parameters for `textDocument/publishDiagnostics` notification.

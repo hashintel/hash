@@ -1,11 +1,12 @@
-import type { BlockVariant } from "@blockprotocol/core";
-import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Box, Popover, popoverClasses } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useState } from "react";
 
 import { PlusBoxOutlineIcon } from "../../../shared/icons/plus-box-outline-icon";
 import { BlockSuggester } from "./create-suggester/block-suggester";
+
+import type { BlockVariant } from "@blockprotocol/core";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { FunctionComponent } from "react";
 
 type InsertBlockProps = {
   readonly: boolean;

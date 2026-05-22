@@ -1,9 +1,9 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-
 import { mustBeDefined } from "../../util.js";
 import { typedValues } from "../../util/typed-entries.js";
-import type { PreprocessContext } from "../context.js";
 import { primitiveLinkEntityTypeId } from "../shared.js";
+
+import type { PreprocessContext } from "../context.js";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 /** Check the inheritance tree of this type to see if it inherits from a link entity type */
 const isLinkEntityType = (

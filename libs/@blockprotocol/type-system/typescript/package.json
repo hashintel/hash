@@ -45,8 +45,8 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepublishOnly": "turbo run build && tsx scripts/prepublish.ts && yarn build",
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
+    "prepublishOnly": "turbo run build && tsx scripts/prepublish.ts && yarn build",
     "test:unit": "vitest --run"
   },
   "dependencies": {

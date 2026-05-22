@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Two separate filter bodies - two CROSS JOIN LATERAL subqueries, two continuation aliases
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::body::filter",

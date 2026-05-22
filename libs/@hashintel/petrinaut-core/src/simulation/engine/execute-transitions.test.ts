@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type { Color, Place, Transition } from "../../types/sdcpn";
 import {
   createEngineFrame,
   createEngineFrameLayout,
@@ -9,6 +8,8 @@ import {
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
+
+import type { Color, Place, Transition } from "../../types/sdcpn";
 import type {
   CompiledTransition,
   EngineFrame,

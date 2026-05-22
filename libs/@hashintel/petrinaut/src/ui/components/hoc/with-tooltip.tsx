@@ -1,6 +1,6 @@
-import type { ComponentType } from "react";
-
 import { Tooltip } from "../tooltip";
+
+import type { ComponentType } from "react";
 
 type WithTooltipProps = {
   /** Tooltip to show when hovering (useful for explaining disabled state). */

@@ -1,28 +1,29 @@
-import type http from "node:http";
+import { WebSocketServer } from "ws";
 
-import type { EntityUuid } from "@blockprotocol/type-system";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import {
   getFlowRunEntityById,
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
+import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
+
+import { getUserAndSession } from "../auth/create-auth-handlers";
+import { FlowRunStatus } from "../graphql/api-types.gen";
+import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request";
+import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request";
+
+import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
+import type { User } from "../graph/knowledge/system-types/user";
+import type { EntityUuid } from "@blockprotocol/type-system";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
   ExternalInputWebsocketRequestMessage,
   InferenceWebsocketClientMessage,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import type { ExternalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/types";
 import type { Client } from "@temporalio/client";
+import type http from "node:http";
 import type { WebSocket } from "ws";
-import { WebSocketServer } from "ws";
-
-import { getUserAndSession } from "../auth/create-auth-handlers";
-import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
-import { FlowRunStatus } from "../graphql/api-types.gen";
-import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request";
-import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request";
 
 const inferEntitiesMessageHandler = async ({
   socket,

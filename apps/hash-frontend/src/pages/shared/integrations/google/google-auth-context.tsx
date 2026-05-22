@@ -1,8 +1,4 @@
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import Script from "next/script";
-import type { PropsWithChildren } from "react";
 import {
   createContext,
   useCallback,
@@ -11,7 +7,13 @@ import {
   useState,
 } from "react";
 
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+
 import { useGoogleAccounts } from "./google-auth-context/use-google-accounts";
+
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
+import type { PropsWithChildren } from "react";
 
 const googleOAuthClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 

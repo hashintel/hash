@@ -22,13 +22,13 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "vite build",
+    "build-storybook": "storybook build",
     "dev": "storybook dev -p 6006",
     "dev:lib": "vite build --watch",
-    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
-    "prepublishOnly": "yarn build",
-    "build-storybook": "storybook build"
+    "prepublishOnly": "yarn build"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "0.2.1",

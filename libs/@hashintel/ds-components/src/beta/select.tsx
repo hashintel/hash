@@ -2,19 +2,21 @@
 
 /* eslint-disable import/no-extraneous-dependencies */
 
-import type { Assign } from "@ark-ui/react";
 import { ark } from "@ark-ui/react/factory";
 import {
   Select,
   type SelectRootProps,
   useSelectItemContext,
 } from "@ark-ui/react/select";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { HTMLStyledProps } from "@hashintel/ds-helpers/types";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { forwardRef, type RefAttributes } from "react";
 
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
+
 import { selectSlotRecipe, type SelectSlotRecipeProps } from "./select.recipe";
+
+import type { Assign } from "@ark-ui/react";
+import type { HTMLStyledProps } from "@hashintel/ds-helpers/types";
 
 const { withProvider, withContext } = createStyleContext(selectSlotRecipe);
 

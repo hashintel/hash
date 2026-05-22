@@ -1,7 +1,8 @@
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { sheets_v4 } from "googleapis";
 
 import { cellHeaderFormat, cellPadding } from "./format.js";
+
+import type { sheets_v4 } from "googleapis";
 
 export const createCellFromValue = ({
   value,

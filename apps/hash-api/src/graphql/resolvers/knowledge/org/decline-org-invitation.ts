@@ -1,13 +1,13 @@
-import type { MutationDeclineOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-
 import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
 import { getUserVerifiedEmails } from "../../../../graph/knowledge/system-types/user";
 import { systemAccountId } from "../../../../graph/system-account";
-import type { ResolverFn } from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
 import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getPendingOrgInvitationsFromSubgraph } from "./shared";
+
+import type { ResolverFn } from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
+import type { MutationDeclineOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 /**
  * This resolver is used specifically to get an invitation to an organization issued to a user not yet signed up for HASH.

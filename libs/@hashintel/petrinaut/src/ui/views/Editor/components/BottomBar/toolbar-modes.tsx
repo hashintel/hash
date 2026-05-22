@@ -1,14 +1,15 @@
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { Menu, type MenuItem } from "../../../../components/menu";
+import { ToolbarButton } from "./toolbar-button";
+import { ToolbarDivider } from "./toolbar-divider";
+
 import type {
   CursorMode,
   EditorState,
 } from "../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { ToolbarButton } from "./toolbar-button";
-import { ToolbarDivider } from "./toolbar-divider";
 
 type EditorEditionMode = EditorState["editionMode"];
 

@@ -1,8 +1,9 @@
-import type { WebId } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { useGetWebIdForShortname } from "../../../../components/hooks/use-get-account-id-for-shortname";
+
+import type { WebId } from "@blockprotocol/type-system";
 
 export const useRouteNamespace = (): {
   loading: boolean;

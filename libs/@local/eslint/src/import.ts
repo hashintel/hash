@@ -7,21 +7,9 @@ export const importPlugin = (
     ...config,
     {
       rules: {
-        "import/order": [
-          "error",
-          {
-            "newlines-between": "always",
-            // This is the same as the default, but with `internal` added
-            groups: [
-              "builtin",
-              "external",
-              "internal",
-              "parent",
-              "sibling",
-              "index",
-            ],
-          },
-        ],
+        // Import ordering is handled by oxfmt
+        "import/order": "off",
+        "import/first": "off",
         // This clashes directly with file name endings as `./index.js` is required
         "import/no-useless-path-segments": ["error", { noUselessIndex: false }],
         // We no longer want to use CommonJS or AMD
@@ -29,7 +17,7 @@ export const importPlugin = (
         "import/no-amd": "error",
         // We want to avoid circular dependencies
         "import/no-cycle": "error",
-        // We have custom import/order rules that clash with `simple-import-sort`
+        // Import sorting is handled by oxfmt
         "simple-import-sort/imports": "off",
       },
     },

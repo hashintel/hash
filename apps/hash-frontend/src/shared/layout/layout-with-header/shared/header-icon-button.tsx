@@ -1,5 +1,6 @@
-import { IconButton } from "@hashintel/design-system";
 import { iconButtonClasses, styled, svgIconClasses } from "@mui/material";
+
+import { IconButton } from "@hashintel/design-system";
 
 export const HeaderIconButton = styled(IconButton)(({ theme }) => ({
   [`&.${iconButtonClasses.root}`]: {

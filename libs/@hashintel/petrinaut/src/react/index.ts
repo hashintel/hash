@@ -15,10 +15,7 @@ export {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
-export {
-  ExperimentsContext,
-  isExperimentActive,
-} from "./experiments/context";
+export { ExperimentsContext, isExperimentActive } from "./experiments/context";
 export type {
   CreateExperimentInput,
   ExperimentRecord,

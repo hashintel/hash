@@ -1,8 +1,9 @@
 import { z } from "zod";
 
-import type { Scenario } from "../types/sdcpn";
-import { idSchema } from "./entity-schemas";
 import { displayNameSchema } from "../validation/display-name";
+import { idSchema } from "./entity-schemas";
+
+import type { Scenario } from "../types/sdcpn";
 
 const SNAKE_CASE_RE = /^[a-z][a-z0-9_]*$/;
 

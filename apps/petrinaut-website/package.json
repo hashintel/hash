@@ -6,9 +6,9 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "lint:tsc": "tsgo --noEmit",
+    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error ."
+    "lint:tsc": "tsgo --noEmit"
   },
   "dependencies": {
     "@hashintel/ds-components": "workspace:*",

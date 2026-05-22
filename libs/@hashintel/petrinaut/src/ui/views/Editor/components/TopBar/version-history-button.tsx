@@ -1,9 +1,10 @@
-import { Icon } from "@hashintel/ds-components";
 import { use, useMemo } from "react";
 
+import { Icon } from "@hashintel/ds-components";
+
+import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { Button } from "../../../../components/button";
 import { Menu, type MenuItem } from "../../../../components/menu";
-import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);

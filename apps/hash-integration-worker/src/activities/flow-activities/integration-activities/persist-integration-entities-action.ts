@@ -1,3 +1,5 @@
+import { Context } from "@temporalio/activity";
+
 import {
   type ActorEntityUuid,
   type EntityId,
@@ -7,7 +9,6 @@ import {
   type VersionedUrl,
   type WebId,
 } from "@blockprotocol/type-system";
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   resolvePayloadValue,
@@ -17,7 +18,6 @@ import {
   generateEntityMatcher,
   generateLinkMatcher,
 } from "@local/hash-backend-utils/integrations/aviation";
-import type { GraphApi } from "@local/hash-graph-client";
 import {
   HashEntity,
   HashLinkEntity,
@@ -26,21 +26,23 @@ import {
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  FailedEntityProposal,
-  PersistedEntitiesMetadata,
-  PersistedEntityMetadata,
-  ProposedEntity,
-} from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
+
+import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { GraphApi } from "@local/hash-graph-client";
+import type {
+  FailedEntityProposal,
+  PersistedEntitiesMetadata,
+  PersistedEntityMetadata,
+  ProposedEntity,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const findExistingEntity = async (params: {
   authentication: { actorId: ActorEntityUuid };

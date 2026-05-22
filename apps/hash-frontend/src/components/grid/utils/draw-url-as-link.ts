@@ -1,7 +1,8 @@
-import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import { getYCenter } from "../utils";
+
+import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 interface DrawUrlParams {
   args: DrawArgs<CustomCell>;

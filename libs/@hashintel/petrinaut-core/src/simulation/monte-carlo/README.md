@@ -9,13 +9,13 @@ statistics work.
 
 ## Concepts
 
-| Name | Meaning |
-| --- | --- |
-| `MonteCarloSimulator` | Orchestrates a group of independent runs. |
-| `MonteCarloRun` | One logical simulation run with its own seed, parameters, initial marking, status, time, and frame buffers. |
-| `MonteCarloFrameBuffer` | Internal reusable binary storage for one frame. Each run owns a current buffer and next buffer. |
-| `advanceAll()` | Deterministic round-robin scheduler. Advances every active run by one frame. |
-| `runUntilComplete()` | Repeats `advanceAll()` until all runs are complete/errored or a guard limit is reached. |
+| Name                    | Meaning                                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `MonteCarloSimulator`   | Orchestrates a group of independent runs.                                                                   |
+| `MonteCarloRun`         | One logical simulation run with its own seed, parameters, initial marking, status, time, and frame buffers. |
+| `MonteCarloFrameBuffer` | Internal reusable binary storage for one frame. Each run owns a current buffer and next buffer.             |
+| `advanceAll()`          | Deterministic round-robin scheduler. Advances every active run by one frame.                                |
+| `runUntilComplete()`    | Repeats `advanceAll()` until all runs are complete/errored or a guard limit is reached.                     |
 
 ## Memory Model
 

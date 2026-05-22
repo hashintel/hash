@@ -1,9 +1,9 @@
-import type { ActorEntityUuid, Team, WebId } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
-
-import type { AuthenticationContext } from "../authentication-context.js";
 import { getActorGroupRole } from "./actor-group.js";
 import { getTeamByName } from "./team.js";
+
+import type { AuthenticationContext } from "../authentication-context.js";
+import type { ActorEntityUuid, Team, WebId } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 
 export const getInstanceAdminsTeam = async (
   ctx: { graphApi: GraphApi },

@@ -1,10 +1,11 @@
 import { Box } from "@mui/material";
 import { useRouter } from "next/router";
-import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { TabLink } from "../../../../shared/ui/tab-link";
 import { Tabs } from "../../../../shared/ui/tabs";
+
+import type { PropsWithChildren } from "react";
 
 type EntityEditorTab = "overview" | "history";
 

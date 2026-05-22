@@ -1,18 +1,19 @@
 import { Box, CircularProgress, styled, Typography } from "@mui/material";
-import type { VerificationFlow } from "@ory/client";
-import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
-import type { ButtonProps } from "../shared/ui";
 import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./shared/ory-kratos";
 import { VerifyEmailStep } from "./shared/verify-email-step";
+
+import type { NextPageWithLayout } from "../shared/layout";
+import type { ButtonProps } from "../shared/ui";
+import type { VerificationFlow } from "@ory/client";
+import type { AxiosError } from "axios";
 
 const LogoutButton = styled((props: ButtonProps) => (
   <Button variant="secondary" size="small" {...props} />

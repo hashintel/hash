@@ -1,6 +1,7 @@
+import { beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { EntityTypeDefinition } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
 import {
   createEntity,
@@ -11,17 +12,18 @@ import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
+
+import type { EntityTypeDefinition } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 
 const logger = new Logger({
   environment: "test",

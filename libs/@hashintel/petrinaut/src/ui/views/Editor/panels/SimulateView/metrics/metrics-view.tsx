@@ -1,13 +1,15 @@
-import { Icon } from "@hashintel/ds-components";
 import { use, useState } from "react";
 
-import type { Metric } from "@hashintel/petrinaut-core";
+import { Icon } from "@hashintel/ds-components";
+
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { CreateMetricDrawer } from "./create-metric-drawer";
 import { ViewMetricDrawer } from "./view-metric-drawer";
+
+import type { Metric } from "@hashintel/petrinaut-core";
 
 const metricColumns = [
   {

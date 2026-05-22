@@ -1,10 +1,8 @@
-import { TextField } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import type { VerificationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
-import type { FormEventHandler, FunctionComponent } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
+
+import { TextField } from "@hashintel/design-system";
 
 import { isProduction } from "../../lib/config";
 import { Button } from "../../shared/ui";
@@ -12,6 +10,10 @@ import { AuthHeading } from "./auth-heading";
 import { AuthPaper } from "./auth-paper";
 import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./ory-kratos";
 import { useKratosErrorHandler } from "./use-kratos-flow-error-handler";
+
+import type { VerificationFlow } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { FormEventHandler, FunctionComponent } from "react";
 
 type VerifyEmailStepProps = {
   email: string;

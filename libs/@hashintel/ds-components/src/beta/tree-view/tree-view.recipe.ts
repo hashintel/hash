@@ -1,4 +1,5 @@
 import { treeViewAnatomy } from "@ark-ui/react/anatomy";
+
 import { sva } from "@hashintel/ds-helpers/css";
 
 const treeViewSlotRecipeDefinition = {

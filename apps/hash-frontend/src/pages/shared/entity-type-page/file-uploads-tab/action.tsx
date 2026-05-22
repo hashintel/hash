@@ -1,15 +1,17 @@
+import { Box, Stack, Tooltip } from "@mui/material";
+
 import {
   ArrowRotateLeftIcon,
   ArrowUpRightIcon,
   DashIcon,
 } from "@hashintel/design-system";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, Tooltip } from "@mui/material";
 
 import { useUserOrOrgShortnameByWebId } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
-import type { FileUpload } from "../../../../shared/file-upload-context";
 import { Link } from "../../../../shared/ui/link";
+
+import type { FileUpload } from "../../../../shared/file-upload-context";
+import type { SxProps, Theme } from "@mui/material";
 
 const buttonSx: SxProps<Theme> = {
   color: "blue.70",

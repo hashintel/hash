@@ -1,10 +1,12 @@
-import { Icon } from "@hashintel/ds-components";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { ComponentProps } from "react";
 import { useState } from "react";
 
-import type { SegmentOption } from "./segment-group";
+import { Icon } from "@hashintel/ds-components";
+
 import { SegmentGroup } from "./segment-group";
+
+import type { SegmentOption } from "./segment-group";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 
 const meta: Meta<typeof SegmentGroup> = {
   title: "Components / SegmentGroup",

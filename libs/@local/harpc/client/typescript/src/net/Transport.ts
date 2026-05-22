@@ -1,7 +1,6 @@
-import type { DNS } from "@multiformats/dns";
-
 import type { NoiseConfig, TCPConfig, YamuxConfig } from "./Config.js";
 import type * as internal from "./internal/transport.js";
+import type { DNS } from "@multiformats/dns";
 
 export { InitializationError, TransportError } from "./internal/transport.js";
 export { type Multiaddr, multiaddr } from "@multiformats/multiaddr";

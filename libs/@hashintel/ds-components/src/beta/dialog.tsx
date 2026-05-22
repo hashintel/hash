@@ -2,8 +2,9 @@
 
 import { Dialog, useDialogContext } from "@ark-ui/react/dialog";
 import { ark } from "@ark-ui/react/factory";
-import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
 import { type ComponentProps, forwardRef } from "react";
+
+import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
 
 import { dialogSlotRecipe } from "./dialog.recipe";
 

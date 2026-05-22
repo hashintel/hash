@@ -1,5 +1,4 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import {
   FakeExperimentsProvider,
@@ -9,6 +8,8 @@ import {
   oneExperiment,
 } from "../../panels/SimulateView/experiments/experiments-story-fixtures";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Experiments / RunningExperimentsPopover",

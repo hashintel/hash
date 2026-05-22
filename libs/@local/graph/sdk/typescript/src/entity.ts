@@ -1,3 +1,44 @@
+import { Predicate } from "effect";
+
+import {
+  extractBaseUrl,
+  isArrayMetadata,
+  isBaseUrl,
+  isObjectMetadata,
+  isValueMetadata,
+} from "@blockprotocol/type-system";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
+
+import { rewriteSemanticFilter } from "./embeddings.js";
+import {
+  mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
+  mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
+} from "./entity-type.js";
+import {
+  organizationEntityTypeBaseUrl,
+  organizationNamePropertyBaseUrl,
+  validateOrgName,
+} from "./org-entity-restrictions.js";
+import {
+  deserializeGraphVertices,
+  mapGraphApiSubgraphToSubgraph,
+  serializeGraphVertices,
+} from "./subgraph.js";
+import {
+  displayNamePropertyBaseUrl,
+  shortnamePropertyBaseUrl,
+  userEntityTypeBaseUrl,
+  userSelfUpdatablePropertyBaseUrls,
+  validateDisplayName,
+} from "./user-entity-restrictions.js";
+
+import type { AuthenticationContext } from "./authentication-context.js";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+  EntityTypeResolveDefinitions,
+} from "./ontology.js";
+import type { EntityValidationReport } from "./validation.js";
 import type {
   DataTypeRootType,
   Edges,
@@ -40,20 +81,12 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  extractBaseUrl,
-  isArrayMetadata,
-  isBaseUrl,
-  isObjectMetadata,
-  isValueMetadata,
-} from "@blockprotocol/type-system";
 import type {
   DistributiveOmit,
   DistributiveReplaceProperties,
   ExclusiveUnion,
 } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
-import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   ClosedMultiEntityTypeMap,
   CreateEntityParams as GraphApiCreateEntityParams,
@@ -72,37 +105,6 @@ import type {
   EntityPermissions,
 } from "@rust/hash-graph-store/types";
 import type { Client as TemporalClient } from "@temporalio/client";
-import { Predicate } from "effect";
-
-import type { AuthenticationContext } from "./authentication-context.js";
-import { rewriteSemanticFilter } from "./embeddings.js";
-import {
-  mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap,
-  mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
-} from "./entity-type.js";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  ClosedMultiEntityTypesRootMap,
-  EntityTypeResolveDefinitions,
-} from "./ontology.js";
-import {
-  organizationEntityTypeBaseUrl,
-  organizationNamePropertyBaseUrl,
-  validateOrgName,
-} from "./org-entity-restrictions.js";
-import {
-  deserializeGraphVertices,
-  mapGraphApiSubgraphToSubgraph,
-  serializeGraphVertices,
-} from "./subgraph.js";
-import {
-  displayNamePropertyBaseUrl,
-  shortnamePropertyBaseUrl,
-  userEntityTypeBaseUrl,
-  userSelfUpdatablePropertyBaseUrls,
-  validateDisplayName,
-} from "./user-entity-restrictions.js";
-import type { EntityValidationReport } from "./validation.js";
 
 export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
   T & {
@@ -228,8 +230,8 @@ export type QueryEntitiesRequest = DistributiveOmit<
 export type EntityPermissionsMap = Record<EntityId, EntityPermissions>;
 
 export type QueryEntitiesResponse<
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitiesResponseGraphApi,
   | "entities"
@@ -254,8 +256,8 @@ export type QueryEntitiesResponse<
 };
 
 export type SerializedQueryEntitiesResponse<
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > = DistributiveReplaceProperties<
   QueryEntitiesResponse<PropertyMap>,
   {
@@ -273,8 +275,8 @@ export type QueryEntitySubgraphRequest = ExclusiveUnion<
 >;
 
 export type QueryEntitySubgraphResponse<
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitySubgraphResponseGraphApi,
   | "subgraph"
@@ -310,8 +312,8 @@ export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
  * @param params.query the structural query to filter entities by.
  */
 export const queryEntitySubgraph = async <
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 >(
   context: { graphApi: GraphApi; temporalClient?: TemporalClient },
   authentication: AuthenticationContext,
@@ -392,8 +394,8 @@ export const serializeQueryEntitySubgraphResponse = (
 });
 
 export const deserializeQueryEntitySubgraphResponse = <
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 >(
   response: SerializedQueryEntitySubgraphResponse,
 ): QueryEntitySubgraphResponse<PropertyMap> => ({
@@ -420,8 +422,8 @@ export interface SerializedEntity<
 }
 
 type EntityData<
-  Properties extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > = {
   metadata: EntityMetadata<Properties["entityTypeIds"]>;
   properties: Properties["properties"];
@@ -1112,10 +1114,9 @@ export const generateChangedPropertyMetadataObject = (
 };
 
 export class HashEntity<
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
-> implements Entity<PropertyMap>
-{
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
+> implements Entity<PropertyMap> {
   #entity: EntityData<PropertyMap>;
 
   constructor(entity: EntityInput<PropertyMap["properties"]>) {
@@ -1398,8 +1399,8 @@ export class HashEntity<
 }
 
 export class HashLinkEntity<
-  Properties extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > extends HashEntity<Properties> {
   constructor(entity: EntityInput<Properties> | HashEntity) {
     const input = (entity instanceof HashEntity ? entity.toJSON() : entity) as
@@ -1502,8 +1503,8 @@ export class HashLinkEntity<
 }
 
 export const queryEntities = async <
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 >(
   context: {
     graphApi: GraphApi;
@@ -1548,8 +1549,8 @@ export const queryEntities = async <
 };
 
 export const serializeQueryEntitiesResponse = <
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 >(
   response: QueryEntitiesResponse<PropertyMap>,
 ): SerializedQueryEntitiesResponse<PropertyMap> => ({
@@ -1558,8 +1559,8 @@ export const serializeQueryEntitiesResponse = <
 });
 
 export const deserializeQueryEntitiesResponse = <
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 >(
   response: SerializedQueryEntitiesResponse<PropertyMap>,
 ): QueryEntitiesResponse<PropertyMap> => ({

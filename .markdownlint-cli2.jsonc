@@ -21,7 +21,8 @@
     "ol-prefix": {
       "style": "ordered"
     },
-    "single-title": false
+    "single-title": false,
+    "table-column-style": false
   },
   "gitignore": true,
   "globs": ["*.md", "**/*.md", "**/*.mdc"],

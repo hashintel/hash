@@ -1,6 +1,7 @@
-import type { Color, Place } from "@hashintel/petrinaut-core";
 import { DEFAULT_COLORS } from "../default-colors";
+
 import type { TimelineSeriesConfig } from "../types";
+import type { Color, Place } from "@hashintel/petrinaut-core";
 
 /**
  * Builds the default per-place timeline view.

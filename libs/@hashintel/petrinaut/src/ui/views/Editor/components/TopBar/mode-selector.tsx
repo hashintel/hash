@@ -1,7 +1,8 @@
 import { Icon } from "@hashintel/ds-components";
 
-import type { SegmentOption } from "../../../../components/segment-group";
 import { SegmentGroup } from "../../../../components/segment-group";
+
+import type { SegmentOption } from "../../../../components/segment-group";
 
 export interface ModeSelectorProps {
   mode: "edit" | "simulate";

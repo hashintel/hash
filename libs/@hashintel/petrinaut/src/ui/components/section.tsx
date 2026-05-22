@@ -1,6 +1,7 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { css, cx } from "@hashintel/ds-helpers/css";
 import { type ReactNode, use } from "react";
+
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { Button } from "./button";

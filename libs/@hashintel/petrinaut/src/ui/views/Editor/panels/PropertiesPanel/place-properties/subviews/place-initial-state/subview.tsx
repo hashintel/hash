@@ -1,15 +1,17 @@
-import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
-import { Button } from "../../../../../../../components/button";
-import { NumberInput } from "../../../../../../../components/number-input";
-import type { SubView } from "../../../../../../../components/sub-view/types";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
+import { Button } from "../../../../../../../components/button";
+import { NumberInput } from "../../../../../../../components/number-input";
+import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../../context";
 import { InitialStateEditor } from "./initial-state-editor";
+
+import type { SubView } from "../../../../../../../components/sub-view/types";
 
 const fieldLabelStyle = css({
   fontWeight: "medium",

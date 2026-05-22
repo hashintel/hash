@@ -1,21 +1,19 @@
+import { beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { createComment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import { getCommentNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
-import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org.js";
 import {
   createPage,
   getPageBlocks,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -24,6 +22,10 @@ import {
   createTestUser,
   waitForAfterHookTriggerToComplete,
 } from "../../../util";
+
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org.js";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const logger = new Logger({
   environment: "test",

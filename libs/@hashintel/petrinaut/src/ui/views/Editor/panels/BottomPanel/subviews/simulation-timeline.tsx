@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 import {
   use,
   useEffect,
@@ -8,22 +7,21 @@ import {
   useSyncExternalStore,
 } from "react";
 import uPlot from "uplot";
+
+import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
-import { Button } from "../../../../../components/button";
-import { SegmentGroup } from "../../../../../components/segment-group";
-import { Select } from "../../../../../components/select";
-import type { SubView } from "../../../../../components/sub-view/types";
-import { createValueStore } from "../../../../../../react/create-value-store";
-import { useElementSize } from "../../../../../../react/hooks/use-element-size";
-import { useLatest } from "../../../../../../react/hooks/use-latest";
-import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
-import { PlaybackContext } from "../../../../../../react/playback/context";
 import {
   compileMetric,
   buildMetricState,
   type CompiledMetric,
 } from "@hashintel/petrinaut-core";
+
+import { createValueStore } from "../../../../../../react/create-value-store";
+import { useElementSize } from "../../../../../../react/hooks/use-element-size";
+import { useLatest } from "../../../../../../react/hooks/use-latest";
+import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
+import { PlaybackContext } from "../../../../../../react/playback/context";
 import {
   SimulationContext,
   type SimulationFrameReader,
@@ -34,8 +32,13 @@ import {
   type TimelineView,
 } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { Button } from "../../../../../components/button";
+import { SegmentGroup } from "../../../../../components/segment-group";
+import { Select } from "../../../../../components/select";
 import { CreateMetricDrawer } from "../../SimulateView/metrics/create-metric-drawer";
 import { ViewMetricDrawer } from "../../SimulateView/metrics/view-metric-drawer";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 
 // -- Styles -------------------------------------------------------------------
 

@@ -1,19 +1,19 @@
 import "iframe-resizer/js/iframeResizer.contentWindow";
-
-import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
-import type { Entity } from "@blockprotocol/type-system";
-import type * as Sentry from "@sentry/react";
-import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useState } from "react";
 
-import type { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
 // import { ErrorBlock } from "../../error-block/error-block";
 import {
   BlockLoadingIndicator,
   // RemoteBlock,
 } from "../../remote-block/remote-block";
-import type { MessageFromBlockFramer } from "../types";
 import { sendMessage, settlePromiseFromResponse } from "./util";
+
+import type { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
+import type { MessageFromBlockFramer } from "../types";
+import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
+import type { Entity } from "@blockprotocol/type-system";
+import type * as Sentry from "@sentry/react";
+import type { FunctionComponent } from "react";
 
 const params = new URL(window.location.href).searchParams;
 

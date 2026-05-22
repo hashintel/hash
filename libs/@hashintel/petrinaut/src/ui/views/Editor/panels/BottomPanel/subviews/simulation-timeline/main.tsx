@@ -3,12 +3,13 @@ import { use, useState } from "react";
 import { PlaybackContext } from "../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
-import type { SubView } from "../../../../../../components/sub-view/types";
 import { UPlotChart } from "./chart";
 import { TimelineHeaderActions } from "./header";
 import { TimelineLegend } from "./legend";
 import { chartAreaStyle, containerStyle } from "./styles";
 import { useStreamingData } from "./use-streaming-data";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);

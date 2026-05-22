@@ -1,10 +1,11 @@
-import { checkTransitionEnablement } from "./check-transition-enablement";
-import { computePlaceNextState } from "./compute-place-next-state";
-import { executeTransitions } from "./execute-transitions";
 import {
   createEngineFrame,
   materializeEngineFrame,
 } from "../frames/internal-frame";
+import { checkTransitionEnablement } from "./check-transition-enablement";
+import { computePlaceNextState } from "./compute-place-next-state";
+import { executeTransitions } from "./execute-transitions";
+
 import type { SimulationInstance } from "./types";
 
 /**

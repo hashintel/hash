@@ -1,28 +1,47 @@
 <div class="centered-content">
-    <div class="auth-box">
-        <h1>Grant access to HASH</h1>
-        <form action="">
-            <p class="consent-greeting">Hi, <strong>@{{username}}</strong>!</p>
-            <p><strong>{{client.client_name}}</strong> wants access to your HASH graph.</p>
+  <div class="auth-box">
+    <h1>Grant access to HASH</h1>
+    <form action="">
+      <p class="consent-greeting">Hi, <strong>@{{username}}</strong>!</p>
+      <p><strong>{{client.client_name}}</strong>
+        wants access to your HASH graph.</p>
 
-            <input name="challenge" type="hidden" value="{{challenge}}" />
-            <input name="csrfToken" type="hidden" value="{{csrfToken}}" />
+      <input name="challenge" type="hidden" value="{{challenge}}" />
+      <input name="csrfToken" type="hidden" value="{{csrfToken}}" />
 
-            <div class="consent-scopes-heading">Scopes requested</div>
-            {{#each requested_scope as |scope|}}
-                <div class="consent-scope-item">
-                    <input checked type="checkbox" id="{{scope}}" value="{{scope}}" name="grant_scope" />
-                    <label for="{{scope}}">{{scope}}</label>
-                </div>
-            {{/each}}
-            <div class="consent-remember">
-                <input checked type="checkbox" id="remember" value="1" name="remember" />
-                <label for="remember">Remember my choice</label>
-            </div>
+      <div class="consent-scopes-heading">Scopes requested</div>
+      {{#each requested_scope as |scope|}}
+        <div class="consent-scope-item">
+          <input
+            checked
+            type="checkbox"
+            id="{{scope}}"
+            value="{{scope}}"
+            name="grant_scope"
+          />
+          <label for="{{scope}}">{{scope}}</label>
+        </div>
+      {{/each}}
+      <div class="consent-remember">
+        <input
+          checked
+          type="checkbox"
+          id="remember"
+          value="1"
+          name="remember"
+        />
+        <label for="remember">Remember my choice</label>
+      </div>
 
-            <button type="submit" id="accept" name="submit" value="allow">Allow access</button>
-            <button type="submit" id="deny" name="submit" value="deny" class="deny">Deny access</button>
-        </form>
-    </div>
-    <script src="/consent.js"></script>
+      <button type="submit" id="accept" name="submit" value="allow">Allow access</button>
+      <button
+        type="submit"
+        id="deny"
+        name="submit"
+        value="deny"
+        class="deny"
+      >Deny access</button>
+    </form>
+  </div>
+  <script src="/consent.js"></script>
 </div>

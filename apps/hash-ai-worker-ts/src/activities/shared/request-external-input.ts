@@ -1,15 +1,17 @@
-import { createTemporalClient } from "@local/hash-backend-utils/temporal";
-import type {
-  ExternalInputRequestSignal,
-  ExternalInputResponseSignal,
-} from "@local/hash-isomorphic-utils/flows/types";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { Context } from "@temporalio/activity";
-import type { Client as TemporalClient } from "@temporalio/client";
+
+import { createTemporalClient } from "@local/hash-backend-utils/temporal";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { getExternalInputResponseQuery } from "../../shared/queries.js";
 import { externalInputRequestSignal } from "../../shared/signals.js";
 import { logger } from "./activity-logger.js";
+
+import type {
+  ExternalInputRequestSignal,
+  ExternalInputResponseSignal,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { Client as TemporalClient } from "@temporalio/client";
 
 let temporalClient: TemporalClient | undefined;
 

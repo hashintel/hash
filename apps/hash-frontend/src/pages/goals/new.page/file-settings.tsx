@@ -1,22 +1,24 @@
-import type { WebId } from "@blockprotocol/type-system";
+import { Box, Stack, Typography } from "@mui/material";
+import { useState } from "react";
+
 import {
   FileRegularIcon,
   IconButton,
   XMarkRegularIcon,
 } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, Typography } from "@mui/material";
-import type { Dispatch, SetStateAction } from "react";
-import { useState } from "react";
 
 import {
   useFileUploads,
   useFileUploadsProgress,
 } from "../../../shared/file-upload-context";
 import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
+
+import type { WebId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { SxProps, Theme } from "@mui/material";
+import type { Dispatch, SetStateAction } from "react";
 
 export type FileSettingsState = {
   fileEntities: HashEntity<FileEntity>[];

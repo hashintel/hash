@@ -8,7 +8,6 @@ import { IconButton, type IconButtonProps } from "./icon-button";
 export type CloseButtonProps = IconButtonProps;
 
 // IconButton produces a union type too complex for TS in this context
-// biome-ignore lint/suspicious/noExplicitAny: union type too complex for TS
 const TypedIconButton = IconButton as React.ComponentType<any>;
 
 export const CloseButton = forwardRef<HTMLButtonElement, CloseButtonProps>(

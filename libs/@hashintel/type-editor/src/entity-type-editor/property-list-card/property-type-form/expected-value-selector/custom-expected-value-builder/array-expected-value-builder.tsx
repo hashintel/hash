@@ -1,24 +1,26 @@
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
+import { Box, Collapse, Stack } from "@mui/material";
+import uniqueId from "lodash.uniqueid";
+import { usePopupState } from "material-ui-popup-state/hooks";
+import { useEffect, useMemo, useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+
 import { DataTypeSelector } from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports -- TODO remove this dependency if seeking to use package outside the repo
 import { buildDataTypeTreesForSelector } from "@local/hash-isomorphic-utils/data-types";
 // eslint-disable-next-line no-restricted-imports -- TODO remove this dependency if seeking to use package outside the repo
 import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box, Collapse, Stack } from "@mui/material";
-import uniqueId from "lodash.uniqueid";
-import { usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useEffect, useMemo, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
 
 import { useDataTypesOptions } from "../../../../../shared/data-types-options-context";
 import { getDefaultExpectedValue } from "../../../shared/default-expected-value";
-import type { CustomExpectedValue } from "../../../shared/expected-value-types";
 import { DeleteExpectedValueModal } from "../shared/delete-expected-value-modal";
 import { ExpectedValueBadge } from "../shared/expected-value-badge";
-import type { ExpectedValueSelectorFormValues } from "../shared/expected-value-selector-form-values";
 import { ObjectExpectedValueBuilder } from "../shared/object-expected-value-builder";
 import { ArrayMinMaxItems } from "./array-expected-value-builder/array-min-max-items";
+
+import type { CustomExpectedValue } from "../../../shared/expected-value-types";
+import type { ExpectedValueSelectorFormValues } from "../shared/expected-value-selector-form-values";
+import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 const deleteExpectedValueAndChildren = (
   id: string,

@@ -1,5 +1,6 @@
-import { VisuallyHidden } from "@hashintel/ds-helpers/jsx";
 import { forwardRef } from "react";
+
+import { VisuallyHidden } from "@hashintel/ds-helpers/jsx";
 
 import * as StyledCheckbox from "../checkbox";
 

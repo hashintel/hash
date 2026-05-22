@@ -1,5 +1,6 @@
-import { HStack } from "@hashintel/ds-helpers/jsx";
 import { Grid2X2Icon, ListIcon, TableIcon } from "lucide-react";
+
+import { HStack } from "@hashintel/ds-helpers/jsx";
 
 import * as SegmentGroup from "../segment-group";
 

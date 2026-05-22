@@ -1,18 +1,20 @@
-import type {
-  MinimalNetMetadata,
-  PetrinautDocHandle,
-  SDCPN,
-} from "@hashintel/petrinaut-core";
-import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
 import { produce } from "immer";
 import { useEffect, useState } from "react";
+
+import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { useSentryFeedbackAction } from "./app/sentry-feedback-button";
 import {
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./app/use-local-storage-sdcpns";
+
+import type {
+  MinimalNetMetadata,
+  PetrinautDocHandle,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&

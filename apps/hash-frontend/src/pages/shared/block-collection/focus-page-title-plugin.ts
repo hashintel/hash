@@ -1,4 +1,5 @@
 import { Plugin } from "prosemirror-state";
+
 import type { RefObject } from "react";
 
 export const createFocusPageTitlePlugin = (

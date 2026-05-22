@@ -1,14 +1,3 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { EntityOrTypeIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import {
-  blockProtocolEntityTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import {
   Box,
   Divider,
@@ -23,12 +12,19 @@ import {
   isBefore,
   subWeeks,
 } from "date-fns";
-import type { FunctionComponent } from "react";
 import { Fragment, useCallback, useMemo, useState } from "react";
+
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import { EntityOrTypeIcon } from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  blockProtocolEntityTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 
 import { useAccountPages } from "../../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../../components/hooks/use-create-page";
-import type { Org, User } from "../../../lib/user-and-org";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ArrowDownAZRegularIcon } from "../../../shared/icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../../shared/icons/arrow-up-a-z-regular-icon";
@@ -37,7 +33,13 @@ import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { Button, Link, MenuItem } from "../../../shared/ui";
 import { InlineSelect } from "../../shared/inline-select";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
+
+import type { Org, User } from "../../../lib/user-and-org";
 import type { ProfilePageTab } from "./util";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 const EntityRow: FunctionComponent<{
   entity: HashEntity;

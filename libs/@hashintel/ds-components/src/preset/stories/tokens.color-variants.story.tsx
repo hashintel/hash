@@ -1,10 +1,10 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { Box, Grid, HStack, VStack } from "@hashintel/ds-helpers/jsx";
-import type { Token } from "@hashintel/ds-helpers/tokens";
 import { token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 import type { PaletteName } from "./_types";
+import type { Token } from "@hashintel/ds-helpers/tokens";
+import type { Story } from "@ladle/react";
 
 const COLOR_PALETTES: readonly PaletteName[] = [
   "neutral",

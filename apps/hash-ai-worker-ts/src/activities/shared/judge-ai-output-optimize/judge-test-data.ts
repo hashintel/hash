@@ -1,6 +1,5 @@
-import type { EntityId, PropertyValue } from "@blockprotocol/type-system";
-
 import type { LlmParams } from "../get-llm-response/types.js";
+import type { EntityId, PropertyValue } from "@blockprotocol/type-system";
 
 type CorrectedValue =
   | {

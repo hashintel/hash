@@ -1,4 +1,3 @@
-import type { FunctionComponent, ReactNode } from "react";
 import {
   createContext,
   useCallback,
@@ -9,6 +8,8 @@ import {
 } from "react";
 
 import { getBlockDomId } from "../shared/get-block-dom-id";
+
+import type { FunctionComponent, ReactNode } from "react";
 
 type OnBlockLoadedFunction = (blockEntityId: string) => void;
 

@@ -2,8 +2,9 @@
 
 import { Portal } from "@ark-ui/react/portal";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { type ComponentProps, forwardRef } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { tooltipSlotRecipe } from "./tooltip.recipe";
 

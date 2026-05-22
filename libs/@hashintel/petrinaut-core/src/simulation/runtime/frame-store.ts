@@ -1,6 +1,7 @@
+import { compileSimulationFrameReader } from "../frames/frame-reader";
+
 import type { SDCPN } from "../../types/sdcpn";
 import type { SimulationFrameReader } from "../api";
-import { compileSimulationFrameReader } from "../frames/frame-reader";
 import type { SimulationFramePayload } from "../worker/frame-payload";
 
 export interface SimulationFrameStore {

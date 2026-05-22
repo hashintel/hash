@@ -1,7 +1,8 @@
 "use client";
 
-import { Stack } from "@hashintel/ds-helpers/jsx";
 import { useState } from "react";
+
+import { Stack } from "@hashintel/ds-helpers/jsx";
 
 import * as Checkbox from "../checkbox";
 

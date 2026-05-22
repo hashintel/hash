@@ -5,6 +5,8 @@ import {
   type LspWorkerFactory,
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
+
+import { ExperimentsProvider } from "./experiments/provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
 import { MutationProvider } from "./mutation-provider";
@@ -14,7 +16,6 @@ import {
 } from "./net-management-context";
 import { NotificationsProvider } from "./notifications/provider";
 import { PlaybackProvider } from "./playback/provider";
-import { ExperimentsProvider } from "./experiments/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { SimulationProvider } from "./simulation/provider";
 import { EditorProvider } from "./state/editor-provider";

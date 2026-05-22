@@ -13,10 +13,10 @@ This guide was originally written before the FE-612 ownership restructure. Apply
 
 ## Reference Repositories
 
-| Repository | Local Path | Description |
-|------------|------------|-------------|
-| chakra-ui/ark | `~/Clones/chakra-ui/ark` | Headless component primitives |
-| chakra-ui/panda | `~/Clones/chakra-ui/panda` | CSS-in-JS framework |
+| Repository        | Local Path                   | Description                       |
+| ----------------- | ---------------------------- | --------------------------------- |
+| chakra-ui/ark     | `~/Clones/chakra-ui/ark`     | Headless component primitives     |
+| chakra-ui/panda   | `~/Clones/chakra-ui/panda`   | CSS-in-JS framework               |
 | chakra-ui/park-ui | `~/Clones/chakra-ui/park-ui` | Styled components (our reference) |
 
 ## Park UI Architecture
@@ -40,23 +40,29 @@ park-ui/
 Recipes use `defineSlotRecipe` with anatomy from Ark UI:
 
 ```ts
-import { checkboxAnatomy } from '@ark-ui/react/anatomy'
-import { defineSlotRecipe } from '@pandacss/dev'
+import { checkboxAnatomy } from "@ark-ui/react/anatomy";
+import { defineSlotRecipe } from "@pandacss/dev";
 
 export const checkbox = defineSlotRecipe({
   slots: checkboxAnatomy.keys(),
-  className: 'checkbox',
+  className: "checkbox",
   base: {
-    root: { /* styles */ },
-    control: { /* styles */ },
-    label: { /* styles */ },
+    root: {
+      /* styles */
+    },
+    control: {
+      /* styles */
+    },
+    label: {
+      /* styles */
+    },
   },
   variants: {
     size: { sm: {}, md: {}, lg: {} },
     variant: { solid: {}, subtle: {}, outline: {} },
   },
-  defaultVariants: { variant: 'solid', size: 'md' },
-})
+  defaultVariants: { variant: "solid", size: "md" },
+});
 ```
 
 ### Component Pattern
@@ -64,15 +70,15 @@ export const checkbox = defineSlotRecipe({
 Components wrap Ark UI primitives with style context:
 
 ```tsx
-import { Checkbox } from '@ark-ui/react/checkbox'
-import { createStyleContext } from 'styled-system/jsx'
-import { checkbox } from 'styled-system/recipes'
+import { Checkbox } from "@ark-ui/react/checkbox";
+import { createStyleContext } from "styled-system/jsx";
+import { checkbox } from "styled-system/recipes";
 
-const { withProvider, withContext } = createStyleContext(checkbox)
+const { withProvider, withContext } = createStyleContext(checkbox);
 
-export const Root = withProvider(Checkbox.Root, 'root')
-export const Control = withContext(Checkbox.Control, 'control')
-export const Label = withContext(Checkbox.Label, 'label')
+export const Root = withProvider(Checkbox.Root, "root");
+export const Control = withContext(Checkbox.Control, "control");
+export const Label = withContext(Checkbox.Label, "label");
 ```
 
 ### Testing Pattern
@@ -90,13 +96,13 @@ Park UI uses **Story examples only** — no unit tests. Stories are organized as
 
 Park UI uses Radix colors with semantic meaning per step:
 
-| Steps | Purpose |
-|-------|---------|
-| 1-2 | Backgrounds (app, subtle) |
-| 3-5 | Interactive UI (default, hover, active) |
-| 6-8 | Borders (subtle, default, emphasis) |
-| 9-10 | Solid backgrounds (default, hover) |
-| 11-12 | Text (low-contrast, high-contrast) |
+| Steps | Purpose                                 |
+| ----- | --------------------------------------- |
+| 1-2   | Backgrounds (app, subtle)               |
+| 3-5   | Interactive UI (default, hover, active) |
+| 6-8   | Borders (subtle, default, emphasis)     |
+| 9-10  | Solid backgrounds (default, hover)      |
+| 11-12 | Text (low-contrast, high-contrast)      |
 
 Plus alpha variants `a1-a12` for translucent overlays.
 
@@ -104,20 +110,20 @@ Plus alpha variants `a1-a12` for translucent overlays.
 
 Established mapping from Radix neutral → HASH gray:
 
-| Radix | HASH | Purpose |
-|-------|------|---------|
-| 1 | 10 | Lightest background |
-| 2 | 10 | Subtle background |
-| 3 | 20 | UI element background |
-| 4 | 20 | Hovered UI element |
-| 5 | 30 | Active/selected UI |
-| 6 | 30 | Subtle borders |
-| 7 | 40 | Border / focus ring |
-| 8 | 40 | Solid border |
-| 9 | 50 | Solid backgrounds |
-| 10 | 50 | Hovered solid |
-| 11 | 60 | Low-contrast text |
-| 12 | 90 | High-contrast text |
+| Radix | HASH | Purpose               |
+| ----- | ---- | --------------------- |
+| 1     | 10   | Lightest background   |
+| 2     | 10   | Subtle background     |
+| 3     | 20   | UI element background |
+| 4     | 20   | Hovered UI element    |
+| 5     | 30   | Active/selected UI    |
+| 6     | 30   | Subtle borders        |
+| 7     | 40   | Border / focus ring   |
+| 8     | 40   | Solid border          |
+| 9     | 50   | Solid backgrounds     |
+| 10    | 50   | Hovered solid         |
+| 11    | 60   | Low-contrast text     |
+| 12    | 90   | High-contrast text    |
 
 Visual comparison story: `libs/@hashintel/ds-components/src/tokens/tokens.color-migration.story.tsx`
 
@@ -126,15 +132,15 @@ Visual comparison story: `libs/@hashintel/ds-components/src/tokens/tokens.color-
 Since HASH doesn't have alpha variants, alpha references map to solid equivalents:
 
 | Radix Alpha | HASH Solid |
-|-------------|------------|
-| a1-a2 | 00 |
-| a3-a4 | 10 |
-| a5-a6 | 20 |
-| a7 | 30 |
-| a8 | 40 |
-| a9-a10 | 50 |
-| a11 | 60 |
-| a12 | 90 |
+| ----------- | ---------- |
+| a1-a2       | 00         |
+| a3-a4       | 10         |
+| a5-a6       | 20         |
+| a7          | 30         |
+| a8          | 40         |
+| a9-a10      | 50         |
+| a11         | 60         |
+| a12         | 90         |
 
 **Limitation**: Loses translucency effects for hover states and layered surfaces.
 
@@ -216,9 +222,9 @@ error → red.9
 ### 1. `colorPalette.*` (dynamic)
 
 ```ts
-bg: 'colorPalette.solid.bg'
-color: 'colorPalette.subtle.fg'
-borderColor: 'colorPalette.surface.border.hover'
+bg: "colorPalette.solid.bg";
+color: "colorPalette.subtle.fg";
+borderColor: "colorPalette.surface.border.hover";
 ```
 
 Resolves based on `colorPalette` prop (e.g., `colorPalette="blue"`).
@@ -226,8 +232,8 @@ Resolves based on `colorPalette` prop (e.g., `colorPalette="blue"`).
 ### 2. `gray.*` semantic
 
 ```ts
-bg: 'gray.surface.bg'
-borderColor: 'gray.outline.border'
+bg: "gray.surface.bg";
+borderColor: "gray.outline.border";
 ```
 
 References gray palette's semantic variants directly.
@@ -243,9 +249,9 @@ Direct scale reference for edge cases.
 ### 4. Global aliases
 
 ```ts
-color: 'fg.default'
-bg: 'border'
-bg: 'error'
+color: "fg.default";
+bg: "border";
+bg: "error";
 ```
 
 ---
@@ -280,10 +286,10 @@ Keep current HASH token structure, refactor each recipe:
 
 ```ts
 // Before (park-ui)
-bg: 'colorPalette.solid.bg'
+bg: "colorPalette.solid.bg";
 
 // After (HASH)
-bg: 'bg.accent.bold.default'
+bg: "bg.accent.bold.default";
 ```
 
 **Pros**: Token structure stays aligned with Figma
@@ -299,10 +305,10 @@ bg: 'bg.accent.bold.default'
 
 ## Files Created
 
-| File | Purpose |
-|------|---------|
+| File                                                                        | Purpose                                  |
+| --------------------------------------------------------------------------- | ---------------------------------------- |
 | `libs/@hashintel/ds-components/src/tokens/tokens.color-migration.story.tsx` | Visual comparison tool for scale mapping |
-| `libs/@hashintel/ds-components/_ai/park-ui-porting-guide.md` | This document |
+| `libs/@hashintel/ds-components/_ai/park-ui-porting-guide.md`                | This document                            |
 
 ## Next Steps
 

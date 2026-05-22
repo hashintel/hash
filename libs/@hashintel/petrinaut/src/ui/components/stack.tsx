@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+
 import type { CSSProperties, ReactNode, Ref } from "react";
 
 export interface StackProps {

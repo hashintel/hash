@@ -1,8 +1,9 @@
-import type { ButtonProps } from "@mui/material";
 import { Button, buttonClasses } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { ChevronRightIcon, GearIcon } from "./icons/icons";
+
+import type { ButtonProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export type BlockSettingsButtonProps = {
   expanded?: boolean;

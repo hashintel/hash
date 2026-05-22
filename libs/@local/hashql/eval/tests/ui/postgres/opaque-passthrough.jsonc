@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Opaque type wrapper - AggregateKind::Opaque passes through inner operand unchanged
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

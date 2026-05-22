@@ -1,6 +1,13 @@
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef } from "react";
 
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+
+import { SimulationContext } from "../../../../../react/simulation/context";
+import {
+  type BottomPanelTab,
+  EditorContext,
+} from "../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { Button } from "../../../../components/button";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
@@ -17,12 +24,6 @@ import {
   BOTTOM_PANEL_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-import { SimulationContext } from "../../../../../react/simulation/context";
-import {
-  type BottomPanelTab,
-  EditorContext,
-} from "../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 
 const glassPanelBaseStyle = css({
   position: "absolute",

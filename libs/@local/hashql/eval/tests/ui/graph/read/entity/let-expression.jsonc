@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Test let expressions within filter comparisons
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],

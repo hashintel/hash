@@ -1,18 +1,19 @@
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useEffect, useState } from "react";
 
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+
+import { EditorContext } from "../../../../../react/state/editor-context";
+import { MutationContext } from "../../../../../react/state/mutation-context";
+import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../../react/state/panel-defaults";
+import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
+import { usePanelTarget } from "../../../../../react/state/use-selection";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
   MAX_PROPERTIES_PANEL_WIDTH,
   MIN_PROPERTIES_PANEL_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../../react/state/panel-defaults";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../react/state/mutation-context";
-import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
-import { usePanelTarget } from "../../../../../react/state/use-selection";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { ArcProperties } from "./arc-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { MultiSelectionPanel } from "./multi-selection-panel";

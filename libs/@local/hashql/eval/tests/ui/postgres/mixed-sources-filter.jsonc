@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Multiple parameter categories in one filter - temporal, env, input, primitive, entity paths
-// biome-ignore format: readability
+// prettier-ignore
 ["if", { "#literal": true },
   ["let", "env_uuid",
     ["input", "env_val", "::graph::types::knowledge::entity::EntityUuid"],

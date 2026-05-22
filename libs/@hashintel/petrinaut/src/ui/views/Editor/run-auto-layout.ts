@@ -1,6 +1,7 @@
 import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
-import type { SDCPN } from "@hashintel/petrinaut-core";
+
 import type { MutationContextValue } from "../../../react/state/mutation-context";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 type NodeDimensions = {
   place: { width: number; height: number };

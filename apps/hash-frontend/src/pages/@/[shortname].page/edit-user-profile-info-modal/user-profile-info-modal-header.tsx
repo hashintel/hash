@@ -1,5 +1,8 @@
-import type { WebId } from "@blockprotocol/type-system";
 import { faImage } from "@fortawesome/free-regular-svg-icons";
+import { Box, buttonClasses, styled } from "@mui/material";
+import Image from "next/image";
+import { useCallback, useRef, useState } from "react";
+
 import {
   Avatar,
   FontAwesomeIcon,
@@ -11,21 +14,20 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box, buttonClasses, styled } from "@mui/material";
-import Image from "next/image";
-import type { ChangeEventHandler, FunctionComponent } from "react";
-import { useCallback, useRef, useState } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
-import type { User } from "../../../../lib/user-and-org";
 import { useFileUploads } from "../../../../shared/file-upload-context";
 import { TrashRegularIcon } from "../../../../shared/icons/trash-regular-icon";
-import type { ButtonProps } from "../../../../shared/ui";
 import { Button } from "../../../../shared/ui";
 import { useAuthInfo } from "../../../shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../../shared/get-file-properties";
 import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { leftColumnWidth } from "../util";
+
+import type { User } from "../../../../lib/user-and-org";
+import type { ButtonProps } from "../../../../shared/ui";
+import type { WebId } from "@blockprotocol/type-system";
+import type { ChangeEventHandler, FunctionComponent } from "react";
 
 const AvatarButton = styled((props: ButtonProps) => (
   <Button variant="tertiary" {...props} />

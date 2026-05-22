@@ -1,6 +1,5 @@
-import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
-
 import type { SimulationFrameReader } from "../../../react/simulation/context";
+import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
 
 type TransitionFrameState = NonNullable<
   ReturnType<SimulationFrameReader["getTransitionState"]>

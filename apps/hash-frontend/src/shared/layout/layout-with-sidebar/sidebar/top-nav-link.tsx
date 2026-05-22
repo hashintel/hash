@@ -1,4 +1,3 @@
-import type { BoxProps } from "@mui/material";
 import {
   Box,
   Fade,
@@ -6,9 +5,11 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { Link } from "../../../ui";
+
+import type { BoxProps } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
 
 type NavLinkProps = {
   title: string;

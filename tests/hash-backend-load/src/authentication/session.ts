@@ -1,8 +1,9 @@
-import type { TracingContext } from "../tracing/sdk";
 import { startSpan } from "../tracing/sdk";
+import { reauthenticate } from "./reauthenticate";
+
+import type { TracingContext } from "../tracing/sdk";
 import type { BeforeRequestFn } from "../types";
 import type { SessionContext } from "./kratos";
-import { reauthenticate } from "./reauthenticate";
 
 export const refreshSessionToken: BeforeRequestFn<
   SessionContext,

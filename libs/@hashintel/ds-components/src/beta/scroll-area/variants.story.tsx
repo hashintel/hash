@@ -1,5 +1,6 @@
-import { Stack } from "@hashintel/ds-helpers/jsx";
 import { loremIpsum } from "lorem-ipsum";
+
+import { Stack } from "@hashintel/ds-helpers/jsx";
 
 import { Heading } from "../heading";
 import * as ScrollArea from "../scroll-area";

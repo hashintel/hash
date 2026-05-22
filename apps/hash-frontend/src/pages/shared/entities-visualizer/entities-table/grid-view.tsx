@@ -1,10 +1,11 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Grid } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { GridViewItem } from "./grid-view/grid-view-item";
 import { GridViewItemSkeleton } from "./grid-view/grid-view-item-skeleton";
+
+import type { EntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 export const GridView: FunctionComponent<{
   entities?: HashEntity[];

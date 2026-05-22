@@ -1,8 +1,8 @@
-import type ts from "typescript";
+import { getItemFilePath } from "./file-paths";
 
 import type { SDCPN } from "../../types/sdcpn";
 import type { SDCPNLanguageServer } from "./create-sdcpn-language-service";
-import { getItemFilePath } from "./file-paths";
+import type ts from "typescript";
 
 export type ItemType =
   | "transition-lambda"

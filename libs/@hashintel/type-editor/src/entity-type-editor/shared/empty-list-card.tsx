@@ -1,11 +1,13 @@
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { Box, Stack, Typography, typographyClasses } from "@mui/material";
+
 import {
   FontAwesomeIcon,
   fontAwesomeIconClasses,
   WhiteCard,
 } from "@hashintel/design-system";
+
 import type { CardActionAreaProps } from "@mui/material";
-import { Box, Stack, Typography, typographyClasses } from "@mui/material";
 import type { ReactNode } from "react";
 
 type EmptyListCardProps = Pick<CardActionAreaProps, "onClick"> & {

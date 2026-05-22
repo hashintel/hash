@@ -1,7 +1,7 @@
-import type { ElkNode } from "elkjs";
 import ELK from "elkjs";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { ElkNode } from "elkjs";
 
 /**
  * @see https://eclipse.dev/elk/documentation/tooldevelopers

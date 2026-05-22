@@ -1,3 +1,9 @@
+import { GridCellKind } from "@glideapps/glide-data-grid";
+import { Box, useTheme } from "@mui/material";
+import { format } from "date-fns";
+import { useRouter } from "next/router";
+import { useCallback, useMemo, useRef, useState } from "react";
+
 import {
   type DataTypeWithMetadata,
   type EntityTypeWithMetadata,
@@ -5,18 +11,7 @@ import {
   type PropertyTypeWithMetadata,
   type VersionedUrl,
 } from "@blockprotocol/type-system";
-import type {
-  Item,
-  SizedGridColumn,
-  TextCell,
-} from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
-import { Box, useTheme } from "@mui/material";
-import { format } from "date-fns";
-import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
   Grid,
@@ -24,7 +19,6 @@ import {
   gridHorizontalScrollbarHeight,
   type GridProps,
 } from "../../components/grid/grid";
-import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import { useOrgs } from "../../components/hooks/use-orgs";
 import { useUsers } from "../../components/hooks/use-users";
 import { extractWebId } from "../../lib/user-and-org";
@@ -32,7 +26,6 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { isTypeArchived } from "../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
-import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import {
   isAiMachineActor,
@@ -40,16 +33,25 @@ import {
   useActors,
 } from "../../shared/use-actors";
 import { useAuthenticatedUser } from "./auth-info-context";
-import type { ChipCell } from "./chip-cell";
 import { createRenderChipCell } from "./chip-cell";
-import type { TextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
 import { useSlideStack } from "./slide-stack";
 import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { TypeGraphVisualizer } from "./type-graph-visualizer";
-import type { VisualizerView } from "./visualizer-views";
 import { visualizerViewIcons } from "./visualizer-views";
+
+import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
+import type { FilterState } from "../../shared/table-header";
+import type { ChipCell } from "./chip-cell";
+import type { TextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
+import type { VisualizerView } from "./visualizer-views";
+import type {
+  Item,
+  SizedGridColumn,
+  TextCell,
+} from "@glideapps/glide-data-grid";
+import type { FunctionComponent } from "react";
 
 export type TypesTableColumnId =
   | "title"

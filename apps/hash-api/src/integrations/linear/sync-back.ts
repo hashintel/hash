@@ -1,4 +1,3 @@
-import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
   extractWebIdFromEntityId,
@@ -6,17 +5,19 @@ import {
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
-import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { type VaultClient } from "@local/hash-backend-utils/vault";
-import type { GraphApi } from "@local/hash-graph-client";
 import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
 import { getLinearSecretValueByHashWebEntityId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
+
+import type { ImpureGraphContext } from "../../graph/context-types";
+import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { GraphApi } from "@local/hash-graph-client";
 
 const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,

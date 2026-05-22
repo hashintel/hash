@@ -1,9 +1,9 @@
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
-import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
-
 import { generatePrimaryKey } from "../../../shared/primary-keys.js";
+
 import type { AeroApiScheduledFlight } from "../types.js";
 import type { MappingFunction } from "./mapping-types.js";
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
 
 export type AeroApiFlightInput = AeroApiScheduledFlight;
 

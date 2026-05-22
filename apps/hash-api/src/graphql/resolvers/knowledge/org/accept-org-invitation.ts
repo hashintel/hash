@@ -1,7 +1,5 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
-import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   isInvitationByEmail,
@@ -22,13 +20,16 @@ import {
   joinOrg,
 } from "../../../../graph/knowledge/system-types/user";
 import { systemAccountId } from "../../../../graph/system-account";
+import * as Error from "../../../error";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type {
   AcceptInvitationResult,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import * as Error from "../../../error";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 export const acceptOrgInvitationResolver: ResolverFn<
   Promise<AcceptInvitationResult>,

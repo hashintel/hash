@@ -1,8 +1,9 @@
 import { css, type Styles } from "@hashintel/ds-helpers/css";
-import type { Story, StoryDefault } from "@ladle/react";
 
 import { formInputSizes } from "../../util/form-shared";
 import { Icon, iconNames } from "./icon";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Components/Icon",

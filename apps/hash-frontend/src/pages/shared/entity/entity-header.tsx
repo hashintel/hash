@@ -1,5 +1,7 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
+import { Container } from "@mui/system";
+import { type ReactNode, useRef } from "react";
+
 import {
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
@@ -8,12 +10,8 @@ import {
   ArrowUpRightFromSquareRegularIcon,
   EntityOrTypeIcon,
 } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
-import { Container } from "@mui/system";
-import { type ReactNode, useRef } from "react";
 
 import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { isItemArchived } from "../../../shared/is-archived";
@@ -23,6 +21,10 @@ import { TopContextBar } from "../top-context-bar";
 import { useTextSize } from "../use-text-size";
 import { DraftEntityBanner } from "./draft-entity-banner";
 import { EntityEditorTabs } from "./shared/entity-editor-tabs";
+
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export const EntityHeader = ({
   closedMultiEntityType,

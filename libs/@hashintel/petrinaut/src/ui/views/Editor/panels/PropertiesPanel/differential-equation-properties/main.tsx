@@ -1,15 +1,16 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { DiffEqPropertiesContext } from "./context";
+import { diffEqMainContentSubView } from "./subviews/main";
+
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   Color,
   DifferentialEquation,
   Place,
 } from "@hashintel/petrinaut-core";
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
-import { DiffEqPropertiesContext } from "./context";
-import { diffEqMainContentSubView } from "./subviews/main";
 
 const containerStyle = css({
   display: "flex",

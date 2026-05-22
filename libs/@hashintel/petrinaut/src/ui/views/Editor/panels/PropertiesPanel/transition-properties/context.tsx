@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
 
 interface TransitionPropertiesContextValue {
   transition: Transition;

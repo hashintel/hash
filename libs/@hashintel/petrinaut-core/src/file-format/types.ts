@@ -10,11 +10,11 @@ import {
   placeSchema as currentPlaceSchema,
   transitionSchema as currentTransitionSchema,
 } from "../schemas/entity-schemas";
+import { metricSchema as currentMetricSchema } from "../schemas/metric-schema";
 import {
   scenarioParameterSchema as currentScenarioParameterSchema,
   scenarioSchema as currentScenarioSchema,
 } from "../schemas/scenario-schema";
-import { metricSchema as currentMetricSchema } from "../schemas/metric-schema";
 
 export const SDCPN_FILE_FORMAT_VERSION = 1;
 

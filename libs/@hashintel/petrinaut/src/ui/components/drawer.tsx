@@ -1,4 +1,3 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   type ReactNode,
   use,
@@ -9,6 +8,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
+
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { createValueStore } from "../../react/create-value-store";
 import { PortalContainerContext } from "../../react/state/portal-container-context";

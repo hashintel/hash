@@ -1,9 +1,8 @@
 import { useMutation, useQuery } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   deserializeQueryEntitySubgraphResponse,
   getClosedMultiEntityTypeFromMap,
@@ -17,21 +16,13 @@ import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSnackbar } from "../../components/hooks/use-snackbar";
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../graphql/api-types.gen";
 import {
   queryEntitySubgraphQuery,
   updateEntityMutation,
 } from "../../graphql/queries/knowledge/entity.queries";
 import { EditBarEntityEditor } from "./entity/edit-bar";
-import type { EntityEditorProps } from "./entity/entity-editor";
 import { EntityEditor } from "./entity/entity-editor";
 import { EntityEditorContainer } from "./entity/entity-editor-container";
 import { EntityHeader } from "./entity/entity-header";
@@ -54,6 +45,17 @@ import {
   type MinimalEntityValidationReport,
   useValidateEntity,
 } from "./use-validate-entity";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../graphql/api-types.gen";
+import type { EntityEditorProps } from "./entity/entity-editor";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 interface EntityProps {
   entityId: EntityId;

@@ -1,4 +1,5 @@
 import { useMutation } from "@apollo/client";
+
 import {
   type Entity,
   extractDraftIdFromEntityId,
@@ -6,11 +7,12 @@ import {
 } from "@blockprotocol/type-system";
 
 import { useBlockProtocolArchiveEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
+import { createEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import { createEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import type {
   DraftLinksToArchive,
   DraftLinksToCreate,

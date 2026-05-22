@@ -1,10 +1,12 @@
-import type { BaseUrl } from "@blockprotocol/type-system";
-import { parseOntologyTypeVersion } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 
-import type { NextPageWithLayout } from "../../../../shared/layout";
+import { parseOntologyTypeVersion } from "@blockprotocol/type-system";
+
 import { getLayoutWithSidebar } from "../../../../shared/layout";
 import { DataType } from "../../../shared/data-type";
+
+import type { NextPageWithLayout } from "../../../../shared/layout";
+import type { BaseUrl } from "@blockprotocol/type-system";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

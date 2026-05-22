@@ -1,6 +1,3 @@
-import type { StringConstraints } from "@blockprotocol/type-system";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-
 import { fa100 } from "../fa-icons/fa-100";
 import { faAtRegular } from "../fa-icons/fa-at-regular";
 import { faBracketsCurly } from "../fa-icons/fa-brackets-curly";
@@ -12,6 +9,9 @@ import { faInputPipeRegular } from "../fa-icons/fa-input-pipe-regular";
 import { faRulerRegular } from "../fa-icons/fa-ruler-regular";
 import { faSquareCheck } from "../fa-icons/fa-square-check";
 import { faText } from "../fa-icons/fa-text";
+
+import type { StringConstraints } from "@blockprotocol/type-system";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 
 export const identifierTypeTitles = ["URL", "URI"];
 

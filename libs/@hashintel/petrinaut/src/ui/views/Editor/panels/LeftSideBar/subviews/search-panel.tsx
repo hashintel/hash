@@ -1,13 +1,16 @@
+import fuzzysort from "fuzzysort";
+import { use, useEffect, useRef, useState } from "react";
+
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import fuzzysort from "fuzzysort";
+
 import type { ComponentType, ReactNode } from "react";
-import { use, useEffect, useRef, useState } from "react";
 
 const SearchIcon = () => <Icon name="search" />;
 
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
-import type { SubView } from "../../../../../components/sub-view/types";
 import {
   DifferentialEquationIcon,
   ParameterIcon,
@@ -16,8 +19,8 @@ import {
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
 import { clampIndex } from "../../../../../lib/clamp-index";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------

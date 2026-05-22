@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { displayNameSchema } from "../validation/display-name";
+import { entityNameSchema } from "../validation/entity-name";
+
 import type {
   Color,
   DifferentialEquation,
@@ -7,8 +10,6 @@ import type {
   Place,
   Transition,
 } from "../types/sdcpn";
-import { displayNameSchema } from "../validation/display-name";
-import { entityNameSchema } from "../validation/entity-name";
 
 export const idSchema = z.string().min(1).meta({
   description:

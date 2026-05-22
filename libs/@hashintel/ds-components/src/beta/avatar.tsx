@@ -3,9 +3,10 @@
 /* eslint-disable import/no-extraneous-dependencies, @typescript-eslint/no-use-before-define, @typescript-eslint/prefer-nullish-coalescing */
 
 import { Avatar } from "@ark-ui/react/avatar";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { UserIcon } from "lucide-react";
 import { type ComponentProps, forwardRef } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { avatarSlotRecipe } from "./avatar.recipe";
 

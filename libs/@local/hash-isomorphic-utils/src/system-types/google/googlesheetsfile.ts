@@ -3,12 +3,6 @@
  */
 
 import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
-
-import type {
   Account,
   AccountIdPropertyValue,
   AccountIdPropertyValueWithMetadata,
@@ -49,6 +43,11 @@ import type {
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 } from "./shared.js";
+import type {
+  Confidence,
+  ObjectMetadata,
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 
 export type {
   Account,

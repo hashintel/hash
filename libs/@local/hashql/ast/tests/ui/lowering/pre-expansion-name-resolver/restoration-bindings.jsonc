@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Test bindings are restored after let expressions
-// biome-ignore format: readability
+// prettier-ignore
 ["if", {"#literal": true},
     ["let", "x", "outer",
       ["x", {"#literal": 2}, { "#literal": 1 }]

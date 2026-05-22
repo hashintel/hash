@@ -1,3 +1,6 @@
+import dedent from "dedent";
+import sanitizeHtml from "sanitize-html";
+
 import {
   type EntityId,
   entityIdFromComponents,
@@ -13,7 +16,6 @@ import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { MutationInviteUserToOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   blockProtocolDataTypes,
   systemDataTypes,
@@ -21,15 +23,7 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  HasIssuedInvitation,
-  InvitationViaEmail,
-  InvitationViaShortname,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import dedent from "dedent";
-import sanitizeHtml from "sanitize-html";
 
-import type { EmailTransporter } from "../../../../email/transporters";
 import { createEntity } from "../../../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../../../graph/knowledge/primitive/link-entity";
 import {
@@ -42,11 +36,19 @@ import {
   isUserMemberOfOrg,
   type User,
 } from "../../../../graph/knowledge/system-types/user";
-import type { ResolverFn } from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
 import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getPendingOrgInvitationsFromSubgraph } from "./shared";
+
+import type { EmailTransporter } from "../../../../email/transporters";
+import type { ResolverFn } from "../../../api-types.gen";
+import type { LoggedInGraphQLContext } from "../../../context";
+import type { MutationInviteUserToOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type {
+  HasIssuedInvitation,
+  InvitationViaEmail,
+  InvitationViaShortname,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 
 const invitationDurationInDays = 30;
 

@@ -1,5 +1,6 @@
-import { Wrap } from "@hashintel/ds-helpers/jsx";
 import { PhoneIcon, SendIcon } from "lucide-react";
+
+import { Wrap } from "@hashintel/ds-helpers/jsx";
 
 import { Button } from "../button";
 

@@ -1,14 +1,16 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
-import { CloseIcon } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { Box, buttonClasses } from "@mui/material";
-import type { FunctionComponent } from "react";
+
+import { CloseIcon } from "@hashintel/design-system";
 
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { AcceptDraftEntityButton } from "../../shared/accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../../shared/discard-draft-entity-button";
 import { useDraftEntities } from "../draft-entities-context";
+
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ClosedMultiEntityType } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 export const DraftEntityActionButtons: FunctionComponent<{
   closedMultiEntityType: ClosedMultiEntityType;

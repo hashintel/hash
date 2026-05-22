@@ -1,28 +1,17 @@
-import type {
-  OriginProvenance,
-  PropertyProvenance,
-  ProvidedEntityEditionProvenance,
-  SourceProvenance,
-  Url,
-} from "@blockprotocol/type-system";
+import { Context } from "@temporalio/activity";
+import PDFParser from "pdf2json";
+
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
-import type { Output } from "pdf2json";
-import PDFParser from "pdf2json";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
@@ -34,6 +23,19 @@ import { useFileSystemPathFromEntity } from "../shared/use-file-system-file-from
 import { generateDocumentPropertyPatches } from "./infer-metadata-from-document-action/generate-property-patches.js";
 import { generateDocumentProposedEntitiesAndCreateClaims } from "./infer-metadata-from-document-action/generate-proposed-entities-and-claims.js";
 import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
+
+import type {
+  OriginProvenance,
+  PropertyProvenance,
+  ProvidedEntityEditionProvenance,
+  SourceProvenance,
+  Url,
+} from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Output } from "pdf2json";
 
 const isFileEntity = (entity: HashEntity): entity is HashEntity<File> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&

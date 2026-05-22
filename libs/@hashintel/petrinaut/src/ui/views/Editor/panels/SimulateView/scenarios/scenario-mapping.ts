@@ -1,5 +1,5 @@
-import type { Scenario } from "@hashintel/petrinaut-core";
 import type { ScenarioFormState } from "./scenario-form";
+import type { Scenario } from "@hashintel/petrinaut-core";
 
 /**
  * Build a `Scenario` from the form state. Drops the draft `_key` field used

@@ -1,18 +1,20 @@
-import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
-import type { ComponentType, ReactNode } from "react";
 import { Fragment, use, useEffect, useRef, useState } from "react";
 
+import { Icon } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Button } from "../../../../../components/button";
-import type { MenuItem } from "../../../../../components/menu";
 import { Menu } from "../../../../../components/menu";
+import { clampIndex } from "../../../../../lib/clamp-index";
+
+import type { MenuItem } from "../../../../../components/menu";
 import type {
   SubView,
   SubViewResizeConfig,
 } from "../../../../../components/sub-view/types";
-import { clampIndex } from "../../../../../lib/clamp-index";
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type { ComponentType, ReactNode } from "react";
 
 const listContainerStyle = css({
   display: "flex",

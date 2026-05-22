@@ -1,6 +1,7 @@
-import type { SDCPN } from "../types/sdcpn";
 import { removeVisualInformation } from "./remove-visual-info";
 import { SDCPN_FILE_FORMAT_VERSION } from "./types";
+
+import type { SDCPN } from "../types/sdcpn";
 
 /**
  * Serialize an SDCPN to the canonical JSON file format string.

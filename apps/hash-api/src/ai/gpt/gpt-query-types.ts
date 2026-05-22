@@ -1,19 +1,20 @@
 import { typedValues } from "@local/advanced-types/typed-entries";
-import type { SimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
-import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-graph-sdk/embeddings";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { RequestHandler } from "express";
 
 import { stringifyResults } from "./shared/stringify-results";
+
+import type { SimpleEntityType } from "@local/hash-backend-utils/simplified-graph";
+import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+} from "@local/hash-graph-sdk/embeddings";
+import type { RequestHandler } from "express";
 
 export type GptQueryTypesRequestBody = {
   /**

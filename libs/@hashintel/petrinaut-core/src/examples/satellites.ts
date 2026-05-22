@@ -1,4 +1,5 @@
 import { GRID_SIZE } from "../grid-size";
+
 import type { SDCPN } from "../types/sdcpn";
 
 export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {

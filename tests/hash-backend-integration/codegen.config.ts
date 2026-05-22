@@ -1,5 +1,6 @@
-import type { CodegenConfig } from "@graphql-codegen/cli";
 import { baseGraphQlCodegenConfig } from "@local/hash-isomorphic-utils/graphql/base-codegen-config";
+
+import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   overwrite: true,

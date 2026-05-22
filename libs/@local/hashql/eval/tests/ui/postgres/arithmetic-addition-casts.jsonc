@@ -1,6 +1,6 @@
 //@ run: skip reason="::core::math::add intrinsic not supported in specialization yet (H-4728)"
 //@ description: Arithmetic addition casts both operands to ::numeric, outer comparison does not
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "time_axis", "_"]],

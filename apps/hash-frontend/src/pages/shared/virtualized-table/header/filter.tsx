@@ -1,5 +1,3 @@
-import { IconButton } from "@hashintel/design-system";
-import type { FormControlLabelProps, SxProps, Theme } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -12,10 +10,14 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { RefObject } from "react";
 import { useRef, useState } from "react";
 
+import { IconButton } from "@hashintel/design-system";
+
 import { FilterLightIcon } from "../../../../shared/icons/filter-light-icon";
+
+import type { FormControlLabelProps, SxProps, Theme } from "@mui/material";
+import type { RefObject } from "react";
 
 export const missingValueString = `missing-filter-property-value-${Math.random()}`;
 

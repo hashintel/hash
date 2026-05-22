@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
 import { compileSimulationFrameReader } from "./frame-reader";
 import {
   createEngineFrame,
   createEngineFrameLayout,
   type EngineFrame,
 } from "./internal-frame";
+
+import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
 
 const color: Color = {
   id: "color-1",

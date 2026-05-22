@@ -1,13 +1,12 @@
-import { Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
-import type { NodeProps } from "@xyflow/react";
 import { use } from "react";
 
-import { hexToHsl } from "../../../lib/hsl-color";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { PlaybackContext } from "../../../../react/playback/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../react/state/editor-context";
-import type { PlaceNodeType } from "../reactflow-types";
+import { hexToHsl } from "../../../lib/hsl-color";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -15,6 +14,9 @@ import {
   nodeCardStyle,
   type SelectionVariant,
 } from "./node-card";
+
+import type { PlaceNodeType } from "../reactflow-types";
+import type { NodeProps } from "@xyflow/react";
 
 const placeCardStyle = css({
   borderRadius: "full",

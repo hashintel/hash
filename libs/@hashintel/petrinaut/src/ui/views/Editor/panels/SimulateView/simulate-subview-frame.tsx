@@ -1,7 +1,8 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
 
 import { Stack } from "../../../../components/stack";
+
+import type { ReactNode } from "react";
 
 const mainContainerStyle = css({
   display: "flex",

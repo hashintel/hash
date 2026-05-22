@@ -1,18 +1,20 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
-import { Button } from "../../../../components/button";
-import { Menu, type MenuItem } from "../../../../components/menu";
-import type { ExperimentRecord } from "../../../../../react/experiments/context";
+import { css } from "@hashintel/ds-helpers/css";
+
 import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { Button } from "../../../../components/button";
+import { Menu, type MenuItem } from "../../../../components/menu";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
 import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
+
+import type { ExperimentRecord } from "../../../../../react/experiments/context";
 
 const topBarStyle = css({
   display: "flex",

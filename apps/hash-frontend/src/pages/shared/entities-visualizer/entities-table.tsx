@@ -1,11 +1,9 @@
 import { useQuery } from "@apollo/client";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  EntityId,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import { GridCellKind } from "@glideapps/glide-data-grid";
+import { Box, Stack, useTheme } from "@mui/material";
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import {
   extractBaseUrl,
   extractEntityUuidFromEntityId,
@@ -13,43 +11,14 @@ import {
   extractWebIdFromEntityId,
   isBaseUrl,
 } from "@blockprotocol/type-system";
-import type {
-  CustomCell,
-  Item,
-  NumberCell,
-  SizedGridColumn,
-  TextCell,
-} from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
 import { ArrowDownRegularIcon, LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { Box, Stack, useTheme } from "@mui/material";
-import { useRouter } from "next/router";
-import type {
-  Dispatch,
-  FunctionComponent,
-  MutableRefObject,
-  RefObject,
-  SetStateAction,
-} from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type {
-  ConversionTargetsByColumnKey,
-  GridSort,
-} from "../../../components/grid/grid";
 import { Grid } from "../../../components/grid/grid";
-import type { BlankCell } from "../../../components/grid/utils";
 import { blankCell } from "../../../components/grid/utils";
-import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
-import type { ColumnFilter } from "../../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import type {
-  FindDataTypeConversionTargetsQuery,
-  FindDataTypeConversionTargetsQueryVariables,
-} from "../../../graphql/api-types.gen";
 import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { Button } from "../../../shared/ui/button";
 import {
@@ -58,16 +27,28 @@ import {
   useActors,
 } from "../../../shared/use-actors";
 import { useMemoCompare } from "../../../shared/use-memo-compare";
-import type { ChipCellProps } from "../chip-cell";
 import { createRenderChipCell } from "../chip-cell";
-import type { UrlCellProps } from "../url-cell";
 import { createRenderUrlCell } from "../url-cell";
 import {
   createRenderEntitiesTableValueCell,
   type EntitiesTableValueCellProps,
 } from "./entities-table/entities-table-value-cell";
-import type { TextIconCell } from "./entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
+
+import type {
+  ConversionTargetsByColumnKey,
+  GridSort,
+} from "../../../components/grid/grid";
+import type { BlankCell } from "../../../components/grid/utils";
+import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
+import type { ColumnFilter } from "../../../components/grid/utils/filtering";
+import type {
+  FindDataTypeConversionTargetsQuery,
+  FindDataTypeConversionTargetsQueryVariables,
+} from "../../../graphql/api-types.gen";
+import type { ChipCellProps } from "../chip-cell";
+import type { UrlCellProps } from "../url-cell";
+import type { TextIconCell } from "./entities-table/text-icon-cell";
 import type {
   ActorTableFilterData,
   EntitiesTableColumnKey,
@@ -78,6 +59,27 @@ import type {
   WebTableFilterData,
 } from "./types";
 import type { EntitiesVisualizerData } from "./use-entities-visualizer-data";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type {
+  CustomCell,
+  Item,
+  NumberCell,
+  SizedGridColumn,
+  TextCell,
+} from "@glideapps/glide-data-grid";
+import type {
+  Dispatch,
+  FunctionComponent,
+  MutableRefObject,
+  RefObject,
+  SetStateAction,
+} from "react";
 
 const firstColumnLeftPadding = 16;
 
@@ -871,7 +873,10 @@ export const EntitiesTable: FunctionComponent<
     ({
       columnKey,
       dataTypeId,
-    }: { columnKey: BaseUrl; dataTypeId: VersionedUrl | null }) => {
+    }: {
+      columnKey: BaseUrl;
+      dataTypeId: VersionedUrl | null;
+    }) => {
       if (!dataTypeId) {
         if (!activeConversions) {
           return;

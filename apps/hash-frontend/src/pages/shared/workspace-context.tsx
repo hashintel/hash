@@ -1,5 +1,3 @@
-import type { WebId } from "@blockprotocol/type-system";
-import type { FunctionComponent, ReactElement } from "react";
 import {
   createContext,
   useCallback,
@@ -10,8 +8,11 @@ import {
 } from "react";
 
 import { localStorageKeys } from "../../lib/config";
-import type { MinimalUser, Org } from "../../lib/user-and-org";
 import { useAuthInfo } from "./auth-info-context";
+
+import type { MinimalUser, Org } from "../../lib/user-and-org";
+import type { WebId } from "@blockprotocol/type-system";
+import type { FunctionComponent, ReactElement } from "react";
 
 export type WorkspaceContextValue = {
   activeWorkspace?: MinimalUser | Org;

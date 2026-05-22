@@ -1,10 +1,3 @@
-import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
-import type {
-  Entity,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
-
 import type {
   CreateEntityData,
   DeleteEntityData,
@@ -39,6 +32,12 @@ import type {
   QueryDataTypesResult,
   Subgraph,
 } from "./subgraph.js";
+import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
+import type {
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 
 export type BlockGraphProperties<RootEntity extends Entity = Entity> = {
   /**
@@ -62,8 +61,8 @@ export type GraphBlockMessageCallbacks = {
 };
 
 export type GraphEmbedderMessages<
-  Key extends
-    keyof GraphBlockMessageCallbacks = keyof GraphBlockMessageCallbacks,
+  Key extends keyof GraphBlockMessageCallbacks =
+    keyof GraphBlockMessageCallbacks,
 > = {
   [key in Key]: ({
     data,
@@ -220,8 +219,8 @@ export type GraphEmbedderMessageCallbacks = {
 };
 
 export type GraphBlockMessages<
-  Key extends
-    keyof GraphEmbedderMessageCallbacks = keyof GraphEmbedderMessageCallbacks,
+  Key extends keyof GraphEmbedderMessageCallbacks =
+    keyof GraphEmbedderMessageCallbacks,
 > = {
   [key in Key]: ({
     data,

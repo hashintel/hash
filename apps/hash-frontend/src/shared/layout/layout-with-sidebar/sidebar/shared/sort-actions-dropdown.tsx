@@ -1,5 +1,4 @@
 import { faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
   Box,
   ListItemIcon,
@@ -8,13 +7,16 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindMenu } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, ReactNode } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { ArrowDownAZRegularIcon } from "../../../../icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../../../icons/arrow-up-a-z-regular-icon";
 import { MenuItem } from "../../../../ui";
+
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent, ReactNode } from "react";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";
 

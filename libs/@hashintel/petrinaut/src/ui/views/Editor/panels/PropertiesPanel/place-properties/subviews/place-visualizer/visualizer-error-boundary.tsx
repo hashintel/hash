@@ -1,5 +1,6 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+
+import { css } from "@hashintel/ds-helpers/css";
 
 const errorContainerStyle = css({
   padding: "[16px]",

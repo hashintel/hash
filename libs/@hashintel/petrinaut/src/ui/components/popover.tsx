@@ -1,10 +1,12 @@
 import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
+
 import { css, cx } from "@hashintel/ds-helpers/css";
-import type { ComponentProps, ReactNode } from "react";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import { Button } from "./button";
+
+import type { ComponentProps, ReactNode } from "react";
 
 // -- Styles ------------------------------------------------------------------
 

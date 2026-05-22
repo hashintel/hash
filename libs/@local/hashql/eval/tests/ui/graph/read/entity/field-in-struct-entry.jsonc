@@ -1,6 +1,6 @@
 //@ run: fail
 //@ description: Mentions of the variable inside data constructs are unsupported
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],

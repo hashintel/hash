@@ -1,15 +1,3 @@
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
-import {
-  extractEntityUuidFromEntityId,
-  isEntityId,
-} from "@blockprotocol/type-system";
-import type {
-  DragEndEvent,
-  DragMoveEvent,
-  DragOverEvent,
-  DragStartEvent,
-  UniqueIdentifier,
-} from "@dnd-kit/core";
 import {
   closestCenter,
   DndContext,
@@ -24,11 +12,15 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { IconButton } from "@hashintel/design-system";
 import { useLocalStorage } from "@mantine/hooks";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+import {
+  extractEntityUuidFromEntityId,
+  isEntityId,
+} from "@blockprotocol/type-system";
+import { IconButton } from "@hashintel/design-system";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useArchivePage } from "../../../../components/hooks/use-archive-page";
@@ -44,7 +36,6 @@ import { useUserPreferences } from "../../../use-user-preferences";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { AccountPageListItem } from "./account-page-list/account-page-list-item";
 import { IDENTATION_WIDTH } from "./account-page-list/page-tree-item";
-import type { TreeItem } from "./account-page-list/utils";
 import {
   getLastIndex,
   getProjection,
@@ -53,6 +44,17 @@ import {
 } from "./account-page-list/utils";
 import { NavLink } from "./shared/nav-link";
 import { ViewAllLink } from "./shared/view-all-link";
+
+import type { TreeItem } from "./account-page-list/utils";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type {
+  DragEndEvent,
+  DragMoveEvent,
+  DragOverEvent,
+  DragStartEvent,
+  UniqueIdentifier,
+} from "@dnd-kit/core";
+import type { FunctionComponent } from "react";
 
 type AccountPageListProps = {
   webId: WebId;

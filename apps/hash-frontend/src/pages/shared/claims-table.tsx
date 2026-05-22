@@ -1,41 +1,43 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { Box, Stack, TableCell, Typography } from "@mui/material";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { SourceProvenance } from "@local/hash-graph-client/api";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, TableCell, Typography } from "@mui/material";
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { CircleInfoIcon } from "../../shared/icons/circle-info-icon";
 import { SourcesPopover } from "./sources-popover";
 import { ValueChip } from "./value-chip";
+import { defaultCellSx, VirtualizedTable } from "./virtualized-table";
+import {
+  isValueIncludedInFilter,
+  missingValueString,
+} from "./virtualized-table/header/filter";
+import { useVirtualizedTableFilterState } from "./virtualized-table/use-filter-state";
+
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
 } from "./virtualized-table";
-import { defaultCellSx, VirtualizedTable } from "./virtualized-table";
 import type {
   VirtualizedTableFilterDefinition,
   VirtualizedTableFilterDefinitionsByFieldId,
   VirtualizedTableFilterValuesByFieldId,
 } from "./virtualized-table/header/filter";
-import {
-  isValueIncludedInFilter,
-  missingValueString,
-} from "./virtualized-table/header/filter";
 import type { VirtualizedTableSort } from "./virtualized-table/header/sort";
-import { useVirtualizedTableFilterState } from "./virtualized-table/use-filter-state";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { SourceProvenance } from "@local/hash-graph-client/api";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
+import type { SxProps, Theme } from "@mui/material";
 
 type FieldId = "status" | "claim" | "subject" | "object" | "createdAt";
 

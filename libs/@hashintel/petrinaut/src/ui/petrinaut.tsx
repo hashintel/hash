@@ -3,7 +3,6 @@ import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "@xyflow/react/dist/style.css";
 import "./index.css";
-
 import { type FunctionComponent, useEffect, useMemo } from "react";
 
 import {
@@ -15,11 +14,13 @@ import {
   type MinimalNetMetadata,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { NetManagement } from "../react/net-management-context";
+
 import { PetrinautProvider } from "../react/petrinaut-provider";
-import type { ViewportAction } from "./types/viewport-action";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
+
+import type { NetManagement } from "../react/net-management-context";
+import type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;

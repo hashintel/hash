@@ -1,14 +1,16 @@
 import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 import { useMemo } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { Circle1RegularIcon } from "../../shared/icons/circle-1-regular-icon";
 import { Circle2RegularIcon } from "../../shared/icons/circle-2-regular-icon";
 import { Circle3RegularIcon } from "../../shared/icons/circle-3-regular-icon";
 import { Circle4RegularIcon } from "../../shared/icons/circle-4-regular-icon";
 import { CircleArrowRightRegularIcon } from "../../shared/icons/circle-arrow-right-regular-icon";
+
+import type { FunctionComponent, ReactNode } from "react";
 
 type StepName =
   | "verify-email"

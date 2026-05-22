@@ -1,6 +1,37 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
+import {
+  currentTimestamp,
+  generateTimestamp,
+} from "@blockprotocol/type-system";
+import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
+import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
+import { getFileProperties } from "../../../../shared/get-file-properties";
+import { SlideStackProvider } from "../../../../shared/slide-stack";
+import { ClaimsOutput } from "./outputs/claims-output";
+import { Deliverables } from "./outputs/deliverables";
+import { EntityResultGraph } from "./outputs/entity-result-graph";
+import { EntityResultTable } from "./outputs/entity-result-table";
+import { outputIcons } from "./outputs/shared/icons";
+import { flowSectionBorderRadius } from "./shared/styles";
+
+import type {
+  FlowRun,
+  GetClosedMultiEntityTypesQuery,
+  GetClosedMultiEntityTypesQueryVariables,
+} from "../../../../../graphql/api-types.gen";
+import type { SlideItem } from "../../../../shared/slide-stack/types";
+import type { DeliverableData } from "./outputs/deliverables/shared/types";
+import type { ProposedEntityOutput } from "./shared/types";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityEditionId,
   EntityId,
@@ -9,44 +40,15 @@ import type {
   Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  currentTimestamp,
-  generateTimestamp,
-} from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
-import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
 } from "@local/hash-graph-sdk/ontology";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { SvgIconProps } from "@mui/material";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-
-import type {
-  FlowRun,
-  GetClosedMultiEntityTypesQuery,
-  GetClosedMultiEntityTypesQueryVariables,
-} from "../../../../../graphql/api-types.gen";
-import { getClosedMultiEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
-import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
-import { getFileProperties } from "../../../../shared/get-file-properties";
-import { SlideStackProvider } from "../../../../shared/slide-stack";
-import type { SlideItem } from "../../../../shared/slide-stack/types";
-import { ClaimsOutput } from "./outputs/claims-output";
-import { Deliverables } from "./outputs/deliverables";
-import type { DeliverableData } from "./outputs/deliverables/shared/types";
-import { EntityResultGraph } from "./outputs/entity-result-graph";
-import { EntityResultTable } from "./outputs/entity-result-table";
-import { outputIcons } from "./outputs/shared/icons";
-import { flowSectionBorderRadius } from "./shared/styles";
-import type { ProposedEntityOutput } from "./shared/types";
 
 export const getDeliverables = (
   outputs: FlowRun["outputs"] | undefined,

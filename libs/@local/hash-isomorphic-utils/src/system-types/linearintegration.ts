@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   Actor,
   ActorOutgoingLinkAndTarget,
@@ -235,6 +233,7 @@ import type {
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
+import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   Actor,

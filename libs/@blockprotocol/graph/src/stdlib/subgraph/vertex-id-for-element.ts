@@ -1,11 +1,11 @@
+import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
+import { typedEntries } from "../../util/typed-entries.js";
+
+import type { GraphElementVertexId, Subgraph } from "../../types.js";
 import type {
   EntityRecordId,
   OntologyTypeRecordId,
 } from "@blockprotocol/type-system";
-
-import type { GraphElementVertexId, Subgraph } from "../../types.js";
-import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
-import { typedEntries } from "../../util/typed-entries.js";
 
 /**
  * Searches the vertices of the subgraph for an element that matches a given {@link EntityRecordId} or

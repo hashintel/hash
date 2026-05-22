@@ -1,10 +1,12 @@
 "use client";
 
 import { ark } from "@ark-ui/react/factory";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { cardSlotRecipe } from "./card.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(cardSlotRecipe);
 

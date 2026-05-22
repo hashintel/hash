@@ -1,10 +1,12 @@
 "use client";
 
 import { HoverCard } from "@ark-ui/react/hover-card";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { hoverCardSlotRecipe } from "./hover-card.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withRootProvider, withContext } =
   createStyleContext(hoverCardSlotRecipe);

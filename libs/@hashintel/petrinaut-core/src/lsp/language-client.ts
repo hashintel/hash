@@ -1,3 +1,17 @@
+import {
+  createWorkerLspTransport,
+  type LspTransport,
+  type LspWorkerFactory,
+} from "./transport";
+
+import type { ReadableStore } from "../handle";
+import type { SDCPN } from "../types/sdcpn";
+import type {
+  ClientMessage,
+  MetricSessionParams,
+  PublishDiagnosticsParams,
+  ScenarioSessionParams,
+} from "./worker/protocol";
 import type {
   CompletionList,
   Diagnostic,
@@ -6,20 +20,6 @@ import type {
   Position,
   SignatureHelp,
 } from "vscode-languageserver-types";
-
-import type { ReadableStore } from "../handle";
-import type { SDCPN } from "../types/sdcpn";
-import {
-  createWorkerLspTransport,
-  type LspTransport,
-  type LspWorkerFactory,
-} from "./transport";
-import type {
-  ClientMessage,
-  MetricSessionParams,
-  PublishDiagnosticsParams,
-  ScenarioSessionParams,
-} from "./worker/protocol";
 
 export type DiagnosticsSnapshot = {
   byUri: Map<DocumentUri, Diagnostic[]>;

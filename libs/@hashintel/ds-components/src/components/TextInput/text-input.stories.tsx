@@ -1,10 +1,12 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { Story, StoryDefault } from "@ladle/react";
 import { Fragment, useState } from "react";
 
-import type { FormInputWidth } from "../../util/form-shared";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { formInputSizes } from "../../util/form-shared";
 import { TextInput } from "./text-input";
+
+import type { FormInputWidth } from "../../util/form-shared";
+import type { Story, StoryDefault } from "@ladle/react";
 
 type TextInputProps = React.ComponentProps<typeof TextInput>;
 type Variant = NonNullable<TextInputProps["variant"]>;

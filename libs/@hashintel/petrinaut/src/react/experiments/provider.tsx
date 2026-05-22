@@ -12,6 +12,7 @@ import {
   type ScenarioParameter,
 } from "@hashintel/petrinaut-core";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
+
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";

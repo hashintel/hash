@@ -1,21 +1,11 @@
 import path from "node:path";
 
-import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
-import type {
-  EntityRootType,
-  KnowledgeGraphEdgeKind,
-  KnowledgeGraphRootedEdges,
-  Subgraph,
-} from "@blockprotocol/graph";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import {
   getEntities as getEntitiesSubgraph,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  Entity,
-  Timestamp,
-} from "@blockprotocol/type-system";
 import { ENTITY_ID_DELIMITER } from "@blockprotocol/type-system";
 import {
   queryEntities,
@@ -23,11 +13,23 @@ import {
   type QueryEntitySubgraphRequest,
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import type { TraversalPath } from "@rust/hash-graph-store/types";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../admin-server";
 import { createTestImpureGraphContext } from "../util";
+
+import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import type {
+  EntityRootType,
+  KnowledgeGraphEdgeKind,
+  KnowledgeGraphRootedEdges,
+  Subgraph,
+} from "@blockprotocol/graph";
+import type {
+  ActorEntityUuid,
+  Entity,
+  Timestamp,
+} from "@blockprotocol/type-system";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 
 const createRequest = ({
   traversalPaths,

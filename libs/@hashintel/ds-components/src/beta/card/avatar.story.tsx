@@ -1,5 +1,6 @@
-import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { CheckIcon, XIcon } from "lucide-react";
+
+import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 
 import * as Avatar from "../avatar";
 import { Button } from "../button";

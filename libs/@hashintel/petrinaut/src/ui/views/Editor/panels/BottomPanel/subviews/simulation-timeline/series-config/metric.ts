@@ -5,7 +5,9 @@ import {
   type Metric,
   type Place,
 } from "@hashintel/petrinaut-core";
+
 import { DEFAULT_COLORS } from "../default-colors";
+
 import type { TimelineSeriesConfig } from "../types";
 
 /**

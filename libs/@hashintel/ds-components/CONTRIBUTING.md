@@ -15,17 +15,17 @@ For new internal work, treat `ds-components` as the only source of truth.
 
 ## Where To Change Things
 
-| Area | Location | Notes |
-| --- | --- | --- |
-| Components | `src/components/<Component>/<component>.tsx` and `src/components/*/*.stories.tsx` | Public component entrypoints live at the top of `src/components/` and are built by `tsdown`. |
-| Panda preset source | `src/preset.ts`, `src/preset/**` | This is the live preset consumed by `@hashintel/ds-components/preset`. |
-| Package-owned token facade | `src/tokens.ts`, `src/preset/tokens.ts` | This is the public `@hashintel/ds-components/tokens` surface and its internal source of truth. |
-| Token and color generators | `scripts/**` | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
-| Token demo stories | `src/tokens/**` | Token reference and migration/demo stories live here now. |
-| Intro docs | `src/stories/Intro.mdx` | Shared intro documentation for the Ladle surface. |
-| Local demo config | `panda.local.config.ts` | Shared Panda config for local demo surfaces such as Ladle. |
-| Ladle harness | `.ladle/**` | Used for the token/demo surface and Playwright snapshots. |
-| Snapshot tests | `tests/**` | Snapshot harness for the Ladle surface. |
+| Area                       | Location                                                                          | Notes                                                                                               |
+| -------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Components                 | `src/components/<Component>/<component>.tsx` and `src/components/*/*.stories.tsx` | Public component entrypoints live at the top of `src/components/` and are built by `tsdown`.        |
+| Panda preset source        | `src/preset.ts`, `src/preset/**`                                                  | This is the live preset consumed by `@hashintel/ds-components/preset`.                              |
+| Package-owned token facade | `src/tokens.ts`, `src/preset/tokens.ts`                                           | This is the public `@hashintel/ds-components/tokens` surface and its internal source of truth.      |
+| Token and color generators | `scripts/**`                                                                      | Reads `scripts/figma-variables.json` and writes generated preset files under `src/preset/theme/**`. |
+| Token demo stories         | `src/tokens/**`                                                                   | Token reference and migration/demo stories live here now.                                           |
+| Intro docs                 | `src/stories/Intro.mdx`                                                           | Shared intro documentation for the Ladle surface.                                                   |
+| Local demo config          | `panda.local.config.ts`                                                           | Shared Panda config for local demo surfaces such as Ladle.                                          |
+| Ladle harness              | `.ladle/**`                                                                       | Used for the token/demo surface and Playwright snapshots.                                           |
+| Snapshot tests             | `tests/**`                                                                        | Snapshot harness for the Ladle surface.                                                             |
 
 ## Import Rules
 
@@ -157,13 +157,13 @@ extraction.
 
 The package runs Panda with strict token validation. Use the live token names, not the pre-restructure aliases.
 
-| Token Type | Avoid | Use Instead |
-| --- | --- | --- |
-| Spacing | `spacing.4`, `"4"` | `default.4`, `compact.4`, `comfortable.4` |
-| Radii | `radius.2`, `md` | `md.2`, `sm.3`, `lg.full`, `component.button.sm` |
-| Font sizes | `size.textsm` | `xs`, `sm`, `base`, `lg`, `xl`, `2xl` |
-| Line heights | `leading.none.textsm` | `none.text-sm`, `normal.text-base` |
-| Literal values | `64px` | `[64px]` |
+| Token Type     | Avoid                 | Use Instead                                      |
+| -------------- | --------------------- | ------------------------------------------------ |
+| Spacing        | `spacing.4`, `"4"`    | `default.4`, `compact.4`, `comfortable.4`        |
+| Radii          | `radius.2`, `md`      | `md.2`, `sm.3`, `lg.full`, `component.button.sm` |
+| Font sizes     | `size.textsm`         | `xs`, `sm`, `base`, `lg`, `xl`, `2xl`            |
+| Line heights   | `leading.none.textsm` | `none.text-sm`, `normal.text-base`               |
+| Literal values | `64px`                | `[64px]`                                         |
 
 Color tokens should come from the semantic palette already defined in the preset, for example `bg.accent.bold.default`, `border.neutral.default`, and `text.primary`.
 

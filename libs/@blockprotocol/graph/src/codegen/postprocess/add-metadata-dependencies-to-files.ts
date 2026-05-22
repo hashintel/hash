@@ -1,5 +1,6 @@
-import type { PostprocessContext } from "../context/postprocess.js";
 import { sharedMetadataSchemas } from "../shared.js";
+
+import type { PostprocessContext } from "../context/postprocess.js";
 
 /**
  * Detect the use of specific metadata types in the file and add them to the file's dependencies.

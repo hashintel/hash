@@ -1,12 +1,13 @@
 import { useQuery } from "@apollo/client";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { useMemo } from "react";
+
+import { checkUserPermissionsOnEntityTypeQuery } from "../graphql/queries/ontology/entity-type.queries";
 
 import type {
   CheckUserPermissionsOnEntityTypeQuery,
   CheckUserPermissionsOnEntityTypeQueryVariables,
 } from "../graphql/api-types.gen";
-import { checkUserPermissionsOnEntityTypeQuery } from "../graphql/queries/ontology/entity-type.queries";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export const useUserPermissionsOnEntityType = (entityTypeId?: VersionedUrl) => {
   const { data, ...rest } = useQuery<

@@ -1,9 +1,9 @@
+import { MentionView } from "./mention-view";
+
+import type { RenderPortal } from "../block-portals";
 import type { WebId } from "@blockprotocol/type-system";
 import type { Node } from "prosemirror-model";
 import type { EditorView } from "prosemirror-view";
-
-import type { RenderPortal } from "../block-portals";
-import { MentionView } from "./mention-view";
 
 export const mentionNodeView =
   (renderPortal: RenderPortal, webId: WebId) =>

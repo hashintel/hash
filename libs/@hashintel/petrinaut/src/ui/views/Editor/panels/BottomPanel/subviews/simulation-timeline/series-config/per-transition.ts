@@ -1,6 +1,7 @@
-import type { Transition } from "@hashintel/petrinaut-core";
 import { DEFAULT_COLORS } from "../default-colors";
+
 import type { TimelineSeriesConfig } from "../types";
+import type { Transition } from "@hashintel/petrinaut-core";
 
 const PER_TRANSITION_WINDOW_SEC = 4;
 const OUTPUT_EWMA_ALPHA = 0.15;

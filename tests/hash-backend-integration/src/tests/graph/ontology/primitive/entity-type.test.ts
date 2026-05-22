@@ -1,7 +1,7 @@
+import { assert, beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   archiveEntityType,
@@ -12,13 +12,6 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
 import { getDataTypes, getPropertyTypes } from "@blockprotocol/graph/stdlib";
-import type {
-  ClosedEntityType,
-  ClosedMultiEntityType,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   atLeastOne,
   isOwnedOntologyElementMetadata,
@@ -33,10 +26,6 @@ import {
   queryEntityTypes,
   queryEntityTypeSubgraph,
 } from "@local/hash-graph-sdk/entity-type";
-import type {
-  ConstructEntityTypeParams,
-  SystemDefinedProperties,
-} from "@local/hash-graph-sdk/ontology";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
@@ -46,7 +35,6 @@ import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { assert, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -55,6 +43,20 @@ import {
   createTestUser,
   textDataTypeId,
 } from "../../../util";
+
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type {
+  ClosedEntityType,
+  ClosedMultiEntityType,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
+import type {
+  ConstructEntityTypeParams,
+  SystemDefinedProperties,
+} from "@local/hash-graph-sdk/ontology";
 
 const logger = new Logger({
   environment: "test",

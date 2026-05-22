@@ -3,6 +3,8 @@ import { isDistribution } from "../authoring/user-code/distribution";
 import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-weighted-markings";
 import { sampleDistribution } from "../engine/sample-distribution";
 import { nextRandom } from "../engine/seeded-rng";
+import { getPlaceIndex, getTransitionIndex } from "./layout";
+
 import type {
   CompiledTransition,
   TransitionTokenValues,
@@ -13,7 +15,6 @@ import type {
   PlaceID,
   TransitionEffect,
 } from "./internal-types";
-import { getPlaceIndex, getTransitionIndex } from "./layout";
 
 /**
  * Computes the effect of one transition against a candidate frame.

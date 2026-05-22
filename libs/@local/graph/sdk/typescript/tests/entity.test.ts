@@ -1,12 +1,13 @@
+import { expect, test } from "vitest";
+
+import { HashEntity } from "../src/entity.js";
+
 import type {
   BaseUrl,
   Confidence,
   PropertyObjectMetadata,
 } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
-import { expect, test } from "vitest";
-
-import { HashEntity } from "../src/entity.js";
 
 const base_url_a = "https://example.com/property-type/a/" as BaseUrl;
 const base_url_aa = "https://example.com/property-type/aa/" as BaseUrl;

@@ -1,12 +1,13 @@
 import { Box, Container, Typography } from "@mui/material";
 import { useState } from "react";
 
-import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
 import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { CreateOrEditSheetsSync } from "./google-sheets/create-or-edit-sheets-sync";
 import { useSheetsFlows } from "./google-sheets/use-sheet-integrations";
+
+import type { NextPageWithLayout } from "../../../shared/layout";
 
 const GoogleSheetsPage: NextPageWithLayout = () => {
   const [addingNewIntegration, setAddingNewIntegration] = useState(false);

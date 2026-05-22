@@ -1,4 +1,5 @@
 import { generateArcId } from "../arc-id";
+
 import type { Transition } from "../types/sdcpn";
 import type { SelectionMap } from "../types/selection";
 

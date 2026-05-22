@@ -1,21 +1,22 @@
+import isEqual from "lodash/isEqual.js";
+
+import {
+  extractDraftIdFromEntityId,
+  splitEntityId,
+} from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
+
+import type { ExistingEntityForMatching } from "../../shared/match-existing-entity.js";
 import type {
   ActorEntityUuid,
   EntityId,
   PropertyObjectWithMetadata,
   PropertyPatchOperation,
 } from "@blockprotocol/type-system";
-import {
-  extractDraftIdFromEntityId,
-  splitEntityId,
-} from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import { queryEntities } from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
-import isEqual from "lodash/isEqual.js";
-
-import type { ExistingEntityForMatching } from "../../shared/match-existing-entity.js";
 
 /**
  * @todo: move the primitive node helper methods from the Node API into a shared

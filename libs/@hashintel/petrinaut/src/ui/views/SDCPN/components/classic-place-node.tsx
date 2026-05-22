@@ -1,15 +1,17 @@
-import { Icon } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { use } from "react";
 
-import { hexToHsl } from "../../../lib/hsl-color";
-import { splitPascalCase } from "../../../lib/split-pascal-case";
+import { Icon } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
 import { PlaybackContext } from "../../../../react/playback/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../react/state/editor-context";
-import type { PlaceNodeType } from "../reactflow-types";
+import { hexToHsl } from "../../../lib/hsl-color";
+import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { handleStyling } from "../styles/styling";
+
+import type { PlaceNodeType } from "../reactflow-types";
 
 const containerStyle = css({
   position: "relative",

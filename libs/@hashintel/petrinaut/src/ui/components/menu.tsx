@@ -1,9 +1,11 @@
 import { Menu as ArkMenu } from "@ark-ui/react";
 import { Portal } from "@ark-ui/react/portal";
+
 import { css, cva } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
+
+import type { ReactNode } from "react";
 
 // -- Styles (Figma: Menu component) ------------------------------------------
 

@@ -24,8 +24,7 @@ export class DecodingError extends Data.TaggedError("DecodingError")<{
 }
 
 export interface Decoder<E = DecodingError, R = never>
-  extends Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly decode: {

@@ -1,8 +1,10 @@
 import { createReadStream } from "node:fs";
 
-import { StatusCode } from "@local/status";
-import type { GraphStatus } from "@rust/hash-graph-type-defs/typescript/status";
 import fetch from "node-fetch";
+
+import { StatusCode } from "@local/status";
+
+import type { GraphStatus } from "@rust/hash-graph-type-defs/typescript/status";
 
 // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 const port = process.env.HASH_GRAPH_ADMIN_PORT || "4001";

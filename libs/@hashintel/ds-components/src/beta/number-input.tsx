@@ -3,11 +3,13 @@
 /* eslint-disable import/no-extraneous-dependencies */
 
 import { NumberInput } from "@ark-ui/react/number-input";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
-import type { ComponentProps } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { numberInputSlotRecipe } from "./number-input.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(numberInputSlotRecipe);
 

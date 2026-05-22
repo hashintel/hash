@@ -1,13 +1,15 @@
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import opentelemetry from "@opentelemetry/api";
+
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { GraphApi } from "@local/hash-graph-client";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import opentelemetry from "@opentelemetry/api";
+
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 
 let __graphApi: GraphApi | undefined;
 export const getGraphApiClient = (): GraphApi => {

@@ -2,10 +2,6 @@ import browser from "webextension-polyfill";
 
 import { setDisabledBadge, setEnabledBadge } from "../shared/badge";
 import { getUser } from "../shared/get-user";
-import type {
-  GetTabContentRequest,
-  GetTabContentReturn,
-} from "../shared/messages";
 import { isWellFormattedMessage } from "../shared/messages";
 import {
   clearLocalStorage,
@@ -16,6 +12,11 @@ import {
   cancelInferEntities,
   inferEntities,
 } from "./background/infer-entities";
+
+import type {
+  GetTabContentRequest,
+  GetTabContentReturn,
+} from "../shared/messages";
 
 /**
  * This is the service worker for the extension.

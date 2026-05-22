@@ -1,21 +1,23 @@
-import { Checkbox, Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 
+import { Checkbox, Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+import { validateEntityName } from "@hashintel/petrinaut-core";
+
+import { EditorContext } from "../../../../../../../react/state/editor-context";
+import { MutationContext } from "../../../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { Select, type SelectOption } from "../../../../../../components/select";
-import type { SubView } from "../../../../../../components/sub-view/types";
 import { Switch } from "../../../../../../components/switch";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../../../react/state/mutation-context";
-import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
-import { validateEntityName } from "@hashintel/petrinaut-core";
 import { usePlacePropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const errorMessageStyle = css({
   fontSize: "xs",

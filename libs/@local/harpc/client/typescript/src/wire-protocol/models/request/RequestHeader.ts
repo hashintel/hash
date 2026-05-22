@@ -13,10 +13,10 @@ import {
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
 import * as Protocol from "../Protocol.js";
-
-import type * as RequestBody from "./RequestBody.js";
 import * as RequestFlags from "./RequestFlags.js";
 import * as RequestId from "./RequestId.js";
+
+import type * as RequestBody from "./RequestBody.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/models/request/RequestHeader",
@@ -25,9 +25,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface RequestHeader
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly protocol: Protocol.Protocol;

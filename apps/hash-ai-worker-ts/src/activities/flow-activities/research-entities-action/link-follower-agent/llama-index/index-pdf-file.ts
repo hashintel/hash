@@ -2,7 +2,6 @@ import { createWriteStream } from "node:fs";
 import fs from "node:fs/promises";
 import { Readable } from "node:stream";
 import stream from "node:stream/promises";
-import type { ReadableStream } from "node:stream/web";
 
 import { PDFReader } from "@llamaindex/readers/pdf";
 import { VectorStoreIndex } from "llamaindex";
@@ -13,6 +12,8 @@ import {
   createStorageContext,
   persistStorageContext,
 } from "./simple-storage-context.js";
+
+import type { ReadableStream } from "node:stream/web";
 
 const fileExists = async (path: string) => {
   try {

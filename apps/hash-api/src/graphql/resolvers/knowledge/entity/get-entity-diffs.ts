@@ -1,4 +1,5 @@
 import { calculateEntityDiff } from "../../../../graph/knowledge/primitive/entity";
+
 import type {
   EntityDiff,
   Query,

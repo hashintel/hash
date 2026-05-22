@@ -1,56 +1,25 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  ClosedMultiEntityType,
-  EntityEditionId,
-  EntityId,
-  PropertyObject,
-  PropertyObjectMetadata,
-  PropertyType,
-  TypeIdsAndPropertiesForEntity,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { Box, TableCell } from "@mui/material";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+
 import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { EntityType } from "@blockprotocol/type-system/slim";
 import {
   typedEntries,
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import type { GetClosedMultiEntityTypesResponse } from "@local/hash-graph-sdk/entity-type";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-sdk/ontology";
-import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { Box, TableCell } from "@mui/material";
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ClickableCellChip } from "../../../../../shared/clickable-cell-chip";
 import { useSlideStack } from "../../../../../shared/slide-stack";
 import { ValueChip } from "../../../../../shared/value-chip";
-import type {
-  CreateVirtualizedRowContentFn,
-  VirtualizedTableColumn,
-  VirtualizedTableRow,
-} from "../../../../../shared/virtualized-table";
 import { VirtualizedTable } from "../../../../../shared/virtualized-table";
-import type {
-  VirtualizedTableFilterDefinition,
-  VirtualizedTableFilterDefinitionsByFieldId,
-  VirtualizedTableFilterValue,
-  VirtualizedTableFilterValuesByFieldId,
-} from "../../../../../shared/virtualized-table/header/filter";
 import {
   isValueIncludedInFilter,
   missingValueString,
 } from "../../../../../shared/virtualized-table/header/filter";
-import type { VirtualizedTableSort } from "../../../../../shared/virtualized-table/header/sort";
 import { useVirtualizedTableFilterState } from "../../../../../shared/virtualized-table/use-filter-state";
-import type { ProposedEntityOutput } from "../shared/types";
 import {
   cellSx,
   LinkedEntitiesCell,
@@ -62,6 +31,39 @@ import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 import { TableSkeleton } from "./shared/table-skeleton";
+
+import type {
+  CreateVirtualizedRowContentFn,
+  VirtualizedTableColumn,
+  VirtualizedTableRow,
+} from "../../../../../shared/virtualized-table";
+import type {
+  VirtualizedTableFilterDefinition,
+  VirtualizedTableFilterDefinitionsByFieldId,
+  VirtualizedTableFilterValue,
+  VirtualizedTableFilterValuesByFieldId,
+} from "../../../../../shared/virtualized-table/header/filter";
+import type { VirtualizedTableSort } from "../../../../../shared/virtualized-table/header/sort";
+import type { ProposedEntityOutput } from "../shared/types";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  ClosedMultiEntityType,
+  EntityEditionId,
+  EntityId,
+  PropertyObject,
+  PropertyObjectMetadata,
+  PropertyType,
+  TypeIdsAndPropertiesForEntity,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { EntityType } from "@blockprotocol/type-system/slim";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { GetClosedMultiEntityTypesResponse } from "@local/hash-graph-sdk/entity-type";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/ontology";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 
 const fixedFieldIds = [
   "relevance",

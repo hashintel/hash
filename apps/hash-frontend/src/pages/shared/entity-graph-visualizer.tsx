@@ -1,22 +1,15 @@
-import type {
-  ClosedMultiEntityType,
-  EntityId,
-  EntityMetadata,
-  LinkData,
-  PropertyObject,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { Box, Stack, useTheme } from "@mui/material";
+import { memo, useCallback, useMemo, useState } from "react";
+
 import { isEntityId, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { ibm } from "@hashintel/design-system/palettes";
 import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { Box, Stack, useTheme } from "@mui/material";
-import type { ReactElement } from "react";
-import { memo, useCallback, useMemo, useState } from "react";
+
+import { GraphVisualizer } from "./graph-visualizer";
 
 import type { EntityEditorProps } from "./entity/entity-editor";
 import type {
@@ -27,7 +20,16 @@ import type {
   GraphVizFilters,
   GraphVizNode,
 } from "./graph-visualizer";
-import { GraphVisualizer } from "./graph-visualizer";
+import type {
+  ClosedMultiEntityType,
+  EntityId,
+  EntityMetadata,
+  LinkData,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
+import type { ReactElement } from "react";
 
 export type EntityForGraph = {
   linkData?: LinkData;

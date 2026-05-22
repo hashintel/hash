@@ -1,9 +1,5 @@
-import type {
-  ActorEntityUuid,
-  Entity,
-  EntityId,
-  WebId,
-} from "@blockprotocol/type-system";
+import * as Sentry from "@sentry/node";
+
 import {
   extractWebIdFromEntityId,
   splitEntityId,
@@ -12,7 +8,6 @@ import {
   EntityTypeMismatchError,
   NotFoundError,
 } from "@local/hash-backend-utils/error";
-import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -24,14 +19,20 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { LinearIntegration } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import * as Sentry from "@sentry/node";
 
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
+import type {
+  ActorEntityUuid,
+  Entity,
+  EntityId,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
+import type { LinearIntegration } from "@local/hash-isomorphic-utils/system-types/linearintegration";
+import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export type LinearUserSecret = {
   connectionSourceName: string;

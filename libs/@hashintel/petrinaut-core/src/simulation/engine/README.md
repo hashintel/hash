@@ -11,10 +11,10 @@ runtime stepping state and frame layout.
 
 ## Core Functions
 
-| Function                   | Description                                       |
-| -------------------------- | ------------------------------------------------- |
-| `buildSimulation(input)`   | Compiles SDCPN into SimulationInstance            |
-| `computeNextFrame(sim)`    | Computes next frame, checks completion conditions |
+| Function                 | Description                                       |
+| ------------------------ | ------------------------------------------------- |
+| `buildSimulation(input)` | Compiles SDCPN into SimulationInstance            |
+| `computeNextFrame(sim)`  | Computes next frame, checks completion conditions |
 
 ## Computation Flow
 

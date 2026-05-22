@@ -3,8 +3,9 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 
 import { SegmentGroup } from "@ark-ui/react/segment-group";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { type ComponentProps, type ReactNode, useMemo } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { segmentGroupSlotRecipe } from "./segment-group.recipe";
 

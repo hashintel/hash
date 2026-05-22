@@ -1,10 +1,11 @@
 import { use, useMemo } from "react";
 
-import type { SpreadsheetColumn } from "../../../../../../../components/spreadsheet";
-import { Spreadsheet } from "../../../../../../../components/spreadsheet";
-import type { Color } from "@hashintel/petrinaut-core";
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
+import { Spreadsheet } from "../../../../../../../components/spreadsheet";
+
+import type { SpreadsheetColumn } from "../../../../../../../components/spreadsheet";
+import type { Color } from "@hashintel/petrinaut-core";
 
 /**
  * InitialStateEditor - A component for editing initial tokens in a place

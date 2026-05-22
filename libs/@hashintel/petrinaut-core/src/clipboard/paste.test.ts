@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { SDCPN } from "../types/sdcpn";
 import { pastePayloadIntoSDCPN } from "./paste";
+
+import type { SDCPN } from "../types/sdcpn";
 import type { ClipboardPayload } from "./types";
 
 // ---------------------------------------------------------------------------

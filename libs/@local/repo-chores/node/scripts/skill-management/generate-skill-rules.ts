@@ -84,7 +84,7 @@ const run = async (skillsDir: string) => {
   };
 
   await writeFile(outputPath, JSON.stringify(skillRules, replacer));
-  await execa("biome", ["format", "--write", `${outputPath}`]);
+  await execa("oxfmt", ["--write", `${outputPath}`]);
 
   console.log(chalk.green(`Generated ${validSkills.length} skill rule(s)`));
   console.log(chalk.dim(`  Output: ${outputPath}`));

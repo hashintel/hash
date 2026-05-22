@@ -1,8 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import type { SpreadsheetColumn } from "./spreadsheet";
 import { Spreadsheet } from "./spreadsheet";
+
+import type { SpreadsheetColumn } from "./spreadsheet";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components / Spreadsheet",

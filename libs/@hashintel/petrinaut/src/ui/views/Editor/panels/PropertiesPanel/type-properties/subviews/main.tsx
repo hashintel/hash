@@ -1,19 +1,21 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
+import { css, cva } from "@hashintel/ds-helpers/css";
+import { validateDisplayName } from "@hashintel/petrinaut-core";
+
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { Button } from "../../../../../../components/button";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
-import type { SubView } from "../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../components/tooltip";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { validateDisplayName } from "@hashintel/petrinaut-core";
 import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const emptyDimensionsStyle = css({
   fontSize: "xs",

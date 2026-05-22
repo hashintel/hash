@@ -1,6 +1,7 @@
+import { use } from "react";
+
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { use } from "react";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { ToolbarButton } from "./toolbar-button";

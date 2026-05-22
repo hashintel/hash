@@ -1,14 +1,15 @@
-import type { Logger } from "@local/hash-backend-utils/logger";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
-import type { AxiosError } from "axios";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
 import { createUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { User } from "../graph/knowledge/system-types/user";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import type { AxiosError } from "axios";
 
 type SeededUser = {
   email: string;

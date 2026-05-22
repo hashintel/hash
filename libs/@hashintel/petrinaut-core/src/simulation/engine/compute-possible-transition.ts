@@ -1,10 +1,11 @@
 import { SDCPNItemError } from "../../errors";
-import type { ID } from "../../types/sdcpn";
 import { isDistribution } from "../authoring/user-code/distribution";
 import { materializeEngineFrame } from "../frames/internal-frame";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { sampleDistribution } from "./sample-distribution";
 import { nextRandom } from "./seeded-rng";
+
+import type { ID } from "../../types/sdcpn";
 import type {
   EngineFrame,
   SimulationInstance,

@@ -4,20 +4,21 @@ import {
   type OriginProvenance,
   type ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
-import type { AviationProposedEntity } from "@local/hash-backend-utils/integrations/aviation";
 import { getScheduledArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { splitPropertiesAndMetadata } from "../shared/split-properties-and-metadata.js";
+
+import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AviationProposedEntity } from "@local/hash-backend-utils/integrations/aviation";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * Converts an {@link AviationProposedEntity} to a flow {@link ProposedEntity} format.

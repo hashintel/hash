@@ -51,11 +51,11 @@ again.
 
 **Common backpressure profiles:**
 
-| Play Mode        | maxFramesAhead | batchSize | Ack Behavior                     |
-| ---------------- | -------------- | --------- | -------------------------------- |
-| `viewOnly`       | 0              | 0         | Never acks (no computation)      |
-| `computeBuffer`  | 40             | 10        | Acks when near end of frames     |
-| `computeMax`     | 10000          | 500       | Acks on every new frame arrival  |
+| Play Mode       | maxFramesAhead | batchSize | Ack Behavior                    |
+| --------------- | -------------- | --------- | ------------------------------- |
+| `viewOnly`      | 0              | 0         | Never acks (no computation)     |
+| `computeBuffer` | 40             | 10        | Acks when near end of frames    |
+| `computeMax`    | 10000          | 500       | Acks on every new frame arrival |
 
 ---
 

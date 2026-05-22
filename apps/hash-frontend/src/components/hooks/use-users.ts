@@ -1,21 +1,23 @@
 import { useQuery } from "@apollo/client";
+
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { convertBpFilterToGraphFilter } from "@local/hash-graph-sdk/filter";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { MinimalUser } from "../../lib/user-and-org";
 import {
   constructMinimalUser,
   isEntityUserEntity,
 } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { useMemoCompare } from "../../shared/use-memo-compare";
+
+import type {
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
+} from "../../graphql/api-types.gen";
+import type { MinimalUser } from "../../lib/user-and-org";
 
 export const useUsers = (): {
   loading: boolean;

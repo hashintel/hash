@@ -1,5 +1,6 @@
-import type { MessageCreateParamsBase } from "@anthropic-ai/sdk/resources/messages.mjs";
 import { VertexAI } from "@google-cloud/vertexai";
+
+import type { MessageCreateParamsBase } from "@anthropic-ai/sdk/resources/messages.mjs";
 
 const permittedGoogleAiModels = [
   "gemini-1.5-pro-002",

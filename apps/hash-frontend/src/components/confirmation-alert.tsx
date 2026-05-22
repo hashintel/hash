@@ -5,9 +5,10 @@ import {
   DialogContentText,
   DialogTitle,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../shared/ui";
+
+import type { FunctionComponent, ReactNode } from "react";
 
 type ConfirmationAlertProps = {
   children: ReactNode;

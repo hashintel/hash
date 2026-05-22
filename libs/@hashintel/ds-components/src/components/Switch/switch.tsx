@@ -1,4 +1,5 @@
 import { Switch as BaseSwitch } from "@ark-ui/react/switch";
+
 import { css } from "@hashintel/ds-helpers/css";
 
 // Layout constants

@@ -1,8 +1,3 @@
-import type {
-  MachineId,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
 import { componentsFromVersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
@@ -16,15 +11,21 @@ import {
   createAiActor,
 } from "@local/hash-graph-sdk/principal/actor-group";
 import { getWebByShortname } from "@local/hash-graph-sdk/principal/web";
-import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";
-import type { ImpureGraphContext } from "../context-types";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
+
+import type { ImpureGraphContext } from "../context-types";
+import type {
+  MachineId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 
 export const owningWebs: Record<
   SystemTypeWebShortname,

@@ -8,6 +8,7 @@ import {
   type LspWorkerFactory,
 } from "@hashintel/petrinaut-core";
 import { createLanguageServerWorker } from "@hashintel/petrinaut-core/workers/lsp";
+
 import { createValueStore } from "../create-value-store";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";

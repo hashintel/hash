@@ -1,5 +1,6 @@
-import type { PropertyObject } from "@blockprotocol/type-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import type { PropertyObject } from "@blockprotocol/type-system";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const getFileProperties = (properties: PropertyObject) => {

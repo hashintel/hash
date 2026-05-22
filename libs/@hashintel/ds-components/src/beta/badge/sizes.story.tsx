@@ -1,5 +1,6 @@
-import { Wrap } from "@hashintel/ds-helpers/jsx";
 import { StarIcon } from "lucide-react";
+
+import { Wrap } from "@hashintel/ds-helpers/jsx";
 
 import { Badge } from "../badge";
 

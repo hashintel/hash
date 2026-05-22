@@ -1,19 +1,15 @@
 import { useQuery } from "@apollo/client";
-import type {
-  EntityVertex,
-  LinkEntityAndRightEntity,
-} from "@blockprotocol/graph";
+import { createContext, useContext, useMemo, useRef } from "react";
+
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import {
   deserializeQueryEntitySubgraphResponse,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import type { TextWithTokens } from "@local/hash-isomorphic-utils/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
@@ -24,8 +20,25 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { constructMinimalUser } from "../../lib/user-and-org";
+import { usePollInterval } from "../../shared/use-poll-interval";
+import { useAuthInfo } from "../shared/auth-info-context";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../../graphql/api-types.gen";
+import type { MinimalUser } from "../../lib/user-and-org";
+import type {
+  EntityVertex,
+  LinkEntityAndRightEntity,
+} from "@blockprotocol/graph";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { TextWithTokens } from "@local/hash-isomorphic-utils/entity";
+import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   Block as BlockProperties,
   Comment as CommentProperties,
@@ -38,17 +51,6 @@ import type { GraphChangeNotification as GraphChangeNotificationProperties } fro
 import type { MentionNotification as MentionNotificationProperties } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { User as UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { FunctionComponent, PropsWithChildren } from "react";
-import { createContext, useContext, useMemo, useRef } from "react";
-
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { MinimalUser } from "../../lib/user-and-org";
-import { constructMinimalUser } from "../../lib/user-and-org";
-import { usePollInterval } from "../../shared/use-poll-interval";
-import { useAuthInfo } from "../shared/auth-info-context";
 
 export type PageMentionNotification = {
   kind: "page-mention";

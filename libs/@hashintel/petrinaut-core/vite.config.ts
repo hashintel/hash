@@ -1,8 +1,8 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { replacePlugin } from "rolldown/plugins";
 import { dts } from "rolldown-plugin-dts";
+import { replacePlugin } from "rolldown/plugins";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 
 const packageRoot = dirname(fileURLToPath(import.meta.url));

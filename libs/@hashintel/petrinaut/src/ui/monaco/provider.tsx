@@ -1,9 +1,10 @@
 import { CompletionSync } from "./completion-sync";
-import type { MonacoContextValue } from "./context";
 import { MonacoContext } from "./context";
 import { DiagnosticsSync } from "./diagnostics-sync";
 import { HoverSync } from "./hover-sync";
 import { SignatureHelpSync } from "./signature-help-sync";
+
+import type { MonacoContextValue } from "./context";
 
 async function initMonaco(): Promise<MonacoContextValue> {
   // Disable all workers — no worker files will be shipped or loaded.
@@ -16,21 +17,13 @@ async function initMonaco(): Promise<MonacoContextValue> {
     import("@monaco-editor/react"),
     // Language contribution (side-effect) — enables TypeScript syntax highlighting.
     // Does not import the TS worker; our custom LSP provides language features.
-    import(
-      "monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution.js"
-    ),
+    import("monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution.js"),
     // Editor feature contributions (side-effects) — without these explicit
     // imports the production bundler tree-shakes them out, since `editor.api.js`
     // is the tree-shakeable ESM entry point.
-    import(
-      "monaco-editor/esm/vs/editor/contrib/hover/browser/hoverContribution.js"
-    ),
-    import(
-      "monaco-editor/esm/vs/editor/contrib/suggest/browser/suggestController.js"
-    ),
-    import(
-      "monaco-editor/esm/vs/editor/contrib/parameterHints/browser/parameterHints.js"
-    ),
+    import("monaco-editor/esm/vs/editor/contrib/hover/browser/hoverContribution.js"),
+    import("monaco-editor/esm/vs/editor/contrib/suggest/browser/suggestController.js"),
+    import("monaco-editor/esm/vs/editor/contrib/parameterHints/browser/parameterHints.js"),
     import("monaco-editor/esm/vs/editor/contrib/folding/browser/folding.js"),
   ]);
 

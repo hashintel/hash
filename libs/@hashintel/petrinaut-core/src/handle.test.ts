@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createJsonDocHandle, type DocChangeEvent } from "./handle";
 import { createPetrinaut } from "./instance";
+
 import type { SDCPN } from "./types/sdcpn";
 
 const empty = (): SDCPN => ({

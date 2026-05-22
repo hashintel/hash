@@ -1,5 +1,5 @@
-import type { Metric } from "@hashintel/petrinaut-core";
 import type { MetricFormState } from "./metric-form";
+import type { Metric } from "@hashintel/petrinaut-core";
 
 /**
  * Build a `Metric` from the form state.

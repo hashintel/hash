@@ -1,7 +1,8 @@
 import { userHasAccessToHash } from "../../../../shared/user-has-access-to-hash";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { Query, ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const hasAccessToHashResolver: ResolverFn<
   Query["hasAccessToHash"],

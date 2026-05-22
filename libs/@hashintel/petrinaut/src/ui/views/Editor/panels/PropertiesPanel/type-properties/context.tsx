@@ -1,7 +1,7 @@
 import { createContext, use } from "react";
 
-import type { Color } from "@hashintel/petrinaut-core";
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { Color } from "@hashintel/petrinaut-core";
 
 export interface TypePropertiesContextValue {
   type: Color;

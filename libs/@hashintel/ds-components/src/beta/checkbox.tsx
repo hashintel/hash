@@ -3,11 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Checkbox, useCheckboxContext } from "@ark-ui/react/checkbox";
-import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
-import type { HTMLStyledProps } from "@hashintel/ds-helpers/types";
 import { type ComponentProps, forwardRef } from "react";
 
+import { createStyleContext, styled } from "@hashintel/ds-helpers/jsx";
+
 import { checkboxSlotRecipe } from "./checkbox.recipe";
+
+import type { HTMLStyledProps } from "@hashintel/ds-helpers/types";
 
 const { withProvider, withContext } = createStyleContext(checkboxSlotRecipe);
 
@@ -27,7 +29,6 @@ export {
 } from "@ark-ui/react/checkbox";
 
 // styled.svg is typed too broadly to satisfy strict TS in this context
-// biome-ignore lint/suspicious/noExplicitAny: union type too complex for TS
 const StyledSvg = styled.svg as React.ComponentType<any>;
 
 export const Indicator = forwardRef<SVGSVGElement, HTMLStyledProps<"svg">>(

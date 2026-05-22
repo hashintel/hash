@@ -1,17 +1,18 @@
-import type { Logger } from "@local/hash-backend-utils/logger";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type { Identity } from "@ory/kratos-client";
 
-import type { ImpureGraphContext } from "../graph/context-types";
 import { getUserFromEntity } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { deleteKratosIdentity, kratosIdentityApi } from "./ory-kratos";
+
+import type { ImpureGraphContext } from "../graph/context-types";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
+import type { Identity } from "@ory/kratos-client";
 
 /**
  * Identities created before this date are excluded from cleanup, preventing

@@ -1,3 +1,5 @@
+import { beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { generateSystemEntityTypeSchema } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
@@ -9,19 +11,12 @@ import {
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import { getLinkEntityRightEntity } from "@apps/hash-api/src/graph/knowledge/primitive/link-entity";
-import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   checkPermissionsOnEntityType,
   createEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import type {
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -39,14 +34,6 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
-import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
-import type {
-  Actor,
-  Organization,
-  User as UserEntity,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -55,6 +42,21 @@ import {
   createTestUser,
   textDataTypeId,
 } from "../../../util";
+
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type {
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
+import type {
+  Actor,
+  Organization,
+  User as UserEntity,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 
 const logger = new Logger({
   environment: "test",

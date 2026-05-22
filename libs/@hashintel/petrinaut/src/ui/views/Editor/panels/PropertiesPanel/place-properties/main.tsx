@@ -1,14 +1,15 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { SubView } from "../../../../../components/sub-view/types";
-import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import type { Color, Place } from "@hashintel/petrinaut-core";
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { PlacePropertiesProvider } from "./context";
 import { placeMainContentSubView } from "./subviews/main";
 import { placeInitialStateSubView } from "./subviews/place-initial-state/subview";
 import { placeVisualizerSubView } from "./subviews/place-visualizer/subview";
+
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { Color, Place } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",

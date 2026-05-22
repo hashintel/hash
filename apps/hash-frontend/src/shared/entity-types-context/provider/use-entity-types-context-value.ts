@@ -1,19 +1,21 @@
-import { getEntityTypes } from "@blockprotocol/graph/stdlib";
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { useCallback, useMemo, useRef, useState } from "react";
 
+import { getEntityTypes } from "@blockprotocol/graph/stdlib";
+
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
-import type {
-  EntityTypesContextValue,
-  SpecialEntityTypeRecord,
-} from "../shared/context-types";
 import {
   getParentIds,
   isSpecialEntityType,
 } from "../shared/is-special-entity-type";
+
+import type {
+  EntityTypesContextValue,
+  SpecialEntityTypeRecord,
+} from "../shared/context-types";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   const [types, setTypes] = useState<

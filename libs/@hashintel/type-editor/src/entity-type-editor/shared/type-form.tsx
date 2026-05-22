@@ -1,6 +1,22 @@
-import type { BaseUrl } from "@blockprotocol/type-system";
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import type { ButtonProps } from "@hashintel/design-system";
+import {
+  Box,
+  Divider,
+  inputLabelClasses,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { bindDialog, bindToggle } from "material-ui-popup-state/hooks";
+import {
+  createElement,
+  forwardRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { FormProvider, useForm, useFormContext } from "react-hook-form";
+
 import {
   Button,
   FontAwesomeIcon,
@@ -9,15 +25,14 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
-import {
-  Box,
-  Divider,
-  inputLabelClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
+
+import { QuestionIcon } from "./question-icon";
+import { withHandler } from "./with-handler";
+
+import type { TitleValidationFunction } from "../../shared/ontology-functions-context";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import type { ButtonProps } from "@hashintel/design-system";
 import type { PopupState } from "material-ui-popup-state/hooks";
-import { bindDialog, bindToggle } from "material-ui-popup-state/hooks";
 import type {
   ComponentPropsWithoutRef,
   ComponentPropsWithRef,
@@ -27,20 +42,7 @@ import type {
   ReactNode,
   Ref,
 } from "react";
-import {
-  createElement,
-  forwardRef,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 import type { DeepPartial, DefaultValues } from "react-hook-form";
-import { FormProvider, useForm, useFormContext } from "react-hook-form";
-
-import type { TitleValidationFunction } from "../../shared/ontology-functions-context";
-import { QuestionIcon } from "./question-icon";
-import { withHandler } from "./with-handler";
 
 type TypeFormSubmitProps = Omit<
   ButtonProps,

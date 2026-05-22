@@ -2,14 +2,10 @@
 
 import { toggleMark } from "prosemirror-commands";
 import { inputRules } from "prosemirror-inputrules";
-import type { Mark } from "prosemirror-model";
-import type { EditorState } from "prosemirror-state";
 import { NodeSelection, Plugin, PluginKey } from "prosemirror-state";
-import type { EditorView } from "prosemirror-view";
 import { createRef } from "react";
 
 import { ensureMounted } from "../../../../lib/dom";
-import type { RenderPortal } from "../block-portals";
 import { LinkModal } from "./link-modal";
 import { MarksTooltip } from "./marks-tooltip";
 import {
@@ -20,6 +16,11 @@ import {
   selectionContainsText,
   updateLink,
 } from "./util";
+
+import type { RenderPortal } from "../block-portals";
+import type { Mark } from "prosemirror-model";
+import type { EditorState } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
 
 interface MarksTooltipState {
   focused: boolean;

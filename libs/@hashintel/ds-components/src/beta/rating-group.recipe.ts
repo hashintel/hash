@@ -1,4 +1,5 @@
 import { ratingGroupAnatomy } from "@ark-ui/react/anatomy";
+
 import { type RecipeVariantProps, sva } from "@hashintel/ds-helpers/css";
 
 const ratingGroupSlotRecipeDefinition = {

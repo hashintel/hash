@@ -1,20 +1,23 @@
+import { createContext, use } from "react";
+
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { createContext, use } from "react";
 
 import { Button } from "../../../../../components/button";
 
 const ArcIcon = () => <Icon name="scribble" />;
+import { parseArcId, type SDCPN } from "@hashintel/petrinaut-core";
+
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
 import { Select } from "../../../../../components/select";
-import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
-import { parseArcId, type SDCPN } from "@hashintel/petrinaut-core";
-import { EditorContext } from "../../../../../../react/state/editor-context";
+
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import type { SubView } from "../../../../../components/sub-view/types";
 
 const containerStyle = css({
   display: "flex",

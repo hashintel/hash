@@ -1,9 +1,10 @@
-import type { ComponentType } from "react";
 import { createElement, useEffect, useId, useRef, useState } from "react";
-import type { JSX } from "react/jsx-runtime";
 
 import { Filter } from "../components/filter";
 import { convex } from "../helpers/surface-equations";
+
+import type { ComponentType } from "react";
+import type { JSX } from "react/jsx-runtime";
 
 type RefractionProps = {
   refraction: {

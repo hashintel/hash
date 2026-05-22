@@ -1,11 +1,10 @@
+import { use, useEffect, useRef } from "react";
+
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import type { NodeProps } from "@xyflow/react";
-import { use, useEffect, useRef } from "react";
 
 import { EditorContext } from "../../../../react/state/editor-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
-import type { TransitionNodeType } from "../reactflow-types";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -13,6 +12,9 @@ import {
   nodeCardStyle,
   type SelectionVariant,
 } from "./node-card";
+
+import type { TransitionNodeType } from "../reactflow-types";
+import type { NodeProps } from "@xyflow/react";
 
 const FIRING_ANIMATION_DURATION_MS = 300;
 

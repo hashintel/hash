@@ -1,3 +1,5 @@
+import { validate as validateUuid } from "uuid";
+
 import type {
   EntityId,
   EntityMetadata as RustEntityMetadata,
@@ -19,7 +21,6 @@ import type {
   EntityUuid,
   WebId,
 } from "@blockprotocol/type-system-rs/types";
-import { validate as validateUuid } from "uuid";
 
 export type TypeIdsAndPropertiesForEntity = {
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
@@ -41,8 +42,8 @@ export type EntityMetadata<
 };
 
 export interface Entity<
-  TypeIdsAndProperties extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  TypeIdsAndProperties extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > {
   metadata: EntityMetadata;
 
@@ -65,8 +66,8 @@ export interface Entity<
 }
 
 export interface LinkEntity<
-  TypeIdsAndProperties extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  TypeIdsAndProperties extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > extends Entity<TypeIdsAndProperties> {
   linkData: LinkData;
 }

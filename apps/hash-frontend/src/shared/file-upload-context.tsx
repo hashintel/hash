@@ -1,21 +1,4 @@
 import { useMutation } from "@apollo/client";
-import type {
-  BaseUrl,
-  EntityId,
-  PropertyObject,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
-import {
-  HashEntity,
-  HashLinkEntity,
-  mergePropertyObjectAndMetadata,
-} from "@local/hash-graph-sdk/entity";
-import type {
-  File as FileEntity,
-  UploadCompletedAtPropertyValueWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/shared";
-import type { PropsWithChildren } from "react";
 import {
   createContext,
   useCallback,
@@ -24,6 +7,25 @@ import {
   useState,
 } from "react";
 import { v4 as uuid } from "uuid";
+
+import {
+  HashEntity,
+  HashLinkEntity,
+  mergePropertyObjectAndMetadata,
+} from "@local/hash-graph-sdk/entity";
+
+import { AuthorizationSubjectKind } from "../graphql/api-types.gen";
+import {
+  addEntityViewerMutation,
+  archiveEntityMutation,
+  createEntityMutation,
+  updateEntityMutation,
+} from "../graphql/queries/knowledge/entity.queries";
+import {
+  createFileFromUrl,
+  requestFileUpload,
+} from "../graphql/queries/knowledge/file.queries";
+import { uploadFileToStorageProvider } from "./upload-to-storage-provider";
 
 import type { UploadFileRequestData } from "../components/hooks/block-protocol-functions/knowledge/knowledge-shim";
 import type {
@@ -41,18 +43,18 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../graphql/api-types.gen";
-import { AuthorizationSubjectKind } from "../graphql/api-types.gen";
-import {
-  addEntityViewerMutation,
-  archiveEntityMutation,
-  createEntityMutation,
-  updateEntityMutation,
-} from "../graphql/queries/knowledge/entity.queries";
-import {
-  createFileFromUrl,
-  requestFileUpload,
-} from "../graphql/queries/knowledge/file.queries";
-import { uploadFileToStorageProvider } from "./upload-to-storage-provider";
+import type {
+  BaseUrl,
+  EntityId,
+  PropertyObject,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type {
+  File as FileEntity,
+  UploadCompletedAtPropertyValueWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { PropsWithChildren } from "react";
 
 /**
  * If an uploaded file is to be linked to another entity, this data describes the link

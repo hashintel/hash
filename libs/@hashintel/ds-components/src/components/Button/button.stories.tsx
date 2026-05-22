@@ -1,6 +1,6 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { Story, StoryDefault } from "@ladle/react";
 import { Fragment, useState } from "react";
+
+import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
 import { Icon, iconNames } from "../Icon/icon";
@@ -11,6 +11,8 @@ import {
   type Tone,
   type Variant,
 } from "./button";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 const variants: Variant[] = ["solid", "subtle", "ghost", "link", "linkSubtle"];
 const tones: Tone[] = ["neutral", "brand", "error"];

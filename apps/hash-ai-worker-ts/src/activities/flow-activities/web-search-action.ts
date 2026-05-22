@@ -1,12 +1,14 @@
-import type { Url } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
-import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
-import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { GetWebSearchResults200ResponseWebSearchResultsInner } from "@local/internal-api-client";
-import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
 
+import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { StatusCode } from "@local/status";
+
 import { logger } from "../shared/activity-logger.js";
+
+import type { Url } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { GetWebSearchResults200ResponseWebSearchResultsInner } from "@local/internal-api-client";
 
 export type GetWebSearchResultsResponse = Omit<
   GetWebSearchResults200ResponseWebSearchResultsInner,

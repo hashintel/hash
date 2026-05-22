@@ -1,12 +1,12 @@
 import "../shared/testing-utilities/mock-get-flow-context.js";
-
-import type { Url } from "@blockprotocol/type-system";
 import { expect, test } from "vitest";
 
 import {
   getWebPageActivity,
   sanitizeHtmlForLlmConsumption,
 } from "./get-web-page-activity.js";
+
+import type { Url } from "@blockprotocol/type-system";
 
 test.skip(
   "Test getWebPageActivity with a Wikipedia page",

@@ -1,15 +1,9 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
-
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type {
-  EntityId,
-  EntityUuid,
-  PropertyObjectMetadata,
-  ValueMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
+import { test } from "vitest";
+
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { brandPropertyObject } from "@local/hash-graph-sdk/entity";
@@ -21,17 +15,24 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { PersonProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { test } from "vitest";
 
-import type { LlmParams } from "./get-llm-response/types.js";
-import type { MatchExistingEntityParams } from "./match-existing-entity.js";
 import {
   matchExistingEntity,
   matchExistingEntitySystemPrompt,
 } from "./match-existing-entity.js";
 import { optimizeSystemPrompt } from "./optimize-system-prompt.js";
+
+import type { LlmParams } from "./get-llm-response/types.js";
+import type { MatchExistingEntityParams } from "./match-existing-entity.js";
 import type { MetricDefinition } from "./optimize-system-prompt/types.js";
+import type {
+  EntityId,
+  EntityUuid,
+  PropertyObjectMetadata,
+  ValueMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { PersonProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const emptyMetadataObject: PropertyObjectMetadata = {
   value: {},

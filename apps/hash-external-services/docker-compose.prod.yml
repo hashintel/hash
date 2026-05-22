@@ -63,7 +63,7 @@ services:
       HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
       RUST_BACKTRACE: 1
     healthcheck:
-      test: [ "CMD", "/hash-graph", "type-fetcher", "--healthcheck" ]
+      test: ["CMD", "/hash-graph", "type-fetcher", "--healthcheck"]
       interval: 2s
       timeout: 2s
       retries: 10
@@ -132,7 +132,15 @@ services:
       HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
       RUST_BACKTRACE: 0
     healthcheck:
-      test: [ "CMD", "/hash-graph", "server", "--healthcheck", "--api-port", "${HASH_GRAPH_HTTP_PORT}" ]
+      test:
+        [
+          "CMD",
+          "/hash-graph",
+          "server",
+          "--healthcheck",
+          "--api-port",
+          "${HASH_GRAPH_HTTP_PORT}",
+        ]
       interval: 2s
       timeout: 2s
       retries: 10

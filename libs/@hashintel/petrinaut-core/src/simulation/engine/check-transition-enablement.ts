@@ -1,5 +1,6 @@
-import type { Transition } from "../../types/sdcpn";
 import { materializeEngineFrame } from "../frames/internal-frame";
+
+import type { Transition } from "../../types/sdcpn";
 import type {
   EngineFrame,
   EngineFrameLayout,

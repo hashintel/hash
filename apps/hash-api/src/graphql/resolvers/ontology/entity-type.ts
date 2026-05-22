@@ -1,14 +1,3 @@
-import type {
-  EntityTypeWithMetadata,
-  OntologyTemporalMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
-import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
-import type {
-  GetClosedMultiEntityTypesResponse,
-  QueryEntityTypesResponse,
-  SerializedQueryEntityTypeSubgraphResponse,
-} from "@local/hash-graph-sdk/entity-type";
 import {
   getClosedMultiEntityTypes,
   queryEntityTypes,
@@ -24,6 +13,8 @@ import {
   updateEntityType,
   updateEntityTypes,
 } from "../../../graph/ontology/primitive/entity-type";
+import { graphQLContextToImpureGraphContext } from "../util";
+
 import type {
   MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
@@ -37,7 +28,17 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { graphQLContextToImpureGraphContext } from "../util";
+import type {
+  EntityTypeWithMetadata,
+  OntologyTemporalMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
+import type {
+  GetClosedMultiEntityTypesResponse,
+  QueryEntityTypesResponse,
+  SerializedQueryEntityTypeSubgraphResponse,
+} from "@local/hash-graph-sdk/entity-type";
 
 export const createEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,

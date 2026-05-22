@@ -2,12 +2,13 @@
  * Structured logging library based on winston.
  */
 import { trace } from "@opentelemetry/api";
-import type { AnyValue, AnyValueMap } from "@opentelemetry/api-logs";
 import { logs, SeverityNumber } from "@opentelemetry/api-logs";
 import { format } from "logform";
-import type { LeveledLogMethod } from "winston";
 import * as winston from "winston";
 import Transport from "winston-transport";
+
+import type { AnyValue, AnyValueMap } from "@opentelemetry/api-logs";
+import type { LeveledLogMethod } from "winston";
 
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 

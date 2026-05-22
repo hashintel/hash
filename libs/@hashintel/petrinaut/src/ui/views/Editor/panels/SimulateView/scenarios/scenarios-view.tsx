@@ -1,13 +1,15 @@
-import { Icon } from "@hashintel/ds-components";
 import { use, useState } from "react";
 
-import type { Scenario } from "@hashintel/petrinaut-core";
+import { Icon } from "@hashintel/ds-components";
+
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { CreateScenarioDrawer } from "./create-scenario-drawer";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
+
+import type { Scenario } from "@hashintel/petrinaut-core";
 
 const scenarioColumns = [
   {

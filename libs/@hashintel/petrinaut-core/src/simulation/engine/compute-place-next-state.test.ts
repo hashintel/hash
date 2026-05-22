@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 import { expect, it } from "vitest";
 
-import type { PlaceDifferentialEquation } from "./compute-place-next-state";
 import { computePlaceNextState } from "./compute-place-next-state";
+
+import type { PlaceDifferentialEquation } from "./compute-place-next-state";
 
 it("executes without errors", () => {
   // GIVEN

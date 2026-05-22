@@ -1,7 +1,7 @@
+import { beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   archivePropertyType,
@@ -9,17 +9,14 @@ import {
   unarchivePropertyType,
   updatePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import type { PropertyTypeWithMetadata } from "@blockprotocol/type-system";
 import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
 import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -28,6 +25,11 @@ import {
   createTestUser,
   textDataTypeId,
 } from "../../../util";
+
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { PropertyTypeWithMetadata } from "@blockprotocol/type-system";
+import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
 
 const logger = new Logger({
   environment: "test",

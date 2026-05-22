@@ -5,6 +5,7 @@ import {
   type SelectionItem,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
+
 import {
   type DraggingStateByNodeId,
   type EditorActions,

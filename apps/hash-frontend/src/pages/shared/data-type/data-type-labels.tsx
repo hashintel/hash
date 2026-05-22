@@ -1,17 +1,15 @@
-import { createFormattedValueParts } from "@local/hash-isomorphic-utils/data-types";
 import { Box, Stack, Typography } from "@mui/material";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
-import type { DataTypeFormData } from "./data-type-form";
+import { createFormattedValueParts } from "@local/hash-isomorphic-utils/data-types";
+
 import { inputStyles } from "./shared/input-styles";
 import { ItemLabel } from "./shared/item-label";
 import { useInheritedConstraints } from "./shared/use-inherited-constraints";
 
-export const DataTypeLabels = ({
-  isReadOnly,
-}: {
-  isReadOnly: boolean;
-}) => {
+import type { DataTypeFormData } from "./data-type-form";
+
+export const DataTypeLabels = ({ isReadOnly }: { isReadOnly: boolean }) => {
   const { control } = useFormContext<DataTypeFormData>();
 
   const inheritedConstraints = useInheritedConstraints();

@@ -1,7 +1,8 @@
 import { Box, Skeleton } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
+
+import type { FunctionComponent } from "react";
 
 export const GridViewItemSkeleton: FunctionComponent<{
   numberOfItems: number;

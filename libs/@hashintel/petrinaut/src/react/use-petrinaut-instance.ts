@@ -1,7 +1,8 @@
 import { use } from "react";
 
-import type { Petrinaut } from "@hashintel/petrinaut-core";
 import { PetrinautInstanceContext } from "./instance-context";
+
+import type { Petrinaut } from "@hashintel/petrinaut-core";
 
 export function usePetrinautInstance(): Petrinaut {
   const instance = use(PetrinautInstanceContext);

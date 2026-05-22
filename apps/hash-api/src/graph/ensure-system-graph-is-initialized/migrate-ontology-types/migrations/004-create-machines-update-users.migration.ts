@@ -1,11 +1,9 @@
-import type { EntityType } from "@blockprotocol/type-system";
 import { atLeastOne } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { MigrationFunction } from "../types";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
@@ -14,6 +12,9 @@ import {
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
+import type { EntityType } from "@blockprotocol/type-system";
 
 const migrate: MigrationFunction = async ({
   context,

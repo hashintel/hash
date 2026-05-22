@@ -1,11 +1,9 @@
-import { TextField } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import type { RegistrationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import type { FormEventHandler, FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
+
+import { TextField } from "@hashintel/design-system";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { EnvelopeRegularIcon } from "../../shared/icons/envelope-regular-icon";
@@ -13,13 +11,17 @@ import { Button, Link } from "../../shared/ui";
 import { AuthHeading } from "../shared/auth-heading";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { AuthPaper } from "../shared/auth-paper";
-import type { IdentityTraits } from "../shared/ory-kratos";
 import {
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "../shared/ory-kratos";
 import { SsoProviderButtons } from "../shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "../shared/use-kratos-flow-error-handler";
+
+import type { IdentityTraits } from "../shared/ory-kratos";
+import type { RegistrationFlow } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { FormEventHandler, FunctionComponent } from "react";
 
 export const SignupRegistrationForm: FunctionComponent = () => {
   const router = useRouter();

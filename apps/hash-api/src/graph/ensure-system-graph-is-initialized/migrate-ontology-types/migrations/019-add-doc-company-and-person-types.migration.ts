@@ -5,7 +5,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type { MigrationFunction } from "../types";
 import {
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
@@ -14,6 +13,8 @@ import {
   getCurrentHashLinkEntityTypeId,
   getCurrentHashPropertyTypeId,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
 
 const migrate: MigrationFunction = async ({
   context,

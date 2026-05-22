@@ -70,11 +70,13 @@ A visualizer renders a custom view of a place's tokens during simulation. It is 
 
 ```tsx
 export default Visualization(({ tokens, parameters }) => {
-  return <svg viewBox="0 0 800 600">
-    {tokens.map(({ x, y }, i) => (
-      <circle key={i} cx={x} cy={y} r={5} fill="red" />
-    ))}
-  </svg>
+  return (
+    <svg viewBox="0 0 800 600">
+      {tokens.map(({ x, y }, i) => (
+        <circle key={i} cx={x} cy={y} r={5} fill="red" />
+      ))}
+    </svg>
+  );
 });
 ```
 
@@ -117,10 +119,12 @@ Use `.map(fn)` to transform a sampled value:
 ```ts
 const angle = Distribution.Uniform(0, 2 * Math.PI);
 return {
-  Space: [{
-    x: angle.map(a => Math.cos(a) * 80),
-    y: angle.map(a => Math.sin(a) * 80),
-  }],
+  Space: [
+    {
+      x: angle.map((a) => Math.cos(a) * 80),
+      y: angle.map((a) => Math.sin(a) * 80),
+    },
+  ],
 };
 ```
 

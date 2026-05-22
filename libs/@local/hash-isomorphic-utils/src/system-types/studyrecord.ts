@@ -3,13 +3,6 @@
  */
 
 import type {
-  ArrayMetadata,
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
-
-import type {
   AffiliatedWith,
   AffiliatedWithOutgoingLinkAndTarget,
   AffiliatedWithOutgoingLinksByLinkEntityTypeId,
@@ -81,6 +74,12 @@ import type {
   URIDataType,
   URIDataTypeWithMetadata,
 } from "./shared.js";
+import type {
+  ArrayMetadata,
+  Confidence,
+  ObjectMetadata,
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 
 export type {
   AffiliatedWith,

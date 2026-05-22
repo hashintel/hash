@@ -1,3 +1,13 @@
+import { compile as compileJsonSchema } from "json-schema-to-typescript";
+
+import { validateVersionedUrl } from "@blockprotocol/type-system";
+
+import { mustBeDefined } from "../../util/must-be-defined.js";
+import { typedValues } from "../../util/typed-entries.js";
+import { redundantTypePlaceholder } from "../shared.js";
+
+import type { CompileContext } from "../context.js";
+import type { CompiledTsType, JsonSchema } from "../shared.js";
 import type { HTTPResolverOptions } from "@apidevtools/json-schema-ref-parser";
 import type {
   DataType,
@@ -5,14 +15,6 @@ import type {
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { validateVersionedUrl } from "@blockprotocol/type-system";
-import { compile as compileJsonSchema } from "json-schema-to-typescript";
-
-import { mustBeDefined } from "../../util/must-be-defined.js";
-import { typedValues } from "../../util/typed-entries.js";
-import type { CompileContext } from "../context.js";
-import type { CompiledTsType, JsonSchema } from "../shared.js";
-import { redundantTypePlaceholder } from "../shared.js";
 
 const compileIndividualSchemaToTypescript = async (
   type: DataType | PropertyType | EntityType | JsonSchema,

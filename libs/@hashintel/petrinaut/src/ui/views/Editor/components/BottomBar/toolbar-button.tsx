@@ -1,7 +1,8 @@
 import { cva } from "@hashintel/ds-helpers/css";
-import type { ReactNode } from "react";
 
 import { Tooltip } from "../../../../components/tooltip";
+
+import type { ReactNode } from "react";
 
 const buttonStyle = cva({
   base: {

@@ -2,18 +2,19 @@ import {
   createPage,
   getPageComments,
 } from "../../../../graph/knowledge/system-types/page";
+import { graphQLContextToImpureGraphContext } from "../../util";
+import { mapCommentToGQL, mapPageToGQL } from "../graphql-mapping";
+
 import type {
   MutationCreatePageArgs,
   QueryPageCommentsArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 import type {
   UnresolvedCommentGQL,
   UnresolvedPageGQL,
 } from "../graphql-mapping";
-import { mapCommentToGQL, mapPageToGQL } from "../graphql-mapping";
 
 export const createPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

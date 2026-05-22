@@ -6,16 +6,16 @@ This guide helps you choose the right testing approach for HashQL code.
 
 ## Decision Matrix
 
-| Question | compiletest | Unit Tests | insta Snapshots |
-| -------- | ----------- | ---------- | --------------- |
-| Testing error messages/diagnostics? | ✅ **Best** | ❌ | ⚠️ Possible |
-| Testing compiler pipeline stages? | ✅ **Best** | ❌ | ⚠️ Possible |
-| Testing internal function logic? | ❌ | ✅ **Best** | ❌ |
-| MIR/HIR pass integration (end-to-end)? | ✅ **Best** | ❌ | ❌ |
-| MIR/HIR pass edge cases (isolated)? | ⚠️ Noisy | ❌ | ✅ **Best** |
-| Testing parser output structure? | ⚠️ Possible | ⚠️ Possible | ✅ **Best** |
-| Need to verify exact output format? | ✅ **Best** | ❌ | ✅ **Best** |
-| Testing edge cases in isolation? | ❌ | ✅ **Best** | ⚠️ Possible |
+| Question                               | compiletest | Unit Tests  | insta Snapshots |
+| -------------------------------------- | ----------- | ----------- | --------------- |
+| Testing error messages/diagnostics?    | ✅ **Best** | ❌          | ⚠️ Possible     |
+| Testing compiler pipeline stages?      | ✅ **Best** | ❌          | ⚠️ Possible     |
+| Testing internal function logic?       | ❌          | ✅ **Best** | ❌              |
+| MIR/HIR pass integration (end-to-end)? | ✅ **Best** | ❌          | ❌              |
+| MIR/HIR pass edge cases (isolated)?    | ⚠️ Noisy    | ❌          | ✅ **Best**     |
+| Testing parser output structure?       | ⚠️ Possible | ⚠️ Possible | ✅ **Best**     |
+| Need to verify exact output format?    | ✅ **Best** | ❌          | ✅ **Best**     |
+| Testing edge cases in isolation?       | ❌          | ✅ **Best** | ⚠️ Possible     |
 
 ---
 
@@ -60,10 +60,10 @@ From `libs/@local/hashql/ast/tests/ui/lowering/type-extractor/definition/duplica
       "another": "Boolean",
       //~^ ERROR Field `another` first defined here
       "another": "Number",
-      "unique": "String"
-    }
+      "unique": "String",
+    },
   },
-  "_"
+  "_",
 ]
 ```
 
@@ -77,13 +77,28 @@ From `libs/@local/hashql/hir/tests/ui/lower/graph-hoisting/hoist.jsonc`:
 //@ run: pass
 //@ description: TODO
 [
-  "let", "a", { "#literal": true },
-  ["let", "b", { "#literal": true },
-    ["::graph::tail::collect",
-      ["::graph::body::filter",
+  "let",
+  "a",
+  { "#literal": true },
+  [
+    "let",
+    "b",
+    { "#literal": true },
+    [
+      "::graph::tail::collect",
+      [
+        "::graph::body::filter",
         ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
-        ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
-          ["==", "a", "b"]]]]]
+        [
+          "fn",
+          { "#tuple": [] },
+          { "#struct": { "vertex": "_" } },
+          "_",
+          ["==", "a", "b"],
+        ],
+      ],
+    ],
+  ],
 ]
 ```
 
@@ -179,11 +194,11 @@ cargo test --package hashql-syntax-jexpr --doc
 
 Uses the `insta` crate for snapshot-based output when compiletest is infeasible. **Three categories exist:**
 
-| Category | Crates | Snapshot Location | Rationale |
-| -------- | ------ | ----------------- | --------- |
-| **Pipeline Crates** | mir, hir, ast | `tests/ui/<category>/*.snap` | Colocate with compiletest tests |
-| **Core** | hashql-core | Default insta (`src/**/snapshots/`) | Separate from pipeline; prefer unit tests |
-| **Syntax** | syntax-jexpr | `src/*/snapshots/` | Macro-based for parser fragments |
+| Category            | Crates        | Snapshot Location                   | Rationale                                 |
+| ------------------- | ------------- | ----------------------------------- | ----------------------------------------- |
+| **Pipeline Crates** | mir, hir, ast | `tests/ui/<category>/*.snap`        | Colocate with compiletest tests           |
+| **Core**            | hashql-core   | Default insta (`src/**/snapshots/`) | Separate from pipeline; prefer unit tests |
+| **Syntax**          | syntax-jexpr  | `src/*/snapshots/`                  | Macro-based for parser fragments          |
 
 ### Pipeline Crates (mir, hir, ast)
 
@@ -266,7 +281,7 @@ cargo insta reject     # Reject all pending
 ```jsonc
 //@ run: fail
 //@ description: Error when using reserved keyword as identifier
-["let", "type", {"#literal": 1}, "type"]
+["let", "type", { "#literal": 1 }, "type"]
 //~^ ERROR `type` is a reserved keyword
 ```
 
@@ -289,7 +304,7 @@ fn symbol_table_lookup_returns_none_for_undefined() {
 ```jsonc
 //@ run: pass
 //@ description: Tests new optimization pass integrates correctly
-["let", "x", {"#literal": 1}, ["add", "x", "x"]]
+["let", "x", { "#literal": 1 }, ["add", "x", "x"]]
 ```
 
 **Use insta for isolated edge cases** — exercising specific scenarios that are rarely hit in normal pipeline tests, or where compiletest would create too much noise:
@@ -318,12 +333,12 @@ test_cases!(parse_new_syntax;
 
 ## Summary
 
-| Approach | Test Location | Snapshot Location | Update Command | Best For |
-| -------- | ------------ | ----------------- | -------------- | -------- |
-| compiletest | `tests/ui/*.jsonc` | `tests/ui/*.stdout/stderr` | `--bless` | Diagnostics, pipeline, pass integration |
-| Unit tests | `src/*.rs` | N/A | N/A | Isolated logic |
-| insta (pipeline) | `src/**/tests.rs` | `tests/ui/<category>/` | `cargo insta accept` | Pass edge cases |
-| insta (core) | `src/**/tests` | `src/**/snapshots/` | `cargo insta accept` | Core crate |
-| insta (syntax-jexpr) | `src/*/tests` | `src/*/snapshots/` | `cargo insta accept` | Parser fragments |
+| Approach             | Test Location      | Snapshot Location          | Update Command       | Best For                                |
+| -------------------- | ------------------ | -------------------------- | -------------------- | --------------------------------------- |
+| compiletest          | `tests/ui/*.jsonc` | `tests/ui/*.stdout/stderr` | `--bless`            | Diagnostics, pipeline, pass integration |
+| Unit tests           | `src/*.rs`         | N/A                        | N/A                  | Isolated logic                          |
+| insta (pipeline)     | `src/**/tests.rs`  | `tests/ui/<category>/`     | `cargo insta accept` | Pass edge cases                         |
+| insta (core)         | `src/**/tests`     | `src/**/snapshots/`        | `cargo insta accept` | Core crate                              |
+| insta (syntax-jexpr) | `src/*/tests`      | `src/*/snapshots/`         | `cargo insta accept` | Parser fragments                        |
 
 **Default choice: compiletest** for end-to-end pipeline testing; **insta** for isolated edge cases where compiletest would be noisy.

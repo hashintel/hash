@@ -1,4 +1,52 @@
 import { useQuery } from "@apollo/client";
+import { Box, Stack, useTheme } from "@mui/material";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
+import { LoadingSpinner } from "@hashintel/design-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import {
+  getClosedMultiEntityTypeFromMap,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { countEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../shared/table-content";
+import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
+import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
+import { useMemoCompare } from "../../shared/use-memo-compare";
+import { usePollInterval } from "../../shared/use-poll-interval";
+import { useAuthenticatedUser } from "./auth-info-context";
+import { EntitiesTable } from "./entities-visualizer/entities-table";
+import { GridView } from "./entities-visualizer/entities-table/grid-view";
+import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
+import { EntityGraphVisualizer } from "./entity-graph-visualizer";
+import { useSlideStack } from "./slide-stack";
+import { TableHeaderToggle } from "./table-header-toggle";
+import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import { visualizerViewIcons } from "./visualizer-views";
+
+import type { ColumnSort } from "../../components/grid/utils/sorting";
+import type {
+  CountEntitiesQuery,
+  CountEntitiesQueryVariables,
+} from "../../graphql/api-types.gen";
+import type { FilterState } from "../../shared/table-header";
+import type {
+  EntitiesTableRow,
+  SortableEntitiesTableColumnKey,
+} from "./entities-visualizer/types";
+import type { EntityEditorProps } from "./entity/entity-editor";
+import type {
+  DynamicNodeSizing,
+  GraphVizConfig,
+  GraphVizFilters,
+} from "./graph-visualizer";
+import type { VisualizerView } from "./visualizer-views";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -6,10 +54,7 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import { LoadingSpinner } from "@hashintel/design-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   EntityQueryCursor,
   EntityQuerySortingPath,
@@ -18,50 +63,7 @@ import type {
   NullOrdering,
   Ordering,
 } from "@local/hash-graph-client";
-import {
-  getClosedMultiEntityTypeFromMap,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box, Stack, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactElement } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-import type { ColumnSort } from "../../components/grid/utils/sorting";
-import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
-import { countEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import { tableContentSx } from "../../shared/table-content";
-import type { FilterState } from "../../shared/table-header";
-import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
-import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
-import { useMemoCompare } from "../../shared/use-memo-compare";
-import { usePollInterval } from "../../shared/use-poll-interval";
-import { useAuthenticatedUser } from "./auth-info-context";
-import { EntitiesTable } from "./entities-visualizer/entities-table";
-import { GridView } from "./entities-visualizer/entities-table/grid-view";
-import type {
-  EntitiesTableRow,
-  SortableEntitiesTableColumnKey,
-} from "./entities-visualizer/types";
-import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import type { EntityEditorProps } from "./entity/entity-editor";
-import { EntityGraphVisualizer } from "./entity-graph-visualizer";
-import type {
-  DynamicNodeSizing,
-  GraphVizConfig,
-  GraphVizFilters,
-} from "./graph-visualizer";
-import { useSlideStack } from "./slide-stack";
-import { TableHeaderToggle } from "./table-header-toggle";
-import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
-import type { VisualizerView } from "./visualizer-views";
-import { visualizerViewIcons } from "./visualizer-views";
 
 /**
  * @todo: avoid having to maintain this list, potentially by

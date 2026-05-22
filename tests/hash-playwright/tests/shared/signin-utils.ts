@@ -1,5 +1,6 @@
-import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
+
+import type { Page } from "@playwright/test";
 
 /** Pre-seeded default user (see `seed-users.ts`). */
 const aliceCredentials = {

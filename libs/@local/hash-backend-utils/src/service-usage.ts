@@ -1,16 +1,7 @@
+import { backOff } from "exponential-backoff";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  AiId,
-  ClosedTemporalBound,
-  EntityUuid,
-  ProvidedEntityEditionProvenance,
-  TemporalInterval,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
 import {
   HashEntity,
   queryEntities,
@@ -26,15 +17,26 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
 import { getAggregateUsageRecordsByServiceFeature } from "@local/hash-isomorphic-utils/service-usage";
+
+import { getWebMachineId } from "./machine-actors.js";
+
+import type {
+  ActorEntityUuid,
+  AiId,
+  ClosedTemporalBound,
+  EntityUuid,
+  ProvidedEntityEditionProvenance,
+  TemporalInterval,
+  UserId,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { AggregatedUsageRecord } from "@local/hash-isomorphic-utils/service-usage";
 import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import { backOff } from "exponential-backoff";
-
-import { getWebMachineId } from "./machine-actors.js";
 
 /**
  * Retrieve a web's service usage
