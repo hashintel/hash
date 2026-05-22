@@ -11,6 +11,8 @@ import {
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
   type Petrinaut,
   type PetrinautAiMutationToolName,
+  setNetTitleToolInputSchema,
+  setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
@@ -80,59 +82,6 @@ const isPetrinautAiCommandToolName = (
   toolName: string,
 ): toolName is AiCommandActionName => toolName in aiCommandActionInputSchemas;
 
-const logToolCallError = ({
-  error,
-  input,
-  toolName,
-}: {
-  error: unknown;
-  input: unknown;
-  toolName: string;
-}) => {
-  // oxlint-disable-next-line no-console
-  console.error("Petrinaut AI tool call failed", {
-    error,
-    input,
-    toolName,
-  });
-};
-
-const getErroredToolParts = (messages: PetrinautAiMessage[]) =>
-  messages.flatMap((message) =>
-    message.parts.flatMap((part) => {
-      if (
-        !("state" in part) ||
-        part.state !== "output-error" ||
-        !part.type.startsWith("tool-")
-      ) {
-        return [];
-      }
-
-      const toolPart = part as {
-        errorText?: unknown;
-        input?: unknown;
-        toolCallId?: unknown;
-        type: string;
-      };
-
-      return [
-        {
-          errorText:
-            typeof toolPart.errorText === "string"
-              ? toolPart.errorText
-              : undefined,
-          input: toolPart.input,
-          messageId: message.id,
-          toolCallId:
-            typeof toolPart.toolCallId === "string"
-              ? toolPart.toolCallId
-              : undefined,
-          toolName: toolPart.type.replace(/^tool-/, ""),
-        },
-      ];
-    }),
-  );
-
 const safelyAddToolOutput = (
   addToolOutput: ReturnType<
     typeof useChat<PetrinautAiMessage>
@@ -141,13 +90,10 @@ const safelyAddToolOutput = (
     ReturnType<typeof useChat<PetrinautAiMessage>>["addToolOutput"]
   >[0],
 ) => {
-  void Promise.resolve(addToolOutput(params)).catch((error: unknown) => {
-    logToolCallError({
-      error,
-      input: undefined,
-      toolName: String(params.tool),
-    });
-  });
+  // Failures here surface in the UI as an errored tool call (with the
+  // error message on hover), so we just swallow the rejection to avoid an
+  // unhandled-promise warning.
+  void Promise.resolve(addToolOutput(params)).catch(() => {});
 };
 
 const waitForDiagnosticsRefresh = async ({
@@ -231,6 +177,11 @@ export const AiAssistantPanel = ({
   initialMessage?: string | null;
   onInitialMessageConsumed?: () => void;
 }) => {
+  // The wrapped AI transport closes over several refs (diagnostics version,
+  // pending mutation version, diagnostics context) so the transport's
+  // `sendMessages` can read the latest values when it eventually runs. React
+  // Compiler can't prove those reads happen off-render, so we opt out here.
+  "use no memo";
   const instance = use(PetrinautInstanceContext);
   const readOnlyReason = useReadOnlyReason();
   const readOnlyReasonRef = useRef(readOnlyReason);
@@ -248,9 +199,13 @@ export const AiAssistantPanel = ({
     setSimulateDrawer,
     setSimulateViewMode,
   } = use(EditorContext);
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
   const [input, setInput] = useState("");
   const submittedInitialMessageRef = useRef<string | null>(null);
+  const titleRef = useRef(title);
+  useEffect(() => {
+    titleRef.current = title;
+  }, [title]);
   const diagnosticsContextRef = useRef("No current TypeScript diagnostics.");
   const diagnosticsVersionRef = useRef(0);
   const pendingMutationDiagnosticsVersionRef = useRef<number | null>(null);
@@ -266,6 +221,9 @@ export const AiAssistantPanel = ({
     });
   }, [diagnosticsByUri, petriNetDefinition]);
 
+  /* eslint-disable react-hooks-js/refs -- See the `"use no memo"` directive
+     above: the refs are only read when the wrapped transport runs, never during
+     render. The lint rule can't see that. */
   const [diagnosticsTransportState, setDiagnosticsTransportState] = useState(
     () => ({
       source: aiAssistant.transport,
@@ -309,6 +267,7 @@ export const AiAssistantPanel = ({
       }),
     });
   }, [aiAssistant.transport, diagnosticsTransportState.source]);
+  /* eslint-enable react-hooks-js/refs */
 
   const {
     error,
@@ -326,119 +285,146 @@ export const AiAssistantPanel = ({
       aiAssistant.onMessages?.(finishedMessages);
     },
     onToolCall: async ({ toolCall }) => {
-      try {
-        if (!instance) {
-          throw new Error(
-            "Petrinaut AI cannot run without an editor instance.",
-          );
-        }
-        if (toolCall.dynamic) {
-          throw new Error(`Unknown Petrinaut AI tool: ${toolCall.toolName}`);
-        }
-        if (toolCall.toolName === getLatestNetDefinitionToolName) {
+      if (!instance) {
+        throw new Error("Petrinaut AI cannot run without an editor instance.");
+      }
+      if (toolCall.dynamic) {
+        throw new Error(`Unknown Petrinaut AI tool: ${toolCall.toolName}`);
+      }
+      if (toolCall.toolName === getLatestNetDefinitionToolName) {
+        safelyAddToolOutput(addToolOutput, {
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: {
+            title: titleRef.current,
+            definition: instance.definition.get(),
+          },
+        });
+        return;
+      }
+      if (toolCall.toolName === getNetCompilationErrorsToolName) {
+        await waitForDiagnosticsRefresh({
+          consumePendingMutationDiagnosticsVersion: () => {
+            const pendingVersion =
+              pendingMutationDiagnosticsVersionRef.current;
+            pendingMutationDiagnosticsVersionRef.current = null;
+            return pendingVersion;
+          },
+          diagnosticsVersionRef,
+        });
+        safelyAddToolOutput(addToolOutput, {
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: diagnosticsContextRef.current,
+        });
+        return;
+      }
+
+      if (toolCall.toolName === setNetTitleToolName) {
+        const setNetTitleReadOnlyReason = readOnlyReasonRef.current;
+        if (setNetTitleReadOnlyReason !== null) {
           safelyAddToolOutput(addToolOutput, {
             tool: toolCall.toolName,
-            toolCallId: toolCall.toolCallId,
-            output: instance.definition.get(),
-          });
-          return;
-        }
-        if (toolCall.toolName === getNetCompilationErrorsToolName) {
-          await waitForDiagnosticsRefresh({
-            consumePendingMutationDiagnosticsVersion: () => {
-              const pendingVersion =
-                pendingMutationDiagnosticsVersionRef.current;
-              pendingMutationDiagnosticsVersionRef.current = null;
-              return pendingVersion;
-            },
-            diagnosticsVersionRef,
-          });
-          safelyAddToolOutput(addToolOutput, {
-            tool: toolCall.toolName,
-            toolCallId: toolCall.toolCallId,
-            output: diagnosticsContextRef.current,
-          });
-          return;
-        }
-
-        const toolName = toolCall.toolName;
-        if (
-          !isPetrinautAiMutationToolName(toolName) &&
-          !isPetrinautAiCommandToolName(toolName)
-        ) {
-          throw new Error(
-            `Unknown Petrinaut AI tool: ${String(toolName as string)}`,
-          );
-        }
-
-        const currentReadOnlyReason = readOnlyReasonRef.current;
-        if (currentReadOnlyReason !== null) {
-          safelyAddToolOutput(addToolOutput, {
-            tool: toolName,
             toolCallId: toolCall.toolCallId,
             output: {
               applied: false,
-              blocked: currentReadOnlyReason.kind,
-              reason: formatReadOnlyReason(currentReadOnlyReason),
+              blocked: setNetTitleReadOnlyReason.kind,
+              reason: formatReadOnlyReason(setNetTitleReadOnlyReason),
             } satisfies AiToolOutput,
           });
           return;
         }
-
-        if (isPetrinautAiCommandToolName(toolName)) {
-          const commandInput = aiCommandActionInputSchemas[toolName].parse(
-            toolCall.input,
-          );
-          if (getInteractiveTool(toolName, commandInput)) {
-            // Defer: the surface will render the widget and call
-            // onInteractiveToolSubmit when the user decides.
-            return;
-          }
-          pendingMutationDiagnosticsVersionRef.current =
-            diagnosticsVersionRef.current;
-          const aiToolCall = {
-            toolName,
-            input: commandInput,
-          } as Extract<AiToolCall, { toolName: AiCommandActionName }>;
-          const output = await applyPetrinautAiCommand({
-            aiToolCall,
-            instance,
-          });
-          safelyAddToolOutput(addToolOutput, {
-            tool: toolName,
-            toolCallId: toolCall.toolCallId,
-            output,
-          });
-          return;
-        }
-
-        const toolInput = petrinautAiMutationToolInputSchemas[toolName].parse(
+        const parsedSetNetTitleInput = setNetTitleToolInputSchema.parse(
           toolCall.input,
         );
+        const previousTitle = titleRef.current;
+        setTitle(parsedSetNetTitleInput.title);
+        safelyAddToolOutput(addToolOutput, {
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: {
+            applied: true,
+            title: `Renamed net to "${parsedSetNetTitleInput.title}"`,
+            detail:
+              previousTitle &&
+              previousTitle !== parsedSetNetTitleInput.title
+                ? `Previous title: ${previousTitle}`
+                : undefined,
+          } satisfies AiToolOutput,
+        });
+        return;
+      }
+
+      const toolName = toolCall.toolName;
+      if (
+        !isPetrinautAiMutationToolName(toolName) &&
+        !isPetrinautAiCommandToolName(toolName)
+      ) {
+        throw new Error(
+          `Unknown Petrinaut AI tool: ${String(toolName as string)}`,
+        );
+      }
+
+      const currentReadOnlyReason = readOnlyReasonRef.current;
+      if (currentReadOnlyReason !== null) {
+        safelyAddToolOutput(addToolOutput, {
+          tool: toolName,
+          toolCallId: toolCall.toolCallId,
+          output: {
+            applied: false,
+            blocked: currentReadOnlyReason.kind,
+            reason: formatReadOnlyReason(currentReadOnlyReason),
+          } satisfies AiToolOutput,
+        });
+        return;
+      }
+
+      if (isPetrinautAiCommandToolName(toolName)) {
+        const commandInput = aiCommandActionInputSchemas[toolName].parse(
+          toolCall.input,
+        );
+        if (getInteractiveTool(toolName, commandInput)) {
+          // Defer: the surface will render the widget and call
+          // onInteractiveToolSubmit when the user decides.
+          return;
+        }
         pendingMutationDiagnosticsVersionRef.current =
           diagnosticsVersionRef.current;
         const aiToolCall = {
           toolName,
-          input: toolInput,
-        } as Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
-        const output = applyPetrinautAiMutation({
+          input: commandInput,
+        } as Extract<AiToolCall, { toolName: AiCommandActionName }>;
+        const output = await applyPetrinautAiCommand({
           aiToolCall,
           instance,
         });
-
         safelyAddToolOutput(addToolOutput, {
           tool: toolName,
           toolCallId: toolCall.toolCallId,
           output,
         });
-      } catch (toolError) {
-        logToolCallError({
-          error: toolError,
-          input: toolCall.input,
-          toolName: toolCall.toolName,
-        });
-        throw toolError;
+        return;
       }
+
+      const toolInput = petrinautAiMutationToolInputSchemas[toolName].parse(
+        toolCall.input,
+      );
+      pendingMutationDiagnosticsVersionRef.current =
+        diagnosticsVersionRef.current;
+      const aiToolCall = {
+        toolName,
+        input: toolInput,
+      } as Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
+      const output = applyPetrinautAiMutation({
+        aiToolCall,
+        instance,
+      });
+
+      safelyAddToolOutput(addToolOutput, {
+        tool: toolName,
+        toolCallId: toolCall.toolCallId,
+        output,
+      });
     },
   });
 
@@ -466,35 +452,6 @@ export const AiAssistantPanel = ({
     onInitialMessageConsumed,
     sendMessage,
   ]);
-
-  useEffect(() => {
-    if (!error) {
-      return;
-    }
-
-    const lastMessage = messages.at(-1);
-    // oxlint-disable-next-line no-console
-    console.error("Petrinaut AI chat failed", {
-      error,
-      lastMessage,
-      messageCount: messages.length,
-      status,
-    });
-  }, [error, messages, status]);
-
-  const loggedErroredToolCallsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    for (const toolPart of getErroredToolParts(messages)) {
-      const key = `${toolPart.messageId}:${toolPart.toolCallId ?? toolPart.toolName}`;
-      if (loggedErroredToolCallsRef.current.has(key)) {
-        continue;
-      }
-
-      loggedErroredToolCallsRef.current.add(key);
-      console.error("Petrinaut AI tool call failed", toolPart);
-    }
-  }, [messages]);
 
   if (!isAiAssistantOpen || !instance) {
     return null;

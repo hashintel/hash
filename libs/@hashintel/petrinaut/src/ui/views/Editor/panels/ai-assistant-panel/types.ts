@@ -7,6 +7,7 @@ import type {
   PetrinautAiMutationToolName,
   PetrinautAiToolInput,
   SDCPN,
+  setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
 
@@ -25,11 +26,15 @@ type PetrinautAiUiTools = {
 } & {
   [getLatestNetDefinitionToolName]: {
     input: PetrinautAiToolInput<typeof getLatestNetDefinitionToolName>;
-    output: SDCPN;
+    output: { title: string; definition: SDCPN };
   };
   [getNetCompilationErrorsToolName]: {
     input: PetrinautAiToolInput<typeof getNetCompilationErrorsToolName>;
     output: string;
+  };
+  [setNetTitleToolName]: {
+    input: PetrinautAiToolInput<typeof setNetTitleToolName>;
+    output: AiToolOutput;
   };
 };
 

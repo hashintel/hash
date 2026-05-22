@@ -79,10 +79,13 @@ function createToolBundle<const InputSchemas extends Record<string, z.ZodType>>(
 
 export const getLatestNetDefinitionToolName = "getLatestNetDefinition";
 export const getNetCompilationErrorsToolName = "getNetCompilationErrors";
+export const setNetTitleToolName = "setNetTitle";
 
 const getLatestNetDefinitionToolInputSchema = z
 	.strictObject({})
-	.describe("Get the latest complete Petrinaut SDCPN net definition.");
+	.describe(
+		"Get the current Petrinaut net state. Returns `{ title, definition }` where `title` is the user-visible net title and `definition` is the complete SDCPN net definition.",
+	);
 
 const getNetCompilationErrorsToolInputSchema = z
 	.strictObject({})
@@ -90,11 +93,27 @@ const getNetCompilationErrorsToolInputSchema = z
 		"Get the current TypeScript diagnostics for the Petrinaut net code. Use this after editing lambdas, kernels, differential equations, scenarios, or metrics to check whether the model compiles.",
 	);
 
+export const setNetTitleToolInputSchema = z
+	.strictObject({
+		title: z
+			.string()
+			.min(1)
+			.max(120)
+			.meta({
+				description:
+					"Short human-readable title for the net (sentence case, no quotes, ideally under ~60 characters).",
+			}),
+	})
+	.describe(
+		"Set the human-readable title shown for the current Petrinaut net.",
+	);
+
 export const petrinautAiToolInputSchemas = {
 	...mutationActionInputSchemas,
 	...aiCommandActionInputSchemas,
 	[getLatestNetDefinitionToolName]: getLatestNetDefinitionToolInputSchema,
 	[getNetCompilationErrorsToolName]: getNetCompilationErrorsToolInputSchema,
+	[setNetTitleToolName]: setNetTitleToolInputSchema,
 };
 
 export const petrinautAiMutationTools = createToolBundle(
@@ -115,6 +134,10 @@ export const petrinautAiTools = {
 	[getNetCompilationErrorsToolName]: {
 		description: getSchemaDescription(getNetCompilationErrorsToolInputSchema),
 		inputSchema: getNetCompilationErrorsToolInputSchema,
+	},
+	[setNetTitleToolName]: {
+		description: getSchemaDescription(setNetTitleToolInputSchema),
+		inputSchema: setNetTitleToolInputSchema,
 	},
 } satisfies PetrinautAiTools;
 
@@ -168,8 +191,9 @@ export function createPetrinautAiWritableCallbacks(
 export const petrinautAiPrompt = `You are an expert assistant for building Stochastic Dynamic Coloured Petri Nets (SDCPNs) in Petrinaut.
 
 Use the provided tools to directly modify the current net. The tools use Petrinaut's raw mutation interfaces, so include stable IDs, full entity objects where required, and canvas positions for places and transitions.
-You can check the latest complete net definition at any point using the ${getLatestNetDefinitionToolName} tool. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types.
+You can check the current net state at any point using the ${getLatestNetDefinitionToolName} tool, which returns \`{ title, definition }\` — the user-visible net title plus the complete SDCPN. Use it before making changes that depend on existing places, transitions, arcs, scenarios, metrics, parameters, or types, and consult the \`title\` when deciding whether the net could use a more descriptive name.
 You can check current TypeScript compilation diagnostics at any point using the ${getNetCompilationErrorsToolName} tool.
+You can rename the net at any point using the ${setNetTitleToolName} tool.
 
 Interview first, build second. Before creating a new net (or adding a substantial new subsystem to an existing one), do NOT jump straight to tool calls. Run a brief, focused interview to establish:
 
@@ -192,6 +216,7 @@ When creating or revising a net:
 - Use differential equations only for places whose coloured tokens have continuous dynamics.
 - Suggest place visualisations. Once the structure is agreed, proactively propose 1–2 vivid, domain-specific \`visualizerCode\` ideas (e.g. a queue as a stacked bar, satellites as orbit dots, infected population as a heat-dot grid, machines as a row of state-coloured rectangles, inventory as a shelf of boxes) and offer to add them. Default to compact, single-glance SVGs sized for a place node, following the visualizer rules in the code-surface cheatsheet below.
 - Keep executable code self-contained and readable.
+- Title the net. After building or substantially extending a model, check the title returned by \`${getLatestNetDefinitionToolName}\`. If it is \`Untitled\` or an obvious placeholder, call \`${setNetTitleToolName}\` with a concise, descriptive title (sentence case, ideally under ~60 characters). Don't overwrite a user-chosen title without being asked.
 
 Validate every code-writing change. After any tool call that writes code — lambda, transition kernel, dynamics, visualizer, metric, or scenario code-mode initial state — call ${getNetCompilationErrorsToolName} before continuing and fix any reported diagnostics before relying on the new code. Do not assume a code edit is correct just because the tool call succeeded; mutations only validate the schema, not the runtime contract.
 

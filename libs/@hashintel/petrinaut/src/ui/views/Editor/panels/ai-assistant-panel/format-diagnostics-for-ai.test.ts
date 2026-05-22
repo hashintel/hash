@@ -55,7 +55,7 @@ describe("formatDiagnosticsForAi", () => {
         definition,
         diagnosticsByUri: new Map(),
       }),
-    ).toBe("No current TypeScript diagnostics.");
+    ).toBe("No errors detected in your model – everything compiles!");
   });
 
   test("formats transition and differential-equation diagnostics", () => {

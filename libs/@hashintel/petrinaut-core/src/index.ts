@@ -68,6 +68,8 @@ export {
 	petrinautAiTools,
 	placeSchema,
 	scenarioSchema,
+	setNetTitleToolInputSchema,
+	setNetTitleToolName,
 	transitionSchema,
 } from "./ai";
 export type {

@@ -18,10 +18,8 @@ const loadServerEnv = (mode: string) => {
   }
 };
 
-// Mounts `api/chat.ts` during `vite dev` so the front-end can hit `/api/chat`
-// on the same origin. `@whatwg-node/server` handles the Node <-> Fetch
-// translation (streaming, abort signals, header semantics) that Vercel's
-// production runtime performs for the deployed function.
+// Plugin required to serve the chat endpoint in dev.
+// In production, it will be bundled and served by Vercel.
 const petrinautApiDevPlugin = (): Plugin => ({
   name: "petrinaut-api-dev",
   apply: "serve",

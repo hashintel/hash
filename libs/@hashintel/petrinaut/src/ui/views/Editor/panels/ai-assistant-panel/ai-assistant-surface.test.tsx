@@ -10,8 +10,6 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
-
 import { AiAssistantSurface } from "./ai-assistant-surface";
 import type { PetrinautAiMessage } from "./types";
 
@@ -111,11 +109,17 @@ describe("AiAssistantSurface", () => {
   });
 
   test("scrolls to the latest chat content", async () => {
+    // jsdom does not implement `scrollIntoView`, so we install a stub on the
+    // prototype and restore it afterwards. The `unbound-method` lint warning
+    // is a false positive — we never invoke the saved reference, we only
+    // assign it back.
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     const originalCancelAnimationFrame = window.cancelAnimationFrame;
     const scrollIntoView = vi.fn();
     window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    // Make rAF synchronous so the scroll effect runs before the assertion.
     window.requestAnimationFrame = (callback) => {
       callback(0);
       return 0;
@@ -242,10 +246,9 @@ describe("AiAssistantSurface", () => {
         status="ready"
       />,
     );
-    const renderedText = container.textContent ?? "";
 
-    expect(renderedText.indexOf("Reasoning")).toBeLessThan(
-      renderedText.indexOf("I found the current places."),
+    expect(container.textContent).toMatch(
+      /Reasoning[\s\S]*I found the current places\./u,
     );
   });
 
@@ -389,6 +392,68 @@ describe("AiAssistantSurface", () => {
           },
           {
             type: "tool-deleteItemsByIds",
+            state: "input-available",
+            toolCallId: "tool-2",
+            input: {
+              items: [{ type: "place", id: "place__old" }],
+            },
+          },
+        ],
+      },
+    ];
+
+    render(
+      <AiAssistantSurface
+        input=""
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /2 changes/u })).not.toBeNull();
+    expect(screen.queryByTestId("tool-item-chevron")).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: /Added place Buffer/u })
+        .getAttribute("data-tone"),
+    ).toBe("success");
+    expect(
+      screen
+        .getByRole("button", { name: /Deleted 1 item/u })
+        .getAttribute("data-tone"),
+    ).toBe("danger");
+  });
+
+  test("auto-collapses grouped changes once every tool is complete", () => {
+    const messages: PetrinautAiMessage[] = [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-addPlace",
+            state: "output-available",
+            toolCallId: "tool-1",
+            input: {
+              id: "place__buffer",
+              name: "Buffer",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 0,
+              y: 0,
+            },
+            output: {
+              applied: true,
+              title: "Added place Buffer",
+            },
+          },
+          {
+            type: "tool-deleteItemsByIds",
             state: "output-available",
             toolCallId: "tool-2",
             input: {
@@ -415,18 +480,11 @@ describe("AiAssistantSurface", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /2 changes/u })).not.toBeNull();
-    expect(screen.queryByTestId("tool-item-chevron")).toBeNull();
     expect(
       screen
-        .getByRole("button", { name: /Added place Buffer/u })
-        .getAttribute("data-tone"),
-    ).toBe("success");
-    expect(
-      screen
-        .getByRole("button", { name: /Deleted 1 item/u })
-        .getAttribute("data-tone"),
-    ).toBe("danger");
+        .getByRole("button", { name: /2 changes/u })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
   });
 
   test("keeps net definition checks separate from grouped changes", () => {
@@ -442,12 +500,14 @@ describe("AiAssistantSurface", () => {
             input: {},
             output: {
               title: "HyProGen 121 - Stochastic Petri Net",
-              places: [],
-              transitions: [],
-              types: [],
-              differentialEquations: [],
-              parameters: [],
-            } as SDCPN & { title: string },
+              definition: {
+                places: [],
+                transitions: [],
+                types: [],
+                differentialEquations: [],
+                parameters: [],
+              },
+            },
           },
           {
             type: "tool-addPlace",

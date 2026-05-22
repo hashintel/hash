@@ -14,6 +14,7 @@ import {
   getNetCompilationErrorsToolName,
   petrinautAiMutationTools,
   type SelectionItem,
+  setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
@@ -40,6 +41,8 @@ type ToolRenderItem = {
   summary: AiToolSummary;
   tone: ToolTone;
   toolName: string;
+  /** Server-reported error message for tools whose state is `output-error`. */
+  errorText?: string;
   /** Set when the tool requires an inline widget for human input. */
   interactive?: {
     definition: InteractiveToolDefinition<unknown, AiToolOutput>;
@@ -53,6 +56,7 @@ type TextPart = Extract<MessagePart, { type: "text" }>;
 type ReasoningMessagePart = Extract<MessagePart, { type: "reasoning" }>;
 
 type RenderableToolPart = PetrinautAiMessage["parts"][number] & {
+  errorText?: unknown;
   input?: unknown;
   output?: unknown;
   state?: string;
@@ -340,8 +344,12 @@ const markdownStyle = css({
     fontFamily: "mono",
     fontSize: "xs",
     backgroundColor: "neutral.s20",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.a30",
     borderRadius: "sm",
     paddingX: "1",
+    paddingY: "[2px]",
   },
   "& pre code": {
     display: "block",
@@ -400,9 +408,8 @@ const reasoningBodyStyle = css({
   borderWidth: "thin",
   borderStyle: "solid",
   borderColor: "neutral.a30",
-  borderRadius: "lg",
+  borderRadius: "md",
   backgroundColor: "neutral.s10",
-  boxShadow: "[0px 0px 0px 2px {colors.neutral.bg.subtle}]",
   padding: "2",
   color: "neutral.s90",
   fontSize: "sm",
@@ -454,11 +461,7 @@ const toolGroupPanelStyle = css({
   flexDirection: "column",
   gap: "[0]",
   overflow: "hidden",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "[rgba(0,0,0,0.13)]",
   borderRadius: "lg",
-  backgroundColor: "white",
   "& > button": {
     borderRadius: "[0]",
   },
@@ -756,6 +759,17 @@ const getToolSummaryFromPart = (part: RenderableToolPart): AiToolSummary => {
   if (toolName === getNetCompilationErrorsToolName) {
     return { title: "Checked net compilation errors" };
   }
+  if (toolName === setNetTitleToolName) {
+    const proposedTitle =
+      typeof part.input === "object" &&
+      part.input !== null &&
+      typeof (part.input as { title?: unknown }).title === "string"
+        ? (part.input as { title: string }).title
+        : undefined;
+    if (proposedTitle) {
+      return { title: `Renaming net to "${proposedTitle}"` };
+    }
+  }
 
   const output = part.output;
   if (typeof output === "object" && output !== null) {
@@ -855,6 +869,10 @@ const toToolRenderItem = (
     summary,
     tone: getToolTone({ state, summary, toolName }),
     toolName,
+    errorText:
+      state === "output-error" && typeof part.errorText === "string"
+        ? part.errorText
+        : undefined,
     interactive,
   };
 };
@@ -939,7 +957,7 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string =>
             }
 
             return "state" in part
-              ? `${part.type}:${part.state ?? ""}`
+              ? `${part.type}:${part.state}`
               : part.type;
           })
           .join(","),
@@ -1084,6 +1102,7 @@ const ToolItem = ({
           onSelectToolTarget?.(target);
         }
       }}
+      title={errored ? tool.errorText : undefined}
     >
       <span
         className={toolStatusStyle({
@@ -1160,6 +1179,11 @@ const ToolList = ({
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
 }) => {
+  const allComplete = tools.every(
+    (tool) =>
+      tool.state === "output-available" || tool.state === "output-error",
+  );
+
   if (tools.length === 0) {
     return null;
   }
@@ -1176,8 +1200,15 @@ const ToolList = ({
     );
   }
 
+  // Remount when the group transitions between in-progress and complete so
+  // `defaultOpen` re-initialises (auto-collapse on completion) without
+  // controlled state fighting user toggles.
   return (
-    <Collapsible.Root className={toolListStyle({ kind: "group" })} defaultOpen>
+    <Collapsible.Root
+      key={allComplete ? "complete" : "streaming"}
+      className={toolListStyle({ kind: "group" })}
+      defaultOpen={!allComplete}
+    >
       <Collapsible.Trigger className={toolHeaderStyle}>
         <span className={toolHeaderIconStyle}>
           <Icon name="list" size="xs" />
@@ -1249,20 +1280,18 @@ export const AiAssistantSurface = ({
 
   useEffect(() => {
     const scrollToEnd = () => {
+      // The inner optional chain (`scrollIntoView?.`) is intentional — jsdom
+      // omits `Element.prototype.scrollIntoView`, so unit tests need the
+      // graceful no-op. The lint rule can't see that.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       messagesEndRef.current?.scrollIntoView?.({
         block: "end",
         behavior: "smooth",
       });
     };
-    const requestFrame =
-      window.requestAnimationFrame ??
-      ((callback: FrameRequestCallback) => window.setTimeout(callback, 0));
-    const cancelFrame =
-      window.cancelAnimationFrame ??
-      ((handle: number) => window.clearTimeout(handle));
-    const frameId = requestFrame(scrollToEnd);
+    const frameId = window.requestAnimationFrame(scrollToEnd);
 
-    return () => cancelFrame(frameId);
+    return () => window.cancelAnimationFrame(frameId);
   }, [messagesScrollKey, status]);
 
   return (
