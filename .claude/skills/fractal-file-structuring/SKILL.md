@@ -96,7 +96,6 @@ import { SimulateView } from "../editor-view/panels/simulate-view";
 // Prefer (1): import from a public mini-library (if it is conceptually part of editor-view)
 import { EditorView } from "../editor-view";
 
-
 // Prefer (2): move shared code to a shared folder (if it is NOT conceptually part of editor-view)
 import { Button } from "../shared/button";
 ```

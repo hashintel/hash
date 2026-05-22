@@ -1,8 +1,9 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
 import { AiAssistantSurface } from "./ai-assistant-surface";
+
 import type { PetrinautAiMessage } from "./types";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Editor / AI Assistant",

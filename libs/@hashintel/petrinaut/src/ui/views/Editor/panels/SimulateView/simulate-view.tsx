@@ -4,8 +4,8 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
-	EditorContext,
-	type SimulateViewMode,
+  EditorContext,
+  type SimulateViewMode,
 } from "../../../../../react/state/editor-context";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { ExperimentsView } from "./experiments/experiments-view";
@@ -18,77 +18,77 @@ import type { ComponentType } from "react";
 // -- Layout styles -------------------------------------------------------------
 
 const containerStyle = css({
-	display: "flex",
-	flexDirection: "row",
-	width: "full",
-	height: "full",
-	backgroundColor: "neutral.s00",
+  display: "flex",
+  flexDirection: "row",
+  width: "full",
+  height: "full",
+  backgroundColor: "neutral.s00",
 });
 
 const sidebarStyle = css({
-	display: "flex",
-	flexDirection: "column",
-	gap: "[2px]",
-	padding: "[12px]",
-	backgroundColor: "neutral.s00",
-	borderRightWidth: "[1px]",
-	borderRightStyle: "solid",
-	borderRightColor: "neutral.s40",
-	flexShrink: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "[2px]",
+  padding: "[12px]",
+  backgroundColor: "neutral.s00",
+  borderRightWidth: "[1px]",
+  borderRightStyle: "solid",
+  borderRightColor: "neutral.s40",
+  flexShrink: 0,
 });
 
 // -- Mode options --------------------------------------------------------------
 
 const modeOptions: SegmentOption[] = [
-	{
-		value: "scenarios",
-		label: "Scenarios",
-		icon: <Icon name="layer" size="sm" />,
-		hideLabel: true,
-		tooltip: "Scenarios",
-	},
-	{
-		value: "metrics",
-		label: "Metrics",
-		icon: <Icon name="chartBarSimple" size="sm" />,
-		hideLabel: true,
-		tooltip: "Metrics",
-	},
-	{
-		value: "experiments",
-		label: "Experiments",
-		icon: <Icon name="flask" size="sm" />,
-		hideLabel: true,
-		tooltip: "Experiments",
-	},
+  {
+    value: "scenarios",
+    label: "Scenarios",
+    icon: <Icon name="layer" size="sm" />,
+    hideLabel: true,
+    tooltip: "Scenarios",
+  },
+  {
+    value: "metrics",
+    label: "Metrics",
+    icon: <Icon name="chartBarSimple" size="sm" />,
+    hideLabel: true,
+    tooltip: "Metrics",
+  },
+  {
+    value: "experiments",
+    label: "Experiments",
+    icon: <Icon name="flask" size="sm" />,
+    hideLabel: true,
+    tooltip: "Experiments",
+  },
 ];
 
 const views = {
-	scenarios: ScenariosView,
-	metrics: MetricsView,
-	experiments: ExperimentsView,
+  scenarios: ScenariosView,
+  metrics: MetricsView,
+  experiments: ExperimentsView,
 } satisfies Record<SimulateViewMode, ComponentType>;
 
 // -- Component -----------------------------------------------------------------
 
 export const SimulateView = () => {
-	const { simulateViewMode: mode, setSimulateViewMode: setMode } =
-		use(EditorContext);
-	const ActiveView = views[mode];
+  const { simulateViewMode: mode, setSimulateViewMode: setMode } =
+    use(EditorContext);
+  const ActiveView = views[mode];
 
-	return (
-		<div className={containerStyle}>
-			<div className={sidebarStyle}>
-				<SegmentGroup
-					value={mode}
-					options={modeOptions}
-					onChange={(value) => setMode(value as SimulateViewMode)}
-					orientation="vertical"
-					size="sm"
-				/>
-			</div>
+  return (
+    <div className={containerStyle}>
+      <div className={sidebarStyle}>
+        <SegmentGroup
+          value={mode}
+          options={modeOptions}
+          onChange={(value) => setMode(value as SimulateViewMode)}
+          orientation="vertical"
+          size="sm"
+        />
+      </div>
 
-			<ActiveView />
-		</div>
-	);
+      <ActiveView />
+    </div>
+  );
 };

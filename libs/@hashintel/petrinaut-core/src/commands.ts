@@ -5,11 +5,12 @@ import {
   placeSchema,
   transitionSchema,
 } from "./action-schemas";
-import { commandActionInputSchemas } from "./command-schemas";
 import { pastePayloadIntoSDCPN } from "./clipboard/paste";
-import type { ClipboardPayload } from "./clipboard/types";
+import { commandActionInputSchemas } from "./command-schemas";
 import { calculateGraphLayout } from "./layout/calculate-graph-layout";
 import { layoutNodeDimensions } from "./layout/dimensions";
+
+import type { ClipboardPayload } from "./clipboard/types";
 import type { SDCPN } from "./types/sdcpn";
 
 export type ApplyClipboardPasteResult = {

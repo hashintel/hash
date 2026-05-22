@@ -956,9 +956,7 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string =>
               return `${part.type}:${part.state ?? ""}:${part.text}`;
             }
 
-            return "state" in part
-              ? `${part.type}:${part.state}`
-              : part.type;
+            return "state" in part ? `${part.type}:${part.state}` : part.type;
           })
           .join(","),
       ].join(":"),

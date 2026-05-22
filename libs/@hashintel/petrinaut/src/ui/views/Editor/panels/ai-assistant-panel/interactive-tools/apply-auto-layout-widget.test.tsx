@@ -4,8 +4,9 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import type { AiToolOutput } from "../tool-summaries";
 import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
+
+import type { AiToolOutput } from "../tool-summaries";
 
 const Widget = applyAutoLayoutInteractiveTool.Widget;
 

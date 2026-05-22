@@ -1,10 +1,11 @@
+import { useMemo, useState, useEffect } from "react";
+
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
-import { PetrinautStoryProvider } from "./petrinaut-story-provider";
-import { Petrinaut } from "../ui/petrinaut";
-import { createStorybookAiTransport } from "./views/Editor/panels/create-storybook-ai-transport";
 import { createJsonDocHandle, type SDCPN } from "../main";
-import { useMemo, useState, useEffect } from "react";
+import { Petrinaut } from "../ui/petrinaut";
+import { PetrinautStoryProvider } from "./petrinaut-story-provider";
+import { createStorybookAiTransport } from "./views/Editor/panels/create-storybook-ai-transport";
 
 const emptySDCPN: SDCPN = {
   places: [],

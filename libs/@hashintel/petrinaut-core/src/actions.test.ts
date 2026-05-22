@@ -6,480 +6,480 @@ import { createPetrinaut } from "./instance";
 import type { SDCPN } from "./types/sdcpn";
 
 const emptySDCPN: SDCPN = {
-	places: [],
-	transitions: [],
-	types: [],
-	differentialEquations: [],
-	parameters: [],
+  places: [],
+  transitions: [],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
 };
 
 const cloneSDCPN = (sdcpn: SDCPN): SDCPN => JSON.parse(JSON.stringify(sdcpn));
 
 const createInstance = (initial: SDCPN = emptySDCPN) =>
-	createPetrinaut({
-		document: createJsonDocHandle({ initial: cloneSDCPN(initial) }),
-	});
+  createPetrinaut({
+    document: createJsonDocHandle({ initial: cloneSDCPN(initial) }),
+  });
 
 const callActionWithUnknownInput = <Input>(
-	action: (input: Input) => void,
-	input: unknown,
+  action: (input: Input) => void,
+  input: unknown,
 ): void => {
-	action(input as Input);
+  action(input as Input);
 };
 
 describe("Petrinaut core actions", () => {
-	test("adds and updates places", () => {
-		const instance = createInstance();
+  test("adds and updates places", () => {
+    const instance = createInstance();
 
-		instance.mutations.addPlace({
-			id: "place-1",
-			name: "Queue",
-			colorId: null,
-			dynamicsEnabled: false,
-			differentialEquationId: null,
-			x: 0,
-			y: 0,
-		});
-		instance.mutations.updatePlace({
-			placeId: "place-1",
-			update: {
-				name: "UpdatedQueue",
-			},
-		});
-		instance.mutations.updatePlacePosition({
-			placeId: "place-1",
-			position: { x: 12, y: 24 },
-		});
+    instance.mutations.addPlace({
+      id: "place-1",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
+    instance.mutations.updatePlace({
+      placeId: "place-1",
+      update: {
+        name: "UpdatedQueue",
+      },
+    });
+    instance.mutations.updatePlacePosition({
+      placeId: "place-1",
+      position: { x: 12, y: 24 },
+    });
 
-		expect(instance.definition.get().places).toEqual([
-			{
-				id: "place-1",
-				name: "UpdatedQueue",
-				colorId: null,
-				dynamicsEnabled: false,
-				differentialEquationId: null,
-				x: 12,
-				y: 24,
-			},
-		]);
-	});
+    expect(instance.definition.get().places).toEqual([
+      {
+        id: "place-1",
+        name: "UpdatedQueue",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 12,
+        y: 24,
+      },
+    ]);
+  });
 
-	test("removing a place also removes connected arcs", () => {
-		const instance = createInstance({
-			...emptySDCPN,
-			places: [
-				{
-					id: "place-1",
-					name: "Input",
-					colorId: null,
-					dynamicsEnabled: false,
-					differentialEquationId: null,
-					x: 0,
-					y: 0,
-				},
-				{
-					id: "place-2",
-					name: "Output",
-					colorId: null,
-					dynamicsEnabled: false,
-					differentialEquationId: null,
-					x: 100,
-					y: 0,
-				},
-			],
-			transitions: [
-				{
-					id: "transition-1",
-					name: "Move",
-					inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
-					outputArcs: [{ placeId: "place-2", weight: 1 }],
-					lambdaType: "predicate",
-					lambdaCode: "export default Lambda(() => true);",
-					transitionKernelCode: "",
-					x: 50,
-					y: 0,
-				},
-			],
-		});
+  test("removing a place also removes connected arcs", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      places: [
+        {
+          id: "place-1",
+          name: "Input",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+        {
+          id: "place-2",
+          name: "Output",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 100,
+          y: 0,
+        },
+      ],
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "place-2", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode: "export default Lambda(() => true);",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+    });
 
-		instance.mutations.removePlace({ placeId: "place-1" });
+    instance.mutations.removePlace({ placeId: "place-1" });
 
-		const definition = instance.definition.get();
-		expect(definition.places.map((place) => place.id)).toEqual(["place-2"]);
-		expect(definition.transitions[0]!.inputArcs).toEqual([]);
-		expect(definition.transitions[0]!.outputArcs).toEqual([
-			{ placeId: "place-2", weight: 1 },
-		]);
-	});
+    const definition = instance.definition.get();
+    expect(definition.places.map((place) => place.id)).toEqual(["place-2"]);
+    expect(definition.transitions[0]!.inputArcs).toEqual([]);
+    expect(definition.transitions[0]!.outputArcs).toEqual([
+      { placeId: "place-2", weight: 1 },
+    ]);
+  });
 
-	test("updates arc endpoints granularly", () => {
-		const instance = createInstance({
-			...emptySDCPN,
-			transitions: [
-				{
-					id: "transition-1",
-					name: "Move",
-					inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
-					outputArcs: [{ placeId: "place-2", weight: 1 }],
-					lambdaType: "predicate",
-					lambdaCode: "export default Lambda(() => true);",
-					transitionKernelCode: "",
-					x: 50,
-					y: 0,
-				},
-			],
-		});
+  test("updates arc endpoints granularly", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "place-2", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode: "export default Lambda(() => true);",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+    });
 
-		instance.mutations.updateArcPlace({
-			transitionId: "transition-1",
-			arcDirection: "input",
-			oldPlaceId: "place-1",
-			newPlaceId: "place-3",
-		});
-		instance.mutations.updateArcPlace({
-			transitionId: "transition-1",
-			arcDirection: "output",
-			oldPlaceId: "place-2",
-			newPlaceId: "place-4",
-		});
+    instance.mutations.updateArcPlace({
+      transitionId: "transition-1",
+      arcDirection: "input",
+      oldPlaceId: "place-1",
+      newPlaceId: "place-3",
+    });
+    instance.mutations.updateArcPlace({
+      transitionId: "transition-1",
+      arcDirection: "output",
+      oldPlaceId: "place-2",
+      newPlaceId: "place-4",
+    });
 
-		expect(instance.definition.get().transitions[0]).toMatchObject({
-			inputArcs: [{ placeId: "place-3", weight: 1, type: "standard" }],
-			outputArcs: [{ placeId: "place-4", weight: 1 }],
-		});
-	});
+    expect(instance.definition.get().transitions[0]).toMatchObject({
+      inputArcs: [{ placeId: "place-3", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "place-4", weight: 1 }],
+    });
+  });
 
-	test("adds, updates, removes, and moves type elements granularly", () => {
-		const instance = createInstance({
-			...emptySDCPN,
-			types: [
-				{
-					id: "type-1",
-					name: "Particle",
-					iconSlug: "circle",
-					displayColor: "#34a0fa",
-					elements: [
-						{ elementId: "element-1", name: "Mass", type: "real" },
-						{ elementId: "element-2", name: "Velocity", type: "real" },
-					],
-				},
-			],
-		});
+  test("adds, updates, removes, and moves type elements granularly", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      types: [
+        {
+          id: "type-1",
+          name: "Particle",
+          iconSlug: "circle",
+          displayColor: "#34a0fa",
+          elements: [
+            { elementId: "element-1", name: "Mass", type: "real" },
+            { elementId: "element-2", name: "Velocity", type: "real" },
+          ],
+        },
+      ],
+    });
 
-		instance.mutations.addTypeElement({
-			typeId: "type-1",
-			element: { elementId: "element-3", name: "Charge", type: "integer" },
-		});
-		instance.mutations.updateTypeElement({
-			typeId: "type-1",
-			elementId: "element-1",
-			update: { name: "MassKg" },
-		});
-		instance.mutations.moveTypeElement({
-			typeId: "type-1",
-			elementId: "element-3",
-			toIndex: 1,
-		});
-		instance.mutations.removeTypeElement({
-			typeId: "type-1",
-			elementId: "element-2",
-		});
+    instance.mutations.addTypeElement({
+      typeId: "type-1",
+      element: { elementId: "element-3", name: "Charge", type: "integer" },
+    });
+    instance.mutations.updateTypeElement({
+      typeId: "type-1",
+      elementId: "element-1",
+      update: { name: "MassKg" },
+    });
+    instance.mutations.moveTypeElement({
+      typeId: "type-1",
+      elementId: "element-3",
+      toIndex: 1,
+    });
+    instance.mutations.removeTypeElement({
+      typeId: "type-1",
+      elementId: "element-2",
+    });
 
-		expect(instance.definition.get().types[0]!.elements).toEqual([
-			{ elementId: "element-1", name: "MassKg", type: "real" },
-			{ elementId: "element-3", name: "Charge", type: "integer" },
-		]);
-	});
+    expect(instance.definition.get().types[0]!.elements).toEqual([
+      { elementId: "element-1", name: "MassKg", type: "real" },
+      { elementId: "element-3", name: "Charge", type: "integer" },
+    ]);
+  });
 
-	test("deleteItemsByIds removes referenced types and equations", () => {
-		const instance = createInstance({
-			...emptySDCPN,
-			places: [
-				{
-					id: "place-1",
-					name: "Dynamic",
-					colorId: "type-1",
-					dynamicsEnabled: true,
-					differentialEquationId: "equation-1",
-					x: 0,
-					y: 0,
-				},
-			],
-			types: [
-				{
-					id: "type-1",
-					name: "Particle",
-					iconSlug: "circle",
-					displayColor: "#34a0fa",
-					elements: [],
-				},
-			],
-			differentialEquations: [
-				{
-					id: "equation-1",
-					name: "Motion",
-					colorId: "type-1",
-					code: "export default Dynamics(() => []);",
-				},
-			],
-		});
+  test("deleteItemsByIds removes referenced types and equations", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      places: [
+        {
+          id: "place-1",
+          name: "Dynamic",
+          colorId: "type-1",
+          dynamicsEnabled: true,
+          differentialEquationId: "equation-1",
+          x: 0,
+          y: 0,
+        },
+      ],
+      types: [
+        {
+          id: "type-1",
+          name: "Particle",
+          iconSlug: "circle",
+          displayColor: "#34a0fa",
+          elements: [],
+        },
+      ],
+      differentialEquations: [
+        {
+          id: "equation-1",
+          name: "Motion",
+          colorId: "type-1",
+          code: "export default Dynamics(() => []);",
+        },
+      ],
+    });
 
-		instance.mutations.deleteItemsByIds({
-			items: [
-				{ type: "type", id: "type-1" },
-				{ type: "differentialEquation", id: "equation-1" },
-			],
-		});
+    instance.mutations.deleteItemsByIds({
+      items: [
+        { type: "type", id: "type-1" },
+        { type: "differentialEquation", id: "equation-1" },
+      ],
+    });
 
-		const definition = instance.definition.get();
-		expect(definition.types).toEqual([]);
-		expect(definition.differentialEquations).toEqual([]);
-		expect(definition.places[0]!.colorId).toBeNull();
-		expect(definition.places[0]!.differentialEquationId).toBeNull();
-	});
+    const definition = instance.definition.get();
+    expect(definition.types).toEqual([]);
+    expect(definition.differentialEquations).toEqual([]);
+    expect(definition.places[0]!.colorId).toBeNull();
+    expect(definition.places[0]!.differentialEquationId).toBeNull();
+  });
 
-	test("does not mutate readonly instances", () => {
-		const instance = createPetrinaut({
-			document: createJsonDocHandle({ initial: cloneSDCPN(emptySDCPN) }),
-			readonly: true,
-		});
+  test("does not mutate readonly instances", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({ initial: cloneSDCPN(emptySDCPN) }),
+      readonly: true,
+    });
 
-		instance.mutations.addPlace({
-			id: "place-1",
-			name: "Queue",
-			colorId: null,
-			dynamicsEnabled: false,
-			differentialEquationId: null,
-			x: 0,
-			y: 0,
-		});
+    instance.mutations.addPlace({
+      id: "place-1",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
 
-		expect(instance.definition.get().places).toEqual([]);
-	});
+    expect(instance.definition.get().places).toEqual([]);
+  });
 
-	test("validates add action inputs before mutating", () => {
-		const instance = createInstance();
+  test("validates add action inputs before mutating", () => {
+    const instance = createInstance();
 
-		expect(() =>
-			instance.mutations.addPlace({
-				id: "",
-				name: "Queue",
-				colorId: null,
-				dynamicsEnabled: false,
-				differentialEquationId: null,
-				x: 0,
-				y: 0,
-			}),
-		).toThrow();
+    expect(() =>
+      instance.mutations.addPlace({
+        id: "",
+        name: "Queue",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      }),
+    ).toThrow();
 
-		expect(instance.definition.get().places).toEqual([]);
-	});
+    expect(instance.definition.get().places).toEqual([]);
+  });
 
-	test("validates callback-updated entities", () => {
-		const instance = createInstance();
+  test("validates callback-updated entities", () => {
+    const instance = createInstance();
 
-		instance.mutations.addPlace({
-			id: "place-1",
-			name: "Queue",
-			colorId: null,
-			dynamicsEnabled: false,
-			differentialEquationId: null,
-			x: 0,
-			y: 0,
-		});
+    instance.mutations.addPlace({
+      id: "place-1",
+      name: "Queue",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
 
-		expect(() =>
-			instance.mutations.updatePlace({
-				placeId: "place-1",
-				update: {
-					name: "",
-				},
-			}),
-		).toThrow();
-	});
+    expect(() =>
+      instance.mutations.updatePlace({
+        placeId: "place-1",
+        update: {
+          name: "",
+        },
+      }),
+    ).toThrow();
+  });
 
-	test("rejects over-wide update action payloads", () => {
-		const instance = createInstance();
+  test("rejects over-wide update action payloads", () => {
+    const instance = createInstance();
 
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updatePlace, {
-				placeId: "place-1",
-				update: { id: "place-2" },
-			}),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updatePlace, {
-				placeId: "place-1",
-				update: { x: 10 },
-			}),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updateTransition, {
-				transitionId: "transition-1",
-				update: { inputArcs: [] },
-			}),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updateTransition, {
-				transitionId: "transition-1",
-				update: { y: 10 },
-			}),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updateType, {
-				typeId: "type-1",
-				update: { elements: [] },
-			}),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updateTypeElement, {
-				typeId: "type-1",
-				elementId: "element-1",
-				update: { elementId: "element-2" },
-			}),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(
-				instance.mutations.updateDifferentialEquation,
-				{
-					equationId: "equation-1",
-					update: { id: "equation-2" },
-				},
-			),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updateParameter, {
-				parameterId: "parameter-1",
-				update: { id: "parameter-2" },
-			}),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updateScenario, {
-				scenarioId: "scenario-1",
-				update: { id: "scenario-2" },
-			}),
-		).toThrow();
-		expect(() =>
-			callActionWithUnknownInput(instance.mutations.updateMetric, {
-				metricId: "metric-1",
-				update: { id: "metric-2" },
-			}),
-		).toThrow();
-	});
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updatePlace, {
+        placeId: "place-1",
+        update: { id: "place-2" },
+      }),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updatePlace, {
+        placeId: "place-1",
+        update: { x: 10 },
+      }),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updateTransition, {
+        transitionId: "transition-1",
+        update: { inputArcs: [] },
+      }),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updateTransition, {
+        transitionId: "transition-1",
+        update: { y: 10 },
+      }),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updateType, {
+        typeId: "type-1",
+        update: { elements: [] },
+      }),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updateTypeElement, {
+        typeId: "type-1",
+        elementId: "element-1",
+        update: { elementId: "element-2" },
+      }),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(
+        instance.mutations.updateDifferentialEquation,
+        {
+          equationId: "equation-1",
+          update: { id: "equation-2" },
+        },
+      ),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updateParameter, {
+        parameterId: "parameter-1",
+        update: { id: "parameter-2" },
+      }),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updateScenario, {
+        scenarioId: "scenario-1",
+        update: { id: "scenario-2" },
+      }),
+    ).toThrow();
+    expect(() =>
+      callActionWithUnknownInput(instance.mutations.updateMetric, {
+        metricId: "metric-1",
+        update: { id: "metric-2" },
+      }),
+    ).toThrow();
+  });
 
-	test("validates granular arc and type element action inputs", () => {
-		const instance = createInstance({
-			...emptySDCPN,
-			transitions: [
-				{
-					id: "transition-1",
-					name: "Move",
-					inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
-					outputArcs: [],
-					lambdaType: "predicate",
-					lambdaCode: "export default Lambda(() => true);",
-					transitionKernelCode: "",
-					x: 50,
-					y: 0,
-				},
-			],
-			types: [
-				{
-					id: "type-1",
-					name: "Particle",
-					iconSlug: "circle",
-					displayColor: "#34a0fa",
-					elements: [{ elementId: "element-1", name: "Mass", type: "real" }],
-				},
-			],
-		});
+  test("validates granular arc and type element action inputs", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      transitions: [
+        {
+          id: "transition-1",
+          name: "Move",
+          inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+          outputArcs: [],
+          lambdaType: "predicate",
+          lambdaCode: "export default Lambda(() => true);",
+          transitionKernelCode: "",
+          x: 50,
+          y: 0,
+        },
+      ],
+      types: [
+        {
+          id: "type-1",
+          name: "Particle",
+          iconSlug: "circle",
+          displayColor: "#34a0fa",
+          elements: [{ elementId: "element-1", name: "Mass", type: "real" }],
+        },
+      ],
+    });
 
-		expect(() =>
-			instance.mutations.updateArcPlace({
-				transitionId: "transition-1",
-				arcDirection: "input",
-				oldPlaceId: "place-1",
-				newPlaceId: "",
-			}),
-		).toThrow();
-		expect(() =>
-			instance.mutations.addTypeElement({
-				typeId: "type-1",
-				element: { elementId: "element-2", name: "", type: "real" },
-			}),
-		).toThrow();
-		expect(() =>
-			instance.mutations.moveTypeElement({
-				typeId: "type-1",
-				elementId: "element-1",
-				toIndex: -1,
-			}),
-		).toThrow();
+    expect(() =>
+      instance.mutations.updateArcPlace({
+        transitionId: "transition-1",
+        arcDirection: "input",
+        oldPlaceId: "place-1",
+        newPlaceId: "",
+      }),
+    ).toThrow();
+    expect(() =>
+      instance.mutations.addTypeElement({
+        typeId: "type-1",
+        element: { elementId: "element-2", name: "", type: "real" },
+      }),
+    ).toThrow();
+    expect(() =>
+      instance.mutations.moveTypeElement({
+        typeId: "type-1",
+        elementId: "element-1",
+        toIndex: -1,
+      }),
+    ).toThrow();
 
-		expect(instance.definition.get().transitions[0]!.inputArcs).toEqual([
-			{ placeId: "place-1", weight: 1, type: "standard" },
-		]);
-		expect(instance.definition.get().types[0]!.elements).toEqual([
-			{ elementId: "element-1", name: "Mass", type: "real" },
-		]);
-	});
+    expect(instance.definition.get().transitions[0]!.inputArcs).toEqual([
+      { placeId: "place-1", weight: 1, type: "standard" },
+    ]);
+    expect(instance.definition.get().types[0]!.elements).toEqual([
+      { elementId: "element-1", name: "Mass", type: "real" },
+    ]);
+  });
 
-	test("reuses existing name validation rules for action inputs", () => {
-		const instance = createInstance();
+  test("reuses existing name validation rules for action inputs", () => {
+    const instance = createInstance();
 
-		expect(() =>
-			instance.mutations.addPlace({
-				id: "place-1",
-				name: "invalid place name",
-				colorId: null,
-				dynamicsEnabled: false,
-				differentialEquationId: null,
-				x: 0,
-				y: 0,
-			}),
-		).toThrow();
+    expect(() =>
+      instance.mutations.addPlace({
+        id: "place-1",
+        name: "invalid place name",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      }),
+    ).toThrow();
 
-		expect(() =>
-			instance.mutations.addTransition({
-				id: "transition-1",
-				name: "Display Name",
-				inputArcs: [],
-				outputArcs: [],
-				lambdaType: "predicate",
-				lambdaCode: "",
-				transitionKernelCode: "",
-				x: 0,
-				y: 0,
-			}),
-		).not.toThrow();
-	});
+    expect(() =>
+      instance.mutations.addTransition({
+        id: "transition-1",
+        name: "Display Name",
+        inputArcs: [],
+        outputArcs: [],
+        lambdaType: "predicate",
+        lambdaCode: "",
+        transitionKernelCode: "",
+        x: 0,
+        y: 0,
+      }),
+    ).not.toThrow();
+  });
 
-	test("preserves scenario-specific validation in action inputs", () => {
-		const instance = createInstance();
+  test("preserves scenario-specific validation in action inputs", () => {
+    const instance = createInstance();
 
-		expect(() =>
-			instance.mutations.addScenario({
-				id: "scenario-1",
-				name: "Scenario",
-				scenarioParameters: [
-					{ type: "real", identifier: "launch_rate", default: 1 },
-					{ type: "integer", identifier: "launch_rate", default: 2 },
-				],
-				parameterOverrides: {},
-				initialState: { type: "per_place", content: {} },
-			}),
-		).toThrow();
+    expect(() =>
+      instance.mutations.addScenario({
+        id: "scenario-1",
+        name: "Scenario",
+        scenarioParameters: [
+          { type: "real", identifier: "launch_rate", default: 1 },
+          { type: "integer", identifier: "launch_rate", default: 2 },
+        ],
+        parameterOverrides: {},
+        initialState: { type: "per_place", content: {} },
+      }),
+    ).toThrow();
 
-		expect(() =>
-			instance.mutations.addScenario({
-				id: "scenario-1",
-				name: "Scenario",
-				scenarioParameters: [
-					{ type: "real", identifier: "LaunchRate", default: 1 },
-				],
-				parameterOverrides: {},
-				initialState: { type: "per_place", content: {} },
-			}),
-		).toThrow();
-	});
+    expect(() =>
+      instance.mutations.addScenario({
+        id: "scenario-1",
+        name: "Scenario",
+        scenarioParameters: [
+          { type: "real", identifier: "LaunchRate", default: 1 },
+        ],
+        parameterOverrides: {},
+        initialState: { type: "per_place", content: {} },
+      }),
+    ).toThrow();
+  });
 });

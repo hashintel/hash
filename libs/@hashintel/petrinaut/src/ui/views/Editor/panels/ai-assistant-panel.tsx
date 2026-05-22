@@ -305,8 +305,7 @@ export const AiAssistantPanel = ({
       if (toolCall.toolName === getNetCompilationErrorsToolName) {
         await waitForDiagnosticsRefresh({
           consumePendingMutationDiagnosticsVersion: () => {
-            const pendingVersion =
-              pendingMutationDiagnosticsVersionRef.current;
+            const pendingVersion = pendingMutationDiagnosticsVersionRef.current;
             pendingMutationDiagnosticsVersionRef.current = null;
             return pendingVersion;
           },
@@ -346,8 +345,7 @@ export const AiAssistantPanel = ({
             applied: true,
             title: `Renamed net to "${parsedSetNetTitleInput.title}"`,
             detail:
-              previousTitle &&
-              previousTitle !== parsedSetNetTitleInput.title
+              previousTitle && previousTitle !== parsedSetNetTitleInput.title
                 ? `Previous title: ${previousTitle}`
                 : undefined,
           } satisfies AiToolOutput,

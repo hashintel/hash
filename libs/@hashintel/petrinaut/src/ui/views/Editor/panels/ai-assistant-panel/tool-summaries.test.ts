@@ -1,7 +1,8 @@
-import type { SDCPN } from "@hashintel/petrinaut-core";
 import { describe, expect, test } from "vitest";
 
 import { summarizePetrinautAiToolCall } from "./tool-summaries";
+
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const definition: SDCPN = {
   differentialEquations: [],

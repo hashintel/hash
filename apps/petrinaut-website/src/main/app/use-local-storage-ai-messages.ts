@@ -1,5 +1,6 @@
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 import { useLocalStorage } from "@mantine/hooks";
+
+import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const rootLocalStorageKey = "petrinaut-ai-messages";
 

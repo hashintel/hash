@@ -1,9 +1,9 @@
 import { use } from "react";
 
-import type { PetrinautCommands } from "@hashintel/petrinaut-core";
-
 import { PetrinautInstanceContext } from "../instance-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
+
+import type { PetrinautCommands } from "@hashintel/petrinaut-core";
 
 /**
  * React-facing bundle of composite host commands (clipboard paste,

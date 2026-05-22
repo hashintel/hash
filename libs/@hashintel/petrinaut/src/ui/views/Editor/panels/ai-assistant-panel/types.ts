@@ -1,3 +1,4 @@
+import type { AiToolOutput } from "./tool-summaries";
 import type {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -10,8 +11,6 @@ import type {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
-
-import type { AiToolOutput } from "./tool-summaries";
 
 type PetrinautAiUiTools = {
   [Name in PetrinautAiMutationToolName]: {

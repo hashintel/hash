@@ -1,7 +1,7 @@
 import { use } from "react";
 
-import { EditorContext } from "../../../../react/state/editor-context";
 import { usePetrinautMutations } from "../../../../react/hooks/use-petrinaut-mutations";
+import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../../lib/snap-position-to-grid";

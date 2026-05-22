@@ -15,20 +15,20 @@ const graphPadding = 30;
  * @see https://eclipse.dev/elk/reference.html
  */
 const elkLayoutOptions: ElkNode["layoutOptions"] = {
-	"elk.algorithm": "layered",
-	"org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "100",
-	"elk.direction": "RIGHT",
-	"elk.padding": `[left=${graphPadding},top=${graphPadding},right=${graphPadding},bottom=${graphPadding}]`,
+  "elk.algorithm": "layered",
+  "org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers": "100",
+  "elk.direction": "RIGHT",
+  "elk.padding": `[left=${graphPadding},top=${graphPadding},right=${graphPadding},bottom=${graphPadding}]`,
 };
 
 export type NodePosition = {
-	x: number;
-	y: number;
+  x: number;
+  y: number;
 };
 
 export type LayoutDimensions = {
-	place: { width: number; height: number };
-	transition: { width: number; height: number };
+  place: { width: number; height: number };
+  transition: { width: number; height: number };
 };
 
 /**
@@ -51,72 +51,72 @@ export type LayoutDimensions = {
  * @returns A promise that resolves to a map of node IDs to their calculated positions
  */
 export const calculateGraphLayout = async (
-	sdcpn: SDCPN,
-	dimensions: LayoutDimensions,
+  sdcpn: SDCPN,
+  dimensions: LayoutDimensions,
 ): Promise<Record<string, NodePosition>> => {
-	if (sdcpn.places.length === 0) {
-		return {};
-	}
+  if (sdcpn.places.length === 0) {
+    return {};
+  }
 
-	const elkNodes: ElkNode["children"] = [
-		...sdcpn.places.map((place) => ({
-			id: place.id,
-			width: dimensions.place.width,
-			height: dimensions.place.height,
-		})),
-		...sdcpn.transitions.map((transition) => ({
-			id: transition.id,
-			width: dimensions.transition.width,
-			height: dimensions.transition.height,
-		})),
-	];
+  const elkNodes: ElkNode["children"] = [
+    ...sdcpn.places.map((place) => ({
+      id: place.id,
+      width: dimensions.place.width,
+      height: dimensions.place.height,
+    })),
+    ...sdcpn.transitions.map((transition) => ({
+      id: transition.id,
+      width: dimensions.transition.width,
+      height: dimensions.transition.height,
+    })),
+  ];
 
-	const elkEdges: ElkNode["edges"] = [];
-	for (const transition of sdcpn.transitions) {
-		for (const inputArc of transition.inputArcs) {
-			elkEdges.push({
-				id: `arc__${inputArc.placeId}-${transition.id}`,
-				sources: [inputArc.placeId],
-				targets: [transition.id],
-			});
-		}
-		for (const outputArc of transition.outputArcs) {
-			elkEdges.push({
-				id: `arc__${transition.id}-${outputArc.placeId}`,
-				sources: [transition.id],
-				targets: [outputArc.placeId],
-			});
-		}
-	}
+  const elkEdges: ElkNode["edges"] = [];
+  for (const transition of sdcpn.transitions) {
+    for (const inputArc of transition.inputArcs) {
+      elkEdges.push({
+        id: `arc__${inputArc.placeId}-${transition.id}`,
+        sources: [inputArc.placeId],
+        targets: [transition.id],
+      });
+    }
+    for (const outputArc of transition.outputArcs) {
+      elkEdges.push({
+        id: `arc__${transition.id}-${outputArc.placeId}`,
+        sources: [transition.id],
+        targets: [outputArc.placeId],
+      });
+    }
+  }
 
-	const graph: ElkNode = {
-		id: "root",
-		children: elkNodes,
-		edges: elkEdges,
-		layoutOptions: elkLayoutOptions,
-	};
+  const graph: ElkNode = {
+    id: "root",
+    children: elkNodes,
+    edges: elkEdges,
+    layoutOptions: elkLayoutOptions,
+  };
 
-	const updatedElements = await elk.layout(graph);
+  const updatedElements = await elk.layout(graph);
 
-	const placeIds = new Set(sdcpn.places.map((place) => place.id));
+  const placeIds = new Set(sdcpn.places.map((place) => place.id));
 
-	/**
-	 * ELK returns top-left positions, but the SDCPN store uses center
-	 * coordinates, so we offset by half the node dimensions.
-	 */
-	const positionsByNodeId: Record<string, NodePosition> = {};
-	for (const child of updatedElements.children ?? []) {
-		if (child.x !== undefined && child.y !== undefined) {
-			const nodeDimensions = placeIds.has(child.id)
-				? dimensions.place
-				: dimensions.transition;
+  /**
+   * ELK returns top-left positions, but the SDCPN store uses center
+   * coordinates, so we offset by half the node dimensions.
+   */
+  const positionsByNodeId: Record<string, NodePosition> = {};
+  for (const child of updatedElements.children ?? []) {
+    if (child.x !== undefined && child.y !== undefined) {
+      const nodeDimensions = placeIds.has(child.id)
+        ? dimensions.place
+        : dimensions.transition;
 
-			positionsByNodeId[child.id] = {
-				x: child.x + nodeDimensions.width / 2,
-				y: child.y + nodeDimensions.height / 2,
-			};
-		}
-	}
+      positionsByNodeId[child.id] = {
+        x: child.x + nodeDimensions.width / 2,
+        y: child.y + nodeDimensions.height / 2,
+      };
+    }
+  }
 
-	return positionsByNodeId;
+  return positionsByNodeId;
 };

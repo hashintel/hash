@@ -1,80 +1,80 @@
 import { z } from "zod";
 
 import {
-	mutationActionInputSchemas,
-	type MutationActionName,
+  mutationActionInputSchemas,
+  type MutationActionName,
 } from "./action-schemas";
 import {
-	aiCommandActionInputSchemas,
-	type AiCommandActionName,
+  aiCommandActionInputSchemas,
+  type AiCommandActionName,
 } from "./command-schemas";
+import { probabilisticSatellitesSDCPN } from "./examples";
 import { typedKeys } from "./lib/typed-entries";
 
 import type { Petrinaut } from "./instance";
-import { probabilisticSatellitesSDCPN } from "./examples";
 
 export {
-	colorSchema,
-	differentialEquationSchema,
-	metricSchema,
-	parameterSchema,
-	mutationActionInputSchemas,
-	placeSchema,
-	scenarioSchema,
-	transitionSchema,
+  colorSchema,
+  differentialEquationSchema,
+  metricSchema,
+  parameterSchema,
+  mutationActionInputSchemas,
+  placeSchema,
+  scenarioSchema,
+  transitionSchema,
 } from "./action-schemas";
 export type {
-	MutationActionInput as PetrinautAiMutationToolInput,
-	MutationActionName as PetrinautAiMutationToolName,
+  MutationActionInput as PetrinautAiMutationToolInput,
+  MutationActionName as PetrinautAiMutationToolName,
 } from "./action-schemas";
 export { aiCommandActionInputSchemas } from "./command-schemas";
 export type {
-	AiCommandActionInput as PetrinautAiCommandToolInput,
-	AiCommandActionName as PetrinautAiCommandToolName,
+  AiCommandActionInput as PetrinautAiCommandToolInput,
+  AiCommandActionName as PetrinautAiCommandToolName,
 } from "./command-schemas";
 
 export type PetrinautAiTool<InputSchema extends z.ZodType> = {
-	description: string;
-	inputSchema: InputSchema;
+  description: string;
+  inputSchema: InputSchema;
 };
 
 export type PetrinautAiTools = {
-	[Name in keyof typeof petrinautAiToolInputSchemas]: PetrinautAiTool<
-		(typeof petrinautAiToolInputSchemas)[Name]
-	>;
+  [Name in keyof typeof petrinautAiToolInputSchemas]: PetrinautAiTool<
+    (typeof petrinautAiToolInputSchemas)[Name]
+  >;
 };
 
 const getSchemaDescription = (schema: z.ZodType): string => {
-	if (!schema.description) {
-		throw new Error("Petrinaut AI tool schemas must have descriptions");
-	}
-	return schema.description;
+  if (!schema.description) {
+    throw new Error("Petrinaut AI tool schemas must have descriptions");
+  }
+  return schema.description;
 };
 
 function createToolBundle<const InputSchemas extends Record<string, z.ZodType>>(
-	schemas: InputSchemas,
+  schemas: InputSchemas,
 ): {
-	[Name in keyof InputSchemas]: PetrinautAiTool<InputSchemas[Name]>;
+  [Name in keyof InputSchemas]: PetrinautAiTool<InputSchemas[Name]>;
 } {
-	const tools = {} as {
-		[Name in keyof InputSchemas]: PetrinautAiTool<InputSchemas[Name]>;
-	};
+  const tools = {} as {
+    [Name in keyof InputSchemas]: PetrinautAiTool<InputSchemas[Name]>;
+  };
 
-	const setTool = <Name extends keyof InputSchemas>(
-		name: Name,
-		inputSchema: InputSchemas[Name],
-	) => {
-		tools[name] = {
-			description: getSchemaDescription(inputSchema),
-			inputSchema,
-		};
-	};
+  const setTool = <Name extends keyof InputSchemas>(
+    name: Name,
+    inputSchema: InputSchemas[Name],
+  ) => {
+    tools[name] = {
+      description: getSchemaDescription(inputSchema),
+      inputSchema,
+    };
+  };
 
-	for (const name of typedKeys(schemas)) {
-		setTool(name, schemas[name]);
-	}
+  for (const name of typedKeys(schemas)) {
+    setTool(name, schemas[name]);
+  }
 
-	return tools;
+  return tools;
 }
 
 export const getLatestNetDefinitionToolName = "getLatestNetDefinition";
@@ -82,77 +82,73 @@ export const getNetCompilationErrorsToolName = "getNetCompilationErrors";
 export const setNetTitleToolName = "setNetTitle";
 
 const getLatestNetDefinitionToolInputSchema = z
-	.strictObject({})
-	.describe(
-		"Get the current Petrinaut net state. Returns `{ title, definition }` where `title` is the user-visible net title and `definition` is the complete SDCPN net definition.",
-	);
+  .strictObject({})
+  .describe(
+    "Get the current Petrinaut net state. Returns `{ title, definition }` where `title` is the user-visible net title and `definition` is the complete SDCPN net definition.",
+  );
 
 const getNetCompilationErrorsToolInputSchema = z
-	.strictObject({})
-	.describe(
-		"Get the current TypeScript diagnostics for the Petrinaut net code. Use this after editing lambdas, kernels, differential equations, scenarios, or metrics to check whether the model compiles.",
-	);
+  .strictObject({})
+  .describe(
+    "Get the current TypeScript diagnostics for the Petrinaut net code. Use this after editing lambdas, kernels, differential equations, scenarios, or metrics to check whether the model compiles.",
+  );
 
 export const setNetTitleToolInputSchema = z
-	.strictObject({
-		title: z
-			.string()
-			.min(1)
-			.max(120)
-			.meta({
-				description:
-					"Short human-readable title for the net (sentence case, no quotes, ideally under ~60 characters).",
-			}),
-	})
-	.describe(
-		"Set the human-readable title shown for the current Petrinaut net.",
-	);
+  .strictObject({
+    title: z.string().min(1).max(120).meta({
+      description:
+        "Short human-readable title for the net (sentence case, no quotes, ideally under ~60 characters).",
+    }),
+  })
+  .describe(
+    "Set the human-readable title shown for the current Petrinaut net.",
+  );
 
 export const petrinautAiToolInputSchemas = {
-	...mutationActionInputSchemas,
-	...aiCommandActionInputSchemas,
-	[getLatestNetDefinitionToolName]: getLatestNetDefinitionToolInputSchema,
-	[getNetCompilationErrorsToolName]: getNetCompilationErrorsToolInputSchema,
-	[setNetTitleToolName]: setNetTitleToolInputSchema,
+  ...mutationActionInputSchemas,
+  ...aiCommandActionInputSchemas,
+  [getLatestNetDefinitionToolName]: getLatestNetDefinitionToolInputSchema,
+  [getNetCompilationErrorsToolName]: getNetCompilationErrorsToolInputSchema,
+  [setNetTitleToolName]: setNetTitleToolInputSchema,
 };
 
 export const petrinautAiMutationTools = createToolBundle(
-	mutationActionInputSchemas,
+  mutationActionInputSchemas,
 );
 
 export const petrinautAiCommandTools = createToolBundle(
-	aiCommandActionInputSchemas,
+  aiCommandActionInputSchemas,
 );
 
 export const petrinautAiTools = {
-	...petrinautAiMutationTools,
-	...petrinautAiCommandTools,
-	[getLatestNetDefinitionToolName]: {
-		description: getSchemaDescription(getLatestNetDefinitionToolInputSchema),
-		inputSchema: getLatestNetDefinitionToolInputSchema,
-	},
-	[getNetCompilationErrorsToolName]: {
-		description: getSchemaDescription(getNetCompilationErrorsToolInputSchema),
-		inputSchema: getNetCompilationErrorsToolInputSchema,
-	},
-	[setNetTitleToolName]: {
-		description: getSchemaDescription(setNetTitleToolInputSchema),
-		inputSchema: setNetTitleToolInputSchema,
-	},
+  ...petrinautAiMutationTools,
+  ...petrinautAiCommandTools,
+  [getLatestNetDefinitionToolName]: {
+    description: getSchemaDescription(getLatestNetDefinitionToolInputSchema),
+    inputSchema: getLatestNetDefinitionToolInputSchema,
+  },
+  [getNetCompilationErrorsToolName]: {
+    description: getSchemaDescription(getNetCompilationErrorsToolInputSchema),
+    inputSchema: getNetCompilationErrorsToolInputSchema,
+  },
+  [setNetTitleToolName]: {
+    description: getSchemaDescription(setNetTitleToolInputSchema),
+    inputSchema: setNetTitleToolInputSchema,
+  },
 } satisfies PetrinautAiTools;
 
 export type PetrinautAiToolName = keyof typeof petrinautAiTools;
 
 export type PetrinautAiToolInput<Name extends PetrinautAiToolName> = z.input<
-	(typeof petrinautAiTools)[Name]["inputSchema"]
+  (typeof petrinautAiTools)[Name]["inputSchema"]
 >;
 
 /**
  * @deprecated Use {@link PetrinautAiWritableCallbacks}.
  */
 export type PetrinautMutationAiToolCallbacks = Pick<
-	Petrinaut["mutations"],
-	MutationActionName
+  Petrinaut["mutations"],
+  MutationActionName
 >;
 
 /**
@@ -162,30 +158,30 @@ export type PetrinautMutationAiToolCallbacks = Pick<
  * separately and are not part of this bundle.
  */
 export type PetrinautAiWritableCallbacks = Pick<
-	Petrinaut["mutations"],
-	MutationActionName
+  Petrinaut["mutations"],
+  MutationActionName
 > &
-	Pick<Petrinaut["commands"], AiCommandActionName>;
+  Pick<Petrinaut["commands"], AiCommandActionName>;
 
 /**
  * @deprecated Use {@link createPetrinautAiWritableCallbacks}.
  */
 export function createPetrinautMutationAiToolCallbacks(
-	instance: Petrinaut,
+  instance: Petrinaut,
 ): PetrinautMutationAiToolCallbacks {
-	return instance.mutations;
+  return instance.mutations;
 }
 
 export function createPetrinautAiWritableCallbacks(
-	instance: Petrinaut,
+  instance: Petrinaut,
 ): PetrinautAiWritableCallbacks {
-	const writable: PetrinautAiWritableCallbacks = {
-		...instance.mutations,
-	} as PetrinautAiWritableCallbacks;
-	for (const name of typedKeys(aiCommandActionInputSchemas)) {
-		(writable as Record<string, unknown>)[name] = instance.commands[name];
-	}
-	return writable;
+  const writable: PetrinautAiWritableCallbacks = {
+    ...instance.mutations,
+  } as PetrinautAiWritableCallbacks;
+  for (const name of typedKeys(aiCommandActionInputSchemas)) {
+    (writable as Record<string, unknown>)[name] = instance.commands[name];
+  }
+  return writable;
 }
 
 export const petrinautAiPrompt = `You are an expert assistant for building Stochastic Dynamic Coloured Petri Nets (SDCPNs) in Petrinaut.

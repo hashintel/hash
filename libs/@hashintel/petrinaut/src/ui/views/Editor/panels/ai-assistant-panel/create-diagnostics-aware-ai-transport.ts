@@ -1,6 +1,5 @@
-import type { ChatTransport } from "ai";
-
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./types";
+import type { ChatTransport } from "ai";
 
 const diagnosticsContextMessageId = "petrinaut-diagnostics-context";
 

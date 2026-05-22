@@ -1,6 +1,5 @@
-import type { ChatTransport, UIMessageChunk } from "ai";
-
 import type { PetrinautAiMessage } from "./ai-assistant-panel";
+import type { ChatTransport, UIMessageChunk } from "ai";
 
 const placeInput = {
   id: "place__ai_buffer",

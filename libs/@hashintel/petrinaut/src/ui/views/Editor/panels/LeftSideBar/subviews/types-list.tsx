@@ -2,8 +2,8 @@ import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { Button } from "../../../../../components/button";

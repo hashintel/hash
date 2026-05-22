@@ -1,8 +1,9 @@
-import type { UIMessageChunk } from "ai";
 import { describe, expect, test, vi } from "vitest";
 
 import { createDiagnosticsAwareAiTransport } from "./create-diagnostics-aware-ai-transport";
+
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./types";
+import type { UIMessageChunk } from "ai";
 
 const emptyStream = (): ReadableStream<UIMessageChunk> =>
   new ReadableStream({

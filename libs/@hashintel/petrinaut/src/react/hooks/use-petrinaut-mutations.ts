@@ -1,10 +1,10 @@
 import { use } from "react";
 
-import type { PetrinautMutations } from "@hashintel/petrinaut-core";
-
 import { PetrinautInstanceContext } from "../instance-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
+
+import type { PetrinautMutations } from "@hashintel/petrinaut-core";
 
 /**
  * Names of mutations that are allowed in simulate mode. Scenario and metric

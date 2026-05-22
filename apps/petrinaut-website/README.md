@@ -19,11 +19,11 @@ In production, the function in the `api` folder is automatically deployed as a V
 
 ## Environment variables
 
-| Name                | Required           | Used by         | Notes                                                |
-| ------------------- | ------------------ | --------------- | ---------------------------------------------------- |
-| `OPENAI_API_KEY`    | for chat to work   | `api/chat.ts`   | OpenAI key the function uses to call `streamText`.   |
-| `PETRINAUT_AI_MODEL`| no                 | `api/chat.ts`   | Overrides the default OpenAI model id.               |
-| `SENTRY_DSN`        | no                 | `vite.config.ts`| Wired into the bundle via `__SENTRY_DSN__` at build time. |
+| Name                 | Required         | Used by          | Notes                                                     |
+| -------------------- | ---------------- | ---------------- | --------------------------------------------------------- |
+| `OPENAI_API_KEY`     | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.        |
+| `PETRINAUT_AI_MODEL` | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                    |
+| `SENTRY_DSN`         | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time. |
 
 Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the chat function. In production, set these in the Vercel project settings.
 

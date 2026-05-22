@@ -1,26 +1,27 @@
 import {
-	parseClipboardPayload,
-	serializeSelection,
-	type SDCPN,
-	type SelectionMap,
+  parseClipboardPayload,
+  serializeSelection,
+  type SDCPN,
+  type SelectionMap,
 } from "@hashintel/petrinaut-core";
+
 import type { PetrinautCommands } from "../../react";
 
 /**
  * Copy the current selection to the system clipboard.
  */
 export async function copySelectionToClipboard(
-	sdcpn: SDCPN,
-	selection: SelectionMap,
-	documentId: string | null,
+  sdcpn: SDCPN,
+  selection: SelectionMap,
+  documentId: string | null,
 ): Promise<void> {
-	const payload = serializeSelection(sdcpn, selection, documentId);
-	const json = JSON.stringify(payload);
-	try {
-		await navigator.clipboard.writeText(json);
-	} catch {
-		// Clipboard write can fail (permissions denied, non-secure context, etc.)
-	}
+  const payload = serializeSelection(sdcpn, selection, documentId);
+  const json = JSON.stringify(payload);
+  try {
+    await navigator.clipboard.writeText(json);
+  } catch {
+    // Clipboard write can fail (permissions denied, non-secure context, etc.)
+  }
 }
 
 /**
@@ -30,21 +31,21 @@ export async function copySelectionToClipboard(
  * petrinaut data.
  */
 export async function pasteFromClipboard(
-	applyClipboardPaste: PetrinautCommands["applyClipboardPaste"],
+  applyClipboardPaste: PetrinautCommands["applyClipboardPaste"],
 ): Promise<Array<{ type: string; id: string }> | null> {
-	let text: string;
-	try {
-		text = await navigator.clipboard.readText();
-	} catch {
-		// Clipboard read can fail (permissions denied, non-secure context, etc.)
-		return null;
-	}
-	const payload = parseClipboardPayload(text);
+  let text: string;
+  try {
+    text = await navigator.clipboard.readText();
+  } catch {
+    // Clipboard read can fail (permissions denied, non-secure context, etc.)
+    return null;
+  }
+  const payload = parseClipboardPayload(text);
 
-	if (!payload) {
-		return null;
-	}
+  if (!payload) {
+    return null;
+  }
 
-	const { newItemIds } = applyClipboardPaste({ payload });
-	return newItemIds;
+  const { newItemIds } = applyClipboardPaste({ payload });
+  return newItemIds;
 }

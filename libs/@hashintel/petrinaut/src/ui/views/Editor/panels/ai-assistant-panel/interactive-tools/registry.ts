@@ -1,5 +1,6 @@
-import type { AiToolOutput } from "../tool-summaries";
 import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
+
+import type { AiToolOutput } from "../tool-summaries";
 import type { InteractiveToolDefinition } from "./types";
 
 /**

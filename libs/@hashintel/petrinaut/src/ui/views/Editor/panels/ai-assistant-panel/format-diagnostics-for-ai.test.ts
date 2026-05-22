@@ -1,4 +1,3 @@
-import type { SDCPN } from "@hashintel/petrinaut-core";
 import { describe, expect, test } from "vitest";
 import {
   type Diagnostic,
@@ -6,6 +5,8 @@ import {
 } from "vscode-languageserver-types";
 
 import { formatDiagnosticsForAi } from "./format-diagnostics-for-ai";
+
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const definition: SDCPN = {
   places: [],

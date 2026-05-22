@@ -18,6 +18,7 @@ import {
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
+
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
