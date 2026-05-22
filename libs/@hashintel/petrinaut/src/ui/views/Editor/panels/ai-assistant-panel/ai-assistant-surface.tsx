@@ -18,7 +18,10 @@ import {
   petrinautAiMutationTools,
 } from "../../../../../core/ai";
 import type { SelectionItem } from "../../../../../core/types/selection";
+import { getInteractiveTool } from "./interactive-tools/registry";
+import type { InteractiveToolDefinition } from "./interactive-tools/types";
 import {
+  type AiToolOutput,
   type AiToolTarget,
   type AiToolSummary,
   summarizePetrinautAiToolCall,
@@ -35,6 +38,12 @@ type ToolRenderItem = {
   summary: AiToolSummary;
   tone: ToolTone;
   toolName: string;
+  /** Set when the tool requires an inline widget for human input. */
+  interactive?: {
+    definition: InteractiveToolDefinition<unknown, AiToolOutput>;
+    input: unknown;
+    submittedOutput?: AiToolOutput;
+  };
 };
 
 type MessagePart = PetrinautAiMessage["parts"][number];
@@ -62,6 +71,11 @@ export type AiAssistantSurfaceProps = {
   onClearMessages?: () => void;
   onClose: () => void;
   onInputChange: (value: string) => void;
+  onInteractiveToolSubmit?: (params: {
+    toolCallId: string;
+    toolName: string;
+    output: AiToolOutput;
+  }) => void;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onStop: () => void;
   onSubmit: () => void;
@@ -823,6 +837,18 @@ const toToolRenderItem = (
   const summary = getToolSummaryFromPart(part);
   const toolName = getToolName(part);
 
+  const interactiveDefinition = getInteractiveTool(toolName, part.input);
+  const interactive = interactiveDefinition
+    ? {
+        definition: interactiveDefinition,
+        input: part.input,
+        submittedOutput:
+          state === "output-available" && part.output
+            ? (part.output as AiToolOutput)
+            : undefined,
+      }
+    : undefined;
+
   return {
     id:
       typeof part.toolCallId === "string"
@@ -832,6 +858,7 @@ const toToolRenderItem = (
     summary,
     tone: getToolTone({ state, summary, toolName }),
     toolName,
+    interactive,
   };
 };
 
@@ -1007,12 +1034,40 @@ const ReasoningPart = ({
 };
 
 const ToolItem = ({
+  onInteractiveToolSubmit,
   onSelectToolTarget,
   tool,
 }: {
+  onInteractiveToolSubmit?: AiAssistantSurfaceProps["onInteractiveToolSubmit"];
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tool: ToolRenderItem;
 }) => {
+  if (tool.interactive) {
+    const { definition, input, submittedOutput } = tool.interactive;
+    const submitted = tool.state === "output-available";
+    const Widget = definition.Widget;
+    let typedInput: unknown;
+    try {
+      typedInput = definition.parseInput(input);
+    } catch {
+      typedInput = input;
+    }
+    return (
+      <Widget
+        input={typedInput}
+        submit={(output) => {
+          onInteractiveToolSubmit?.({
+            toolCallId: tool.id,
+            toolName: tool.toolName,
+            output,
+          });
+        }}
+        state={submitted ? "submitted" : "awaiting"}
+        submittedOutput={submittedOutput}
+      />
+    );
+  }
+
   const complete = tool.state === "output-available";
   const errored = tool.state === "output-error";
   const target = tool.summary.target;
@@ -1073,9 +1128,11 @@ const ToolItem = ({
 };
 
 const ToolListContent = ({
+  onInteractiveToolSubmit,
   onSelectToolTarget,
   tools,
 }: {
+  onInteractiveToolSubmit?: AiAssistantSurfaceProps["onInteractiveToolSubmit"];
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
 }) => (
@@ -1084,6 +1141,7 @@ const ToolListContent = ({
       <ToolItem
         key={tool.id}
         tool={tool}
+        onInteractiveToolSubmit={onInteractiveToolSubmit}
         onSelectToolTarget={onSelectToolTarget}
       />
     ))}
@@ -1091,9 +1149,11 @@ const ToolListContent = ({
 );
 
 const ToolList = ({
+  onInteractiveToolSubmit,
   onSelectToolTarget,
   tools,
 }: {
+  onInteractiveToolSubmit?: AiAssistantSurfaceProps["onInteractiveToolSubmit"];
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
 }) => {
@@ -1106,6 +1166,7 @@ const ToolList = ({
       <div className={toolListStyle({ kind: "single" })}>
         <ToolListContent
           tools={tools}
+          onInteractiveToolSubmit={onInteractiveToolSubmit}
           onSelectToolTarget={onSelectToolTarget}
         />
       </div>
@@ -1125,6 +1186,7 @@ const ToolList = ({
         <div className={toolGroupPanelStyle}>
           <ToolListContent
             tools={tools}
+            onInteractiveToolSubmit={onInteractiveToolSubmit}
             onSelectToolTarget={onSelectToolTarget}
           />
         </div>
@@ -1140,6 +1202,7 @@ export const AiAssistantSurface = ({
   onClearMessages,
   onClose,
   onInputChange,
+  onInteractiveToolSubmit,
   onSelectToolTarget,
   onStop,
   onSubmit,
@@ -1289,6 +1352,7 @@ export const AiAssistantSurface = ({
                         <ToolList
                           key={item.key}
                           tools={item.tools}
+                          onInteractiveToolSubmit={onInteractiveToolSubmit}
                           onSelectToolTarget={onSelectToolTarget}
                         />
                       );

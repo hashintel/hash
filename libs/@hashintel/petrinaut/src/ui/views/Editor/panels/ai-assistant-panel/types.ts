@@ -3,10 +3,11 @@ import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
 import type {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
+  PetrinautAiCommandToolInput,
+  PetrinautAiCommandToolName,
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,
   PetrinautAiToolInput,
-  PetrinautAiToolName,
 } from "../../../../../core/ai";
 import type { SDCPN } from "../../../../../core/types/sdcpn";
 import type { AiToolOutput } from "./tool-summaries";
@@ -14,6 +15,11 @@ import type { AiToolOutput } from "./tool-summaries";
 type PetrinautAiUiTools = {
   [Name in PetrinautAiMutationToolName]: {
     input: PetrinautAiMutationToolInput<Name>;
+    output: AiToolOutput;
+  };
+} & {
+  [Name in PetrinautAiCommandToolName]: {
+    input: PetrinautAiCommandToolInput<Name>;
     output: AiToolOutput;
   };
 } & {

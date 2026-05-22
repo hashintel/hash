@@ -3,15 +3,17 @@ import { use, useEffect, useRef, useState } from "react";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
 
 import {
-  createPetrinautMutationAiToolCallbacks,
+  createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
-  type PetrinautAiMutationToolInput,
   type PetrinautAiMutationToolName,
 } from "../../../../core/ai";
+import {
+  aiCommandActionInputSchemas,
+  type AiCommandActionName,
+} from "../../../../core/command-schemas";
 import type { Petrinaut } from "../../../../core/instance";
-import type { SDCPN } from "../../../../core/types/sdcpn";
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
 import {
@@ -19,15 +21,21 @@ import {
   type EditorContextValue,
 } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import {
+  formatReadOnlyReason,
+  useReadOnlyReason,
+} from "../../../../react/state/use-read-only-reason";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import { AiAssistantSurface } from "./ai-assistant-panel/ai-assistant-surface";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
+import { getInteractiveTool } from "./ai-assistant-panel/interactive-tools/registry";
 import {
   type AiToolOutput,
   type AiToolCall,
   type AiToolTarget,
+  summarizeApplyAutoLayout,
   summarizePetrinautAiToolCall,
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
@@ -67,6 +75,10 @@ const isPetrinautAiMutationToolName = (
   toolName: string,
 ): toolName is PetrinautAiMutationToolName =>
   toolName in petrinautAiMutationToolInputSchemas;
+
+const isPetrinautAiCommandToolName = (
+  toolName: string,
+): toolName is AiCommandActionName => toolName in aiCommandActionInputSchemas;
 
 const logToolCallError = ({
   error,
@@ -172,19 +184,15 @@ const waitForDiagnosticsRefresh = async ({
   });
 };
 
-const applyPetrinautAiTool = <Name extends PetrinautAiMutationToolName>({
-  definition,
-  input,
+const applyPetrinautAiMutation = ({
+  aiToolCall,
   instance,
-  toolName,
 }: {
-  definition: SDCPN;
-  input: PetrinautAiMutationToolInput<Name>;
+  aiToolCall: Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
   instance: Petrinaut;
-  toolName: Name;
 }): AiToolOutput => {
-  const toolCallbacks = createPetrinautMutationAiToolCallbacks(instance);
-  const aiToolCall: AiToolCall = { input, toolName } as AiToolCall;
+  const definition = instance.definition.get();
+  const toolCallbacks = createPetrinautAiWritableCallbacks(instance);
   const summary = summarizePetrinautAiToolCall(aiToolCall, { definition });
   const callback = toolCallbacks[aiToolCall.toolName] as (
     input: typeof aiToolCall.input,
@@ -193,6 +201,24 @@ const applyPetrinautAiTool = <Name extends PetrinautAiMutationToolName>({
   callback(aiToolCall.input);
 
   return toPetrinautAiToolOutput(summary);
+};
+
+const applyPetrinautAiCommand = async ({
+  aiToolCall,
+  instance,
+}: {
+  aiToolCall: Extract<AiToolCall, { toolName: AiCommandActionName }>;
+  instance: Petrinaut;
+}): Promise<AiToolOutput> => {
+  // Exhaustive switch over AiCommandActionName — extending the AI command
+  // surface will surface a TypeScript error here until the new case is added.
+  switch (aiToolCall.toolName) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    case "applyAutoLayout": {
+      const { commitCount } = await instance.commands.applyAutoLayout();
+      return toPetrinautAiToolOutput(summarizeApplyAutoLayout({ commitCount }));
+    }
+  }
 };
 
 export const AiAssistantPanel = ({
@@ -205,6 +231,11 @@ export const AiAssistantPanel = ({
   onInitialMessageConsumed?: () => void;
 }) => {
   const instance = use(PetrinautInstanceContext);
+  const readOnlyReason = useReadOnlyReason();
+  const readOnlyReasonRef = useRef(readOnlyReason);
+  useEffect(() => {
+    readOnlyReasonRef.current = readOnlyReason;
+  }, [readOnlyReason]);
   const { diagnosticsByUri } = use(LanguageClientContext);
   const {
     hasSelection,
@@ -329,24 +360,73 @@ export const AiAssistantPanel = ({
           return;
         }
 
-        if (!isPetrinautAiMutationToolName(toolCall.toolName)) {
-          throw new Error(`Unknown Petrinaut AI tool: ${toolCall.toolName}`);
+        const toolName = toolCall.toolName;
+        if (
+          !isPetrinautAiMutationToolName(toolName) &&
+          !isPetrinautAiCommandToolName(toolName)
+        ) {
+          throw new Error(
+            `Unknown Petrinaut AI tool: ${String(toolName as string)}`,
+          );
         }
 
-        const toolInput = petrinautAiMutationToolInputSchemas[
-          toolCall.toolName
-        ].parse(toolCall.input);
+        const currentReadOnlyReason = readOnlyReasonRef.current;
+        if (currentReadOnlyReason !== null) {
+          safelyAddToolOutput(addToolOutput, {
+            tool: toolName,
+            toolCallId: toolCall.toolCallId,
+            output: {
+              applied: false,
+              blocked: currentReadOnlyReason.kind,
+              reason: formatReadOnlyReason(currentReadOnlyReason),
+            } satisfies AiToolOutput,
+          });
+          return;
+        }
+
+        if (isPetrinautAiCommandToolName(toolName)) {
+          const commandInput = aiCommandActionInputSchemas[toolName].parse(
+            toolCall.input,
+          );
+          if (getInteractiveTool(toolName, commandInput)) {
+            // Defer: the surface will render the widget and call
+            // onInteractiveToolSubmit when the user decides.
+            return;
+          }
+          pendingMutationDiagnosticsVersionRef.current =
+            diagnosticsVersionRef.current;
+          const aiToolCall = {
+            toolName,
+            input: commandInput,
+          } as Extract<AiToolCall, { toolName: AiCommandActionName }>;
+          const output = await applyPetrinautAiCommand({
+            aiToolCall,
+            instance,
+          });
+          safelyAddToolOutput(addToolOutput, {
+            tool: toolName,
+            toolCallId: toolCall.toolCallId,
+            output,
+          });
+          return;
+        }
+
+        const toolInput = petrinautAiMutationToolInputSchemas[toolName].parse(
+          toolCall.input,
+        );
         pendingMutationDiagnosticsVersionRef.current =
           diagnosticsVersionRef.current;
-        const output = applyPetrinautAiTool({
-          definition: instance.definition.get(),
+        const aiToolCall = {
+          toolName,
           input: toolInput,
+        } as Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }>;
+        const output = applyPetrinautAiMutation({
+          aiToolCall,
           instance,
-          toolName: toolCall.toolName,
         });
 
         safelyAddToolOutput(addToolOutput, {
-          tool: toolCall.toolName,
+          tool: toolName,
           toolCallId: toolCall.toolCallId,
           output,
         });
@@ -434,6 +514,48 @@ export const AiAssistantPanel = ({
       }}
       onClose={() => setAiAssistantOpen(false)}
       onInputChange={setInput}
+      onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
+        if (!isPetrinautAiCommandToolName(toolName)) {
+          // Defensive — the registry only exposes AI command tools today.
+          return;
+        }
+        // applyAutoLayout is the only interactive command today. The widget
+        // signals "apply" by passing `{ applied: true }`; we still need to
+        // run the command to compute the real commitCount before reporting
+        // the outcome to the AI. Decline outputs are forwarded verbatim.
+        if (output.applied !== true) {
+          safelyAddToolOutput(addToolOutput, {
+            tool: toolName,
+            toolCallId,
+            output,
+          });
+          return;
+        }
+        const readOnlyAtSubmit = readOnlyReasonRef.current;
+        if (readOnlyAtSubmit !== null) {
+          safelyAddToolOutput(addToolOutput, {
+            tool: toolName,
+            toolCallId,
+            output: {
+              applied: false,
+              blocked: readOnlyAtSubmit.kind,
+              reason: formatReadOnlyReason(readOnlyAtSubmit),
+            } satisfies AiToolOutput,
+          });
+          return;
+        }
+        pendingMutationDiagnosticsVersionRef.current =
+          diagnosticsVersionRef.current;
+        void instance.commands.applyAutoLayout().then((result) => {
+          safelyAddToolOutput(addToolOutput, {
+            tool: toolName,
+            toolCallId,
+            output: toPetrinautAiToolOutput(
+              summarizeApplyAutoLayout({ commitCount: result.commitCount }),
+            ),
+          });
+        });
+      }}
       onSelectToolTarget={(target) =>
         selectTarget(target, {
           selectItem,

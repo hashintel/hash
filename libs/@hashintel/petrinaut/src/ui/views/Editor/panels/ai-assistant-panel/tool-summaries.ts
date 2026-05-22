@@ -1,8 +1,11 @@
 import type {
+  PetrinautAiCommandToolInput,
+  PetrinautAiCommandToolName,
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,
 } from "../../../../../core/ai";
 import { generateArcId } from "../../../../../core/arc-id";
+import type { ReadOnlyReason } from "../../../../../react/state/use-read-only-reason";
 import type { SDCPN } from "../../../../../core/types/sdcpn";
 import type { SelectionItem } from "../../../../../core/types/selection";
 
@@ -13,7 +16,21 @@ export type AiToolSummary = {
   target?: AiToolTarget;
 };
 
-export type AiToolOutput = AiToolSummary & { applied: true };
+export type AiToolBlockedOutput = {
+  applied: false;
+  blocked: ReadOnlyReason["kind"];
+  reason: string;
+};
+
+export type AiToolDeclinedOutput = {
+  applied: false;
+  reason: string;
+};
+
+export type AiToolOutput =
+  | (AiToolSummary & { applied: true })
+  | AiToolBlockedOutput
+  | AiToolDeclinedOutput;
 
 export type AiToolTarget =
   | { kind: "selection"; item: SelectionItem }
@@ -29,6 +46,8 @@ export const toPetrinautAiToolOutput = (
   ...summary,
   applied: true,
 });
+
+export type AiToolAppliedSummary = AiToolSummary & { applied: true };
 
 const prettifyToolName = (toolName: string): string =>
   toolName
@@ -158,12 +177,35 @@ const selectionTarget = (item: SelectionItem): AiToolTarget => ({
   item,
 });
 
-export type AiToolCall = {
-  [Name in PetrinautAiMutationToolName]: {
-    toolName: Name;
-    input: PetrinautAiMutationToolInput<Name>;
+export type AiToolCall =
+  | {
+      [Name in PetrinautAiMutationToolName]: {
+        toolName: Name;
+        input: PetrinautAiMutationToolInput<Name>;
+      };
+    }[PetrinautAiMutationToolName]
+  | {
+      [Name in PetrinautAiCommandToolName]: {
+        toolName: Name;
+        input: PetrinautAiCommandToolInput<Name>;
+      };
+    }[PetrinautAiCommandToolName];
+
+export type AiToolApplyAutoLayoutSummaryContext = {
+  commitCount: number;
+};
+
+export const summarizeApplyAutoLayout = (
+  context: AiToolApplyAutoLayoutSummaryContext,
+): AiToolSummary => {
+  const { commitCount } = context;
+  return {
+    title:
+      commitCount === 0
+        ? "Auto-layout had no effect"
+        : `Auto-laid out ${commitCount} node${commitCount === 1 ? "" : "s"}`,
   };
-}[PetrinautAiMutationToolName];
+};
 
 export const summarizePetrinautAiToolCall = (
   { input, toolName }: AiToolCall,
@@ -486,6 +528,12 @@ export const summarizePetrinautAiToolCall = (
         title: `Moved ${input.commits.length} node${
           input.commits.length === 1 ? "" : "s"
         }`,
+      };
+    case "applyAutoLayout":
+      return {
+        title: input.askUserFirst
+          ? "Requested auto-layout (awaiting user confirmation)"
+          : "Auto-laid out the net",
       };
     default:
       return { title: prettifyToolName(toolName) };

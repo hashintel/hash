@@ -3,8 +3,8 @@ import { use } from "react";
 
 import { scenarioSchema, type Color } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
@@ -109,7 +109,7 @@ export const CreateScenarioDrawer = ({
   onClose,
 }: CreateScenarioDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { addScenario } = use(MutationContext);
+  const { addScenario } = usePetrinautMutations();
 
   const existingScenarioNames = new Set(
     (petriNetDefinition.scenarios ?? []).map((s) => s.name),

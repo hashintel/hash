@@ -9,7 +9,6 @@ export {
   useDocumentId,
   useDocumentState,
   useIsDocumentReady,
-  useMutate,
   usePetrinautDefinition,
   usePetrinautDefinitionSelector,
   usePetrinautPatches,
@@ -58,6 +57,19 @@ export {
 
 // Re-export the existing read-only hook from its current location.
 export { useIsReadOnly } from "../state/use-is-read-only";
+export {
+  formatReadOnlyReason,
+  useReadOnlyReason,
+  type ReadOnlyReason,
+} from "../state/use-read-only-reason";
+
+// Mutation + command surfaces.
+export { usePetrinautMutations } from "./use-petrinaut-mutations";
+export { usePetrinautCommands } from "./use-petrinaut-commands";
+export type {
+  PetrinautCommands,
+  PetrinautMutations,
+} from "../../core/instance";
 
 // Instance access + low-level store adapter.
 export { usePetrinautInstance } from "../use-petrinaut-instance";

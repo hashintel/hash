@@ -4,8 +4,8 @@ import { Checkbox, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
@@ -350,7 +350,7 @@ const PlaceMainContent: React.FC = () => {
 
 const DeletePlaceAction: React.FC = () => {
   const { place, isReadOnly } = usePlacePropertiesContext();
-  const { removePlace } = use(MutationContext);
+  const { removePlace } = usePetrinautMutations();
 
   return (
     <Button

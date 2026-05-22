@@ -7,8 +7,8 @@ import {
   type Metric,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
@@ -108,7 +108,7 @@ const ViewMetricContent = ({
   onClose: () => void;
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { updateMetric, removeMetric } = use(MutationContext);
+  const { updateMetric, removeMetric } = usePetrinautMutations();
 
   // Names of OTHER metrics — exclude the one being edited so it can keep
   // its current name without triggering the "already exists" error.

@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { Color, Place } from "@hashintel/petrinaut-core";
 
 /**
@@ -17,7 +17,7 @@ interface PlacePropertiesContextValue {
   /** Whether the panel is in read-only mode */
   isReadOnly: boolean;
   /** Function to update the place */
-  updatePlace: MutationContextValue["updatePlace"];
+  updatePlace: PetrinautMutations["updatePlace"];
 }
 
 const PlacePropertiesContext =
@@ -42,7 +42,7 @@ interface PlacePropertiesProviderProps {
   placeType: Color | null;
   types: Color[];
   isReadOnly: boolean;
-  updatePlace: MutationContextValue["updatePlace"];
+  updatePlace: PetrinautMutations["updatePlace"];
   children: ReactNode;
 }
 

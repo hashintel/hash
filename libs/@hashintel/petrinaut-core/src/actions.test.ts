@@ -39,7 +39,7 @@ describe("Petrinaut core actions", () => {
   test("adds and updates places", () => {
     const instance = createInstance();
 
-    instance.addPlace({
+    instance.mutations.addPlace({
       id: "place-1",
       name: "Queue",
       colorId: null,
@@ -48,13 +48,13 @@ describe("Petrinaut core actions", () => {
       x: 0,
       y: 0,
     });
-    instance.updatePlace({
+    instance.mutations.updatePlace({
       placeId: "place-1",
       update: {
         name: "UpdatedQueue",
       },
     });
-    instance.updatePlacePosition({
+    instance.mutations.updatePlacePosition({
       placeId: "place-1",
       position: { x: 12, y: 24 },
     });
@@ -110,7 +110,7 @@ describe("Petrinaut core actions", () => {
       ],
     });
 
-    instance.removePlace({ placeId: "place-1" });
+    instance.mutations.removePlace({ placeId: "place-1" });
 
     const definition = instance.definition.get();
     expect(definition.places.map((place) => place.id)).toEqual(["place-2"]);
@@ -138,13 +138,13 @@ describe("Petrinaut core actions", () => {
       ],
     });
 
-    instance.updateArcPlace({
+    instance.mutations.updateArcPlace({
       transitionId: "transition-1",
       arcDirection: "input",
       oldPlaceId: "place-1",
       newPlaceId: "place-3",
     });
-    instance.updateArcPlace({
+    instance.mutations.updateArcPlace({
       transitionId: "transition-1",
       arcDirection: "output",
       oldPlaceId: "place-2",
@@ -174,21 +174,21 @@ describe("Petrinaut core actions", () => {
       ],
     });
 
-    instance.addTypeElement({
+    instance.mutations.addTypeElement({
       typeId: "type-1",
       element: { elementId: "element-3", name: "Charge", type: "integer" },
     });
-    instance.updateTypeElement({
+    instance.mutations.updateTypeElement({
       typeId: "type-1",
       elementId: "element-1",
       update: { name: "MassKg" },
     });
-    instance.moveTypeElement({
+    instance.mutations.moveTypeElement({
       typeId: "type-1",
       elementId: "element-3",
       toIndex: 1,
     });
-    instance.removeTypeElement({
+    instance.mutations.removeTypeElement({
       typeId: "type-1",
       elementId: "element-2",
     });
@@ -232,7 +232,7 @@ describe("Petrinaut core actions", () => {
       ],
     });
 
-    instance.deleteItemsByIds({
+    instance.mutations.deleteItemsByIds({
       items: [
         { type: "type", id: "type-1" },
         { type: "differentialEquation", id: "equation-1" },
@@ -252,7 +252,7 @@ describe("Petrinaut core actions", () => {
       readonly: true,
     });
 
-    instance.addPlace({
+    instance.mutations.addPlace({
       id: "place-1",
       name: "Queue",
       colorId: null,
@@ -269,7 +269,7 @@ describe("Petrinaut core actions", () => {
     const instance = createInstance();
 
     expect(() =>
-      instance.addPlace({
+      instance.mutations.addPlace({
         id: "",
         name: "Queue",
         colorId: null,
@@ -286,7 +286,7 @@ describe("Petrinaut core actions", () => {
   test("validates callback-updated entities", () => {
     const instance = createInstance();
 
-    instance.addPlace({
+    instance.mutations.addPlace({
       id: "place-1",
       name: "Queue",
       colorId: null,
@@ -297,7 +297,7 @@ describe("Petrinaut core actions", () => {
     });
 
     expect(() =>
-      instance.updatePlace({
+      instance.mutations.updatePlace({
         placeId: "place-1",
         update: {
           name: "",
@@ -310,62 +310,65 @@ describe("Petrinaut core actions", () => {
     const instance = createInstance();
 
     expect(() =>
-      callActionWithUnknownInput(instance.updatePlace, {
+      callActionWithUnknownInput(instance.mutations.updatePlace, {
         placeId: "place-1",
         update: { id: "place-2" },
       }),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updatePlace, {
+      callActionWithUnknownInput(instance.mutations.updatePlace, {
         placeId: "place-1",
         update: { x: 10 },
       }),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updateTransition, {
+      callActionWithUnknownInput(instance.mutations.updateTransition, {
         transitionId: "transition-1",
         update: { inputArcs: [] },
       }),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updateTransition, {
+      callActionWithUnknownInput(instance.mutations.updateTransition, {
         transitionId: "transition-1",
         update: { y: 10 },
       }),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updateType, {
+      callActionWithUnknownInput(instance.mutations.updateType, {
         typeId: "type-1",
         update: { elements: [] },
       }),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updateTypeElement, {
+      callActionWithUnknownInput(instance.mutations.updateTypeElement, {
         typeId: "type-1",
         elementId: "element-1",
         update: { elementId: "element-2" },
       }),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updateDifferentialEquation, {
-        equationId: "equation-1",
-        update: { id: "equation-2" },
-      }),
+      callActionWithUnknownInput(
+        instance.mutations.updateDifferentialEquation,
+        {
+          equationId: "equation-1",
+          update: { id: "equation-2" },
+        },
+      ),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updateParameter, {
+      callActionWithUnknownInput(instance.mutations.updateParameter, {
         parameterId: "parameter-1",
         update: { id: "parameter-2" },
       }),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updateScenario, {
+      callActionWithUnknownInput(instance.mutations.updateScenario, {
         scenarioId: "scenario-1",
         update: { id: "scenario-2" },
       }),
     ).toThrow();
     expect(() =>
-      callActionWithUnknownInput(instance.updateMetric, {
+      callActionWithUnknownInput(instance.mutations.updateMetric, {
         metricId: "metric-1",
         update: { id: "metric-2" },
       }),
@@ -400,7 +403,7 @@ describe("Petrinaut core actions", () => {
     });
 
     expect(() =>
-      instance.updateArcPlace({
+      instance.mutations.updateArcPlace({
         transitionId: "transition-1",
         arcDirection: "input",
         oldPlaceId: "place-1",
@@ -408,13 +411,13 @@ describe("Petrinaut core actions", () => {
       }),
     ).toThrow();
     expect(() =>
-      instance.addTypeElement({
+      instance.mutations.addTypeElement({
         typeId: "type-1",
         element: { elementId: "element-2", name: "", type: "real" },
       }),
     ).toThrow();
     expect(() =>
-      instance.moveTypeElement({
+      instance.mutations.moveTypeElement({
         typeId: "type-1",
         elementId: "element-1",
         toIndex: -1,
@@ -433,7 +436,7 @@ describe("Petrinaut core actions", () => {
     const instance = createInstance();
 
     expect(() =>
-      instance.addPlace({
+      instance.mutations.addPlace({
         id: "place-1",
         name: "invalid place name",
         colorId: null,
@@ -445,7 +448,7 @@ describe("Petrinaut core actions", () => {
     ).toThrow();
 
     expect(() =>
-      instance.addTransition({
+      instance.mutations.addTransition({
         id: "transition-1",
         name: "Display Name",
         inputArcs: [],
@@ -463,7 +466,7 @@ describe("Petrinaut core actions", () => {
     const instance = createInstance();
 
     expect(() =>
-      instance.addScenario({
+      instance.mutations.addScenario({
         id: "scenario-1",
         name: "Scenario",
         scenarioParameters: [
@@ -476,7 +479,7 @@ describe("Petrinaut core actions", () => {
     ).toThrow();
 
     expect(() =>
-      instance.addScenario({
+      instance.mutations.addScenario({
         id: "scenario-1",
         name: "Scenario",
         scenarioParameters: [

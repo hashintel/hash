@@ -3,8 +3,8 @@ import { use } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautMutations } from "../../../../../../react";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import {
@@ -47,7 +47,7 @@ interface EntityTreeItem {
 
 const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   const { removeType, removeDifferentialEquation, removeParameter } =
-    use(MutationContext);
+    usePetrinautMutations();
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 

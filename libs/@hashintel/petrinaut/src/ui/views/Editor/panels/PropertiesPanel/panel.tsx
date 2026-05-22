@@ -2,8 +2,8 @@ import { use, useCallback, useEffect, useState } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautMutations } from "../../../../../react";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../react/state/mutation-context";
 import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../../react/state/panel-defaults";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
@@ -82,7 +82,7 @@ export const PropertiesPanel: React.FC = () => {
     updateDifferentialEquation,
     updateParameter,
     deleteItemsByIds,
-  } = use(MutationContext);
+  } = usePetrinautMutations();
 
   const panelTarget = usePanelTarget();
 

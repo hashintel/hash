@@ -9,7 +9,6 @@ import {
 import { ExperimentsProvider } from "./experiments/provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
-import { MutationProvider } from "./mutation-provider";
 import {
   NetManagementContext,
   type NetManagement,
@@ -79,9 +78,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
             <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
               <PlaybackProvider>
                 <UserSettingsProvider>
-                  <EditorProvider>
-                    <MutationProvider>{children}</MutationProvider>
-                  </EditorProvider>
+                  <EditorProvider>{children}</EditorProvider>
                 </UserSettingsProvider>
               </PlaybackProvider>
             </ExperimentsProvider>

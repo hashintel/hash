@@ -1,11 +1,11 @@
 import { createContext, use } from "react";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { Parameter } from "@hashintel/petrinaut-core";
 
 export interface ParameterPropertiesContextValue {
   parameter: Parameter;
-  updateParameter: MutationContextValue["updateParameter"];
+  updateParameter: PetrinautMutations["updateParameter"];
 }
 
 export const ParameterPropertiesContext =

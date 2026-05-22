@@ -4,7 +4,7 @@ import { VerticalSubViewsContainer } from "../../../../../components/sub-view/ve
 import { ParameterPropertiesContext } from "./context";
 import { parameterMainContentSubView } from "./subviews/main";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Parameter } from "@hashintel/petrinaut-core";
 
@@ -19,7 +19,7 @@ const subViews: SubView[] = [parameterMainContentSubView];
 
 interface ParameterPropertiesProps {
   parameter: Parameter;
-  updateParameter: MutationContextValue["updateParameter"];
+  updateParameter: PetrinautMutations["updateParameter"];
 }
 
 export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({

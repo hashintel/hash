@@ -5,7 +5,7 @@ import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../../react/state/mutation-context";
+import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { Button } from "../../../../../components/button";
@@ -33,7 +33,7 @@ export const ParametersHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { parameters },
   } = use(SDCPNContext);
-  const { addParameter } = use(MutationContext);
+  const { addParameter } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
@@ -66,7 +66,7 @@ export const ParametersHeaderAction: React.FC = () => {
 };
 
 const ParameterRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
-  const { removeParameter } = use(MutationContext);
+  const { removeParameter } = usePetrinautMutations();
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 

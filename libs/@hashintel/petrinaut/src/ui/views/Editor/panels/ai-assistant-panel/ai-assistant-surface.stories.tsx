@@ -305,3 +305,62 @@ export const ToolError: Story = {
 export const NetworkError: Story = {
   render: () => <Frame error={errorMessage} messages={[userMessage]} />,
 };
+
+const applyAutoLayoutPendingMessage: PetrinautAiMessage = {
+  id: "assistant-apply-auto-layout-pending",
+  role: "assistant",
+  parts: [
+    {
+      type: "tool-applyAutoLayout",
+      state: "input-available",
+      toolCallId: "tool-apply-auto-layout-pending",
+      input: { askUserFirst: true },
+    },
+  ],
+};
+
+const applyAutoLayoutAppliedMessage: PetrinautAiMessage = {
+  id: "assistant-apply-auto-layout-applied",
+  role: "assistant",
+  parts: [
+    {
+      type: "tool-applyAutoLayout",
+      state: "output-available",
+      toolCallId: "tool-apply-auto-layout-applied",
+      input: { askUserFirst: true },
+      output: { applied: true, title: "Auto-laid out 8 nodes" },
+    },
+  ],
+};
+
+const applyAutoLayoutDeclinedMessage: PetrinautAiMessage = {
+  id: "assistant-apply-auto-layout-declined",
+  role: "assistant",
+  parts: [
+    {
+      type: "tool-applyAutoLayout",
+      state: "output-available",
+      toolCallId: "tool-apply-auto-layout-declined",
+      input: { askUserFirst: true },
+      output: { applied: false, reason: "User declined auto-layout." },
+    },
+  ],
+};
+
+export const ApplyAutoLayoutAwaitingConfirmation: Story = {
+  render: () => (
+    <Frame messages={[userMessage, applyAutoLayoutPendingMessage]} />
+  ),
+};
+
+export const ApplyAutoLayoutApplied: Story = {
+  render: () => (
+    <Frame messages={[userMessage, applyAutoLayoutAppliedMessage]} />
+  ),
+};
+
+export const ApplyAutoLayoutDeclined: Story = {
+  render: () => (
+    <Frame messages={[userMessage, applyAutoLayoutDeclinedMessage]} />
+  ),
+};

@@ -1,15 +1,15 @@
 import { createContext, use } from "react";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { Color } from "@hashintel/petrinaut-core";
 
 export interface TypePropertiesContextValue {
   type: Color;
-  updateType: MutationContextValue["updateType"];
-  addTypeElement: MutationContextValue["addTypeElement"];
-  updateTypeElement: MutationContextValue["updateTypeElement"];
-  removeTypeElement: MutationContextValue["removeTypeElement"];
-  moveTypeElement: MutationContextValue["moveTypeElement"];
+  updateType: PetrinautMutations["updateType"];
+  addTypeElement: PetrinautMutations["addTypeElement"];
+  updateTypeElement: PetrinautMutations["updateTypeElement"];
+  removeTypeElement: PetrinautMutations["removeTypeElement"];
+  moveTypeElement: PetrinautMutations["moveTypeElement"];
 }
 
 export const TypePropertiesContext =

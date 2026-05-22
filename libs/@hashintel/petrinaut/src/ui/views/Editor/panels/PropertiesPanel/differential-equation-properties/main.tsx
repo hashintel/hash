@@ -4,7 +4,7 @@ import { VerticalSubViewsContainer } from "../../../../../components/sub-view/ve
 import { DiffEqPropertiesContext } from "./context";
 import { diffEqMainContentSubView } from "./subviews/main";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   Color,
@@ -25,7 +25,7 @@ interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
   types: Color[];
   places: Place[];
-  updateDifferentialEquation: MutationContextValue["updateDifferentialEquation"];
+  updateDifferentialEquation: PetrinautMutations["updateDifferentialEquation"];
 }
 
 export const DifferentialEquationProperties: React.FC<
