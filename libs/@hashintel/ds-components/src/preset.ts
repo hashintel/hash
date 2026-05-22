@@ -198,7 +198,6 @@ export function createPreset(options?: PresetOptions) {
             },
           },
         },
-        // @ts-expect-error -- Panda supports colorPalette here, but the preset theme type omits it
         colorPalette: {
           enabled: true,
           include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
