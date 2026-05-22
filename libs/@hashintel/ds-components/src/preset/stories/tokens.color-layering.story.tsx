@@ -5,16 +5,14 @@ import { useState } from "react";
 
 import type { PaletteName } from "./_types";
 
-const COLOR_PALETTES = [
+const COLOR_PALETTES: readonly PaletteName[] = [
   "neutral",
   "blue",
   "red",
   "orange",
   "green",
   "purple",
-] as const satisfies readonly PaletteName[];
-
-type PaletteNameToShow = (typeof COLOR_PALETTES)[number];
+];
 
 type BgLevel = "min" | "surface" | "subtle" | "shaded" | "solid";
 type BdLevel = "subtle" | "solid" | "strong";
@@ -47,8 +45,8 @@ const mono = css({
   textStyle: "xs",
 });
 
-const NestedLayers = ({ palette }: { palette: PaletteNameToShow }) => (
-  <Box colorPalette={palette}>
+const NestedLayers = ({ palette }: { palette: PaletteName }) => (
+  <Box colorPalette={palette as "bg.min"}>
     <span className={sectionTitle}>
       Nested <code className={mono}>bg.subtle</code> layers
     </span>
@@ -67,8 +65,8 @@ const NestedLayers = ({ palette }: { palette: PaletteNameToShow }) => (
   </Box>
 );
 
-const NestedSurface = ({ palette }: { palette: PaletteNameToShow }) => (
-  <Box colorPalette={palette}>
+const NestedSurface = ({ palette }: { palette: PaletteName }) => (
+  <Box colorPalette={palette as "bg.min"}>
     <span className={sectionTitle}>
       Nested <code className={mono}>bg.surface</code> layers
     </span>
@@ -87,8 +85,8 @@ const NestedSurface = ({ palette }: { palette: PaletteNameToShow }) => (
   </Box>
 );
 
-const BordersOnBackgrounds = ({ palette }: { palette: PaletteNameToShow }) => (
-  <Box colorPalette={palette}>
+const BordersOnBackgrounds = ({ palette }: { palette: PaletteName }) => (
+  <Box colorPalette={palette as "bg.min"}>
     <span className={sectionTitle}>Borders on backgrounds</span>
     <VStack gap="3" mt="2" alignItems="stretch">
       {BG_LEVELS.filter((bg) => bg !== "solid").map((bg) => (
@@ -121,8 +119,8 @@ const BordersOnBackgrounds = ({ palette }: { palette: PaletteNameToShow }) => (
   </Box>
 );
 
-const MixedLevels = ({ palette }: { palette: PaletteNameToShow }) => (
-  <Box colorPalette={palette}>
+const MixedLevels = ({ palette }: { palette: PaletteName }) => (
+  <Box colorPalette={palette as "bg.min"}>
     <span className={sectionTitle}>Progressive depth</span>
     <Box bg="colorPalette.bg.surface" p="4" borderRadius="md" mt="2">
       <span className={caption}>bg.surface</span>
@@ -169,7 +167,7 @@ const MixedLevels = ({ palette }: { palette: PaletteNameToShow }) => (
 );
 
 export const ColorLayering: Story = () => {
-  const [palette, setPalette] = useState<PaletteNameToShow>("neutral");
+  const [palette, setPalette] = useState<PaletteName>("neutral");
 
   return (
     <VStack gap="6" alignItems="flex-start" p="6">

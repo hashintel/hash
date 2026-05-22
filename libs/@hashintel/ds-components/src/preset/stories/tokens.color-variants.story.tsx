@@ -6,7 +6,7 @@ import type { Story } from "@ladle/react";
 
 import type { PaletteName } from "./_types";
 
-const COLOR_PALETTES = [
+const COLOR_PALETTES: readonly PaletteName[] = [
   "neutral",
   "blue",
   "red",
@@ -15,7 +15,7 @@ const COLOR_PALETTES = [
   "green",
   "purple",
   "pink",
-] as const satisfies readonly PaletteName[];
+];
 
 type BgCategory = "min" | "surface" | "subtle" | "shaded" | "solid";
 type BdCategory = "subtle" | "solid" | "strong";
@@ -328,10 +328,8 @@ const BdColumn = () => (
   </VStack>
 );
 
-const PaletteSection = ({
-  palette,
-}: { palette: (typeof COLOR_PALETTES)[number] }) => (
-  <Box colorPalette={palette}>
+const PaletteSection = ({ palette }: { palette: string }) => (
+  <Box colorPalette={palette as "bg.min"}>
     <h2
       className={css({
         textStyle: "lg",
