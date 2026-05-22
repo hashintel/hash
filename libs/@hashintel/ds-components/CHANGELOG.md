@@ -1,5 +1,14 @@
 # @hashintel/ds-components
 
+## 0.2.1
+
+### Patch Changes
+
+- [#8727](https://github.com/hashintel/hash/pull/8727) [`834cbee`](https://github.com/hashintel/hash/commit/834cbeeb7d8045f006d7a1fab1e5858b83c437d6) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add NumberInput component
+
+- Updated dependencies [[`c0c9498`](https://github.com/hashintel/hash/commit/c0c9498dc4f648814a80fc6e8df3598ff8a108ac)]:
+  - @hashintel/ds-helpers@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
