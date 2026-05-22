@@ -1,4 +1,5 @@
-## Using MACHINE_USER_TOKEN enables GitHub Workflows in ‘Version Packages’ PRs
+## Uses a GitHub App installation token so that ‘Version Packages’ PRs trigger
+## downstream workflows (GITHUB_TOKEN-created PRs do not).
 ## https://github.com/peter-evans/create-pull-request/blob/main/docs/concepts-guidelines.md#triggering-further-workflow-runs
 
 name: Release
@@ -14,9 +15,27 @@ jobs:
       id-token: write
 
     steps:
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: dev
+          secrets: |
+            automation/data/pipelines/hash/dev github_worker_app_id | GITHUB_WORKER_APP_ID ;
+            automation/data/pipelines/hash/dev github_worker_app_private_key | GITHUB_WORKER_APP_PRIVATE_KEY ;
+
+      - name: Get token
+        id: app-token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        with:
+          app-id: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_ID }}
+          private-key: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          token: ${{ secrets.MACHINE_USER_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Install tools
         uses: ./.github/actions/install-tools
@@ -33,7 +52,7 @@ jobs:
           publish: yarn changeset:publish
           version: yarn changeset:version
         env:
-          GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_LOGLEVEL: verbose
           TURBO_LOG_LEVEL: debug
