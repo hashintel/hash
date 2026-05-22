@@ -48,3 +48,9 @@ jobs:
     permissions:
       contents: read
     uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@8d021823fbe2e8dbe0c8054ae50a7ed758172aa7
+
+  pr-title:
+    name: PR title
+    permissions:
+      contents: read
+    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@main
