@@ -7,7 +7,7 @@ import {
   type ToolSet,
   type UIMessage,
 } from "ai";
-import { petrinautAiTools, petrinautAiPrompt } from "@hashintel/petrinaut/core";
+import { petrinautAiTools, petrinautAiPrompt } from "@hashintel/petrinaut-core";
 import { z } from "zod";
 
 declare const process: {

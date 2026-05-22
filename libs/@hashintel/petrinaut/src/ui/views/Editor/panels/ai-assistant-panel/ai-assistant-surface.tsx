@@ -1,5 +1,4 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   type PointerEvent as ReactPointerEvent,
   useEffect,
@@ -7,25 +6,28 @@ import {
   useState,
 } from "react";
 import ReactMarkdown from "react-markdown";
-import { TbCheck, TbChevronUp, TbList, TbLoader2, TbX } from "react-icons/tb";
 
-import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import { Button } from "../../../../components/button";
-import { Input } from "../../../../components/input";
+import { Icon, LoadingSpinner } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   petrinautAiMutationTools,
-} from "../../../../../core/ai";
-import type { SelectionItem } from "../../../../../core/types/selection";
+  type SelectionItem,
+} from "@hashintel/petrinaut-core";
+
+import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
+import { Button } from "../../../../components/button";
+import { Input } from "../../../../components/input";
 import { getInteractiveTool } from "./interactive-tools/registry";
-import type { InteractiveToolDefinition } from "./interactive-tools/types";
 import {
   type AiToolOutput,
   type AiToolTarget,
   type AiToolSummary,
   summarizePetrinautAiToolCall,
 } from "./tool-summaries";
+
+import type { InteractiveToolDefinition } from "./interactive-tools/types";
 import type { PetrinautAiMessage } from "./types";
 
 type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
@@ -418,11 +420,6 @@ const collapsibleContentStyle = css({
   "&[data-state=closed]": {
     animationName: "collapse",
   },
-});
-
-const spinnerStyle = css({
-  animation: "[spin 900ms linear infinite]",
-  color: "neutral.s80",
 });
 
 const reasoningLoadingStyle = css({
@@ -961,16 +958,19 @@ const formatElapsedTime = (elapsedMs: number): string => {
 };
 
 const useElapsedTime = (isRunning: boolean): string => {
-  const startedAt = useRef(Date.now());
+  const startedAtRef = useRef<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
+    startedAtRef.current ??= Date.now();
+    const startedAt = startedAtRef.current;
+
     if (!isRunning) {
-      setElapsedMs((current) => current || Date.now() - startedAt.current);
+      setElapsedMs((current) => current || Date.now() - startedAt);
       return;
     }
 
-    const updateElapsed = () => setElapsedMs(Date.now() - startedAt.current);
+    const updateElapsed = () => setElapsedMs(Date.now() - startedAt);
     updateElapsed();
     const intervalId = window.setInterval(updateElapsed, 1_000);
 
@@ -1006,10 +1006,10 @@ const ReasoningPart = ({
       onOpenChange={(details) => setOpen(details.open)}
     >
       <Collapsible.Trigger className={reasoningHeaderStyle}>
-        <TbList size={14} />
+        <Icon name="list" size="sm" />
         <span style={{ flex: 1 }}>Reasoning</span>
         <span aria-label={`Reasoning time ${elapsedTime}`}>{elapsedTime}</span>
-        <TbChevronUp data-chevron size={14} />
+        <Icon name="chevronUp" data-chevron size="sm" />
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
         <div className={reasoningBodyStyle}>
@@ -1018,14 +1018,12 @@ const ReasoningPart = ({
               <ReactMarkdown>{renderedText}</ReactMarkdown>
             </div>
           ) : (
-            <div className={reasoningLoadingStyle}>
-              <TbLoader2
-                className={spinnerStyle}
-                data-testid="reasoning-spinner"
-                aria-label="Loading reasoning"
-                size={14}
-              />
-            </div>
+            <output
+              className={reasoningLoadingStyle}
+              aria-label="Loading reasoning"
+            >
+              <LoadingSpinner data-testid="reasoning-spinner" size="xs" />
+            </output>
           )}
         </div>
       </Collapsible.Content>
@@ -1093,7 +1091,11 @@ const ToolItem = ({
           tone: tool.tone,
         })}
       >
-        {errored ? <TbX size={10} /> : complete ? <TbCheck size={10} /> : null}
+        {errored ? (
+          <Icon name="close" size="xs" />
+        ) : complete ? (
+          <Icon name="check" size="xs" />
+        ) : null}
       </span>
       <span className={toolTextStyle}>
         <span>{title}</span>
@@ -1103,7 +1105,7 @@ const ToolItem = ({
           </span>
         )}
       </span>
-      {expandable && <TbChevronUp data-chevron size={14} />}
+      {expandable && <Icon name="chevronUp" data-chevron size="sm" />}
     </button>
   );
 
@@ -1117,6 +1119,7 @@ const ToolItem = ({
       <Collapsible.Content className={collapsibleContentStyle}>
         <div className={toolSubItemListStyle}>
           {children.map((item, index) => (
+            // oxlint-disable-next-line react/no-array-index-key
             <div className={toolSubItemStyle} key={`${tool.id}-${index}`}>
               {item}
             </div>
@@ -1177,10 +1180,10 @@ const ToolList = ({
     <Collapsible.Root className={toolListStyle({ kind: "group" })} defaultOpen>
       <Collapsible.Trigger className={toolHeaderStyle}>
         <span className={toolHeaderIconStyle}>
-          <TbList size={10} />
+          <Icon name="list" size="xs" />
         </span>
         <span style={{ flex: 1 }}>{tools.length} changes</span>
-        <TbChevronUp data-chevron size={14} />
+        <Icon name="chevronUp" data-chevron size="sm" />
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
         <div className={toolGroupPanelStyle}>
@@ -1356,6 +1359,12 @@ export const AiAssistantSurface = ({
                           onSelectToolTarget={onSelectToolTarget}
                         />
                       );
+                    default: {
+                      const exhaustiveCheck: never = item;
+                      throw new Error(
+                        `Unknown message part: ${JSON.stringify(exhaustiveCheck)}`,
+                      );
+                    }
                   }
                 })}
               </div>

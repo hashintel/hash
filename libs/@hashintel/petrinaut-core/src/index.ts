@@ -44,6 +44,7 @@ export type {
 	CommandActionInput,
 	CommandActionName,
 } from "./command-schemas";
+export { mutationActionInputSchemas } from "./action-schemas";
 export {
 	calculateGraphLayout,
 	layoutNodeDimensions,

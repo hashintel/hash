@@ -1,13 +1,14 @@
-import type {
-  PetrinautAiCommandToolInput,
-  PetrinautAiCommandToolName,
-  PetrinautAiMutationToolInput,
-  PetrinautAiMutationToolName,
-} from "../../../../../core/ai";
-import { generateArcId } from "../../../../../core/arc-id";
+import {
+  generateArcId,
+  type PetrinautAiCommandToolInput,
+  type PetrinautAiCommandToolName,
+  type PetrinautAiMutationToolInput,
+  type PetrinautAiMutationToolName,
+  type SDCPN,
+  type SelectionItem,
+} from "@hashintel/petrinaut-core";
+
 import type { ReadOnlyReason } from "../../../../../react/state/use-read-only-reason";
-import type { SDCPN } from "../../../../../core/types/sdcpn";
-import type { SelectionItem } from "../../../../../core/types/selection";
 
 export type AiToolSummary = {
   title: string;

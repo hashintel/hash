@@ -1,19 +1,18 @@
 import { useChat } from "@ai-sdk/react";
-import { use, useEffect, useRef, useState } from "react";
 import { lastAssistantMessageIsCompleteWithToolCalls } from "ai";
+import { use, useEffect, useRef, useState } from "react";
 
 import {
+  aiCommandActionInputSchemas,
+  type AiCommandActionName,
   createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
   mutationActionInputSchemas as petrinautAiMutationToolInputSchemas,
+  type Petrinaut,
   type PetrinautAiMutationToolName,
-} from "../../../../core/ai";
-import {
-  aiCommandActionInputSchemas,
-  type AiCommandActionName,
-} from "../../../../core/command-schemas";
-import type { Petrinaut } from "../../../../core/instance";
+} from "@hashintel/petrinaut-core";
+
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
 import { LanguageClientContext } from "../../../../react/lsp/context";
 import {
@@ -26,7 +25,6 @@ import {
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
 import { PANEL_MARGIN } from "../../../constants/ui";
-import type { PetrinautAiAssistant } from "../../../petrinaut";
 import { AiAssistantSurface } from "./ai-assistant-panel/ai-assistant-surface";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
@@ -39,6 +37,8 @@ import {
   summarizePetrinautAiToolCall,
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
+
+import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 
 export type {
@@ -89,6 +89,7 @@ const logToolCallError = ({
   input: unknown;
   toolName: string;
 }) => {
+  // oxlint-disable-next-line no-console
   console.error("Petrinaut AI tool call failed", {
     error,
     input,
@@ -472,6 +473,7 @@ export const AiAssistantPanel = ({
     }
 
     const lastMessage = messages.at(-1);
+    // oxlint-disable-next-line no-console
     console.error("Petrinaut AI chat failed", {
       error,
       lastMessage,

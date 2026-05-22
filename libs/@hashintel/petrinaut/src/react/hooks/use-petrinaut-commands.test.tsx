@@ -8,10 +8,12 @@ import { describe, expect, test } from "vitest";
 import {
   CLIPBOARD_FORMAT_VERSION,
   type ClipboardPayload,
-} from "../../core/clipboard/types";
-import { createJsonDocHandle } from "../../core/handle";
-import { createPetrinaut, type Petrinaut } from "../../core/instance";
-import type { SDCPN } from "../../core/types/sdcpn";
+  createJsonDocHandle,
+  createPetrinaut,
+  type Petrinaut,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
 import { PetrinautInstanceContext } from "../instance-context";
 import { SimulationContext, type SimulationState } from "../simulation/context";
 import {

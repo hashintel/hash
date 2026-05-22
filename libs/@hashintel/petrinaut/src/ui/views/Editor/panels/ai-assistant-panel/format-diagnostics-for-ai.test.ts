@@ -1,10 +1,10 @@
+import type { SDCPN } from "@hashintel/petrinaut-core";
+import { describe, expect, test } from "vitest";
 import {
   type Diagnostic,
   DiagnosticSeverity,
 } from "vscode-languageserver-types";
-import { describe, expect, test } from "vitest";
 
-import type { SDCPN } from "../../../../../core/types/sdcpn";
 import { formatDiagnosticsForAi } from "./format-diagnostics-for-ai";
 
 const definition: SDCPN = {

@@ -1,6 +1,7 @@
 import { use } from "react";
 
-import type { PetrinautCommands } from "../../core/instance";
+import type { PetrinautCommands } from "@hashintel/petrinaut-core";
+
 import { PetrinautInstanceContext } from "../instance-context";
 import { useIsReadOnly } from "../state/use-is-read-only";
 

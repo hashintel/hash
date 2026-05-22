@@ -1,6 +1,6 @@
+import type { SDCPN } from "@hashintel/petrinaut-core";
 import { describe, expect, test } from "vitest";
 
-import type { SDCPN } from "../../../../../core/types/sdcpn";
 import { summarizePetrinautAiToolCall } from "./tool-summaries";
 
 const definition: SDCPN = {

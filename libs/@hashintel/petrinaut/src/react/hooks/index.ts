@@ -69,7 +69,7 @@ export { usePetrinautCommands } from "./use-petrinaut-commands";
 export type {
   PetrinautCommands,
   PetrinautMutations,
-} from "../../core/instance";
+} from "@hashintel/petrinaut-core";
 
 // Instance access + low-level store adapter.
 export { usePetrinautInstance } from "../use-petrinaut-instance";

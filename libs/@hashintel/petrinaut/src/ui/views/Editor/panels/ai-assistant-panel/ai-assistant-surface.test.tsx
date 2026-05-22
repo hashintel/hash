@@ -10,7 +10,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import type { SDCPN } from "../../../../../core/types/sdcpn";
+import type { SDCPN } from "@hashintel/petrinaut-core";
+
 import { AiAssistantSurface } from "./ai-assistant-surface";
 import type { PetrinautAiMessage } from "./types";
 

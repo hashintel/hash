@@ -1,109 +1,108 @@
 {
-	"name": "@hashintel/petrinaut",
-	"version": "0.0.14",
-	"description": "A visual editor for Petri nets",
-	"license": "(MIT OR Apache-2.0)",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/hashintel/hash.git",
-		"directory": "libs/@hashintel/petrinaut"
-	},
-	"style": "dist/main.css",
-	"files": [
-		"dist",
-		"CHANGELOG.md",
-		"LICENSE",
-		"LICENSE-APACHE.md",
-		"LICENSE-MIT.md",
-		"README.md",
-		"package.json"
-	],
-	"type": "module",
-	"sideEffects": [
-		"*.css"
-	],
-	"main": "dist/main.js",
-	"types": "dist/main.d.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/main.d.d.ts",
-			"default": "./dist/main.js"
-		},
-		"./react": {
-			"types": "./dist/react.d.d.ts",
-			"default": "./dist/react.js"
-		},
-		"./ui": {
-			"types": "./dist/ui.d.d.ts",
-			"default": "./dist/ui.js"
-		},
-		"./styles.css": "./dist/main.css",
-		"./dist/main.css": "./dist/main.css",
-		"./package.json": "./package.json"
-	},
-	"scripts": {
-		"build": "vite build",
-		"dev": "storybook dev",
-		"fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
-		"lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-		"lint:tsc": "tsgo --noEmit",
-		"prepublishOnly": "turbo run build",
-		"test:unit": "vitest"
-	},
-	"dependencies": {
-		"@ai-sdk/react": "3.0.184",
-		"@ark-ui/react": "5.26.2",
-		"@babel/standalone": "7.28.5",
-		"@fontsource-variable/inter": "5.2.8",
-		"@fontsource-variable/inter-tight": "5.2.7",
-		"@fontsource-variable/jetbrains-mono": "5.2.8",
-		"@hashintel/ds-components": "workspace:^",
-		"@hashintel/ds-helpers": "workspace:^",
-		"@hashintel/petrinaut-core": "workspace:^",
-		"@hashintel/refractive": "workspace:^",
-		"@monaco-editor/react": "4.8.0-rc.3",
-		"@tanstack/react-form": "1.29.0",
-		"@xyflow/react": "12.10.1",
-		"ai": "6.0.182",
-		"elkjs": "0.11.0",
-		"fuzzysort": "3.1.0",
-		"lodash-es": "4.18.1",
-		"monaco-editor": "0.55.1",
-		"react-markdown": "10.1.0",
-		"react-resizable-panels": "4.6.5",
-		"uplot": "1.6.32",
-		"use-sync-external-store": "1.6.0",
-		"uuid": "14.0.0"
-	},
-	"devDependencies": {
-		"@hashintel/ds-helpers": "workspace:*",
-		"@pandacss/dev": "1.11.1",
-		"@rolldown/plugin-babel": "0.2.1",
-		"@storybook/react-vite": "10.2.19",
-		"@testing-library/dom": "10.4.1",
-		"@testing-library/react": "16.3.2",
-		"@types/babel__standalone": "7.1.9",
-		"@types/lodash-es": "4.17.12",
-		"@types/react": "19.2.14",
-		"@types/react-dom": "19.2.3",
-		"@typescript/native-preview": "7.0.0-dev.20260511.1",
-		"@vitejs/plugin-react": "6.0.1",
-		"babel-plugin-react-compiler": "1.0.0",
-		"jsdom": "24.1.3",
-		"oxlint": "1.63.0",
-		"oxlint-tsgolint": "0.22.1",
-		"react": "19.2.6",
-		"react-dom": "19.2.6",
-		"rolldown": "1.0.0",
-		"rolldown-plugin-dts": "0.25.0",
-		"storybook": "10.3.6",
-		"vite": "8.0.12",
-		"vitest": "4.1.5"
-	},
-	"peerDependencies": {
-		"@hashintel/ds-components": "workspace:^",
-		"@hashintel/ds-helpers": "workspace:^",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0"
-	}
+  "name": "@hashintel/petrinaut",
+  "version": "0.0.14",
+  "description": "A visual editor for Petri nets",
+  "license": "(MIT OR Apache-2.0)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hashintel/hash.git",
+    "directory": "libs/@hashintel/petrinaut"
+  },
+  "style": "dist/main.css",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "LICENSE",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "README.md",
+    "package.json"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "dist/main.js",
+  "types": "dist/main.d.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.d.ts",
+      "default": "./dist/ui.js"
+    },
+    "./styles.css": "./dist/main.css",
+    "./dist/main.css": "./dist/main.css",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "storybook dev",
+    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsgo --noEmit",
+    "prepublishOnly": "turbo run build",
+    "test:unit": "vitest"
+  },
+  "dependencies": {
+    "@ai-sdk/react": "3.0.184",
+    "@ark-ui/react": "5.26.2",
+    "@babel/standalone": "7.28.5",
+    "@fontsource-variable/inter": "5.2.8",
+    "@fontsource-variable/inter-tight": "5.2.7",
+    "@fontsource-variable/jetbrains-mono": "5.2.8",
+    "@hashintel/ds-components": "workspace:^",
+    "@hashintel/ds-helpers": "workspace:^",
+    "@hashintel/petrinaut-core": "workspace:^",
+    "@hashintel/refractive": "workspace:^",
+    "@monaco-editor/react": "4.8.0-rc.3",
+    "@tanstack/react-form": "1.29.0",
+    "@xyflow/react": "12.10.1",
+    "ai": "6.0.182",
+    "fuzzysort": "3.1.0",
+    "lodash-es": "4.18.1",
+    "monaco-editor": "0.55.1",
+    "react-markdown": "10.1.0",
+    "react-resizable-panels": "4.6.5",
+    "uplot": "1.6.32",
+    "use-sync-external-store": "1.6.0",
+    "uuid": "14.0.0"
+  },
+  "devDependencies": {
+    "@hashintel/ds-helpers": "workspace:*",
+    "@pandacss/dev": "1.11.1",
+    "@rolldown/plugin-babel": "0.2.1",
+    "@storybook/react-vite": "10.2.19",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/react": "16.3.2",
+    "@types/babel__standalone": "7.1.9",
+    "@types/lodash-es": "4.17.12",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "@vitejs/plugin-react": "6.0.1",
+    "babel-plugin-react-compiler": "1.0.0",
+    "jsdom": "24.1.3",
+    "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "rolldown": "1.0.0",
+    "rolldown-plugin-dts": "0.25.0",
+    "storybook": "10.3.6",
+    "vite": "8.0.12",
+    "vitest": "4.1.5"
+  },
+  "peerDependencies": {
+    "@hashintel/ds-components": "workspace:^",
+    "@hashintel/ds-helpers": "workspace:^",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
 }

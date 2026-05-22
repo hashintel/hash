@@ -1,8 +1,6 @@
+import { parseDocumentUri, type SDCPN } from "@hashintel/petrinaut-core";
 import type { Diagnostic, DocumentUri } from "vscode-languageserver-types";
 import { DiagnosticSeverity } from "vscode-languageserver-types";
-
-import { parseDocumentUri } from "../../../../../core/lsp/lib/document-uris";
-import type { SDCPN } from "../../../../../core/types/sdcpn";
 
 const DEFAULT_MAX_DIAGNOSTICS = 25;
 

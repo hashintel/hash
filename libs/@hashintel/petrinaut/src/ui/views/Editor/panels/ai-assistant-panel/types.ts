@@ -1,5 +1,3 @@
-import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
-
 import type {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -8,8 +6,10 @@ import type {
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,
   PetrinautAiToolInput,
-} from "../../../../../core/ai";
-import type { SDCPN } from "../../../../../core/types/sdcpn";
+  SDCPN,
+} from "@hashintel/petrinaut-core";
+import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
+
 import type { AiToolOutput } from "./tool-summaries";
 
 type PetrinautAiUiTools = {

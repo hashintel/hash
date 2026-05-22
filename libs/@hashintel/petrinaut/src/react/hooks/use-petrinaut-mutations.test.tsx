@@ -5,9 +5,13 @@ import { act, renderHook } from "@testing-library/react";
 import { type ReactNode } from "react";
 import { describe, expect, test } from "vitest";
 
-import { createJsonDocHandle } from "../../core/handle";
-import { createPetrinaut, type Petrinaut } from "../../core/instance";
-import type { SDCPN } from "../../core/types/sdcpn";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  type Petrinaut,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
 import { PetrinautInstanceContext } from "../instance-context";
 import { SimulationContext, type SimulationState } from "../simulation/context";
 import {
