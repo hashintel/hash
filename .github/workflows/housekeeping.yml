@@ -62,7 +62,7 @@ jobs:
 
   renovate:
     name: Dependencies
-    uses: hashintel/.github/.github/workflows/housekeeping-dependencies.yml@8d021823fbe2e8dbe0c8054ae50a7ed758172aa7
+    uses: hashintel/.github/.github/workflows/housekeeping-dependencies.yml@e12e306a03b1939c357d92c55b48d539d4286bd6
     with:
       repoCache: ${{ inputs.repoCache || 'enabled' }}
       logLevel: ${{ inputs.logLevel || 'info' }}
