@@ -8,11 +8,7 @@ export const HeaderIconButton = styled(IconButton)(({ theme }) => ({
     borderWidth: 1,
     borderStyle: "solid",
     borderColor: theme.palette.gray[20],
-    transition: theme.transitions.create([
-      "background",
-      "border-color",
-      "box-shadow",
-    ]),
+    transition: theme.transitions.create(["background", "border-color", "box-shadow"]),
     [`> .${svgIconClasses.root}`]: {
       color: theme.palette.blue[100],
       transition: theme.transitions.create(["color"]),

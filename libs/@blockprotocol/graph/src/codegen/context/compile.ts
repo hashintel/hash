@@ -2,12 +2,7 @@ import type { ProcessedCodegenParameters } from "../parameters.js";
 import type { CompiledTsType, JsonSchema, LogLevel } from "../shared.js";
 import type { PreprocessContext } from "./preprocess.js";
 import type { TypeDependencyMap } from "./shared.js";
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { DataType, EntityType, PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 export class CompileContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -17,10 +12,7 @@ export class CompileContext {
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
   readonly metadataSchemas: Record<VersionedUrl, JsonSchema>;
-  readonly allTypes: Record<
-    VersionedUrl,
-    DataType | PropertyType | EntityType | JsonSchema
-  >;
+  readonly allTypes: Record<VersionedUrl, DataType | PropertyType | EntityType | JsonSchema>;
 
   readonly typeDependencyMap: TypeDependencyMap;
 
@@ -28,8 +20,7 @@ export class CompileContext {
   readonly linkTypeMap: Record<keyof typeof this.entityTypes, boolean>;
 
   /** Map of type IDs to their compiled schemas */
-  typeIdsToCompiledTypes: Record<keyof typeof this.allTypes, CompiledTsType> =
-    {};
+  typeIdsToCompiledTypes: Record<keyof typeof this.allTypes, CompiledTsType> = {};
 
   constructor(preprocessContext: PreprocessContext) {
     this.parameters = preprocessContext.parameters;
@@ -52,11 +43,7 @@ export class CompileContext {
   }
 
   logInfo(message: string) {
-    if (
-      this.logLevel === "info" ||
-      this.logLevel === "debug" ||
-      this.logLevel === "trace"
-    ) {
+    if (this.logLevel === "info" || this.logLevel === "debug" || this.logLevel === "trace") {
       // eslint-disable-next-line no-console
       console.log(`INFO: ${message}`);
     }
@@ -76,10 +63,7 @@ export class CompileContext {
     }
   }
 
-  addCompiledTsType(
-    typeId: keyof typeof this.allTypes,
-    compiledTsType: CompiledTsType,
-  ) {
+  addCompiledTsType(typeId: keyof typeof this.allTypes, compiledTsType: CompiledTsType) {
     this.typeIdsToCompiledTypes[typeId] = compiledTsType;
   }
 }

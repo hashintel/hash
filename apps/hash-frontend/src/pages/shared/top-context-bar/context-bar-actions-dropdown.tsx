@@ -1,10 +1,6 @@
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import { Menu } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";

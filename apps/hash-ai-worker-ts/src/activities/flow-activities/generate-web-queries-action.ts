@@ -42,9 +42,9 @@ type ProposeQueryFunctionCallArguments = {
   query: string;
 };
 
-export const generateWebQueriesAction: AiFlowActionActivity<
-  "generateWebQueries"
-> = async ({ inputs }) => {
+export const generateWebQueriesAction: AiFlowActionActivity<"generateWebQueries"> = async ({
+  inputs,
+}) => {
   const { prompt, model } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "generateWebQueries",
@@ -58,8 +58,7 @@ export const generateWebQueriesAction: AiFlowActionActivity<
     };
   }
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {

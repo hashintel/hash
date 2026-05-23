@@ -44,11 +44,7 @@ interface ColorSelectProps {
   disabled?: boolean;
 }
 
-export const ColorSelect: React.FC<ColorSelectProps> = ({
-  value,
-  onChange,
-  disabled = false,
-}) => {
+export const ColorSelect: React.FC<ColorSelectProps> = ({ value, onChange, disabled = false }) => {
   return (
     <Select
       value={value}
@@ -62,17 +58,12 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
             className={colorSwatchStyle}
             style={{ backgroundColor: selectedOption?.value ?? value }}
           />
-          <span className={colorCodeStyle}>
-            {selectedOption?.value ?? value}
-          </span>
+          <span className={colorCodeStyle}>{selectedOption?.value ?? value}</span>
         </div>
       )}
       renderItem={(option) => (
         <div className={itemContainerStyle}>
-          <div
-            className={colorSwatchStyle}
-            style={{ backgroundColor: option.value }}
-          />
+          <div className={colorSwatchStyle} style={{ backgroundColor: option.value }} />
           <span className={colorCodeStyle}>{option.value}</span>
         </div>
       )}

@@ -1,12 +1,6 @@
-import {
-  currentTimestamp,
-  entityIdFromComponents,
-} from "@blockprotocol/type-system";
+import { currentTimestamp, entityIdFromComponents } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import {
-  getStorageProvider,
-  storePayload,
-} from "@local/hash-backend-utils/flows/payload-storage";
+import { getStorageProvider, storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -65,22 +59,24 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
     };
   }
 
-  const dereferencedEntityTypesWithExistingEntitiesTypes =
-    await getDereferencedEntityTypesActivity({
+  const dereferencedEntityTypesWithExistingEntitiesTypes = await getDereferencedEntityTypesActivity(
+    {
       graphApiClient,
       entityTypeIds,
       actorId: userAuthentication.actorId,
-    });
+    },
+  );
 
-  const entityTypes = Object.entries(
-    dereferencedEntityTypesWithExistingEntitiesTypes,
-  ).reduce((acc, [entityTypeId, entityType]) => {
-    if (entityTypeIds.includes(entityTypeId as VersionedUrl)) {
-      acc[entityTypeId as VersionedUrl] = entityType;
-    }
+  const entityTypes = Object.entries(dereferencedEntityTypesWithExistingEntitiesTypes).reduce(
+    (acc, [entityTypeId, entityType]) => {
+      if (entityTypeIds.includes(entityTypeId as VersionedUrl)) {
+        acc[entityTypeId as VersionedUrl] = entityType;
+      }
 
-    return acc;
-  }, {} as DereferencedEntityTypesByTypeId);
+      return acc;
+    },
+    {} as DereferencedEntityTypesByTypeId,
+  );
 
   let webPageInferenceState: InferenceState = {
     iterationCount: 1,
@@ -160,8 +156,7 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
   ).flatMap(([entityTypeId, proposedEntitiesByType]) =>
     proposedEntitiesByType.map<ProposedEntity>((proposal) => {
       const summary = webPageInferenceState.proposedEntitySummaries.find(
-        (proposedEntitySummary) =>
-          proposedEntitySummary.entityId === proposal.entityId,
+        (proposedEntitySummary) => proposedEntitySummary.entityId === proposal.entityId,
       )?.summary;
 
       const provenance: ProposedEntity["provenance"] = {
@@ -182,9 +177,7 @@ export const inferEntitiesFromContentAction: AiFlowActionActivity<
         },
         summary,
         properties: proposal.properties ?? {},
-        propertyMetadata: typedKeys(
-          proposal.properties ?? {},
-        ).reduce<PropertyObjectMetadata>(
+        propertyMetadata: typedKeys(proposal.properties ?? {}).reduce<PropertyObjectMetadata>(
           (acc, propertyKey) => {
             acc.value[propertyKey] = {
               metadata: { dataTypeId: null, provenance: { sources: [source] } },

@@ -5,9 +5,7 @@ import { createBase, disableRules } from "@local/eslint/deprecated";
 export default [
   ...createBase(import.meta.dirname),
   ...storybook.configs["flat/recommended"],
-  ...disableRules([
-    /* 2022-11-29:  14 */ "@typescript-eslint/no-unsafe-assignment",
-  ]),
+  ...disableRules([/* 2022-11-29:  14 */ "@typescript-eslint/no-unsafe-assignment"]),
   {
     rules: {
       "jsx-a11y/label-has-associated-control": "off",
@@ -22,8 +20,7 @@ export default [
             },
             {
               group: ["@local/*"],
-              message:
-                "You cannot use unpublished local packages in a published package.",
+              message: "You cannot use unpublished local packages in a published package.",
             },
           ],
         },

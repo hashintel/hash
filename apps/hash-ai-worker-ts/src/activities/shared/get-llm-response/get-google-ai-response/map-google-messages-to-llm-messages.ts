@@ -59,9 +59,7 @@ export const mapGoogleMessagesToLlmMessages = (params: {
             };
           }
 
-          throw new Error(
-            `Unexpected content type for 'user' message: ${JSON.stringify(part)}`,
-          );
+          throw new Error(`Unexpected content type for 'user' message: ${JSON.stringify(part)}`);
         }),
       };
     } else if (message.role === "model") {

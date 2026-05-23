@@ -32,8 +32,7 @@ services:
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     shm_size: 1GB
     healthcheck:
-      test:
-        ["CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}"]
+      test: ["CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}"]
       interval: 2s
       timeout: 2s
       retries: 5
@@ -213,16 +212,7 @@ services:
         condition: service_completed_successfully
     healthcheck:
       test:
-        [
-          "CMD",
-          "temporal",
-          "workflow",
-          "list",
-          "--namespace",
-          "HASH",
-          "--address",
-          "temporal:7233",
-        ]
+        ["CMD", "temporal", "workflow", "list", "--namespace", "HASH", "--address", "temporal:7233"]
       interval: 10s
       timeout: 2s
       retries: 10

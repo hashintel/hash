@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import {
-  loadCrossFrameRemoteBlock,
-  loadRemoteBlock,
-} from "./load-remote-block";
+import { loadCrossFrameRemoteBlock, loadRemoteBlock } from "./load-remote-block";
 import { isTopWindow } from "./util";
 
 import type { UnknownBlock } from "./load-remote-block";
@@ -26,14 +23,8 @@ type UseRemoteComponentState = {
 // @todo put this in context
 const remoteModuleCache: Record<string, UseRemoteComponentState> = {};
 
-export const loadBlockComponent = (
-  sourceUrl: string,
-  crossFrame = false,
-  signal?: AbortSignal,
-) => {
-  const blockLoaderFn = crossFrame
-    ? loadCrossFrameRemoteBlock
-    : loadRemoteBlock;
+export const loadBlockComponent = (sourceUrl: string, crossFrame = false, signal?: AbortSignal) => {
+  const blockLoaderFn = crossFrame ? loadCrossFrameRemoteBlock : loadRemoteBlock;
 
   return blockLoaderFn(sourceUrl, signal).then((module) => {
     remoteModuleCache[sourceUrl] = {
@@ -50,26 +41,21 @@ export const loadBlockComponent = (
 /**
  * @see https://github.com/Paciolan/remote-component/blob/master/src/hooks/useRemoteComponent.ts
  */
-export const useRemoteBlock: UseRemoteBlockHook = (
-  url,
-  crossFrame,
-  onBlockLoaded,
-) => {
+export const useRemoteBlock: UseRemoteBlockHook = (url, crossFrame, onBlockLoaded) => {
   if (crossFrame && isTopWindow()) {
     throw new Error(
       "crossFrame passed to useRemoteBlock from top window. This should be set from framed windows only.",
     );
   }
 
-  const [{ loading, err, component, url: loadedUrl }, setState] =
-    useState<UseRemoteComponentState>(
-      remoteModuleCache[url] ?? {
-        loading: true,
-        err: undefined,
-        component: undefined,
-        url: null,
-      },
-    );
+  const [{ loading, err, component, url: loadedUrl }, setState] = useState<UseRemoteComponentState>(
+    remoteModuleCache[url] ?? {
+      loading: true,
+      err: undefined,
+      component: undefined,
+      url: null,
+    },
+  );
 
   useEffect(() => {
     if (!loading && !err) {

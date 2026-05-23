@@ -50,10 +50,7 @@ export const searchPageByTitle = async (
   });
 };
 
-export const getPageContent = async (
-  notionClient: Client,
-  pageId: string,
-): Promise<string> => {
+export const getPageContent = async (notionClient: Client, pageId: string): Promise<string> => {
   const n2m = new NotionToMarkdown({
     notionClient,
     config: { separateChildPage: false, parseChildPages: false },

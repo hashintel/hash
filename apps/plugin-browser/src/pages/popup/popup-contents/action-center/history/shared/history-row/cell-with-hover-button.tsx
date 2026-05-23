@@ -20,8 +20,7 @@ export const CellWithHoverButton = ({
         <Stack
           sx={{
             alignItems: "flex-end",
-            background:
-              "linear-gradient(270deg, #F7F7F7 64.29%, rgba(247, 247, 247, 0) 100%)",
+            background: "linear-gradient(270deg, #F7F7F7 64.29%, rgba(247, 247, 247, 0) 100%)",
             "@media (prefers-color-scheme: dark)": {
               background: ({ palette }) =>
                 `linear-gradient(270deg, ${palette.common.black} 64.29%, rgba(0, 0, 0, 0) 100%)`,

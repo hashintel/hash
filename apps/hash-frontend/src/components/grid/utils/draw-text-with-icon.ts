@@ -31,15 +31,10 @@ export const drawTextWithIcon = ({
   const textLeft = iconSize + gap + iconLeft;
 
   const fgIconHeader = iconColor ?? theme.textHeader;
-  args.spriteManager.drawSprite(
-    icon,
-    "normal",
-    ctx,
-    iconLeft,
-    yCenter - iconSize / 2,
-    iconSize,
-    { ...theme, fgIconHeader },
-  );
+  args.spriteManager.drawSprite(icon, "normal", ctx, iconLeft, yCenter - iconSize / 2, iconSize, {
+    ...theme,
+    fgIconHeader,
+  });
 
   ctx.fillStyle = textColor ?? theme.textHeader;
   ctx.fillText(text, textLeft, yCenter);

@@ -34,20 +34,17 @@ export interface FallbackProps extends ComponentProps<typeof StyledFallback> {
 
 const StyledFallback = withContext(Avatar.Fallback, "fallback");
 
-export const Fallback = forwardRef<HTMLDivElement, FallbackProps>(
-  (props, ref) => {
-    const { name, children, asChild, ...rest } = props;
+export const Fallback = forwardRef<HTMLDivElement, FallbackProps>((props, ref) => {
+  const { name, children, asChild, ...rest } = props;
 
-    const fallbackContent =
-      children || asChild ? children : name ? getInitials(name) : <UserIcon />;
+  const fallbackContent = children || asChild ? children : name ? getInitials(name) : <UserIcon />;
 
-    return (
-      <StyledFallback ref={ref} {...rest}>
-        {fallbackContent}
-      </StyledFallback>
-    );
-  },
-);
+  return (
+    <StyledFallback ref={ref} {...rest}>
+      {fallbackContent}
+    </StyledFallback>
+  );
+});
 
 const getInitials = (name: string) => {
   const names = name.trim().split(" ");

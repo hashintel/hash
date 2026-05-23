@@ -15,11 +15,7 @@ import { PropertyExpectedValues } from "./property-expected-values";
 import { PropertyTitleCell } from "./property-title-cell";
 
 import type { InheritanceData } from "../shared/use-inherited-values";
-import type {
-  BaseUrl,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import type { ReactNode } from "react";
 
 const CollapsibleTableRow = ({
@@ -105,10 +101,8 @@ export const PropertyRow = ({
   const mainRef = useRef<HTMLTableRowElement | null>(null);
   const [lineHeight, setLineHeight] = useState(0);
 
-  const [animatingOutExpectedValue, setAnimatingOutExpectedValue] =
-    useState(false);
-  const [selectedExpectedValueIndex, setSelectedExpectedValueIndex] =
-    useState(-1);
+  const [animatingOutExpectedValue, setAnimatingOutExpectedValue] = useState(false);
+  const [selectedExpectedValueIndex, setSelectedExpectedValueIndex] = useState(-1);
 
   const children = useMemo(() => {
     const selectedProperty = property.oneOf[selectedExpectedValueIndex] ?? null;
@@ -137,10 +131,7 @@ export const PropertyRow = ({
                 "required" in selectedProperty &&
                 selectedProperty.required?.includes(propertyId as BaseUrl),
               );
-              return [
-                ...childrenArray,
-                { ...propertyType.schema, array, required },
-              ];
+              return [...childrenArray, { ...propertyType.schema, array, required }];
             }
 
             return childrenArray;
@@ -231,11 +222,7 @@ export const PropertyRow = ({
         )}
 
         {menuTableCell ?? (
-          <TypeMenuCell
-            typeId={property.$id}
-            variant="property"
-            editable={false}
-          />
+          <TypeMenuCell typeId={property.$id} variant="property" editable={false} />
         )}
       </EntityTypeTableRow>
 

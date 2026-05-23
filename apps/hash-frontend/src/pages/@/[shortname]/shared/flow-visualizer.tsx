@@ -42,10 +42,7 @@ import { RunFlowModal } from "./flow-visualizer/run-flow-modal";
 import { SectionLabel } from "./flow-visualizer/section-label";
 import { nodeDimensions } from "./flow-visualizer/shared/dimensions";
 import { transitionOptions } from "./flow-visualizer/shared/styles";
-import {
-  getFlattenedSteps,
-  groupStepsByDependencyLayer,
-} from "./flow-visualizer/sort-graph";
+import { getFlattenedSteps, groupStepsByDependencyLayer } from "./flow-visualizer/sort-graph";
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
 
 import type {
@@ -98,9 +95,7 @@ const getGraphFromFlowDefinition = (
 
   const derivedNodes: CustomNodeType[] = flattenedSteps.map((step) => {
     if (hasGroups && !step.groupId) {
-      throw new Error(
-        `Flow defines groups, but step ${step.stepId} is missing a groupId.`,
-      );
+      throw new Error(`Flow defines groups, but step ${step.stepId} is missing a groupId.`);
     }
 
     if (step.groupId) {
@@ -113,9 +108,7 @@ const getGraphFromFlowDefinition = (
 
       const layer = layerByStepId.get(step.stepId);
       if (layer === undefined) {
-        throw new Error(
-          `Step ${step.stepId} is missing from the dependency layers.`,
-        );
+        throw new Error(`Step ${step.stepId} is missing from the dependency layers.`);
       }
 
       const groupForLayer = groupByLayer.get(layer);
@@ -136,14 +129,10 @@ const getGraphFromFlowDefinition = (
         groupId: step.groupId,
         kind: step.kind,
         actionDefinition:
-          step.kind === "action"
-            ? actionDefinitions[step.actionDefinitionId]
-            : null,
+          step.kind === "action" ? actionDefinitions[step.actionDefinitionId] : null,
         label: step.description,
         inputSources:
-          step.kind === "parallel-group"
-            ? [step.inputSourceToParallelizeOn]
-            : step.inputSources,
+          step.kind === "parallel-group" ? [step.inputSourceToParallelizeOn] : step.inputSources,
       },
       type: step.kind,
       parentNode: step.parallelParentId,
@@ -215,9 +204,7 @@ const logHeight = 400;
 
 const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
-const unrunnableDefinitionIds = [
-  manualBrowserInferenceFlowDefinition.flowDefinitionId,
-];
+const unrunnableDefinitionIds = [manualBrowserInferenceFlowDefinition.flowDefinitionId];
 
 export const FlowRunVisualizerSkeleton = () => (
   <Stack gap={3} sx={{ height: `calc(100vh - ${HEADER_HEIGHT + 40}px)` }}>
@@ -246,8 +233,7 @@ export const FlowVisualizer = () => {
 
   const { push } = useRouter();
 
-  const { flowDefinitions, selectedFlowDefinitionId } =
-    useFlowDefinitionsContext();
+  const { flowDefinitions, selectedFlowDefinitionId } = useFlowDefinitionsContext();
 
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -267,9 +253,7 @@ export const FlowVisualizer = () => {
   const getOwner = useGetOwnerForEntity();
 
   const selectedFlowDefinition = useMemo(() => {
-    return flowDefinitions.find(
-      (def) => def.flowDefinitionId === selectedFlowDefinitionId,
-    );
+    return flowDefinitions.find((def) => def.flowDefinitionId === selectedFlowDefinitionId);
   }, [flowDefinitions, selectedFlowDefinitionId]);
 
   const { nodes: derivedNodes, edges: derivedEdges } = useMemo(() => {
@@ -313,14 +297,10 @@ export const FlowVisualizer = () => {
       );
 
       if (!groupDefinition) {
-        throw new Error(
-          `No group with id ${node.data.groupId} found in flow definition`,
-        );
+        throw new Error(`No group with id ${node.data.groupId} found in flow definition`);
       }
 
-      let group = graphsByGroup.groups.find(
-        (grp) => grp.group.groupId === groupDefinition.groupId,
-      );
+      let group = graphsByGroup.groups.find((grp) => grp.group.groupId === groupDefinition.groupId);
 
       if (!group) {
         group = {
@@ -334,20 +314,13 @@ export const FlowVisualizer = () => {
 
       group.nodes.push(node);
 
-      group.edges.push(
-        ...derivedEdges.filter((edge) => edge.source === node.id),
-      );
+      group.edges.push(...derivedEdges.filter((edge) => edge.source === node.id));
     }
 
     return graphsByGroup;
   }, [derivedNodes, derivedEdges, selectedFlowDefinition]);
 
-  const {
-    logs,
-    persistedEntitiesMetadata,
-    proposedEntities,
-    relevantEntityIds,
-  } = useMemo<{
+  const { logs, persistedEntitiesMetadata, proposedEntities, relevantEntityIds } = useMemo<{
     logs: LocalProgressLog[];
     persistedEntitiesMetadata: PersistedEntityMetadata[];
     proposedEntities: ProposedEntityOutput[];
@@ -390,11 +363,7 @@ export const FlowVisualizer = () => {
       const outputs = step.outputs?.[0]?.contents[0]?.outputs ?? [];
 
       for (const log of step.logs) {
-        if (
-          logDisplay === "stream" ||
-          !("parentInstanceId" in log) ||
-          !log.parentInstanceId
-        ) {
+        if (logDisplay === "stream" || !("parentInstanceId" in log) || !log.parentInstanceId) {
           /**
            * If we're in 'stream' display, or if this log doesn't have a parent worker, it should appear at the top level.
            */
@@ -420,9 +389,7 @@ export const FlowVisualizer = () => {
            */
           const parentLogList = workerIdToLogsAndParent[log.parentInstanceId];
           if (!parentLogList) {
-            throw new Error(
-              `No parent log found with id ${log.parentInstanceId}`,
-            );
+            throw new Error(`No parent log found with id ${log.parentInstanceId}`);
           }
 
           const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
@@ -472,10 +439,7 @@ export const FlowVisualizer = () => {
               ...log,
             });
 
-            if (
-              log.type === "ClosedLinkExplorerTask" ||
-              log.type === "ClosedSubCoordinator"
-            ) {
+            if (log.type === "ClosedLinkExplorerTask" || log.type === "ClosedSubCoordinator") {
               thisThread.thread!.threadClosedAt = log.recordedAt;
               thisThread.thread!.closedDueToFlowClosure = false;
             }
@@ -486,9 +450,7 @@ export const FlowVisualizer = () => {
           if (log.type === "ProposedEntity") {
             proposed.push({
               ...log.proposedEntity,
-              researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(
-                step.status,
-              ),
+              researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(step.status),
             });
           }
           if (log.type === "PersistedEntityMetadata") {
@@ -524,9 +486,7 @@ export const FlowVisualizer = () => {
           case "PersistedEntitiesMetadata":
             if (Array.isArray(output.payload.value)) {
               persisted.push(
-                ...output.payload.value.flatMap(
-                  (innerMap) => innerMap.persistedEntities,
-                ),
+                ...output.payload.value.flatMap((innerMap) => innerMap.persistedEntities),
               );
             } else {
               persisted.push(...output.payload.value.persistedEntities);
@@ -576,9 +536,7 @@ export const FlowVisualizer = () => {
         equal: [
           { path: ["uuid"] },
           {
-            parameter: extractEntityUuidFromEntityId(
-              persistedEntityMetadata.entityId,
-            ),
+            parameter: extractEntityUuidFromEntityId(persistedEntityMetadata.entityId),
           },
         ],
       })),
@@ -613,11 +571,7 @@ export const FlowVisualizer = () => {
     },
   );
 
-  const {
-    persistedEntities,
-    persistedEntitiesSubgraph,
-    persistedEntitiesTypesInfo,
-  } = useMemo<{
+  const { persistedEntities, persistedEntitiesSubgraph, persistedEntitiesTypesInfo } = useMemo<{
     persistedEntities: HashEntity[];
     persistedEntitiesSubgraph?: Subgraph<EntityRootType<HashEntity>>;
     persistedEntitiesTypesInfo?: {
@@ -625,8 +579,7 @@ export const FlowVisualizer = () => {
       definitions: ClosedMultiEntityTypesDefinitions;
     };
   }>(() => {
-    const data =
-      persistedEntitiesSubgraphData ?? previousPersistedEntitiesSubgraphData;
+    const data = persistedEntitiesSubgraphData ?? previousPersistedEntitiesSubgraphData;
 
     if (!data) {
       return { persistedEntities: [] };
@@ -638,10 +591,7 @@ export const FlowVisualizer = () => {
 
     const entities = getRoots(subgraph);
 
-    if (
-      !data.queryEntitySubgraph.closedMultiEntityTypes ||
-      !data.queryEntitySubgraph.definitions
-    ) {
+    if (!data.queryEntitySubgraph.closedMultiEntityTypes || !data.queryEntitySubgraph.definitions) {
       return {
         persistedEntities: entities,
         persistedEntitiesSubgraph: subgraph,
@@ -658,15 +608,10 @@ export const FlowVisualizer = () => {
     };
   }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
-  const [startFlow] = useMutation<
-    StartFlowMutation,
-    StartFlowMutationVariables
-  >(startFlowMutation);
+  const [startFlow] = useMutation<StartFlowMutation, StartFlowMutationVariables>(startFlowMutation);
 
   const runFlow = useCallback(
-    async (
-      args: { outputs: FlowTrigger["outputs"]; webId: WebId } | { reRun: true },
-    ) => {
+    async (args: { outputs: FlowTrigger["outputs"]; webId: WebId } | { reRun: true }) => {
       let flowInputs: FlowInputs[number];
 
       if (!selectedFlowDefinition) {
@@ -731,14 +676,7 @@ export const FlowVisualizer = () => {
         setStartFlowPending(false);
       }
     },
-    [
-      apolloClient,
-      getOwner,
-      push,
-      selectedFlowDefinition,
-      selectedFlowRun,
-      startFlow,
-    ],
+    [apolloClient, getOwner, push, selectedFlowDefinition, selectedFlowRun, startFlow],
   );
 
   const handleRunFlowClicked = useCallback(async () => {
@@ -761,17 +699,13 @@ export const FlowVisualizer = () => {
   }
 
   const flowDefinitionStateKey = `${selectedFlowDefinition.name} ?? "loading`;
-  const flowRunStateKey = `${flowDefinitionStateKey}-${
-    selectedFlowRun?.flowRunId ?? "definition"
-  }`;
+  const flowRunStateKey = `${flowDefinitionStateKey}-${selectedFlowRun?.flowRunId ?? "definition"}`;
 
   const isRunnableFromHere =
     selectedFlowDefinition.trigger.triggerDefinitionId === "userTrigger" &&
     !unrunnableDefinitionIds.includes(selectedFlowDefinition.flowDefinitionId);
 
-  const isGoal = goalFlowDefinitionIds.includes(
-    selectedFlowDefinition.flowDefinitionId,
-  );
+  const isGoal = goalFlowDefinitionIds.includes(selectedFlowDefinition.flowDefinitionId);
 
   return (
     <>
@@ -815,8 +749,7 @@ export const FlowVisualizer = () => {
             width: "100%",
             background: ({ palette }) =>
               selectedFlowRun ? palette.gray[10] : "rgb(241, 246, 251)",
-            transition: ({ transitions }) =>
-              transitions.create("background", transitionOptions),
+            transition: ({ transitions }) => transitions.create("background", transitionOptions),
             pt: 2.5,
           }}
         >
@@ -859,18 +792,12 @@ export const FlowVisualizer = () => {
           </Stack>
         </Stack>
 
-        <Collapse
-          collapsedSize={45}
-          in={!bottomPanelIsCollapsed}
-          sx={{ maxHeight: "40%" }}
-        >
+        <Collapse collapsedSize={45} in={!bottomPanelIsCollapsed} sx={{ maxHeight: "40%" }}>
           <Stack
             direction="row"
             justifyContent="space-between"
             sx={({ palette, transitions }) => ({
-              background: bottomPanelIsCollapsed
-                ? palette.common.white
-                : palette.gray[10],
+              background: bottomPanelIsCollapsed ? palette.common.white : palette.gray[10],
               borderTop: `2px solid ${palette.gray[20]}`,
               height: logHeight,
               maxHeight: "100%",
@@ -911,9 +838,7 @@ export const FlowVisualizer = () => {
                     color: palette.gray[60],
                   },
                 })}
-                onClick={() =>
-                  setBottomPanelIsCollapsed(!bottomPanelIsCollapsed)
-                }
+                onClick={() => setBottomPanelIsCollapsed(!bottomPanelIsCollapsed)}
               >
                 <ArrowRightToLineIcon />
               </IconButton>

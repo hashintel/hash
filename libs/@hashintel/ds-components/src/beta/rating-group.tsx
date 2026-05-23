@@ -16,10 +16,7 @@ import {
   type ReactElement,
 } from "react";
 
-import {
-  createStyleContext,
-  type HTMLStyledProps,
-} from "@hashintel/ds-helpers/jsx";
+import { createStyleContext, type HTMLStyledProps } from "@hashintel/ds-helpers/jsx";
 
 import { ratingGroupSlotRecipe } from "./rating-group.recipe";
 
@@ -56,25 +53,23 @@ const cloneIcon = (icon: ReactElement, type: string) => {
   return cloneElement(icon, props);
 };
 
-export const ItemIndicator = forwardRef<HTMLSpanElement, ItemIndicatorProps>(
-  (props, ref) => {
-    const { icon = <StarIcon />, ...rest } = props;
-    const item = useRatingGroupItemContext();
+export const ItemIndicator = forwardRef<HTMLSpanElement, ItemIndicatorProps>((props, ref) => {
+  const { icon = <StarIcon />, ...rest } = props;
+  const item = useRatingGroupItemContext();
 
-    return (
-      <StyledItemIndicator
-        ref={ref}
-        {...rest}
-        data-highlighted={item.highlighted ? "" : undefined}
-        data-checked={item.checked ? "" : undefined}
-        data-half={item.half ? "" : undefined}
-      >
-        {cloneIcon(icon, "bg")}
-        {cloneIcon(icon, "fg")}
-      </StyledItemIndicator>
-    );
-  },
-);
+  return (
+    <StyledItemIndicator
+      ref={ref}
+      {...rest}
+      data-highlighted={item.highlighted ? "" : undefined}
+      data-checked={item.checked ? "" : undefined}
+      data-half={item.half ? "" : undefined}
+    >
+      {cloneIcon(icon, "bg")}
+      {cloneIcon(icon, "fg")}
+    </StyledItemIndicator>
+  );
+});
 
 interface ItemsProps extends Omit<ComponentProps<typeof Item>, "index"> {
   icon?: ReactElement | undefined;

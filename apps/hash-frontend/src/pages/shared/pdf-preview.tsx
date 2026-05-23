@@ -24,11 +24,7 @@ import {
 } from "./pdf-preview/dimensions";
 import { PageThumbnail } from "./pdf-preview/page-thumbnail";
 import { PdfPreviewSkeleton } from "./pdf-preview/pdf-preview-skeleton";
-import {
-  PdfSearch,
-  type SearchHit,
-  type SearchHits,
-} from "./pdf-preview/pdf-search";
+import { PdfSearch, type SearchHit, type SearchHits } from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
 
 import type {
@@ -62,10 +58,8 @@ const highlightOccurrencesInTextItem = (
   let positionInText = 0;
 
   for (const { start, end } of relevantOccurrences) {
-    const startCharIndex =
-      start.rowIndex === rowIndex ? start.characterIndex : 0;
-    const endCharIndex =
-      end.rowIndex === rowIndex ? end.characterIndex : text.length - 1;
+    const startCharIndex = start.rowIndex === rowIndex ? start.characterIndex : 0;
+    const endCharIndex = end.rowIndex === rowIndex ? end.characterIndex : text.length - 1;
 
     const isSelectedHit = selectedSearchHit
       ? selectedSearchHit.start.rowIndex === start.rowIndex &&
@@ -135,9 +129,7 @@ export const PdfPreview = ({
       });
   }, [initialUrl]);
 
-  const [documentProxy, setDocumentProxy] = useState<DocumentCallback | null>(
-    null,
-  );
+  const [documentProxy, setDocumentProxy] = useState<DocumentCallback | null>(null);
   const [scale, setScale] = useState(1);
   const [totalPages, setTotalPages] = useState<number>();
   const [selectedPageNumber, setSelectedPageNumber] = useState<number>(1);
@@ -145,9 +137,7 @@ export const PdfPreview = ({
     total: 0,
     hitsByPageNumber: {},
   });
-  const [selectedSearchHit, setSelectedSearchHit] = useState<SearchHit | null>(
-    null,
-  );
+  const [selectedSearchHit, setSelectedSearchHit] = useState<SearchHit | null>(null);
 
   const onDocumentLoadSuccess: OnDocumentLoadSuccess = (docProxy) => {
     setTotalPages(docProxy.numPages);
@@ -156,8 +146,7 @@ export const PdfPreview = ({
 
   const textRenderer: CustomTextRenderer = useCallback(
     (textItem) => {
-      const relevantSearchHits =
-        searchHits.hitsByPageNumber[textItem.pageNumber] ?? [];
+      const relevantSearchHits = searchHits.hitsByPageNumber[textItem.pageNumber] ?? [];
 
       if (!relevantSearchHits.length) {
         return textItem.str;
@@ -176,10 +165,8 @@ export const PdfPreview = ({
   const { ref: entireContainerRef, dimensions: entireContainerDimensions } =
     useElementBorderBoxSize<HTMLDivElement>();
 
-  const {
-    ref: thumbnailContainerRef,
-    dimensions: thumbnailContainerDimensions,
-  } = useElementBorderBoxSize<HTMLDivElement>();
+  const { ref: thumbnailContainerRef, dimensions: thumbnailContainerDimensions } =
+    useElementBorderBoxSize<HTMLDivElement>();
 
   /**
    * Default to an A4-sized page – will adjust via event handler on the page once it's loaded
@@ -192,9 +179,7 @@ export const PdfPreview = ({
 
   const fullPageHeight = pageContainerWidth * pageWidthHeightRatio;
 
-  const [viewportHeight, setViewportHeight] = useState(
-    document.documentElement.clientHeight,
-  );
+  const [viewportHeight, setViewportHeight] = useState(document.documentElement.clientHeight);
 
   useEffect(() => {
     const handleResize = () => {
@@ -226,18 +211,12 @@ export const PdfPreview = ({
     py: `${thumbnailYPadding}px`,
   };
 
-  const setPageWidthHeightRatioDebounced = debounce(
-    (height: number, width: number) => {
-      setPageWidthHeightRatio(Math.round((height / width) * 100) / 100);
-    },
-    200,
-  );
+  const setPageWidthHeightRatioDebounced = debounce((height: number, width: number) => {
+    setPageWidthHeightRatio(Math.round((height / width) * 100) / 100);
+  }, 200);
 
   return (
-    <FullScreen
-      className="full-height-and-width-for-react-full-screen"
-      handle={fullScreenHandle}
-    >
+    <FullScreen className="full-height-and-width-for-react-full-screen" handle={fullScreenHandle}>
       <Stack
         direction="row"
         ref={entireContainerRef}
@@ -256,8 +235,7 @@ export const PdfPreview = ({
             left:
               20 +
               (showThumbnails
-                ? (thumbnailContainerDimensions?.width ??
-                  thumbnailWidth + thumbnailXPadding * 2)
+                ? (thumbnailContainerDimensions?.width ?? thumbnailWidth + thumbnailXPadding * 2)
                 : 0),
             zIndex: 100,
           }}
@@ -297,11 +275,7 @@ export const PdfPreview = ({
           >
             <Stack direction="row" sx={{ width: "100%" }}>
               {showThumbnails && totalPages !== undefined && (
-                <Stack
-                  gap={2}
-                  ref={thumbnailContainerRef}
-                  sx={thumbnailContainerSx}
-                >
+                <Stack gap={2} ref={thumbnailContainerRef} sx={thumbnailContainerSx}>
                   {Array.from({ length: totalPages }).map((_item, index) => (
                     <PageThumbnail
                       height={thumbnailWidth * pageWidthHeightRatio}
@@ -325,13 +299,9 @@ export const PdfPreview = ({
                     <Stack direction="row" alignItems="center" gap={1}>
                       <GrayToBlueIconButton
                         disabled={selectedPageNumber === 1}
-                        onClick={() =>
-                          setSelectedPageNumber(selectedPageNumber - 1)
-                        }
+                        onClick={() => setSelectedPageNumber(selectedPageNumber - 1)}
                       >
-                        <ArrowRightRegularIcon
-                          sx={{ transform: "rotate(180deg)" }}
-                        />
+                        <ArrowRightRegularIcon sx={{ transform: "rotate(180deg)" }} />
                       </GrayToBlueIconButton>
                       <Typography
                         sx={{
@@ -345,9 +315,7 @@ export const PdfPreview = ({
                       </Typography>
                       <GrayToBlueIconButton
                         disabled={selectedPageNumber === totalPages}
-                        onClick={() =>
-                          setSelectedPageNumber(selectedPageNumber + 1)
-                        }
+                        onClick={() => setSelectedPageNumber(selectedPageNumber + 1)}
                       >
                         <ArrowRightRegularIcon />
                       </GrayToBlueIconButton>
@@ -357,11 +325,7 @@ export const PdfPreview = ({
               )}
               <Stack
                 direction="row"
-                justifyContent={
-                  pageWidth * scale > pageContainerWidth
-                    ? "flex-start"
-                    : "center"
-                }
+                justifyContent={pageWidth * scale > pageContainerWidth ? "flex-start" : "center"}
                 alignItems={scale > 1 ? "flex-start" : "center"}
                 sx={{
                   overflow: scale > 1 ? "auto" : "hidden",
@@ -411,14 +375,10 @@ export const PdfPreview = ({
                   }}
                 >
                   <Stack direction="row" alignItems="center" gap={1}>
-                    <GrayToBlueIconButton
-                      onClick={() => setScale((prev) => prev - 0.2)}
-                    >
+                    <GrayToBlueIconButton onClick={() => setScale((prev) => prev - 0.2)}>
                       <MagnifyingGlassMinusLightIcon />
                     </GrayToBlueIconButton>
-                    <GrayToBlueIconButton
-                      onClick={() => setScale((prev) => prev + 0.2)}
-                    >
+                    <GrayToBlueIconButton onClick={() => setScale((prev) => prev + 0.2)}>
                       <MagnifyingGlassPlusLightIcon />
                     </GrayToBlueIconButton>
                     <Typography
@@ -431,11 +391,7 @@ export const PdfPreview = ({
                     </Typography>
                   </Stack>
                   <GrayToBlueIconButton
-                    onClick={
-                      fullScreenHandle[
-                        fullScreenHandle.active ? "exit" : "enter"
-                      ]
-                    }
+                    onClick={fullScreenHandle[fullScreenHandle.active ? "exit" : "enter"]}
                   >
                     {fullScreenHandle.active ? (
                       <ArrowDownLeftAndArrowUpRightToCenterIcon />

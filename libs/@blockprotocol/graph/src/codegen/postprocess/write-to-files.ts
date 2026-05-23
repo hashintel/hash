@@ -3,9 +3,7 @@ import path from "node:path";
 
 import type { PostprocessContext } from "../context/postprocess.js";
 
-export const writeToFiles = async (
-  context: PostprocessContext,
-): Promise<void> => {
+export const writeToFiles = async (context: PostprocessContext): Promise<void> => {
   context.logDebug("Writing generated contents to disk");
 
   const writeQueue: Promise<void>[] = [];

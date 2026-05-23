@@ -30,18 +30,10 @@ export const sirSdcpnContextValue: SDCPNContextValue = {
     if (sirModel.petriNetDefinition.places.some((place) => place.id === id)) {
       return "place";
     }
-    if (
-      sirModel.petriNetDefinition.transitions.some(
-        (transition) => transition.id === id,
-      )
-    ) {
+    if (sirModel.petriNetDefinition.transitions.some((transition) => transition.id === id)) {
       return "transition";
     }
-    if (
-      sirModel.petriNetDefinition.parameters.some(
-        (parameter) => parameter.id === id,
-      )
-    ) {
+    if (sirModel.petriNetDefinition.parameters.some((parameter) => parameter.id === id)) {
       return "parameter";
     }
     return null;
@@ -136,15 +128,12 @@ const getScenarioName = (scenarioId: string | null): string | null => {
   }
 
   return (
-    sirModel.petriNetDefinition.scenarios?.find(
-      (scenario) => scenario.id === scenarioId,
-    )?.name ?? null
+    sirModel.petriNetDefinition.scenarios?.find((scenario) => scenario.id === scenarioId)?.name ??
+    null
   );
 };
 
-const createFakeExperiment = (
-  input: CreateExperimentInput,
-): ExperimentRecord => ({
+const createFakeExperiment = (input: CreateExperimentInput): ExperimentRecord => ({
   id: `experiment-${Date.now()}`,
   name: input.name,
   createdAt: Date.now(),
@@ -170,12 +159,9 @@ export function FakeExperimentsProvider({
   const [experiments, setExperiments] = useState<readonly ExperimentRecord[]>(
     () => initialExperiments,
   );
-  const [selectedExperimentId, setSelectedExperimentId] = useState<
-    string | null
-  >(null);
+  const [selectedExperimentId, setSelectedExperimentId] = useState<string | null>(null);
   const selectedExperiment =
-    experiments.find((experiment) => experiment.id === selectedExperimentId) ??
-    null;
+    experiments.find((experiment) => experiment.id === selectedExperimentId) ?? null;
 
   const value = useMemo<ExperimentsContextValue>(
     () => ({
@@ -191,16 +177,12 @@ export function FakeExperimentsProvider({
       cancelExperiment: (experimentId) => {
         setExperiments((current) =>
           current.map((experiment) =>
-            experiment.id === experimentId
-              ? { ...experiment, status: "cancelled" }
-              : experiment,
+            experiment.id === experimentId ? { ...experiment, status: "cancelled" } : experiment,
           ),
         );
       },
       removeExperiment: (experimentId) => {
-        setExperiments((current) =>
-          current.filter((experiment) => experiment.id !== experimentId),
-        );
+        setExperiments((current) => current.filter((experiment) => experiment.id !== experimentId));
       },
     }),
     [experiments, selectedExperiment, selectedExperimentId],
@@ -216,9 +198,8 @@ export function FakeEditorProvider({
   children: ReactNode;
   initialSimulateViewMode?: SimulateViewMode;
 }) {
-  const [simulateViewMode, setSimulateViewMode] = useState<SimulateViewMode>(
-    initialSimulateViewMode,
-  );
+  const [simulateViewMode, setSimulateViewMode] =
+    useState<SimulateViewMode>(initialSimulateViewMode);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const value = useMemo<EditorContextValue>(

@@ -65,9 +65,7 @@ export const ReadonlyGridPopup = ({
           />
         </IconButton>
       </Tooltip>
-      <Typography
-        sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}
-      >
+      <Typography sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}>
         {stringValue}
       </Typography>
     </GridEditorWrapper>

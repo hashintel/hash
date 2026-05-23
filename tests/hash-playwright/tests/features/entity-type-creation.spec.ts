@@ -24,18 +24,13 @@ test("user can create entity type", async ({ page }) => {
   const createBtn = sidebar.getByTestId("create-entity-type-btn");
   await expect(createBtn).toBeVisible();
   await createBtn.click();
-  await page.waitForURL(
-    (url) => !!url.pathname.match(/^\/new\/types\/entity-type/),
-  );
+  await page.waitForURL((url) => !!url.pathname.match(/^\/new\/types\/entity-type/));
 
   // Create a random entity type name for each test
   const entityTypeName = `TestEntity${(Math.random() * 1000).toFixed()}`;
 
   // Fill up entity creation form
-  await page.fill(
-    '[data-testid=entity-type-creation-form] input[name="title"]',
-    entityTypeName,
-  );
+  await page.fill('[data-testid=entity-type-creation-form] input[name="title"]', entityTypeName);
   await page.fill(
     '[data-testid=entity-type-creation-form] textarea[name="description"]',
     "Test Entity",
@@ -78,7 +73,5 @@ test("user can create entity type", async ({ page }) => {
 
   await page.click('[data-testid="editbar-confirm"]');
 
-  await page.waitForURL(
-    (url) => !!url.pathname.endsWith(entityTypeName.toLowerCase()),
-  );
+  await page.waitForURL((url) => !!url.pathname.endsWith(entityTypeName.toLowerCase()));
 });

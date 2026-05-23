@@ -1,9 +1,4 @@
-import {
-  createReadStream,
-  createWriteStream,
-  mkdirSync,
-  statSync,
-} from "node:fs";
+import { createReadStream, createWriteStream, mkdirSync, statSync } from "node:fs";
 import { unlink } from "node:fs/promises";
 import * as http from "node:http";
 import * as https from "node:https";
@@ -14,10 +9,7 @@ import { finished } from "node:stream/promises";
 
 import mime from "mime-types";
 
-import {
-  formatFileUrl,
-  getEntityTypeIdForMimeType,
-} from "@local/hash-backend-utils/file-storage";
+import { formatFileUrl, getEntityTypeIdForMimeType } from "@local/hash-backend-utils/file-storage";
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { validateExternalUrlWithDnsCheck } from "@local/hash-backend-utils/url-validation";
@@ -41,10 +33,7 @@ import type {
   ProvidedEntityEditionProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type {
-  File,
-  FileProperties,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { File, FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { ReadableStream } from "node:stream/web";
 
 const baseFilePath = path.join(tmpdir(), "hash-tmp-files");
@@ -62,17 +51,11 @@ const downloadFileToFileSystem = async (fileUrl: string) => {
 
   try {
     const fileStream = createWriteStream(filePath);
-    await finished(
-      Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(
-        fileStream,
-      ),
-    );
+    await finished(Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(fileStream));
     return filePath;
   } catch (error) {
     await unlink(filePath).catch(() => {});
-    throw new Error(
-      `Failed to write file to file system: ${(error as Error).message}`,
-    );
+    throw new Error(`Failed to write file to file system: ${(error as Error).message}`);
   }
 };
 
@@ -101,11 +84,7 @@ const writeFileToS3URL = async ({
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
             resolve("Ok");
           } else {
-            reject(
-              new Error(
-                `${res.statusCode} Error uploading to S3: ${res.statusMessage}`,
-              ),
-            );
+            reject(new Error(`${res.statusCode} Error uploading to S3: ${res.statusMessage}`));
           }
         });
       },
@@ -115,9 +94,7 @@ const writeFileToS3URL = async ({
       reject(new Error(`Request error: ${error.message}`));
     });
 
-    fileStream.on("error", (error) =>
-      reject(new Error(`Error reading file: ${error.message}`)),
-    );
+    fileStream.on("error", (error) => reject(new Error(`Error reading file: ${error.message}`)));
     fileStream.pipe(req);
     fileStream.on("end", () => req.end());
   });
@@ -153,8 +130,7 @@ export const createFileEntityFromUrl = async (params: {
     provenance: provenanceFromParams,
   } = params;
 
-  const { userAuthentication, webId, flowEntityId, stepId } =
-    await getFlowContext();
+  const { userAuthentication, webId, flowEntityId, stepId } = await getFlowContext();
 
   const urlValidation = await validateExternalUrlWithDnsCheck(originalUrl);
   if (!urlValidation.valid) {
@@ -168,17 +144,13 @@ export const createFileEntityFromUrl = async (params: {
 
   const urlObject = new URL(originalUrl);
   const urlWithoutParams = new URL(urlObject.origin + urlObject.pathname);
-  const filename = normalizeWhitespace(
-    urlWithoutParams.pathname.split("/").pop()!,
-  );
+  const filename = normalizeWhitespace(urlWithoutParams.pathname.split("/").pop()!);
 
   let localFilePath;
   try {
     localFilePath = await downloadFileToFileSystem(originalUrl);
   } catch (err) {
-    const message = `Error downloading file from URL: ${
-      (err as Error).message
-    }`;
+    const message = `Error downloading file from URL: ${(err as Error).message}`;
 
     logger.error(message);
 
@@ -193,9 +165,7 @@ export const createFileEntityFromUrl = async (params: {
     const mimeTypeEntityTypeId = getEntityTypeIdForMimeType(mimeType);
     const entityTypeIds =
       params.entityTypeIds ??
-      (mimeTypeEntityTypeId
-        ? [mimeTypeEntityTypeId]
-        : [systemEntityTypes.file.entityTypeId]);
+      (mimeTypeEntityTypeId ? [mimeTypeEntityTypeId] : [systemEntityTypes.file.entityTypeId]);
 
     const stats = statSync(localFilePath);
     const fileSizeInBytes = stats.size;
@@ -203,22 +173,15 @@ export const createFileEntityFromUrl = async (params: {
     const initialProperties: FileProperties = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
         description ?? undefined,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-        filename,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": filename,
       "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
         displayName ?? filename,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-        originalUrl,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-        mimeType,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
-        filename,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
-        "URL",
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/":
-        originalUrl,
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/":
-        fileSizeInBytes,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": originalUrl,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": mimeType,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/": filename,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/": "URL",
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/": originalUrl,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/": fileSizeInBytes,
     };
 
     const isAiGenerated = provenanceFromParams?.actorType === "ai";
@@ -243,20 +206,17 @@ export const createFileEntityFromUrl = async (params: {
         });
 
     if (!webBotActorId) {
-      throw new Error(
-        `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`,
-      );
+      throw new Error(`Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`);
     }
 
-    const provenance: ProvidedEntityEditionProvenance =
-      provenanceFromParams ?? {
-        actorType: "machine",
-        origin: {
-          type: "flow",
-          id: flowEntityId,
-          stepIds: [stepId],
-        },
-      };
+    const provenance: ProvidedEntityEditionProvenance = provenanceFromParams ?? {
+      actorType: "machine",
+      origin: {
+        type: "flow",
+        id: flowEntityId,
+        stepIds: [stepId],
+      },
+    };
 
     const incompleteFileEntity = await HashEntity.create<File>(
       graphApiClient,
@@ -264,13 +224,8 @@ export const createFileEntityFromUrl = async (params: {
       {
         draft: false,
         webId,
-        properties: mergePropertyObjectAndMetadata<File>(
-          initialProperties,
-          propertyMetadata,
-        ),
-        entityTypeIds: entityTypeIds as [
-          typeof systemEntityTypes.file.entityTypeId,
-        ],
+        properties: mergePropertyObjectAndMetadata<File>(initialProperties, propertyMetadata),
+        entityTypeIds: entityTypeIds as [typeof systemEntityTypes.file.entityTypeId],
         provenance,
       },
     );
@@ -285,27 +240,25 @@ export const createFileEntityFromUrl = async (params: {
       filename,
     });
 
-    const { fileStorageProperties, presignedPut } =
-      await storageProvider.presignUpload({
-        expiresInSeconds: 60 * 60 * 24, // 24 hours
-        headers: {
-          "content-length": fileSizeInBytes,
-          "content-type": mimeType,
-        },
-        key,
-      });
+    const { fileStorageProperties, presignedPut } = await storageProvider.presignUpload({
+      expiresInSeconds: 60 * 60 * 24, // 24 hours
+      headers: {
+        "content-length": fileSizeInBytes,
+        "content-type": mimeType,
+      },
+      key,
+    });
 
     const updatedProperties: File["propertiesWithMetadata"] = {
       ...fileStorageProperties,
       value: {
         ...fileStorageProperties.value,
-        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-          {
-            value: formatFileUrl(key),
-            metadata: {
-              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
-            },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": {
+          value: formatFileUrl(key),
+          metadata: {
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
+        },
       },
     };
 

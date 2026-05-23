@@ -63,9 +63,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     webId,
   });
 
-  logger.debug(
-    `Inference state after entity summaries: ${stringify(inferenceState)}`,
-  );
+  logger.debug(`Inference state after entity summaries: ${stringify(inferenceState)}`);
 
   if (status.code !== StatusCode.Ok) {
     logger.error(
@@ -99,9 +97,7 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       change units, you must use the units specified in the data.
 
     You already provided a summary of the ${
-      relevantEntitiesPrompt
-        ? "relevant entities you inferred"
-        : "entities you can infer"
+      relevantEntitiesPrompt ? "relevant entities you inferred" : "entities you can infer"
     } from the website. Here it is:
     ${JSON.stringify(Object.values(inferenceState.proposedEntitySummaries))}
   `);

@@ -1,11 +1,4 @@
-import {
-  Box,
-  Collapse,
-  Container,
-  Stack,
-  styled,
-  Typography,
-} from "@mui/material";
+import { Box, Collapse, Container, Stack, styled, Typography } from "@mui/material";
 import { type ReactNode, useEffect, useRef } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
@@ -161,14 +154,10 @@ export const useFreezeScrollWhileTransitioning = () => {
         // If the page isn't long enough to scroll to compensate for the removed
         // offset, we want to apply some extra padding using min height
         const { scrollTop, clientHeight, scrollHeight } = scroller;
-        const bottomPadding =
-          (scrollHeight - scrollTop - clientHeight + appliedOffset) * -1;
+        const bottomPadding = (scrollHeight - scrollTop - clientHeight + appliedOffset) * -1;
 
         if (bottomPadding > 0) {
-          page.style.setProperty(
-            "min-height",
-            `${Math.ceil(clientHeight - appliedOffset)}px`,
-          );
+          page.style.setProperty("min-height", `${Math.ceil(clientHeight - appliedOffset)}px`);
         } else {
           page.style.removeProperty("min-height");
         }
@@ -229,8 +218,7 @@ export const useFreezeScrollWhileTransitioning = () => {
 };
 
 export const EditBarContainer = styled(Box, {
-  shouldForwardProp: (prop) =>
-    prop !== "hasErrors" && prop !== "gentleErrorStyling",
+  shouldForwardProp: (prop) => prop !== "hasErrors" && prop !== "gentleErrorStyling",
 })<{ hasErrors?: boolean; gentleErrorStyling?: boolean }>(
   ({ hasErrors, theme, gentleErrorStyling }) => ({
     height: EDIT_BAR_HEIGHT,

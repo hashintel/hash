@@ -13,11 +13,7 @@ import {
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
-import {
-  ArrowRightRegularIcon,
-  BullseyeLightIcon,
-  TextField,
-} from "@hashintel/design-system";
+import { ArrowRightRegularIcon, BullseyeLightIcon, TextField } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import {
   goalFlowDefinition,
@@ -44,10 +40,7 @@ import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { WebSelector } from "../shared/web-selector";
 import { DeliverableSettings } from "./new.page/deliverable-settings";
 import { FileSettings } from "./new.page/file-settings";
-import {
-  defaultBrowserPluginDomains,
-  InternetSettings,
-} from "./new.page/internet-settings";
+import { defaultBrowserPluginDomains, InternetSettings } from "./new.page/internet-settings";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { DeliverableSettingsState } from "./new.page/deliverable-settings";
@@ -127,11 +120,7 @@ const SettingCard = ({ children }: PropsWithChildren) => (
       py: 1.8,
     })}
   >
-    <Stack
-      direction="row"
-      gap={{ xs: 2, lg: 5 }}
-      sx={{ flexWrap: { xs: "wrap", lg: "nowrap" } }}
-    >
+    <Stack direction="row" gap={{ xs: 2, lg: 5 }} sx={{ flexWrap: { xs: "wrap", lg: "nowrap" } }}>
       {children}
     </Stack>
   </Box>
@@ -145,11 +134,7 @@ const SettingCardSectionHeader = ({
   text: string;
 }) => (
   <Stack direction="row" alignItems="center" mb={2}>
-    {Icon && (
-      <Icon
-        sx={{ color: ({ palette }) => palette.gray[50], fontSize: 12, mr: 0.9 }}
-      />
-    )}
+    {Icon && <Icon sx={{ color: ({ palette }) => palette.gray[50], fontSize: 12, mr: 0.9 }} />}
     <Typography
       component="h4"
       sx={{ color: ({ palette }) => palette.gray[50] }}
@@ -174,13 +159,9 @@ const NewGoalPageContent = () => {
 
   const [goal, setGoal] = useState("");
   const [entityTypes, setEntityTypes] = useState<EntityTypeWithMetadata[]>([]);
-  const [webId, setWebId] = useState<WebId>(
-    authenticatedUser.accountId as WebId,
-  );
+  const [webId, setWebId] = useState<WebId>(authenticatedUser.accountId as WebId);
   const [createAsDraft, setCreateAsDraft] = useState(true);
-  const [internetSettings, setInternetSettings] = useState<
-    FlowDataSources["internetAccess"]
-  >({
+  const [internetSettings, setInternetSettings] = useState<FlowDataSources["internetAccess"]>({
     enabled: true,
     browserPlugin: {
       domains: defaultBrowserPluginDomains,
@@ -190,20 +171,18 @@ const NewGoalPageContent = () => {
   const [fileSettings, setFileSettings] = useState<FileSettingsState>({
     fileEntities: [],
   });
-  const [deliverablesSettings, setDeliverablesSettings] =
-    useState<DeliverableSettingsState>({
-      document: null,
-      spreadsheet: null,
-    });
+  const [deliverablesSettings, setDeliverablesSettings] = useState<DeliverableSettingsState>({
+    document: null,
+    spreadsheet: null,
+  });
 
   const apolloClient = useApolloClient();
   const getOwner = useGetOwnerForEntity();
   const { push } = useRouter();
 
-  const [startFlow, { called }] = useMutation<
-    StartFlowMutation,
-    StartFlowMutationVariables
-  >(startFlowMutation);
+  const [startFlow, { called }] = useMutation<StartFlowMutation, StartFlowMutationVariables>(
+    startFlowMutation,
+  );
 
   const submittable = useMemo(() => {
     if (called || !goal.trim() || !entityTypes.length) {
@@ -268,8 +247,7 @@ const NewGoalPageContent = () => {
       },
     ];
 
-    let flowDefinition: FlowDefinition<AiFlowActionDefinitionId> =
-      goalFlowDefinition;
+    let flowDefinition: FlowDefinition<AiFlowActionDefinitionId> = goalFlowDefinition;
     if (deliverablesSettings.document && deliverablesSettings.spreadsheet) {
       if (
         !deliverablesSettings.document.brief ||
@@ -467,11 +445,10 @@ const NewGoalPageContent = () => {
                 sx={{
                   height: 52,
                   width: inputWidth,
-                  [`& .${outlinedInputClasses.root} .${autocompleteClasses.input}`]:
-                    {
-                      fontSize: 15,
-                      pl: 2,
-                    },
+                  [`& .${outlinedInputClasses.root} .${autocompleteClasses.input}`]: {
+                    fontSize: 15,
+                    pl: 2,
+                  },
                 }}
                 value={entityTypes}
               />
@@ -484,25 +461,12 @@ const NewGoalPageContent = () => {
           >
             <SettingCard>
               <Box>
-                <SettingCardSectionHeader
-                  Icon={GlobeRegularIcon}
-                  text="Internet"
-                />
-                <InternetSettings
-                  settings={internetSettings}
-                  setSettings={setInternetSettings}
-                />
+                <SettingCardSectionHeader Icon={GlobeRegularIcon} text="Internet" />
+                <InternetSettings settings={internetSettings} setSettings={setInternetSettings} />
               </Box>
               <Box flexGrow={1}>
-                <SettingCardSectionHeader
-                  Icon={FilesRegularIcon}
-                  text="Files"
-                />
-                <FileSettings
-                  settings={fileSettings}
-                  setSettings={setFileSettings}
-                  webId={webId}
-                />
+                <SettingCardSectionHeader Icon={FilesRegularIcon} text="Files" />
+                <FileSettings settings={fileSettings} setSettings={setFileSettings} webId={webId} />
               </Box>
             </SettingCard>
           </Question>
@@ -518,9 +482,7 @@ const NewGoalPageContent = () => {
                   <RadioGroup
                     aria-labelledby="draft-option"
                     name="radio-buttons-group"
-                    onChange={(event) =>
-                      setCreateAsDraft(event.target.value === "draft")
-                    }
+                    onChange={(event) => setCreateAsDraft(event.target.value === "draft")}
                     value={createAsDraft ? "draft" : "live"}
                   >
                     <FormControlLabel
@@ -556,12 +518,7 @@ const NewGoalPageContent = () => {
               mt: 4,
             }}
           >
-            <Button
-              disabled={!submittable}
-              onClick={createGoal}
-              size="medium"
-              type="submit"
-            >
+            <Button disabled={!submittable} onClick={createGoal} size="medium" type="submit">
               {called ? (
                 "Starting..."
               ) : (

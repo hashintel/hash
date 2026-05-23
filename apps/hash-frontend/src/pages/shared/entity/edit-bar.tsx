@@ -34,11 +34,7 @@ export const EditBarEntityEditor = ({
           hideConfirm={hasErrors}
           icon={hasErrors ? <WarnIcon /> : <PencilSimpleLine />}
           title={hasErrors ? "Changes required" : "Currently editing"}
-          label={
-            hasErrors
-              ? `before saving${errorMessage ? `: ${errorMessage}` : ""}`
-              : label
-          }
+          label={hasErrors ? `before saving${errorMessage ? `: ${errorMessage}` : ""}` : label}
           discardButtonProps={{
             children: "Discard changes",
             ...discardButtonProps,

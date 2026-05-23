@@ -30,38 +30,25 @@ export const passOutputsToUnprocessedSteps = (params: {
   outputs: StepOutput[];
   processedStepIds: string[];
 }): Omit<Status<never>, "contents"> => {
-  const {
-    flow,
-    flowDefinition,
-    stepId,
-    processedStepIds,
-    outputs,
-    outputDefinitions,
-  } = params;
+  const { flow, flowDefinition, stepId, processedStepIds, outputs, outputDefinitions } = params;
 
   const unprocessedSteps = getAllStepsInFlow(flow).filter(
-    (step) =>
-      !processedStepIds.some(
-        (processedStepId) => processedStepId === step.stepId,
-      ),
+    (step) => !processedStepIds.some((processedStepId) => processedStepId === step.stepId),
   );
 
   for (const unprocessedStep of unprocessedSteps) {
     if (unprocessedStep.kind === "action") {
-      const unprocessedActionStepDefinition =
-        getStepDefinitionFromFlowDefinition({
-          step: unprocessedStep,
-          flowDefinition,
-        });
+      const unprocessedActionStepDefinition = getStepDefinitionFromFlowDefinition({
+        step: unprocessedStep,
+        flowDefinition,
+      });
 
       const { inputSources } = unprocessedActionStepDefinition;
 
       const [currentStepIdWithoutIndex, currentStepIdIndex] = stepId.split("~");
 
       const matchingInputSources = inputSources.filter(
-        (
-          inputSource,
-        ): inputSource is Extract<StepInputSource, { kind: "step-output" }> =>
+        (inputSource): inputSource is Extract<StepInputSource, { kind: "step-output" }> =>
           inputSource.kind === "step-output" &&
           inputSource.sourceStepId === currentStepIdWithoutIndex,
       );
@@ -83,8 +70,7 @@ export const passOutputsToUnprocessedSteps = (params: {
         )!;
 
         const matchingOutput = outputs.find(
-          ({ outputName }) =>
-            outputName === matchingInputSource.sourceStepOutputName,
+          ({ outputName }) => outputName === matchingInputSource.sourceStepOutputName,
         )!;
 
         const matchingInputDefinition = actionDefinitions[
@@ -105,10 +91,7 @@ export const passOutputsToUnprocessedSteps = (params: {
               payload: matchingOutput.payload,
             },
           ];
-        } else if (
-          !matchingOutputDefinition.array &&
-          matchingInputDefinition.array
-        ) {
+        } else if (!matchingOutputDefinition.array && matchingInputDefinition.array) {
           if (Array.isArray(matchingOutput.payload.value)) {
             return {
               code: StatusCode.Internal,
@@ -136,14 +119,12 @@ export const passOutputsToUnprocessedSteps = (params: {
         }
       }
     } else {
-      const unprocessedParallelGroupStepDefinition =
-        getStepDefinitionFromFlowDefinition({
-          step: unprocessedStep,
-          flowDefinition,
-        });
+      const unprocessedParallelGroupStepDefinition = getStepDefinitionFromFlowDefinition({
+        step: unprocessedStep,
+        flowDefinition,
+      });
 
-      const { inputSourceToParallelizeOn } =
-        unprocessedParallelGroupStepDefinition;
+      const { inputSourceToParallelizeOn } = unprocessedParallelGroupStepDefinition;
 
       const [currentStepIdWithoutIndex] = stepId.split("~");
 
@@ -158,8 +139,7 @@ export const passOutputsToUnprocessedSteps = (params: {
          */
 
         const matchingOutput = outputs.find(
-          ({ outputName }) =>
-            outputName === inputSourceToParallelizeOn.sourceStepOutputName,
+          ({ outputName }) => outputName === inputSourceToParallelizeOn.sourceStepOutputName,
         )!;
 
         unprocessedStep.inputToParallelizeOn = {
@@ -176,11 +156,10 @@ export const passOutputsToUnprocessedSteps = (params: {
 
   for (const processedStep of processedSteps) {
     if (processedStep.kind === "parallel-group") {
-      const unprocessedParallelGroupStepDefinition =
-        getStepDefinitionFromFlowDefinition({
-          step: processedStep,
-          flowDefinition,
-        });
+      const unprocessedParallelGroupStepDefinition = getStepDefinitionFromFlowDefinition({
+        step: processedStep,
+        flowDefinition,
+      });
 
       /**
        * If the current step is a parallel step in the unprocessed parallel group,
@@ -196,10 +175,7 @@ export const passOutputsToUnprocessedSteps = (params: {
 
       const [currentStepIdWithoutIndex] = stepId.split("~");
 
-      if (
-        isCurrentStepInParallelGroup &&
-        aggregateOutput.stepId === currentStepIdWithoutIndex
-      ) {
+      if (isCurrentStepInParallelGroup && aggregateOutput.stepId === currentStepIdWithoutIndex) {
         const matchingOutput = outputs.find(
           ({ outputName }) => outputName === aggregateOutput.stepOutputName,
         )!;
@@ -226,10 +202,8 @@ export const passOutputsToUnprocessedSteps = (params: {
           payload: aggregateOutputPayload,
         };
 
-        const inputToParallelizeValue =
-          processedStep.inputToParallelizeOn?.payload.value;
-        const aggregateOutputValue =
-          processedStep.aggregateOutput.payload.value;
+        const inputToParallelizeValue = processedStep.inputToParallelizeOn?.payload.value;
+        const aggregateOutputValue = processedStep.aggregateOutput.payload.value;
 
         // Stored refs should have been caught earlier in process-flow-workflow
         /**
@@ -239,9 +213,7 @@ export const passOutputsToUnprocessedSteps = (params: {
           isStoredPayloadRef(inputToParallelizeValue) ||
           isStoredPayloadRef(aggregateOutputValue)
         ) {
-          throw new Error(
-            `Unexpected stored payload ref in parallelization context`,
-          );
+          throw new Error(`Unexpected stored payload ref in parallelization context`);
         }
 
         if (
@@ -261,9 +233,7 @@ export const passOutputsToUnprocessedSteps = (params: {
             flow,
             flowDefinition,
             stepId: processedStep.stepId,
-            outputDefinitions: [
-              unprocessedParallelGroupStepDefinition.aggregateOutput,
-            ],
+            outputDefinitions: [unprocessedParallelGroupStepDefinition.aggregateOutput],
             outputs: [processedStep.aggregateOutput],
             processedStepIds,
           });

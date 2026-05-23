@@ -18,8 +18,7 @@ export function getEnvStorageType(): StorageType {
   );
 }
 
-export const LOCAL_FILE_UPLOAD_PATH =
-  process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
+export const LOCAL_FILE_UPLOAD_PATH = process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
 
 export const GRAPHQL_PATH = "/graphql";
 
@@ -43,13 +42,9 @@ const defaultCorsOrigins: corsMiddleware.CorsOptions["origin"] = [
  *
  * Both accept comma-separated origin strings.
  */
-const corsOrigins: corsMiddleware.CorsOptions["origin"] = process.env
-  .HASH_CORS_ORIGIN_OVERRIDE
+const corsOrigins: corsMiddleware.CorsOptions["origin"] = process.env.HASH_CORS_ORIGIN_OVERRIDE
   ? parseCorsOrigins(process.env.HASH_CORS_ORIGIN_OVERRIDE)
-  : [
-      ...defaultCorsOrigins,
-      ...parseCorsOrigins(process.env.HASH_CORS_ADDITIONAL_ORIGINS ?? ""),
-    ];
+  : [...defaultCorsOrigins, ...parseCorsOrigins(process.env.HASH_CORS_ADDITIONAL_ORIGINS ?? "")];
 
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,

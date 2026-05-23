@@ -1,10 +1,7 @@
 import { google } from "googleapis";
 
 import { NotFoundError } from "@local/hash-backend-utils/error";
-import {
-  createGoogleOAuth2Client,
-  getGoogleAccountById,
-} from "@local/hash-backend-utils/google";
+import { createGoogleOAuth2Client, getGoogleAccountById } from "@local/hash-backend-utils/google";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -75,11 +72,9 @@ export const googleOAuthCallback: RequestHandler<
 
   const authentication = { actorId: req.user.accountId };
 
-  const googleBotAccountId = await getMachineIdByIdentifier(
-    req.context,
-    authentication,
-    { identifier: "google" },
-  ).then((maybeMachineId) => {
+  const googleBotAccountId = await getMachineIdByIdentifier(req.context, authentication, {
+    identifier: "google",
+  }).then((maybeMachineId) => {
     if (!maybeMachineId) {
       throw new NotFoundError("Failed to get google bot");
     }
@@ -105,19 +100,16 @@ export const googleOAuthCallback: RequestHandler<
             dataTypeId: "https://hash.ai/@h/types/data-type/email/v/1",
           },
         },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          {
-            value: googleUser.data.name ?? googleUser.data.email,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+          value: googleUser.data.name ?? googleUser.data.email,
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
+        },
         "https://hash.ai/@google/types/property-type/account-id/": {
           value: googleUser.data.id,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
       },
@@ -130,8 +122,7 @@ export const googleOAuthCallback: RequestHandler<
     });
   }
 
-  const googleAccountEntity =
-    existingGoogleAccountEntity ?? newGoogleAccountEntity;
+  const googleAccountEntity = existingGoogleAccountEntity ?? newGoogleAccountEntity;
 
   if (!googleAccountEntity) {
     res.status(500).send({
@@ -158,9 +149,7 @@ export const googleOAuthCallback: RequestHandler<
      */
     archiveExistingSecrets: true,
     // Set the expiration to 5 years from now (in ISO format)
-    expiresAt: new Date(
-      Date.now() + 5 * 365 * 24 * 60 * 60 * 1000,
-    ).toISOString(), // the secret data includes a refresh token that lasts indefinitely and will be used as needed
+    expiresAt: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString(), // the secret data includes a refresh token that lasts indefinitely and will be used as needed
     graphApi: req.context.graphApi,
     managingBotAccountId: googleBotAccountId,
     provenance: req.context.provenance,

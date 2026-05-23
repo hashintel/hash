@@ -1,22 +1,11 @@
 import { useMutation, useQuery } from "@apollo/client";
-import {
-  Box,
-  Stack,
-  Switch,
-  TableCell,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Stack, Switch, TableCell, Tooltip, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { memo, useEffect, useMemo, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import {
-  CaretDownSolidIcon,
-  IconButton,
-  RotateRegularIcon,
-} from "@hashintel/design-system";
+import { CaretDownSolidIcon, IconButton, RotateRegularIcon } from "@hashintel/design-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -26,10 +15,7 @@ import { resetFlowMutation } from "../../../../../graphql/queries/knowledge/flow
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
-import {
-  defaultCellSx,
-  VirtualizedTable,
-} from "../../../../shared/virtualized-table";
+import { defaultCellSx, VirtualizedTable } from "../../../../shared/virtualized-table";
 import { SectionLabel } from "./section-label";
 import { formatTimeTaken } from "./shared/format-time-taken";
 
@@ -55,17 +41,11 @@ import type {
 } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  CheckpointLog,
-  StepProgressLog,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { CheckpointLog, StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import type { Theme } from "@mui/material";
 import type { ReactElement } from "react";
 
-const getEntityLabelFromLog = (
-  log: StepProgressLog,
-  persistedEntities: HashEntity[],
-): string => {
+const getEntityLabelFromLog = (log: StepProgressLog, persistedEntities: HashEntity[]): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntityMetadata") {
     throw new Error(`Unexpected log type ${log.type}`);
   }
@@ -76,9 +56,7 @@ const getEntityLabelFromLog = (
       return "Entity persistence failed";
     }
 
-    const entity = persistedEntities.find(
-      (persisted) => persisted.entityId === entityId,
-    );
+    const entity = persistedEntities.find((persisted) => persisted.entityId === entityId);
 
     if (!entity) {
       // Entity not yet loaded - return a placeholder
@@ -126,8 +104,7 @@ const visitedWebPagePrefix = "Visited ";
 const queriedWebPrefix = "Searched web for ";
 const startedCoordinatorPrefix = "Started research coordinator with goal ";
 const closedCoordinatorPrefix = "Finished research coordinator with ";
-const coordinatorWaitsPrefix =
-  "Coordinator is waiting for outstanding tasks to finish.";
+const coordinatorWaitsPrefix = "Coordinator is waiting for outstanding tasks to finish.";
 const startedSubCoordinatorPrefix = "Started sub-coordinator with goal ";
 const closedSubCoordinatorPrefix = "Finished sub-coordinator with ";
 const startedLinkExplorerTaskPrefix = "Exploring webpages with goal ";
@@ -139,10 +116,7 @@ const checkpointResetMessage = "Flow resumed from checkpoint";
 const createdPlanMessage = "Created research plan";
 const updatedPlanMessage = "Updated research plan";
 
-const getRawTextFromLog = (
-  log: LocalProgressLog,
-  persistedEntities: HashEntity[],
-): string => {
+const getRawTextFromLog = (log: LocalProgressLog, persistedEntities: HashEntity[]): string => {
   switch (log.type) {
     case "VisitedWebPage": {
       return `${visitedWebPagePrefix}${log.webPage.title}`;
@@ -216,9 +190,7 @@ const getRawTextFromLog = (
 const ModelTooltip = ({ text }: { text: string }) => (
   <Tooltip title={text}>
     <Box sx={{ position: "absolute", top: "calc(50% - 6px)", right: 0 }}>
-      <CircleInfoIcon
-        sx={{ fontSize: 12, fill: ({ palette }) => palette.gray[40], ml: 1 }}
-      />
+      <CircleInfoIcon sx={{ fontSize: 12, fill: ({ palette }) => palette.gray[40], ml: 1 }} />
     </Box>
   </Tooltip>
 );
@@ -233,17 +205,12 @@ const ellipsisOverflow = {
 const Checkpoint = ({ log }: { log: CheckpointLog }) => {
   const { selectedFlowRun } = useFlowRunsContext();
 
-  const [resetFlow] = useMutation<
-    ResetFlowMutation,
-    ResetFlowMutationVariables
-  >(resetFlowMutation);
+  const [resetFlow] = useMutation<ResetFlowMutation, ResetFlowMutationVariables>(resetFlowMutation);
 
   const [isResetting, setIsResetting] = useState(false);
 
   if (!selectedFlowRun) {
-    throw new Error(
-      "Expected Checkpoint log to be rendered with a Flow Run selected",
-    );
+    throw new Error("Expected Checkpoint log to be rendered with a Flow Run selected");
   }
 
   const triggerReset = () => {
@@ -289,10 +256,7 @@ const LogDetail = ({
       return (
         <Stack direction="row" alignItems="center" gap={0.5}>
           {visitedWebPagePrefix}
-          <Link
-            href={log.webPage.url}
-            sx={{ textDecoration: "none", ...ellipsisOverflow }}
-          >
+          <Link href={log.webPage.url} sx={{ textDecoration: "none", ...ellipsisOverflow }}>
             {log.webPage.title}
           </Link>
           <ModelTooltip text={log.explanation} />
@@ -303,10 +267,7 @@ const LogDetail = ({
       return (
         <Stack direction="row" alignItems="center" gap={0.5}>
           {viewedPdfFilePrefix}
-          <Link
-            href={log.file.url}
-            sx={{ textDecoration: "none", ...ellipsisOverflow }}
-          >
+          <Link href={log.file.url} sx={{ textDecoration: "none", ...ellipsisOverflow }}>
             {log.file.title}
           </Link>
           <ModelTooltip text={log.explanation} />
@@ -444,10 +405,7 @@ const LogDetail = ({
             Inferred <strong>{log.output.claimCount} claims</strong> and{" "}
             <strong>{log.output.entityCount} entities</strong> from
           </Box>
-          <Link
-            href={log.output.resource.url}
-            sx={{ textDecoration: "none", ...ellipsisOverflow }}
-          >
+          <Link href={log.output.resource.url} sx={{ textDecoration: "none", ...ellipsisOverflow }}>
             {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
             {log.output.resource.title || log.output.resource.url}
           </Link>
@@ -512,11 +470,7 @@ const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
   },
 ];
 
-const LogThread = ({
-  log,
-}: {
-  log: LogWithThreadSettings & { type: "Thread" };
-}) => {
+const LogThread = ({ log }: { log: LogWithThreadSettings & { type: "Thread" } }) => {
   const [timeTaken, setTimeTaken] = useState(
     formatTimeTaken(log.threadStartedAt, log.threadClosedAt),
   );
@@ -579,26 +533,16 @@ const LogThread = ({
 };
 
 const TableRow = memo(
-  ({
-    log,
-    persistedEntities,
-  }: {
-    log: LogWithThreadSettings;
-    persistedEntities: HashEntity[];
-  }) => {
+  ({ log, persistedEntities }: { log: LogWithThreadSettings; persistedEntities: HashEntity[] }) => {
     const todaysDate = format(new Date(), "yyyy-MM-dd");
     const logDate = format(new Date(log.recordedAt), "yyyy-MM-dd");
 
     const background = ({ palette }: Theme) =>
-      log.level === 1
-        ? palette.common.white
-        : palette.gray[log.level === 2 ? 15 : 20];
+      log.level === 1 ? palette.common.white : palette.gray[log.level === 2 ? 15 : 20];
 
     return (
       <>
-        <TableCell sx={{ ...defaultCellSx, background, fontSize: 13 }}>
-          {log.number}
-        </TableCell>
+        <TableCell sx={{ ...defaultCellSx, background, fontSize: 13 }}>{log.number}</TableCell>
         <TableCell
           sx={{
             ...defaultCellSx,
@@ -615,17 +559,13 @@ const TableRow = memo(
           )}
           <Tooltip
             title={
-              todaysDate === logDate
-                ? format(new Date(log.recordedAt), "yyyy-MM-dd h:mm:ss a")
-                : ""
+              todaysDate === logDate ? format(new Date(log.recordedAt), "yyyy-MM-dd h:mm:ss a") : ""
             }
           >
             <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
           </Tooltip>
         </TableCell>
-        <TableCell
-          sx={{ ...defaultCellSx, background, fontSize: 13, lineHeight: 1.4 }}
-        >
+        <TableCell sx={{ ...defaultCellSx, background, fontSize: 13, lineHeight: 1.4 }}>
           <Box sx={{ position: "relative", pr: 3, maxWidth: "auto" }}>
             {log.type === "Thread" ? (
               <LogThread log={log} />
@@ -640,12 +580,8 @@ const TableRow = memo(
 );
 
 const createRowContent =
-  (
-    persistedEntities: HashEntity[],
-  ): CreateVirtualizedRowContentFn<LogWithThreadSettings> =>
-  (_index, { data }) => (
-    <TableRow log={data} persistedEntities={persistedEntities} />
-  );
+  (persistedEntities: HashEntity[]): CreateVirtualizedRowContentFn<LogWithThreadSettings> =>
+  (_index, { data }) => <TableRow log={data} persistedEntities={persistedEntities} />;
 
 type LogWithThreadSettings = LocalProgressLog & {
   number: string;
@@ -691,10 +627,7 @@ const extractEntityIdsFromLogs = (logs: LocalProgressLog[]): Set<EntityId> => {
   const entityIds = new Set<EntityId>();
 
   for (const log of logs) {
-    if (
-      log.type === "PersistedEntityMetadata" &&
-      log.persistedEntityMetadata.entityId
-    ) {
+    if (log.type === "PersistedEntityMetadata" && log.persistedEntityMetadata.entityId) {
       entityIds.add(log.persistedEntityMetadata.entityId);
     } else if (log.type === "Thread") {
       for (const entityId of extractEntityIdsFromLogs(log.logs)) {
@@ -731,9 +664,7 @@ export const ActivityLog = memo(
      */
     const missingEntityIds = useMemo(() => {
       const idsFromLogs = extractEntityIdsFromLogs(logs);
-      const loadedEntityIds = new Set(
-        persistedEntities.map((entity) => entity.entityId),
-      );
+      const loadedEntityIds = new Set(persistedEntities.map((entity) => entity.entityId));
 
       return Array.from(idsFromLogs.difference(loadedEntityIds));
     }, [logs, persistedEntities]);
@@ -741,10 +672,7 @@ export const ActivityLog = memo(
     const missingEntitiesFilter = useMemo<Filter>(
       () => ({
         any: missingEntityIds.map((entityId) => ({
-          equal: [
-            { path: ["uuid"] },
-            { parameter: extractEntityUuidFromEntityId(entityId) },
-          ],
+          equal: [{ path: ["uuid"] }, { parameter: extractEntityUuidFromEntityId(entityId) }],
         })),
       }),
       [missingEntityIds],
@@ -795,9 +723,7 @@ export const ActivityLog = memo(
       const fetchedEntities = getRoots(subgraph);
 
       // Merge, avoiding duplicates
-      const entityMap = new Map(
-        persistedEntities.map((entity) => [entity.entityId, entity]),
-      );
+      const entityMap = new Map(persistedEntities.map((entity) => [entity.entityId, entity]));
       for (const entity of fetchedEntities) {
         if (!entityMap.has(entity.entityId)) {
           entityMap.set(entity.entityId, entity);
@@ -812,12 +738,9 @@ export const ActivityLog = memo(
        * Sort the parents first, because we want to keep the children as appearing directly after their parent in all
        * cases.
        */
-      const sortedParents = logs.sort((a, b) =>
-        sortLogs(a, b, sort, allPersistedEntities),
-      );
+      const sortedParents = logs.sort((a, b) => sortLogs(a, b, sort, allPersistedEntities));
 
-      const logsWithThreadSettings: VirtualizedTableRow<LogWithThreadSettings>[] =
-        [];
+      const logsWithThreadSettings: VirtualizedTableRow<LogWithThreadSettings>[] = [];
 
       /**
        * Child logs may themselves have children, so we need to declare a function we can call recursively.
@@ -924,18 +847,14 @@ export const ActivityLog = memo(
                 fontWeight: logDisplay === "stream" ? 500 : 400,
 
                 color: ({ palette }) =>
-                  logDisplay === "stream"
-                    ? palette.common.black
-                    : palette.gray[60],
+                  logDisplay === "stream" ? palette.common.black : palette.gray[60],
               }}
             >
               Stream
             </Typography>
             <Switch
               checked={logDisplay === "grouped"}
-              onChange={() =>
-                setLogDisplay(logDisplay === "grouped" ? "stream" : "grouped")
-              }
+              onChange={() => setLogDisplay(logDisplay === "grouped" ? "stream" : "grouped")}
               inputProps={{ "aria-label": "controlled" }}
               size="small"
             />
@@ -944,9 +863,7 @@ export const ActivityLog = memo(
                 fontSize: 12,
                 fontWeight: logDisplay === "grouped" ? 500 : 400,
                 color: ({ palette }) =>
-                  logDisplay === "grouped"
-                    ? palette.common.black
-                    : palette.gray[60],
+                  logDisplay === "grouped" ? palette.common.black : palette.gray[60],
               }}
             >
               Grouped

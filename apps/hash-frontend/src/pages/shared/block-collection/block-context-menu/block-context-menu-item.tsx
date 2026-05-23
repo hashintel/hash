@@ -8,13 +8,7 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
-import {
-  cloneElement,
-  forwardRef,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { cloneElement, forwardRef, useLayoutEffect, useRef, useState } from "react";
 
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
@@ -32,21 +26,13 @@ type BlockContextMenuItemProps = {
   subMenuWidth?: number;
 };
 
-export const BlockContextMenuItem = forwardRef<
-  HTMLLIElement,
-  BlockContextMenuItemProps
->(
-  (
-    { closeMenu, onClick, icon, title, itemKey, subMenu, subMenuWidth },
-    ref,
-  ) => {
+export const BlockContextMenuItem = forwardRef<HTMLLIElement, BlockContextMenuItemProps>(
+  ({ closeMenu, onClick, icon, title, itemKey, subMenu, subMenuWidth }, ref) => {
     const subMenuPopupState = usePopupState({
       variant: "popper",
       popupId: `${itemKey}-submenu`,
     });
-    const [subMenuOffsetTop, setSubmenuOffsetTop] = useState<
-      number | undefined
-    >();
+    const [subMenuOffsetTop, setSubmenuOffsetTop] = useState<number | undefined>();
     const localRef = useRef<HTMLLIElement>(null);
     // @todo this doesn't handle when ref is a function and can break when trying to
     // access offsetTop in the useLayoutEffect. Consider using an library to handle merging refs
@@ -76,8 +62,7 @@ export const BlockContextMenuItem = forwardRef<
           boxShadow: "none !important",
 
           "&:active": {
-            backgroundColor: ({ palette }) =>
-              `${palette.primary.main} !important`,
+            backgroundColor: ({ palette }) => `${palette.primary.main} !important`,
           },
 
           ...(subMenuPopupState.isOpen && {

@@ -7,10 +7,7 @@ import {
 } from "../shared/simplify-for-llm-consumption.js";
 
 import type { LlmMessageTextContent } from "../../../shared/get-llm-response/llm-message.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
+import type { CoordinatingAgentInput, CoordinatingAgentState } from "../shared/coordinators.js";
 
 export const generateProgressReport = (params: {
   input: CoordinatingAgentInput;
@@ -160,11 +157,8 @@ export const generateProgressReport = (params: {
   };
 };
 
-export const generateSystemPromptPrefix = (params: {
-  input: CoordinatingAgentInput;
-}) => {
-  const { linkEntityTypes, existingEntities, reportSpecification } =
-    params.input;
+export const generateSystemPromptPrefix = (params: { input: CoordinatingAgentInput }) => {
+  const { linkEntityTypes, existingEntities, reportSpecification } = params.input;
 
   return dedent(`
     You are a coordinating agent for a research task. The date is ${new Date().toUTCString()}.
@@ -227,27 +221,16 @@ export const generateInitialUserMessage = (params: {
   input: CoordinatingAgentInput;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
 }): LlmMessageTextContent => {
-  const {
-    prompt,
-    reportSpecification,
-    entityTypes,
-    linkEntityTypes,
-    existingEntities,
-  } = params.input;
+  const { prompt, reportSpecification, entityTypes, linkEntityTypes, existingEntities } =
+    params.input;
 
   return {
     type: "text",
     text: dedent(`
 <ResearchPrompt>${prompt}</ResearchPrompt>
-${
-  reportSpecification
-    ? `<ReportSpecification>${reportSpecification}<ReportSpecification>`
-    : ""
-}
+${reportSpecification ? `<ReportSpecification>${reportSpecification}<ReportSpecification>` : ""}
 <EntityTypes>
-${entityTypes
-  .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
-  .join("\n")}
+${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
 </EntityTypes>
 ${
   /**
@@ -258,17 +241,11 @@ ${
    */
   linkEntityTypes
     ? `<LinkTypes>${linkEntityTypes
-        .map((linkType) =>
-          simplifyEntityTypeForLlmConsumption({ entityType: linkType }),
-        )
+        .map((linkType) => simplifyEntityTypeForLlmConsumption({ entityType: linkType }))
         .join("\n")}</LinkTypes>`
     : ""
 }
-${
-  existingEntities
-    ? `Existing Entities: ${JSON.stringify(existingEntities)}`
-    : ""
-}
+${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
       `),
   };
 };

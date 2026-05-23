@@ -183,11 +183,7 @@ const cellButtonStyle = cva({
   },
 });
 
-export const Spreadsheet: React.FC<SpreadsheetProps> = ({
-  columns,
-  data,
-  onChange,
-}) => {
+export const Spreadsheet: React.FC<SpreadsheetProps> = ({ columns, data, onChange }) => {
   const isReadOnly = !onChange;
   const colCount = columns.length;
 
@@ -198,28 +194,18 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const tableData = data.length > 0 ? data : [];
 
   const [selectedRowState, setSelectedRow] = useState<number | null>(null);
-  const [focusedCellState, setFocusedCell] = useState<CellPosition | null>(
-    null,
-  );
-  const [editingCellState, setEditingCell] = useState<CellPosition | null>(
-    null,
-  );
+  const [focusedCellState, setFocusedCell] = useState<CellPosition | null>(null);
+  const [editingCellState, setEditingCell] = useState<CellPosition | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
   const cellRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedRow =
-    selectedRowState !== null && selectedRowState < tableData.length
-      ? selectedRowState
-      : null;
+    selectedRowState !== null && selectedRowState < tableData.length ? selectedRowState : null;
   const focusedCell =
-    focusedCellState && focusedCellState.row <= tableData.length
-      ? focusedCellState
-      : null;
+    focusedCellState && focusedCellState.row <= tableData.length ? focusedCellState : null;
   const editingCell =
-    editingCellState && editingCellState.row <= tableData.length
-      ? editingCellState
-      : null;
+    editingCellState && editingCellState.row <= tableData.length ? editingCellState : null;
 
   const updateCell = (row: number, col: number, value: number) => {
     let newData: number[][];
@@ -231,9 +217,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
         newData[row][col] = value;
       }
     } else {
-      newData = tableData.map((rowData, index) =>
-        index === row ? [...rowData] : rowData,
-      );
+      newData = tableData.map((rowData, index) => (index === row ? [...rowData] : rowData));
       if (newData[row]) {
         newData[row][col] = value;
       }
@@ -243,9 +227,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   };
 
   const removeRow = (rowIndex: number) => {
-    const newData: number[][] = tableData.filter(
-      (_, index) => index !== rowIndex,
-    );
+    const newData: number[][] = tableData.filter((_, index) => index !== rowIndex);
     onChange?.(newData);
 
     // Select next or previous row after deletion
@@ -253,9 +235,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       if (rowIndex >= newData.length) {
         setSelectedRow(newData.length - 1);
         setTimeout(() => {
-          const rowCell = document.querySelector(
-            `td[data-row="${newData.length - 1}"]`,
-          );
+          const rowCell = document.querySelector(`td[data-row="${newData.length - 1}"]`);
           if (rowCell instanceof HTMLElement) {
             rowCell.focus();
           }
@@ -274,11 +254,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
     }
   };
 
-  const handleKeyDown = (
-    event: React.KeyboardEvent,
-    row: number,
-    col: number,
-  ) => {
+  const handleKeyDown = (event: React.KeyboardEvent, row: number, col: number) => {
     if (isReadOnly) {
       return;
     }
@@ -338,9 +314,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
           } else if (row > 0) {
             setFocusedCell({ row: row - 1, col: colCount - 1 });
             setTimeout(() => {
-              const prevCell = cellRefs.current.get(
-                `${row - 1}-${colCount - 1}`,
-              );
+              const prevCell = cellRefs.current.get(`${row - 1}-${colCount - 1}`);
               prevCell?.focus();
             }, 0);
           }
@@ -466,12 +440,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       setEditingCell({ row, col });
       setEditingValue("");
       setTimeout(() => inputRef.current?.focus(), 0);
-    } else if (
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.altKey &&
-      event.key.length === 1
-    ) {
+    } else if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.length === 1) {
       event.preventDefault();
       setEditingCell({ row, col });
       setEditingValue(event.key);
@@ -525,9 +494,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       setSelectedRow(rowIndex + 1);
       setFocusedCell(null);
       setEditingCell(null);
-      const nextRowCell = document.querySelector(
-        `td[data-row="${rowIndex + 1}"]`,
-      );
+      const nextRowCell = document.querySelector(`td[data-row="${rowIndex + 1}"]`);
       if (nextRowCell instanceof HTMLElement) {
         nextRowCell.focus();
       }
@@ -537,9 +504,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       setSelectedRow(rowIndex - 1);
       setFocusedCell(null);
       setEditingCell(null);
-      const prevRowCell = document.querySelector(
-        `td[data-row="${rowIndex - 1}"]`,
-      );
+      const prevRowCell = document.querySelector(`td[data-row="${rowIndex - 1}"]`);
       if (prevRowCell instanceof HTMLElement) {
         prevRowCell.focus();
       }
@@ -575,8 +540,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                 ? tableData
                 : [...tableData, Array(colCount).fill(0) as number[]];
               return displayRows.map((row, rowIndex) => {
-                const isPhantomRow =
-                  !isReadOnly && rowIndex === tableData.length;
+                const isPhantomRow = !isReadOnly && rowIndex === tableData.length;
                 return (
                   <tr
                     // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
@@ -601,11 +565,9 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                     </td>
                     {row.map((value, colIndex) => {
                       const isEditing =
-                        editingCell?.row === rowIndex &&
-                        editingCell.col === colIndex;
+                        editingCell?.row === rowIndex && editingCell.col === colIndex;
                       const isFocused =
-                        focusedCell?.row === rowIndex &&
-                        focusedCell.col === colIndex;
+                        focusedCell?.row === rowIndex && focusedCell.col === colIndex;
                       return (
                         <td
                           // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
@@ -616,23 +578,16 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                           style={{ width: `${columnWidth}%` }}
                         >
                           {isReadOnly ? (
-                            <div className={readOnlyCellStyle}>
-                              {isPhantomRow ? "" : value}
-                            </div>
+                            <div className={readOnlyCellStyle}>{isPhantomRow ? "" : value}</div>
                           ) : isEditing ? (
                             <input
                               ref={inputRef}
                               type="number"
                               value={editingValue}
-                              onChange={(event) =>
-                                setEditingValue(event.target.value)
-                              }
-                              onKeyDown={(event) =>
-                                handleKeyDown(event, rowIndex, colIndex)
-                              }
+                              onChange={(event) => setEditingValue(event.target.value)}
+                              onKeyDown={(event) => handleKeyDown(event, rowIndex, colIndex)}
                               onBlur={() => {
-                                const val =
-                                  Number.parseFloat(editingValue) || 0;
+                                const val = Number.parseFloat(editingValue) || 0;
                                 updateCell(rowIndex, colIndex, val);
                                 setEditingCell(null);
                                 setEditingValue("");
@@ -643,14 +598,9 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                             <div
                               ref={(el) => {
                                 if (el) {
-                                  cellRefs.current.set(
-                                    `${rowIndex}-${colIndex}`,
-                                    el,
-                                  );
+                                  cellRefs.current.set(`${rowIndex}-${colIndex}`, el);
                                 } else {
-                                  cellRefs.current.delete(
-                                    `${rowIndex}-${colIndex}`,
-                                  );
+                                  cellRefs.current.delete(`${rowIndex}-${colIndex}`);
                                 }
                               }}
                               role="button"
@@ -662,9 +612,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                                 });
                                 setSelectedRow(null);
                               }}
-                              onKeyDown={(event) =>
-                                handleKeyDown(event, rowIndex, colIndex)
-                              }
+                              onKeyDown={(event) => handleKeyDown(event, rowIndex, colIndex)}
                               className={cellButtonStyle({ isFocused })}
                             >
                               {isPhantomRow ? "" : value}

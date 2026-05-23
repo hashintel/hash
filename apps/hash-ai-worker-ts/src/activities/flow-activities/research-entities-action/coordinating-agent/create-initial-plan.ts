@@ -12,19 +12,10 @@ import {
   generateToolDefinitions,
 } from "../shared/coordinator-tools.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
-import {
-  generateInitialUserMessage,
-  generateSystemPromptPrefix,
-} from "./generate-messages.js";
+import { generateInitialUserMessage, generateSystemPromptPrefix } from "./generate-messages.js";
 
-import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
+import type { LlmMessage, LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
+import type { CoordinatingAgentInput, CoordinatingAgentState } from "../shared/coordinators.js";
 
 const maximumRetries = 3;
 
@@ -35,11 +26,9 @@ export const createInitialPlan = async (params: {
   providedFiles: CoordinatingAgentState["resourcesNotVisited"];
   retryContext?: { retryMessages: LlmMessage[]; retryCount: number };
 }): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
-  const { input, state, questionsAndAnswers, providedFiles, retryContext } =
-    params;
+  const { input, state, questionsAndAnswers, providedFiles, retryContext } = params;
 
-  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input })}
@@ -49,10 +38,7 @@ export const createInitialPlan = async (params: {
         ? dedent(`
       The user has provided you with the following resources which can be used to infer claims from:
       ${providedFiles
-        .map(
-          (file) =>
-            `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`,
-        )
+        .map((file) => `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`)
         .join("\n\n")}`)
         : ""
     }
@@ -135,22 +121,17 @@ export const createInitialPlan = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
-    );
+    throw new Error(`Failed to get LLM response: ${JSON.stringify(llmResponse)}`);
   }
 
   const { message } = llmResponse;
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
-  const updatePlanToolCall = toolCalls.find(
-    (toolCall) => toolCall.name === "updatePlan",
-  );
+  const updatePlanToolCall = toolCalls.find((toolCall) => toolCall.name === "updatePlan");
 
   if (updatePlanToolCall) {
-    const { plan } =
-      updatePlanToolCall.input as CoordinatorToolCallArguments["updatePlan"];
+    const { plan } = updatePlanToolCall.input as CoordinatorToolCallArguments["updatePlan"];
 
     return { plan, questionsAndAnswers };
   }
@@ -165,9 +146,7 @@ export const createInitialPlan = async (params: {
     }
 
     logger.debug(
-      `Retrying to create initial plan with retry message: ${stringify(
-        retryParams.retryMessage,
-      )}`,
+      `Retrying to create initial plan with retry message: ${stringify(retryParams.retryMessage)}`,
     );
 
     return createInitialPlan({
@@ -210,9 +189,7 @@ export const createInitialPlan = async (params: {
           {
             type: "text",
             text: `You didn't make any tool calls, you must call the ${
-              input.humanInputCanBeRequested
-                ? `"requestHumanInput" tool or the`
-                : ""
+              input.humanInputCanBeRequested ? `"requestHumanInput" tool or the` : ""
             }"updatePlan" tool.`,
           },
         ],
@@ -227,9 +204,7 @@ export const createInitialPlan = async (params: {
         type: "tool_result",
         tool_use_id: id,
         content: `You cannot call the "${name}" tool yet, you must call the ${
-          input.humanInputCanBeRequested
-            ? `"requestHumanInput" tool or the`
-            : ""
+          input.humanInputCanBeRequested ? `"requestHumanInput" tool or the` : ""
         }"updatePlan" tool first.`,
         is_error: true,
       })),

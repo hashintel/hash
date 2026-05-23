@@ -1,8 +1,4 @@
-import {
-  legendColorStyle,
-  legendContainerStyle,
-  legendItemStyle,
-} from "./styles";
+import { legendColorStyle, legendContainerStyle, legendItemStyle } from "./styles";
 
 import type { TimelineSeriesMeta } from "./types";
 import type { FC } from "react";

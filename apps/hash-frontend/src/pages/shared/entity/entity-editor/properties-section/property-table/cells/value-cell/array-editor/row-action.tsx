@@ -22,11 +22,7 @@ export const RowAction = ({ icon, onClick, tooltip }: RowActionProps) => {
       }}
       disableInteractive
     >
-      <IconButton
-        onClick={onClick}
-        sx={{ background: "white !important", width: 50 }}
-        size="small"
-      >
+      <IconButton onClick={onClick} sx={{ background: "white !important", width: 50 }} size="small">
         <FontAwesomeIcon icon={icon} />
       </IconButton>
     </Tooltip>

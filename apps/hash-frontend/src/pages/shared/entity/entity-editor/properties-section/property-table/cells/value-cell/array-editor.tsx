@@ -30,10 +30,7 @@ import { isBlankStringOrNullish } from "./utils";
 
 import type { SortableItem } from "./array-editor/types";
 import type { ValueCellEditorComponent } from "./types";
-import type {
-  PropertyArrayMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { PropertyArrayMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type { DragEndEvent } from "@dnd-kit/core";
 
 export const DRAFT_ROW_KEY = "draft";
@@ -48,10 +45,7 @@ const ListWrapper = styled(Box)(({ theme }) =>
   }),
 );
 
-export const ArrayEditor: ValueCellEditorComponent = ({
-  value: cell,
-  onChange,
-}) => {
+export const ArrayEditor: ValueCellEditorComponent = ({ value: cell, onChange }) => {
   const listWrapperRef = useRef<HTMLDivElement>(null);
 
   const { readonly } = cell.data;
@@ -81,9 +75,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     }
 
     const itemsArray: SortableItem[] = values.map((value, index) => {
-      const arrayItemMetadata = (valueMetadata as PropertyArrayMetadata).value[
-        index
-      ];
+      const arrayItemMetadata = (valueMetadata as PropertyArrayMetadata).value[index];
 
       if (!arrayItemMetadata) {
         throw new Error(
@@ -127,10 +119,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       return "";
     }
 
-    if (
-      permittedDataTypes.length === 1 &&
-      !permittedDataTypes[0]!.schema.abstract
-    ) {
+    if (permittedDataTypes.length === 1 && !permittedDataTypes[0]!.schema.abstract) {
       const expectedType = permittedDataTypes[0]!;
 
       const schema = getMergedDataTypeSchema(expectedType.schema);
@@ -144,10 +133,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         );
       }
 
-      if (
-        getEditorSpecs(expectedType.schema, schema).arrayEditException ===
-        "no-edit-mode"
-      ) {
+      if (getEditorSpecs(expectedType.schema, schema).arrayEditException === "no-edit-mode") {
         return "";
       }
     }
@@ -169,10 +155,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     });
 
     const newCell = produce(cell, (draftCell) => {
-      draftCell.data.propertyRow.value = [
-        ...items.map((item) => item.value),
-        value,
-      ];
+      draftCell.data.propertyRow.value = [...items.map((item) => item.value), value];
 
       draftCell.data.propertyRow.valueMetadata = propertyMetadata;
     });
@@ -224,9 +207,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
       draftCell.data.propertyRow.value = newItems.map(({ value }) => value);
 
       if (!valueMetadata) {
-        throw new Error(
-          "Expected valueMetadata to be set when there are values",
-        );
+        throw new Error("Expected valueMetadata to be set when there are values");
       }
 
       if (!isArrayMetadata(valueMetadata)) {
@@ -266,8 +247,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     setSelectedRow("");
 
     const onlyOneExpectedType =
-      permittedDataTypes.length === 1 &&
-      !permittedDataTypes[0]!.schema.abstract;
+      permittedDataTypes.length === 1 && !permittedDataTypes[0]!.schema.abstract;
     const expectedType = permittedDataTypes[0]!;
 
     const schema = getMergedDataTypeSchema(expectedType.schema);
@@ -301,23 +281,15 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     updateItem(index, value);
   };
 
-  const canAddMore =
-    !readonly && (isNumber(maxItems) ? items.length < maxItems : true);
+  const canAddMore = !readonly && (isNumber(maxItems) ? items.length < maxItems : true);
   const isAddingDraft = editingRow === DRAFT_ROW_KEY;
 
   const hasConstraints = minItems !== undefined || maxItems !== undefined;
 
   return (
     <GridEditorWrapper>
-      <ListWrapper
-        ref={listWrapperRef}
-        display={items.length ? "initial" : "none"}
-      >
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
+      <ListWrapper ref={listWrapperRef} display={items.length ? "initial" : "none"}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
             {items.map((item, index) => (
               <SortableRow

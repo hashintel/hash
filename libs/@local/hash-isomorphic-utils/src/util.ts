@@ -8,9 +8,7 @@ export type EmptyObject = Record<string, never>;
 /**
  * @see https://github.com/microsoft/TypeScript/issues/25720#issuecomment-533438205
  */
-export const isUnknownObject = (
-  x: unknown,
-): x is { [key in PropertyKey]: unknown } =>
+export const isUnknownObject = (x: unknown): x is { [key in PropertyKey]: unknown } =>
   x !== null && typeof x === "object";
 
 /**
@@ -70,9 +68,7 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
 
   // Find nodes with no incoming edge, i.e. the root node(s)
   const nonRootNodes = new Set(edges.map(([_, node]) => node));
-  const rootNodes = uniq(
-    edges.map(([node, _]) => node).filter((node) => !nonRootNodes.has(node)),
-  );
+  const rootNodes = uniq(edges.map(([node, _]) => node).filter((node) => !nonRootNodes.has(node)));
 
   // Pre-compute the incoming and outgoing edges for each node as an optimization
   const outgoingEdges = new DefaultMap<T, Set<T>>(() => new Set());

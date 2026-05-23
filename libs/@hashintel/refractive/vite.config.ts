@@ -20,9 +20,7 @@ export default defineConfig(({ command }) => ({
     command === "build" &&
       dts({ tsgo: true }).map((plugin) =>
         // Ensure runs before Vite's native TypeScript transform
-        plugin.name.endsWith("fake-js")
-          ? { ...plugin, enforce: "pre" }
-          : plugin,
+        plugin.name.endsWith("fake-js") ? { ...plugin, enforce: "pre" } : plugin,
       ),
   ],
 

@@ -29,13 +29,9 @@ async function initMonaco(): Promise<MonacoContextValue> {
 
   window.MonacoEnvironment = {
     getWorker() {
-      return new Worker(
-        new URL(
-          "monaco-editor/esm/vs/editor/editor.worker.js",
-          import.meta.url,
-        ),
-        { type: "module" },
-      );
+      return new Worker(new URL("monaco-editor/esm/vs/editor/editor.worker.js", import.meta.url), {
+        type: "module",
+      });
     },
   };
 
@@ -51,9 +47,7 @@ function getMonacoPromise(): Promise<MonacoContextValue> {
   return monacoPromise;
 }
 
-export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const MonacoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const promise = getMonacoPromise();
 
   return (

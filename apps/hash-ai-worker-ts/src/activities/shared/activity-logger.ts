@@ -76,10 +76,7 @@ const log = (
       fs.mkdirSync(logFolderPath);
     }
 
-    const logFilePath = path.join(
-      logFolderPath,
-      `${workflowExecution.workflowId}.log`,
-    );
+    const logFilePath = path.join(logFolderPath, `${workflowExecution.workflowId}.log`);
 
     let stringifiedMessage: string;
 
@@ -93,8 +90,7 @@ const log = (
       // the flow-level log.
       const filtered = safeStringify(restMeta, {
         space: 2,
-        replacer: (key, value) =>
-          detailedFields?.includes(key) ? undefined : value,
+        replacer: (key, value) => (detailedFields?.includes(key) ? undefined : value),
       });
 
       // File name already encodes the flow id, so no prefix needed here.

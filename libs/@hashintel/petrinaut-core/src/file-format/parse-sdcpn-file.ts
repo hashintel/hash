@@ -1,8 +1,4 @@
-import {
-  legacySdcpnFileSchema,
-  SDCPN_FILE_FORMAT_VERSION,
-  sdcpnFileSchema,
-} from "./types";
+import { legacySdcpnFileSchema, SDCPN_FILE_FORMAT_VERSION, sdcpnFileSchema } from "./types";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -82,11 +78,7 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
   // future-versioned files by stripping the unknown `version` key).
   if (typeof data === "object" && data !== null && "version" in data) {
     const version = (data as { version: unknown }).version;
-    if (
-      typeof version === "number" &&
-      version >= 1 &&
-      version <= SDCPN_FILE_FORMAT_VERSION
-    ) {
+    if (typeof version === "number" && version >= 1 && version <= SDCPN_FILE_FORMAT_VERSION) {
       // Supported version but invalid structure — show actual Zod errors
       return {
         ok: false,

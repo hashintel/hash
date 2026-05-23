@@ -5,10 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { extractBaseUrl, isBaseUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
-  getClosedMultiEntityTypeFromMap,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap, type HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -31,21 +28,11 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
-import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
+import type { CountEntitiesQuery, CountEntitiesQueryVariables } from "../../graphql/api-types.gen";
 import type { FilterState } from "../../shared/table-header";
-import type {
-  EntitiesTableRow,
-  SortableEntitiesTableColumnKey,
-} from "./entities-visualizer/types";
+import type { EntitiesTableRow, SortableEntitiesTableColumnKey } from "./entities-visualizer/types";
 import type { EntityEditorProps } from "./entity/entity-editor";
-import type {
-  DynamicNodeSizing,
-  GraphVizConfig,
-  GraphVizFilters,
-} from "./graph-visualizer";
+import type { DynamicNodeSizing, GraphVizConfig, GraphVizFilters } from "./graph-visualizer";
 import type { VisualizerView } from "./visualizer-views";
 import type {
   BaseUrl,
@@ -102,9 +89,7 @@ const generateGraphSort = (
       path = ["label" satisfies EntityQuerySortingToken];
       break;
     case "lastEdited":
-      path = [
-        "editionCreatedAtTransactionTime" satisfies EntityQuerySortingToken,
-      ];
+      path = ["editionCreatedAtTransactionTime" satisfies EntityQuerySortingToken];
       break;
     case "created":
       path = ["createdAtTransactionTime" satisfies EntityQuerySortingToken];
@@ -231,11 +216,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   } | null>(null);
 
   const setFilterState = useCallback(
-    (
-      newFilterStateOrUpdater:
-        | FilterState
-        | ((prev: FilterState) => FilterState),
-    ) => {
+    (newFilterStateOrUpdater: FilterState | ((prev: FilterState) => FilterState)) => {
       if (typeof newFilterStateOrUpdater === "function") {
         _setFilterState(newFilterStateOrUpdater(filterState));
       } else {
@@ -299,12 +280,10 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const entitiesData = useEntitiesVisualizerData({
     conversions: activeConversionsWithoutTitle
-      ? typedEntries(activeConversionsWithoutTitle).map(
-          ([columnBaseUrl, dataTypeId]) => ({
-            path: [columnBaseUrl],
-            dataTypeId,
-          }),
-        )
+      ? typedEntries(activeConversionsWithoutTitle).map(([columnBaseUrl, dataTypeId]) => ({
+          path: [columnBaseUrl],
+          dataTypeId,
+        }))
       : undefined,
     cursor,
     entityTypeBaseUrl,
@@ -364,25 +343,21 @@ export const EntitiesVisualizer: FunctionComponent<{
   const activeConversions = useMemo(() => {
     return activeConversionsWithoutTitle
       ? Object.fromEntries(
-          typedEntries(activeConversionsWithoutTitle).map(
-            ([columnBaseUrl, dataTypeId]) => {
-              const dataType = definitions?.dataTypes[dataTypeId];
+          typedEntries(activeConversionsWithoutTitle).map(([columnBaseUrl, dataTypeId]) => {
+            const dataType = definitions?.dataTypes[dataTypeId];
 
-              if (!dataType) {
-                throw new Error(
-                  `No data type found for column base URL: ${columnBaseUrl}`,
-                );
-              }
+            if (!dataType) {
+              throw new Error(`No data type found for column base URL: ${columnBaseUrl}`);
+            }
 
-              return [
-                columnBaseUrl,
-                {
-                  dataTypeId,
-                  title: dataType.schema.title,
-                },
-              ];
-            },
-          ),
+            return [
+              columnBaseUrl,
+              {
+                dataTypeId,
+                title: dataType.schema.title,
+              },
+            ];
+          }),
         )
       : null;
   }, [activeConversionsWithoutTitle, definitions]);
@@ -429,8 +404,7 @@ export const EntitiesVisualizer: FunctionComponent<{
        * matches a `File` entity type from a statically defined list.
        */
       (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
-      (entityTypeBaseUrl &&
-        allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
+      (entityTypeBaseUrl && allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
       /**
        * Otherwise we check the fetched `entityTypes` as a fallback.
        */
@@ -438,12 +412,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         closedMultiEntityTypes.every(({ allOf }) =>
           allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
         )),
-    [
-      entityTypeBaseUrl,
-      entityTypeId,
-      closedMultiEntityTypes,
-      isSpecialEntityTypeLookup,
-    ],
+    [entityTypeBaseUrl, entityTypeId, closedMultiEntityTypes, isSpecialEntityTypeLookup],
   );
 
   const supportGridView = isDisplayingFilesOnly;
@@ -463,10 +432,7 @@ export const EntitiesVisualizer: FunctionComponent<{
   const { pushToSlideStack } = useSlideStack();
 
   const handleEntityClick = useCallback(
-    (
-      entityId: EntityId,
-      options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
-    ) => {
+    (entityId: EntityId, options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">) => {
       pushToSlideStack({
         kind: "entity",
         itemId: entityId,
@@ -528,9 +494,7 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [showTableSearch, setShowTableSearch] = useState(false);
 
-  const [selectedTableRows, setSelectedTableRows] = useState<
-    EntitiesTableRow[]
-  >([]);
+  const [selectedTableRows, setSelectedTableRows] = useState<EntitiesTableRow[]>([]);
 
   const nextPage = useCallback(() => {
     setCursor(nextCursor ?? undefined);
@@ -566,9 +530,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         onBulkActionCompleted={() => {
           void refetchWithoutLinks();
         }}
-        numberOfExternalItems={
-          externalWebsOnlyCountData?.countEntities ?? undefined
-        }
+        numberOfExternalItems={externalWebsOnlyCountData?.countEntities ?? undefined}
         numberOfUserWebItems={internalEntitiesCount}
         selectedItems={
           entities?.filter((entity) =>
@@ -579,11 +541,7 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
         setFilterState={setFilterState}
         title="Entities"
-        toggleSearch={
-          view === "Table"
-            ? () => setShowTableSearch(!showTableSearch)
-            : undefined
-        }
+        toggleSearch={view === "Table" ? () => setShowTableSearch(!showTableSearch) : undefined}
       />
       <Box ref={contentTopRef} />
       {!subgraph || !closedMultiEntityTypesRootMap ? (

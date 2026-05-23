@@ -36,8 +36,7 @@ export type {
  */
 export type DefinitionObjectPropertyValue = ObjectDataType;
 
-export type DefinitionObjectPropertyValueWithMetadata =
-  ObjectDataTypeWithMetadata;
+export type DefinitionObjectPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 
 /**
  * An identifier for an input place.

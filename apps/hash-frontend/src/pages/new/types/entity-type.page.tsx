@@ -22,16 +22,12 @@ const Page: NextPageWithLayout = () => {
 
   const initialData = {
     extendsEntityTypeId:
-      typeof router.query.extends === "string"
-        ? (router.query.extends as VersionedUrl)
-        : undefined,
-    title:
-      typeof router.query.name === "string" ? router.query.name : undefined,
+      typeof router.query.extends === "string" ? (router.query.extends as VersionedUrl) : undefined,
+    title: typeof router.query.name === "string" ? router.query.name : undefined,
   };
 
   const isCreateLinkEntityType =
-    initialData.extendsEntityTypeId ===
-    blockProtocolEntityTypes.link.entityTypeId;
+    initialData.extendsEntityTypeId === blockProtocolEntityTypes.link.entityTypeId;
 
   return (
     <NewTypePageContainer

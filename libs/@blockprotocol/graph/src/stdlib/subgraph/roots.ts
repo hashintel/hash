@@ -1,7 +1,4 @@
-import {
-  isEntityVertexId,
-  isOntologyTypeVertexId,
-} from "../../types/subgraph.js";
+import { isEntityVertexId, isOntologyTypeVertexId } from "../../types/subgraph.js";
 import { mustBeDefined } from "../../util.js";
 import { getDataTypeByVertexId } from "./element/data-type.js";
 import { getEntityTypeByVertexId } from "./element/entity-type.js";
@@ -38,12 +35,10 @@ export const getRoots = <RootType extends SubgraphRootType>(
     }
 
     const root = mustBeDefined(
-      (subgraph.vertices as Record<string, Record<string, Vertex>>)[
-        rootVertexId.baseId
-      ]?.[rootVertexId.revisionId.toString()],
-      `roots should have corresponding vertices but ${JSON.stringify(
-        rootVertexId,
-      )} was missing`,
+      (subgraph.vertices as Record<string, Record<string, Vertex>>)[rootVertexId.baseId]?.[
+        rootVertexId.revisionId.toString()
+      ],
+      `roots should have corresponding vertices but ${JSON.stringify(rootVertexId)} was missing`,
     );
 
     return root.inner as RootType["element"];
@@ -67,9 +62,7 @@ export const isDataTypeRootedSubgraph = (
 
     mustBeDefined(
       getDataTypeByVertexId(subgraph, rootVertexId),
-      `roots should have corresponding vertices but ${JSON.stringify(
-        rootVertexId,
-      )} was missing`,
+      `roots should have corresponding vertices but ${JSON.stringify(rootVertexId)} was missing`,
     );
   }
 
@@ -94,9 +87,7 @@ export const isPropertyTypeRootedSubgraph = (
 
     mustBeDefined(
       getPropertyTypeByVertexId(subgraph, rootVertexId),
-      `roots should have corresponding vertices but ${JSON.stringify(
-        rootVertexId,
-      )} was missing`,
+      `roots should have corresponding vertices but ${JSON.stringify(rootVertexId)} was missing`,
     );
   }
 
@@ -121,9 +112,7 @@ export const isEntityTypeRootedSubgraph = (
 
     mustBeDefined(
       getEntityTypeByVertexId(subgraph, rootVertexId),
-      `roots should have corresponding vertices but ${JSON.stringify(
-        rootVertexId,
-      )} was missing`,
+      `roots should have corresponding vertices but ${JSON.stringify(rootVertexId)} was missing`,
     );
   }
 
@@ -148,9 +137,7 @@ export const isEntityRootedSubgraph = (
 
     mustBeDefined(
       getEntityRevision(subgraph, rootVertexId.baseId, rootVertexId.revisionId),
-      `roots should have corresponding vertices but ${JSON.stringify(
-        rootVertexId,
-      )} was missing`,
+      `roots should have corresponding vertices but ${JSON.stringify(rootVertexId)} was missing`,
     );
   }
 

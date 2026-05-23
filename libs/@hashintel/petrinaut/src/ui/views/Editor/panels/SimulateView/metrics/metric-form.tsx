@@ -74,10 +74,7 @@ export interface MetricFormCallbacks {
 
 // -- Validation ---------------------------------------------------------------
 
-function validateMetricName(
-  name: string,
-  existingNames: ReadonlySet<string>,
-): string | undefined {
+function validateMetricName(name: string, existingNames: ReadonlySet<string>): string | undefined {
   const trimmed = name.trim();
   if (trimmed === "") {
     return "Metric name is required.";
@@ -129,11 +126,9 @@ export function useMetricForm(
       }),
     validators: {
       onChange: ({ value }) =>
-        validateMetricName(value.name, existingNames) ??
-        validateMetricCode(value.code),
+        validateMetricName(value.name, existingNames) ?? validateMetricCode(value.code),
       onSubmit: ({ value }) =>
-        validateMetricName(value.name, existingNames) ??
-        validateMetricCode(value.code),
+        validateMetricName(value.name, existingNames) ?? validateMetricCode(value.code),
     },
   });
 }
@@ -194,9 +189,7 @@ const MetricFormSections = ({
 }: MetricFormSectionsProps) => {
   const nameHasError = state.name.trim() === "";
 
-  const codeUri = metricSessionId
-    ? getMetricDocumentUri(metricSessionId)
-    : undefined;
+  const codeUri = metricSessionId ? getMetricDocumentUri(metricSessionId) : undefined;
 
   return (
     <SectionList>
@@ -216,10 +209,7 @@ const MetricFormSections = ({
         </div>
 
         <div className={fieldStyle}>
-          <label
-            className={labelStyle}
-            htmlFor={`${idPrefix}metric-description`}
-          >
+          <label className={labelStyle} htmlFor={`${idPrefix}metric-description`}>
             Description
           </label>
           <textarea
@@ -234,10 +224,9 @@ const MetricFormSections = ({
       {/* -- Code ----------------------------------------------------- */}
       <Section title="Code" collapsible defaultOpen>
         <span className={hintStyle}>
-          Function body invoked with{" "}
-          <code>state.places.&lt;Place&nbsp;Name&gt;</code> providing{" "}
-          <code>count</code> and (for colored places) <code>tokens</code>. Must{" "}
-          <code>return</code> a finite number.
+          Function body invoked with <code>state.places.&lt;Place&nbsp;Name&gt;</code> providing{" "}
+          <code>count</code> and (for colored places) <code>tokens</code>. Must <code>return</code>{" "}
+          a finite number.
         </span>
         <CodeEditor
           language="typescript"
@@ -264,11 +253,7 @@ export interface MetricFormBodyProps {
   metricSessionId: string;
 }
 
-export const MetricFormBody = ({
-  form,
-  idPrefix,
-  metricSessionId,
-}: MetricFormBodyProps) => {
+export const MetricFormBody = ({ form, idPrefix, metricSessionId }: MetricFormBodyProps) => {
   const values = useStore(form.store, (state) => state.values);
 
   return (
@@ -276,8 +261,7 @@ export const MetricFormBody = ({
       state={values}
       callbacks={{
         onNameChange: (value) => form.setFieldValue("name", value),
-        onDescriptionChange: (value) =>
-          form.setFieldValue("description", value),
+        onDescriptionChange: (value) => form.setFieldValue("description", value),
         onCodeChange: (value) => form.setFieldValue("code", value),
       }}
       idPrefix={idPrefix}

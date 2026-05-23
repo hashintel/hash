@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import type { FunctionComponent, PropsWithChildren } from "react";
 
@@ -16,17 +9,14 @@ export type KeyboardShortcut = {
 
 type SetKeyboardShortcutsFunction = (shortcuts: KeyboardShortcut[]) => void;
 
-type UnsetKeyboardShortcutsFunction = (
-  shortcutsToUnset: { keys: string[] }[],
-) => void;
+type UnsetKeyboardShortcutsFunction = (shortcutsToUnset: { keys: string[] }[]) => void;
 
 type KeyboardShortcutsContextValue = {
   setKeyboardShortcuts: SetKeyboardShortcutsFunction;
   unsetKeyboardShortcuts: UnsetKeyboardShortcutsFunction;
 };
 
-export const KeyboardShortcutsContext =
-  createContext<null | KeyboardShortcutsContextValue>(null);
+export const KeyboardShortcutsContext = createContext<null | KeyboardShortcutsContextValue>(null);
 
 const modKeyToKeyboardEventProperty: Record<string, keyof KeyboardEvent> = {
   Alt: "altKey",
@@ -52,39 +42,32 @@ const areAllKeysPressed = (event: KeyboardEvent, keys: string[]) => {
   return true;
 };
 
-export const KeyboardShortcutsContextProvider: FunctionComponent<
-  PropsWithChildren
-> = ({ children }) => {
-  const [keyboardShortcutsState, setKeyboardShortcutsState] = useState<
-    KeyboardShortcut[]
-  >([]);
+export const KeyboardShortcutsContextProvider: FunctionComponent<PropsWithChildren> = ({
+  children,
+}) => {
+  const [keyboardShortcutsState, setKeyboardShortcutsState] = useState<KeyboardShortcut[]>([]);
 
-  const setKeyboardShortcuts: SetKeyboardShortcutsFunction = useCallback(
-    (shortcutsToRegister) => {
-      setKeyboardShortcutsState((currentShortcuts) => {
-        /**
-         * This approach means that if Shortcut A's key combination is overridden in some context by Shortcut B,
-         * and then Shortcut B is unset, Shortcut A will no longer be in the list of shortcuts either.
-         * If we ever need to introduce shortcuts with duplicate keys we should change this, and figure out
-         * a way of setting the priority of shortcuts with duplicate keys.
-         * Similarly, {@link unsetKeyboardShortcuts} would need updating to not wipe out all shortcuts for the given keys.
-         */
-        const currentShortcutsWithoutDuplicates = currentShortcuts.filter(
-          (existingShortcut) =>
-            !shortcutsToRegister.some(
-              (newShortcut) =>
-                newShortcut.keys.length === existingShortcut.keys.length &&
-                existingShortcut.keys.every((key) =>
-                  newShortcut.keys.includes(key),
-                ),
-            ),
-        );
+  const setKeyboardShortcuts: SetKeyboardShortcutsFunction = useCallback((shortcutsToRegister) => {
+    setKeyboardShortcutsState((currentShortcuts) => {
+      /**
+       * This approach means that if Shortcut A's key combination is overridden in some context by Shortcut B,
+       * and then Shortcut B is unset, Shortcut A will no longer be in the list of shortcuts either.
+       * If we ever need to introduce shortcuts with duplicate keys we should change this, and figure out
+       * a way of setting the priority of shortcuts with duplicate keys.
+       * Similarly, {@link unsetKeyboardShortcuts} would need updating to not wipe out all shortcuts for the given keys.
+       */
+      const currentShortcutsWithoutDuplicates = currentShortcuts.filter(
+        (existingShortcut) =>
+          !shortcutsToRegister.some(
+            (newShortcut) =>
+              newShortcut.keys.length === existingShortcut.keys.length &&
+              existingShortcut.keys.every((key) => newShortcut.keys.includes(key)),
+          ),
+      );
 
-        return [...currentShortcutsWithoutDuplicates, ...shortcutsToRegister];
-      });
-    },
-    [],
-  );
+      return [...currentShortcutsWithoutDuplicates, ...shortcutsToRegister];
+    });
+  }, []);
 
   const unsetKeyboardShortcuts: UnsetKeyboardShortcutsFunction = useCallback(
     (shortcutsKeysToRemove) => {
@@ -94,9 +77,7 @@ export const KeyboardShortcutsContextProvider: FunctionComponent<
             !shortcutsKeysToRemove.some(
               ({ keys: keysToRemove }) =>
                 currentShortcut.keys.length !== keysToRemove.length ||
-                !currentShortcut.keys.every((key) =>
-                  keysToRemove.includes(key),
-                ),
+                !currentShortcut.keys.every((key) => keysToRemove.includes(key)),
             ),
         ),
       );
@@ -106,9 +87,7 @@ export const KeyboardShortcutsContextProvider: FunctionComponent<
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const shortcut = keyboardShortcutsState.find(({ keys }) =>
-        areAllKeysPressed(event, keys),
-      );
+      const shortcut = keyboardShortcutsState.find(({ keys }) => areAllKeysPressed(event, keys));
 
       if (shortcut) {
         event.preventDefault();
@@ -127,9 +106,7 @@ export const KeyboardShortcutsContextProvider: FunctionComponent<
   );
 
   return (
-    <KeyboardShortcutsContext.Provider value={value}>
-      {children}
-    </KeyboardShortcutsContext.Provider>
+    <KeyboardShortcutsContext.Provider value={value}>{children}</KeyboardShortcutsContext.Provider>
   );
 };
 

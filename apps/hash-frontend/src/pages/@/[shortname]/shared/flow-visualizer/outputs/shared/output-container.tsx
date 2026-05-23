@@ -18,9 +18,7 @@ export const OutputContainer = forwardRef<
     sx={[
       {
         background: ({ palette }) => palette.common.white,
-        border: noBorder
-          ? undefined
-          : ({ palette }) => `1px solid ${palette.gray[20]}`,
+        border: noBorder ? undefined : ({ palette }) => `1px solid ${palette.gray[20]}`,
         borderRadius: flowSectionBorderRadius,
         height: "100%",
         textAlign: "center",

@@ -94,6 +94,4 @@ const datePickerSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const datePickerSlotRecipe = sva(datePickerSlotRecipeDefinition);
 
-export type DatePickerSlotRecipeProps = RecipeVariantProps<
-  typeof datePickerSlotRecipe
->;
+export type DatePickerSlotRecipeProps = RecipeVariantProps<typeof datePickerSlotRecipe>;

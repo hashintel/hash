@@ -27,10 +27,7 @@ type CommentThreadProps = {
   comment: PageThread;
 };
 
-export const CommentThread: FunctionComponent<CommentThreadProps> = ({
-  pageId,
-  comment,
-}) => {
+export const CommentThread: FunctionComponent<CommentThreadProps> = ({ pageId, comment }) => {
   const threadRef = useRef<HTMLDivElement>(null);
   const [threadFocused, setThreadFocused] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
@@ -40,8 +37,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   const [createReply, { loading }] = useCreateComment(pageId);
 
   const showInput = threadFocused || !!inputValue.length;
-  const showInputButtons =
-    (threadFocused && inputFocused) || !!inputValue.length;
+  const showInputButtons = (threadFocused && inputFocused) || !!inputValue.length;
 
   const { authenticatedUser } = useAuthenticatedUser();
 
@@ -71,17 +67,12 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
   }, [comment]);
 
   const displayName = useMemo(
-    () =>
-      simplifyProperties(comment.author.properties as UserProperties)
-        .displayName,
+    () => simplifyProperties(comment.author.properties as UserProperties).displayName,
     [comment.author.properties],
   );
 
   const authorId = useMemo(
-    () =>
-      extractWebIdFromEntityId(
-        comment.author.metadata.recordId.entityId,
-      ) as ActorEntityUuid,
+    () => extractWebIdFromEntityId(comment.author.metadata.recordId.entityId) as ActorEntityUuid,
     [comment.author],
   );
 
@@ -110,8 +101,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
            * @see https://linear.app/hash/issue/H-3003
            */
           authenticatedUser.accountId === authorId ||
-          authenticatedUser.accountId ===
-            comment.parent.metadata.provenance.edition.createdById
+          authenticatedUser.accountId === comment.parent.metadata.provenance.edition.createdById
         }
       />
 
@@ -136,9 +126,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
             })}
             endIcon={expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           >
-            {expanded
-              ? "Show fewer responses"
-              : `Show all ${comment.replies.length} responses`}
+            {expanded ? "Show fewer responses" : `Show all ${comment.replies.length} responses`}
           </Button>
 
           <Collapse in={expanded}>
@@ -154,11 +142,7 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
       ) : null}
 
       {uncollapsibleReplies.map((reply) => (
-        <CommentBlock
-          key={reply.metadata.recordId.entityId}
-          pageId={pageId}
-          comment={reply}
-        />
+        <CommentBlock key={reply.metadata.recordId.entityId} pageId={pageId} comment={reply} />
       ))}
 
       <Collapse in={showInput}>

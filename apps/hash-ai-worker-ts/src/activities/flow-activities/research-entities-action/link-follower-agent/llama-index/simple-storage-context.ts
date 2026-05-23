@@ -26,9 +26,7 @@ export const createStorageContext = async ({ hash }: { hash: string }) => {
     await fs.mkdir(directoryPath, { recursive: true });
   } catch (error: unknown) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
-      logger.info(
-        `Unable to create directory ${directoryPath}: ${(error as Error).message}`,
-      );
+      logger.info(`Unable to create directory ${directoryPath}: ${(error as Error).message}`);
     }
   }
 

@@ -24,11 +24,7 @@ export type AeroApiArrivalInput = Pick<
 /**
  * Maps AeroAPI arrival data to a HASH "Arrives At" link entity.
  */
-export const mapArrivesAt: MappingFunction<
-  AeroApiArrivalInput,
-  HashArrivesAt,
-  true
-> = (
+export const mapArrivesAt: MappingFunction<AeroApiArrivalInput, HashArrivesAt, true> = (
   input: AeroApiArrivalInput,
   provenance: Pick<ProvidedEntityEditionProvenance, "sources">,
 ) => {
@@ -38,8 +34,7 @@ export const mapArrivesAt: MappingFunction<
         "https://hash.ai/@h/types/property-type/gate/": {
           value: input.gate_destination,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },
@@ -48,8 +43,7 @@ export const mapArrivesAt: MappingFunction<
         "https://hash.ai/@h/types/property-type/terminal/": {
           value: input.terminal_destination,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },
@@ -58,8 +52,7 @@ export const mapArrivesAt: MappingFunction<
         "https://hash.ai/@h/types/property-type/runway/": {
           value: input.actual_runway_on,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },
@@ -68,8 +61,7 @@ export const mapArrivesAt: MappingFunction<
         "https://hash.ai/@h/types/property-type/baggage-claim/": {
           value: input.baggage_claim,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },

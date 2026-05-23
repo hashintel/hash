@@ -69,16 +69,17 @@ const distanceFromLeft = `calc(
 const SignupPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const { authenticatedUser, refetch: refetchAuthenticatedUser } =
-    useAuthInfo();
+  const { authenticatedUser, refetch: refetchAuthenticatedUser } = useAuthInfo();
 
   const userHasVerifiedEmail =
     authenticatedUser?.emails.find(({ verified }) => verified) !== undefined;
 
-  const [fetchHasAccess, { data: userHasAccessToHashData }] =
-    useLazyQuery<HasAccessToHashQuery>(hasAccessToHashQuery, {
+  const [fetchHasAccess, { data: userHasAccessToHashData }] = useLazyQuery<HasAccessToHashQuery>(
+    hasAccessToHashQuery,
+    {
       fetchPolicy: "network-only",
-    });
+    },
+  );
 
   /**
    * Eagerly fetch access when the user already has a verified email on mount
@@ -119,8 +120,7 @@ const SignupPage: NextPageWithLayout = () => {
 
   const invitation = invitationData?.getPendingInvitationByEntityId;
 
-  const [updateAuthenticatedUser, { loading: updateUserLoading }] =
-    useUpdateAuthenticatedUser();
+  const [updateAuthenticatedUser, { loading: updateUserLoading }] = useUpdateAuthenticatedUser();
 
   const [errorMessage, setErrorMessage] = useState<string>();
 
@@ -151,13 +151,7 @@ const SignupPage: NextPageWithLayout = () => {
 
       void router.push("/");
     },
-    [
-      acceptInvitation,
-      invitation,
-      refetchAuthenticatedUser,
-      updateAuthenticatedUser,
-      router,
-    ],
+    [acceptInvitation, invitation, refetchAuthenticatedUser, updateAuthenticatedUser, router],
   );
 
   const verificationFlowId =

@@ -7,10 +7,7 @@ import { countEntitiesQuery } from "../graphql/queries/knowledge/entity.queries"
 import { useAuthInfo } from "../pages/shared/auth-info-context";
 import { usePollInterval } from "./use-poll-interval";
 
-import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
-} from "../graphql/api-types.gen";
+import type { CountEntitiesQuery, CountEntitiesQueryVariables } from "../graphql/api-types.gen";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type DraftEntitiesCountContextValue = {
@@ -19,8 +16,7 @@ export type DraftEntitiesCountContextValue = {
   refetch: () => Promise<void>;
 };
 
-export const DraftEntitiesCountContext =
-  createContext<null | DraftEntitiesCountContextValue>(null);
+export const DraftEntitiesCountContext = createContext<null | DraftEntitiesCountContextValue>(null);
 
 export const useDraftEntitiesCount = () => {
   const draftEntitiesContext = useContext(DraftEntitiesCountContext);
@@ -32,9 +28,9 @@ export const useDraftEntitiesCount = () => {
   return draftEntitiesContext;
 };
 
-export const DraftEntitiesCountContextProvider: FunctionComponent<
-  PropsWithChildren
-> = ({ children }) => {
+export const DraftEntitiesCountContextProvider: FunctionComponent<PropsWithChildren> = ({
+  children,
+}) => {
   const { authenticatedUser } = useAuthInfo();
 
   const pollInterval = usePollInterval();
@@ -43,34 +39,31 @@ export const DraftEntitiesCountContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch,
     loading,
-  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
-    countEntitiesQuery,
-    {
-      variables: {
-        request: {
-          filter: {
-            all: [
-              {
-                not: {
-                  exists: {
-                    path: ["draftId"],
-                  },
+  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(countEntitiesQuery, {
+    variables: {
+      request: {
+        filter: {
+          all: [
+            {
+              not: {
+                exists: {
+                  path: ["draftId"],
                 },
               },
-              {
-                equal: [{ path: ["archived"] }, { parameter: false }],
-              },
-            ],
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: true,
+            },
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
+          ],
         },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: true,
       },
-      pollInterval,
-      fetchPolicy: "network-only",
-      skip: !authenticatedUser?.accountSignupComplete,
     },
-  );
+    pollInterval,
+    fetchPolicy: "network-only",
+    skip: !authenticatedUser?.accountSignupComplete,
+  });
 
   const value = useMemo<DraftEntitiesCountContextValue>(
     () => ({

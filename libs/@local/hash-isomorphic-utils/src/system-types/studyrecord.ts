@@ -159,72 +159,63 @@ export type {
  */
 export type ActualEnrollmentPropertyValue = IntegerDataType;
 
-export type ActualEnrollmentPropertyValueWithMetadata =
-  IntegerDataTypeWithMetadata;
+export type ActualEnrollmentPropertyValueWithMetadata = IntegerDataTypeWithMetadata;
 
 /**
  * The date on which the last participant in a clinical study was examined or received an intervention to collect final data for the primary outcome measures, secondary outcome measures, and adverse events (that is, the last participant's last visit).
  */
 export type ActualStudyCompletionDatePropertyValue = DateDataType;
 
-export type ActualStudyCompletionDatePropertyValueWithMetadata =
-  DateDataTypeWithMetadata;
+export type ActualStudyCompletionDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 
 /**
  * The date on which the last participant in a study was examined or received an intervention to collect final data for the primary outcome measure.
  */
 export type ActualStudyPrimaryCompletionDatePropertyValue = DateDataType;
 
-export type ActualStudyPrimaryCompletionDatePropertyValueWithMetadata =
-  DateDataTypeWithMetadata;
+export type ActualStudyPrimaryCompletionDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 
 /**
  * The actual date on which the first participant was enrolled in a clinical study.
  */
 export type ActualStudyStartDatePropertyValue = DateDataType;
 
-export type ActualStudyStartDatePropertyValueWithMetadata =
-  DateDataTypeWithMetadata;
+export type ActualStudyStartDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 
 /**
  * The estimated number of participants that will be enrolled in something.
  */
 export type EstimatedEnrollmentPropertyValue = IntegerDataType;
 
-export type EstimatedEnrollmentPropertyValueWithMetadata =
-  IntegerDataTypeWithMetadata;
+export type EstimatedEnrollmentPropertyValueWithMetadata = IntegerDataTypeWithMetadata;
 
 /**
  * The estimated date on which the last participant in a study will be examined or receive an intervention to collect final data for the primary outcome measure.
  */
 export type EstimatedPrimaryCompletionDatePropertyValue = DateDataType;
 
-export type EstimatedPrimaryCompletionDatePropertyValueWithMetadata =
-  DateDataTypeWithMetadata;
+export type EstimatedPrimaryCompletionDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 
 /**
  * The estimated date on which the last participant in a clinical study will be examined or receive an intervention to collect final data for the primary outcome measures, secondary outcome measures, and adverse events (that is, the last participant's last visit).
  */
 export type EstimatedStudyCompletionDatePropertyValue = DateDataType;
 
-export type EstimatedStudyCompletionDatePropertyValueWithMetadata =
-  DateDataTypeWithMetadata;
+export type EstimatedStudyCompletionDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 
 /**
  * The estimated date on which the first participant will be enrolled in a clinical study.
  */
 export type EstimatedStudyStartDatePropertyValue = DateDataType;
 
-export type EstimatedStudyStartDatePropertyValueWithMetadata =
-  DateDataTypeWithMetadata;
+export type EstimatedStudyStartDatePropertyValueWithMetadata = DateDataTypeWithMetadata;
 
 /**
  * Criteria that would prevent someone or something from being included in something.
  */
 export type ExclusionCriteriaPropertyValue = TextDataType;
 
-export type ExclusionCriteriaPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type ExclusionCriteriaPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A contact for something (an organization, project, etc.)
@@ -276,8 +267,7 @@ export type ISRCTNPropertyValueWithMetadata = ISRCTNDataTypeWithMetadata;
  */
 export type InclusionCriteriaPropertyValue = TextDataType;
 
-export type InclusionCriteriaPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type InclusionCriteriaPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * An action taken to change something, typically to address a problem or otherwise bring about a desirable outcome.
@@ -304,19 +294,17 @@ export type InvestigatedByOutgoingLinksByLinkEntityTypeId = {};
  */
 export type InvestigatedByProperties = LinkProperties & {};
 
-export type InvestigatedByPropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type InvestigatedByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * A disease, disorder, syndrome, illness, or injury, which may relate to either or both of physical and mental health.
  */
 export type MedicalConditionPropertyValue = TextDataType;
 
-export type MedicalConditionPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type MedicalConditionPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.
@@ -558,5 +546,4 @@ export type TrialPhaseDataTypeMetadata = {
  */
 export type TrialPhasePropertyValue = TrialPhaseDataType;
 
-export type TrialPhasePropertyValueWithMetadata =
-  TrialPhaseDataTypeWithMetadata;
+export type TrialPhasePropertyValueWithMetadata = TrialPhaseDataTypeWithMetadata;

@@ -24,15 +24,11 @@ import { PlaybackContext, type PlaybackContextValue } from "./context";
  * Converts a {@link SimulationFrameReader} to the simplified {@link SimulationFrameState}
  * shape consumed by visualisations.
  */
-function buildFrameState(
-  frame: SimulationFrameReader | null,
-): SimulationFrameState | null {
+function buildFrameState(frame: SimulationFrameReader | null): SimulationFrameState | null {
   return frame?.toFrameState() ?? null;
 }
 
-function isSimulationComputeAvailable(
-  simulationState: SimulationContextValue["state"],
-): boolean {
+function isSimulationComputeAvailable(simulationState: SimulationContextValue["state"]): boolean {
   return simulationState !== "Complete" && simulationState !== "Error";
 }
 
@@ -56,9 +52,7 @@ function toComputePlayMode(mode: PlayMode): ComputePlayMode {
 
 type PlaybackProviderProps = React.PropsWithChildren;
 
-export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
-  children,
-}) => {
+export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({ children }) => {
   const {
     dt,
     state: simulationState,
@@ -83,8 +77,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   // Currently displayed frame data, fetched from the simulation when the
   // index changes.
-  const [currentFrameReader, setCurrentFrameReader] =
-    useState<SimulationFrameReader | null>(null);
+  const [currentFrameReader, setCurrentFrameReader] = useState<SimulationFrameReader | null>(null);
 
   // Refs for stable identities inside the rAF loop / callbacks.
   const dtRef = useLatest(dt);
@@ -97,11 +90,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   // Compute modes are available when simulation can still compute more frames.
   const isComputeAvailable = isSimulationComputeAvailable(simulationState);
-  const mode = getEffectivePlayMode(
-    requestedMode,
-    simulationState,
-    totalFrames,
-  );
+  const mode = getEffectivePlayMode(requestedMode, simulationState, totalFrames);
 
   const getCurrentMode = () =>
     getEffectivePlayMode(
@@ -203,18 +192,9 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         cancelAnimationFrame(raf);
       }
     };
-  }, [
-    playState,
-    playback,
-    dtRef,
-    simulationStateRef,
-    totalFramesRef,
-    snapshotRef,
-  ]);
+  }, [playState, playback, dtRef, simulationStateRef, totalFramesRef, snapshotRef]);
 
-  const setCurrentViewedFrame: PlaybackContextValue["setCurrentViewedFrame"] = (
-    index,
-  ) => {
+  const setCurrentViewedFrame: PlaybackContextValue["setCurrentViewedFrame"] = (index) => {
     playback.setFrameIndex(index, totalFramesRef.current);
   };
 
@@ -272,15 +252,11 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     playback.stop();
   };
 
-  const setPlaybackSpeed: PlaybackContextValue["setPlaybackSpeed"] = (
-    nextSpeed: PlaybackSpeed,
-  ) => {
+  const setPlaybackSpeed: PlaybackContextValue["setPlaybackSpeed"] = (nextSpeed: PlaybackSpeed) => {
     playback.setSpeed(nextSpeed);
   };
 
-  const setPlayMode: PlaybackContextValue["setPlayMode"] = (
-    nextMode: PlayMode,
-  ) => {
+  const setPlayMode: PlaybackContextValue["setPlayMode"] = (nextMode: PlayMode) => {
     if (nextMode === "viewOnly" && !isViewOnlyAvailable) {
       return;
     }
@@ -322,9 +298,5 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     setPlayMode: useStableCallback(setPlayMode),
   };
 
-  return (
-    <PlaybackContext.Provider value={contextValue}>
-      {children}
-    </PlaybackContext.Provider>
-  );
+  return <PlaybackContext.Provider value={contextValue}>{children}</PlaybackContext.Provider>;
 };

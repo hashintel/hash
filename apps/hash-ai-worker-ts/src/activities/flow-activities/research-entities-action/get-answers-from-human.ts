@@ -3,9 +3,7 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { requestExternalInput } from "../../shared/request-external-input.js";
 
-export const getAnswersFromHuman = async (
-  questions: string[],
-): Promise<string> => {
+export const getAnswersFromHuman = async (questions: string[]): Promise<string> => {
   const { stepId } = await getFlowContext();
 
   const {
@@ -20,9 +18,7 @@ export const getAnswersFromHuman = async (
   });
 
   const responseString = answers
-    .map(
-      (answer, index) => `\nQuestion: ${questions[index]}\nAnswer: ${answer}\n`,
-    )
+    .map((answer, index) => `\nQuestion: ${questions[index]}\nAnswer: ${answer}\n`)
     .join("\n");
 
   return responseString;

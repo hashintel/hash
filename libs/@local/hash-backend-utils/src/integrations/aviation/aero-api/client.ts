@@ -1,8 +1,5 @@
 import { createRateLimitedRequester } from "../../../rate-limiter.js";
-import {
-  type BatchFlightGraphResult,
-  buildFlightGraphBatch,
-} from "./client/build-graph.js";
+import { type BatchFlightGraphResult, buildFlightGraphBatch } from "./client/build-graph.js";
 import { generateAeroApiProvenance } from "./client/provenance.js";
 
 import type {
@@ -42,10 +39,7 @@ const REQUEST_INTERVAL_MS = 1000;
  */
 const MAX_RETRIES = 10;
 
-const generateUrl = (
-  path: string,
-  params?: Record<string, string | number | undefined>,
-) => {
+const generateUrl = (path: string, params?: Record<string, string | number | undefined>) => {
   const url = new URL(`${baseUrl}${path}`);
 
   if (params) {
@@ -106,10 +100,10 @@ const getScheduledArrivals = async (
   params: ScheduledArrivalsRequestParams,
 ): Promise<AeroApiScheduledArrivalsResponse> => {
   const { airportIcao, max_pages = DEFAULT_MAX_PAGES, ...queryParams } = params;
-  const url = generateUrl(
-    `/airports/${airportIcao}/flights/scheduled_arrivals`,
-    { ...queryParams, max_pages },
-  );
+  const url = generateUrl(`/airports/${airportIcao}/flights/scheduled_arrivals`, {
+    ...queryParams,
+    max_pages,
+  });
   return makeRequest<AeroApiScheduledArrivalsResponse>(url);
 };
 
@@ -285,11 +279,7 @@ export const getHistoricalArrivalEntities = async (
     provenance: Pick<ProvidedEntityEditionProvenance, "sources">;
   }
 > => {
-  const flights = await getAllHistoricalArrivalsForDateRange(
-    airportIcao,
-    startDate,
-    endDate,
-  );
+  const flights = await getAllHistoricalArrivalsForDateRange(airportIcao, startDate, endDate);
 
   const provenance = generateAeroApiProvenance();
 

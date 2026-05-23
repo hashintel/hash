@@ -31,8 +31,7 @@ export const useTypeVersions = (
       versions === undefined
         ? version
         : versions.reduce(
-            (max, current) =>
-              compareOntologyTypeVersions(current, max) > 0 ? current : max,
+            (max, current) => (compareOntologyTypeVersions(current, max) > 0 ? current : max),
             versions[0],
           );
 

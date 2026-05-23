@@ -5,10 +5,7 @@ import {
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapCommentToGQL } from "../graphql-mapping";
 
-import type {
-  MutationUpdateCommentTextArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { MutationUpdateCommentTextArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { UnresolvedCommentGQL } from "../graphql-mapping";
 

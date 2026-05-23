@@ -107,16 +107,14 @@ export type {
  */
 export type ActualGateTimePropertyValue = DateTimeDataType;
 
-export type ActualGateTimePropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type ActualGateTimePropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The actual date and time of runway departure (takeoff) or arrival (touchdown).
  */
 export type ActualRunwayTimePropertyValue = DateTimeDataType;
 
-export type ActualRunwayTimePropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type ActualRunwayTimePropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The height of an object above a reference point, such as sea level or the ground.
@@ -230,8 +228,7 @@ export type DegreeDataTypeMetadata = {
  */
 export type DelayInSecondsPropertyValue = IntegerDataType;
 
-export type DelayInSecondsPropertyValueWithMetadata =
-  IntegerDataTypeWithMetadata;
+export type DelayInSecondsPropertyValueWithMetadata = IntegerDataTypeWithMetadata;
 
 /**
  * Indicates the airport from which a flight departs, including departure-specific details.
@@ -290,16 +287,14 @@ export type DirectionPropertyValueWithMetadata = DegreeDataTypeWithMetadata;
  */
 export type EstimatedGateTimePropertyValue = DateTimeDataType;
 
-export type EstimatedGateTimePropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type EstimatedGateTimePropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The predicted date and time for runway departure (takeoff) or arrival (touchdown).
  */
 export type EstimatedRunwayTimePropertyValue = DateTimeDataType;
 
-export type EstimatedRunwayTimePropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type EstimatedRunwayTimePropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A unit of vertical speed commonly used in aviation to measure rate of climb or descent.
@@ -436,8 +431,7 @@ export type FlightStatusDataTypeMetadata = {
  */
 export type FlightStatusPropertyValue = FlightStatusDataType;
 
-export type FlightStatusPropertyValueWithMetadata =
-  FlightStatusDataTypeWithMetadata;
+export type FlightStatusPropertyValueWithMetadata = FlightStatusDataTypeWithMetadata;
 
 /**
  * The category of flight operation.
@@ -611,16 +605,14 @@ export type RunwayPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type ScheduledGateTimePropertyValue = DateTimeDataType;
 
-export type ScheduledGateTimePropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type ScheduledGateTimePropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The originally planned date and time for runway departure (takeoff) or arrival (touchdown).
  */
 export type ScheduledRunwayTimePropertyValue = DateTimeDataType;
 
-export type ScheduledRunwayTimePropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type ScheduledRunwayTimePropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A measure of the rate of movement or change in position over time.
@@ -672,5 +664,4 @@ export type UsesAircraftPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  */
 export type VerticalSpeedPropertyValue = FeetPerMinuteDataType;
 
-export type VerticalSpeedPropertyValueWithMetadata =
-  FeetPerMinuteDataTypeWithMetadata;
+export type VerticalSpeedPropertyValueWithMetadata = FeetPerMinuteDataTypeWithMetadata;

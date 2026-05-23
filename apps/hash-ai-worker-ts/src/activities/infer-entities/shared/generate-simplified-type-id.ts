@@ -1,9 +1,6 @@
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
-export const generateSimplifiedTypeIdFromTitle = (params: {
-  title: string;
-  postfix?: string;
-}) => {
+export const generateSimplifiedTypeIdFromTitle = (params: { title: string; postfix?: string }) => {
   const { title, postfix } = params;
 
   /**
@@ -28,12 +25,7 @@ export const generateSimplifiedTypeId = <
   updatedTypeMappings: Record<string, T>;
   updatedReverseTypeMappings: Record<T, string>;
 } => {
-  const {
-    title,
-    typeIdOrBaseUrl,
-    existingTypeMappings,
-    existingReverseTypeMappings,
-  } = params;
+  const { title, typeIdOrBaseUrl, existingTypeMappings, existingReverseTypeMappings } = params;
   let counter = 1;
 
   if (existingReverseTypeMappings[typeIdOrBaseUrl]) {

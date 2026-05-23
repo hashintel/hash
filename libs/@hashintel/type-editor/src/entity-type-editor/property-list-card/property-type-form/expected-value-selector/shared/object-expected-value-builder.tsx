@@ -55,9 +55,7 @@ interface ObjectExpectedValueRowProps {
   requiredColumnWidth: number;
 }
 
-const ObjectExpectedValueRow: FunctionComponent<
-  ObjectExpectedValueRowProps
-> = ({
+const ObjectExpectedValueRow: FunctionComponent<ObjectExpectedValueRowProps> = ({
   objectId,
   property,
   propertyIndex,
@@ -155,13 +153,16 @@ type ObjectExpectedValueBuilderProps = {
   index?: number[];
 };
 
-export const ObjectExpectedValueBuilder: FunctionComponent<
-  ObjectExpectedValueBuilderProps
-> = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
+export const ObjectExpectedValueBuilder: FunctionComponent<ObjectExpectedValueBuilderProps> = ({
+  expectedValueId,
+  prefix,
+  deleteTooltip,
+  onDelete,
+  index = [],
+}) => {
   const propertyTypes = usePropertyTypesOptions();
 
-  const { setValue, getValues, control } =
-    useFormContext<ExpectedValueSelectorFormValues>();
+  const { setValue, getValues, control } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const editingExpectedValueIndex = useWatch({
     control,
@@ -178,10 +179,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
   const [allowArraysColumnWidth, setAllowArraysColumnWidth] = useState(0);
   const [requiredColumnWidth, setRequiredColumnWidth] = useState(0);
 
-  const propertyIds = useMemo(
-    () => properties.map(({ id }) => id),
-    [properties],
-  );
+  const propertyIds = useMemo(() => properties.map(({ id }) => id), [properties]);
 
   const deleteModalPopupState = usePopupState({
     variant: "popover",
@@ -203,9 +201,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
     return Object.values(propertyTypes)
       .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
       .map(({ schema }) => schema.$id)
-      .filter(
-        (versionedUrl) => extractBaseUrl(versionedUrl) !== propertyTypeBaseUrl,
-      );
+      .filter((versionedUrl) => extractBaseUrl(versionedUrl) !== propertyTypeBaseUrl);
   }, [propertyTypes, getValues]);
 
   return (
@@ -302,17 +298,14 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
               const typeId = details?.option;
               if (typeId) {
                 if (reason === "selectOption") {
-                  setValue(
-                    `flattenedCustomExpectedValueList.${expectedValueId}.data.properties`,
-                    [
-                      ...properties,
-                      {
-                        id: details.option,
-                        allowArrays: false,
-                        required: false,
-                      },
-                    ],
-                  );
+                  setValue(`flattenedCustomExpectedValueList.${expectedValueId}.data.properties`, [
+                    ...properties,
+                    {
+                      id: details.option,
+                      allowArrays: false,
+                      required: false,
+                    },
+                  ]);
 
                   // trigger popper reposition calculation
                   window.dispatchEvent(new Event("resize"));
@@ -324,9 +317,7 @@ export const ObjectExpectedValueBuilder: FunctionComponent<
                         setTimeout(() => {
                           setValue(
                             `flattenedCustomExpectedValueList.${expectedValueId}.data.properties`,
-                            properties.filter(
-                              ({ id }) => id !== details.option,
-                            ),
+                            properties.filter(({ id }) => id !== details.option),
                           );
                         }, 300);
 

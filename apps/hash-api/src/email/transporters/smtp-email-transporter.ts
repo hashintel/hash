@@ -5,10 +5,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
 import { logger } from "../../logger";
 
-import type {
-  EmailTransporter,
-  EmailTransporterSendMailOptions,
-} from "./types";
+import type { EmailTransporter, EmailTransporterSendMailOptions } from "./types";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 export interface SmtpEmailTransporterConfig {

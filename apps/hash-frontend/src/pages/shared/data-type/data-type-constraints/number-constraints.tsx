@@ -86,14 +86,9 @@ const NumberRangeEditor = ({
           }}
         >
           <Checkbox
-            checked={
-              ownExclusiveMinimum ??
-              inheritedConstraints.minimum?.value.exclusive
-            }
+            checked={ownExclusiveMinimum ?? inheritedConstraints.minimum?.value.exclusive}
             disabled={exclusiveMinimumDisabled}
-            onChange={(event) =>
-              setValue("constraints.exclusiveMinimum", event.target.checked)
-            }
+            onChange={(event) => setValue("constraints.exclusiveMinimum", event.target.checked)}
             sx={{
               svg: {
                 width: 14,
@@ -101,8 +96,7 @@ const NumberRangeEditor = ({
                 rect: {
                   fill: exclusiveMinimumDisabled
                     ? ({ palette }) =>
-                        (ownExclusiveMinimum ??
-                        inheritedConstraints.minimum?.value.exclusive)
+                        (ownExclusiveMinimum ?? inheritedConstraints.minimum?.value.exclusive)
                           ? palette.gray[40]
                           : palette.gray[20]
                     : undefined,
@@ -149,21 +143,15 @@ const NumberRangeEditor = ({
           }}
         >
           <Checkbox
-            checked={
-              ownExclusiveMaximum ??
-              inheritedConstraints.maximum?.value.exclusive
-            }
+            checked={ownExclusiveMaximum ?? inheritedConstraints.maximum?.value.exclusive}
             disabled={exclusiveMaximumDisabled}
-            onChange={(event) =>
-              setValue("constraints.exclusiveMaximum", event.target.checked)
-            }
+            onChange={(event) => setValue("constraints.exclusiveMaximum", event.target.checked)}
             sx={{
               svg: {
                 rect: {
                   fill: exclusiveMaximumDisabled
                     ? ({ palette }) =>
-                        (ownExclusiveMaximum ??
-                        inheritedConstraints.maximum?.value.exclusive)
+                        (ownExclusiveMaximum ?? inheritedConstraints.maximum?.value.exclusive)
                           ? palette.gray[40]
                           : palette.gray[20]
                     : undefined,
@@ -252,14 +240,12 @@ const NumberRangeText = ({
   inheritedConstraints: InheritedConstraints;
 }) => {
   const minimumInheritedFrom =
-    inheritedConstraints.minimum &&
-    inheritedConstraints.minimum.value.value === minimum
+    inheritedConstraints.minimum && inheritedConstraints.minimum.value.value === minimum
       ? inheritedConstraints.minimum.from
       : undefined;
 
   const maximumInheritedFrom =
-    inheritedConstraints.maximum &&
-    inheritedConstraints.maximum.value.value === maximum
+    inheritedConstraints.maximum && inheritedConstraints.maximum.value.value === maximum
       ? inheritedConstraints.maximum.from
       : undefined;
 
@@ -267,21 +253,13 @@ const NumberRangeText = ({
     return (
       <>
         {" between "}
-        <ConstraintText
-          text={minimum.toString()}
-          from={minimumInheritedFrom}
-        />{" "}
-        (
+        <ConstraintText text={minimum.toString()} from={minimumInheritedFrom} /> (
         <ConstraintText
           text={exclusiveMinimum ? "exclusive" : "inclusive"}
           from={inheritedConstraints.minimum?.from}
         />
         ){" and "}
-        <ConstraintText
-          text={maximum.toString()}
-          from={maximumInheritedFrom}
-        />{" "}
-        (
+        <ConstraintText text={maximum.toString()} from={maximumInheritedFrom} /> (
         <ConstraintText
           text={exclusiveMaximum ? "exclusive" : "inclusive"}
           from={inheritedConstraints.maximum?.from}
@@ -295,11 +273,7 @@ const NumberRangeText = ({
     return (
       <>
         {" greater than "}
-        <ConstraintText
-          text={minimum.toString()}
-          from={minimumInheritedFrom}
-        />{" "}
-        (
+        <ConstraintText text={minimum.toString()} from={minimumInheritedFrom} /> (
         <ConstraintText
           text={exclusiveMinimum ? "exclusive" : "inclusive"}
           from={inheritedConstraints.minimum?.from}
@@ -313,11 +287,7 @@ const NumberRangeText = ({
     return (
       <>
         {" less than "}
-        <ConstraintText
-          text={maximum.toString()}
-          from={maximumInheritedFrom}
-        />{" "}
-        (
+        <ConstraintText text={maximum.toString()} from={maximumInheritedFrom} /> (
         <ConstraintText
           text={exclusiveMaximum ? "exclusive" : "inclusive"}
           from={inheritedConstraints.maximum?.from}
@@ -350,44 +320,30 @@ export const NumberConstraints = ({
   const ownMinimum = "minimum" in constraints ? constraints.minimum : undefined;
   const ownMaximum = "maximum" in constraints ? constraints.maximum : undefined;
   const ownExclusiveMinimum =
-    "exclusiveMinimum" in constraints
-      ? constraints.exclusiveMinimum
-      : undefined;
+    "exclusiveMinimum" in constraints ? constraints.exclusiveMinimum : undefined;
   const ownExclusiveMaximum =
-    "exclusiveMaximum" in constraints
-      ? constraints.exclusiveMaximum
-      : undefined;
-  const ownMultipleOf =
-    "multipleOf" in constraints ? constraints.multipleOf : undefined;
+    "exclusiveMaximum" in constraints ? constraints.exclusiveMaximum : undefined;
+  const ownMultipleOf = "multipleOf" in constraints ? constraints.multipleOf : undefined;
 
   const ownEnum = "enum" in constraints ? constraints.enum : undefined;
 
   const minimum = ownMinimum ?? inheritedConstraints.minimum?.value.value;
   const maximum = ownMaximum ?? inheritedConstraints.maximum?.value.value;
-  const exclusiveMinimum =
-    ownExclusiveMinimum ?? inheritedConstraints.minimum?.value.exclusive;
-  const exclusiveMaximum =
-    ownExclusiveMaximum ?? inheritedConstraints.maximum?.value.exclusive;
-  const multipleOf =
-    ownMultipleOf ?? inheritedConstraints.multipleOf?.[0]?.value;
+  const exclusiveMinimum = ownExclusiveMinimum ?? inheritedConstraints.minimum?.value.exclusive;
+  const exclusiveMaximum = ownExclusiveMaximum ?? inheritedConstraints.maximum?.value.exclusive;
+  const multipleOf = ownMultipleOf ?? inheritedConstraints.multipleOf?.[0]?.value;
 
   /**
    * Reset the min/max and enum if the inherited constraints are narrower
    * – handle the case of a parent change which makes the type's own constraints invalid.
    */
   useEffect(() => {
-    if (
-      inheritedConstraints.minimum?.value.value !== undefined &&
-      ownMinimum != null
-    ) {
+    if (inheritedConstraints.minimum?.value.value !== undefined && ownMinimum != null) {
       if (inheritedConstraints.minimum.value.value > ownMinimum) {
         setValue("constraints.minimum", null, { shouldDirty: true });
       }
     }
-    if (
-      inheritedConstraints.maximum?.value.value !== undefined &&
-      ownMaximum != null
-    ) {
+    if (inheritedConstraints.maximum?.value.value !== undefined && ownMaximum != null) {
       if (inheritedConstraints.maximum.value.value < ownMaximum) {
         setValue("constraints.maximum", null, { shouldDirty: true });
       }
@@ -412,10 +368,7 @@ export const NumberConstraints = ({
       <Box>
         <Typography variant="smallTextParagraphs" sx={{ fontWeight: 300 }}>
           {"It must be a "}
-          <ConstraintText
-            text="number"
-            from={inheritedConstraints.type?.from}
-          />
+          <ConstraintText text="number" from={inheritedConstraints.type?.from} />
           {typeof minimum === "number" || typeof maximum === "number" ? (
             <NumberRangeText
               minimum={minimum}

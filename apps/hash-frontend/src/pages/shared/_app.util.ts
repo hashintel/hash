@@ -2,11 +2,7 @@ import type { NextComponentType } from "next";
 import type { AppContext } from "next/app";
 
 // Based on the definition of `NextPage`
-export type AppPage<P = Record<string, unknown>, IP = P> = NextComponentType<
-  AppContext,
-  IP,
-  P
->;
+export type AppPage<P = Record<string, unknown>, IP = P> = NextComponentType<AppContext, IP, P>;
 
 /**
  * Redirect during getInitialProps. Server-side, this sends an HTTP 307.

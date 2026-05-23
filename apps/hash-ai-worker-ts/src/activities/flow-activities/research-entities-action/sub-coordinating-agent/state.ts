@@ -3,10 +3,7 @@ import type {
   ParsedSubCoordinatorToolCall,
   SubCoordinatingAgentToolName,
 } from "../shared/coordinator-tools.js";
-import type {
-  CoordinatingAgentState,
-  OutstandingCoordinatorTask,
-} from "../shared/coordinators.js";
+import type { CoordinatingAgentState, OutstandingCoordinatorTask } from "../shared/coordinators.js";
 
 export type SubCoordinatingAgentState = Pick<
   CoordinatingAgentState,

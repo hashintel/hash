@@ -113,15 +113,11 @@ export const entityTypedef = gql`
 
     queryEntities(request: QueryEntitiesRequest!): QueryEntitiesResponse!
 
-    queryEntitySubgraph(
-      request: QueryEntitySubgraphRequest!
-    ): QueryEntitySubgraphResponse!
+    queryEntitySubgraph(request: QueryEntitySubgraphRequest!): QueryEntitySubgraphResponse!
 
     isEntityPublic(entityId: EntityId!): Boolean!
 
-    getEntityAuthorizationRelationships(
-      entityId: EntityId!
-    ): [EntityAuthorizationRelationship!]!
+    getEntityAuthorizationRelationships(entityId: EntityId!): [EntityAuthorizationRelationship!]!
 
     checkUserPermissionsOnEntity(metadata: EntityMetadata!): UserPermissions!
 
@@ -246,34 +242,16 @@ export const entityTypedef = gql`
       entityIds: [EntityId!]!
     ): Boolean!
 
-    addEntityOwner(
-      entityId: EntityId!
-      owner: AuthorizationSubjectId!
-    ): Boolean!
+    addEntityOwner(entityId: EntityId!, owner: AuthorizationSubjectId!): Boolean!
 
-    removeEntityOwner(
-      entityId: EntityId!
-      owner: AuthorizationSubjectId!
-    ): Boolean!
+    removeEntityOwner(entityId: EntityId!, owner: AuthorizationSubjectId!): Boolean!
 
-    addEntityEditor(
-      entityId: EntityId!
-      editor: AuthorizationSubjectId!
-    ): Boolean!
+    addEntityEditor(entityId: EntityId!, editor: AuthorizationSubjectId!): Boolean!
 
-    removeEntityEditor(
-      entityId: EntityId!
-      editor: AuthorizationSubjectId!
-    ): Boolean!
+    removeEntityEditor(entityId: EntityId!, editor: AuthorizationSubjectId!): Boolean!
 
-    addEntityViewer(
-      entityId: EntityId!
-      viewer: AuthorizationViewerInput!
-    ): Boolean!
+    addEntityViewer(entityId: EntityId!, viewer: AuthorizationViewerInput!): Boolean!
 
-    removeEntityViewer(
-      entityId: EntityId!
-      viewer: AuthorizationViewerInput!
-    ): Boolean!
+    removeEntityViewer(entityId: EntityId!, viewer: AuthorizationViewerInput!): Boolean!
   }
 `;

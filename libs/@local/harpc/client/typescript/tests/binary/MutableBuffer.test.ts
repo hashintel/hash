@@ -31,9 +31,7 @@ describe("put", () => {
 
     const array = MutableBuffer.take(buffer);
 
-    expect(new Uint8Array(array)).toStrictEqual(
-      new Uint8Array([0x04, 0x03, 0x02, 0x01]),
-    );
+    expect(new Uint8Array(array)).toStrictEqual(new Uint8Array([0x04, 0x03, 0x02, 0x01]));
   });
 
   test("i8", () => {
@@ -63,17 +61,13 @@ describe("put", () => {
 
     const array = MutableBuffer.take(buffer);
 
-    expect(new Uint8Array(array)).toStrictEqual(
-      new Uint8Array([0xfb, 0xfc, 0xfd, 0xff]),
-    );
+    expect(new Uint8Array(array)).toStrictEqual(new Uint8Array([0xfb, 0xfc, 0xfd, 0xff]));
   });
 
   test("slice", () => {
     const buffer = MutableBuffer.makeWrite();
 
-    MutableBuffer.putSlice(buffer, new Uint8Array([0x04, 0x03])).pipe(
-      Either.getOrThrow,
-    );
+    MutableBuffer.putSlice(buffer, new Uint8Array([0x04, 0x03])).pipe(Either.getOrThrow);
 
     const array = MutableBuffer.take(buffer);
 
@@ -105,21 +99,15 @@ describe("get", () => {
     MutableBuffer.makeRead(MutableBytes.from(new Uint8Array(elements).buffer));
 
   test("u8", () => {
-    expect(MutableBuffer.getU8(makeBuffer()).pipe(Either.getOrThrow)).toBe(
-      0xff,
-    );
+    expect(MutableBuffer.getU8(makeBuffer()).pipe(Either.getOrThrow)).toBe(0xff);
   });
 
   test("u16", () => {
-    expect(MutableBuffer.getU16(makeBuffer()).pipe(Either.getOrThrow)).toBe(
-      0xff_fe,
-    );
+    expect(MutableBuffer.getU16(makeBuffer()).pipe(Either.getOrThrow)).toBe(0xff_fe);
   });
 
   test("u32", () => {
-    expect(MutableBuffer.getU32(makeBuffer()).pipe(Either.getOrThrow)).toBe(
-      0xff_fe_fd_fc,
-    );
+    expect(MutableBuffer.getU32(makeBuffer()).pipe(Either.getOrThrow)).toBe(0xff_fe_fd_fc);
   });
 
   test("i8", () => {
@@ -131,15 +119,13 @@ describe("get", () => {
   });
 
   test("i32", () => {
-    expect(MutableBuffer.getI32(makeBuffer()).pipe(Either.getOrThrow)).toBe(
-      -66052,
-    );
+    expect(MutableBuffer.getI32(makeBuffer()).pipe(Either.getOrThrow)).toBe(-66052);
   });
 
   test("slice", () => {
-    expect(
-      MutableBuffer.getSlice(makeBuffer(), 2).pipe(Either.getOrThrow),
-    ).toStrictEqual(new Uint8Array([0xff, 0xfe]));
+    expect(MutableBuffer.getSlice(makeBuffer(), 2).pipe(Either.getOrThrow)).toStrictEqual(
+      new Uint8Array([0xff, 0xfe]),
+    );
   });
 
   test("advance", () => {

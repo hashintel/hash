@@ -4,11 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
-import {
-  contentStyles,
-  positionerStyles,
-  triggerStyles,
-} from "./tooltip.recipe";
+import { contentStyles, positionerStyles, triggerStyles } from "./tooltip.recipe";
 
 type Direction = "bottom" | "top" | "left" | "right";
 type Position = Direction | `${Direction}-${"start" | "end"}`;
@@ -96,8 +92,7 @@ export const Tooltip = ({
     const triggerEl = wrapper.firstElementChild as HTMLElement | null;
     const needsFocus =
       !disableTooltip &&
-      ((!triggerEl && wrapper.textContent) ||
-        (triggerEl && !isDomFocusable(triggerEl)));
+      ((!triggerEl && wrapper.textContent) || (triggerEl && !isDomFocusable(triggerEl)));
 
     if (needsFocus) {
       wrapper.tabIndex = 0;
@@ -140,9 +135,7 @@ export const Tooltip = ({
       <ArkTooltip.Trigger asChild>{wrappedChildren}</ArkTooltip.Trigger>
       <Portal>
         <ArkTooltip.Positioner className={positionerStyles}>
-          <ArkTooltip.Content className={contentStyles({ variant })}>
-            {content}
-          </ArkTooltip.Content>
+          <ArkTooltip.Content className={contentStyles({ variant })}>{content}</ArkTooltip.Content>
         </ArkTooltip.Positioner>
       </Portal>
     </ArkTooltip.Root>

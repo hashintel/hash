@@ -4,10 +4,7 @@ import { createComment } from "../../../../graph/knowledge/system-types/comment"
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapCommentToGQL } from "../graphql-mapping";
 
-import type {
-  MutationCreateCommentArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { MutationCreateCommentArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { UnresolvedCommentGQL } from "../graphql-mapping";
 

@@ -21,8 +21,7 @@ export const defaultSortRows = <
     const value2 = row2[sort.columnKey as keyof Row];
 
     if (typeof value1 === "number" && typeof value2 === "number") {
-      const difference =
-        (value1 - value2) * (sort.direction === "asc" ? 1 : -1);
+      const difference = (value1 - value2) * (sort.direction === "asc" ? 1 : -1);
       return difference;
     }
 

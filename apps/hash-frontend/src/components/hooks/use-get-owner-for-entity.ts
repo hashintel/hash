@@ -22,10 +22,7 @@ export const useGetOwnerForEntity = () => {
 
   return useCallback(
     (params: { entityId: EntityId } | { webId: WebId }) => {
-      const webId =
-        "entityId" in params
-          ? extractWebIdFromEntityId(params.entityId)
-          : params.webId;
+      const webId = "entityId" in params ? extractWebIdFromEntityId(params.entityId) : params.webId;
 
       if (loading || !users?.length || !orgs?.length) {
         return {
@@ -35,8 +32,7 @@ export const useGetOwnerForEntity = () => {
       }
 
       const owner =
-        users.find((user) => webId === user.accountId) ??
-        orgs.find((org) => webId === org.webId);
+        users.find((user) => webId === user.accountId) ?? orgs.find((org) => webId === org.webId);
 
       if (!owner) {
         Sentry.captureException(

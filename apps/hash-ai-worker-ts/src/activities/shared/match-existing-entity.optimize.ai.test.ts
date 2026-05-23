@@ -16,10 +16,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
-import {
-  matchExistingEntity,
-  matchExistingEntitySystemPrompt,
-} from "./match-existing-entity.js";
+import { matchExistingEntity, matchExistingEntitySystemPrompt } from "./match-existing-entity.js";
 import { optimizeSystemPrompt } from "./optimize-system-prompt.js";
 
 import type { LlmParams } from "./get-llm-response/types.js";
@@ -40,8 +37,7 @@ const emptyMetadataObject: PropertyObjectMetadata = {
 
 const testWebId = generateUuid() as WebId;
 
-const generateEntityId = () =>
-  entityIdFromComponents(testWebId, generateUuid() as EntityUuid);
+const generateEntityId = () => entityIdFromComponents(testWebId, generateUuid() as EntityUuid);
 
 type MatchExistingEntityTest = {
   testName: string;
@@ -73,8 +69,7 @@ const matchTestData: MatchExistingEntityTest[] = [
           },
           propertiesMetadata: emptyMetadataObject,
           properties: brandPropertyObject<PersonProperties>({
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              "Bill Gates",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "Bill Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "An American businessman and philanthropist best known for co-founding the software company Microsoft Corporation.",
           }),
@@ -87,8 +82,7 @@ const matchTestData: MatchExistingEntityTest[] = [
           },
           propertiesMetadata: emptyMetadataObject,
           properties: brandPropertyObject<PersonProperties>({
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              "William Gates",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "William Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "A professional basketball player, he was the first African American player signed to the National Basketball League.",
           }),
@@ -101,8 +95,7 @@ const matchTestData: MatchExistingEntityTest[] = [
           entityId: williamGatesBasketballUuid,
           propertiesMetadata: emptyMetadataObject,
           properties: brandPropertyObject<PersonProperties>({
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              "William Gates",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "William Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "An American former college basketball player, subject of the 1994 documentary film Hoop Dreams.",
           }),
@@ -113,29 +106,26 @@ const matchTestData: MatchExistingEntityTest[] = [
         editionSources: [],
         propertiesMetadata: {
           value: brandPropertyObject({
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              {
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                  provenance: {
-                    sources: [],
-                  },
-                } satisfies ValueMetadata,
-              },
-            "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-              {
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                  provenance: {
-                    sources: [],
-                  },
-                } satisfies ValueMetadata,
-              },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                provenance: {
+                  sources: [],
+                },
+              } satisfies ValueMetadata,
+            },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                provenance: {
+                  sources: [],
+                },
+              } satisfies ValueMetadata,
+            },
           }),
         },
         properties: brandPropertyObject<PersonProperties>({
-          "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-            "William Gates",
+          "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "William Gates",
           "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
             "He founded Microsoft in Albuquerque, New Mexico.",
         }),
@@ -156,8 +146,7 @@ const matchTestData: MatchExistingEntityTest[] = [
           },
           propertiesMetadata: emptyMetadataObject,
           properties: brandPropertyObject<PersonProperties>({
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              "William Gates",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "William Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "He founded Microsoft in Albuquerque, New Mexico.",
           }),
@@ -170,8 +159,7 @@ const matchTestData: MatchExistingEntityTest[] = [
           },
           propertiesMetadata: emptyMetadataObject,
           properties: brandPropertyObject<PersonProperties>({
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              "Bill Gates",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "Bill Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "An American businessman and philanthropist best known for co-founding the software company Microsoft Corporation.",
           }),
@@ -184,8 +172,7 @@ const matchTestData: MatchExistingEntityTest[] = [
           },
           propertiesMetadata: emptyMetadataObject,
           properties: brandPropertyObject<PersonProperties>({
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              "William Gates",
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "William Gates",
             "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
               "A professional basketball player, he was the first African American player signed to the National Basketball League.",
           }),
@@ -196,29 +183,26 @@ const matchTestData: MatchExistingEntityTest[] = [
         editionSources: [],
         propertiesMetadata: {
           value: brandPropertyObject({
-            "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              {
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                  provenance: {
-                    sources: [],
-                  },
-                } satisfies ValueMetadata,
-              },
-            "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-              {
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                  provenance: {
-                    sources: [],
-                  },
-                } satisfies ValueMetadata,
-              },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                provenance: {
+                  sources: [],
+                },
+              } satisfies ValueMetadata,
+            },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                provenance: {
+                  sources: [],
+                },
+              } satisfies ValueMetadata,
+            },
           }),
         },
         properties: brandPropertyObject<PersonProperties>({
-          "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-            "William Gates",
+          "https://blockprotocol.org/@blockprotocol/types/property-type/name/": "William Gates",
           "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
             "An American former college basketball player, subject of the 1994 documentary film Hoop Dreams. He never played professionally.",
         }),
@@ -234,9 +218,7 @@ const matchTestData: MatchExistingEntityTest[] = [
         {
           entityId: ceoStarted2020Uuid,
           metadata: {
-            entityTypeIds: [
-              "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
-            ],
+            entityTypeIds: ["https://hash.ai/@hash/types/entity-type/worked-at/v/1"],
             provenance: { edition: { sources: [] } },
           },
           properties: {
@@ -248,9 +230,7 @@ const matchTestData: MatchExistingEntityTest[] = [
         {
           entityId: ceoStarted2022Uuid,
           metadata: {
-            entityTypeIds: [
-              "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
-            ],
+            entityTypeIds: ["https://hash.ai/@hash/types/entity-type/worked-at/v/1"],
             provenance: { edition: { sources: [] } },
           },
           properties: {
@@ -261,9 +241,7 @@ const matchTestData: MatchExistingEntityTest[] = [
       ],
       newEntity: {
         editionSources: [],
-        entityTypeIds: [
-          "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
-        ],
+        entityTypeIds: ["https://hash.ai/@hash/types/entity-type/worked-at/v/1"],
         properties: {
           [systemPropertyTypes.appliesFrom.propertyTypeBaseUrl]: "2024-02-11",
         },
@@ -291,9 +269,7 @@ const matchTestData: MatchExistingEntityTest[] = [
         {
           entityId: generateEntityId(),
           metadata: {
-            entityTypeIds: [
-              "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
-            ],
+            entityTypeIds: ["https://hash.ai/@hash/types/entity-type/worked-at/v/1"],
             provenance: { edition: { sources: [] } },
           },
           properties: {
@@ -304,9 +280,7 @@ const matchTestData: MatchExistingEntityTest[] = [
         {
           entityId: ceoStarted2022Uuid,
           metadata: {
-            entityTypeIds: [
-              "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
-            ],
+            entityTypeIds: ["https://hash.ai/@hash/types/entity-type/worked-at/v/1"],
             provenance: { edition: { sources: [] } },
           },
           properties: {
@@ -318,9 +292,7 @@ const matchTestData: MatchExistingEntityTest[] = [
       ],
       newEntity: {
         editionSources: [],
-        entityTypeIds: [
-          "https://hash.ai/@hash/types/entity-type/worked-at/v/1",
-        ],
+        entityTypeIds: ["https://hash.ai/@hash/types/entity-type/worked-at/v/1"],
         properties: {
           [systemPropertyTypes.role.propertyTypeBaseUrl]: "CEO",
           [systemPropertyTypes.appliesFrom.propertyTypeBaseUrl]: "2024-02-11",
@@ -350,79 +322,71 @@ const matchTestData: MatchExistingEntityTest[] = [
   },
 ];
 
-const metrics: MetricDefinition[] = matchTestData.map(
-  (testItem): MetricDefinition => {
-    return {
-      name: testItem.testName,
-      description: "",
-      executeMetric: async ({ testingParams }) => {
-        const { inputData, expectedMatchEntityId } = testItem;
+const metrics: MetricDefinition[] = matchTestData.map((testItem): MetricDefinition => {
+  return {
+    name: testItem.testName,
+    description: "",
+    executeMetric: async ({ testingParams }) => {
+      const { inputData, expectedMatchEntityId } = testItem;
 
-        const match = await matchExistingEntity({
-          entities: inputData,
-          isLink: false,
-          previousError: null,
-          testingParams,
-        });
+      const match = await matchExistingEntity({
+        entities: inputData,
+        isLink: false,
+        previousError: null,
+        testingParams,
+      });
 
-        const reportedMatchId = match?.existingEntity.entityId ?? null;
+      const reportedMatchId = match?.existingEntity.entityId ?? null;
 
-        const score = reportedMatchId === expectedMatchEntityId ? 1 : 0;
+      const score = reportedMatchId === expectedMatchEntityId ? 1 : 0;
 
-        let naturalLanguageReport = "";
-        if (!score) {
-          if (!expectedMatchEntityId) {
-            naturalLanguageReport = `No match was expected, but a match with entityId ${reportedMatchId} found.`;
-          } else if (reportedMatchId) {
-            naturalLanguageReport = `Expected match with entityId ${expectedMatchEntityId} but LLM matched with entityId ${reportedMatchId}.`;
-          } else {
-            naturalLanguageReport = `Expected match with entityId ${expectedMatchEntityId} but no match found.`;
-          }
+      let naturalLanguageReport = "";
+      if (!score) {
+        if (!expectedMatchEntityId) {
+          naturalLanguageReport = `No match was expected, but a match with entityId ${reportedMatchId} found.`;
+        } else if (reportedMatchId) {
+          naturalLanguageReport = `Expected match with entityId ${expectedMatchEntityId} but LLM matched with entityId ${reportedMatchId}.`;
         } else {
-          naturalLanguageReport = `Correctly matched with entityId ${expectedMatchEntityId}.`;
+          naturalLanguageReport = `Expected match with entityId ${expectedMatchEntityId} but no match found.`;
         }
+      } else {
+        naturalLanguageReport = `Correctly matched with entityId ${expectedMatchEntityId}.`;
+      }
 
-        const mergedProperties = match?.newValues.properties;
-        const inputProperties = inputData.newEntity.properties;
+      const mergedProperties = match?.newValues.properties;
+      const inputProperties = inputData.newEntity.properties;
 
-        const propertiesWithMergedValues = typedEntries(
-          mergedProperties ?? {},
-        ).filter(([key, value]) => {
+      const propertiesWithMergedValues = typedEntries(mergedProperties ?? {}).filter(
+        ([key, value]) => {
           return inputProperties[key] !== value;
-        });
+        },
+      );
 
-        const additionalInfo = {
-          propertiesWithMergedValues: propertiesWithMergedValues.map(
-            ([key, value]) => `${key}: ${stringifyPropertyValue(value)}`,
-          ),
-        };
+      const additionalInfo = {
+        propertiesWithMergedValues: propertiesWithMergedValues.map(
+          ([key, value]) => `${key}: ${stringifyPropertyValue(value)}`,
+        ),
+      };
 
-        return {
-          score,
-          testingParams,
-          naturalLanguageReport,
-          additionalInfo,
-        };
-      },
-    };
-  },
-);
+      return {
+        score,
+        testingParams,
+        naturalLanguageReport,
+        additionalInfo,
+      };
+    },
+  };
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const baseDirectoryPath = path.join(
-  __dirname,
-  "/var/match-existing-entity-test",
-);
+const baseDirectoryPath = path.join(__dirname, "/var/match-existing-entity-test");
 
 test(
   "Match new entity with existing entity",
   async () => {
-    const models: LlmParams["model"][] = [
-      "claude-haiku-4-5-20251001",
-      "gpt-4o-2024-08-06",
-    ];
+    const models: LlmParams["model"][] = ["claude-haiku-4-5-20251001", "gpt-4o-2024-08-06"];
 
     await optimizeSystemPrompt({
       attemptsPerPrompt: 8,

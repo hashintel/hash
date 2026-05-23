@@ -10,10 +10,7 @@ import type { FunctionComponent } from "react";
 
 type InsertBlockProps = {
   readonly: boolean;
-  onBlockSuggesterChange: (
-    variant: BlockVariant,
-    blockMeta: HashBlockMeta,
-  ) => void;
+  onBlockSuggesterChange: (variant: BlockVariant, blockMeta: HashBlockMeta) => void;
 };
 
 export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
@@ -66,8 +63,7 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
           sx={{
             width: 1,
             height: "1px",
-            background:
-              "linear-gradient(90deg, #DDE7F0 41.42%, #FFFFFF 50.26%, #DDE7F0 59.11%)",
+            background: "linear-gradient(90deg, #DDE7F0 41.42%, #FFFFFF 50.26%, #DDE7F0 59.11%)",
           }}
         />
         <PlusBoxOutlineIcon

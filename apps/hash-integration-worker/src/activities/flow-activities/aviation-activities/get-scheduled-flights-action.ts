@@ -4,10 +4,7 @@ import {
   type OriginProvenance,
   type ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import {
-  getStorageProvider,
-  storePayload,
-} from "@local/hash-backend-utils/flows/payload-storage";
+import { getStorageProvider, storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { getScheduledArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -33,9 +30,7 @@ export const aviationProposedEntityToFlowProposedEntity = (
   entity: AviationProposedEntity,
   provenance: ProvidedEntityEditionProvenance,
 ): ProposedEntity => {
-  const { properties, propertyMetadata } = splitPropertiesAndMetadata(
-    entity.properties,
-  );
+  const { properties, propertyMetadata } = splitPropertiesAndMetadata(entity.properties);
 
   const flowEntity: ProposedEntity = {
     claims: {
@@ -76,10 +71,7 @@ export const getScheduledFlightsAction: IntegrationFlowActionActivity<
       actionType: "getScheduledFlights",
     });
 
-    const { entities, provenance } = await getScheduledArrivalEntities(
-      airportIcao,
-      date,
-    );
+    const { entities, provenance } = await getScheduledArrivalEntities(airportIcao, date);
 
     const fullProvenance = {
       ...provenance,
@@ -97,16 +89,13 @@ export const getScheduledFlightsAction: IntegrationFlowActionActivity<
       if (
         entity.entityTypeIds.some(
           (entityTypeId) =>
-            extractBaseUrl(entityTypeId) ===
-            systemEntityTypes.flight.entityTypeBaseUrl,
+            extractBaseUrl(entityTypeId) === systemEntityTypes.flight.entityTypeBaseUrl,
         )
       ) {
         flightCount++;
       }
 
-      proposedEntities.push(
-        aviationProposedEntityToFlowProposedEntity(entity, fullProvenance),
-      );
+      proposedEntities.push(aviationProposedEntityToFlowProposedEntity(entity, fullProvenance));
     }
 
     // Store the proposed entities in S3 to avoid passing large payloads through Temporal
@@ -140,8 +129,7 @@ export const getScheduledFlightsAction: IntegrationFlowActionActivity<
       ],
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
     return {
       code: StatusCode.Internal,

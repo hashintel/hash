@@ -4,11 +4,7 @@ import { forwardRef, useMemo } from "react";
 import { LoadingSpinner } from "./loading-spinner";
 
 import type { ButtonProps as MuiButtonProps } from "@mui/material";
-import type {
-  ForwardRefRenderFunction,
-  FunctionComponent,
-  ReactNode,
-} from "react";
+import type { ForwardRefRenderFunction, FunctionComponent, ReactNode } from "react";
 
 export type ButtonProps = {
   children: ReactNode;

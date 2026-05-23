@@ -33,21 +33,17 @@ type LinearWebhookPayload = {
   webhookTimestamp: number; // UNIX timestamp of webhook delivery in milliseconds.
 };
 
-export const linearWebhook: RequestHandler<
-  Record<string, never>,
-  string,
-  string
-> = async (req, res) => {
+export const linearWebhook: RequestHandler<Record<string, never>, string, string> = async (
+  req,
+  res,
+) => {
   const secret = process.env.LINEAR_WEBHOOK_SECRET;
 
   if (!secret) {
     throw new Error("LINEAR_WEBHOOK_SECRET is not set");
   }
 
-  const expectedSignature = crypto
-    .createHmac("sha256", secret)
-    .update(req.body)
-    .digest("hex");
+  const expectedSignature = crypto.createHmac("sha256", secret).update(req.body).digest("hex");
 
   const linearSignature = req.headers["linear-signature"];
   if (
@@ -65,20 +61,14 @@ export const linearWebhook: RequestHandler<
   const organizationId = payload.organizationId;
 
   if (!payload.data) {
-    res
-      .status(400)
-      .send(
-        `No data sent with ${payload.action} ${payload.type} webhook payload`,
-      );
+    res.status(400).send(`No data sent with ${payload.action} ${payload.type} webhook payload`);
     return;
   }
 
   const linearId = payload.data.id;
 
   if (!linearId) {
-    res
-      .status(400)
-      .send(`No ID found in ${payload.action} ${payload.type} webhook payload`);
+    res.status(400).send(`No ID found in ${payload.action} ${payload.type} webhook payload`);
     return;
   }
 
@@ -132,8 +122,7 @@ export const linearWebhook: RequestHandler<
           graphContext,
           { actorId: linearBotAccountId },
           {
-            linearIntegrationEntityId:
-              linearIntegration.entity.metadata.recordId.entityId,
+            linearIntegrationEntityId: linearIntegration.entity.metadata.recordId.entityId,
           },
         );
 
@@ -147,9 +136,7 @@ export const linearWebhook: RequestHandler<
 
             const hashWebEntityId = web.webEntity.metadata.recordId.entityId;
 
-            const webId = extractEntityUuidFromEntityId(
-              hashWebEntityId,
-            ) as string as WebId;
+            const webId = extractEntityUuidFromEntityId(hashWebEntityId) as string as WebId;
 
             const workflow =
               `${payloadAction}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;
@@ -163,9 +150,7 @@ export const linearWebhook: RequestHandler<
               },
             );
 
-            await temporalClient.workflow.start<
-              WorkflowTypeMap[typeof workflow]
-            >(workflow, {
+            await temporalClient.workflow.start<WorkflowTypeMap[typeof workflow]>(workflow, {
               taskQueue: "integration",
               args: [
                 {

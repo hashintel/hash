@@ -1,9 +1,6 @@
 /* eslint-disable no-param-reassign -- Monte Carlo frame buffers are mutable by design. */
 import { computePlaceNextState } from "../engine/compute-place-next-state";
-import {
-  copyMonteCarloFrameBuffer,
-  type MonteCarloFrameBuffer,
-} from "./frame-buffer";
+import { copyMonteCarloFrameBuffer, type MonteCarloFrameBuffer } from "./frame-buffer";
 import { getPlaceIndex } from "./layout";
 import { ensureFrameCapacity } from "./run-state";
 
@@ -18,24 +15,15 @@ import type { MonteCarloRunState, PlaceID } from "./internal-types";
  * while updating colored token values according to each compiled differential
  * equation.
  */
-export function writeFrameAfterDynamics(
-  run: MonteCarloRunState,
-): MonteCarloFrameBuffer {
+export function writeFrameAfterDynamics(run: MonteCarloRunState): MonteCarloFrameBuffer {
   const { simulation } = run;
   const { frameLayout } = simulation;
   const source = run.currentFrame;
-  const target = ensureFrameCapacity(
-    run,
-    run.nextFrame,
-    source.tokenValueCount,
-  );
+  const target = ensureFrameCapacity(run, run.nextFrame, source.tokenValueCount);
 
   copyMonteCarloFrameBuffer(source, target);
 
-  for (const [
-    placeId,
-    differentialEquation,
-  ] of simulation.differentialEquationFns) {
+  for (const [placeId, differentialEquation] of simulation.differentialEquationFns) {
     const placeIndex = getPlaceIndex(frameLayout, placeId);
     const count = source.placeCounts[placeIndex] ?? 0;
     const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
@@ -80,9 +68,7 @@ export function applyTokenRemovals(
 
     if (dimensions === 0) {
       if (typeof tokenSelection !== "number") {
-        throw new Error(
-          `Expected token count removal for uncolored place ${placeId}`,
-        );
+        throw new Error(`Expected token count removal for uncolored place ${placeId}`);
       }
       if (tokenSelection > count) {
         throw new Error(
@@ -106,11 +92,7 @@ export function applyTokenRemovals(
   }
 
   let writeOffset = 0;
-  for (
-    let placeIndex = 0;
-    placeIndex < frameLayout.placeIds.length;
-    placeIndex++
-  ) {
+  for (let placeIndex = 0; placeIndex < frameLayout.placeIds.length; placeIndex++) {
     const placeId = frameLayout.placeIds[placeIndex]!;
     const count = frame.placeCounts[placeIndex] ?? 0;
     const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
@@ -120,14 +102,12 @@ export function applyTokenRemovals(
     frame.placeOffsets[placeIndex] = writeOffset;
 
     if (dimensions === 0) {
-      const removedCount =
-        typeof tokenSelection === "number" ? tokenSelection : 0;
+      const removedCount = typeof tokenSelection === "number" ? tokenSelection : 0;
       frame.placeCounts[placeIndex] = count - removedCount;
       continue;
     }
 
-    const removedIndices =
-      tokenSelection instanceof Set ? tokenSelection : new Set<number>();
+    const removedIndices = tokenSelection instanceof Set ? tokenSelection : new Set<number>();
     let nextCount = 0;
     for (let tokenIndex = 0; tokenIndex < count; tokenIndex++) {
       if (removedIndices.has(tokenIndex)) {
@@ -136,11 +116,7 @@ export function applyTokenRemovals(
 
       const sourceOffset = oldOffset + tokenIndex * dimensions;
       if (writeOffset !== sourceOffset) {
-        frame.tokenValues.copyWithin(
-          writeOffset,
-          sourceOffset,
-          sourceOffset + dimensions,
-        );
+        frame.tokenValues.copyWithin(writeOffset, sourceOffset, sourceOffset + dimensions);
       }
       writeOffset += dimensions;
       nextCount++;
@@ -203,8 +179,7 @@ export function applyTokenAdditions(
       }
     }
 
-    additionalTokenCounts[placeIndex] =
-      (additionalTokenCounts[placeIndex] ?? 0) + tokens.length;
+    additionalTokenCounts[placeIndex] = (additionalTokenCounts[placeIndex] ?? 0) + tokens.length;
     addedTokenValueCount += tokens.length * dimensions;
   }
 
@@ -214,11 +189,7 @@ export function applyTokenAdditions(
   const newPlaceCounts = new Uint32Array(frameLayout.placeIds.length);
 
   let offset = 0;
-  for (
-    let placeIndex = 0;
-    placeIndex < frameLayout.placeIds.length;
-    placeIndex++
-  ) {
+  for (let placeIndex = 0; placeIndex < frameLayout.placeIds.length; placeIndex++) {
     const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
     const count = target.placeCounts[placeIndex] ?? 0;
     const addedCount = additionalTokenCounts[placeIndex] ?? 0;
@@ -229,11 +200,7 @@ export function applyTokenAdditions(
     offset += newCount * dimensions;
   }
 
-  for (
-    let placeIndex = frameLayout.placeIds.length - 1;
-    placeIndex >= 0;
-    placeIndex--
-  ) {
+  for (let placeIndex = frameLayout.placeIds.length - 1; placeIndex >= 0; placeIndex--) {
     const placeId = frameLayout.placeIds[placeIndex]!;
     const dimensions = frameLayout.placeDimensions[placeIndex] ?? 0;
     const oldCount = target.placeCounts[placeIndex] ?? 0;
@@ -273,18 +240,13 @@ export function updateTransitionTimers(
   firedTransitions: ReadonlySet<string>,
   simulation: SimulationInstance,
 ): void {
-  for (
-    let index = 0;
-    index < simulation.frameLayout.transitionIds.length;
-    index++
-  ) {
+  for (let index = 0; index < simulation.frameLayout.transitionIds.length; index++) {
     const transitionId = simulation.frameLayout.transitionIds[index]!;
     if (firedTransitions.has(transitionId)) {
       frame.transitionElapsedFrames[index] = 0;
       frame.transitionElapsed[index] = 0;
       frame.transitionFiredFlags[index] = 1;
-      frame.transitionFiringCounts[index] =
-        (frame.transitionFiringCounts[index] ?? 0) + 1;
+      frame.transitionFiringCounts[index] = (frame.transitionFiringCounts[index] ?? 0) + 1;
     } else {
       const elapsedFrames = (frame.transitionElapsedFrames[index] ?? 0) + 1;
       frame.transitionElapsedFrames[index] = elapsedFrames;
@@ -301,9 +263,7 @@ export function updateTransitionTimers(
  * It intentionally ignores lambda probability and only checks input-place
  * token availability and inhibitor conditions.
  */
-export function hasStructurallyEnabledTransition(
-  run: MonteCarloRunState,
-): boolean {
+export function hasStructurallyEnabledTransition(run: MonteCarloRunState): boolean {
   const { frameLayout } = run.simulation;
   const frame = run.currentFrame;
 

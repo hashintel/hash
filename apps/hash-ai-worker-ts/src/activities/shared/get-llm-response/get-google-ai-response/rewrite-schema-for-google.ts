@@ -39,18 +39,9 @@ const vertexSchemaUnsupportedFields = ["$id", "multipleOf", "pattern"] as const;
  * These are special fields we use in HASH but do not appear in any JSON Schema spec.
  * They will never be supported in Vertex AI, so we must remove them.
  */
-const nonStandardSchemaFields = [
-  "abstract",
-  "titlePlural",
-  "kind",
-  "labelProperty",
-  "inverse",
-];
+const nonStandardSchemaFields = ["abstract", "titlePlural", "kind", "labelProperty", "inverse"];
 
-const fieldsToExclude = [
-  ...vertexSchemaUnsupportedFields,
-  ...nonStandardSchemaFields,
-];
+const fieldsToExclude = [...vertexSchemaUnsupportedFields, ...nonStandardSchemaFields];
 
 /**
  * @see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output#fields
@@ -65,9 +56,7 @@ function assertNonBoolean<T>(value: T): asserts value is Exclude<T, boolean> {
   }
 }
 
-export const rewriteSchemaPart = (
-  schema: SchemaValue | SchemaValue[],
-): SchemaValue => {
+export const rewriteSchemaPart = (schema: SchemaValue | SchemaValue[]): SchemaValue => {
   if (typeof schema !== "object" || schema === null) {
     return schema;
   }
@@ -81,9 +70,7 @@ export const rewriteSchemaPart = (
 
   const result: Schema = {};
 
-  for (const [uncheckedKey, value] of Object.entries(
-    schema as Record<string, SchemaValue>,
-  )) {
+  for (const [uncheckedKey, value] of Object.entries(schema as Record<string, SchemaValue>)) {
     const key = uncheckedKey === "oneOf" ? "anyOf" : uncheckedKey;
 
     if (key === "format" && typeof value === "string") {
@@ -164,13 +151,10 @@ export const rewriteSchemaPart = (
            *
            * If we define a type it will incorrect be constrainted to '{type} | null'.
            */
-          throw new Error(
-            "Property type must have at least one option which is not null",
-          );
+          throw new Error("Property type must have at least one option which is not null");
         }
 
-        (value.oneOf as NonNullable<JSONSchema["oneOf"]>) =
-          mustHaveAtLeastOne(newOneOf);
+        (value.oneOf as NonNullable<JSONSchema["oneOf"]>) = mustHaveAtLeastOne(newOneOf);
       }
 
       // @ts-expect-error -- @todo fix this

@@ -103,11 +103,7 @@ export const removeUserFromOrgResolver: ResolverFn<
       actorId: extractWebIdFromEntityId(userEntityId) as ActorEntityUuid,
       actorGroupId: orgWebId,
     }),
-    membershipLink.archive(
-      context.graphApi,
-      authentication,
-      context.provenance,
-    ),
+    membershipLink.archive(context.graphApi, authentication, context.provenance),
   ]);
 
   return true;

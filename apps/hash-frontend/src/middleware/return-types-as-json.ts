@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import stringify from "safe-stable-stringify";
 
-import {
-  apiGraphQLEndpoint,
-  frontendUrl,
-} from "@local/hash-isomorphic-utils/environment";
+import { apiGraphQLEndpoint, frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
   type SystemTypeWebShortname,
   systemTypeWebShortnames,
@@ -20,19 +17,11 @@ import type {
   QueryPropertyTypesQuery,
   QueryPropertyTypesQueryVariables,
 } from "../graphql/api-types.gen";
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { DataType, EntityType, PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import type { GraphQLError } from "graphql";
 import type { NextRequest } from "next/server";
 
-const generateErrorResponse = (
-  status: 400 | 401 | 404 | 500,
-  message: string,
-) =>
+const generateErrorResponse = (status: 400 | 401 | 404 | 500, message: string) =>
   new NextResponse(
     JSON.stringify({
       error: message,
@@ -72,11 +61,9 @@ const makeGraphQlRequest = async <Data, Variables>(
   return { data, errors };
 };
 
-export const versionedUrlRegExp =
-  /types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
+export const versionedUrlRegExp = /types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
 
-const validateVersionedUrl = (url: string): url is VersionedUrl =>
-  !!url.match(versionedUrlRegExp);
+const validateVersionedUrl = (url: string): url is VersionedUrl => !!url.match(versionedUrlRegExp);
 
 export const returnTypeAsJson = async (request: NextRequest) => {
   const { url } = request;
@@ -121,15 +108,12 @@ export const returnTypeAsJson = async (request: NextRequest) => {
   const cookie = request.headers.get("cookie");
   const { data, errors } = await makeGraphQlRequest<
     QueryEntityTypesQuery | QueryDataTypesQuery | QueryPropertyTypesQuery,
-    | QueryEntityTypesQueryVariables
-    | QueryDataTypesQueryVariables
-    | QueryPropertyTypesQueryVariables
+    QueryEntityTypesQueryVariables | QueryDataTypesQueryVariables | QueryPropertyTypesQueryVariables
   >(query, variables, cookie);
 
   if (errors ?? !data) {
     const message = errors?.[0]?.message ?? "Unknown error";
-    const code = (errors?.[0]?.extensions.code ??
-      "INTERNAL_SERVER_ERROR") as string;
+    const code = (errors?.[0]?.extensions.code ?? "INTERNAL_SERVER_ERROR") as string;
 
     return generateErrorResponse(
       code === "FORBIDDEN" ? 401 : code === "INTERNAL_SERVER_ERROR" ? 500 : 400,

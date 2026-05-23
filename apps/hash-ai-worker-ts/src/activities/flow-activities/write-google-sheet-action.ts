@@ -31,10 +31,7 @@ import { convertSubgraphToSheetRequests } from "./write-google-sheet-action/conv
 import { getFilterFromBlockProtocolQueryEntity } from "./write-google-sheet-action/get-filter-from-bp-query-entity.js";
 import { getSubgraphFromFilter } from "./write-google-sheet-action/get-subgraph-from-filter.js";
 
-import type {
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@blockprotocol/type-system";
+import type { OriginProvenance, ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type {
@@ -87,14 +84,12 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
     vaultClient: VaultClient;
   }
 > = async ({ inputs, vaultClient }) => {
-  const { flowEntityId, stepId, userAuthentication, webId } =
-    await getFlowContext();
+  const { flowEntityId, stepId, userAuthentication, webId } = await getFlowContext();
 
-  const { audience, dataToWrite, googleAccountId, googleSheet } =
-    getSimplifiedAiFlowActionInputs({
-      inputs,
-      actionType: "writeGoogleSheet",
-    });
+  const { audience, dataToWrite, googleAccountId, googleSheet } = getSimplifiedAiFlowActionInputs({
+    inputs,
+    actionType: "writeGoogleSheet",
+  });
 
   /**
    * 1. Confirm that the Google account exists and has valid credentials associated with it
@@ -184,12 +179,11 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
     const queryFilter =
       "persistedEntities" in resolvedDataToWrite
         ? {
-            any: resolvedDataToWrite.persistedEntities.map(
-              (persistedEntityMetadata) =>
-                generateEntityIdFilter({
-                  entityId: persistedEntityMetadata.entityId,
-                  includeArchived: false,
-                }),
+            any: resolvedDataToWrite.persistedEntities.map((persistedEntityMetadata) =>
+              generateEntityIdFilter({
+                entityId: persistedEntityMetadata.entityId,
+                includeArchived: false,
+              }),
             ),
           }
         : await getFilterFromBlockProtocolQueryEntity({
@@ -257,12 +251,9 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
    * the spreadsheetId as a heartbeat. This avoids us creating a duplicate spreadsheet when the activity is retried.
    */
   const { spreadsheetId: spreadsheetIdFromFailedAttempt } =
-    (Context.current().info.heartbeatDetails as
-      | ActivityHeartbeatDetails
-      | undefined) ?? {};
+    (Context.current().info.heartbeatDetails as ActivityHeartbeatDetails | undefined) ?? {};
 
-  const newSheetName =
-    "newSheetName" in googleSheet ? googleSheet.newSheetName : undefined;
+  const newSheetName = "newSheetName" in googleSheet ? googleSheet.newSheetName : undefined;
 
   const existingSpreadsheetId =
     spreadsheetIdFromFailedAttempt ??
@@ -341,9 +332,7 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
           },
         },
         ...existingSheets
-          .filter(
-            (sheet) => sheet.properties?.sheetId !== placeholderFirstSheetId,
-          )
+          .filter((sheet) => sheet.properties?.sheetId !== placeholderFirstSheetId)
           .map((sheet) => ({
             deleteSheet: {
               sheetId: sheet.properties?.sheetId,
@@ -364,44 +353,36 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
    */
   const fileProperties: GoogleSheetsFile["propertiesWithMetadata"] = {
     value: {
-      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-        {
-          value: spreadsheet.properties?.title ?? "Untitled",
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+        value: spreadsheet.properties?.title ?? "Untitled",
+        metadata: {
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-        {
-          value: spreadsheet.spreadsheetUrl,
-          metadata: {
-            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
-          },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": {
+        value: spreadsheet.spreadsheetUrl,
+        metadata: {
+          dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
         },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-        {
-          value: spreadsheet.properties?.title ?? "Untitled",
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": {
+        value: spreadsheet.properties?.title ?? "Untitled",
+        metadata: {
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
+      },
       "https://hash.ai/@h/types/property-type/file-id/": {
         value: spreadsheet.spreadsheetId,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-        {
-          value: "application/vnd.google-apps.spreadsheet",
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": {
+        value: "application/vnd.google-apps.spreadsheet",
+        metadata: {
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
+      },
       "https://hash.ai/@h/types/property-type/data-audience/": {
         value: audience,
         metadata: {
@@ -442,10 +423,7 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
         {
           equal: [
             {
-              path: [
-                "properties",
-                systemPropertyTypes.fileId.propertyTypeBaseUrl,
-              ],
+              path: ["properties", systemPropertyTypes.fileId.propertyTypeBaseUrl],
             },
             { parameter: spreadsheet.spreadsheetId },
           ],
@@ -457,11 +435,10 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
 
   let entityToReturn: HashEntity;
   if (existingEntity) {
-    const { existingEntityIsDraft, isExactMatch, patchOperations } =
-      getEntityUpdate({
-        existingEntity,
-        newPropertiesWithMetadata: fileProperties,
-      });
+    const { existingEntityIsDraft, isExactMatch, patchOperations } = getEntityUpdate({
+      existingEntity,
+      newPropertiesWithMetadata: fileProperties,
+    });
 
     if (isExactMatch) {
       entityToReturn = existingEntity;
@@ -494,9 +471,7 @@ export const writeGoogleSheetAction: AiFlowActionActivity<
       { actorId: webBotActorId },
       {
         draft: false,
-        entityTypeIds: [
-          systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
-        ],
+        entityTypeIds: [systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId],
         webId,
         linkData: {
           leftEntityId: entityToReturn.metadata.recordId.entityId,

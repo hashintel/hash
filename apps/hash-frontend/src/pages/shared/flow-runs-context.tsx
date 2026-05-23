@@ -63,17 +63,16 @@ export const FlowRunsContextProvider = ({
     variables,
   });
 
-  const { data: selectedFlowRunData, loading: selectedFlowRunLoading } =
-    useQuery<GetFlowRunByIdQuery, GetFlowRunByIdQueryVariables>(
-      getFlowRunById,
-      {
-        pollInterval: 2_000,
-        skip: !selectedFlowRunId,
-        variables: {
-          flowRunId: selectedFlowRunId ?? "",
-        },
-      },
-    );
+  const { data: selectedFlowRunData, loading: selectedFlowRunLoading } = useQuery<
+    GetFlowRunByIdQuery,
+    GetFlowRunByIdQueryVariables
+  >(getFlowRunById, {
+    pollInterval: 2_000,
+    skip: !selectedFlowRunId,
+    variables: {
+      flowRunId: selectedFlowRunId ?? "",
+    },
+  });
 
   const flowRuns = useMemo(() => {
     if (flowRunsData) {
@@ -114,11 +113,7 @@ export const FlowRunsContextProvider = ({
     ],
   );
 
-  return (
-    <FlowRunsContext.Provider value={context}>
-      {children}
-    </FlowRunsContext.Provider>
-  );
+  return <FlowRunsContext.Provider value={context}>{children}</FlowRunsContext.Provider>;
 };
 
 export const useFlowRunsContext = () => {
@@ -136,9 +131,7 @@ export type StepRunStatus = Pick<
   "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt" | "logs"
 >;
 
-export const useStatusForStep = (
-  nodeId: string | null,
-): StepRunStatus | null => {
+export const useStatusForStep = (nodeId: string | null): StepRunStatus | null => {
   const { selectedFlowRun } = useFlowRunsContext();
 
   return useMemo(() => {
@@ -168,9 +161,7 @@ export type SimpleStatus =
   | "Errored"
   | "Cancelled";
 
-export const statusToSimpleStatus = (
-  status: StepRun["status"] | null,
-): SimpleStatus => {
+export const statusToSimpleStatus = (status: StepRun["status"] | null): SimpleStatus => {
   let simpleStatus: SimpleStatus = "Waiting";
 
   switch (status) {
@@ -218,8 +209,7 @@ export const useStatusForSteps = (
     );
 
     const flowCompletedUnsuccessfully =
-      selectedFlowRun.closedAt &&
-      selectedFlowRun.status !== FlowRunStatus.Completed;
+      selectedFlowRun.closedAt && selectedFlowRun.status !== FlowRunStatus.Completed;
 
     if (stepRuns.length === 0) {
       return {
@@ -231,9 +221,7 @@ export const useStatusForSteps = (
     let scheduledAt: string | undefined;
     let closedAt: string | undefined;
     let status: SimpleStatus =
-      stepRuns.at(-1)!.status === FlowStepStatus.Cancelled
-        ? "Cancelled"
-        : "Complete";
+      stepRuns.at(-1)!.status === FlowStepStatus.Cancelled ? "Cancelled" : "Complete";
 
     let hasError: boolean = false;
     let hasWaiting: boolean = false;
@@ -252,9 +240,7 @@ export const useStatusForSteps = (
 
       if (
         selectedFlowRun.closedAt &&
-        ["In Progress", "Waiting", "Information Required"].includes(
-          simpleStatus,
-        )
+        ["In Progress", "Waiting", "Information Required"].includes(simpleStatus)
       ) {
         simpleStatus = "Cancelled";
       }
@@ -263,10 +249,7 @@ export const useStatusForSteps = (
 
       if (simpleStatus === "Errored") {
         hasError = true;
-      } else if (
-        simpleStatus === "In Progress" ||
-        simpleStatus === "Information Required"
-      ) {
+      } else if (simpleStatus === "In Progress" || simpleStatus === "Information Required") {
         hasInProgress = true;
       } else if (simpleStatus === "Waiting") {
         hasWaiting = true;

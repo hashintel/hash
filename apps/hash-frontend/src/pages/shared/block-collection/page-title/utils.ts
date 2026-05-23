@@ -8,8 +8,7 @@ import {
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import type { EditorView } from "prosemirror-view";
 
-export const cleanUpTitle = (value: string): string =>
-  value.trim().replace(/\s+/g, " ");
+export const cleanUpTitle = (value: string): string => value.trim().replace(/\s+/g, " ");
 
 export const focusEditorBeginning = async (
   view?: EditorView,
@@ -33,9 +32,7 @@ export const focusEditorBeginning = async (
    * we create a new paragraph at the top
    * */
   if (addParagraphBlock && !isTextNode) {
-    const newTransaction = (
-      await manager?.insertBlock(paragraphBlockComponentId, null, 0)
-    )?.tr;
+    const newTransaction = (await manager?.insertBlock(paragraphBlockComponentId, null, 0))?.tr;
 
     if (newTransaction) {
       tr = newTransaction;

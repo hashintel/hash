@@ -1,6 +1,3 @@
 //@ run: pass
 //@ description: Test that inference works when chaining functions
-[
-  "::graph::tail::collect",
-  ["::graph::head::entities", ["::graph::tmp::decision_time_now"]]
-]
+["::graph::tail::collect", ["::graph::head::entities", ["::graph::tmp::decision_time_now"]]]

@@ -14,23 +14,14 @@ export default defineConfig(({ command }) => ({
         index: resolve(packageRoot, "src/index.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
-        "workers/monte-carlo": resolve(
-          packageRoot,
-          "src/workers/monte-carlo.ts",
-        ),
+        "workers/monte-carlo": resolve(packageRoot, "src/workers/monte-carlo.ts"),
         "workers/simulation": resolve(packageRoot, "src/workers/simulation.ts"),
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       formats: ["es"],
     },
     rolldownOptions: {
-      external: [
-        "@babel/standalone",
-        "immer",
-        "uuid",
-        "vscode-languageserver-types",
-        "zod",
-      ],
+      external: ["@babel/standalone", "immer", "uuid", "vscode-languageserver-types", "zod"],
     },
     sourcemap: true,
     minify: true,
@@ -48,10 +39,7 @@ export default defineConfig(({ command }) => ({
         "typeof process": "'undefined'",
         "typeof process.versions.pnp": "'undefined'",
       }),
-      replacePlugin(
-        { "isNodeLikeSystem()": "false" },
-        { delimiters: ["(?<!function )\\b", ""] },
-      ),
+      replacePlugin({ "isNodeLikeSystem()": "false" }, { delimiters: ["(?<!function )\\b", ""] }),
     ],
   },
 
@@ -62,9 +50,7 @@ export default defineConfig(({ command }) => ({
 
     command === "build" &&
       dts({ tsgo: true }).map((plugin) =>
-        plugin.name.endsWith("fake-js")
-          ? { ...plugin, enforce: "pre" }
-          : plugin,
+        plugin.name.endsWith("fake-js") ? { ...plugin, enforce: "pre" } : plugin,
       ),
   ],
 

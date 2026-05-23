@@ -4,10 +4,7 @@ import type { SDCPN } from "../../types/sdcpn";
 import type { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import type ts from "typescript";
 
-export type ItemType =
-  | "transition-lambda"
-  | "transition-kernel"
-  | "differential-equation";
+export type ItemType = "transition-lambda" | "transition-kernel" | "differential-equation";
 
 export type SDCPNDiagnostic = {
   /** The ID of the SDCPN item (transition or differential equation) */
@@ -31,10 +28,7 @@ export type SDCPNCheckResult = {
  * Checks the validity of an SDCPN by running TypeScript validation
  * on all user-provided code (transitions and differential equations).
  */
-export function checkSDCPN(
-  sdcpn: SDCPN,
-  server: SDCPNLanguageServer,
-): SDCPNCheckResult {
+export function checkSDCPN(sdcpn: SDCPN, server: SDCPNLanguageServer): SDCPNCheckResult {
   const itemDiagnostics: SDCPNDiagnostic[] = [];
 
   // Check all differential equations
@@ -62,14 +56,9 @@ export function checkSDCPN(
     const lambdaFilePath = getItemFilePath("transition-lambda-code", {
       transitionId: transition.id,
     });
-    const lambdaSemanticDiagnostics =
-      server.getSemanticDiagnostics(lambdaFilePath);
-    const lambdaSyntacticDiagnostics =
-      server.getSyntacticDiagnostics(lambdaFilePath);
-    const lambdaDiagnostics = [
-      ...lambdaSyntacticDiagnostics,
-      ...lambdaSemanticDiagnostics,
-    ];
+    const lambdaSemanticDiagnostics = server.getSemanticDiagnostics(lambdaFilePath);
+    const lambdaSyntacticDiagnostics = server.getSyntacticDiagnostics(lambdaFilePath);
+    const lambdaDiagnostics = [...lambdaSyntacticDiagnostics, ...lambdaSemanticDiagnostics];
 
     if (lambdaDiagnostics.length > 0) {
       itemDiagnostics.push({
@@ -91,14 +80,9 @@ export function checkSDCPN(
       const kernelFilePath = getItemFilePath("transition-kernel-code", {
         transitionId: transition.id,
       });
-      const kernelSemanticDiagnostics =
-        server.getSemanticDiagnostics(kernelFilePath);
-      const kernelSyntacticDiagnostics =
-        server.getSyntacticDiagnostics(kernelFilePath);
-      const kernelDiagnostics = [
-        ...kernelSyntacticDiagnostics,
-        ...kernelSemanticDiagnostics,
-      ];
+      const kernelSemanticDiagnostics = server.getSemanticDiagnostics(kernelFilePath);
+      const kernelSyntacticDiagnostics = server.getSyntacticDiagnostics(kernelFilePath);
+      const kernelDiagnostics = [...kernelSyntacticDiagnostics, ...kernelSemanticDiagnostics];
 
       if (kernelDiagnostics.length > 0) {
         itemDiagnostics.push({

@@ -156,13 +156,7 @@ const aliasStyles = css({
   whiteSpace: "nowrap",
 });
 
-const ColorSwatch = ({
-  colorName,
-  step,
-}: {
-  colorName: string;
-  step: string;
-}) => {
+const ColorSwatch = ({ colorName, step }: { colorName: string; step: string }) => {
   const tokenPath = `colors.${colorName}.${step}` as Token;
   const isAlpha = step.startsWith("a");
 
@@ -172,9 +166,7 @@ const ColorSwatch = ({
       style={{
         backgroundColor: token(tokenPath),
         color: token(swatchFgToken(colorName, step)),
-        boxShadow: isAlpha
-          ? "inset 0 0 0 1px rgba(0,0,0,0.1)"
-          : "inset 0 0 0 1px rgba(0,0,0,0.05)",
+        boxShadow: isAlpha ? "inset 0 0 0 1px rgba(0,0,0,0.1)" : "inset 0 0 0 1px rgba(0,0,0,0.05)",
       }}
     >
       {step}
@@ -182,13 +174,7 @@ const ColorSwatch = ({
   );
 };
 
-const ColorRow = ({
-  name,
-  steps,
-}: {
-  name: string;
-  steps: readonly string[];
-}) => {
+const ColorRow = ({ name, steps }: { name: string; steps: readonly string[] }) => {
   const alias = STATUS_ALIASES[name];
   return (
     <HStack gap="1" alignItems="center">
@@ -196,11 +182,7 @@ const ColorRow = ({
       {steps.map((step) => (
         <ColorSwatch key={step} colorName={name} step={step} />
       ))}
-      {alias ? (
-        <span className={aliasStyles}>= {alias}</span>
-      ) : (
-        <span className={aliasStyles} />
-      )}
+      {alias ? <span className={aliasStyles}>= {alias}</span> : <span className={aliasStyles} />}
     </HStack>
   );
 };
@@ -220,9 +202,7 @@ const StepHeaders = ({ steps }: { steps: readonly string[] }) => (
 export const ColorPalettes: Story = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
     <VStack gap="2" alignItems="flex-start">
-      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
-        Color Palettes
-      </h1>
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>Color Palettes</h1>
       <p
         className={css({
           textStyle: "sm",
@@ -230,23 +210,16 @@ export const ColorPalettes: Story = () => (
           maxWidth: "[700px]",
         })}
       >
-        Base color scales generated from Radix colors. Solid steps (s00–s125)
-        range from white/black through tinted backgrounds, interactive fills,
-        borders, solid backgrounds, to text. Alpha steps (a00–a125) use
-        transparency for overlays and blending. Half-steps are OKLCH
-        interpolations. Palettes marked with a status alias on the right can
-        also be referenced as{" "}
-        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
-          status.*.s30
-        </code>{" "}
-        etc.
+        Base color scales generated from Radix colors. Solid steps (s00–s125) range from white/black
+        through tinted backgrounds, interactive fills, borders, solid backgrounds, to text. Alpha
+        steps (a00–a125) use transparency for overlays and blending. Half-steps are OKLCH
+        interpolations. Palettes marked with a status alias on the right can also be referenced as{" "}
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>status.*.s30</code> etc.
       </p>
     </VStack>
 
     <VStack gap="4" alignItems="flex-start">
-      <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
-        Solid Scales (s00–s125)
-      </h2>
+      <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>Solid Scales (s00–s125)</h2>
       <VStack gap="1" alignItems="flex-start">
         <StepHeaders steps={SOLID_STEPS} />
         {COLOR_PALETTES.map((name) => (
@@ -256,9 +229,7 @@ export const ColorPalettes: Story = () => (
     </VStack>
 
     <VStack gap="4" alignItems="flex-start">
-      <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
-        Alpha Scales (a00–a125)
-      </h2>
+      <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>Alpha Scales (a00–a125)</h2>
       <TransparencyBackground>
         <VStack gap="1" alignItems="flex-start">
           <StepHeaders steps={ALPHA_STEPS} />
@@ -275,9 +246,7 @@ export const ColorPalettes: Story = () => (
       </h2>
       <VStack gap="4" alignItems="flex-start">
         <VStack gap="2" alignItems="flex-start">
-          <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
-            Black
-          </h3>
+          <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>Black</h3>
           <Box p="4" borderRadius="md" style={{ backgroundColor: "white" }}>
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
@@ -287,9 +256,7 @@ export const ColorPalettes: Story = () => (
           </Box>
         </VStack>
         <VStack gap="2" alignItems="flex-start">
-          <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
-            White
-          </h3>
+          <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>White</h3>
           <Box p="4" borderRadius="md" style={{ backgroundColor: "black" }}>
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (

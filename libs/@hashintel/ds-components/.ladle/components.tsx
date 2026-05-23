@@ -10,10 +10,7 @@ import "./index.css";
  * Global provider for Ladle stories.
  * Applies theme class to root element and imports Panda CSS styles.
  */
-export const Provider: GlobalProvider = ({
-  children,
-  globalState: { theme },
-}) => {
+export const Provider: GlobalProvider = ({ children, globalState: { theme } }) => {
   useLayoutEffect(() => {
     const root = document.documentElement;
 

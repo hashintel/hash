@@ -8,9 +8,7 @@ interface EntityTypeDescriptionProps {
   readonly?: boolean;
 }
 
-export const EntityTypeDescription = ({
-  readonly,
-}: EntityTypeDescriptionProps) => {
+export const EntityTypeDescription = ({ readonly }: EntityTypeDescriptionProps) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
 
   const descriptionController = useController({

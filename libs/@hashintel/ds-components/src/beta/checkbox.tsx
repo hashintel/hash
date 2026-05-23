@@ -31,30 +31,24 @@ export {
 // styled.svg is typed too broadly to satisfy strict TS in this context
 const StyledSvg = styled.svg as React.ComponentType<any>;
 
-export const Indicator = forwardRef<SVGSVGElement, HTMLStyledProps<"svg">>(
-  (props, ref) => {
-    const { indeterminate, checked } = useCheckboxContext();
+export const Indicator = forwardRef<SVGSVGElement, HTMLStyledProps<"svg">>((props, ref) => {
+  const { indeterminate, checked } = useCheckboxContext();
 
-    return (
-      <Checkbox.Indicator indeterminate={indeterminate} asChild>
-        <StyledSvg
-          ref={ref}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3px"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          {...props}
-        >
-          <title>Checkmark</title>
-          {indeterminate ? (
-            <path d="M5 12h14" />
-          ) : checked ? (
-            <path d="M20 6 9 17l-5-5" />
-          ) : null}
-        </StyledSvg>
-      </Checkbox.Indicator>
-    );
-  },
-);
+  return (
+    <Checkbox.Indicator indeterminate={indeterminate} asChild>
+      <StyledSvg
+        ref={ref}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3px"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        {...props}
+      >
+        <title>Checkmark</title>
+        {indeterminate ? <path d="M5 12h14" /> : checked ? <path d="M20 6 9 17l-5-5" /> : null}
+      </StyledSvg>
+    </Checkbox.Indicator>
+  );
+});

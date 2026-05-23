@@ -3,10 +3,7 @@ import { SvgIcon } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const CheckboxBlankIcon: FunctionComponent<SvgIconProps> = ({
-  sx = [],
-  ...otherProps
-}) => {
+export const CheckboxBlankIcon: FunctionComponent<SvgIconProps> = ({ sx = [], ...otherProps }) => {
   return (
     <SvgIcon
       {...otherProps}

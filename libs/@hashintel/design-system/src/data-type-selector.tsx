@@ -76,8 +76,7 @@ const DataTypeLabel = (props: {
         <FontAwesomeIcon
           icon={{ icon }}
           sx={{
-            fill: ({ palette }) =>
-              selected ? palette.blue[60] : palette.gray[90],
+            fill: ({ palette }) => (selected ? palette.blue[60] : palette.gray[90]),
             mr: 1,
           }}
         />
@@ -149,8 +148,7 @@ const DataTypeFlatView = (props: {
 
   const selected = !!selectedDataTypeIds?.includes(dataType.$id);
 
-  const isEarlierVersion =
-    compareOntologyTypeVersions(version, latestVersion) < 0;
+  const isEarlierVersion = compareOntologyTypeVersions(version, latestVersion) < 0;
 
   if (!selected && isEarlierVersion) {
     return null;
@@ -185,11 +183,7 @@ const DataTypeFlatView = (props: {
         transition: transitions.create("background"),
       })}
     >
-      <DataTypeLabel
-        {...props}
-        selected={selected}
-        isEarlierVersion={isEarlierVersion}
-      />
+      <DataTypeLabel {...props} selected={selected} isEarlierVersion={isEarlierVersion} />
     </Box>
   );
 };
@@ -249,8 +243,7 @@ const DataTypeTreeView = (props: {
     throw new Error(`No latest version found for baseUrl: ${baseUrl}`);
   }
 
-  const isEarlierVersion =
-    compareOntologyTypeVersions(version, latestVersion) < 0;
+  const isEarlierVersion = compareOntologyTypeVersions(version, latestVersion) < 0;
 
   if (!selected && isEarlierVersion) {
     return null;
@@ -300,11 +293,7 @@ const DataTypeTreeView = (props: {
           transition: transitions.create("background"),
         })}
       >
-        <DataTypeLabel
-          {...props}
-          selected={selected}
-          isEarlierVersion={isEarlierVersion}
-        />
+        <DataTypeLabel {...props} selected={selected} isEarlierVersion={isEarlierVersion} />
         <Stack direction="row" gap={0}>
           {children.length > 0 && (
             <IconButton
@@ -323,9 +312,7 @@ const DataTypeTreeView = (props: {
             >
               <CaretDownSolidIcon
                 className={
-                  abstract && !allowSelectingAbstractTypes
-                    ? defaultActionClassName
-                    : undefined
+                  abstract && !allowSelectingAbstractTypes ? defaultActionClassName : undefined
                 }
               />
             </IconButton>
@@ -452,10 +439,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
 
       const currentLatest = latestByBaseUrl[baseUrl];
 
-      if (
-        !currentLatest ||
-        compareOntologyTypeVersions(currentLatest, version) < 0
-      ) {
+      if (!currentLatest || compareOntologyTypeVersions(currentLatest, version) < 0) {
         latestByBaseUrl[baseUrl] = version;
       }
 
@@ -481,12 +465,8 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
       (dataType) =>
         (allowSelectingAbstractTypes || !dataType.abstract) &&
         (dataType.title.toLowerCase().includes(searchText.toLowerCase()) ||
-          dataType.label?.left
-            ?.toLowerCase()
-            .includes(searchText.toLowerCase()) ||
-          dataType.label?.right
-            ?.toLowerCase()
-            .includes(searchText.toLowerCase())),
+          dataType.label?.left?.toLowerCase().includes(searchText.toLowerCase()) ||
+          dataType.label?.right?.toLowerCase().includes(searchText.toLowerCase())),
     );
   }, [allowSelectingAbstractTypes, dataTypes, flattenedDataTypes, searchText]);
 
@@ -515,9 +495,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
           onChange={(event) => setLocalSearchText(event.target.value)}
           onFocus={() => setTextFieldFocused(true)}
           onBlur={(event) => {
-            const isMenuClick = popoverRef.current?.contains(
-              event.relatedTarget as Node,
-            );
+            const isMenuClick = popoverRef.current?.contains(event.relatedTarget as Node);
 
             if (!isMenuClick) {
               setTextFieldFocused(false);
@@ -587,9 +565,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
             gap={1}
             sx={{
               maxHeight:
-                maxMenuHeight -
-                (hideHint ? 0 : hintHeight) -
-                (additionalMenuContent?.height ?? 0),
+                maxMenuHeight - (hideHint ? 0 : hintHeight) - (additionalMenuContent?.height ?? 0),
               overflowY: sortedDataTypes.length ? "scroll" : undefined,
               px: 2,
               pb: 1.5,

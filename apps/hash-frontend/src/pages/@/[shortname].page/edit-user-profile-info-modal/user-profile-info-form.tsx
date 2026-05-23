@@ -23,11 +23,7 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import type {
-  ServiceAccountKind,
-  User,
-  UserServiceAccount,
-} from "../../../../lib/user-and-org";
+import type { ServiceAccountKind, User, UserServiceAccount } from "../../../../lib/user-and-org";
 import type { WebId } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { ProfileURLPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -57,14 +53,11 @@ export const UserProfileInfoForm: FunctionComponent<{
   const [updateUser] = useUpdateAuthenticatedUser();
 
   const { archiveEntity } = useBlockProtocolArchiveEntity();
-  const { createEntity } = useBlockProtocolCreateEntity(
-    userProfile.accountId as WebId,
-  );
+  const { createEntity } = useBlockProtocolCreateEntity(userProfile.accountId as WebId);
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+  );
 
   const formMethods =
     // @ts-expect-error -- type instantiation is excessively deep and possibly infinite, will be fixed when we switch to V8 of react-hook-form (see https://github.com/react-hook-form/react-hook-form/issues/6679)
@@ -130,9 +123,7 @@ export const UserProfileInfoForm: FunctionComponent<{
             leftEntityId: userProfile.entity.metadata.recordId.entityId,
             rightEntityId: serviceAccountEntity.metadata.recordId.entityId,
           },
-          entityTypeIds: [
-            systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
-          ],
+          entityTypeIds: [systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId],
           properties: {},
         },
       });
@@ -141,9 +132,7 @@ export const UserProfileInfoForm: FunctionComponent<{
   );
 
   const updateServiceAccountProfileUrl = useCallback(
-    async (params: {
-      serviceAccount: Required<UserProfileFormServiceAccount>;
-    }) => {
+    async (params: { serviceAccount: Required<UserProfileFormServiceAccount> }) => {
       const {
         serviceAccount: { existingServiceAccountEntity, profileUrl },
       } = params;
@@ -171,9 +160,7 @@ export const UserProfileInfoForm: FunctionComponent<{
   );
 
   const updateServiceAccounts = useCallback(
-    async (params: {
-      serviceAccounts: UserProfileFormData["serviceAccounts"];
-    }) => {
+    async (params: { serviceAccounts: UserProfileFormData["serviceAccounts"] }) => {
       const { serviceAccounts } = params;
 
       const removedServiceAccounts = userProfile.hasServiceAccounts.filter(
@@ -191,9 +178,7 @@ export const UserProfileInfoForm: FunctionComponent<{
       );
 
       const serviceAccountProfileUrlsToUpdate = serviceAccounts.filter(
-        (
-          serviceAccount,
-        ): serviceAccount is Required<UserProfileFormServiceAccount> => {
+        (serviceAccount): serviceAccount is Required<UserProfileFormServiceAccount> => {
           if (!serviceAccount.existingLinkEntity) {
             return false;
           }
@@ -216,9 +201,7 @@ export const UserProfileInfoForm: FunctionComponent<{
       );
 
       const serviceAccountsToReplace = serviceAccounts.filter(
-        (
-          serviceAccount,
-        ): serviceAccount is Required<UserProfileFormServiceAccount> => {
+        (serviceAccount): serviceAccount is Required<UserProfileFormServiceAccount> => {
           if (!serviceAccount.existingLinkEntity) {
             return false;
           }
@@ -238,9 +221,7 @@ export const UserProfileInfoForm: FunctionComponent<{
       );
 
       await Promise.all([
-        ...removedServiceAccounts.map((serviceAccount) =>
-          removeServiceAccount({ serviceAccount }),
-        ),
+        ...removedServiceAccounts.map((serviceAccount) => removeServiceAccount({ serviceAccount })),
         ...addedServiceAccounts.map(({ kind, profileUrl }) =>
           addServiceAccount({ kind, profileUrl }),
         ),
@@ -254,8 +235,7 @@ export const UserProfileInfoForm: FunctionComponent<{
                 serviceAccount: {
                   ...serviceAccount,
                   linkEntity: serviceAccount.existingLinkEntity,
-                  serviceAccountEntity:
-                    serviceAccount.existingServiceAccountEntity,
+                  serviceAccountEntity: serviceAccount.existingServiceAccountEntity,
                 },
               }),
               addServiceAccount({
@@ -266,12 +246,7 @@ export const UserProfileInfoForm: FunctionComponent<{
         ),
       ]);
     },
-    [
-      userProfile,
-      removeServiceAccount,
-      addServiceAccount,
-      updateServiceAccountProfileUrl,
-    ],
+    [userProfile, removeServiceAccount, addServiceAccount, updateServiceAccountProfileUrl],
   );
 
   const innerSubmit = handleSubmit(async (data) => {
@@ -279,10 +254,7 @@ export const UserProfileInfoForm: FunctionComponent<{
 
     const { serviceAccounts, ...userData } = data;
 
-    await Promise.all([
-      updateServiceAccounts({ serviceAccounts }),
-      updateUser(userData),
-    ]);
+    await Promise.all([updateServiceAccounts({ serviceAccounts }), updateUser(userData)]);
 
     /** @todo: error handling */
 
@@ -298,8 +270,7 @@ export const UserProfileInfoForm: FunctionComponent<{
     closeModal();
   }, [reset, closeModal]);
 
-  const isSubmitDisabled =
-    Object.keys(errors).length > 0 || Object.keys(dirtyFields).length === 0;
+  const isSubmitDisabled = Object.keys(errors).length > 0 || Object.keys(dirtyFields).length === 0;
 
   return (
     <Box
@@ -320,9 +291,7 @@ export const UserProfileInfoForm: FunctionComponent<{
           placeholder="Enter your preferred name"
           required
           error={touchedFields.displayName && !!errors.displayName}
-          helperText={
-            touchedFields.displayName ? errors.displayName?.message : undefined
-          }
+          helperText={touchedFields.displayName ? errors.displayName?.message : undefined}
           {...register("displayName", {
             required: "Display name is required",
             validate: validateDisplayName,

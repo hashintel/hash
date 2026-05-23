@@ -14,12 +14,7 @@ import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import {
-  Avatar,
-  FontAwesomeIcon,
-  IconButton,
-  LoadingSpinner,
-} from "@hashintel/design-system";
+import { Avatar, FontAwesomeIcon, IconButton, LoadingSpinner } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import { useDeleteComment } from "../../../../components/hooks/use-delete-comment";
@@ -48,9 +43,11 @@ type ToggleTextExpandedButtonProps = {
   onClick: () => void;
 };
 
-export const ToggleTextExpandedButton: FunctionComponent<
-  ToggleTextExpandedButtonProps
-> = ({ label, icon, onClick }) => (
+export const ToggleTextExpandedButton: FunctionComponent<ToggleTextExpandedButtonProps> = ({
+  label,
+  icon,
+  onClick,
+}) => (
   <Button
     size="xs"
     variant="tertiary_quiet"
@@ -76,11 +73,7 @@ type CommentProps = {
   resolvable?: boolean;
 };
 
-export const CommentBlock: FunctionComponent<CommentProps> = ({
-  pageId,
-  comment,
-  resolvable,
-}) => {
+export const CommentBlock: FunctionComponent<CommentProps> = ({ pageId, comment, resolvable }) => {
   const {
     metadata: {
       recordId: { entityId },
@@ -98,16 +91,12 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
   const [shouldCollapse, setShouldCollapse] = useState(false);
   const [editable, setEditable] = useState(false);
   const [inputValue, setInputValue] = useState<TextToken[]>(hasText);
-  const [deleteConfirmationDialogOpen, setDeleteConfirmationDialogOpen] =
-    useState(false);
+  const [deleteConfirmationDialogOpen, setDeleteConfirmationDialogOpen] = useState(false);
 
   const { authenticatedUser } = useAuthenticatedUser();
-  const [updateCommentText, { loading: updateCommentTextLoading }] =
-    useUpdateCommentText(pageId);
-  const [resolveComment, { loading: resolveCommentLoading }] =
-    useResolveComment(pageId);
-  const [deleteComment, { loading: deleteCommentLoading }] =
-    useDeleteComment(pageId);
+  const [updateCommentText, { loading: updateCommentTextLoading }] = useUpdateCommentText(pageId);
+  const [resolveComment, { loading: resolveCommentLoading }] = useResolveComment(pageId);
+  const [deleteComment, { loading: deleteCommentLoading }] = useDeleteComment(pageId);
 
   useEffect(() => {
     setInputValue(hasText);
@@ -132,10 +121,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     [author.properties],
   );
 
-  const submitUpdateDisabled = useMemo(
-    () => isEqual(hasText, inputValue),
-    [hasText, inputValue],
-  );
+  const submitUpdateDisabled = useMemo(() => isEqual(hasText, inputValue), [hasText, inputValue]);
 
   const resetCommentText = () => {
     setInputValue(hasText);
@@ -176,9 +162,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
       <Box display="flex" justifyContent="space-between">
         {}
         <Avatar size={36} title={displayName ?? "U"} />
-        <Box
-          sx={{ flexDirection: "column", flex: 1, overflow: "hidden", pl: 1.5 }}
-        >
+        <Box sx={{ flexDirection: "column", flex: 1, overflow: "hidden", pl: 1.5 }}>
           <Typography
             component="p"
             variant="microText"
@@ -209,9 +193,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               height: 1,
               mr: 0.5,
               p: 0.25,
-              color: resolveCommentLoading
-                ? palette.primary.main
-                : palette.gray[40],
+              color: resolveCommentLoading ? palette.primary.main : palette.gray[40],
             })}
           >
             {resolveCommentLoading ? (
@@ -231,10 +213,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
                   })}
                   disabled={resolveCommentLoading}
                 >
-                  <FontAwesomeIcon
-                    icon={faCheckCircle}
-                    sx={{ fontSize: "18px !important" }}
-                  />
+                  <FontAwesomeIcon icon={faCheckCircle} sx={{ fontSize: "18px !important" }} />
                 </IconButton>
               </Tooltip>
             )}

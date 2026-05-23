@@ -16,11 +16,7 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getTypeBaseUrl } from "../shared/get-type-base-url";
 
 import type { NextPageWithLayout } from "../../../../../shared/layout";
-import type {
-  ActorEntityUuid,
-  DataTypeWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, DataTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -37,23 +33,16 @@ const Page: NextPageWithLayout = () => {
    * @example /@hash/types/data-type/integer/v/1
    * @example /@hash/types/data-type/integer
    */
-  const [
-    _,
-    shortnameWithAt,
-    _types,
-    _dataType,
-    slug,
-    _v,
-    requestedVersionString,
-  ] = router.asPath.split("/") as [
-    "",
-    `@${string}`,
-    "types",
-    "data-type",
-    string,
-    "v" | undefined,
-    `${number}` | undefined,
-  ];
+  const [_, shortnameWithAt, _types, _dataType, slug, _v, requestedVersionString] =
+    router.asPath.split("/") as [
+      "",
+      `@${string}`,
+      "types",
+      "data-type",
+      string,
+      "v" | undefined,
+      `${number}` | undefined,
+    ];
 
   const dataTypeBaseUrl = !isDraft
     ? getTypeBaseUrl({
@@ -66,15 +55,10 @@ const Page: NextPageWithLayout = () => {
   const draftDataType = useMemo(() => {
     if (router.query.draft) {
       const dataTypeSchema = JSON.parse(
-        Buffer.from(
-          decodeURIComponent(router.query.draft.toString()),
-          "base64",
-        ).toString("utf8"),
+        Buffer.from(decodeURIComponent(router.query.draft.toString()), "base64").toString("utf8"),
       );
 
-      const { baseUrl, version } = componentsFromVersionedUrl(
-        dataTypeSchema.$id,
-      );
+      const { baseUrl, version } = componentsFromVersionedUrl(dataTypeSchema.$id);
 
       return {
         metadata: {

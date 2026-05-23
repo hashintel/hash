@@ -16,9 +16,10 @@ type CreateBlockCommentButtonProps = {
   rootNode: HTMLElement;
 };
 
-export const CreateBlockCommentButton: FunctionComponent<
-  CreateBlockCommentButtonProps
-> = ({ blockEntityId, rootNode }) => {
+export const CreateBlockCommentButton: FunctionComponent<CreateBlockCommentButtonProps> = ({
+  blockEntityId,
+  rootNode,
+}) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const { readonly } = useBlockView();
@@ -58,10 +59,7 @@ export const CreateBlockCommentButton: FunctionComponent<
           {
             name: "offset",
             options: {
-              offset: () => [
-                -9,
-                -(anchorEl?.getBoundingClientRect().height ?? 0) - 12,
-              ],
+              offset: () => [-9, -(anchorEl?.getBoundingClientRect().height ?? 0) - 12],
             },
           },
           {
@@ -75,10 +73,7 @@ export const CreateBlockCommentButton: FunctionComponent<
         anchorEl={anchorEl}
         style={{ zIndex: 1 }}
       >
-        <CreateBlockComment
-          blockEntityId={blockEntityId}
-          onClose={closeInput}
-        />
+        <CreateBlockComment blockEntityId={blockEntityId} onClose={closeInput} />
       </Popper>
     </Box>
   );

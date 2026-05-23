@@ -80,9 +80,7 @@ function evaluateExpression(
     "scenario",
     `"use strict"; var ${SHADOWED_GLOBALS}; return (${expression});`,
   ) as (p: Record<string, number>, s: Record<string, number>) => unknown;
-  return runSandboxed(() =>
-    fn(createSafeObject(parameters), createSafeObject(scenario)),
-  );
+  return runSandboxed(() => fn(createSafeObject(parameters), createSafeObject(scenario)));
 }
 
 function tokenRecordsFromRows(
@@ -103,11 +101,7 @@ function normalizeTokenRecords(
   elements: Color["elements"],
 ): Record<string, number>[] {
   return tokens.flatMap((rawToken) => {
-    if (
-      typeof rawToken !== "object" ||
-      rawToken === null ||
-      Array.isArray(rawToken)
-    ) {
+    if (typeof rawToken !== "object" || rawToken === null || Array.isArray(rawToken)) {
       return [];
     }
 
@@ -115,9 +109,7 @@ function normalizeTokenRecords(
     const token: Record<string, number> = {};
     const entries =
       elements.length > 0
-        ? elements.map(
-            (element) => [element.name, source[element.name]] as const,
-          )
+        ? elements.map((element) => [element.name, source[element.name]] as const)
         : Object.entries(source);
 
     for (const [name, value] of entries) {
@@ -161,8 +153,7 @@ export function compileScenario(
       continue;
     }
 
-    const value =
-      options.scenarioParameterValues?.[sp.identifier] ?? sp.default;
+    const value = options.scenarioParameterValues?.[sp.identifier] ?? sp.default;
     if (!Number.isFinite(value)) {
       errors.push({
         source: "scenarioParameter",
@@ -189,9 +180,7 @@ export function compileScenario(
   // Build a lookup: paramId → Parameter
   const paramById = new Map(netParameters.map((p) => [p.id, p]));
 
-  for (const [paramId, expression] of Object.entries(
-    scenario.parameterOverrides,
-  )) {
+  for (const [paramId, expression] of Object.entries(scenario.parameterOverrides)) {
     const param = paramById.get(paramId);
     if (!param) {
       continue;
@@ -262,9 +251,7 @@ export function compileScenario(
               initialState[place.id] = Math.max(0, Math.round(tokens));
             } else if (Array.isArray(tokens)) {
               // Colored place: array of token objects.
-              const color = place.colorId
-                ? typeById.get(place.colorId)
-                : undefined;
+              const color = place.colorId ? typeById.get(place.colorId) : undefined;
               const elements = color?.elements ?? [];
               initialState[place.id] = normalizeTokenRecords(tokens, elements);
             }
@@ -280,9 +267,7 @@ export function compileScenario(
     }
   } else {
     // Per-place mode: evaluate each expression individually
-    for (const [placeId, value] of Object.entries(
-      scenario.initialState.content,
-    )) {
+    for (const [placeId, value] of Object.entries(scenario.initialState.content)) {
       // Colored places: number[][] stored directly by the UI.
       if (Array.isArray(value)) {
         const place = placeById.get(placeId);
@@ -318,10 +303,7 @@ export function compileScenario(
           continue;
         }
 
-        initialState[placeId] = tokenRecordsFromRows(
-          value,
-          color?.elements ?? [],
-        );
+        initialState[placeId] = tokenRecordsFromRows(value, color?.elements ?? []);
         continue;
       }
 

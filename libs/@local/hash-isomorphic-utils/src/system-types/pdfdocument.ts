@@ -151,8 +151,7 @@ export type PDFDocumentOutgoingLinksByLinkEntityTypeId = {};
  */
 export type PDFDocumentProperties = DocumentFileProperties & {};
 
-export type PDFDocumentPropertiesWithMetadata =
-  DocumentFilePropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type PDFDocumentPropertiesWithMetadata = DocumentFilePropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

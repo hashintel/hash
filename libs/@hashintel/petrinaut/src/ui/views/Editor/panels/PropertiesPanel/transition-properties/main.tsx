@@ -57,10 +57,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         updateArcPlace={updateArcPlace}
         removeArc={removeArc}
       >
-        <VerticalSubViewsContainer
-          name="transition-properties"
-          subViews={subViews}
-        />
+        <VerticalSubViewsContainer name="transition-properties" subViews={subViews} />
       </TransitionPropertiesProvider>
     </div>
   );

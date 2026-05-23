@@ -27,9 +27,7 @@ test("user can toggle nested pages", async ({ page }) => {
   const toggleButtonLevel2 = selectExpandPageButton("Middle");
   await toggleButtonLevel2.click();
 
-  const leafPage = page.locator(
-    `[data-testid="pages-tree"] a:has-text("Leaf")`,
-  );
+  const leafPage = page.locator(`[data-testid="pages-tree"] a:has-text("Leaf")`);
 
   await expect(leafPage).toBeVisible();
 

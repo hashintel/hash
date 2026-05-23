@@ -1,11 +1,7 @@
 import { materializeEngineFrame } from "../frames/internal-frame";
 
 import type { Transition } from "../../types/sdcpn";
-import type {
-  EngineFrame,
-  EngineFrameLayout,
-  EngineFrameSnapshot,
-} from "./types";
+import type { EngineFrame, EngineFrameLayout, EngineFrameSnapshot } from "./types";
 
 /**
  * Result of checking transition enablement for a simulation frame.
@@ -48,18 +44,14 @@ function isTransitionStructurallyEnabledSnapshot(
 
   const transition = transitions.get(transitionId);
   if (!transition) {
-    throw new Error(
-      `Transition definition for transition ${transitionId} not found.`,
-    );
+    throw new Error(`Transition definition for transition ${transitionId} not found.`);
   }
 
   // Check if all input places have enough tokens for the required arc weights
   return transition.inputArcs.every((arc) => {
     const placeState = snapshot.places[arc.placeId];
     if (!placeState) {
-      throw new Error(
-        `Place with ID ${arc.placeId} not found in current marking.`,
-      );
+      throw new Error(`Place with ID ${arc.placeId} not found in current marking.`);
     }
 
     return arc.type === "inhibitor"
@@ -119,11 +111,7 @@ export const checkTransitionEnablement = (
   let hasEnabledTransition = false;
 
   for (const transitionId of Object.keys(snapshot.transitions)) {
-    const isEnabled = isTransitionStructurallyEnabledSnapshot(
-      snapshot,
-      transitions,
-      transitionId,
-    );
+    const isEnabled = isTransitionStructurallyEnabledSnapshot(snapshot, transitions, transitionId);
     transitionStatus.set(transitionId, isEnabled);
 
     if (isEnabled) {

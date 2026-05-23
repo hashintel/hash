@@ -45,33 +45,20 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
         text: context,
       });
 
-      const entitySummarySet = new Set(
-        entitySummaries.map((entitySummary) => entitySummary.name),
-      );
+      const entitySummarySet = new Set(entitySummaries.map((entitySummary) => entitySummary.name));
 
       /**
        * @todo update this for the new entity summary approach, checking instead if any of the gold or irrelevant entities
        *     are present in the inferred summaries but haven't had the correct, existing Company type assigned.
        */
-      const wrongTypeEntitiesTestSet = new Set(
-        wrongTypeEntities.map((entity) => entity.name),
-      );
-      const wrongTypeEntitiesIdentified = entitySummarySet.intersection(
-        wrongTypeEntitiesTestSet,
-      );
+      const wrongTypeEntitiesTestSet = new Set(wrongTypeEntities.map((entity) => entity.name));
+      const wrongTypeEntitiesIdentified = entitySummarySet.intersection(wrongTypeEntitiesTestSet);
 
-      const goldEntitiesTestSet = new Set(
-        goldEntities.map((entity) => entity.name),
-      );
-      const missingGoldEntities =
-        goldEntitiesTestSet.difference(entitySummarySet);
+      const goldEntitiesTestSet = new Set(goldEntities.map((entity) => entity.name));
+      const missingGoldEntities = goldEntitiesTestSet.difference(entitySummarySet);
 
-      const irrelevantEntitiesTestSet = new Set(
-        irrelevantEntities.map((entity) => entity.name),
-      );
-      const irrelevantEntitiesIdentified = entitySummarySet.intersection(
-        irrelevantEntitiesTestSet,
-      );
+      const irrelevantEntitiesTestSet = new Set(irrelevantEntities.map((entity) => entity.name));
+      const irrelevantEntitiesIdentified = entitySummarySet.intersection(irrelevantEntitiesTestSet);
 
       let score = 1;
 
@@ -93,15 +80,12 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
       }
 
       const missingEntitiesPenalty = testDataHasGoldEntities
-        ? missingEntitiesMultiplier *
-          (missingGoldEntities.size / goldEntitiesTestSet.size)
+        ? missingEntitiesMultiplier * (missingGoldEntities.size / goldEntitiesTestSet.size)
         : 0;
 
       score -= missingEntitiesPenalty;
 
-      const irrelevantEntitiesMultiplier = testDataHasIrrelevantEntities
-        ? 0.2
-        : 0;
+      const irrelevantEntitiesMultiplier = testDataHasIrrelevantEntities ? 0.2 : 0;
 
       const irrelevantEntitiesPenalty = testDataHasIrrelevantEntities
         ? irrelevantEntitiesMultiplier *
@@ -128,9 +112,7 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
           wrongTypeEntitiesIdentified.size
         } entities of an incorrect type, identified ${
           goldEntitiesTestSet.size - missingGoldEntities.size
-        } out of a possible ${
-          goldEntitiesTestSet.size
-        } target entities, and identified ${
+        } out of a possible ${goldEntitiesTestSet.size} target entities, and identified ${
           irrelevantEntitiesIdentified.size
         } entities which were of the right type but didn't meet the research prompt.`,
         testingParams,
@@ -142,10 +124,7 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const baseDirectoryPath = path.join(
-  __dirname,
-  "/var/get-entity-summaries-from-text-test",
-);
+const baseDirectoryPath = path.join(__dirname, "/var/get-entity-summaries-from-text-test");
 
 test(
   "Get entity summaries from text system prompt test",

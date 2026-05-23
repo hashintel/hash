@@ -49,6 +49,4 @@ const fieldsetSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const fieldsetSlotRecipe = sva(fieldsetSlotRecipeDefinition);
 
-export type FieldsetSlotRecipeProps = RecipeVariantProps<
-  typeof fieldsetSlotRecipe
->;
+export type FieldsetSlotRecipeProps = RecipeVariantProps<typeof fieldsetSlotRecipe>;

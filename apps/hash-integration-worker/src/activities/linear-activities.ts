@@ -11,10 +11,7 @@ import {
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { logger } from "../main.js";
-import {
-  getEntitiesByLinearId,
-  getEntityOutgoingLinks,
-} from "../shared/graph-requests.js";
+import { getEntitiesByLinearId, getEntityOutgoingLinks } from "../shared/graph-requests.js";
 import {
   mapHashEntityToLinearUpdateInput,
   mapLinearDataToEntity,
@@ -62,22 +59,16 @@ const createHashEntity = async (params: {
 }): Promise<void> => {
   const { graphApiClient, webId } = params;
 
-  const entity = await HashEntity.create(
-    graphApiClient,
-    params.authentication,
-    {
-      webId,
-      draft: false,
-      properties: mergePropertyObjectAndMetadata(
-        (params.partialEntity.properties as
-          | HashEntity["properties"]
-          | undefined) ?? {},
-        undefined,
-      ),
-      provenance,
-      entityTypeIds: [params.partialEntity.entityTypeId],
-    },
-  );
+  const entity = await HashEntity.create(graphApiClient, params.authentication, {
+    webId,
+    draft: false,
+    properties: mergePropertyObjectAndMetadata(
+      (params.partialEntity.properties as HashEntity["properties"] | undefined) ?? {},
+      undefined,
+    ),
+    provenance,
+    entityTypeIds: [params.partialEntity.entityTypeId],
+  });
 
   if (params.outgoingLinks.length > 0) {
     await HashEntity.createMultiple(
@@ -152,11 +143,8 @@ const createOrUpdateHashEntity = async (params: {
       (newOutgoingLink) =>
         !existingOutgoingLinks.some(
           (linkEntity) =>
-            linkEntity.metadata.entityTypeIds.includes(
-              newOutgoingLink.linkEntityTypeId,
-            ) &&
-            newOutgoingLink.destinationEntityId ===
-              linkEntity.linkData.rightEntityId,
+            linkEntity.metadata.entityTypeIds.includes(newOutgoingLink.linkEntityTypeId) &&
+            newOutgoingLink.destinationEntityId === linkEntity.linkData.rightEntityId,
         ),
     );
 
@@ -170,23 +158,21 @@ const createOrUpdateHashEntity = async (params: {
           },
         }),
       ),
-      ...addedOutgoingLinks.map(
-        async ({ linkEntityTypeId, destinationEntityId }) => {
-          const linkEntityUuid = uuidv4() as EntityUuid;
-          await HashLinkEntity.create(graphApiClient, params.authentication, {
-            entityTypeIds: [linkEntityTypeId],
-            linkData: {
-              leftEntityId: existingEntity.metadata.recordId.entityId,
-              rightEntityId: destinationEntityId,
-            },
-            properties: { value: {} },
-            provenance,
-            webId: params.webId,
-            entityUuid: linkEntityUuid,
-            draft: false,
-          });
-        },
-      ),
+      ...addedOutgoingLinks.map(async ({ linkEntityTypeId, destinationEntityId }) => {
+        const linkEntityUuid = uuidv4() as EntityUuid;
+        await HashLinkEntity.create(graphApiClient, params.authentication, {
+          entityTypeIds: [linkEntityTypeId],
+          linkData: {
+            leftEntityId: existingEntity.metadata.recordId.entityId,
+            rightEntityId: destinationEntityId,
+          },
+          properties: { value: {} },
+          provenance,
+          webId: params.webId,
+          entityUuid: linkEntityUuid,
+          draft: false,
+        });
+      }),
     ]);
 
     if (
@@ -199,10 +185,7 @@ const createOrUpdateHashEntity = async (params: {
 
     const propertyPatches = patchesFromPropertyObjects({
       oldProperties: existingEntity.properties,
-      newProperties: mergePropertyObjectAndMetadata(
-        partialEntity.properties,
-        undefined,
-      ),
+      newProperties: mergePropertyObjectAndMetadata(partialEntity.properties, undefined),
     });
 
     await existingEntity.patch(graphApiClient, params.authentication, {
@@ -226,9 +209,7 @@ const mapLinearTypeToLinearClientGetMethod = {
 
 const createHashEntityFromLinearData =
   (graphApiClient: GraphApi) =>
-  async (
-    params: Parameters<CreateHashEntityFromLinearData>[0],
-  ): Promise<void> => {
+  async (params: Parameters<CreateHashEntityFromLinearData>[0]): Promise<void> => {
     const client = createLinearClient(params.linearApiKey);
 
     const { linearType, linearId } = params;
@@ -257,9 +238,7 @@ const createHashEntityFromLinearData =
 
 const updateHashEntityFromLinearData =
   (graphApiClient: GraphApi) =>
-  async (
-    params: Parameters<UpdateHashEntityFromLinearData>[0],
-  ): Promise<void> => {
+  async (params: Parameters<UpdateHashEntityFromLinearData>[0]): Promise<void> => {
     const client = createLinearClient(params.linearApiKey);
 
     const { linearType, linearId } = params;
@@ -300,9 +279,7 @@ type ParamsWithApiKey<T = Record<string, unknown>> = T & { apiKey: string };
 const readLinearIssues = async ({
   apiKey,
   filter,
-}: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<
-  PartialEntity[]
-> => {
+}: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<PartialEntity[]> => {
   const issuesQueryVariables: LinearDocument.IssuesQueryVariables = {
     filter: {},
   };
@@ -357,9 +334,7 @@ export const createLinearIntegrationActivities = ({
     });
   },
 
-  async readLinearOrganization({
-    apiKey,
-  }: ParamsWithApiKey): Promise<PartialEntity> {
+  async readLinearOrganization({ apiKey }: ParamsWithApiKey): Promise<PartialEntity> {
     return await createLinearClient(apiKey).organization.then((organization) =>
       mapLinearDataToEntity({
         linearType: "Organization",
@@ -368,9 +343,7 @@ export const createLinearIntegrationActivities = ({
     );
   },
 
-  async readLinearUsers({
-    apiKey,
-  }: ParamsWithApiKey): Promise<PartialEntity[]> {
+  async readLinearUsers({ apiKey }: ParamsWithApiKey): Promise<PartialEntity[]> {
     return await createLinearClient(apiKey)
       .users()
       .then(readNodes)
@@ -384,18 +357,14 @@ export const createLinearIntegrationActivities = ({
       );
   },
 
-  createHashEntityFromLinearData:
-    createHashEntityFromLinearData(graphApiClient),
+  createHashEntityFromLinearData: createHashEntityFromLinearData(graphApiClient),
 
-  updateHashEntityFromLinearData:
-    updateHashEntityFromLinearData(graphApiClient),
+  updateHashEntityFromLinearData: updateHashEntityFromLinearData(graphApiClient),
 
   async readLinearIssues({
     apiKey,
     filter,
-  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<
-    PartialEntity[]
-  > {
+  }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<PartialEntity[]> {
     return await readLinearIssues({ apiKey, filter });
   },
 

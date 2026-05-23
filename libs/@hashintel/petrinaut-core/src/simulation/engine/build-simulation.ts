@@ -1,8 +1,5 @@
 import { SDCPNItemError } from "../../errors";
-import {
-  deriveDefaultParameterValues,
-  mergeParameterValues,
-} from "../../parameter-values";
+import { deriveDefaultParameterValues, mergeParameterValues } from "../../parameter-values";
 import { compileUserCode } from "../authoring/user-code/compile-user-code";
 import {
   createEngineFrame,
@@ -108,9 +105,7 @@ function packInitialPlaceMarking(
   const values: number[] = [];
   for (const token of tokenRecords) {
     if (typeof token !== "object" || token === null || Array.isArray(token)) {
-      throw new Error(
-        `Initial marking token for place ${place.id} must be a record`,
-      );
+      throw new Error(`Initial marking token for place ${place.id} must be a record`);
     }
     const tokenRecord = token as Record<string, number>;
     for (const element of type.elements) {
@@ -145,13 +140,8 @@ function createDifferentialEquationFn({
     for (let tokenIndex = 0; tokenIndex < numberOfTokens; tokenIndex++) {
       const tokenStart = tokenIndex * dimensions;
       const token: Record<string, number> = {};
-      for (
-        let dimensionIndex = 0;
-        dimensionIndex < dimensions;
-        dimensionIndex++
-      ) {
-        token[elementNames[dimensionIndex]!] =
-          currentState[tokenStart + dimensionIndex]!;
+      for (let dimensionIndex = 0; dimensionIndex < dimensions; dimensionIndex++) {
+        token[elementNames[dimensionIndex]!] = currentState[tokenStart + dimensionIndex]!;
       }
       inputTokens.push(token);
     }
@@ -162,14 +152,9 @@ function createDifferentialEquationFn({
 
     for (let tokenIndex = 0; tokenIndex < tokenCount; tokenIndex++) {
       const token = resultTokens[tokenIndex]!;
-      for (
-        let dimensionIndex = 0;
-        dimensionIndex < dimensions;
-        dimensionIndex++
-      ) {
+      for (let dimensionIndex = 0; dimensionIndex < dimensions; dimensionIndex++) {
         const dimensionName = elementNames[dimensionIndex]!;
-        result[tokenIndex * dimensions + dimensionIndex] =
-          token[dimensionName]!;
+        result[tokenIndex * dimensions + dimensionIndex] = token[dimensionName]!;
       }
     }
 
@@ -184,9 +169,7 @@ function getPlaceElementNames(
 ): readonly string[] | null {
   const place = placesMap.get(placeId);
   if (!place) {
-    throw new Error(
-      `Place with ID ${placeId} referenced by transition does not exist in SDCPN`,
-    );
+    throw new Error(`Place with ID ${placeId} referenced by transition does not exist in SDCPN`);
   }
 
   if (!place.colorId) {
@@ -332,14 +315,7 @@ function createCompiledTransition({
  * @throws {Error} if user code fails to compile
  */
 export function buildSimulation(input: SimulationInput): SimulationInstance {
-  const {
-    sdcpn,
-    initialMarking,
-    parameterValues: inputParameterValues,
-    seed,
-    dt,
-    maxTime,
-  } = input;
+  const { sdcpn, initialMarking, parameterValues: inputParameterValues, seed, dt, maxTime } = input;
 
   // Build maps for quick lookup
   const placesMap = new Map(sdcpn.places.map((place) => [place.id, place]));
@@ -351,17 +327,12 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // Build parameter values: merge input values with SDCPN defaults
   // Input values (from simulation store) take precedence over defaults
   const defaultParameterValues = deriveDefaultParameterValues(sdcpn.parameters);
-  const parameterValues = mergeParameterValues(
-    inputParameterValues,
-    defaultParameterValues,
-  );
+  const parameterValues = mergeParameterValues(inputParameterValues, defaultParameterValues);
 
   // Validate that all places in initialMarking exist in SDCPN
   for (const placeId of Object.keys(initialMarking)) {
     if (!placesMap.has(placeId)) {
-      throw new Error(
-        `Place with ID ${placeId} in initialMarking does not exist in SDCPN`,
-      );
+      throw new Error(`Place with ID ${placeId} in initialMarking does not exist in SDCPN`);
     }
   }
 
@@ -369,11 +340,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   for (const place of sdcpn.places) {
     packedInitialMarking.set(
       place.id,
-      packInitialPlaceMarking(
-        place,
-        sdcpn,
-        getInitialMarkingValue(initialMarking, place.id),
-      ),
+      packInitialPlaceMarking(place, sdcpn, getInitialMarkingValue(initialMarking, place.id)),
     );
   }
 
@@ -407,9 +374,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         );
       }
 
-      const userFn = compileUserCode<
-        [Record<string, number>[], ParameterValues]
-      >(code, "Dynamics") as UserDifferentialEquationFn;
+      const userFn = compileUserCode<[Record<string, number>[], ParameterValues]>(
+        code,
+        "Dynamics",
+      ) as UserDifferentialEquationFn;
       differentialEquationFns.set(
         place.id,
         createDifferentialEquationFn({

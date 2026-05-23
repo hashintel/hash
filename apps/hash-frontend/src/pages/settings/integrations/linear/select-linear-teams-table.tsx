@@ -1,11 +1,4 @@
-import {
-  Box,
-  outlinedInputClasses,
-  Stack,
-  TableBody,
-  TableHead,
-  TableRow,
-} from "@mui/material";
+import { Box, outlinedInputClasses, Stack, TableBody, TableHead, TableRow } from "@mui/material";
 import { Fragment, useCallback, useMemo, useState } from "react";
 
 import { Chip, Select } from "@hashintel/design-system";
@@ -58,12 +51,7 @@ const SelectWebs: FunctionComponent<{
               ({ entity }) => entity.metadata.recordId.entityId === value,
             )!;
 
-            return (
-              <Chip
-                key={value}
-                label={web.kind === "user" ? web.displayName : web.name}
-              />
-            );
+            return <Chip key={value} label={web.kind === "user" ? web.displayName : web.name} />;
           })}
         </Box>
       )}
@@ -82,10 +70,7 @@ const SelectWebs: FunctionComponent<{
 
 type LinearOrganization = GetLinearOrganizationQuery["getLinearOrganization"];
 
-export type LinearOrganizationTeamsWithWebs = Omit<
-  LinearOrganization,
-  "teams"
-> & {
+export type LinearOrganizationTeamsWithWebs = Omit<LinearOrganization, "teams"> & {
   teams: (LinearOrganization["teams"][number] & {
     webEntityIds: EntityId[];
   })[];
@@ -99,13 +84,10 @@ export const mapLinearOrganizationToLinearOrganizationTeamsWithWebs =
       ...team,
       webEntityIds: params.linearIntegrations
         .find(
-          ({ entity }) =>
-            simplifyProperties(entity.properties).linearOrgId ===
-            organization.id,
+          ({ entity }) => simplifyProperties(entity.properties).linearOrgId === organization.id,
         )!
         .syncedWithWebs.filter(
-          ({ linearTeamIds }) =>
-            linearTeamIds.length === 0 || linearTeamIds.includes(team.id),
+          ({ linearTeamIds }) => linearTeamIds.length === 0 || linearTeamIds.includes(team.id),
         )
         .map(({ webEntity }) => webEntity.metadata.recordId.entityId),
     })),
@@ -134,82 +116,71 @@ export const mapLinearOrganizationToSyncWithWebsInputVariable = (params: {
 
 export const SelectLinearTeamsTable: FunctionComponent<{
   linearOrganizations: LinearOrganizationTeamsWithWebs[];
-  setLinearOrganizations: Dispatch<
-    SetStateAction<LinearOrganizationTeamsWithWebs[]>
-  >;
+  setLinearOrganizations: Dispatch<SetStateAction<LinearOrganizationTeamsWithWebs[]>>;
 }> = ({ linearOrganizations, setLinearOrganizations }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const possibleWorkspaces = useMemo(
-    () => [
-      authenticatedUser,
-      ...authenticatedUser.memberOf.map(({ org }) => org),
-    ],
+    () => [authenticatedUser, ...authenticatedUser.memberOf.map(({ org }) => org)],
     [authenticatedUser],
   );
 
   const handleSelectAllWorkspacesChange = useCallback(
-    (params: { linearOrganization: LinearOrganizationTeamsWithWebs }) =>
-      (entityIds: EntityId[]) =>
-        setLinearOrganizations((prev) => {
-          const { id: linearOrgId, teams } = params.linearOrganization;
-          const linearOrgIndex = prev.findIndex(({ id }) => id === linearOrgId);
+    (params: { linearOrganization: LinearOrganizationTeamsWithWebs }) => (entityIds: EntityId[]) =>
+      setLinearOrganizations((prev) => {
+        const { id: linearOrgId, teams } = params.linearOrganization;
+        const linearOrgIndex = prev.findIndex(({ id }) => id === linearOrgId);
 
-          const previousOrganization = prev[linearOrgIndex]!;
+        const previousOrganization = prev[linearOrgIndex]!;
 
-          const previousSelectedWebEntityIds = possibleWorkspaces
-            .map(({ entity }) => entity.metadata.recordId.entityId)
-            .filter((webEntityId) => {
-              const selectedTeams = previousOrganization.teams.filter(
-                ({ webEntityIds }) => webEntityIds.includes(webEntityId),
-              );
+        const previousSelectedWebEntityIds = possibleWorkspaces
+          .map(({ entity }) => entity.metadata.recordId.entityId)
+          .filter((webEntityId) => {
+            const selectedTeams = previousOrganization.teams.filter(({ webEntityIds }) =>
+              webEntityIds.includes(webEntityId),
+            );
 
-              return selectedTeams.length === teams.length;
-            });
+            return selectedTeams.length === teams.length;
+          });
 
-          const addedWebEntityIds = entityIds.filter(
-            (entityId) => !previousSelectedWebEntityIds.includes(entityId),
-          );
+        const addedWebEntityIds = entityIds.filter(
+          (entityId) => !previousSelectedWebEntityIds.includes(entityId),
+        );
 
-          const removedWebEntityIds = previousSelectedWebEntityIds.filter(
-            (entityId) => !entityIds.includes(entityId),
-          );
+        const removedWebEntityIds = previousSelectedWebEntityIds.filter(
+          (entityId) => !entityIds.includes(entityId),
+        );
 
-          return [
-            ...prev.slice(0, linearOrgIndex),
-            {
-              ...prev[linearOrgIndex]!,
-              teams: teams.map((team) => {
-                return {
-                  ...team,
-                  webEntityIds: Array.from(
-                    new Set([
-                      ...team.webEntityIds.filter(
-                        (entityId) => !removedWebEntityIds.includes(entityId),
-                      ),
-                      ...addedWebEntityIds,
-                    ]),
-                  ),
-                };
-              }),
-            },
-            ...prev.slice(linearOrgIndex + 1),
-          ];
-        }),
+        return [
+          ...prev.slice(0, linearOrgIndex),
+          {
+            ...prev[linearOrgIndex]!,
+            teams: teams.map((team) => {
+              return {
+                ...team,
+                webEntityIds: Array.from(
+                  new Set([
+                    ...team.webEntityIds.filter(
+                      (entityId) => !removedWebEntityIds.includes(entityId),
+                    ),
+                    ...addedWebEntityIds,
+                  ]),
+                ),
+              };
+            }),
+          },
+          ...prev.slice(linearOrgIndex + 1),
+        ];
+      }),
     [possibleWorkspaces, setLinearOrganizations],
   );
 
   const handleSelectWorkspaceChange = useCallback(
-    (params: {
-      linearOrganization: LinearOrganizationTeamsWithWebs;
-      linearTeamId: string;
-    }) =>
+    (params: { linearOrganization: LinearOrganizationTeamsWithWebs; linearTeamId: string }) =>
       (entityIds: EntityId[]) =>
         setLinearOrganizations((prev) => {
           const { linearOrganization, linearTeamId } = params;
-          const linearOrgIndex = prev.findIndex(
-            ({ id }) => id === linearOrganization.id,
-          );
+          const linearOrgIndex = prev.findIndex(({ id }) => id === linearOrganization.id);
 
           const previousOrganization = prev[linearOrgIndex]!;
 
@@ -220,8 +191,7 @@ export const SelectLinearTeamsTable: FunctionComponent<{
           const previousTeam = previousOrganization.teams[linearTeamIndex]!;
 
           const previousSelectedWebEntityIds =
-            previousOrganization.teams.find(({ id }) => id === linearTeamId)
-              ?.webEntityIds ?? [];
+            previousOrganization.teams.find(({ id }) => id === linearTeamId)?.webEntityIds ?? [];
 
           const addedWebEntityIds = entityIds.filter(
             (entityId) => !previousSelectedWebEntityIds.includes(entityId),
@@ -319,40 +289,38 @@ export const SelectLinearTeamsTable: FunctionComponent<{
                 />
               </SettingsTableCell>
             </TableRow>
-            {linearOrganization.teams.map(
-              ({ id: linearTeamId, name: teamName }) => (
-                <TableRow key={linearTeamId}>
-                  <SettingsTableCell>
-                    <Stack direction="row" alignItems="center" gap={1}>
-                      <ArrowTurnDownRightIcon
-                        sx={{
-                          fontSize: 14,
-                          fill: ({ palette }) => palette.gray[40],
-                        }}
-                      />
-                      Team
-                    </Stack>
-                  </SettingsTableCell>
-                  <SettingsTableCell>{teamName}</SettingsTableCell>
-                  <SettingsTableCell>
-                    <SelectWebs
-                      selectedWebEntityIds={possibleWorkspaces
-                        .map(({ entity }) => entity.metadata.recordId.entityId)
-                        .filter((entityId) =>
-                          linearOrganization.teams
-                            .find(({ id }) => id === linearTeamId)
-                            ?.webEntityIds.includes(entityId),
-                        )}
-                      possibleWebs={possibleWorkspaces}
-                      setSelectedWebEntityIds={handleSelectWorkspaceChange({
-                        linearOrganization,
-                        linearTeamId,
-                      })}
+            {linearOrganization.teams.map(({ id: linearTeamId, name: teamName }) => (
+              <TableRow key={linearTeamId}>
+                <SettingsTableCell>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <ArrowTurnDownRightIcon
+                      sx={{
+                        fontSize: 14,
+                        fill: ({ palette }) => palette.gray[40],
+                      }}
                     />
-                  </SettingsTableCell>
-                </TableRow>
-              ),
-            )}
+                    Team
+                  </Stack>
+                </SettingsTableCell>
+                <SettingsTableCell>{teamName}</SettingsTableCell>
+                <SettingsTableCell>
+                  <SelectWebs
+                    selectedWebEntityIds={possibleWorkspaces
+                      .map(({ entity }) => entity.metadata.recordId.entityId)
+                      .filter((entityId) =>
+                        linearOrganization.teams
+                          .find(({ id }) => id === linearTeamId)
+                          ?.webEntityIds.includes(entityId),
+                      )}
+                    possibleWebs={possibleWorkspaces}
+                    setSelectedWebEntityIds={handleSelectWorkspaceChange({
+                      linearOrganization,
+                      linearTeamId,
+                    })}
+                  />
+                </SettingsTableCell>
+              </TableRow>
+            ))}
           </Fragment>
         ))}
       </TableBody>

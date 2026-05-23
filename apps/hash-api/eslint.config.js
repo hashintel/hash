@@ -1,8 +1,4 @@
-import {
-  createBase,
-  defineConfig,
-  disableRules,
-} from "@local/eslint/deprecated";
+import { createBase, defineConfig, disableRules } from "@local/eslint/deprecated";
 
 export default defineConfig([
   {

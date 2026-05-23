@@ -29,9 +29,7 @@ console.log("Rewriting 'workspace:' dependency ranges in packages...");
 
 const packageMap = new Map();
 for (const { location } of workspaces) {
-  const pkg = JSON.parse(
-    readFileSync(resolve(rootDir, location, "package.json"), "utf-8"),
-  );
+  const pkg = JSON.parse(readFileSync(resolve(rootDir, location, "package.json"), "utf-8"));
   if (pkg.name && pkg.version) {
     packageMap.set(pkg.name, { version: pkg.version, private: !!pkg.private });
   }
@@ -62,9 +60,7 @@ for (const { location, name } of workspaces) {
 
       const depInfo = packageMap.get(dep);
       if (!depInfo) {
-        console.warn(
-          `  ⚠ ${name}: ${dep} has ${range} but no workspace package found`,
-        );
+        console.warn(`  ⚠ ${name}: ${dep} has ${range} but no workspace package found`);
         continue;
       }
 
@@ -113,18 +109,12 @@ const yarnrcPath = resolve(rootDir, ".yarnrc.yml");
 const yarnrc = readFileSync(yarnrcPath, "utf-8");
 const twMatch = yarnrc.match(/enableTransparentWorkspaces:\s*(\S+)/);
 if (!twMatch) {
-  writeFileSync(
-    yarnrcPath,
-    yarnrc.trimEnd() + "\nenableTransparentWorkspaces: true\n",
-  );
+  writeFileSync(yarnrcPath, yarnrc.trimEnd() + "\nenableTransparentWorkspaces: true\n");
   console.log("Added enableTransparentWorkspaces: true to .yarnrc.yml");
 } else if (twMatch[1] === "true") {
   console.log(".yarnrc.yml already has enableTransparentWorkspaces: true");
 } else {
-  const yarnrcPatched = yarnrc.replace(
-    twMatch[0],
-    "enableTransparentWorkspaces: true",
-  );
+  const yarnrcPatched = yarnrc.replace(twMatch[0], "enableTransparentWorkspaces: true");
   writeFileSync(yarnrcPath, yarnrcPatched);
   console.log("Patched .yarnrc.yml: enableTransparentWorkspaces → true");
 }

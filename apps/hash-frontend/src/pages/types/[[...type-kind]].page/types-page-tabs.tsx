@@ -4,13 +4,7 @@ import { Tabs } from "../../../shared/ui/tabs";
 import type { TabId } from "../[[...type-kind]].page";
 import type { FunctionComponent } from "react";
 
-const tabIds = [
-  "all",
-  "entity-type",
-  "link-type",
-  "property-type",
-  "data-type",
-] satisfies TabId[];
+const tabIds = ["all", "entity-type", "link-type", "property-type", "data-type"] satisfies TabId[];
 
 export const tabTitles: Record<TabId, string> = {
   all: "All",

@@ -116,11 +116,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             })}, ${style?.transition}`,
             paddingLeft: `${IDENTATION_WIDTH * depth + 8}px`,
             paddingRight: 0.5,
-            backgroundColor: selected
-              ? palette.gray[30]
-              : hovered
-                ? palette.gray[20]
-                : "none",
+            backgroundColor: selected ? palette.gray[30] : hovered ? palette.gray[20] : "none",
           })}
           ref={ref}
           {...listeners}

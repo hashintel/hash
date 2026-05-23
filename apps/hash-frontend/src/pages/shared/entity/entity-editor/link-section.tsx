@@ -10,8 +10,7 @@ import type { FunctionComponent } from "react";
 
 export const LinkSection: FunctionComponent = () => {
   const {
-    linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-      closedMultiEntityTypesMap,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypesMap,
     closedMultiEntityTypesDefinitions,
     entity,
     entitySubgraph,

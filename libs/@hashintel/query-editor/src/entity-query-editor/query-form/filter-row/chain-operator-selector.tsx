@@ -14,11 +14,7 @@ export const ChainOperatorSelector = () => {
 
   return (
     <FormControl>
-      <RHFSelect
-        name="operator"
-        control={control}
-        selectProps={{ size: "xs", disabled: readonly }}
-      >
+      <RHFSelect name="operator" control={control} selectProps={{ size: "xs", disabled: readonly }}>
         <MenuItem value="AND">and</MenuItem>
         <MenuItem value="OR">or</MenuItem>
       </RHFSelect>

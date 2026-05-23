@@ -1,7 +1,4 @@
-import {
-  type EntityUuid,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
+import { type EntityUuid, extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 
 import { simplifyProperties } from "../simplify-properties.js";
 
@@ -19,49 +16,35 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 export const mapFlowDefinitionToEntityProperties = (
   flowDefinition: FlowDefinition<FlowActionDefinitionId>,
 ): FlowDefinitionEntity["properties"] => ({
-  "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-    flowDefinition.name,
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": flowDefinition.name,
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
     flowDefinition.description,
-  "https://hash.ai/@h/types/property-type/output-definitions/":
-    flowDefinition.outputs,
-  "https://hash.ai/@h/types/property-type/step-definitions/":
-    flowDefinition.steps,
+  "https://hash.ai/@h/types/property-type/output-definitions/": flowDefinition.outputs,
+  "https://hash.ai/@h/types/property-type/step-definitions/": flowDefinition.steps,
   "https://hash.ai/@h/types/property-type/trigger-definition/": {
     "https://hash.ai/@h/types/property-type/trigger-definition-id/":
       flowDefinition.trigger.triggerDefinitionId,
-    "https://hash.ai/@h/types/property-type/output-definitions/":
-      flowDefinition.trigger.outputs,
+    "https://hash.ai/@h/types/property-type/output-definitions/": flowDefinition.trigger.outputs,
   },
 });
 
 export const mapFlowDefinitionEntityToFlowDefinition = (
   entity: HashEntity<FlowDefinitionEntity>,
 ): FlowDefinition<FlowActionDefinitionId> => {
-  const {
-    name,
-    description,
-    outputDefinitions,
-    stepDefinitions,
-    triggerDefinition,
-  } = simplifyProperties(entity.properties);
+  const { name, description, outputDefinitions, stepDefinitions, triggerDefinition } =
+    simplifyProperties(entity.properties);
 
   return {
     name,
     type: "ai",
     description,
-    flowDefinitionId: extractEntityUuidFromEntityId(
-      entity.metadata.recordId.entityId,
-    ),
-    outputs:
-      outputDefinitions as FlowDefinition<FlowActionDefinitionId>["outputs"],
+    flowDefinitionId: extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
+    outputs: outputDefinitions as FlowDefinition<FlowActionDefinitionId>["outputs"],
     steps: stepDefinitions as FlowDefinition<FlowActionDefinitionId>["steps"],
     trigger: {
       kind: "trigger",
       triggerDefinitionId:
-        triggerDefinition[
-          "https://hash.ai/@h/types/property-type/trigger-definition-id/"
-        ],
+        triggerDefinition["https://hash.ai/@h/types/property-type/trigger-definition-id/"],
       outputs: triggerDefinition[
         "https://hash.ai/@h/types/property-type/output-definitions/"
       ] as OutputDefinition<boolean>[],
@@ -77,22 +60,19 @@ export const mapFlowRunToEntityProperties = (
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
       value: flowRun.name,
       metadata: {
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
     "https://hash.ai/@h/types/property-type/flow-definition-id/": {
       value: flowRun.flowDefinitionId,
       metadata: {
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
     "https://hash.ai/@h/types/property-type/workflow-id/": {
       value: flowRun.temporalWorkflowId,
       metadata: {
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
     ...(flowRun.outputs
@@ -101,8 +81,7 @@ export const mapFlowRunToEntityProperties = (
             value: flowRun.outputs.map((output) => ({
               value: output,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
               },
             })),
           },
@@ -112,8 +91,7 @@ export const mapFlowRunToEntityProperties = (
       value: flowRun.steps.map((step) => ({
         value: step,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
         },
       })),
     },
@@ -122,8 +100,7 @@ export const mapFlowRunToEntityProperties = (
         "https://hash.ai/@h/types/property-type/trigger-definition-id/": {
           value: flowRun.trigger.triggerDefinitionId,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
         ...(flowRun.trigger.outputs
@@ -144,9 +121,7 @@ export const mapFlowRunToEntityProperties = (
   },
 });
 
-export const mapFlowEntityToFlow = (
-  entity: HashEntity<FlowRun>,
-): LocalFlowRun => {
+export const mapFlowEntityToFlow = (entity: HashEntity<FlowRun>): LocalFlowRun => {
   const {
     name,
     flowDefinitionId,

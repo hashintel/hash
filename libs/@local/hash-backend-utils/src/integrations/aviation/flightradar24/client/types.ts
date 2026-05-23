@@ -23,19 +23,7 @@ export type ErrorResponse = {
  * - O: Other
  * - N: Non-categorized
  */
-export type FlightCategory =
-  | "P"
-  | "C"
-  | "M"
-  | "J"
-  | "T"
-  | "H"
-  | "B"
-  | "G"
-  | "D"
-  | "V"
-  | "O"
-  | "N";
+export type FlightCategory = "P" | "C" | "M" | "J" | "T" | "H" | "B" | "G" | "D" | "V" | "O" | "N";
 
 /**
  * Request parameters for the flight-positions/light endpoint.

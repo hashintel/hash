@@ -19,18 +19,12 @@ import { StatusCode } from "@local/status";
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { createInferredEntityNotification } from "../shared/create-inferred-entity-notification.js";
-import {
-  findExistingEntity,
-  findExistingLinkEntity,
-} from "../shared/find-existing-entity.js";
+import { findExistingEntity, findExistingLinkEntity } from "../shared/find-existing-entity.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
 import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
-import {
-  getEntityUpdate,
-  getLatestEntityById,
-} from "./shared/graph-requests.js";
+import { getEntityUpdate, getLatestEntityById } from "./shared/graph-requests.js";
 
 import type { MatchedEntityUpdate } from "../shared/match-existing-entity.js";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
@@ -40,10 +34,7 @@ import type {
   PersistedEntityMetadata,
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type {
-  HasObject,
-  HasSubject,
-} from "@local/hash-isomorphic-utils/system-types/claim";
+import type { HasObject, HasSubject } from "@local/hash-isomorphic-utils/system-types/claim";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const fileEntityTypeIds: VersionedUrl[] = [
@@ -107,23 +98,17 @@ export const persistEntity = async ({
         graphApiClient,
         grantCreatePermissionForWeb: webId,
       })
-    : await getWebMachineId(
-        { graphApi: graphApiClient },
-        { actorId },
-        { webId },
-      ).then((maybeMachineId) => {
-        if (!maybeMachineId) {
-          throw new Error(
-            `Failed to get web bot account ID for web ID: ${webId}`,
-          );
-        }
-        return maybeMachineId;
-      });
+    : await getWebMachineId({ graphApi: graphApiClient }, { actorId }, { webId }).then(
+        (maybeMachineId) => {
+          if (!maybeMachineId) {
+            throw new Error(`Failed to get web bot account ID for web ID: ${webId}`);
+          }
+          return maybeMachineId;
+        },
+      );
 
   if (!webBotActorId) {
-    throw new Error(
-      `Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`,
-    );
+    throw new Error(`Could not get ${isAiGenerated ? "AI" : "web"} bot for web ${webId}`);
   }
 
   /**
@@ -212,14 +197,12 @@ export const persistEntity = async ({
               graphApiClient,
               { actorId: webBotActorId },
               {
-                entityTypeIds:
-                  stableReferenceToMatchedEntity.newValues.entityTypeIds,
+                entityTypeIds: stableReferenceToMatchedEntity.newValues.entityTypeIds,
                 draft: existingEntityIsDraft ? true : createEditionAsDraft,
                 propertyPatches: patchOperations,
                 provenance: {
                   ...entityValues.provenance,
-                  sources:
-                    stableReferenceToMatchedEntity.newValues.editionSources,
+                  sources: stableReferenceToMatchedEntity.newValues.editionSources,
                 },
               },
             ),
@@ -263,9 +246,7 @@ export const persistEntity = async ({
     operation,
   } satisfies PersistedEntityMetadata;
 
-  const createLinkFromClaimToEntity = async <
-    T extends "has-object" | "has-subject",
-  >(
+  const createLinkFromClaimToEntity = async <T extends "has-object" | "has-subject">(
     claimId: EntityId,
     linkType: T,
   ) => {
@@ -276,12 +257,9 @@ export const persistEntity = async ({
       includeDrafts: draft,
     });
 
-    const entityTypeId =
-      `https://hash.ai/@h/types/entity-type/${linkType}/v/1` as const;
+    const entityTypeId = `https://hash.ai/@h/types/entity-type/${linkType}/v/1` as const;
 
-    return HashLinkEntity.create<
-      T extends "has-subject" ? HasSubject : HasObject
-    >(
+    return HashLinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(
       graphApiClient,
       { actorId: webBotActorId },
       {
@@ -310,9 +288,7 @@ export const persistEntity = async ({
     ...claims.isSubjectOf.map(async (claimId) =>
       createLinkFromClaimToEntity(claimId, "has-subject"),
     ),
-    ...claims.isObjectOf.map(async (claimId) =>
-      createLinkFromClaimToEntity(claimId, "has-object"),
-    ),
+    ...claims.isObjectOf.map(async (claimId) => createLinkFromClaimToEntity(claimId, "has-object")),
   ]);
 
   logProgress([
@@ -352,9 +328,7 @@ export const persistEntity = async ({
 /**
  * Flow action activity that persists a single entity.
  */
-export const persistEntityAction: AiFlowActionActivity<
-  "persistEntity"
-> = async ({ inputs }) => {
+export const persistEntityAction: AiFlowActionActivity<"persistEntity"> = async ({ inputs }) => {
   const { draft, proposedEntityWithResolvedLinks: proposedEntityInput } =
     getSimplifiedAiFlowActionInputs({
       inputs,

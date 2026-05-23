@@ -7,18 +7,13 @@ import type { CompiledTsType } from "../shared.js";
 const removePlaceholderDefinitionInCompiledTsType = (
   compiledTsType: CompiledTsType,
 ): CompiledTsType =>
-  compiledTsType.replace(
-    new RegExp(`^.* = "${redundantTypePlaceholder}"$`, "gm"),
-    "",
-  );
+  compiledTsType.replace(new RegExp(`^.* = "${redundantTypePlaceholder}"$`, "gm"), "");
 
 /** Remove the "PLACEHOLDER" definitions left by the workaround of the `$ref` resolver in `compile` */
 export const removePlaceholderTypes = (context: CompileContext): void => {
   context.logDebug("Removing placeholder types");
 
-  for (const [typeId, compiledTsType] of typedEntries(
-    context.typeIdsToCompiledTypes,
-  )) {
+  for (const [typeId, compiledTsType] of typedEntries(context.typeIdsToCompiledTypes)) {
     context.typeIdsToCompiledTypes[typeId] =
       removePlaceholderDefinitionInCompiledTsType(compiledTsType);
   }

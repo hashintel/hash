@@ -1,10 +1,7 @@
 import { useMemo } from "react";
 
 import { typedKeys } from "@local/advanced-types/typed-entries";
-import {
-  generateChangedPropertyMetadataObject,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { generateChangedPropertyMetadataObject, HashEntity } from "@local/hash-graph-sdk/entity";
 
 import { useEntityEditor } from "../../../entity-editor-context";
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
@@ -18,12 +15,8 @@ import type {
 } from "@blockprotocol/type-system";
 
 export const usePropertyRowsFromEntity = (): PropertyRow[] => {
-  const {
-    entity,
-    closedMultiEntityType,
-    closedMultiEntityTypesDefinitions,
-    validationReport,
-  } = useEntityEditor();
+  const { entity, closedMultiEntityType, closedMultiEntityTypesDefinitions, validationReport } =
+    useEntityEditor();
 
   /**
    * Generate a new metadata object based on applying a patch to the previous version.
@@ -32,13 +25,10 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
    * before the editor is closed and before the Entity in state is updated. So we need to keep a record of changes to the metadata object,
    * which are reset when the entity in the context state is actually updated (after the editor is closed).
    */
-  const generateNewMetadataObject = useMemo<
-    PropertyRow["generateNewMetadataObject"]
-  >(() => {
+  const generateNewMetadataObject = useMemo<PropertyRow["generateNewMetadataObject"]>(() => {
     let basePropertiesMetadata = JSON.parse(
       JSON.stringify(
-        entity.metadata.properties ??
-          ({ value: {} } satisfies PropertyObjectMetadata),
+        entity.metadata.properties ?? ({ value: {} } satisfies PropertyObjectMetadata),
       ),
     );
 
@@ -77,35 +67,31 @@ export const usePropertyRowsFromEntity = (): PropertyRow[] => {
   return useMemo(() => {
     const processedPropertyTypes = new Set<BaseUrl>();
 
-    return typedKeys(closedMultiEntityType.properties).flatMap(
-      (propertyTypeBaseUrl) => {
-        if (processedPropertyTypes.has(propertyTypeBaseUrl as BaseUrl)) {
-          return [];
-        }
+    return typedKeys(closedMultiEntityType.properties).flatMap((propertyTypeBaseUrl) => {
+      if (processedPropertyTypes.has(propertyTypeBaseUrl as BaseUrl)) {
+        return [];
+      }
 
-        const propertyRefSchema =
-          closedMultiEntityType.properties[propertyTypeBaseUrl];
+      const propertyRefSchema = closedMultiEntityType.properties[propertyTypeBaseUrl];
 
-        if (!propertyRefSchema) {
-          throw new Error(`Property ${propertyTypeBaseUrl} not found`);
-        }
+      if (!propertyRefSchema) {
+        throw new Error(`Property ${propertyTypeBaseUrl} not found`);
+      }
 
-        processedPropertyTypes.add(propertyTypeBaseUrl as BaseUrl);
+      processedPropertyTypes.add(propertyTypeBaseUrl as BaseUrl);
 
-        return generatePropertyRowRecursively({
-          closedMultiEntityType,
-          closedMultiEntityTypesDefinitions,
-          generateNewMetadataObject,
-          propertyTypeBaseUrl: propertyTypeBaseUrl as BaseUrl,
-          propertyKeyChain: [propertyTypeBaseUrl as BaseUrl],
-          entity,
-          requiredPropertyTypes:
-            (closedMultiEntityType.required as BaseUrl[] | undefined) ?? [],
-          propertyRefSchema,
-          validationReport,
-        });
-      },
-    );
+      return generatePropertyRowRecursively({
+        closedMultiEntityType,
+        closedMultiEntityTypesDefinitions,
+        generateNewMetadataObject,
+        propertyTypeBaseUrl: propertyTypeBaseUrl as BaseUrl,
+        propertyKeyChain: [propertyTypeBaseUrl as BaseUrl],
+        entity,
+        requiredPropertyTypes: (closedMultiEntityType.required as BaseUrl[] | undefined) ?? [],
+        propertyRefSchema,
+        validationReport,
+      });
+    });
   }, [
     entity,
     closedMultiEntityType,

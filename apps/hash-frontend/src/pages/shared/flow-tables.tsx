@@ -1,11 +1,6 @@
 import { Stack, type SxProps, type Theme, Typography } from "@mui/material";
 
-import {
-  Avatar,
-  CheckIcon,
-  CloseIcon,
-  PersonRunningRegularIcon,
-} from "@hashintel/design-system";
+import { Avatar, CheckIcon, CloseIcon, PersonRunningRegularIcon } from "@hashintel/design-system";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
 import { Link } from "../../shared/ui/link";
@@ -76,15 +71,9 @@ export const FlowTableWebChip = ({
   </Link>
 );
 
-export type SimpleFlowRunStatus =
-  | "Running"
-  | "Completed"
-  | "Abandoned"
-  | "Errored";
+export type SimpleFlowRunStatus = "Running" | "Completed" | "Abandoned" | "Errored";
 
-export const flowRunStatusToStatusText = (
-  status: FlowRun["status"],
-): SimpleFlowRunStatus => {
+export const flowRunStatusToStatusText = (status: FlowRun["status"]): SimpleFlowRunStatus => {
   switch (status) {
     case FlowRunStatus.Running:
     case FlowRunStatus.ContinuedAsNew:
@@ -138,10 +127,7 @@ const statusIcon: Record<SimpleFlowRunStatus, ReactElement> = {
   ),
 };
 
-export const FlowTableChip = ({
-  children,
-  sx,
-}: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
+export const FlowTableChip = ({ children, sx }: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
   <Stack
     direction="row"
     alignItems="center"

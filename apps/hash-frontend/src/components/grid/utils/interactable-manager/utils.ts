@@ -5,24 +5,17 @@ import type {
   CursorPos,
   InteractablePosition,
 } from "./types";
-import type {
-  CustomCell,
-  DrawArgs,
-  Rectangle,
-} from "@glideapps/glide-data-grid";
+import type { CustomCell, DrawArgs, Rectangle } from "@glideapps/glide-data-grid";
 
-export const isPathCellPath = (
-  path: CellPath | ColumnHeaderPath,
-): path is CellPath => path.split("-").length === 3;
+export const isPathCellPath = (path: CellPath | ColumnHeaderPath): path is CellPath =>
+  path.split("-").length === 3;
 
 export const drawArgsToCellPath = (args: DrawArgs<CustomCell>): CellPath => {
   const { tableId, col, row } = args;
   return `${tableId}-${col}-${row}`;
 };
 
-export const drawArgsToColumnHeaderPath = (
-  args: ColumnHeaderDrawArgs,
-): ColumnHeaderPath => {
+export const drawArgsToColumnHeaderPath = (args: ColumnHeaderDrawArgs): ColumnHeaderPath => {
   const { tableId, columnIndex } = args;
   return `${tableId}-${columnIndex}`;
 };
@@ -31,9 +24,7 @@ export const splitPath = (path: CellPath) => {
   const [tableId, colIndex, rowIndex] = path.split("-");
 
   if (!tableId || !colIndex || !rowIndex) {
-    throw new Error(
-      `CellPath should have '{tableId}-{colIndex}-{rowIndex}' format`,
-    );
+    throw new Error(`CellPath should have '{tableId}-{colIndex}-{rowIndex}' format`);
   }
 
   return {
@@ -56,8 +47,7 @@ export const isCursorOnInteractable = (
   const cursorX = cursorPos.posX;
   const cursorY = cursorPos.posY;
 
-  const hovered =
-    cursorX > left && cursorX < right && cursorY < bottom && cursorY > top;
+  const hovered = cursorX > left && cursorX < right && cursorY < bottom && cursorY > top;
 
   return hovered;
 };

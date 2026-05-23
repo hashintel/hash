@@ -28,14 +28,9 @@ export const WorkingContents = () => {
           <Box sx={{ mb: 1.5, width: "100%" }}>
             <HashLockup />
           </Box>
-          <Typography
-            sx={{ fontSize: 34, color: ({ palette }) => palette.gray[70] }}
-          >
+          <Typography sx={{ fontSize: 34, color: ({ palette }) => palette.gray[70] }}>
             Your{" "}
-            <Typography
-              component="span"
-              sx={{ color: ({ palette }) => palette.common.black }}
-            >
+            <Typography component="span" sx={{ color: ({ palette }) => palette.common.black }}>
               HASH for {browserName}
             </Typography>{" "}
             agent is conducting research in this window
@@ -66,8 +61,8 @@ export const WorkingContents = () => {
                   my: 2,
                 }}
               >
-                The HASH browser extension is visiting web pages according to
-                your research goal, and will tidy up afterwards.
+                The HASH browser extension is visiting web pages according to your research goal,
+                and will tidy up afterwards.
               </Typography>
               <Box>
                 <Link

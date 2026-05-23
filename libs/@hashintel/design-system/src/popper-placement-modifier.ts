@@ -20,9 +20,7 @@ export const setPopperPlacementAttribute = (
   node.setAttribute(popperPositionDataAttribute, placement);
 };
 
-export const addPopperPositionClassPopperModifier: NonNullable<
-  PopperProps["modifiers"]
->[number] = {
+export const addPopperPositionClassPopperModifier: NonNullable<PopperProps["modifiers"]>[number] = {
   name: "addPositionSelector",
   enabled: true,
   phase: "write",

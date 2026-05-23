@@ -29,10 +29,7 @@ const options: SegmentOption[] = [
   },
 ];
 
-export const ModeSelector: React.FC<ModeSelectorProps> = ({
-  mode,
-  onChange,
-}) => {
+export const ModeSelector: React.FC<ModeSelectorProps> = ({ mode, onChange }) => {
   return (
     <SegmentGroup
       value={mode}

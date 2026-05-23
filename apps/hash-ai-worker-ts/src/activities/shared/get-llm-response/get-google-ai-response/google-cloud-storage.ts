@@ -26,9 +26,7 @@ export const generateStoragePathFromHashFileStorageKey = ({
   hashFileStorageKey: string;
 }): string => {
   if (!storageBucket) {
-    throw new Error(
-      "GOOGLE_CLOUD_STORAGE_BUCKET environment variable is not set",
-    );
+    throw new Error("GOOGLE_CLOUD_STORAGE_BUCKET environment variable is not set");
   }
 
   return `gs://${storageBucket}/${hashFileStorageKey}`;
@@ -42,9 +40,7 @@ const getHashFileStorageKeyFromGcpStorageUri = ({
   const hashFileStorageKey = gcpStorageUri.split("/").pop();
 
   if (!hashFileStorageKey) {
-    throw new Error(
-      `Hash file storage key not found in storage path ${gcpStorageUri}`,
-    );
+    throw new Error(`Hash file storage key not found in storage path ${gcpStorageUri}`);
   }
 
   return hashFileStorageKey;
@@ -63,15 +59,12 @@ export const getFileEntityFromGcpStorageUri = ({
 
   const fileEntity = fileEntities.find(
     (entity) =>
-      entity.properties[
-        "https://hash.ai/@h/types/property-type/file-storage-key/"
-      ] === hashFileStorageKey,
+      entity.properties["https://hash.ai/@h/types/property-type/file-storage-key/"] ===
+      hashFileStorageKey,
   );
 
   if (!fileEntity) {
-    throw new Error(
-      `File entity not found for storage key ${hashFileStorageKey}`,
-    );
+    throw new Error(`File entity not found for storage key ${hashFileStorageKey}`);
   }
 
   return fileEntity;
@@ -87,20 +80,14 @@ export const uploadFileToGcpStorage = async ({
   const storage = getGoogleCloudStorage();
 
   if (!storageBucket) {
-    throw new Error(
-      "GOOGLE_CLOUD_STORAGE_BUCKET environment variable is not set",
-    );
+    throw new Error("GOOGLE_CLOUD_STORAGE_BUCKET environment variable is not set");
   }
 
   const hashFileStorageKey =
-    fileEntity.properties[
-      "https://hash.ai/@h/types/property-type/file-storage-key/"
-    ];
+    fileEntity.properties["https://hash.ai/@h/types/property-type/file-storage-key/"];
 
   if (!hashFileStorageKey) {
-    throw new Error(
-      `File entity ${fileEntity.entityId} has no file storage key`,
-    );
+    throw new Error(`File entity ${fileEntity.entityId} has no file storage key`);
   }
 
   const cloudStorageFilePath = generateStoragePathFromHashFileStorageKey({

@@ -12,10 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import type {
-  FilterSectionDefinition,
-  MultipleChoiceFilterSectionDefinition,
-} from "./types";
+import type { FilterSectionDefinition, MultipleChoiceFilterSectionDefinition } from "./types";
 import type { FunctionComponent, ReactNode } from "react";
 
 const CheckboxFilter: FunctionComponent<{
@@ -26,8 +23,7 @@ const CheckboxFilter: FunctionComponent<{
   <FormControlLabel
     sx={{
       borderRadius: 16,
-      color: ({ palette }) =>
-        checked ? palette.common.black : palette.gray[70],
+      color: ({ palette }) => (checked ? palette.common.black : palette.gray[70]),
       marginX: 0,
       flexShrink: 0,
       gap: 2,
@@ -42,8 +38,7 @@ const CheckboxFilter: FunctionComponent<{
           marginRight: 1.25,
         },
       },
-      transition: ({ transitions }) =>
-        transitions.create(["background", "color"]),
+      transition: ({ transitions }) => transitions.create(["background", "color"]),
       "&:hover": {
         background: ({ palette }) => palette.gray[10],
         color: ({ palette }) => palette.gray[90],
@@ -101,8 +96,7 @@ const selectAllSwitchHeight = 12;
 
 const selectAllSwitchGutter = 1.5;
 
-const selectAllSwitchThumbSize =
-  selectAllSwitchHeight - selectAllSwitchGutter * 2;
+const selectAllSwitchThumbSize = selectAllSwitchHeight - selectAllSwitchGutter * 2;
 
 const calculateSwitchTranslateDistance = (params: {
   width: number;
@@ -135,9 +129,7 @@ const SelectAllSwitch = styled(Switch)(() => ({
 const MultipleChoiceOptions: FunctionComponent<{
   filterSection: MultipleChoiceFilterSectionDefinition;
 }> = ({ filterSection }) => {
-  const allOptionsAreChecked = filterSection.options.every(
-    ({ checked }) => checked,
-  );
+  const allOptionsAreChecked = filterSection.options.every(({ checked }) => checked);
 
   return (
     <>
@@ -153,9 +145,7 @@ const MultipleChoiceOptions: FunctionComponent<{
             checked={filterSection.options.every(({ checked }) => checked)}
             onChange={() =>
               filterSection.onChange(
-                allOptionsAreChecked
-                  ? []
-                  : filterSection.options.map(({ value }) => value),
+                allOptionsAreChecked ? [] : filterSection.options.map(({ value }) => value),
               )
             }
           />
@@ -166,14 +156,7 @@ const MultipleChoiceOptions: FunctionComponent<{
         {filterSection.options.map(({ icon, label, value, checked, count }) => (
           <CheckboxFilter
             key={value}
-            label={
-              <FilterOptionLabel
-                icon={icon}
-                selected={checked}
-                label={label}
-                count={count}
-              />
-            }
+            label={<FilterOptionLabel icon={icon} selected={checked} label={label} count={count} />}
             checked={checked}
             onChange={(updatedChecked) => {
               const previousCheckedValues = filterSection.options
@@ -183,9 +166,7 @@ const MultipleChoiceOptions: FunctionComponent<{
               filterSection.onChange(
                 updatedChecked
                   ? [...previousCheckedValues, value]
-                  : previousCheckedValues.filter(
-                      (previousValue) => previousValue !== value,
-                    ),
+                  : previousCheckedValues.filter((previousValue) => previousValue !== value),
               );
             }}
           />
@@ -217,18 +198,12 @@ export const FilterSection: FunctionComponent<{
                 value={value}
                 control={<Radio />}
                 label={
-                  <FilterOptionLabel
-                    icon={icon}
-                    selected={selected}
-                    label={label}
-                    count={count}
-                  />
+                  <FilterOptionLabel icon={icon} selected={selected} label={label} count={count} />
                 }
                 sx={{
                   marginX: 0,
                   marginBottom: 1,
-                  color: ({ palette }) =>
-                    selected ? palette.common.black : palette.gray[70],
+                  color: ({ palette }) => (selected ? palette.common.black : palette.gray[70]),
                   [`.${formControlLabelClasses.label}`]: {
                     display: "flex",
                     alignItems: "center",

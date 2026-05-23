@@ -1,9 +1,6 @@
 import { useCallback } from "react";
 
-import {
-  getEntityTypeById,
-  getPropertyTypeById,
-} from "@blockprotocol/graph/stdlib";
+import { getEntityTypeById, getPropertyTypeById } from "@blockprotocol/graph/stdlib";
 import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
 
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
@@ -24,17 +21,11 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import type {
-  EditorOntologyFunctions,
-  EntityTypeEditorProps,
-} from "@hashintel/type-editor";
+import type { EditorOntologyFunctions, EntityTypeEditorProps } from "@hashintel/type-editor";
 
 export const useEditorOntologyFunctions = (
   webId: WebId | null,
-  typesWithMetadata: Record<
-    VersionedUrl,
-    EntityTypeWithMetadata | PropertyTypeWithMetadata
-  >,
+  typesWithMetadata: Record<VersionedUrl, EntityTypeWithMetadata | PropertyTypeWithMetadata>,
 ): EntityTypeEditorProps["ontologyFunctions"] => {
   const { authenticatedUser } = useAuthInfo();
 
@@ -49,9 +40,7 @@ export const useEditorOntologyFunctions = (
   const refetchEntityTypes = useFetchEntityTypes();
   const refetchPropertyTypes = useRefetchPropertyTypes();
 
-  const wrappedCreateEntityType = useCallback<
-    EditorOntologyFunctions["createEntityType"]
-  >(
+  const wrappedCreateEntityType = useCallback<EditorOntologyFunctions["createEntityType"]>(
     (args) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return createEntityType(args as any).then(async (res) => {
@@ -62,9 +51,7 @@ export const useEditorOntologyFunctions = (
     [createEntityType, refetchEntityTypes],
   );
 
-  const wrappedUpdateEntityType = useCallback<
-    EditorOntologyFunctions["updateEntityType"]
-  >(
+  const wrappedUpdateEntityType = useCallback<EditorOntologyFunctions["updateEntityType"]>(
     (args) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return updateEntityType(args as any).then(async (res) => {
@@ -75,9 +62,7 @@ export const useEditorOntologyFunctions = (
     [updateEntityType, refetchEntityTypes],
   );
 
-  const wrappedCreatePropertyType = useCallback<
-    EditorOntologyFunctions["createPropertyType"]
-  >(
+  const wrappedCreatePropertyType = useCallback<EditorOntologyFunctions["createPropertyType"]>(
     (args) => {
       return createPropertyType(args).then(async (res) => {
         await refetchPropertyTypes();
@@ -87,9 +72,7 @@ export const useEditorOntologyFunctions = (
     [createPropertyType, refetchPropertyTypes],
   );
 
-  const wrappedUpdatePropertyType = useCallback<
-    EditorOntologyFunctions["updatePropertyType"]
-  >(
+  const wrappedUpdatePropertyType = useCallback<EditorOntologyFunctions["updatePropertyType"]>(
     (args) => {
       return updatePropertyType(args).then(async (res) => {
         await refetchPropertyTypes();
@@ -128,9 +111,7 @@ export const useEditorOntologyFunctions = (
       if (typeIsPresent) {
         return {
           allowed: false,
-          message: `${
-            kind === "entity-type" ? "Entity" : "Property"
-          } title must be unique`,
+          message: `${kind === "entity-type" ? "Entity" : "Property"} title must be unique`,
         };
       }
 
@@ -142,9 +123,7 @@ export const useEditorOntologyFunctions = (
     [generateTypeUrlsForUser, getEntityType, getPropertyType],
   );
 
-  const canEditResource = useCallback<
-    EditorOntologyFunctions["canEditResource"]
-  >(
+  const canEditResource = useCallback<EditorOntologyFunctions["canEditResource"]>(
     ({ kind, resource }) => {
       if (!authenticatedUser?.accountSignupComplete) {
         return {
@@ -157,12 +136,9 @@ export const useEditorOntologyFunctions = (
 
       const resourceMetadata = typesWithMetadata[resource.$id]?.metadata;
       const resourceAccountId =
-        resourceMetadata &&
-        "webId" in resourceMetadata &&
-        resourceMetadata.webId;
+        resourceMetadata && "webId" in resourceMetadata && resourceMetadata.webId;
 
-      return resourceAccountId &&
-        canUserEditType(resourceAccountId, authenticatedUser)
+      return resourceAccountId && canUserEditType(resourceAccountId, authenticatedUser)
         ? {
             allowed: true,
             message: "ok",

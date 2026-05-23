@@ -11,18 +11,12 @@ export type PopupUserContextType = {
   user: LocalStorage["user"] | null;
 };
 
-export const PopupUserContext = createContext<PopupUserContextType | null>(
-  null,
-);
+export const PopupUserContext = createContext<PopupUserContextType | null>(null);
 
 export const PopupUserContextProvider = ({ children }: PropsWithChildren) => {
   const value = useUserValue();
 
-  return (
-    <PopupUserContext.Provider value={value}>
-      {children}
-    </PopupUserContext.Provider>
-  );
+  return <PopupUserContext.Provider value={value}>{children}</PopupUserContext.Provider>;
 };
 
 export const useUserContext = () => {

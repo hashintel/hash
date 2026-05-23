@@ -1,8 +1,4 @@
-import type {
-  EntityRootType,
-  QueryTemporalAxesUnresolved,
-  Subgraph,
-} from "../types.js";
+import type { EntityRootType, QueryTemporalAxesUnresolved, Subgraph } from "../types.js";
 import type { GraphResolveDepths } from "./subgraph/graph-resolve-depths.js";
 import type {
   Entity,
@@ -20,9 +16,7 @@ import type {
 // used in a direct lookup and not a search in the vertices
 export type EntityRevisionId = Timestamp;
 
-export const isEntityRecordId = (
-  recordId: unknown,
-): recordId is EntityRecordId => {
+export const isEntityRecordId = (recordId: unknown): recordId is EntityRecordId => {
   return (
     recordId != null &&
     typeof recordId === "object" &&
@@ -69,9 +63,7 @@ export type DeleteEntityData = {
   entityId: EntityId;
 };
 
-export type FilterOperatorType =
-  | FilterOperatorRequiringValue
-  | FilterOperatorWithoutValue;
+export type FilterOperatorType = FilterOperatorRequiringValue | FilterOperatorWithoutValue;
 
 export type FilterOperatorWithoutValue = "IS_DEFINED" | "IS_NOT_DEFINED";
 
@@ -137,8 +129,5 @@ type BeforeTrailingLast<
  * @todo remove this if we settle on a pattern that doesn't benefit from it
  */
 export type SimpleProperties<Properties extends PropertyObject> = {
-  [Key in keyof Properties as BeforeTrailingLast<
-    Extract<Key, string>,
-    "/"
-  >]: Properties[Key];
+  [Key in keyof Properties as BeforeTrailingLast<Extract<Key, string>, "/">]: Properties[Key];
 };

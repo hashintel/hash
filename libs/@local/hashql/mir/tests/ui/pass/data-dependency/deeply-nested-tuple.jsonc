@@ -7,12 +7,7 @@
     "let",
     "value",
     { "#literal": 42 },
-    [
-      "let",
-      "nested",
-      { "#tuple": [{ "#tuple": [{ "#tuple": ["value"] }] }] },
-      "nested.0.0.0"
-    ]
+    ["let", "nested", { "#tuple": [{ "#tuple": [{ "#tuple": ["value"] }] }] }, "nested.0.0.0"]
   ],
   { "#literal": 0 }
 ]

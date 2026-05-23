@@ -3,10 +3,7 @@ import { SvgIcon } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const EyeSolidIcon: FunctionComponent<SvgIconProps> = ({
-  sx,
-  ...props
-}) => {
+export const EyeSolidIcon: FunctionComponent<SvgIconProps> = ({ sx, ...props }) => {
   return (
     <SvgIcon
       width="576"

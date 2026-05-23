@@ -1,20 +1,8 @@
 import { useMutation } from "@apollo/client";
-import {
-  Box,
-  Stack,
-  TableCell as MuiTableCell,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Stack, TableCell as MuiTableCell, Tooltip, Typography } from "@mui/material";
 import { memo, useCallback, useMemo, useState } from "react";
 
-import {
-  Chip,
-  IconButton,
-  PlaySolidIcon,
-  Skeleton,
-  StopSolidIcon,
-} from "@hashintel/design-system";
+import { Chip, IconButton, PlaySolidIcon, Skeleton, StopSolidIcon } from "@hashintel/design-system";
 
 import {
   archiveFlowScheduleMutation,
@@ -26,10 +14,7 @@ import { flowTableCellSx, flowTableRowHeight } from "../shared/flow-tables";
 import { useFlowSchedules } from "../shared/use-flow-schedules";
 import { VirtualizedTable } from "../shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "../shared/virtualized-table/header";
-import {
-  PlaceholderContainer,
-  placeholderHeight,
-} from "./shared/table-placeholder";
+import { PlaceholderContainer, placeholderHeight } from "./shared/table-placeholder";
 
 import type {
   ArchiveFlowScheduleMutation,
@@ -112,9 +97,7 @@ const ScheduleRow = memo(
             {schedule.properties.name}
           </Typography>
         </MuiTableCell>
-        <MuiTableCell
-          sx={{ ...flowTableCellSx, fontSize: 12, fontFamily: "monospace" }}
-        >
+        <MuiTableCell sx={{ ...flowTableCellSx, fontSize: 12, fontFamily: "monospace" }}>
           {intervalText}
         </MuiTableCell>
         <MuiTableCell sx={flowTableCellSx}>
@@ -122,10 +105,8 @@ const ScheduleRow = memo(
             label={isActive ? "Active" : "Paused"}
             size="small"
             sx={{
-              backgroundColor: ({ palette }) =>
-                isActive ? palette.green[20] : palette.gray[20],
-              color: ({ palette }) =>
-                isActive ? palette.green[80] : palette.gray[70],
+              backgroundColor: ({ palette }) => (isActive ? palette.green[20] : palette.gray[20]),
+              color: ({ palette }) => (isActive ? palette.green[80] : palette.gray[70]),
               fontWeight: 600,
               fontSize: 11,
             }}
@@ -163,9 +144,7 @@ const ScheduleRow = memo(
                 size="small"
                 sx={{ p: 0.5 }}
               >
-                <TrashRegularIcon
-                  sx={{ fontSize: 16, color: ({ palette }) => palette.red[50] }}
-                />
+                <TrashRegularIcon sx={{ fontSize: 16, color: ({ palette }) => palette.red[50] }} />
               </IconButton>
             </Tooltip>
           </Stack>
@@ -177,11 +156,7 @@ const ScheduleRow = memo(
 
 const EmptyComponent = ({ columnCount }: { columnCount: number }) => (
   <PlaceholderContainer columnCount={columnCount}>
-    <Stack
-      alignItems="center"
-      justifyContent="center"
-      sx={{ fontSize: 14, height: "100%" }}
-    >
+    <Stack alignItems="center" justifyContent="center" sx={{ fontSize: 14, height: "100%" }}>
       No schedules yet
     </Stack>
   </PlaceholderContainer>
@@ -251,26 +226,24 @@ export const FlowSchedulesTable = () => {
   };
 
   const rows = useMemo<VirtualizedTableRow<ScheduleRowData>[]>(() => {
-    const rowData = Array.from(schedulesByEntityUuid.values()).map(
-      (schedule) => {
-        let intervalText = "Unknown";
-        const scheduleSpec = schedule.properties.scheduleSpec as ScheduleSpec;
+    const rowData = Array.from(schedulesByEntityUuid.values()).map((schedule) => {
+      let intervalText = "Unknown";
+      const scheduleSpec = schedule.properties.scheduleSpec as ScheduleSpec;
 
-        if (scheduleSpec.type === "interval") {
-          intervalText = formatIntervalMs(scheduleSpec.intervalMs);
-        } else {
-          intervalText = `Cron: ${scheduleSpec.cronExpression}`;
-        }
+      if (scheduleSpec.type === "interval") {
+        intervalText = formatIntervalMs(scheduleSpec.intervalMs);
+      } else {
+        intervalText = `Cron: ${scheduleSpec.cronExpression}`;
+      }
 
-        return {
-          id: schedule.metadata.recordId.entityId,
-          data: {
-            schedule,
-            intervalText,
-          },
-        };
-      },
-    );
+      return {
+        id: schedule.metadata.recordId.entityId,
+        data: {
+          schedule,
+          intervalText,
+        },
+      };
+    });
 
     return rowData.sort((a, b) => {
       const field = sort.fieldId;
@@ -278,9 +251,7 @@ export const FlowSchedulesTable = () => {
 
       if (field === "name") {
         return (
-          a.data.schedule.properties.name.localeCompare(
-            b.data.schedule.properties.name,
-          ) * direction
+          a.data.schedule.properties.name.localeCompare(b.data.schedule.properties.name) * direction
         );
       }
 
@@ -305,9 +276,7 @@ export const FlowSchedulesTable = () => {
       onPause={handlePause}
       onResume={handleResume}
       onArchive={handleArchive}
-      isPending={
-        pendingEntityId === rowData.schedule.metadata.recordId.entityId
-      }
+      isPending={pendingEntityId === rowData.schedule.metadata.recordId.entityId}
     />
   );
 
@@ -318,10 +287,7 @@ export const FlowSchedulesTable = () => {
       (rows.length ? rows.length * flowTableRowHeight : placeholderHeight),
   );
 
-  const EmptyPlaceholder = useCallback(
-    () => <EmptyComponent columnCount={columns.length} />,
-    [],
-  );
+  const EmptyPlaceholder = useCallback(() => <EmptyComponent columnCount={columns.length} />, []);
 
   const LoadingPlaceholder = useCallback(
     () => <LoadingComponent columnCount={columns.length} />,

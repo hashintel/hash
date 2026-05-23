@@ -1,11 +1,4 @@
-import {
-  Box,
-  Stack,
-  type SxProps,
-  TableCell,
-  type Theme,
-  Typography,
-} from "@mui/material";
+import { Box, Stack, type SxProps, TableCell, type Theme, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
 import { IconButton } from "@hashintel/design-system";
@@ -44,10 +37,7 @@ export const NoValueCell = ({
 }) => {
   if (!researchOngoing) {
     return (
-      <TableCell
-        key={columnId}
-        sx={{ ...cellSx, color: ({ palette }) => palette.gray[50] }}
-      >
+      <TableCell key={columnId} sx={{ ...cellSx, color: ({ palette }) => palette.gray[50] }}>
         –
       </TableCell>
     );

@@ -4,8 +4,9 @@ import type { PropertyObject } from "@blockprotocol/type-system";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const getFileProperties = (properties: PropertyObject) => {
-  const { description, displayName, fileUrl, fileName, mimeType, fileSize } =
-    simplifyProperties(properties as FileProperties);
+  const { description, displayName, fileUrl, fileName, mimeType, fileSize } = simplifyProperties(
+    properties as FileProperties,
+  );
 
   const isImage = mimeType?.startsWith("image/") ?? null;
 

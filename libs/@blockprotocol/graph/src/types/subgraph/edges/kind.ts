@@ -6,10 +6,7 @@ const ONTOLOGY_EDGE_KINDS = [
   "CONSTRAINS_LINK_DESTINATIONS_ON",
 ] as const;
 
-const KNOWLEDGE_GRAPH_EDGE_KIND = [
-  "HAS_LEFT_ENTITY",
-  "HAS_RIGHT_ENTITY",
-] as const;
+const KNOWLEDGE_GRAPH_EDGE_KIND = ["HAS_LEFT_ENTITY", "HAS_RIGHT_ENTITY"] as const;
 
 const SHARED_EDGE_KIND = ["IS_OF_TYPE"] as const;
 
@@ -25,9 +22,7 @@ export const isOntologyEdgeKind = (kind: string): kind is OntologyEdgeKind => {
   return (ONTOLOGY_EDGE_KINDS as ReadonlyArray<string>).includes(kind);
 };
 
-export const isKnowledgeGraphEdgeKind = (
-  kind: string,
-): kind is KnowledgeGraphEdgeKind => {
+export const isKnowledgeGraphEdgeKind = (kind: string): kind is KnowledgeGraphEdgeKind => {
   return (KNOWLEDGE_GRAPH_EDGE_KIND as ReadonlyArray<string>).includes(kind);
 };
 

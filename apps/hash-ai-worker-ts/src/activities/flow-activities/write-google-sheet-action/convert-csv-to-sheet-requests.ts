@@ -32,9 +32,7 @@ export const convertCsvToSheetRequests = ({
       skipEmptyLines: "greedy", // ignore empty lines, whitespace counts as empty
     });
   } catch (err) {
-    throw new Error(
-      `Could not parse csvString content: ${(err as Error).message}`,
-    );
+    throw new Error(`Could not parse csvString content: ${(err as Error).message}`);
   }
 
   const data = parsedCsv.data;

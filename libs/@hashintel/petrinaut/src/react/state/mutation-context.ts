@@ -41,6 +41,4 @@ const DEFAULT_CONTEXT_VALUE: MutationContextValue = {
   commitNodePositions: () => {},
 };
 
-export const MutationContext = createContext<MutationContextValue>(
-  DEFAULT_CONTEXT_VALUE,
-);
+export const MutationContext = createContext<MutationContextValue>(DEFAULT_CONTEXT_VALUE);

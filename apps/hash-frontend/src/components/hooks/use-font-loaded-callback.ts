@@ -3,10 +3,7 @@ import useFontFaceObserver from "use-font-face-observer";
 
 import type { FontFace } from "use-font-face-observer";
 
-export const useFontLoadedCallback = (
-  fontList: FontFace[],
-  callback?: () => void,
-) => {
+export const useFontLoadedCallback = (fontList: FontFace[], callback?: () => void) => {
   const isFontListLoaded = useFontFaceObserver(fontList);
 
   useLayoutEffect(() => {

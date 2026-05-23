@@ -16,23 +16,11 @@ import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 import { logger } from "./activity-logger.js";
 import { dereferenceEntityType } from "./dereference-entity-type.js";
 import { createEntityEmbeddings } from "./embeddings.js";
-import {
-  type MatchedEntityUpdate,
-  matchExistingEntity,
-} from "./match-existing-entity.js";
+import { type MatchedEntityUpdate, matchExistingEntity } from "./match-existing-entity.js";
 
 import type { DereferencedEntityType } from "./dereference-entity-type.js";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  LinkData,
-  WebId,
-} from "@blockprotocol/type-system";
-import type {
-  AllFilter,
-  CosineDistanceFilter,
-  GraphApi,
-} from "@local/hash-graph-client";
+import type { ActorEntityUuid, BaseUrl, LinkData, WebId } from "@blockprotocol/type-system";
+import type { AllFilter, CosineDistanceFilter, GraphApi } from "@local/hash-graph-client";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 export const findExistingEntity = async ({
@@ -99,14 +87,8 @@ export const findExistingEntity = async ({
     entityProperties: proposedEntity.properties,
     propertyTypes: entityTypes.flatMap((entityType) =>
       Object.values(entityType.properties).map((propertySchema) => ({
-        title:
-          "items" in propertySchema
-            ? propertySchema.items.title
-            : propertySchema.title,
-        $id:
-          "items" in propertySchema
-            ? propertySchema.items.$id
-            : propertySchema.$id,
+        title: "items" in propertySchema ? propertySchema.items.title : propertySchema.title,
+        $id: "items" in propertySchema ? propertySchema.items.$id : propertySchema.$id,
       })),
     ),
   });
@@ -156,9 +138,7 @@ export const findExistingEntity = async ({
   )) {
     if (
       nameProperties.includes(
-        "items" in schema
-          ? schema.items.title.toLowerCase()
-          : schema.title.toLowerCase(),
+        "items" in schema ? schema.items.title.toLowerCase() : schema.title.toLowerCase(),
       ) &&
       proposedEntity.properties[key]
     ) {
@@ -187,9 +167,7 @@ export const findExistingEntity = async ({
         ],
       };
     } else {
-      logger.error(
-        `Could not find embedding for property ${firstPropertyBaseUrl} – skipping`,
-      );
+      logger.error(`Could not find embedding for property ${firstPropertyBaseUrl} – skipping`);
     }
   }
 
@@ -207,16 +185,12 @@ export const findExistingEntity = async ({
         includeDrafts,
         includePermissions: false,
       },
-    ).then(({ entities }) =>
-      entities.slice(0, 3).map((entity) => new HashEntity(entity)),
-    );
+    ).then(({ entities }) => entities.slice(0, 3).map((entity) => new HashEntity(entity)));
   }
 
   if (!potentialMatches?.length) {
     // If we didn't find a match on individual properties, try matching on the entire properties object
-    const propertyObjectEmbedding = embeddings.find(
-      (embedding) => !embedding.property,
-    );
+    const propertyObjectEmbedding = embeddings.find((embedding) => !embedding.property);
 
     if (!propertyObjectEmbedding) {
       logger.error(`Could not find embedding for properties object – skipping`);
@@ -243,9 +217,7 @@ export const findExistingEntity = async ({
           includeDrafts,
           includePermissions: false,
         },
-      ).then(({ entities }) =>
-        entities.slice(0, 3).map((entity) => new HashEntity(entity)),
-      );
+      ).then(({ entities }) => entities.slice(0, 3).map((entity) => new HashEntity(entity)));
     }
   }
 
@@ -295,10 +267,7 @@ export const findExistingLinkEntity = async ({
           { equal: [{ path: ["archived"] }, { parameter: false }] },
           {
             any: proposedEntity.entityTypeIds.map((entityTypeId) => ({
-              equal: [
-                { path: ["type", "versionedUrl"] },
-                { parameter: entityTypeId },
-              ],
+              equal: [{ path: ["type", "versionedUrl"] }, { parameter: entityTypeId }],
             })),
           },
           {
@@ -345,9 +314,7 @@ export const findExistingLinkEntity = async ({
                 path: ["rightEntity", "uuid"],
               },
               {
-                parameter: extractEntityUuidFromEntityId(
-                  linkData.rightEntityId,
-                ),
+                parameter: extractEntityUuidFromEntityId(linkData.rightEntityId),
               },
             ],
           },
@@ -363,8 +330,7 @@ export const findExistingLinkEntity = async ({
     return null;
   }
 
-  const newInputHasNoProperties =
-    Object.keys(proposedEntity.properties).length === 0;
+  const newInputHasNoProperties = Object.keys(proposedEntity.properties).length === 0;
 
   if (newInputHasNoProperties) {
     const newInputTypeSet = new Set(proposedEntity.entityTypeIds);
@@ -374,20 +340,18 @@ export const findExistingLinkEntity = async ({
      * If we find it, we will take it as a match, on the basis that the only meaningful information present (types) matches.
      * We'll merge the sources listed for the edition to capture the fact that we inferred this link from multiple sources.
      */
-    const potentialMatchWithNoProperties = linksWithOverlappingTypes.find(
-      (entity) => {
-        if (Object.keys(entity.properties).length !== 0) {
-          return false;
-        }
+    const potentialMatchWithNoProperties = linksWithOverlappingTypes.find((entity) => {
+      if (Object.keys(entity.properties).length !== 0) {
+        return false;
+      }
 
-        const potentialMatchTypeSet = new Set(entity.metadata.entityTypeIds);
+      const potentialMatchTypeSet = new Set(entity.metadata.entityTypeIds);
 
-        return (
-          newInputTypeSet.size === potentialMatchTypeSet.size &&
-          newInputTypeSet.isSupersetOf(potentialMatchTypeSet)
-        );
-      },
-    );
+      return (
+        newInputTypeSet.size === potentialMatchTypeSet.size &&
+        newInputTypeSet.isSupersetOf(potentialMatchTypeSet)
+      );
+    });
 
     if (potentialMatchWithNoProperties) {
       return {
@@ -397,8 +361,7 @@ export const findExistingLinkEntity = async ({
           propertyMetadata: proposedEntity.propertyMetadata,
           editionSources: deduplicateSources([
             ...(proposedEntity.provenance.sources ?? []),
-            ...(potentialMatchWithNoProperties.metadata.provenance.edition
-              .sources ?? []),
+            ...(potentialMatchWithNoProperties.metadata.provenance.edition.sources ?? []),
           ]),
           properties: {},
         },

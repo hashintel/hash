@@ -30,10 +30,7 @@
     "no-self-compare": "error",
     "no-sequences": "error",
     "no-template-curly-in-string": "error",
-    "no-unsafe-optional-chaining": [
-      "error",
-      { "disallowArithmeticOperators": true }
-    ],
+    "no-unsafe-optional-chaining": ["error", { "disallowArithmeticOperators": true }],
     "no-unused-vars": [
       "error",
       {
@@ -140,12 +137,5 @@
     "no-throw-literal": "off",
     "prefer-promise-reject-errors": "off"
   },
-  "ignorePatterns": [
-    "dist/**",
-    "build/**",
-    "coverage/**",
-    "*.gen.*",
-    "*.tsbuildinfo",
-    ".turbo/**"
-  ]
+  "ignorePatterns": ["dist/**", "build/**", "coverage/**", "*.gen.*", "*.tsbuildinfo", ".turbo/**"]
 }

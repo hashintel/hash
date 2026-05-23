@@ -117,11 +117,7 @@ function getProgressPercent(experiment: ExperimentRecord): number {
   return Math.min(100, (progress.time / experiment.maxTime) * 100);
 }
 
-const ExperimentStatusBadge = ({
-  status,
-}: {
-  status: ExperimentRecord["status"];
-}) => (
+const ExperimentStatusBadge = ({ status }: { status: ExperimentRecord["status"] }) => (
   <TableStatusBadge loading tone="active">
     {formatStatus(status)}
   </TableStatusBadge>
@@ -174,12 +170,9 @@ export const RunningExperimentsPopover = ({
                 const rowContent = (
                   <>
                     <div className={rowMainStyle}>
-                      <span className={experimentNameStyle}>
-                        {experiment.name}
-                      </span>
+                      <span className={experimentNameStyle}>{experiment.name}</span>
                       <span className={experimentMetaStyle}>
-                        {experiment.scenarioName ?? "Default"} -{" "}
-                        {formatProgress(experiment)}
+                        {experiment.scenarioName ?? "Default"} - {formatProgress(experiment)}
                       </span>
                     </div>
                     <ExperimentStatusBadge status={experiment.status} />

@@ -59,15 +59,11 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
             return;
           }
 
-          newText = `${value.substring(0, selectionStart - 1)}${value.substring(
-            selectionStart,
-          )}`;
+          newText = `${value.substring(0, selectionStart - 1)}${value.substring(selectionStart)}`;
 
           newCursorPos = selectionStart - 1;
         } else {
-          newText = `${value.substring(0, selectionStart)}\t${value.substring(
-            selectionStart,
-          )}`;
+          newText = `${value.substring(0, selectionStart)}\t${value.substring(selectionStart)}`;
           newCursorPos = selectionStart + 1;
         }
 

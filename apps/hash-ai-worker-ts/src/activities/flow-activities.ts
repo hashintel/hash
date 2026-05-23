@@ -17,9 +17,11 @@ import type { CreateFlowActivities } from "@local/hash-backend-utils/flows";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
-export const createFlowActionActivities: CreateFlowActivities<
-  AiFlowActionDefinitionId
-> = ({ vaultClient }: { vaultClient: VaultClient }) => ({
+export const createFlowActionActivities: CreateFlowActivities<AiFlowActionDefinitionId> = ({
+  vaultClient,
+}: {
+  vaultClient: VaultClient;
+}) => ({
   generateWebQueriesAction,
   webSearchAction,
   getWebPageByUrlAction,
@@ -39,11 +41,7 @@ export const createFlowActionActivities: CreateFlowActivities<
   },
 });
 
-export const createFlowActivities = ({
-  vaultClient,
-}: {
-  vaultClient: VaultClient;
-}) => ({
+export const createFlowActivities = ({ vaultClient }: { vaultClient: VaultClient }) => ({
   ...createFlowActionActivities({ vaultClient }),
   generateFlowRunName,
 });

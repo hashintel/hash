@@ -7,10 +7,7 @@ import type {
   Result,
   VersionedUrl,
 } from "@blockprotocol/type-system-rs";
-import type {
-  BaseUrl,
-  OntologyTypeVersion,
-} from "@blockprotocol/type-system-rs/types";
+import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system-rs/types";
 import type { SemVer } from "semver";
 
 /**
@@ -20,9 +17,7 @@ import type { SemVer } from "semver";
  * @returns {(Result<BaseUrl, ParseBaseUrlError>)} - an Ok with an inner of the string as a
  * BaseUrl if valid, or an Err with an inner ParseBaseUrlError
  */
-export const validateBaseUrl = (
-  url: string,
-): Result<BaseUrl, ParseBaseUrlError> => {
+export const validateBaseUrl = (url: string): Result<BaseUrl, ParseBaseUrlError> => {
   if (url.length > 2048) {
     return {
       type: "Err",
@@ -84,15 +79,11 @@ const toSemVer = (version: OntologyTypeVersion): SemVer => {
   const [, majorStr, preRelease] = match;
 
   if (!majorStr) {
-    throw new Error(
-      `Invalid version format: missing major version in ${version}`,
-    );
+    throw new Error(`Invalid version format: missing major version in ${version}`);
   }
 
   // Build and parse SemVer string
-  const semverVersionString = preRelease
-    ? `${majorStr}.0.0-${preRelease}`
-    : `${majorStr}.0.0`;
+  const semverVersionString = preRelease ? `${majorStr}.0.0-${preRelease}` : `${majorStr}.0.0`;
 
   const parsed = semver.parse(semverVersionString);
   if (!parsed) {
@@ -108,9 +99,7 @@ const toSemVer = (version: OntologyTypeVersion): SemVer => {
       parsed.prerelease[0] !== "draft" ||
       typeof parsed.prerelease[parsed.prerelease.length - 1] !== "number"
     ) {
-      throw new Error(
-        `Invalid draft format: ${preRelease}. Expected format: draft.lane.revision`,
-      );
+      throw new Error(`Invalid draft format: ${preRelease}. Expected format: draft.lane.revision`);
     }
   }
 
@@ -125,9 +114,7 @@ const toSemVer = (version: OntologyTypeVersion): SemVer => {
  as
  * a VersionedUrl if valid, or an Err with an inner ParseVersionedUrlError
  */
-export const validateVersionedUrl = (
-  url: string,
-): Result<VersionedUrl, ParseVersionedUrlError> => {
+export const validateVersionedUrl = (url: string): Result<VersionedUrl, ParseVersionedUrlError> => {
   const U32_MAX = 4294967295;
 
   if (url.length > 2048) {
@@ -183,17 +170,13 @@ export const validateVersionedUrl = (
       // Check U32_MAX for revision in draft versions
       if (parsedVersion.prerelease.length > 0) {
         // Format is ["draft", "lane", "revision"] - revision is last element
-        const revision =
-          parsedVersion.prerelease[parsedVersion.prerelease.length - 1];
+        const revision = parsedVersion.prerelease[parsedVersion.prerelease.length - 1];
         if (typeof revision === "number" && revision > U32_MAX) {
           return {
             type: "Err",
             inner: {
               reason: "InvalidVersion",
-              inner: [
-                version,
-                { reason: "ParseVersion", inner: "revision number too large" },
-              ],
+              inner: [version, { reason: "ParseVersion", inner: "revision number too large" }],
             },
           };
         }
@@ -314,11 +297,7 @@ class InvalidVersionedUrlComponentsError extends Error {
     components: { baseUrl: BaseUrl; version: OntologyTypeVersion },
     error: ParseVersionedUrlError,
   ) {
-    super(
-      `Failed to create versioned URL from components: ${JSON.stringify(
-        error,
-      )}`,
-    );
+    super(`Failed to create versioned URL from components: ${JSON.stringify(error)}`);
     this.name = "InvalidVersionedUrlComponentsError";
     this.components = components;
     this.error = error;
@@ -334,10 +313,7 @@ export const versionedUrlFromComponents = (
   const validationResult = validateVersionedUrl(versionedUrl);
 
   if (validationResult.type === "Err") {
-    throw new InvalidVersionedUrlComponentsError(
-      { baseUrl, version },
-      validationResult.inner,
-    );
+    throw new InvalidVersionedUrlComponentsError({ baseUrl, version }, validationResult.inner);
   } else {
     return validationResult.inner;
   }
@@ -345,20 +321,15 @@ export const versionedUrlFromComponents = (
 
 export const ontologyTypeRecordIdToVersionedUrl = (
   ontologyTypeRecordId: OntologyTypeRecordId,
-): VersionedUrl =>
-  `${ontologyTypeRecordId.baseUrl}v/${ontologyTypeRecordId.version.toString()}`;
+): VersionedUrl => `${ontologyTypeRecordId.baseUrl}v/${ontologyTypeRecordId.version.toString()}`;
 
 export const makeOntologyTypeVersion = ({ major }: { major: number }) =>
   `${major}` as unknown as OntologyTypeVersion;
 
-export const parseOntologyTypeVersion = (
-  version: string,
-): OntologyTypeVersion =>
+export const parseOntologyTypeVersion = (version: string): OntologyTypeVersion =>
   makeOntologyTypeVersion({ major: Number.parseInt(version, 10) });
 
-export const incrementOntologyTypeVersion = (
-  version: OntologyTypeVersion,
-): OntologyTypeVersion =>
+export const incrementOntologyTypeVersion = (version: OntologyTypeVersion): OntologyTypeVersion =>
   makeOntologyTypeVersion({
     major: Number.parseInt(version.toString(), 10) + 1,
   });

@@ -19,10 +19,7 @@ import { ClaimsTable } from "../../claims-table";
 import { SectionWrapper } from "../../section-wrapper";
 import { virtualizedTableHeaderHeight } from "../../virtualized-table/header";
 import { useEntityEditor } from "./entity-editor-context";
-import {
-  linksTableRowHeight,
-  maxLinksTableHeight,
-} from "./links-section/shared/table-styling";
+import { linksTableRowHeight, maxLinksTableHeight } from "./links-section/shared/table-styling";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -47,12 +44,9 @@ export const ClaimsSection = () => {
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.claim.entityTypeId,
-              {
-                ignoreParents: true,
-              },
-            ),
+            generateVersionedUrlMatchingFilter(systemEntityTypes.claim.entityTypeId, {
+              ignoreParents: true,
+            }),
             {
               equal: [
                 { path: ["outgoingLinks", "rightEntity", "uuid"] },
@@ -125,10 +119,7 @@ export const ClaimsSection = () => {
       title="Claims"
       titleTooltip="Claims are statements made about entities, inferred from public or private data sources."
       titleStartContent={
-        <Chip
-          size="xs"
-          label={`${numberOfClaims} ${numberOfClaims === 1 ? "claim" : "claims"}`}
-        />
+        <Chip size="xs" label={`${numberOfClaims} ${numberOfClaims === 1 ? "claim" : "claims"}`} />
       }
     >
       {!claimsSubgraph ? (

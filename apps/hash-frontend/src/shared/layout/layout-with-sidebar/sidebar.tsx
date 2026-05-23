@@ -1,12 +1,7 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  Fragment,
-  type FunctionComponent,
-  type ReactNode,
-  useMemo,
-} from "react";
+import { Fragment, type FunctionComponent, type ReactNode, useMemo } from "react";
 
 import {
   AsteriskRegularIcon,
@@ -55,18 +50,14 @@ const isNavLinkActive = ({
   currentPath: string;
 }): boolean =>
   definition.path === currentPath ||
-  (definition.activeIfPathMatches &&
-    !!currentPath.match(definition.activeIfPathMatches)) ||
-  !!definition.children?.some((child) =>
-    isNavLinkActive({ definition: child, currentPath }),
-  );
+  (definition.activeIfPathMatches && !!currentPath.match(definition.activeIfPathMatches)) ||
+  !!definition.children?.some((child) => isNavLinkActive({ definition: child, currentPath }));
 
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { activeWorkspaceWebId } = useActiveWorkspace();
-  const { routePageEntityUuid } =
-    useRoutePageInfo({ allowUndefined: true }) ?? {};
+  const { routePageEntityUuid } = useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   const enabledFeatureFlags = useEnabledFeatureFlags();
 
@@ -137,8 +128,7 @@ export const PageSidebar: FunctionComponent = () => {
     const unreadNotifications = numberOfUnreadNotifications ?? 0;
 
     const shouldInboxLinkToActions =
-      numberOfPendingActions > 0 ||
-      (unreadNotifications === 0 && pendingInvites.length === 0);
+      numberOfPendingActions > 0 || (unreadNotifications === 0 && pendingInvites.length === 0);
 
     return [
       {
@@ -158,8 +148,7 @@ export const PageSidebar: FunctionComponent = () => {
             : "/invites",
         icon: <InboxIcon sx={{ fontSize: 16 }} />,
         tooltipTitle: "",
-        count:
-          unreadNotifications + numberOfPendingActions + pendingInvites.length,
+        count: unreadNotifications + numberOfPendingActions + pendingInvites.length,
         children: [
           {
             title: "Actions",
@@ -308,8 +297,7 @@ export const PageSidebar: FunctionComponent = () => {
         {activeWorkspaceWebId ? (
           <>
             {preferences.favorites.length > 0 && <FavoritesList />}
-            {hashInstance?.properties.pagesAreEnabled &&
-            enabledFeatureFlags.pages ? (
+            {hashInstance?.properties.pagesAreEnabled && enabledFeatureFlags.pages ? (
               <AccountPageList
                 currentPageEntityUuid={routePageEntityUuid}
                 webId={activeWorkspaceWebId}

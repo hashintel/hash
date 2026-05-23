@@ -43,22 +43,14 @@ const scaleTokenValues = <T extends TokenTree>(
       };
     }
 
-    return Object.fromEntries(
-      Object.entries(node).map(([key, value]) => [key, walk(value)]),
-    );
+    return Object.fromEntries(Object.entries(node).map(([key, value]) => [key, walk(value)]));
   };
 
   return walk(tokenTree) as T;
 };
 
-const scaledSpacing = scaleTokenValues(
-  pandaPreset.theme.tokens.spacing,
-  "--density-factor",
-);
-const scaledRadii = scaleTokenValues(
-  pandaPreset.theme.tokens.radii,
-  "--roundness-factor",
-);
+const scaledSpacing = scaleTokenValues(pandaPreset.theme.tokens.spacing, "--density-factor");
+const scaledRadii = scaleTokenValues(pandaPreset.theme.tokens.radii, "--roundness-factor");
 const scaledLineHeights = scaleTokenValues(
   pandaPreset.theme.tokens.lineHeights as TokenTree,
   "--leading-factor",
@@ -69,15 +61,13 @@ export const tokens = {
   fontWeights,
   fonts: {
     display: {
-      value:
-        "var(--font-inter-tight), Inter Tight, ui-sans-serif, system-ui, sans-serif",
+      value: "var(--font-inter-tight), Inter Tight, ui-sans-serif, system-ui, sans-serif",
     },
     body: {
       value: "var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif",
     },
     mono: {
-      value:
-        "var(--font-geist-mono), Geist Mono, ui-monospace, SFMono-Regular, monospace",
+      value: "var(--font-geist-mono), Geist Mono, ui-monospace, SFMono-Regular, monospace",
     },
   },
   colors: staticColors,

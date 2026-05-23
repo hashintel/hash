@@ -1,19 +1,13 @@
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
 
-import {
-  ArrowUpRightRegularIcon,
-  EntityOrTypeIcon,
-} from "@hashintel/design-system";
+import { ArrowUpRightRegularIcon, EntityOrTypeIcon } from "@hashintel/design-system";
 
 import { useIsReadonly } from "../../shared/read-only-context";
 import { ChipIconButton } from "../shared/chip-icon-button";
 import { Link } from "../shared/link";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 
-import type {
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { OntologyTypeVersion, VersionedUrl } from "@blockprotocol/type-system";
 import type { ReactNode } from "react";
 
 export const TypeChipLabel = ({

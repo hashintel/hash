@@ -76,9 +76,8 @@ export const useBlockProtocolQueryPropertyTypes = (): {
       }
 
       return {
-        data: deserializeQueryPropertyTypeSubgraphResponse(
-          response.data.queryPropertyTypeSubgraph,
-        ).subgraph,
+        data: deserializeQueryPropertyTypeSubgraphResponse(response.data.queryPropertyTypeSubgraph)
+          .subgraph,
       };
     },
     [queryFn],

@@ -30,16 +30,10 @@ interface PlacePropertiesProps {
   updatePlace: MutationContextValue["updatePlace"];
 }
 
-export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
-  place,
-  types,
-  updatePlace,
-}) => {
+export const PlaceProperties: React.FC<PlacePropertiesProps> = ({ place, types, updatePlace }) => {
   const isReadOnly = useIsReadOnly();
 
-  const placeType = place.colorId
-    ? (types.find((tp) => tp.id === place.colorId) ?? null)
-    : null;
+  const placeType = place.colorId ? (types.find((tp) => tp.id === place.colorId) ?? null) : null;
 
   return (
     <div className={containerStyle}>
@@ -50,10 +44,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         isReadOnly={isReadOnly}
         updatePlace={updatePlace}
       >
-        <VerticalSubViewsContainer
-          name="place-properties"
-          subViews={subViews}
-        />
+        <VerticalSubViewsContainer name="place-properties" subViews={subViews} />
       </PlacePropertiesProvider>
     </div>
   );

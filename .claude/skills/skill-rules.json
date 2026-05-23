@@ -29,12 +29,7 @@
       "priority": "high",
       "description": "Rust documentation practices for HASH codebase. Use when writing doc comments, documenting functions/types/traits/modules, creating error sections, using intra-doc links, or following rustdoc conventions.",
       "promptTriggers": {
-        "keywords": [
-          "rustdoc",
-          "doc comment",
-          "documentation",
-          "intra-doc link"
-        ],
+        "keywords": ["rustdoc", "doc comment", "documentation", "intra-doc link"],
         "intentPatterns": [
           "\\bdocument(ing|ation)?\\b.*?\\b(rust|function|type|struct|enum|trait|module)\\b",
           "\\b(write|add|create)\\b.*?\\bdoc\\s*comment\\b",
@@ -142,15 +137,7 @@
       "priority": "high",
       "description": "Git workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs.",
       "promptTriggers": {
-        "keywords": [
-          "git",
-          "branch",
-          "pull request",
-          "PR",
-          "commit",
-          "merge",
-          "review"
-        ],
+        "keywords": ["git", "branch", "pull request", "PR", "commit", "merge", "review"],
         "intentPatterns": [
           "\\b(create|open|submit|review)\\b.*?\\b(PR|pull request|branch)\\b",
           "\\b(name|naming)\\b.*?\\bbranch\\b",
@@ -214,13 +201,7 @@
       "priority": "high",
       "description": "Guide for creating effective Agent Skills. Use when users want to create a new skill (or update an existing skill) that extends an AI agent's capabilities with specialized knowledge, workflows, or tool integrations. Covers skill structure, YAML frontmatter, trigger configuration, and the 500-line rule.",
       "promptTriggers": {
-        "keywords": [
-          "skill",
-          "skill-rules",
-          "SKILL.md",
-          "creating skill",
-          "writing skill"
-        ],
+        "keywords": ["skill", "skill-rules", "SKILL.md", "creating skill", "writing skill"],
         "intentPatterns": [
           "\\b(how do|how does|explain)\\b.*?\\bskill\\b",
           "\\b(create|add|modify|build|write)\\b.*?\\bskill\\b",

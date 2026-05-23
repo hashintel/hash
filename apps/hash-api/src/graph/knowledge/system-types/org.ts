@@ -3,10 +3,7 @@ import {
   extractWebIdFromEntityId,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
-import {
-  EntityTypeMismatchError,
-  NotFoundError,
-} from "@local/hash-backend-utils/error";
+import { EntityTypeMismatchError, NotFoundError } from "@local/hash-backend-utils/error";
 import {
   createWebMachineActorEntity,
   getWebMachineId,
@@ -24,21 +21,10 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 
 import { logger } from "../../../logger";
 import { systemAccountId } from "../../system-account";
-import {
-  createEntity,
-  getLatestEntityById,
-  updateEntity,
-} from "../primitive/entity";
-import {
-  shortnameIsInvalid,
-  shortnameIsRestricted,
-  shortnameIsTaken,
-} from "./account.fields";
+import { createEntity, getLatestEntityById, updateEntity } from "../primitive/entity";
+import { shortnameIsInvalid, shortnameIsRestricted, shortnameIsTaken } from "./account.fields";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type {
   ActorId,
   EntityId,
@@ -60,14 +46,11 @@ export type Org = {
   entity: HashEntity<Organization>;
 };
 
-function assertOrganizationEntity(
-  entity: HashEntity,
-): asserts entity is HashEntity<Organization> {
+function assertOrganizationEntity(entity: HashEntity): asserts entity is HashEntity<Organization> {
   if (
     !entity.metadata.entityTypeIds.some(
       (entityTypeId) =>
-        extractBaseUrl(entityTypeId) ===
-        systemEntityTypes.organization.entityTypeBaseUrl,
+        extractBaseUrl(entityTypeId) === systemEntityTypes.organization.entityTypeBaseUrl,
     )
   ) {
     throw new EntityTypeMismatchError(
@@ -78,15 +61,10 @@ function assertOrganizationEntity(
   }
 }
 
-export const getOrgFromEntity: PureGraphFunction<
-  { entity: HashEntity },
-  Org
-> = ({ entity }) => {
+export const getOrgFromEntity: PureGraphFunction<{ entity: HashEntity }, Org> = ({ entity }) => {
   assertOrganizationEntity(entity);
 
-  const { organizationName: orgName, shortname } = simplifyProperties(
-    entity.properties,
-  );
+  const { organizationName: orgName, shortname } = simplifyProperties(entity.properties);
 
   return {
     webId: extractWebIdFromEntityId(entity.metadata.recordId.entityId),
@@ -135,9 +113,7 @@ export const createOrg: ImpureGraphFunction<
     (!bypassShortnameValidation && shortnameIsRestricted({ shortname })) ||
     (await shortnameIsTaken(ctx, authentication, { shortname }))
   ) {
-    throw new Error(
-      `An account or an account group with shortname "${shortname}" already exists.`,
-    );
+    throw new Error(`An account or an account group with shortname "${shortname}" already exists.`);
   }
 
   const trimmedName = name.trim();
@@ -154,9 +130,7 @@ export const createOrg: ImpureGraphFunction<
       webId: orgWebId,
     }).then((maybeMachineId) => {
       if (!maybeMachineId) {
-        throw new NotFoundError(
-          `Failed to get machine for org ID: ${orgWebId}`,
-        );
+        throw new NotFoundError(`Failed to get machine for org ID: ${orgWebId}`);
       }
       return maybeMachineId;
     });
@@ -193,15 +167,13 @@ export const createOrg: ImpureGraphFunction<
       "https://hash.ai/@h/types/property-type/shortname/": {
         value: shortname.trim().toLowerCase(),
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
       "https://hash.ai/@h/types/property-type/organization-name/": {
         value: trimmedName,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
       ...(websiteUrl
@@ -281,10 +253,11 @@ export const createOrg: ImpureGraphFunction<
  *
  * @param params.entityId - the entity id of the organization
  */
-export const getOrgById: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<Org>
-> = async (ctx, authentication, { entityId }) => {
+export const getOrgById: ImpureGraphFunction<{ entityId: EntityId }, Promise<Org>> = async (
+  ctx,
+  authentication,
+  { entityId },
+) => {
   const entity = await getLatestEntityById(ctx, authentication, {
     entityId,
   });
@@ -315,10 +288,7 @@ export const getOrgByShortname: ImpureGraphFunction<
         {
           equal: [
             {
-              path: [
-                "properties",
-                systemPropertyTypes.shortname.propertyTypeBaseUrl,
-              ],
+              path: ["properties", systemPropertyTypes.shortname.propertyTypeBaseUrl],
             },
             { parameter: params.shortname.trim().toLowerCase() },
           ],
@@ -377,8 +347,7 @@ export const updateOrgName: ImpureGraphFunction<
         property: {
           value: trimmedName,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         } satisfies OrganizationNamePropertyValueWithMetadata,
       },

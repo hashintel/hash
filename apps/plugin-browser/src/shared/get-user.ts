@@ -44,9 +44,7 @@ const getAvatarForEntity = (
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
     ),
   );
-  return avatarLinkAndEntities[0]?.rightEntity[0] as
-    | Entity<ImageFile>
-    | undefined;
+  return avatarLinkAndEntities[0]?.rightEntity[0] as Entity<ImageFile> | undefined;
 };
 
 /**
@@ -57,21 +55,18 @@ const getAvatarForEntity = (
  * @todo figure out why that is and fix it, possibly in the @blockprotocol/type-system package
  *    or in the plugin-browser webpack config.
  */
-export const getWebIdFromEntityId = (entityId: EntityId) =>
-  entityId.split("~")[0] as WebId;
+export const getWebIdFromEntityId = (entityId: EntityId) => entityId.split("~")[0] as WebId;
 
 export const getUser = (): Promise<LocalStorage["user"] | null> => {
   return queryGraphQlApi<MeQuery, MeQueryVariables>(meQuery)
     .then(async ({ data }) => {
-      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
-        EntityRootType<HashEntity>
-      >(data.me.subgraph);
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
+        data.me.subgraph,
+      );
 
       const user = getRoots(subgraph)[0]!;
 
-      const simpleProperties = simplifyProperties(
-        user.properties as UserProperties,
-      );
+      const simpleProperties = simplifyProperties(user.properties as UserProperties);
 
       const { email, shortname, displayName } = simpleProperties;
 
@@ -80,10 +75,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         return null;
       }
 
-      const userAvatar = getAvatarForEntity(
-        subgraph,
-        user.metadata.recordId.entityId,
-      );
+      const userAvatar = getAvatarForEntity(subgraph, user.metadata.recordId.entityId);
 
       const orgLinksAndEntities = getOutgoingLinkAndTargetEntities(
         subgraph,
@@ -132,11 +124,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
             manualInferenceConfiguration as LocalStorage["manualInferenceConfig"],
             true,
           ),
-          setInLocalStorage(
-            "popupTab",
-            browserPluginTab as LocalStorage["popupTab"],
-            true,
-          ),
+          setInLocalStorage("popupTab", browserPluginTab as LocalStorage["popupTab"], true),
         ]);
 
         if (draftNote) {
@@ -146,9 +134,7 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
         /**
          * Create the user's browser settings entity
          */
-        const userWebWebId = getWebIdFromEntityId(
-          user.metadata.recordId.entityId,
-        );
+        const userWebWebId = getWebIdFromEntityId(user.metadata.recordId.entityId);
 
         const defaultSettings = createDefaultSettings({
           userWebWebId,
@@ -162,34 +148,28 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
           (await getFromLocalStorage("manualInferenceConfig")) ??
           defaultSettings.manualInferenceConfig;
 
-        const popupTab =
-          (await getFromLocalStorage("popupTab")) ?? defaultSettings.popupTab;
+        const popupTab = (await getFromLocalStorage("popupTab")) ?? defaultSettings.popupTab;
 
         const draftQuickNote = await getFromLocalStorage("draftQuickNote");
 
         const properties: BrowserPluginSettingsPropertiesWithMetadata = {
           value: {
-            "https://hash.ai/@h/types/property-type/automatic-inference-configuration/":
-              {
-                value: automaticInferenceConfig,
-                metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-                },
+            "https://hash.ai/@h/types/property-type/automatic-inference-configuration/": {
+              value: automaticInferenceConfig,
+              metadata: {
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
               },
-            "https://hash.ai/@h/types/property-type/manual-inference-configuration/":
-              {
-                value: manualInferenceConfig,
-                metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-                },
+            },
+            "https://hash.ai/@h/types/property-type/manual-inference-configuration/": {
+              value: manualInferenceConfig,
+              metadata: {
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
               },
+            },
             "https://hash.ai/@h/types/property-type/browser-plugin-tab/": {
               value: popupTab,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
             },
             ...(draftQuickNote
@@ -225,23 +205,17 @@ export const getUser = (): Promise<LocalStorage["user"] | null> => {
 
       const orgs = orgLinksAndEntities.map(({ rightEntity }) => {
         const org = rightEntity[0]!;
-        const orgAvatar = getAvatarForEntity(
-          subgraph,
-          org.metadata.recordId.entityId,
-        );
+        const orgAvatar = getAvatarForEntity(subgraph, org.metadata.recordId.entityId);
         return {
           metadata: org.metadata,
-          properties: simplifyProperties(
-            org.properties as OrganizationProperties,
-          ),
+          properties: simplifyProperties(org.properties as OrganizationProperties),
           avatar: orgAvatar,
           webWebId: getWebIdFromEntityId(org.metadata.recordId.entityId),
         };
       });
 
       const enabledFeatureFlags =
-        (simpleProperties.enabledFeatureFlags as FeatureFlag[] | undefined) ??
-        [];
+        (simpleProperties.enabledFeatureFlags as FeatureFlag[] | undefined) ?? [];
 
       return {
         metadata: user.metadata,

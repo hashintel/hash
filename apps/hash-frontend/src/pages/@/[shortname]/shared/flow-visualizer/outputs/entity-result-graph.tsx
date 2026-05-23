@@ -31,10 +31,7 @@ export const EntityResultGraph = ({
    * will help to detect where update / deduplication logic can be improved in the inference process.
    */
   const deduplicatedEntities = useMemo(() => {
-    const deduplicatedLatestEntitiesByEntityId: Record<
-      EntityId,
-      EntityForGraphChart
-    > = {};
+    const deduplicatedLatestEntitiesByEntityId: Record<EntityId, EntityForGraphChart> = {};
     for (const entity of entities) {
       const entityId = entity.metadata.recordId.entityId;
 
@@ -77,9 +74,7 @@ export const EntityResultGraph = ({
         <EntityGraphVisualizer
           closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
           entities={deduplicatedEntities}
-          loadingComponent={
-            <LoadingSpinner size={42} color={theme.palette.blue[60]} />
-          }
+          loadingComponent={<LoadingSpinner size={42} color={theme.palette.blue[60]} />}
           onEntityClick={(entityId) => {
             pushToSlideStack({
               kind: "entity",

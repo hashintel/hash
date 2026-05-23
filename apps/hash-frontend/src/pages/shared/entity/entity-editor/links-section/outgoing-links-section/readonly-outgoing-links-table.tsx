@@ -1,12 +1,5 @@
 import { Box, Stack, TableCell, Typography } from "@mui/material";
-import {
-  memo,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -49,18 +42,12 @@ import type {
 import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
 import type { CustomEntityLinksColumn } from "../../shared/types";
 import type { LinkEntityAndRightEntity } from "@blockprotocol/graph";
-import type {
-  Entity,
-  EntityId,
-  PartialEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { Entity, EntityId, PartialEntityType, VersionedUrl } from "@blockprotocol/type-system";
 import type { ReactElement } from "react";
 
 type OutgoingLinksFieldId = "linkTypes" | "linkedTo" | "linkedToTypes" | "link";
 
-export type OutgoingLinksFilterValues =
-  VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
+export type OutgoingLinksFilterValues = VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
 
 const staticColumns: VirtualizedTableColumn<OutgoingLinksFieldId>[] = [
   {
@@ -108,17 +95,11 @@ type OutgoingLinkRow = {
   targetEntity: Entity;
   targetEntityLabel: string;
   targetEntityProperties: { [propertyTitle: string]: string };
-  targetEntityTypes: Pick<
-    PartialEntityType,
-    "icon" | "$id" | "inverse" | "title"
-  >[];
+  targetEntityTypes: Pick<PartialEntityType, "icon" | "$id" | "inverse" | "title">[];
   linkEntity: Entity;
   linkEntityLabel: string;
   linkEntityProperties: { [propertyTitle: string]: string };
-  linkEntityTypes: Pick<
-    PartialEntityType,
-    "icon" | "$id" | "inverse" | "title"
-  >[];
+  linkEntityTypes: Pick<PartialEntityType, "icon" | "$id" | "inverse" | "title">[];
   onEntityClick: (entityId: EntityId) => void;
   onTypeClick: (kind: "dataType" | "entityType", itemId: VersionedUrl) => void;
   customFields: { [fieldId: string]: string | number };
@@ -159,14 +140,9 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
         </Stack>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
-        <PropertiesTooltip
-          entityType="target entity"
-          properties={row.targetEntityProperties}
-        >
+        <PropertiesTooltip entityType="target entity" properties={row.targetEntityProperties}>
           <ClickableCellChip
-            onClick={() =>
-              row.onEntityClick(row.targetEntity.metadata.recordId.entityId)
-            }
+            onClick={() => row.onEntityClick(row.targetEntity.metadata.recordId.entityId)}
             fontSize={linksTableFontSize}
             icon={
               <EntityOrTypeIcon
@@ -198,22 +174,15 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
                 />
               }
               label={targetEntityType.title}
-              onClick={() =>
-                row.onTypeClick("entityType", targetEntityType.$id)
-              }
+              onClick={() => row.onTypeClick("entityType", targetEntityType.$id)}
             />
           ))}
         </Stack>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
-        <PropertiesTooltip
-          entityType="link entity"
-          properties={row.linkEntityProperties}
-        >
+        <PropertiesTooltip entityType="link entity" properties={row.linkEntityProperties}>
           <ClickableCellChip
-            onClick={() =>
-              row.onEntityClick(row.linkEntity.metadata.recordId.entityId)
-            }
+            onClick={() => row.onEntityClick(row.linkEntity.metadata.recordId.entityId)}
             fontSize={linksTableFontSize}
             icon={
               <EntityOrTypeIcon
@@ -233,441 +202,397 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
   );
 });
 
-const createRowContent: CreateVirtualizedRowContentFn<
-  OutgoingLinkRow,
-  OutgoingLinksFieldId
-> = (_index, row) => <TableRow row={row.data} />;
+const createRowContent: CreateVirtualizedRowContentFn<OutgoingLinkRow, OutgoingLinksFieldId> = (
+  _index,
+  row,
+) => <TableRow row={row.data} />;
 
 type OutgoingLinksTableProps = {
   outgoingLinksAndTargets: LinkEntityAndRightEntity[];
 };
 
-export const OutgoingLinksTable = memo(
-  ({ outgoingLinksAndTargets }: OutgoingLinksTableProps) => {
-    const [sort, setSort] = useState<
-      VirtualizedTableSort<OutgoingLinksFieldId>
-    >({
-      fieldId: "linkedTo",
-      direction: "asc",
-    });
+export const OutgoingLinksTable = memo(({ outgoingLinksAndTargets }: OutgoingLinksTableProps) => {
+  const [sort, setSort] = useState<VirtualizedTableSort<OutgoingLinksFieldId>>({
+    fieldId: "linkedTo",
+    direction: "asc",
+  });
 
-    const {
-      closedMultiEntityTypesDefinitions,
-      linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-        closedMultiEntityTypesMap,
-      entitySubgraph,
-      customEntityLinksColumns: customColumns,
-      defaultOutgoingLinkFilters,
-      onEntityClick,
-      onTypeClick,
-    } = useEntityEditor();
+  const {
+    closedMultiEntityTypesDefinitions,
+    linkAndDestinationEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypesMap,
+    entitySubgraph,
+    customEntityLinksColumns: customColumns,
+    defaultOutgoingLinkFilters,
+    onEntityClick,
+    onTypeClick,
+  } = useEntityEditor();
 
-    const outputContainerRef = useRef<HTMLDivElement>(null);
-    const [outputContainerHeight, setOutputContainerHeight] = useState(400);
-    useLayoutEffect(() => {
-      if (
-        outputContainerRef.current &&
-        outputContainerRef.current.clientHeight !== outputContainerHeight
-      ) {
-        setOutputContainerHeight(outputContainerRef.current.clientHeight);
-      }
-    }, [outputContainerHeight]);
+  const outputContainerRef = useRef<HTMLDivElement>(null);
+  const [outputContainerHeight, setOutputContainerHeight] = useState(400);
+  useLayoutEffect(() => {
+    if (
+      outputContainerRef.current &&
+      outputContainerRef.current.clientHeight !== outputContainerHeight
+    ) {
+      setOutputContainerHeight(outputContainerRef.current.clientHeight);
+    }
+  }, [outputContainerHeight]);
 
-    const {
-      filterDefinitions,
-      initialFilterValues,
-      unsortedRows,
-    }: {
-      filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
-      initialFilterValues: VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
-      unsortedRows: VirtualizedTableRow<OutgoingLinkRow>[];
-    } = useMemo(() => {
-      const rowData: VirtualizedTableRow<OutgoingLinkRow>[] = [];
+  const {
+    filterDefinitions,
+    initialFilterValues,
+    unsortedRows,
+  }: {
+    filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
+    initialFilterValues: VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
+    unsortedRows: VirtualizedTableRow<OutgoingLinkRow>[];
+  } = useMemo(() => {
+    const rowData: VirtualizedTableRow<OutgoingLinkRow>[] = [];
 
-      const filterDefs = {
-        linkTypes: {
-          header: "Type",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        linkedTo: {
-          header: "Name",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        linkedToTypes: {
-          header: "Type",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-        link: {
-          header: "Name",
-          initialValue: new Set<string>(),
-          options: {} as VirtualizedTableFilterDefinition["options"],
-          type: "checkboxes",
-        },
-      } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
-
-      for (const {
-        rightEntity: rightEntityRevisions,
-        linkEntity: linkEntityRevisions,
-      } of outgoingLinksAndTargets) {
-        const linkEntity = linkEntityRevisions[0];
-
-        if (!linkEntity) {
-          throw new Error("Expected at least one link revision");
-        }
-
-        const customFields: OutgoingLinkRow["customFields"] = {};
-        for (const customColumn of customColumns ?? []) {
-          if (
-            linkEntity.metadata.entityTypeIds.includes(
-              customColumn.appliesToEntityTypeId,
-            )
-          ) {
-            customFields[customColumn.id] = customColumn.calculateValue(
-              linkEntity,
-              entitySubgraph,
-            );
-          }
-        }
-
-        if (!closedMultiEntityTypesMap) {
-          throw new Error("Expected closedMultiEntityTypesMap to be defined");
-        }
-
-        const linkEntityClosedMultiType = getClosedMultiEntityTypeFromMap(
-          closedMultiEntityTypesMap,
-          linkEntity.metadata.entityTypeIds,
-        );
-
-        const linkEntityLabel = generateEntityLabel(
-          linkEntityClosedMultiType,
-          linkEntity,
-        );
-
-        for (const linkType of linkEntityClosedMultiType.allOf) {
-          const linkEntityTypeId = linkType.$id;
-
-          filterDefs.linkTypes.options[linkEntityTypeId] ??= {
-            label: linkType.title,
-            count: 0,
-            value: linkEntityTypeId,
-          };
-
-          filterDefs.linkTypes.options[linkEntityTypeId].count++;
-          filterDefs.linkTypes.initialValue.add(linkEntityTypeId);
-        }
-
-        const rightEntity = rightEntityRevisions[0];
-        if (!rightEntity) {
-          throw new Error("Expected at least one right entity revision");
-        }
-
-        const rightEntityClosedMultiType = getClosedMultiEntityTypeFromMap(
-          closedMultiEntityTypesMap,
-          rightEntity.metadata.entityTypeIds,
-        );
-
-        const rightEntityLabel = rightEntity.linkData
-          ? generateLinkEntityLabel(entitySubgraph, rightEntity, {
-              closedType: rightEntityClosedMultiType,
-              entityTypeDefinitions: closedMultiEntityTypesDefinitions,
-              closedMultiEntityTypesRootMap: closedMultiEntityTypesMap,
-            })
-          : generateEntityLabel(rightEntityClosedMultiType, rightEntity);
-
-        filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId] ??=
-          {
-            label: rightEntityLabel,
-            count: 0,
-            value: rightEntity.metadata.recordId.entityId,
-          };
-        filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId]!
-          .count++;
-        filterDefs.linkedTo.initialValue.add(
-          rightEntity.metadata.recordId.entityId,
-        );
-
-        for (const rightType of rightEntityClosedMultiType.allOf) {
-          const rightEntityTypeId = rightType.$id;
-
-          filterDefs.linkedToTypes.options[rightEntityTypeId] ??= {
-            label: rightType.title,
-            count: 0,
-            value: rightEntityTypeId,
-          };
-
-          filterDefs.linkedToTypes.options[rightEntityTypeId].count++;
-          filterDefs.linkedToTypes.initialValue.add(rightEntityTypeId);
-        }
-
-        filterDefs.link.options[linkEntity.metadata.recordId.entityId] ??= {
-          label: linkEntityLabel,
-          count: 0,
-          value: linkEntity.metadata.recordId.entityId,
-        };
-        filterDefs.link.options[linkEntity.metadata.recordId.entityId]!.count++;
-        filterDefs.link.initialValue.add(linkEntity.metadata.recordId.entityId);
-
-        const linkEntityProperties: OutgoingLinkRow["linkEntityProperties"] =
-          {};
-        for (const [propertyBaseUrl, propertyValue] of typedEntries(
-          linkEntity.properties,
-        )) {
-          const propertyType = getPropertyTypeForClosedMultiEntityType(
-            linkEntityClosedMultiType,
-            propertyBaseUrl,
-            closedMultiEntityTypesDefinitions,
-          );
-
-          linkEntityProperties[propertyType.title] =
-            stringifyPropertyValue(propertyValue);
-        }
-
-        const targetEntityProperties: OutgoingLinkRow["targetEntityProperties"] =
-          {};
-        for (const [propertyBaseUrl, propertyValue] of typedEntries(
-          rightEntity.properties,
-        )) {
-          const propertyType = getPropertyTypeForClosedMultiEntityType(
-            rightEntityClosedMultiType,
-            propertyBaseUrl,
-            closedMultiEntityTypesDefinitions,
-          );
-
-          targetEntityProperties[propertyType.title] =
-            stringifyPropertyValue(propertyValue);
-        }
-
-        rowData.push({
-          id: linkEntity.metadata.recordId.entityId,
-          data: {
-            customFields,
-            linkEntityTypes: linkEntityClosedMultiType.allOf.map((type) => {
-              const { icon } = getDisplayFieldsForClosedEntityType(type);
-
-              return {
-                $id: type.$id,
-                title: type.title,
-                icon,
-                inverse: type.inverse,
-              };
-            }),
-            linkEntity,
-            linkEntityLabel,
-            linkEntityProperties,
-            onEntityClick,
-            onTypeClick,
-            targetEntity: rightEntity,
-            targetEntityLabel: rightEntityLabel,
-            targetEntityProperties,
-            targetEntityTypes: rightEntityClosedMultiType.allOf.map((type) => {
-              const { icon } = getDisplayFieldsForClosedEntityType(type);
-
-              return {
-                $id: type.$id,
-                title: type.title,
-                icon,
-                inverse: type.inverse,
-              };
-            }),
-          },
-        });
-      }
-
-      return {
-        filterDefinitions: filterDefs,
-        initialFilterValues: Object.fromEntries(
-          typedEntries(filterDefs).map(
-            ([columnId, filterDef]) =>
-              [columnId, filterDef.initialValue] satisfies [
-                OutgoingLinksFieldId,
-                VirtualizedTableFilterValue,
-              ],
-          ),
-        ) as OutgoingLinksFilterValues,
-        unsortedRows: rowData,
-      };
-    }, [
-      closedMultiEntityTypesMap,
-      closedMultiEntityTypesDefinitions,
-      customColumns,
-      entitySubgraph,
-      outgoingLinksAndTargets,
-      onEntityClick,
-      onTypeClick,
-    ]);
-
-    const [highlightOutgoingLinks, setHighlightOutgoingLinks] = useState(
-      !!defaultOutgoingLinkFilters,
-    );
-
-    useEffect(() => {
-      setTimeout(() => setHighlightOutgoingLinks(false), 5_000);
-    }, []);
-
-    const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
-      defaultFilterValues: {
-        ...initialFilterValues,
-        ...(defaultOutgoingLinkFilters ?? {}),
+    const filterDefs = {
+      linkTypes: {
+        header: "Type",
+        initialValue: new Set<string>(),
+        options: {} as VirtualizedTableFilterDefinition["options"],
+        type: "checkboxes",
       },
-      filterDefinitions,
-    });
+      linkedTo: {
+        header: "Name",
+        initialValue: new Set<string>(),
+        options: {} as VirtualizedTableFilterDefinition["options"],
+        type: "checkboxes",
+      },
+      linkedToTypes: {
+        header: "Type",
+        initialValue: new Set<string>(),
+        options: {} as VirtualizedTableFilterDefinition["options"],
+        type: "checkboxes",
+      },
+      link: {
+        header: "Name",
+        initialValue: new Set<string>(),
+        options: {} as VirtualizedTableFilterDefinition["options"],
+        type: "checkboxes",
+      },
+    } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
 
-    const rows = useMemo(
-      () =>
-        unsortedRows
-          .filter((row) => {
-            for (const [fieldId, currentValue] of typedEntries(filterValues)) {
-              switch (fieldId) {
-                case "linkTypes": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "linkedTo": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.targetEntity.metadata.recordId.entityId,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "linkedToTypes": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.targetEntity.metadata.entityTypeIds,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-                case "link": {
-                  if (
-                    !isValueIncludedInFilter({
-                      currentValue,
-                      valueToCheck:
-                        row.data.linkEntity.metadata.recordId.entityId,
-                    })
-                  ) {
-                    return false;
-                  }
-                  break;
-                }
-              }
-            }
+    for (const {
+      rightEntity: rightEntityRevisions,
+      linkEntity: linkEntityRevisions,
+    } of outgoingLinksAndTargets) {
+      const linkEntity = linkEntityRevisions[0];
 
-            return true;
-          })
-          .sort((a, b) => {
-            const field = sort.fieldId;
-            const direction = sort.direction === "asc" ? 1 : -1;
+      if (!linkEntity) {
+        throw new Error("Expected at least one link revision");
+      }
 
-            switch (field) {
-              case "linkTypes": {
-                return (
-                  a.data.linkEntityTypes[0]!.title.localeCompare(
-                    b.data.linkEntityTypes[0]!.title,
-                  ) * direction
-                );
-              }
-              case "linkedToTypes": {
-                return (
-                  a.data.targetEntityTypes[0]!.title.localeCompare(
-                    b.data.targetEntityTypes[0]!.title,
-                  ) * direction
-                );
-              }
-              case "linkedTo": {
-                return (
-                  a.data.targetEntityLabel.localeCompare(
-                    b.data.targetEntityLabel,
-                  ) * direction
-                );
-              }
-              case "link": {
-                return (
-                  a.data.linkEntityLabel.localeCompare(b.data.linkEntityLabel) *
-                  direction
-                );
-              }
-              default: {
-                const customFieldA = a.data.customFields[field];
-                const customFieldB = b.data.customFields[field];
-                if (
-                  typeof customFieldA === "number" &&
-                  typeof customFieldB === "number"
-                ) {
-                  return (customFieldA - customFieldB) * direction;
-                }
-                return (
-                  String(customFieldA).localeCompare(String(customFieldB)) *
-                  direction
-                );
-              }
-            }
-          }),
-      [filterValues, sort, unsortedRows],
-    );
+      const customFields: OutgoingLinkRow["customFields"] = {};
+      for (const customColumn of customColumns ?? []) {
+        if (linkEntity.metadata.entityTypeIds.includes(customColumn.appliesToEntityTypeId)) {
+          customFields[customColumn.id] = customColumn.calculateValue(linkEntity, entitySubgraph);
+        }
+      }
 
-    const columns = useMemo(() => {
-      const applicableCustomColumns = customColumns?.filter(
-        (column) =>
-          typeof filterValues.linkTypes === "object" &&
-          filterValues.linkTypes.has(column.appliesToEntityTypeId),
+      if (!closedMultiEntityTypesMap) {
+        throw new Error("Expected closedMultiEntityTypesMap to be defined");
+      }
+
+      const linkEntityClosedMultiType = getClosedMultiEntityTypeFromMap(
+        closedMultiEntityTypesMap,
+        linkEntity.metadata.entityTypeIds,
       );
 
-      return createColumns(applicableCustomColumns ?? []);
-    }, [filterValues, customColumns]);
+      const linkEntityLabel = generateEntityLabel(linkEntityClosedMultiType, linkEntity);
 
-    const height = Math.min(
-      maxLinksTableHeight,
-      rows.length * linksTableRowHeight + virtualizedTableHeaderHeight + 2,
-    );
+      for (const linkType of linkEntityClosedMultiType.allOf) {
+        const linkEntityTypeId = linkType.$id;
 
-    return (
-      <Box
-        sx={({ palette, transitions }) => ({
-          borderRadius: 2,
-          height,
-          outlineOffset: 3,
-          outline: "2px solid transparent",
-          transition: transitions.create("outline-color", { duration: 500 }),
-          ...(highlightOutgoingLinks
-            ? {
-                outline: `2px solid ${palette.blue[70]}`,
+        filterDefs.linkTypes.options[linkEntityTypeId] ??= {
+          label: linkType.title,
+          count: 0,
+          value: linkEntityTypeId,
+        };
+
+        filterDefs.linkTypes.options[linkEntityTypeId].count++;
+        filterDefs.linkTypes.initialValue.add(linkEntityTypeId);
+      }
+
+      const rightEntity = rightEntityRevisions[0];
+      if (!rightEntity) {
+        throw new Error("Expected at least one right entity revision");
+      }
+
+      const rightEntityClosedMultiType = getClosedMultiEntityTypeFromMap(
+        closedMultiEntityTypesMap,
+        rightEntity.metadata.entityTypeIds,
+      );
+
+      const rightEntityLabel = rightEntity.linkData
+        ? generateLinkEntityLabel(entitySubgraph, rightEntity, {
+            closedType: rightEntityClosedMultiType,
+            entityTypeDefinitions: closedMultiEntityTypesDefinitions,
+            closedMultiEntityTypesRootMap: closedMultiEntityTypesMap,
+          })
+        : generateEntityLabel(rightEntityClosedMultiType, rightEntity);
+
+      filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId] ??= {
+        label: rightEntityLabel,
+        count: 0,
+        value: rightEntity.metadata.recordId.entityId,
+      };
+      filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId]!.count++;
+      filterDefs.linkedTo.initialValue.add(rightEntity.metadata.recordId.entityId);
+
+      for (const rightType of rightEntityClosedMultiType.allOf) {
+        const rightEntityTypeId = rightType.$id;
+
+        filterDefs.linkedToTypes.options[rightEntityTypeId] ??= {
+          label: rightType.title,
+          count: 0,
+          value: rightEntityTypeId,
+        };
+
+        filterDefs.linkedToTypes.options[rightEntityTypeId].count++;
+        filterDefs.linkedToTypes.initialValue.add(rightEntityTypeId);
+      }
+
+      filterDefs.link.options[linkEntity.metadata.recordId.entityId] ??= {
+        label: linkEntityLabel,
+        count: 0,
+        value: linkEntity.metadata.recordId.entityId,
+      };
+      filterDefs.link.options[linkEntity.metadata.recordId.entityId]!.count++;
+      filterDefs.link.initialValue.add(linkEntity.metadata.recordId.entityId);
+
+      const linkEntityProperties: OutgoingLinkRow["linkEntityProperties"] = {};
+      for (const [propertyBaseUrl, propertyValue] of typedEntries(linkEntity.properties)) {
+        const propertyType = getPropertyTypeForClosedMultiEntityType(
+          linkEntityClosedMultiType,
+          propertyBaseUrl,
+          closedMultiEntityTypesDefinitions,
+        );
+
+        linkEntityProperties[propertyType.title] = stringifyPropertyValue(propertyValue);
+      }
+
+      const targetEntityProperties: OutgoingLinkRow["targetEntityProperties"] = {};
+      for (const [propertyBaseUrl, propertyValue] of typedEntries(rightEntity.properties)) {
+        const propertyType = getPropertyTypeForClosedMultiEntityType(
+          rightEntityClosedMultiType,
+          propertyBaseUrl,
+          closedMultiEntityTypesDefinitions,
+        );
+
+        targetEntityProperties[propertyType.title] = stringifyPropertyValue(propertyValue);
+      }
+
+      rowData.push({
+        id: linkEntity.metadata.recordId.entityId,
+        data: {
+          customFields,
+          linkEntityTypes: linkEntityClosedMultiType.allOf.map((type) => {
+            const { icon } = getDisplayFieldsForClosedEntityType(type);
+
+            return {
+              $id: type.$id,
+              title: type.title,
+              icon,
+              inverse: type.inverse,
+            };
+          }),
+          linkEntity,
+          linkEntityLabel,
+          linkEntityProperties,
+          onEntityClick,
+          onTypeClick,
+          targetEntity: rightEntity,
+          targetEntityLabel: rightEntityLabel,
+          targetEntityProperties,
+          targetEntityTypes: rightEntityClosedMultiType.allOf.map((type) => {
+            const { icon } = getDisplayFieldsForClosedEntityType(type);
+
+            return {
+              $id: type.$id,
+              title: type.title,
+              icon,
+              inverse: type.inverse,
+            };
+          }),
+        },
+      });
+    }
+
+    return {
+      filterDefinitions: filterDefs,
+      initialFilterValues: Object.fromEntries(
+        typedEntries(filterDefs).map(
+          ([columnId, filterDef]) =>
+            [columnId, filterDef.initialValue] satisfies [
+              OutgoingLinksFieldId,
+              VirtualizedTableFilterValue,
+            ],
+        ),
+      ) as OutgoingLinksFilterValues,
+      unsortedRows: rowData,
+    };
+  }, [
+    closedMultiEntityTypesMap,
+    closedMultiEntityTypesDefinitions,
+    customColumns,
+    entitySubgraph,
+    outgoingLinksAndTargets,
+    onEntityClick,
+    onTypeClick,
+  ]);
+
+  const [highlightOutgoingLinks, setHighlightOutgoingLinks] = useState(
+    !!defaultOutgoingLinkFilters,
+  );
+
+  useEffect(() => {
+    setTimeout(() => setHighlightOutgoingLinks(false), 5_000);
+  }, []);
+
+  const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
+    defaultFilterValues: {
+      ...initialFilterValues,
+      ...(defaultOutgoingLinkFilters ?? {}),
+    },
+    filterDefinitions,
+  });
+
+  const rows = useMemo(
+    () =>
+      unsortedRows
+        .filter((row) => {
+          for (const [fieldId, currentValue] of typedEntries(filterValues)) {
+            switch (fieldId) {
+              case "linkTypes": {
+                if (
+                  !isValueIncludedInFilter({
+                    currentValue,
+                    valueToCheck: row.data.linkEntity.metadata.entityTypeIds,
+                  })
+                ) {
+                  return false;
+                }
+                break;
               }
-            : {}),
-        })}
-      >
-        <VirtualizedTable
-          columns={columns}
-          createRowContent={createRowContent}
-          filterDefinitions={filterDefinitions}
-          filterValues={filterValues}
-          setFilterValues={setFilterValues}
-          rows={rows}
-          sort={sort}
-          setSort={setSort}
-        />
-      </Box>
+              case "linkedTo": {
+                if (
+                  !isValueIncludedInFilter({
+                    currentValue,
+                    valueToCheck: row.data.targetEntity.metadata.recordId.entityId,
+                  })
+                ) {
+                  return false;
+                }
+                break;
+              }
+              case "linkedToTypes": {
+                if (
+                  !isValueIncludedInFilter({
+                    currentValue,
+                    valueToCheck: row.data.targetEntity.metadata.entityTypeIds,
+                  })
+                ) {
+                  return false;
+                }
+                break;
+              }
+              case "link": {
+                if (
+                  !isValueIncludedInFilter({
+                    currentValue,
+                    valueToCheck: row.data.linkEntity.metadata.recordId.entityId,
+                  })
+                ) {
+                  return false;
+                }
+                break;
+              }
+            }
+          }
+
+          return true;
+        })
+        .sort((a, b) => {
+          const field = sort.fieldId;
+          const direction = sort.direction === "asc" ? 1 : -1;
+
+          switch (field) {
+            case "linkTypes": {
+              return (
+                a.data.linkEntityTypes[0]!.title.localeCompare(b.data.linkEntityTypes[0]!.title) *
+                direction
+              );
+            }
+            case "linkedToTypes": {
+              return (
+                a.data.targetEntityTypes[0]!.title.localeCompare(
+                  b.data.targetEntityTypes[0]!.title,
+                ) * direction
+              );
+            }
+            case "linkedTo": {
+              return a.data.targetEntityLabel.localeCompare(b.data.targetEntityLabel) * direction;
+            }
+            case "link": {
+              return a.data.linkEntityLabel.localeCompare(b.data.linkEntityLabel) * direction;
+            }
+            default: {
+              const customFieldA = a.data.customFields[field];
+              const customFieldB = b.data.customFields[field];
+              if (typeof customFieldA === "number" && typeof customFieldB === "number") {
+                return (customFieldA - customFieldB) * direction;
+              }
+              return String(customFieldA).localeCompare(String(customFieldB)) * direction;
+            }
+          }
+        }),
+    [filterValues, sort, unsortedRows],
+  );
+
+  const columns = useMemo(() => {
+    const applicableCustomColumns = customColumns?.filter(
+      (column) =>
+        typeof filterValues.linkTypes === "object" &&
+        filterValues.linkTypes.has(column.appliesToEntityTypeId),
     );
-  },
-);
+
+    return createColumns(applicableCustomColumns ?? []);
+  }, [filterValues, customColumns]);
+
+  const height = Math.min(
+    maxLinksTableHeight,
+    rows.length * linksTableRowHeight + virtualizedTableHeaderHeight + 2,
+  );
+
+  return (
+    <Box
+      sx={({ palette, transitions }) => ({
+        borderRadius: 2,
+        height,
+        outlineOffset: 3,
+        outline: "2px solid transparent",
+        transition: transitions.create("outline-color", { duration: 500 }),
+        ...(highlightOutgoingLinks
+          ? {
+              outline: `2px solid ${palette.blue[70]}`,
+            }
+          : {}),
+      })}
+    >
+      <VirtualizedTable
+        columns={columns}
+        createRowContent={createRowContent}
+        filterDefinitions={filterDefinitions}
+        filterValues={filterValues}
+        setFilterValues={setFilterValues}
+        rows={rows}
+        sort={sort}
+        setSort={setSort}
+      />
+    </Box>
+  );
+});

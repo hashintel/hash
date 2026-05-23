@@ -11,10 +11,7 @@ export interface ErrorBlockProps extends FallbackRenderProps {
   onRetry: () => void;
 }
 
-export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({
-  error,
-  onRetry,
-}) => (
+export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({ error, onRetry }) => (
   <div
     style={{
       alignItems: "baseline",
@@ -34,8 +31,7 @@ export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({
     <span
       style={{
         flexGrow: "1",
-        fontFamily:
-          'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        fontFamily: 'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",

@@ -16,8 +16,7 @@ interface EntityEditorTabContextValue {
   setTab: (tab: EntityEditorTab) => void;
 }
 
-const EntityEditorTabContext =
-  createContext<EntityEditorTabContextValue | null>(null);
+const EntityEditorTabContext = createContext<EntityEditorTabContextValue | null>(null);
 
 export const EntityEditorTabProvider = ({
   children,
@@ -52,9 +51,7 @@ export const EntityEditorTabProvider = ({
 export const useEntityEditorTab = () => {
   const context = useContext(EntityEditorTabContext);
   if (!context) {
-    throw new Error(
-      "useEntityEditorTab must be used within an EntityEditorTabProvider",
-    );
+    throw new Error("useEntityEditorTab must be used within an EntityEditorTabProvider");
   }
   return context;
 };
@@ -69,20 +66,15 @@ const getTabUrl = (tab: string, entityPath: string) => {
   searchParams = new URLSearchParams(url.search);
   searchParams.delete("tab");
 
-  const entityPathWithoutParams = new URL(entityPath, window.location.href)
-    .pathname;
+  const entityPathWithoutParams = new URL(entityPath, window.location.href).pathname;
 
   if (tab === defaultTab) {
-    return `${entityPathWithoutParams}${
-      searchParams.size ? `?${searchParams.toString()}` : ""
-    }`;
+    return `${entityPathWithoutParams}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
   }
 
   searchParams.set("tab", tab);
 
-  return `${entityPathWithoutParams}${
-    searchParams.size ? `?${searchParams.toString()}` : ""
-  }`;
+  return `${entityPathWithoutParams}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
 };
 
 export const EntityEditorTabs = ({

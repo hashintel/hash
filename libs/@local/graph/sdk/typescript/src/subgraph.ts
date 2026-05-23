@@ -61,9 +61,7 @@ export const mapGraphApiSubgraphToSubgraph = <
   } as Subgraph<RootType, HashEntity<PropertyMap>>;
 };
 
-const serializeKnowledgeGraphVertex = (
-  vertex: KnowledgeGraphVertex<HashEntity>,
-) => {
+const serializeKnowledgeGraphVertex = (vertex: KnowledgeGraphVertex<HashEntity>) => {
   return {
     kind: vertex.kind,
     inner: vertex.inner.toJSON(),
@@ -86,17 +84,14 @@ export const serializeGraphVertices = (vertices: Vertices<HashEntity>) =>
       Object.fromEntries(
         typedEntries(inner).map(([version, vertex]) => [
           version,
-          isEntityVertex(vertex)
-            ? serializeKnowledgeGraphVertex(vertex)
-            : vertex,
+          isEntityVertex(vertex) ? serializeKnowledgeGraphVertex(vertex) : vertex,
         ]),
       ),
     ]),
   ) as SerializedVertices;
 
 export const deserializeGraphVertices = <
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 >(
   vertices: SerializedVertices,
 ): Vertices<HashEntity<PropertyMap>> =>
@@ -106,9 +101,7 @@ export const deserializeGraphVertices = <
       Object.fromEntries(
         typedEntries(inner).map(([version, vertex]) => [
           version,
-          vertex.kind === "entity"
-            ? deserializeKnowledgeGraphVertex(vertex)
-            : vertex,
+          vertex.kind === "entity" ? deserializeKnowledgeGraphVertex(vertex) : vertex,
         ]),
       ),
     ]),
@@ -122,9 +115,7 @@ export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
 });
 
 export const deserializeSubgraph = <
-  RootType extends
-    | Exclude<SubgraphRootType, EntityRootType>
-    | EntityRootType<HashEntity>,
+  RootType extends Exclude<SubgraphRootType, EntityRootType> | EntityRootType<HashEntity>,
 >(
   subgraph: SerializedSubgraph,
 ): Subgraph<RootType, HashEntity> => ({

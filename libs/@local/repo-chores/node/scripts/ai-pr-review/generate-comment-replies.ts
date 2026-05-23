@@ -12,9 +12,7 @@
 
 import chalk from "chalk";
 import { z } from "zod";
-import zodToJsonSchema, {
-  type JsonSchema7ObjectType,
-} from "zod-to-json-schema";
+import zodToJsonSchema, { type JsonSchema7ObjectType } from "zod-to-json-schema";
 
 import { sleep } from "../shared/time";
 
@@ -84,9 +82,7 @@ export const generateCommentReplies = async ({
 
   // If there are no threads requiring response, return empty array
   if (threadsRequiringResponse.length === 0) {
-    console.log(
-      chalk.white("No comment threads requiring response, skipping..."),
-    );
+    console.log(chalk.white("No comment threads requiring response, skipping..."));
     return [];
   }
 
@@ -100,9 +96,7 @@ export const generateCommentReplies = async ({
   const generateRepliesTools = {
     name: "submit_comment_replies",
     description: "Submit replies to existing PR comments that need a response.",
-    input_schema: zodToJsonSchema(
-      CommentRepliesSchema,
-    ) as JsonSchema7ObjectType,
+    input_schema: zodToJsonSchema(CommentRepliesSchema) as JsonSchema7ObjectType,
   };
 
   try {
@@ -127,18 +121,13 @@ export const generateCommentReplies = async ({
     .map(
       (thread) => `<Comment>
   Reply to thread id: ${thread.threadId}
-  Reply required: ${
-    thread.requiresAiResponse === "yes" ? "Yes" : "If you can add value"
-  }
+  Reply required: ${thread.requiresAiResponse === "yes" ? "Yes" : "If you can add value"}
   Original comment author: ${thread.author}
   Original comment: ${thread.body}
   File path: ${thread.path}
     <Replies>
     ${thread.replies
-      .map(
-        (reply) =>
-          `<Author>@${reply.author}</Author><Comment>${reply.body}</Comment>`,
-      )
+      .map((reply) => `<Author>@${reply.author}</Author><Comment>${reply.body}</Comment>`)
       .join("\n---\n")}
     </Replies>
   </Comment>`,
@@ -167,9 +156,7 @@ export const generateCommentReplies = async ({
       ],
     });
 
-    const toolUseBlock = response.content.find(
-      (block) => block.type === "tool_use",
-    );
+    const toolUseBlock = response.content.find((block) => block.type === "tool_use");
 
     if (!toolUseBlock) {
       throw new Error("No tool use block found in comment replies response");
@@ -198,8 +185,7 @@ export const generateCommentReplies = async ({
         }
 
         // Extract tags with @ prefix from comment
-        const tagsInComment =
-          commentReply.comment.match(/@[a-zA-Z0-9_-]+/g) ?? [];
+        const tagsInComment = commentReply.comment.match(/@[a-zA-Z0-9_-]+/g) ?? [];
 
         // Create valid tags list WITHOUT @ prefix
         const validTagsWithoutPrefix = [
@@ -214,10 +200,7 @@ export const generateCommentReplies = async ({
 
         // Compare without @ prefix
         const invalidTags = tagsInComment.filter(
-          (_, index) =>
-            !validTagsWithoutPrefix.includes(
-              tagsInCommentWithoutPrefix[index]!,
-            ),
+          (_, index) => !validTagsWithoutPrefix.includes(tagsInCommentWithoutPrefix[index]!),
         );
 
         if (invalidTags.length) {
@@ -254,9 +237,7 @@ export const generateCommentReplies = async ({
       if (errorStrings.length) {
         const errorString = errorStrings.join("\n");
 
-        console.error(
-          chalk.red(`AI response had comment errors, retrying: ${errorString}`),
-        );
+        console.error(chalk.red(`AI response had comment errors, retrying: ${errorString}`));
 
         return generateCommentReplies({
           anthropic,
@@ -302,8 +283,7 @@ export const generateCommentReplies = async ({
       linearTickets,
       prDiff,
       prOverview,
-      previousErrors:
-        "An error occurred while generating your replies. Please try again.",
+      previousErrors: "An error occurred while generating your replies. Please try again.",
     });
   }
 };

@@ -11,9 +11,7 @@ type MailslurperMailItem = {
   toAddresses?: Array<string | MailslurperMailAddress>;
 };
 
-const extractToAddresses = (
-  toAddresses: MailslurperMailItem["toAddresses"],
-): string[] =>
+const extractToAddresses = (toAddresses: MailslurperMailItem["toAddresses"]): string[] =>
   (toAddresses ?? [])
     .map((toAddress) => {
       if (typeof toAddress === "string") {
@@ -41,9 +39,7 @@ const parseMailslurperDate = (dateSent?: string): number | undefined => {
   }
 
   const hasTimezone = /[Zz]|[+-]\d{2}:?\d{2}$/.test(dateSent);
-  const isoCandidate = hasTimezone
-    ? dateSent
-    : `${dateSent.replace(" ", "T")}Z`;
+  const isoCandidate = hasTimezone ? dateSent : `${dateSent.replace(" ", "T")}Z`;
 
   const parsed = Date.parse(isoCandidate);
   return Number.isNaN(parsed) ? undefined : parsed;
@@ -138,24 +134,18 @@ const pollForKratosCode = async ({
     elapsed += pollIntervalMs;
   }
 
-  const lastErrorMessage =
-    lastError instanceof Error ? ` Last error: ${lastError.message}` : "";
+  const lastErrorMessage = lastError instanceof Error ? ` Last error: ${lastError.message}` : "";
 
   const allItems = lastMailItems ?? [];
   const toTargetAddress = allItems.filter((item) =>
     extractToAddresses(item.toAddresses).includes(emailAddress),
   );
-  const matchingSubject = toTargetAddress.filter((item) =>
-    subjectFilter(item.subject),
-  );
+  const matchingSubject = toTargetAddress.filter((item) => subjectFilter(item.subject));
   const timestampFilteredOut =
     afterTimestamp !== undefined
       ? matchingSubject.filter((item) => {
           const sent = parseMailslurperDate(item.dateSent);
-          return (
-            typeof sent === "number" &&
-            sent < afterTimestamp - timestampBufferMs
-          );
+          return typeof sent === "number" && sent < afterTimestamp - timestampBufferMs;
         })
       : [];
 

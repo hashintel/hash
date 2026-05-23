@@ -1,10 +1,6 @@
 import { isEntityVertex } from "../../../types/subgraph/vertices.js";
 import { mustBeDefined } from "../../../util.js";
-import {
-  typedEntries,
-  typedKeys,
-  typedValues,
-} from "../../../util/typed-entries.js";
+import { typedEntries, typedKeys, typedValues } from "../../../util/typed-entries.js";
 import {
   intervalContainsTimestamp,
   intervalForTimestamp,
@@ -34,23 +30,18 @@ import type {
  * @param subgraph
  * @param latest - whether or not to only return the latest revisions of each entity
  */
-export const getEntities = <
-  RootType extends SubgraphRootType,
-  EntityImpl extends Entity,
->(
+export const getEntities = <RootType extends SubgraphRootType, EntityImpl extends Entity>(
   subgraph: Subgraph<RootType, EntityImpl>,
   latest: boolean,
 ): EntityImpl[] => {
   return typedValues(subgraph.vertices).flatMap((revisions) => {
     if (latest) {
-      const revisionVersions = Object.keys(
-        revisions,
-      ).sort() as EntityRevisionId[];
+      const revisionVersions = Object.keys(revisions).sort() as EntityRevisionId[];
 
       const lastIndex = revisionVersions.length - 1;
-      const vertex = (
-        revisions as Record<EntityRevisionId, KnowledgeGraphVertex<EntityImpl>>
-      )[revisionVersions[lastIndex]!]!;
+      const vertex = (revisions as Record<EntityRevisionId, KnowledgeGraphVertex<EntityImpl>>)[
+        revisionVersions[lastIndex]!
+      ]!;
       return isEntityVertex(vertex) ? [vertex.inner] : [];
     } else {
       return typedValues(revisions)
@@ -64,9 +55,7 @@ const getRevisionsForEntity = (
   subgraph: Subgraph,
   entityId: EntityId,
 ): KnowledgeGraphVertices[EntityId] | undefined => {
-  const entityRevisions = (subgraph.vertices as KnowledgeGraphVertices)[
-    entityId
-  ];
+  const entityRevisions = (subgraph.vertices as KnowledgeGraphVertices)[entityId];
 
   if (entityRevisions) {
     return entityRevisions;
@@ -145,9 +134,7 @@ export const getEntityRevision = (
     const vertex = entityRevisions[revisionVersions[lastIndex]!]!;
 
     if (!isEntityVertex(vertex)) {
-      throw new Error(
-        `Found non-entity vertex associated with EntityId: ${entityId}`,
-      );
+      throw new Error(`Found non-entity vertex associated with EntityId: ${entityId}`);
     }
 
     return vertex.inner;
@@ -161,16 +148,12 @@ export const getEntityRevision = (
       const vertex = mustBeDefined(entityRevisions[revisionTimestamp]);
 
       if (!isEntityVertex(vertex)) {
-        throw new Error(
-          `Found non-entity vertex associated with EntityId: ${entityId}`,
-        );
+        throw new Error(`Found non-entity vertex associated with EntityId: ${entityId}`);
       }
 
       if (
         intervalContainsTimestamp(
-          vertex.inner.metadata.temporalVersioning[
-            subgraph.temporalAxes.resolved.variable.axis
-          ],
+          vertex.inner.metadata.temporalVersioning[subgraph.temporalAxes.resolved.variable.axis],
           targetTime as Timestamp,
         )
       ) {
@@ -209,10 +192,7 @@ export const getEntityRevisionsByEntityId = (
     for (const [startTime, vertex] of typedEntries(entityRevisions)) {
       // Only look at vertices that were created before or within the search interval
       if (
-        !intervalIsStrictlyAfterInterval(
-          intervalForTimestamp(startTime),
-          interval,
-        ) &&
+        !intervalIsStrictlyAfterInterval(intervalForTimestamp(startTime), interval) &&
         isEntityVertex(vertex)
       ) {
         if (
@@ -222,9 +202,7 @@ export const getEntityRevisionsByEntityId = (
            */
           intervalOverlapsInterval(
             interval,
-            vertex.inner.metadata.temporalVersioning[
-              subgraph.temporalAxes.resolved.variable.axis
-            ],
+            vertex.inner.metadata.temporalVersioning[subgraph.temporalAxes.resolved.variable.axis],
           )
         ) {
           filteredEntities.push(vertex.inner);

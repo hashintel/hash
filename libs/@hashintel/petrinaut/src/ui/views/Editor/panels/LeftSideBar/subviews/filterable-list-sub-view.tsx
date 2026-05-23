@@ -9,10 +9,7 @@ import { Menu } from "../../../../../components/menu";
 import { clampIndex } from "../../../../../lib/clamp-index";
 
 import type { MenuItem } from "../../../../../components/menu";
-import type {
-  SubView,
-  SubViewResizeConfig,
-} from "../../../../../components/sub-view/types";
+import type { SubView, SubViewResizeConfig } from "../../../../../components/sub-view/types";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 import type { ComponentType, ReactNode } from "react";
 
@@ -67,10 +64,9 @@ const listItemRowStyle = cva({
         "&:hover [data-row-action], & [data-row-action][data-state=open]": {
           opacity: "[1]",
         },
-        "&:hover [data-row-action] svg, & [data-row-action][data-state=open] svg":
-          {
-            transform: "none",
-          },
+        "&:hover [data-row-action] svg, & [data-row-action][data-state=open] svg": {
+          transform: "none",
+        },
       },
     },
     isSelected: {
@@ -352,15 +348,11 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
     switch (event.key) {
       case "ArrowDown": {
         event.preventDefault();
-        let nextIndex =
-          focusedIndex === null
-            ? 0
-            : Math.min(focusedIndex + 1, flatRows.length - 1);
+        let nextIndex = focusedIndex === null ? 0 : Math.min(focusedIndex + 1, flatRows.length - 1);
         // Skip hidden and empty placeholder rows
         while (
           nextIndex < flatRows.length - 1 &&
-          (flatRows[nextIndex]?.hidden ||
-            flatRows[nextIndex]?.emptyGroupMessage)
+          (flatRows[nextIndex]?.hidden || flatRows[nextIndex]?.emptyGroupMessage)
         ) {
           nextIndex++;
         }
@@ -378,15 +370,11 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
       }
       case "ArrowUp": {
         event.preventDefault();
-        let nextIndex =
-          focusedIndex === null
-            ? flatRows.length - 1
-            : Math.max(focusedIndex - 1, 0);
+        let nextIndex = focusedIndex === null ? flatRows.length - 1 : Math.max(focusedIndex - 1, 0);
         // Skip hidden and empty placeholder rows
         while (
           nextIndex > 0 &&
-          (flatRows[nextIndex]?.hidden ||
-            flatRows[nextIndex]?.emptyGroupMessage)
+          (flatRows[nextIndex]?.hidden || flatRows[nextIndex]?.emptyGroupMessage)
         ) {
           nextIndex--;
         }
@@ -500,9 +488,7 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
         const isCollapsed = isGroup && collapsedGroups.has(topItem.id);
 
         const itemRow = (item: T, depth: number) => {
-          const index = flatRows.findIndex(
-            (r) => r.item === item && r.depth === depth,
-          );
+          const index = flatRows.findIndex((r) => r.item === item && r.depth === depth);
           const isItemGroup = item === topItem && isGroup;
           const selected = !isItemGroup && checkIsSelected(item.id);
           const focused = focusedIndex === index;
@@ -539,11 +525,7 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
                 isSelected: selected,
                 isFocused: focused,
               })}
-              style={
-                depth > 0
-                  ? { paddingLeft: depth * NESTING_INDENT + 4 }
-                  : undefined
-              }
+              style={depth > 0 ? { paddingLeft: depth * NESTING_INDENT + 4 } : undefined}
             >
               <div className={listItemContentStyle}>
                 {isItemGroup && (
@@ -561,9 +543,7 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
                     <item.icon size={LIST_ITEM_ICON_SIZE} />
                   </span>
                 )}
-                <div className={listItemNameStyle}>
-                  {renderItem(item, selected)}
-                </div>
+                <div className={listItemNameStyle}>{renderItem(item, selected)}</div>
               </div>
               {isItemGroup && item.renderGroupAction && (
                 <span
@@ -587,10 +567,7 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
         return (
           <Fragment key={topItem.id}>
             {itemRow(topItem, 0)}
-            <div
-              className={groupChildrenStyle}
-              style={{ height: isCollapsed ? 0 : "auto" }}
-            >
+            <div className={groupChildrenStyle} style={{ height: isCollapsed ? 0 : "auto" }}>
               {children!.length > 0
                 ? children!.map((child) => itemRow(child, 1))
                 : topItem.emptyGroupMessage && (
@@ -633,9 +610,7 @@ const FilterableListContent = <T extends FilterableListItem>({
   renderRowMenu?: ComponentType<{ item: T }>;
   emptyMessage: string;
 }) => {
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
 
   const toggleGroup = (groupId: string) => {
     setCollapsedGroups((prev) => {
@@ -651,12 +626,7 @@ const FilterableListContent = <T extends FilterableListItem>({
 
   if (items.length === 0) {
     return (
-      <div
-        className={listContainerStyle}
-        role="listbox"
-        aria-multiselectable="true"
-        tabIndex={0}
-      >
+      <div className={listContainerStyle} role="listbox" aria-multiselectable="true" tabIndex={0}>
         <div className={emptyMessageStyle}>{emptyMessage}</div>
       </div>
     );
@@ -716,9 +686,7 @@ export function createFilterableListSubView<T extends FilterableListItem>(
     title,
     tooltip,
     component: Component,
-    renderHeaderAction: () => (
-      <FilterHeaderAction renderExtraAction={renderExtraAction} />
-    ),
+    renderHeaderAction: () => <FilterHeaderAction renderExtraAction={renderExtraAction} />,
     defaultCollapsed,
     resizable,
   };

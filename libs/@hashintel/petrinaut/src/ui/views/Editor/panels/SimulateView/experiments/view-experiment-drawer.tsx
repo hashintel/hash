@@ -90,11 +90,7 @@ function formatStatus(experiment: ExperimentRecord): string {
   }
 }
 
-const ExperimentSummary = ({
-  experiment,
-}: {
-  experiment: ExperimentRecord;
-}) => {
+const ExperimentSummary = ({ experiment }: { experiment: ExperimentRecord }) => {
   const progress = experiment.progress;
   const progressPercent =
     progress && experiment.maxTime > 0
@@ -110,9 +106,7 @@ const ExperimentSummary = ({
         </div>
         <div className={statStyle}>
           <span className={statLabelStyle}>Scenario</span>
-          <span className={statValueStyle}>
-            {experiment.scenarioName ?? "Default"}
-          </span>
+          <span className={statValueStyle}>{experiment.scenarioName ?? "Default"}</span>
         </div>
         <div className={statStyle}>
           <span className={statLabelStyle}>Runs</span>
@@ -133,20 +127,14 @@ const ExperimentSummary = ({
         <div className={statStyle}>
           <span className={statLabelStyle}>Time</span>
           <span className={statValueStyle}>
-            {formatNumber(progress?.time ?? 0)} /{" "}
-            {formatNumber(experiment.maxTime)}
+            {formatNumber(progress?.time ?? 0)} / {formatNumber(experiment.maxTime)}
           </span>
         </div>
       </div>
       <div className={progressBarStyle}>
-        <div
-          className={progressFillStyle}
-          style={{ width: `${progressPercent}%` }}
-        />
+        <div className={progressFillStyle} style={{ width: `${progressPercent}%` }} />
       </div>
-      {experiment.error ? (
-        <span className={errorStyle}>{experiment.error}</span>
-      ) : null}
+      {experiment.error ? <span className={errorStyle}>{experiment.error}</span> : null}
     </>
   );
 };
@@ -171,8 +159,7 @@ export const ViewExperimentDrawer = ({
     );
   }
 
-  const canCancel =
-    experiment.status === "initializing" || experiment.status === "running";
+  const canCancel = experiment.status === "initializing" || experiment.status === "running";
 
   return (
     <Drawer.Root open={open} onClose={onClose} className={drawerStyle}>

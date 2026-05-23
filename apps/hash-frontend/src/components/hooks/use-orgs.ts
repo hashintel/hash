@@ -10,10 +10,7 @@ import { constructMinimalOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 
-import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
+import type { QueryEntitiesQuery, QueryEntitiesQueryVariables } from "../../graphql/api-types.gen";
 import type { MinimalOrg } from "../../lib/user-and-org";
 import type { ApolloQueryResult } from "@apollo/client";
 
@@ -25,27 +22,25 @@ export const useOrgs = (): {
   orgs?: MinimalOrg[];
   refetch: () => Promise<ApolloQueryResult<QueryEntitiesQuery>>;
 } => {
-  const { data, loading, refetch } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
-    variables: {
-      request: {
-        filter: convertBpFilterToGraphFilter({
-          filters: [
-            entityHasEntityTypeByVersionedUrlFilter(
-              systemEntityTypes.organization.entityTypeId,
-            ),
-          ],
-          operator: "AND",
-        }),
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
+  const { data, loading, refetch } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
+    {
+      variables: {
+        request: {
+          filter: convertBpFilterToGraphFilter({
+            filters: [
+              entityHasEntityTypeByVersionedUrlFilter(systemEntityTypes.organization.entityTypeId),
+            ],
+            operator: "AND",
+          }),
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
+        },
       },
+      fetchPolicy: "cache-and-network",
     },
-    fetchPolicy: "cache-and-network",
-  });
+  );
 
   const { queryEntities } = data ?? {};
 
@@ -55,16 +50,14 @@ export const useOrgs = (): {
         return undefined;
       }
 
-      return deserializeQueryEntitiesResponse(queryEntities).entities.map(
-        (orgEntity) => {
-          if (!isEntityOrgEntity(orgEntity)) {
-            throw new Error(
-              `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
-            );
-          }
-          return constructMinimalOrg({ orgEntity });
-        },
-      );
+      return deserializeQueryEntitiesResponse(queryEntities).entities.map((orgEntity) => {
+        if (!isEntityOrgEntity(orgEntity)) {
+          throw new Error(
+            `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
+          );
+        }
+        return constructMinimalOrg({ orgEntity });
+      });
     },
     [queryEntities],
     /**

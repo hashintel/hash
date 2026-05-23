@@ -23,9 +23,7 @@ import type { PartialEntity } from "@local/hash-backend-utils/temporal-integrati
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
-export const mapLinearDataToEntity = <
-  T extends SupportedLinearTypeNames,
->(params: {
+export const mapLinearDataToEntity = <T extends SupportedLinearTypeNames>(params: {
   linearType: T;
   linearData: SupportedLinearTypes[T];
 }): PartialEntity => {
@@ -128,9 +126,7 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
   };
 };
 
-export const mapHashEntityToLinearUpdateInput = async <
-  T extends SupportedLinearTypeNames,
->(params: {
+export const mapHashEntityToLinearUpdateInput = async <T extends SupportedLinearTypeNames>(params: {
   graphApiClient: GraphApi;
   authentication: { actorId: ActorEntityUuid };
   linearType: T;
@@ -144,10 +140,7 @@ export const mapHashEntityToLinearUpdateInput = async <
 
   const updateInput: SupportedLinearUpdateInput[T] = {};
 
-  for (const {
-    hashPropertyTypeId,
-    addHashValueToLinearUpdateInput,
-  } of mapping.propertyMappings) {
+  for (const { hashPropertyTypeId, addHashValueToLinearUpdateInput } of mapping.propertyMappings) {
     const hashValue = entity.properties[extractBaseUrl(hashPropertyTypeId)];
 
     if (typeof hashValue === "undefined") {
@@ -168,15 +161,10 @@ export const mapHashEntityToLinearUpdateInput = async <
     entityId: entity.metadata.recordId.entityId,
   });
 
-  for (const {
-    linkEntityTypeId,
-    addToLinearUpdateInput,
-  } of mapping.outgoingLinkMappings) {
+  for (const { linkEntityTypeId, addToLinearUpdateInput } of mapping.outgoingLinkMappings) {
     const matchingOutgoingLinksWithRightEntities = await Promise.all(
       outgoingLinks
-        .filter((linkEntity) =>
-          linkEntity.metadata.entityTypeIds.includes(linkEntityTypeId),
-        )
+        .filter((linkEntity) => linkEntity.metadata.entityTypeIds.includes(linkEntityTypeId))
         .map(async (linkEntity) => ({
           linkEntity,
           rightEntity: await getLatestEntityById({
@@ -188,10 +176,7 @@ export const mapHashEntityToLinearUpdateInput = async <
     );
 
     if (addToLinearUpdateInput) {
-      addToLinearUpdateInput(
-        updateInput,
-        matchingOutgoingLinksWithRightEntities,
-      );
+      addToLinearUpdateInput(updateInput, matchingOutgoingLinksWithRightEntities);
     }
   }
 

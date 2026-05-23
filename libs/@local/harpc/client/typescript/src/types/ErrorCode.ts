@@ -18,9 +18,7 @@ const TypeId = Symbol("@local/harpc-client/wire-protocol/types/ErrorCode");
 
 export type TypeId = typeof TypeId;
 
-export class ErrorCodeTooLargeError extends Data.TaggedError(
-  "ErrorCodeTooLargeError",
-)<{
+export class ErrorCodeTooLargeError extends Data.TaggedError("ErrorCodeTooLargeError")<{
   received: number;
 }> {
   get message() {
@@ -28,16 +26,15 @@ export class ErrorCodeTooLargeError extends Data.TaggedError(
   }
 }
 
-export class ErrorCodeTooSmallError extends Data.TaggedError(
-  "ErrorCodeNotPositiveError",
-)<{ received: number }> {
+export class ErrorCodeTooSmallError extends Data.TaggedError("ErrorCodeNotPositiveError")<{
+  received: number;
+}> {
   get message() {
     return `error code mut be a positive number, got ${this.received}`;
   }
 }
 
-export interface ErrorCode
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface ErrorCode extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly value: number;
@@ -52,11 +49,7 @@ const ErrorCodeProto: Omit<ErrorCode, "value"> = {
   },
 
   [Hash.symbol](this: ErrorCode) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.number(this.value)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.number(this.value)), Hash.cached(this));
   },
 
   toString(this: ErrorCode) {
@@ -81,15 +74,11 @@ const ErrorCodeProto: Omit<ErrorCode, "value"> = {
 };
 
 /** @internal */
-export const makeUnchecked = (value: number): ErrorCode =>
-  createProto(ErrorCodeProto, { value });
+export const makeUnchecked = (value: number): ErrorCode => createProto(ErrorCodeProto, { value });
 
 export const make = (
   value: number,
-): Effect.Effect<
-  ErrorCode,
-  ErrorCodeTooLargeError | ErrorCodeTooSmallError
-> => {
+): Effect.Effect<ErrorCode, ErrorCodeTooLargeError | ErrorCodeTooSmallError> => {
   if (value < 1) {
     return Effect.fail(new ErrorCodeTooSmallError({ received: value }));
   }

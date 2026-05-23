@@ -28,9 +28,7 @@ export const useGenerateTypeUrlsForUser = () => {
       const baseUrl = generateTypeBaseUrl({
         domain:
           // To be replaced by 'frontendUrl' in H-1172: Temporary provision until https://app.hash.ai migrated to https://hash.ai
-          frontendUrl === "https://app.hash.ai"
-            ? "https://hash.ai"
-            : frontendUrl,
+          frontendUrl === "https://app.hash.ai" ? "https://hash.ai" : frontendUrl,
         kind,
         title,
         webShortname: activeWorkspace.shortname,

@@ -1,8 +1,3 @@
 //@ run: pass
 //@ description: Constant folding for less-than-or-equal comparison
-[
-  "if",
-  { "#literal": true },
-  ["<=", { "#literal": 5 }, { "#literal": 5 }],
-  { "#literal": false }
-]
+["if", { "#literal": true }, ["<=", { "#literal": 5 }, { "#literal": 5 }], { "#literal": false }]

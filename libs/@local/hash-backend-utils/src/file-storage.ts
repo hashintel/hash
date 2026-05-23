@@ -8,15 +8,11 @@ import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;
 export type StorageType = (typeof storageTypes)[number];
 
-export const isStorageType = (
-  storageType: string,
-): storageType is StorageType =>
+export const isStorageType = (storageType: string): storageType is StorageType =>
   storageTypes.includes(storageType as StorageType);
 
 /** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
-export type StorageProviderLookup = Partial<
-  Record<StorageType, FileStorageProvider>
->;
+export type StorageProviderLookup = Partial<Record<StorageType, FileStorageProvider>>;
 
 /**
  * All storage providers usable by the API should be added here.
@@ -84,19 +80,13 @@ export interface FileStorageProvider {
    * in different paths. The key must reliably have the EntityId and edition timestamp as the 2nd and 3rd to last path
    * segments, to identify the entity.
    */
-  getFileEntityStorageKey(
-    this: void,
-    params: GetFileEntityStorageKeyParams,
-  ): FileStorageKey;
+  getFileEntityStorageKey(this: void, params: GetFileEntityStorageKeyParams): FileStorageKey;
 
   /**
    * Generate a storage key for flow output payloads.
    * Format: flows/{workflowId}/{runId}/{stepId}/{outputName}.json
    */
-  getFlowOutputStorageKey(
-    this: void,
-    params: GetFlowOutputStorageKeyParams,
-  ): string;
+  getFlowOutputStorageKey(this: void, params: GetFlowOutputStorageKeyParams): string;
 
   /**
    * Upload data directly to storage without presigning.
@@ -165,8 +155,8 @@ export const getEntityTypeIdForMimeType = (mimeType: string) =>
    * @note we should to adapt this if we add sub-types for `Image` (for example a
    * `PNG Image` type), so that the most specific type is used.
    */
-  Object.entries(fileMimeTypeStartsWithToEntityTypeId).find(
-    ([mimeTypeStartsWith]) => mimeType.startsWith(mimeTypeStartsWith),
+  Object.entries(fileMimeTypeStartsWithToEntityTypeId).find(([mimeTypeStartsWith]) =>
+    mimeType.startsWith(mimeTypeStartsWith),
   )?.[1];
 
 export const formatFileUrl = (key: string) => {

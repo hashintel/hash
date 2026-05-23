@@ -20,8 +20,7 @@ export const theme = createTheme({
   components: components as ThemeOptions["components"],
 });
 
-export const createEmotionCache = (key?: string) =>
-  createCache({ key: key ?? "css" });
+export const createEmotionCache = (key?: string) => createCache({ key: key ?? "css" });
 
 export * from "./fluid-fonts";
 // @todo - consider re-exporting textFieldBorderRadius from another file

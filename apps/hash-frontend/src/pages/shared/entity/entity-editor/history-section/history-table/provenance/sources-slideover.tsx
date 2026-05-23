@@ -35,9 +35,7 @@ const boxPadding = {
 const SourceRow = ({ source }: { source: SourceProvenance }) => {
   const { entityId, location, type } = source;
 
-  const [webId, entityUuid] = source.entityId
-    ? splitEntityId(entityId as EntityId)
-    : [null, null];
+  const [webId, entityUuid] = source.entityId ? splitEntityId(entityId as EntityId) : [null, null];
 
   const { shortname: entityOwningShortname } = useUserOrOrgShortnameByWebId({
     webId,
@@ -164,10 +162,7 @@ export const SourcesSlideover = ({
               borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
             }}
           >
-            <Typography
-              variant="h5"
-              sx={{ color: ({ palette }) => palette.gray[90], mb: 2 }}
-            >
+            <Typography variant="h5" sx={{ color: ({ palette }) => palette.gray[90], mb: 2 }}>
               {headerText}
             </Typography>
             <Stack direction="row" alignItems="center">
@@ -181,10 +176,7 @@ export const SourcesSlideover = ({
               flexGrow: 1,
             }}
           >
-            <Typography
-              variant="h5"
-              sx={{ color: ({ palette }) => palette.gray[90], mb: 2 }}
-            >
+            <Typography variant="h5" sx={{ color: ({ palette }) => palette.gray[90], mb: 2 }}>
               Sources
             </Typography>
             <TableContainer
@@ -223,12 +215,7 @@ export const SourcesSlideover = ({
                 </TableHead>
                 <TableBody>
                   {sources.map((source, index) => {
-                    return (
-                      <SourceRow
-                        key={source.location?.uri ?? index}
-                        source={source}
-                      />
-                    );
+                    return <SourceRow key={source.location?.uri ?? index} source={source} />;
                   })}
                 </TableBody>
               </Table>

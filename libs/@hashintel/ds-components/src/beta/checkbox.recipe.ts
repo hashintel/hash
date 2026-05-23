@@ -111,6 +111,4 @@ const checkboxSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const checkboxSlotRecipe = sva(checkboxSlotRecipeDefinition);
 
-export type CheckboxSlotRecipeProps = RecipeVariantProps<
-  typeof checkboxSlotRecipe
->;
+export type CheckboxSlotRecipeProps = RecipeVariantProps<typeof checkboxSlotRecipe>;

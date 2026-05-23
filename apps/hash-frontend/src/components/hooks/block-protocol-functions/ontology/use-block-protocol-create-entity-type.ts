@@ -16,10 +16,9 @@ export const useBlockProtocolCreateEntityType = (
 ): {
   createEntityType: CreateEntityTypeMessageCallback;
 } => {
-  const [createFn] = useMutation<
-    CreateEntityTypeMutation,
-    CreateEntityTypeMutationVariables
-  >(createEntityTypeMutation);
+  const [createFn] = useMutation<CreateEntityTypeMutation, CreateEntityTypeMutationVariables>(
+    createEntityTypeMutation,
+  );
 
   const createEntityType: CreateEntityTypeMessageCallback = useCallback(
     async ({ data }) => {

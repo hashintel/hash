@@ -84,8 +84,6 @@ export const generateInverseResolver: ResolverFn<
       relationship,
       error,
     });
-    throw Error.internal(
-      `Failed to generate inverse relationship for ${relationship}`,
-    );
+    throw Error.internal(`Failed to generate inverse relationship for ${relationship}`);
   }
 };

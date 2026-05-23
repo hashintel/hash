@@ -15,10 +15,7 @@ import type { MonteCarloRunState, PlaceID } from "./internal-types";
 /**
  * Marks a run as complete and records why no more frames will be advanced.
  */
-function completeRun(
-  run: MonteCarloRunState,
-  reason: SimulationCompletionReason,
-): void {
+function completeRun(run: MonteCarloRunState, reason: SimulationCompletionReason): void {
   run.status = "complete";
   run.completionReason = reason;
 }
@@ -68,11 +65,7 @@ export function advanceRun(run: MonteCarloRunState): boolean {
 
       firedTransitions.add(transitionId);
       run.rngState = effect.newRngState;
-      applyTokenRemovals(
-        run.simulation.frameLayout,
-        workingFrame,
-        effect.remove,
-      );
+      applyTokenRemovals(run.simulation.frameLayout, workingFrame, effect.remove);
       mergeTokenAdditions(tokensToAdd, effect.add);
     }
 
@@ -85,10 +78,7 @@ export function advanceRun(run: MonteCarloRunState): boolean {
 
     if (run.frameNumber >= run.maxFrameNumber) {
       completeRun(run, "maxTime");
-    } else if (
-      firedTransitions.size === 0 &&
-      !hasStructurallyEnabledTransition(run)
-    ) {
+    } else if (firedTransitions.size === 0 && !hasStructurallyEnabledTransition(run)) {
       completeRun(run, "deadlock");
     }
 

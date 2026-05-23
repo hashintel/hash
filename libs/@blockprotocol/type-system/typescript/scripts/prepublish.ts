@@ -28,10 +28,7 @@ const getFilesOnly = (directoryPath: string) => {
   return files;
 };
 
-const updateImportReferences = (
-  directoryPath: string,
-  importMappings: Record<string, string>,
-) => {
+const updateImportReferences = (directoryPath: string, importMappings: Record<string, string>) => {
   const files = getFilesOnly(directoryPath);
 
   for (const file of files) {
@@ -56,10 +53,7 @@ const updatePackageJson = () => {
 
   delete packageJson.dependencies["@blockprotocol/type-system-rs"];
 
-  fs.writeFileSync(
-    packageJsonPath,
-    `${JSON.stringify(packageJson, null, 2)}\n`,
-  );
+  fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 };
 
 const vendorInUtilityTypes = (content: string) => {
@@ -70,29 +64,16 @@ const vendorInUtilityTypes = (content: string) => {
 };
 
 const main = () => {
-  console.log(
-    "Removing @blockprotocol/type-system-rs dependency from published package...",
-  );
+  console.log("Removing @blockprotocol/type-system-rs dependency from published package...");
 
   try {
     // 1. Create type-system-rs directory in src/native to hold vendored-in files
-    const typeSystemRsDir = path.join(
-      packageRoot,
-      "src",
-      "native",
-      "type-system-rs",
-    );
+    const typeSystemRsDir = path.join(packageRoot, "src", "native", "type-system-rs");
 
     fs.mkdirSync(typeSystemRsDir, { recursive: true });
 
     // 2. Copy @type-system.d.ts to src/native/type-system-rs/type-system.d.ts
-    const sourceTypeSystemPath = path.join(
-      packageRoot,
-      "..",
-      "rust",
-      "pkg",
-      "type-system.d.ts",
-    );
+    const sourceTypeSystemPath = path.join(packageRoot, "..", "rust", "pkg", "type-system.d.ts");
     const targetTypeSystemPath = path.join(typeSystemRsDir, "type-system.d.ts");
 
     const typeSystemContent = fs.readFileSync(sourceTypeSystemPath, "utf8");
@@ -100,13 +81,7 @@ const main = () => {
     fs.writeFileSync(targetTypeSystemPath, vendoredTypeSystemContent, "utf8");
 
     // 3. Copy @index.snap.d.ts to src/native/type-system-rs/types.d.ts
-    const sourceTypesPath = path.join(
-      packageRoot,
-      "..",
-      "rust",
-      "types",
-      "index.snap.d.ts",
-    );
+    const sourceTypesPath = path.join(packageRoot, "..", "rust", "types", "index.snap.d.ts");
     const targetTypesPath = path.join(typeSystemRsDir, "types.d.ts");
 
     const typesContent = fs.readFileSync(sourceTypesPath, "utf8");
@@ -122,10 +97,8 @@ const main = () => {
     // 5. Update import references in src (but not subfolders)
     console.log("Updating import references in src...");
     updateImportReferences(path.join(packageRoot, "src"), {
-      '"@blockprotocol/type-system-rs"':
-        '"./native/type-system-rs/type-system.d.ts"',
-      "@blockprotocol/type-system-rs/types":
-        "./native/type-system-rs/types.d.ts",
+      '"@blockprotocol/type-system-rs"': '"./native/type-system-rs/type-system.d.ts"',
+      "@blockprotocol/type-system-rs/types": "./native/type-system-rs/types.d.ts",
     });
 
     // 6. Update package.json

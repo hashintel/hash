@@ -18,8 +18,7 @@ export const AutomaticallyTriggered = ({
     () =>
       unfilteredFlowRuns.filter(
         (flow) =>
-          flow.flowDefinitionId ===
-            automaticBrowserInferenceFlowDefinition.flowDefinitionId ||
+          flow.flowDefinitionId === automaticBrowserInferenceFlowDefinition.flowDefinitionId ||
           flow.requestedPageUrl,
       ),
     [unfilteredFlowRuns],
@@ -32,8 +31,8 @@ export const AutomaticallyTriggered = ({
         {automaticallyTriggeredFlows.length === 0 ? (
           <TableRow>
             <TableCell colSpan={4} sx={{ lineHeight: "1.3 !important" }}>
-              The status of flows triggered automatically from the plugin and
-              requests for webpages from flows to the plugin will appear here.
+              The status of flows triggered automatically from the plugin and requests for webpages
+              from flows to the plugin will appear here.
             </TableCell>
           </TableRow>
         ) : (
@@ -44,9 +43,7 @@ export const AutomaticallyTriggered = ({
               <HistoryRow
                 flowRun={flow}
                 key={flowRunId}
-                type={
-                  flow.requestedPageUrl ? "external-page-request" : "automatic"
-                }
+                type={flow.requestedPageUrl ? "external-page-request" : "automatic"}
               />
             );
           })

@@ -7,11 +7,7 @@ import {
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
 import { Button } from "../../../../../components/button";
-import {
-  Table,
-  type TableColumn,
-  TableStatusBadge,
-} from "../../../../../components/table";
+import { Table, type TableColumn, TableStatusBadge } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
@@ -31,11 +27,7 @@ function formatExperimentStatus(status: ExperimentRecord["status"]): string {
   }
 }
 
-const ExperimentStatusBadge = ({
-  status,
-}: {
-  status: ExperimentRecord["status"];
-}) => {
+const ExperimentStatusBadge = ({ status }: { status: ExperimentRecord["status"] }) => {
   const label = formatExperimentStatus(status);
   const isActive = status === "initializing" || status === "running";
 
@@ -81,9 +73,7 @@ const experimentColumns = [
     id: "status",
     header: "Status",
     width: 156,
-    render: (experiment) => (
-      <ExperimentStatusBadge status={experiment.status} />
-    ),
+    render: (experiment) => <ExperimentStatusBadge status={experiment.status} />,
   },
 ] satisfies readonly TableColumn<ExperimentRecord>[];
 
@@ -121,12 +111,8 @@ const ExperimentList = ({
 
 export const ExperimentsView = () => {
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
-  const {
-    experiments,
-    selectedExperiment,
-    selectedExperimentId,
-    setSelectedExperimentId,
-  } = use(ExperimentsContext);
+  const { experiments, selectedExperiment, selectedExperimentId, setSelectedExperimentId } =
+    use(ExperimentsContext);
 
   const closeCreateDrawer = () => setIsCreateDrawerOpen(false);
   const closeViewDrawer = () => setSelectedExperimentId(null);

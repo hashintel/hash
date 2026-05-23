@@ -19,9 +19,7 @@ export const App = () => {
             <Popover.Arrow />
             <Popover.Header>
               <Popover.Title>Report an issue</Popover.Title>
-              <Popover.Description>
-                Please fill out the form below.
-              </Popover.Description>
+              <Popover.Description>Please fill out the form below.</Popover.Description>
             </Popover.Header>
             <Popover.Body gap="4">
               <Field.Root>

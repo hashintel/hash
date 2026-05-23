@@ -31,14 +31,11 @@ export const makeUnchecked = (
   id: RequestId.RequestId,
   readQueue: Queue.Dequeue<WireResponse.Response>,
   drop: Deferred.Deferred<void>,
-): Transaction =>
-  createProto(TransactionProto, { id, read: readQueue, drop }) as Transaction;
+): Transaction => createProto(TransactionProto, { id, read: readQueue, drop }) as Transaction;
 
 // eslint-disable-next-line fsecond/no-inline-interfaces
 export const registerDestructor: {
-  (
-    destructor: Effect.Effect<void>,
-  ): (self: Transaction) => Effect.Effect<boolean>;
+  (destructor: Effect.Effect<void>): (self: Transaction) => Effect.Effect<boolean>;
   (self: Transaction, destructor: Effect.Effect<void>): Effect.Effect<boolean>;
 } = Function.dual(2, (self: TransactionImpl, destructor: Effect.Effect<void>) =>
   Deferred.completeWith(self.drop, destructor),

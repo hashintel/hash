@@ -24,12 +24,7 @@ export const UsesCard = () => (
       </Box>
     </HomepageBigText>
     <HomepageBigText sx={{ fontWeight: 400 }}>are using HASH</HomepageBigText>
-    <Button
-      href="https://hash.ai/cases"
-      size="small"
-      variant="white_cta"
-      target="_blank"
-    >
+    <Button href="https://hash.ai/cases" size="small" variant="white_cta" target="_blank">
       Explore use cases
       <LightbulbOnRainbowIcon
         sx={{

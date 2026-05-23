@@ -3,10 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
 
 import { useGraphEmbedderModule } from "@blockprotocol/graph/react";
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinksForEntity, getRoots } from "@blockprotocol/graph/stdlib";
 import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { useServiceEmbedderModule } from "@blockprotocol/service/react";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
@@ -69,10 +66,7 @@ export const BlockLoadingIndicator: FunctionComponent<{
   <Skeleton
     animation="wave"
     variant="rectangular"
-    sx={[
-      { borderRadius: 1, height: "32px" },
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
+    sx={[{ borderRadius: 1, height: "32px" }, ...(Array.isArray(sx) ? sx : [sx])]}
   />
 );
 
@@ -161,17 +155,15 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
   const blockSchema = useMemo(() => {
     const blockSchemaId = blockMetadata.schema;
 
-    return Object.values(userBlocks).find(
-      ({ schema }) => schema && schema.$id === blockSchemaId,
-    )?.schema;
+    return Object.values(userBlocks).find(({ schema }) => schema && schema.$id === blockSchemaId)
+      ?.schema;
   }, [userBlocks, blockMetadata]);
 
   const blockSchemaRequiresOutgoingHasQueryLinks = useMemo(() => {
     if (blockSchema) {
       return Object.entries(blockSchema.links ?? {}).some(
         ([linkEntityTypeId, value]) =>
-          linkEntityTypeId ===
-            blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId &&
+          linkEntityTypeId === blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId &&
           value.minItems &&
           value.minItems > 0,
       );
@@ -182,9 +174,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 
   const blockHasMissingHasQueryLinks = useMemo(() => {
     if (blockSchemaRequiresOutgoingHasQueryLinks) {
-      const blockEntity = getRoots<EntityRootType>(
-        graphProperties.blockEntitySubgraph,
-      )[0];
+      const blockEntity = getRoots<EntityRootType>(graphProperties.blockEntitySubgraph)[0];
 
       if (blockEntity) {
         const outgoingLinks = getOutgoingLinksForEntity(

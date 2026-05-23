@@ -10,19 +10,17 @@ import {
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   if (!enabledIntegrations.linear) {
     return migrationState;
   }
 
   /** Linear Organization entity type */
 
-  const allowMembersToInvitePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const allowMembersToInvitePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Allow Members To Invite",
         description: "Whether member users are allowed to send invites.",
@@ -30,19 +28,22 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
-  const allowedAuthServicePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const allowedAuthServicePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Allowed Auth Service",
-        description:
-          "Allowed authentication provider, empty array means all are allowed.",
+        description: "Allowed authentication provider, empty array means all are allowed.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
   const dateTimeDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "datetime",
@@ -64,22 +65,20 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const createdAtPropertyType = await createSystemPropertyTypeIfNotExists(
+  const createdAtPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Created At",
+      description: "The time at which the entity was created.",
+      possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
+
+  const createdIssueCountPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Created At",
-        description: "The time at which the entity was created.",
-        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
-    },
-  );
-
-  const createdIssueCountPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Created Issue Count",
         description: "Number of issues created.",
@@ -87,19 +86,22 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
-  const deletionRequestedAtPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const deletionRequestedAtPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Deletion Requested At",
-        description:
-          "The time at which deletion of the organization was requested.",
+        description: "The time at which deletion of the organization was requested.",
         possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
   const gitBranchFormatPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -107,8 +109,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Git Branch Format",
-        description:
-          "How git branches are formatted. If null, default formatting will be used.",
+        description: "How git branches are formatted. If null, default formatting will be used.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "linear",
@@ -116,8 +117,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const gitLinkbackMessagesEnabledPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const gitLinkbackMessagesEnabledPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Git Linkback Messages Enabled",
         description:
@@ -126,10 +129,13 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
-  const gitPublicLinkbackMessagesEnabledPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const gitPublicLinkbackMessagesEnabledPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Git Public Linkback Messages Enabled",
         description:
@@ -138,71 +144,62 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
-
-  const idPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "ID",
-        description: "The unique identifier of the entity.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "linear",
-      migrationState,
     },
   );
+
+  const idPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "ID",
+      description: "The unique identifier of the entity.",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
 
   const uriDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "uri",
     migrationState,
   });
 
-  const logoUrlPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Logo URL",
-        description: "The organization's logo URL.",
-        possibleValues: [{ dataTypeId: uriDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const logoUrlPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Logo URL",
+      description: "The organization's logo URL.",
+      possibleValues: [{ dataTypeId: uriDataTypeId }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const namePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Name",
-        description: "The organization's name.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const namePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Name",
+      description: "The organization's name.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const megabytesDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "megabytes",
     migrationState,
   });
 
-  const periodUploadVolumePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const periodUploadVolumePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Period Upload Volume",
-        description:
-          "Rolling 30-day total upload volume for the organization, in megabytes.",
+        description: "Rolling 30-day total upload volume for the organization, in megabytes.",
         possibleValues: [{ dataTypeId: megabytesDataTypeId }],
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
   const previousUrlKeysPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -219,8 +216,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const projectUpdateRemindersHourPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const projectUpdateRemindersHourPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Project Update Reminders Hour",
         description: "The hour at which to prompt for project updates.",
@@ -228,7 +227,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
   const roadmapEnabledPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -286,52 +286,40 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const updatedAtPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Updated At",
-        description: [
-          "The last time at which the entity was meaningfully updated,",
-          "i.e. for all changes of syncable properties except those",
-          "for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys).",
-          "This is the same as the creation time if the entity hasn't been updated after creation.",
-        ].join(" "),
-        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const updatedAtPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Updated At",
+      description: [
+        "The last time at which the entity was meaningfully updated,",
+        "i.e. for all changes of syncable properties except those",
+        "for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys).",
+        "This is the same as the creation time if the entity hasn't been updated after creation.",
+      ].join(" "),
+      possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const urlKeyPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "URL Key",
-        description: "The organization's unique URL key.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const urlKeyPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "URL Key",
+      description: "The organization's unique URL key.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const userCountPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "User Count",
-        description: "Number of active users in the organization.",
-        possibleValues: [{ primitiveDataType: "number" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const userCountPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "User Count",
+      description: "Number of active users in the organization.",
+      possibleValues: [{ primitiveDataType: "number" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const linearOrganizationEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -446,48 +434,35 @@ const migrate: MigrationFunction = async ({
 
   /** Linear User entity type */
 
-  const activePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Active",
-        description:
-          "Whether the user account is active or disabled (suspended).",
-        possibleValues: [{ primitiveDataType: "boolean" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const activePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Active",
+      description: "Whether the user account is active or disabled (suspended).",
+      possibleValues: [{ primitiveDataType: "boolean" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const adminPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Admin",
-        description: " Whether the user is an organization administrator.",
-        possibleValues: [{ primitiveDataType: "boolean" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const adminPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Admin",
+      description: " Whether the user is an organization administrator.",
+      possibleValues: [{ primitiveDataType: "boolean" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const avatarUrlPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Avatar URL",
-        description: "An URL to the user's avatar image.",
-        possibleValues: [{ dataTypeId: uriDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const avatarUrlPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Avatar URL",
+      description: "An URL to the user's avatar image.",
+      possibleValues: [{ dataTypeId: uriDataTypeId }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const disableReasonPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -509,8 +484,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Display Name",
-        description:
-          "The user's display (nick) name. Unique within each organization.",
+        description: "The user's display (nick) name. Unique within each organization.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "linear",
@@ -523,20 +497,16 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const guestPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Guest",
-        description:
-          "Whether the user is a guest in the workspace and limited to accessing a subset of teams.",
-        possibleValues: [{ primitiveDataType: "boolean" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const guestPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Guest",
+      description:
+        "Whether the user is a guest in the workspace and limited to accessing a subset of teams.",
+      possibleValues: [{ primitiveDataType: "boolean" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const inviteHashPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -552,51 +522,40 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const isMePropertyType = await createSystemPropertyTypeIfNotExists(
+  const isMePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Is Me",
+      description: " Whether the user is the currently authenticated user.",
+      possibleValues: [{ primitiveDataType: "boolean" }],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
+
+  const lastSeenPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Last Seen",
+      description: "The last time the user was seen online. If null, the user is currently online.",
+      possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
+
+  const fullNamePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Full Name",
+      description: "The user's full name.",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
+
+  const belongsToOrganizationLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Is Me",
-        description: " Whether the user is the currently authenticated user.",
-        possibleValues: [{ primitiveDataType: "boolean" }],
-      },
-      webShortname: "linear",
-      migrationState,
-    },
-  );
-
-  const lastSeenPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Last Seen",
-        description:
-          "The last time the user was seen online. If null, the user is currently online.",
-        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
-    },
-  );
-
-  const fullNamePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Full Name",
-        description: "The user's full name.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "linear",
-      migrationState,
-    },
-  );
-
-  const belongsToOrganizationLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Belongs To Organization",
@@ -605,7 +564,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
   const statusEmojiPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -641,8 +601,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Status Until At",
-        description:
-          "A date at which the user current status should be cleared.",
+        description: "A date at which the user current status should be cleared.",
         possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
       webShortname: "linear",
@@ -650,19 +609,15 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const timezonePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Timezone",
-        description: "The local timezone of the user.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const timezonePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Timezone",
+      description: "The local timezone of the user.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const profileUrlPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -693,125 +648,116 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const linearUserEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "User",
-        description:
-          "A user that has access to the resources of an organization.",
-        properties: [
-          {
-            propertyType: activePropertyType,
-            required: true,
-          },
-          {
-            propertyType: adminPropertyType,
-            required: true,
-          },
-          {
-            propertyType: archivedAtPropertyType,
-          },
-          {
-            propertyType: avatarUrlPropertyType,
-          },
-          {
-            propertyType: createdAtPropertyType,
-            required: true,
-          },
-          {
-            propertyType: createdIssueCountPropertyType,
-            required: true,
-          },
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
-          },
-          {
-            propertyType: disableReasonPropertyType,
-          },
-          {
-            propertyType: displayNamePropertyType,
-            required: true,
-          },
-          {
-            propertyType: emailPropertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: guestPropertyType,
-            required: true,
-          },
-          {
-            propertyType: idPropertyType,
-            required: true,
-          },
-          {
-            propertyType: inviteHashPropertyType,
-            required: true,
-          },
-          {
-            propertyType: isMePropertyType,
-            required: true,
-          },
-          {
-            propertyType: lastSeenPropertyType,
-          },
-          {
-            propertyType: fullNamePropertyType,
-            required: true,
-          },
-          {
-            propertyType: statusEmojiPropertyType,
-          },
-          {
-            propertyType: statusLabelPropertyType,
-          },
-          {
-            propertyType: statusUntilAtPropertyType,
-          },
-          {
-            propertyType: timezonePropertyType,
-          },
-          {
-            propertyType: updatedAtPropertyType,
-            required: true,
-          },
-          {
-            propertyType: profileUrlPropertyType,
-            required: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: belongsToOrganizationLinkEntityType,
-            minItems: 1,
-            maxItems: 1,
-            destinationEntityTypes: [linearOrganizationEntityType],
-          },
-          /** @todo: team memberships */
-        ],
-      },
-      webShortname: "linear",
-      migrationState,
+  const linearUserEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "User",
+      description: "A user that has access to the resources of an organization.",
+      properties: [
+        {
+          propertyType: activePropertyType,
+          required: true,
+        },
+        {
+          propertyType: adminPropertyType,
+          required: true,
+        },
+        {
+          propertyType: archivedAtPropertyType,
+        },
+        {
+          propertyType: avatarUrlPropertyType,
+        },
+        {
+          propertyType: createdAtPropertyType,
+          required: true,
+        },
+        {
+          propertyType: createdIssueCountPropertyType,
+          required: true,
+        },
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+        },
+        {
+          propertyType: disableReasonPropertyType,
+        },
+        {
+          propertyType: displayNamePropertyType,
+          required: true,
+        },
+        {
+          propertyType: emailPropertyTypeId,
+          required: true,
+        },
+        {
+          propertyType: guestPropertyType,
+          required: true,
+        },
+        {
+          propertyType: idPropertyType,
+          required: true,
+        },
+        {
+          propertyType: inviteHashPropertyType,
+          required: true,
+        },
+        {
+          propertyType: isMePropertyType,
+          required: true,
+        },
+        {
+          propertyType: lastSeenPropertyType,
+        },
+        {
+          propertyType: fullNamePropertyType,
+          required: true,
+        },
+        {
+          propertyType: statusEmojiPropertyType,
+        },
+        {
+          propertyType: statusLabelPropertyType,
+        },
+        {
+          propertyType: statusUntilAtPropertyType,
+        },
+        {
+          propertyType: timezonePropertyType,
+        },
+        {
+          propertyType: updatedAtPropertyType,
+          required: true,
+        },
+        {
+          propertyType: profileUrlPropertyType,
+          required: true,
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: belongsToOrganizationLinkEntityType,
+          minItems: 1,
+          maxItems: 1,
+          destinationEntityTypes: [linearOrganizationEntityType],
+        },
+        /** @todo: team memberships */
+      ],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   /** Linear Workflow State entity type */
 
-  const workflowStateEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Workflow State",
-        description: "A state in a team workflow.",
-      },
-      webShortname: "linear",
-      migrationState,
+  const workflowStateEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Workflow State",
+      description: "A state in a team workflow.",
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   /** Linear Issue entity type */
 
@@ -880,8 +826,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Canceled At",
-        description:
-          "The time at which the issue was moved into canceled state.",
+        description: "The time at which the issue was moved into canceled state.",
         possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
       webShortname: "linear",
@@ -895,8 +840,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Completed At",
-        description:
-          "The time at which the issue was moved into completed state.",
+        description: "The time at which the issue was moved into completed state.",
         possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
       },
       webShortname: "linear",
@@ -904,8 +848,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const customerTicketCountPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const customerTicketCountPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Customer Ticket Count",
         description:
@@ -914,10 +860,13 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
-  const _associatedWithCycleLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const _associatedWithCycleLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Associated With Cycle",
@@ -926,10 +875,13 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
-  const markdownDescriptionPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const markdownDescriptionPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Markdown Description",
         description: "The issue's description in markdown format.",
@@ -937,53 +889,48 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
   const dateDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "date",
     migrationState,
   });
 
-  const dueDatePropertyType = await createSystemPropertyTypeIfNotExists(
+  const dueDatePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Due Date",
+      description: "The date at which the issue is due.",
+      possibleValues: [{ dataTypeId: dateDataTypeId }],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
+
+  const estimatePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Estimate",
+      description: "The estimate of the complexity of the issue.",
+      possibleValues: [{ primitiveDataType: "number" }],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
+
+  const integrationSourceTypePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Due Date",
-        description: "The date at which the issue is due.",
-        possibleValues: [{ dataTypeId: dateDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
-    },
-  );
-
-  const estimatePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Estimate",
-        description: "The estimate of the complexity of the issue.",
-        possibleValues: [{ primitiveDataType: "number" }],
-      },
-      webShortname: "linear",
-      migrationState,
-    },
-  );
-
-  const integrationSourceTypePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Integration Source Type",
-        description:
-          "Integration type that created this issue, if applicable. (e.g. slack)",
+        description: "Integration type that created this issue, if applicable. (e.g. slack)",
         /** @todo: convert to union */
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
   const identifierPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1013,47 +960,41 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const parentLinkEntityType = await createSystemEntityTypeIfNotExists(
+  const parentLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Parent",
+      description: "The parent of the issue.",
+      properties: [],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
+
+  const previousIdentifierPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Parent",
-        description: "The parent of the issue.",
-        properties: [],
-      },
-      webShortname: "linear",
-      migrationState,
-    },
-  );
-
-  const previousIdentifierPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Previous Identifier",
-        description:
-          "Previous identifier of the issue if it has been moved between teams.",
+        description: "Previous identifier of the issue if it has been moved between teams.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "linear",
       migrationState,
-    });
-
-  const priorityPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Priority",
-        description:
-          "The priority of the issue. 0 = No priority, 1 = Urgent, 2 = High, 3 = Normal, 4 = Low.",
-        possibleValues: [{ primitiveDataType: "number" }],
-      },
-      webShortname: "linear",
-      migrationState,
     },
   );
+
+  const priorityPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Priority",
+      description:
+        "The priority of the issue. 0 = No priority, 1 = Urgent, 2 = High, 3 = Normal, 4 = Low.",
+      possibleValues: [{ primitiveDataType: "number" }],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
 
   const priorityLabelPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1069,20 +1010,16 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const snoozedByLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Snoozed By",
-        description: "The user who snoozed the issue.",
-        properties: [],
-      },
-      webShortname: "linear",
-      migrationState,
+  const snoozedByLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Snoozed By",
+      description: "The user who snoozed the issue.",
+      properties: [],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const snoozedUntilAtPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1098,35 +1035,25 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const sortOrderPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Sort Order",
-        description:
-          "The order of the item in relation to other items in the organization.",
-        possibleValues: [{ primitiveDataType: "number" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const sortOrderPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Sort Order",
+      description: "The order of the item in relation to other items in the organization.",
+      possibleValues: [{ primitiveDataType: "number" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const startedAtPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Started At",
-        description:
-          "The time at which the issue was moved into started state.",
-        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const startedAtPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Started At",
+      description: "The time at which the issue was moved into started state.",
+      possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const startedTriageAtPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1142,23 +1069,21 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const stateLinkEntityType = await createSystemEntityTypeIfNotExists(
+  const stateLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "State",
+      description: "The workflow state that the issue is associated with.",
+      properties: [],
+    },
+    webShortname: "linear",
+    migrationState,
+  });
+
+  const subIssueSortOrderPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "State",
-        description: "The workflow state that the issue is associated with.",
-        properties: [],
-      },
-      webShortname: "linear",
-      migrationState,
-    },
-  );
-
-  const subIssueSortOrderPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Sub Issue Sort Order",
         description:
@@ -1167,7 +1092,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "linear",
       migrationState,
-    });
+    },
+  );
 
   const hasSubscriberLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -1184,223 +1110,202 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const titlePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Title",
-        description: "The issue's title.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const titlePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Title",
+      description: "The issue's title.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const trashedPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Trashed",
-        description:
-          "A flag that indicates whether the issue is in the trash bin.",
-        possibleValues: [{ primitiveDataType: "boolean" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const trashedPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Trashed",
+      description: "A flag that indicates whether the issue is in the trash bin.",
+      possibleValues: [{ primitiveDataType: "boolean" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const triagedAtPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Triaged At",
-        description: "The time at which the issue left triage.",
-        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const triagedAtPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Triaged At",
+      description: "The time at which the issue left triage.",
+      possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const issueUrlPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Issue URL",
-        description: "The URL of the issue.",
-        possibleValues: [{ dataTypeId: uriDataTypeId }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const issueUrlPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Issue URL",
+      description: "The URL of the issue.",
+      possibleValues: [{ dataTypeId: uriDataTypeId }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const linearIssueEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Issue",
-        description: "An issue.",
-        properties: [
-          {
-            propertyType: archivedAtPropertyType,
-          },
-          {
-            propertyType: autoArchivedAtPropertyType,
-          },
-          {
-            propertyType: autoClosedAtPropertyType,
-          },
-          {
-            propertyType: branchNamePropertyType,
-            required: true,
-          },
-          {
-            propertyType: canceledAtPropertyType,
-          },
-          {
-            propertyType: completedAtPropertyType,
-          },
-          {
-            propertyType: createdAtPropertyType,
-            required: true,
-          },
-          {
-            propertyType: customerTicketCountPropertyType,
-            required: true,
-          },
-          {
-            propertyType: markdownDescriptionPropertyType,
-          },
-          {
-            propertyType: dueDatePropertyType,
-          },
-          {
-            propertyType: estimatePropertyType,
-          },
-          {
-            propertyType: idPropertyType,
-            required: true,
-          },
-          {
-            propertyType: identifierPropertyType,
-            required: true,
-          },
-          {
-            propertyType: integrationSourceTypePropertyType,
-          },
-          {
-            propertyType: issueNumberPropertyType,
-            required: true,
-          },
-          {
-            propertyType: previousIdentifierPropertyType,
-            required: true,
-            array: true,
-          },
-          {
-            propertyType: priorityPropertyType,
-            required: true,
-          },
-          {
-            propertyType: priorityLabelPropertyType,
-            required: true,
-          },
-          {
-            propertyType: snoozedUntilAtPropertyType,
-          },
-          {
-            propertyType: sortOrderPropertyType,
-            required: true,
-          },
-          {
-            propertyType: startedAtPropertyType,
-          },
-          {
-            propertyType: startedTriageAtPropertyType,
-          },
-          {
-            propertyType: subIssueSortOrderPropertyType,
-          },
-          {
-            propertyType: titlePropertyType,
-            required: true,
-          },
-          {
-            propertyType: trashedPropertyType,
-          },
-          {
-            propertyType: triagedAtPropertyType,
-          },
-          {
-            propertyType: updatedAtPropertyType,
-            required: true,
-          },
-          {
-            propertyType: issueUrlPropertyType,
-            required: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: hasAssigneeLinkEntityType,
-            maxItems: 1,
-            destinationEntityTypes: [linearUserEntityType],
-          },
-          {
-            linkEntityType: hasCreatorLinkEntityType,
-            maxItems: 1,
-            destinationEntityTypes: [linearUserEntityType],
-          },
-          /** @todo: add linked comments */
-          /** @todo: cycles */
-          // {
-          //   linkEntityType: associatedWithCycleLinkEntityType,
-          //   maxItems: 1,
-          //   destinationEntityTypes: [linearCycleEntityType],
-          // },
-          /** @todo: external user creator [ALPHA] */
-          /** @todo: favorite */
-          /** @todo: history (do we even need this?) */
-          /** @todo: inverse relations */
-          /** @todo: last applied template */
-          {
-            linkEntityType: parentLinkEntityType,
-            maxItems: 1,
-            destinationEntityTypes: ["SELF_REFERENCE"],
-          },
-          /** @todo: project */
-          /** @todo: project milestone */
-          /** @todo: relations */
-          {
-            linkEntityType: snoozedByLinkEntityType,
-            maxItems: 1,
-            destinationEntityTypes: [linearUserEntityType],
-          },
-          {
-            linkEntityType: stateLinkEntityType,
-            minItems: 1,
-            maxItems: 1,
-            destinationEntityTypes: [workflowStateEntityType],
-          },
-          {
-            linkEntityType: hasSubscriberLinkEntityType,
-            destinationEntityTypes: [linearUserEntityType],
-          },
-          /** @todo: team */
-        ],
-      },
-      webShortname: "linear",
-      migrationState,
+  const linearIssueEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Issue",
+      description: "An issue.",
+      properties: [
+        {
+          propertyType: archivedAtPropertyType,
+        },
+        {
+          propertyType: autoArchivedAtPropertyType,
+        },
+        {
+          propertyType: autoClosedAtPropertyType,
+        },
+        {
+          propertyType: branchNamePropertyType,
+          required: true,
+        },
+        {
+          propertyType: canceledAtPropertyType,
+        },
+        {
+          propertyType: completedAtPropertyType,
+        },
+        {
+          propertyType: createdAtPropertyType,
+          required: true,
+        },
+        {
+          propertyType: customerTicketCountPropertyType,
+          required: true,
+        },
+        {
+          propertyType: markdownDescriptionPropertyType,
+        },
+        {
+          propertyType: dueDatePropertyType,
+        },
+        {
+          propertyType: estimatePropertyType,
+        },
+        {
+          propertyType: idPropertyType,
+          required: true,
+        },
+        {
+          propertyType: identifierPropertyType,
+          required: true,
+        },
+        {
+          propertyType: integrationSourceTypePropertyType,
+        },
+        {
+          propertyType: issueNumberPropertyType,
+          required: true,
+        },
+        {
+          propertyType: previousIdentifierPropertyType,
+          required: true,
+          array: true,
+        },
+        {
+          propertyType: priorityPropertyType,
+          required: true,
+        },
+        {
+          propertyType: priorityLabelPropertyType,
+          required: true,
+        },
+        {
+          propertyType: snoozedUntilAtPropertyType,
+        },
+        {
+          propertyType: sortOrderPropertyType,
+          required: true,
+        },
+        {
+          propertyType: startedAtPropertyType,
+        },
+        {
+          propertyType: startedTriageAtPropertyType,
+        },
+        {
+          propertyType: subIssueSortOrderPropertyType,
+        },
+        {
+          propertyType: titlePropertyType,
+          required: true,
+        },
+        {
+          propertyType: trashedPropertyType,
+        },
+        {
+          propertyType: triagedAtPropertyType,
+        },
+        {
+          propertyType: updatedAtPropertyType,
+          required: true,
+        },
+        {
+          propertyType: issueUrlPropertyType,
+          required: true,
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: hasAssigneeLinkEntityType,
+          maxItems: 1,
+          destinationEntityTypes: [linearUserEntityType],
+        },
+        {
+          linkEntityType: hasCreatorLinkEntityType,
+          maxItems: 1,
+          destinationEntityTypes: [linearUserEntityType],
+        },
+        /** @todo: add linked comments */
+        /** @todo: cycles */
+        // {
+        //   linkEntityType: associatedWithCycleLinkEntityType,
+        //   maxItems: 1,
+        //   destinationEntityTypes: [linearCycleEntityType],
+        // },
+        /** @todo: external user creator [ALPHA] */
+        /** @todo: favorite */
+        /** @todo: history (do we even need this?) */
+        /** @todo: inverse relations */
+        /** @todo: last applied template */
+        {
+          linkEntityType: parentLinkEntityType,
+          maxItems: 1,
+          destinationEntityTypes: ["SELF_REFERENCE"],
+        },
+        /** @todo: project */
+        /** @todo: project milestone */
+        /** @todo: relations */
+        {
+          linkEntityType: snoozedByLinkEntityType,
+          maxItems: 1,
+          destinationEntityTypes: [linearUserEntityType],
+        },
+        {
+          linkEntityType: stateLinkEntityType,
+          minItems: 1,
+          maxItems: 1,
+          destinationEntityTypes: [workflowStateEntityType],
+        },
+        {
+          linkEntityType: hasSubscriberLinkEntityType,
+          destinationEntityTypes: [linearUserEntityType],
+        },
+        /** @todo: team */
+      ],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   /** Linear Attachment entity type */
 
@@ -1433,34 +1338,25 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const metadataPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Metadata",
-        description: "Custom metadata related to the attachment.",
-        possibleValues: [{ primitiveDataType: "object" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const metadataPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Metadata",
+      description: "Custom metadata related to the attachment.",
+      possibleValues: [{ primitiveDataType: "object" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
-  const sourcePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Source",
-        description:
-          "Information about the source which created the attachment.",
-        possibleValues: [{ primitiveDataType: "object" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const sourcePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Source",
+      description: "Information about the source which created the attachment.",
+      possibleValues: [{ primitiveDataType: "object" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const sourceTypePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1477,20 +1373,15 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const subtitlePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Subtitle",
-        description:
-          "Content for the subtitle line in the Linear attachment widget.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "linear",
-      migrationState,
+  const subtitlePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Subtitle",
+      description: "Content for the subtitle line in the Linear attachment widget.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "linear",
+    migrationState,
+  });
 
   const attachmentUrlPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1498,8 +1389,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Attachment URL",
-        description:
-          "Location of the attachment which is also used as an identifier.",
+        description: "Location of the attachment which is also used as an identifier.",
         possibleValues: [{ dataTypeId: uriDataTypeId }],
       },
       webShortname: "linear",

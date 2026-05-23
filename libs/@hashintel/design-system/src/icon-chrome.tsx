@@ -3,10 +3,7 @@ import { SvgIcon } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const ChromeIcon: FunctionComponent<SvgIconProps> = ({
-  sx = [],
-  ...props
-}) => {
+export const ChromeIcon: FunctionComponent<SvgIconProps> = ({ sx = [], ...props }) => {
   return (
     <SvgIcon
       {...props}
@@ -226,10 +223,7 @@ export const ChromeIcon: FunctionComponent<SvgIconProps> = ({
           />
         </mask>
         <g mask="url(#mask9_11634_19700)">
-          <path
-            d="M9 5.75V7.71406L16.35 5.75H9Z"
-            fill="url(#paint5_radial_11634_19700)"
-          />
+          <path d="M9 5.75V7.71406L16.35 5.75H9Z" fill="url(#paint5_radial_11634_19700)" />
         </g>
         <mask
           id="mask10_11634_19700"
@@ -514,12 +508,7 @@ export const ChromeIcon: FunctionComponent<SvgIconProps> = ({
           <stop offset="1" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <clipPath id="clip0_11634_19700">
-          <rect
-            width="18"
-            height="18"
-            fill="white"
-            transform="translate(0 0.5)"
-          />
+          <rect width="18" height="18" fill="white" transform="translate(0 0.5)" />
         </clipPath>
       </defs>
     </SvgIcon>

@@ -1,21 +1,9 @@
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  Divider,
-  Fade,
-  Skeleton,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Divider, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { useMemo } from "react";
 
-import {
-  Avatar,
-  FontAwesomeIcon,
-  IconButton,
-  PenRegularIcon,
-} from "@hashintel/design-system";
+import { Avatar, FontAwesomeIcon, IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
 
 import { useOrgsWithLinks } from "../../../components/hooks/use-orgs-with-links";
@@ -38,9 +26,7 @@ const InfoItem: FunctionComponent<{
 }> = ({ icon, title, href }) => {
   const content = (
     <Box display="flex" alignItems="center" columnGap={0.75}>
-      <Box sx={{ width: 15, display: "flex", alignItems: "center" }}>
-        {icon}
-      </Box>
+      <Box sx={{ width: 15, display: "flex", alignItems: "center" }}>{icon}</Box>
       {title ? (
         <Typography
           variant="microText"
@@ -81,18 +67,11 @@ const InfoItem: FunctionComponent<{
   );
 };
 
-const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
-  profile,
-}) => {
-  const websiteUrl = profile?.websiteUrl
-    ? sanitizeHref(profile.websiteUrl)
-    : undefined;
+const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({ profile }) => {
+  const websiteUrl = profile?.websiteUrl ? sanitizeHref(profile.websiteUrl) : undefined;
 
   const createdAtTimestamp = profile
-    ? format(
-        profile.kind === "org" ? profile.createdAt : profile.joinedAt,
-        "MMM yyyy",
-      )
+    ? format(profile.kind === "org" ? profile.createdAt : profile.joinedAt, "MMM yyyy")
     : undefined;
 
   const { location } = profile ?? {};
@@ -117,8 +96,7 @@ const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
         title={
           profile && createdAtTimestamp ? (
             <>
-              {profile.kind === "org" ? "Created" : "Joined"}{" "}
-              <strong>{createdAtTimestamp}</strong>
+              {profile.kind === "org" ? "Created" : "Joined"} <strong>{createdAtTimestamp}</strong>
             </>
           ) : undefined
         }
@@ -127,18 +105,14 @@ const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
   );
 };
 
-const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({
-  webs,
-}) => {
+const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({ webs }) => {
   return (
     <Box>
       <ProfileSectionHeading marginBottom={1.5}>Webs</ProfileSectionHeading>
       <Box display="flex" flexWrap="wrap" gap={1.5}>
         {webs.map((org) => {
           const avatarSrc = org.hasAvatar
-            ? getImageUrlFromEntityProperties(
-                org.hasAvatar.imageEntity.properties,
-              )
+            ? getImageUrlFromEntityProperties(org.hasAvatar.imageEntity.properties)
             : undefined;
 
           return (
@@ -151,19 +125,13 @@ const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({
                 href={`/@${org.shortname}`}
                 sx={{
                   opacity: 1,
-                  transition: ({ transitions }) =>
-                    transitions.create("opacity"),
+                  transition: ({ transitions }) => transitions.create("opacity"),
                   ":hover": {
                     opacity: 0.8,
                   },
                 }}
               >
-                <Avatar
-                  src={avatarSrc}
-                  title={org.name}
-                  size={28}
-                  borderRadius="4px"
-                />
+                <Avatar src={avatarSrc} title={org.name} size={28} borderRadius="4px" />
               </Link>
             </Tooltip>
           );
@@ -177,29 +145,24 @@ const PinnedEntityTypeTabInfo: FunctionComponent<
   Extract<ProfilePageTab, { kind: "pinned-entity-type" }>
 > = ({ entities }) => {
   const latestEntityUpdatedAt = useMemo(() => {
-    const latestEntity = entities?.reduce<HashEntity | undefined>(
-      (prev, current) => {
-        if (!prev) {
-          return current;
-        }
+    const latestEntity = entities?.reduce<HashEntity | undefined>((prev, current) => {
+      if (!prev) {
+        return current;
+      }
 
-        const prevUpdatedAt = new Date(
-          prev.metadata.temporalVersioning.decisionTime.start.limit,
-        ).getTime();
+      const prevUpdatedAt = new Date(
+        prev.metadata.temporalVersioning.decisionTime.start.limit,
+      ).getTime();
 
-        const currentUpdatedAt = new Date(
-          current.metadata.temporalVersioning.decisionTime.start.limit,
-        ).getTime();
+      const currentUpdatedAt = new Date(
+        current.metadata.temporalVersioning.decisionTime.start.limit,
+      ).getTime();
 
-        return prevUpdatedAt > currentUpdatedAt ? prev : current;
-      },
-      undefined,
-    );
+      return prevUpdatedAt > currentUpdatedAt ? prev : current;
+    }, undefined);
 
     return latestEntity
-      ? new Date(
-          latestEntity.metadata.temporalVersioning.decisionTime.start.limit,
-        )
+      ? new Date(latestEntity.metadata.temporalVersioning.decisionTime.start.limit)
       : undefined;
   }, [entities]);
 
@@ -221,9 +184,7 @@ const PinnedEntityTypeTabInfo: FunctionComponent<
           ) : (
             <Skeleton variant="text" width="40%" />
           )}
-          <Typography variant="smallTextParagraphs">
-            since last update
-          </Typography>
+          <Typography variant="smallTextParagraphs">since last update</Typography>
         </Box>
       ) : null}
     </Box>
@@ -235,12 +196,7 @@ export const ProfilePageInfo: FunctionComponent<{
   isEditable: boolean;
   setDisplayEditUserProfileInfoModal: (value: boolean) => void;
   currentTab: ProfilePageTab;
-}> = ({
-  profile,
-  isEditable,
-  setDisplayEditUserProfileInfoModal,
-  currentTab,
-}) => {
+}> = ({ profile, isEditable, setDisplayEditUserProfileInfoModal, currentTab }) => {
   const { orgs: webs } = useOrgsWithLinks({
     orgAccountGroupIds:
       profile?.kind === "user"
@@ -253,13 +209,7 @@ export const ProfilePageInfo: FunctionComponent<{
       <Box>
         <Box display="flex" marginBottom={1.5}>
           <ProfileSectionHeading>Info</ProfileSectionHeading>
-          <Fade
-            in={
-              currentTab.kind === "profile" &&
-              isEditable &&
-              profile?.kind === "user"
-            }
-          >
+          <Fade in={currentTab.kind === "profile" && isEditable && profile?.kind === "user"}>
             <IconButton
               onClick={() => setDisplayEditUserProfileInfoModal(true)}
               sx={{

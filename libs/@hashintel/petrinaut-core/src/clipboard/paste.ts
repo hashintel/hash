@@ -26,19 +26,13 @@ export function pastePayloadIntoSDCPN(
 
   // Collect existing names for deduplication
   const existingPlaceNames = new Set(sdcpn.places.map((place) => place.name));
-  const existingTransitionNames = new Set(
-    sdcpn.transitions.map((transition) => transition.name),
-  );
+  const existingTransitionNames = new Set(sdcpn.transitions.map((transition) => transition.name));
   const existingTypeNames = new Set(sdcpn.types.map((type) => type.name));
   const existingEquationNames = new Set(
     sdcpn.differentialEquations.map((equation) => equation.name),
   );
-  const existingParameterNames = new Set(
-    sdcpn.parameters.map((param) => param.name),
-  );
-  const existingVariableNames = new Set(
-    sdcpn.parameters.map((param) => param.variableName),
-  );
+  const existingParameterNames = new Set(sdcpn.parameters.map((param) => param.name));
+  const existingVariableNames = new Set(sdcpn.parameters.map((param) => param.variableName));
 
   // Pre-generate all new IDs
   for (const place of data.places) {
@@ -86,9 +80,7 @@ export function pastePayloadIntoSDCPN(
       id: newId,
       name: newName,
       // Remap colorId if the type was also copied, otherwise keep original
-      colorId: equation.colorId
-        ? (idMap.get(equation.colorId) ?? equation.colorId)
-        : null,
+      colorId: equation.colorId ? (idMap.get(equation.colorId) ?? equation.colorId) : null,
     });
     newItemIds.push({ type: "differentialEquation", id: newId });
   }
@@ -97,10 +89,7 @@ export function pastePayloadIntoSDCPN(
   for (const parameter of data.parameters) {
     const newName = deduplicateName(parameter.name, existingParameterNames);
     existingParameterNames.add(newName);
-    const newVariableName = deduplicateName(
-      parameter.variableName,
-      existingVariableNames,
-    );
+    const newVariableName = deduplicateName(parameter.variableName, existingVariableNames);
     existingVariableNames.add(newVariableName);
     const newId = idMap.get(parameter.id)!;
 
@@ -126,14 +115,10 @@ export function pastePayloadIntoSDCPN(
       x: place.x + PASTE_OFFSET,
       y: place.y + PASTE_OFFSET,
       // Remap references if the referenced items were also copied
-      colorId:
-        place.colorId !== null
-          ? (idMap.get(place.colorId) ?? place.colorId)
-          : null,
+      colorId: place.colorId !== null ? (idMap.get(place.colorId) ?? place.colorId) : null,
       differentialEquationId:
         place.differentialEquationId !== null
-          ? (idMap.get(place.differentialEquationId) ??
-            place.differentialEquationId)
+          ? (idMap.get(place.differentialEquationId) ?? place.differentialEquationId)
           : null,
     });
     newItemIds.push({ type: "place", id: newId });

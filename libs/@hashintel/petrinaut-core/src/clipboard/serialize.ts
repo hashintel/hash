@@ -1,8 +1,4 @@
-import {
-  CLIPBOARD_FORMAT_VERSION,
-  type ClipboardPayload,
-  clipboardPayloadSchema,
-} from "./types";
+import { CLIPBOARD_FORMAT_VERSION, type ClipboardPayload, clipboardPayloadSchema } from "./types";
 
 import type { SDCPN } from "../types/sdcpn";
 import type { SelectionMap } from "../types/selection";
@@ -48,21 +44,15 @@ export function serializeSelection(
   const differentialEquations = sdcpn.differentialEquations.filter((equation) =>
     selectedEquationIds.has(equation.id),
   );
-  const parameters = sdcpn.parameters.filter((param) =>
-    selectedParameterIds.has(param.id),
-  );
+  const parameters = sdcpn.parameters.filter((param) => selectedParameterIds.has(param.id));
 
   // For transitions, only keep arcs that reference selected places
   const transitions = sdcpn.transitions
     .filter((transition) => selectedTransitionIds.has(transition.id))
     .map((transition) => ({
       ...transition,
-      inputArcs: transition.inputArcs.filter((arc) =>
-        selectedPlaceIds.has(arc.placeId),
-      ),
-      outputArcs: transition.outputArcs.filter((arc) =>
-        selectedPlaceIds.has(arc.placeId),
-      ),
+      inputArcs: transition.inputArcs.filter((arc) => selectedPlaceIds.has(arc.placeId)),
+      outputArcs: transition.outputArcs.filter((arc) => selectedPlaceIds.has(arc.placeId)),
     }));
 
   return {

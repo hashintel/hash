@@ -66,16 +66,11 @@ export const useCreateGetCellContent = (
           },
         };
 
-        const {
-          isArray,
-          permittedDataTypes,
-          permittedDataTypesIncludingChildren,
-          valueMetadata,
-        } = row;
+        const { isArray, permittedDataTypes, permittedDataTypesIncludingChildren, valueMetadata } =
+          row;
 
         const shouldShowChangeTypeCell =
-          (permittedDataTypes.length > 1 ||
-            permittedDataTypes[0]?.schema.abstract) &&
+          (permittedDataTypes.length > 1 || permittedDataTypes[0]?.schema.abstract) &&
           !isArray &&
           valueMetadata &&
           !readonly;
@@ -95,9 +90,7 @@ export const useCreateGetCellContent = (
 
           case "value":
             if (hasChild) {
-              const { totalCount, notEmptyCount } = getPropertyCountSummary(
-                row.children,
-              );
+              const { totalCount, notEmptyCount } = getPropertyCountSummary(row.children);
 
               const valuesCount = notEmptyCount || "none";
               const valueWord = notEmptyCount === 1 ? "a value" : "values";
@@ -127,9 +120,7 @@ export const useCreateGetCellContent = (
 
             if (shouldShowChangeTypeCell) {
               if (!isValueMetadata(valueMetadata)) {
-                throw new Error(
-                  `Expected single value when showing change type cell`,
-                );
+                throw new Error(`Expected single value when showing change type cell`);
               }
 
               const dataTypeId = valueMetadata.metadata.dataTypeId;
@@ -163,9 +154,7 @@ export const useCreateGetCellContent = (
               kind: GridCellKind.Custom,
               allowOverlay: true,
               readonly: true,
-              copyData: row.permittedDataTypes
-                .map((type) => type.schema.title)
-                .join(", "),
+              copyData: row.permittedDataTypes.map((type) => type.schema.title).join(", "),
               cursor: "pointer",
               data: {
                 kind: "chip-cell",

@@ -1,7 +1,4 @@
-import {
-  validateDisplayName,
-  validateVariableName,
-} from "@hashintel/petrinaut-core";
+import { validateDisplayName, validateVariableName } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
@@ -17,9 +14,7 @@ const ParameterMainContent: React.FC = () => {
   const { parameter, updateParameter } = useParameterPropertiesContext();
   const isDisabled = useIsReadOnly();
 
-  const handleUpdateDefaultValue = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleUpdateDefaultValue = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateParameter({
       parameterId: parameter.id,
       update: { defaultValue: event.target.value },

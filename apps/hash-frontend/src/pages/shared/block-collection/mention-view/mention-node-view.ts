@@ -12,11 +12,5 @@ export const mentionNodeView =
       throw new Error("Invalid config for nodeview");
     }
 
-    return new MentionView(
-      currentNode,
-      currentView,
-      getPos,
-      renderPortal,
-      webId,
-    );
+    return new MentionView(currentNode, currentView, getPos, renderPortal, webId);
   };

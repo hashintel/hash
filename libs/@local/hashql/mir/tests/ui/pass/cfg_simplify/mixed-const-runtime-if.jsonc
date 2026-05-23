@@ -8,12 +8,7 @@
   [
     "if",
     { "#literal": true },
-    [
-      "if",
-      ["<=", "x", { "#literal": 10 }],
-      { "#literal": "small" },
-      { "#literal": "large" }
-    ],
+    ["if", ["<=", "x", { "#literal": 10 }], { "#literal": "small" }, { "#literal": "large" }],
     { "#literal": "unreachable" }
   ]
 ]

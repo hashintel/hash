@@ -20,21 +20,14 @@ type NullableNumberConstraints = {
   multipleOf: number | null;
 };
 
-type NullableNumberSchema =
-  | NullableNumberConstraints
-  | { enum: [number, ...number[]] };
+type NullableNumberSchema = NullableNumberConstraints | { enum: [number, ...number[]] };
 
-type NullableStringConstraints = Omit<
-  StringConstraints,
-  "minLength" | "maxLength"
-> & {
+type NullableStringConstraints = Omit<StringConstraints, "minLength" | "maxLength"> & {
   minLength: number | null;
   maxLength: number | null;
 };
 
-type NullableStringSchema =
-  | NullableStringConstraints
-  | { enum: [string, ...string[]] };
+type NullableStringSchema = NullableStringConstraints | { enum: [string, ...string[]] };
 
 type NullableSingleValueConstraints =
   | { type: "anything" }
@@ -45,10 +38,7 @@ type NullableSingleValueConstraints =
   | ({ type: "array" } & ArraySchema)
   | { type: "object" };
 
-export type DataTypeFormData = Pick<
-  DataType,
-  "abstract" | "description" | "label" | "title"
-> & {
+export type DataTypeFormData = Pick<DataType, "abstract" | "description" | "label" | "title"> & {
   allOf: VersionedUrl[];
   constraints: NullableSingleValueConstraints;
   conversions?: DataTypeDirectConversionsMap;
@@ -100,12 +90,8 @@ export const getDataTypeFromFormData = ({
            * so we need to convert them back to numbers here.
            * We don't want both minimum and exclusiveMinimum to be set.
            */
-          minimum: !constraints.exclusiveMinimum
-            ? (constraints.minimum ?? undefined)
-            : undefined,
-          maximum: !constraints.exclusiveMaximum
-            ? (constraints.maximum ?? undefined)
-            : undefined,
+          minimum: !constraints.exclusiveMinimum ? (constraints.minimum ?? undefined) : undefined,
+          maximum: !constraints.exclusiveMaximum ? (constraints.maximum ?? undefined) : undefined,
           exclusiveMinimum: constraints.exclusiveMinimum
             ? (constraints.minimum ?? undefined)
             : undefined,

@@ -54,19 +54,13 @@ export const verifyEmailOnPage = async (
   page: Page,
   { email, afterTimestamp }: { email: string; afterTimestamp: number },
 ) => {
-  await expect(
-    page.getByRole("heading", { name: "Verify your email address" }),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: "Verify your email address" })).toBeVisible({
+    timeout: 15_000,
+  });
 
-  const verificationCode = await getKratosVerificationCode(
-    email,
-    afterTimestamp,
-  );
+  const verificationCode = await getKratosVerificationCode(email, afterTimestamp);
 
-  await page.fill(
-    '[placeholder="Enter your verification code"]',
-    verificationCode,
-  );
+  await page.fill('[placeholder="Enter your verification code"]', verificationCode);
 };
 
 /**
@@ -77,9 +71,9 @@ export const completeSignup = async (
   page: Page,
   { shortname, displayName }: { shortname: string; displayName: string },
 ) => {
-  await expect(
-    page.locator("text=Thanks for confirming your account"),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("text=Thanks for confirming your account")).toBeVisible({
+    timeout: 15_000,
+  });
 
   await page.fill('[placeholder="example"]', shortname);
   await page.fill('[placeholder="Jonathan Smith"]', displayName);

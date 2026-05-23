@@ -147,12 +147,8 @@ export const CompositeParts: React.FC<CompositePartsProps> = ({
             key={partName}
             operator="over"
             in={`${result}_${partName}`}
-            in2={
-              index === 0 ? `${result}_base` : `${result}_composite_${index}`
-            }
-            result={
-              index === arr.length - 1 ? result : `${result}_composite_${index}`
-            }
+            in2={index === 0 ? `${result}_base` : `${result}_composite_${index}`}
+            result={index === arr.length - 1 ? result : `${result}_composite_${index}`}
           />
         ))}
     </>

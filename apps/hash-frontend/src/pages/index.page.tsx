@@ -15,10 +15,9 @@ import type { NextPageWithLayout } from "../shared/layout";
 
 const Page: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthInfo();
-  const { data: hasAccessToHashResponse } = useQuery<HasAccessToHashQuery>(
-    hasAccessToHashQuery,
-    { skip: !authenticatedUser || authenticatedUser.accountSignupComplete },
-  );
+  const { data: hasAccessToHashResponse } = useQuery<HasAccessToHashQuery>(hasAccessToHashQuery, {
+    skip: !authenticatedUser || authenticatedUser.accountSignupComplete,
+  });
 
   const { push } = useRouter();
 
@@ -36,11 +35,7 @@ const Page: NextPageWithLayout = () => {
       return null;
     }
 
-    return (
-      <Stack alignItems="center">
-        {authenticatedUser ? <Waitlisted /> : <LoggedOut />}
-      </Stack>
-    );
+    return <Stack alignItems="center">{authenticatedUser ? <Waitlisted /> : <LoggedOut />}</Stack>;
   }
 
   return (
@@ -50,7 +45,6 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = (page) =>
-  getLayoutWithSidebar(page, { grayBackground: false, fullWidth: true });
+Page.getLayout = (page) => getLayoutWithSidebar(page, { grayBackground: false, fullWidth: true });
 
 export default Page;

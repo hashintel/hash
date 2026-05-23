@@ -7,9 +7,7 @@ export const parseGraphQLError = (
   priorityErrorCode?: string,
 ): { errorCode: string; message: string } => {
   const extractErrorCode = (error: GraphQLError) =>
-    typeof error.extensions.code === "string"
-      ? error.extensions.code
-      : "unknown";
+    typeof error.extensions.code === "string" ? error.extensions.code : "unknown";
 
   if (errors.length === 0) {
     return {

@@ -13,13 +13,9 @@ export const updateJson = async (
 
   transform(json);
 
-  const { stdout: output } = await execa(
-    "oxfmt",
-    [`--stdin-filepath=${jsonFilePath}`],
-    {
-      input: JSON.stringify(json, null, 2),
-    },
-  );
+  const { stdout: output } = await execa("oxfmt", [`--stdin-filepath=${jsonFilePath}`], {
+    input: JSON.stringify(json, null, 2),
+  });
 
   if (output !== rawJson) {
     await fs.writeFile(jsonFilePath, output);

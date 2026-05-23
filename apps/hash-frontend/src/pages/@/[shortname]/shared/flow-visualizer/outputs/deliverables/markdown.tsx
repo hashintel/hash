@@ -20,9 +20,7 @@ export const MarkdownDeliverable = ({
   const { displayName, markdown } = deliverable;
   const [showPreview, setShowPreview] = useState(false);
 
-  const [selectedTab, setSelectedTab] = useState<"Preview" | "Markdown">(
-    "Preview",
-  );
+  const [selectedTab, setSelectedTab] = useState<"Preview" | "Markdown">("Preview");
   const [copyButtonText, setCopyButtonText] = useState("Copy as Markdown");
 
   const { selectedFlowRun } = useFlowRunsContext();
@@ -102,10 +100,7 @@ export const MarkdownDeliverable = ({
                 } catch {
                   setCopyButtonText("Couldn't copy");
                 } finally {
-                  setTimeout(
-                    () => setCopyButtonText("Copy as Markdown"),
-                    3_000,
-                  );
+                  setTimeout(() => setCopyButtonText("Copy as Markdown"), 3_000);
                 }
               }}
               sx={({ palette, transitions }) => ({
@@ -157,11 +152,7 @@ export const MarkdownDeliverable = ({
         </Box>
       </Modal>
 
-      <Stack
-        direction="row"
-        gap={1.5}
-        sx={{ alignItems: "center", textAlign: "left" }}
-      >
+      <Stack direction="row" gap={1.5} sx={{ alignItems: "center", textAlign: "left" }}>
         <PageIcon
           sx={{
             fill: ({ palette }) => palette.gray[30],

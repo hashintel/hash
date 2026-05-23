@@ -11,10 +11,7 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { Button } from "../../../../../components/button";
 import { ParameterIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
-import {
-  RowMenu,
-  createFilterableListSubView,
-} from "./filterable-list-sub-view";
+import { RowMenu, createFilterableListSubView } from "./filterable-list-sub-view";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 
@@ -96,8 +93,7 @@ const ParameterRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
 export const parametersListSubView: SubView = createFilterableListSubView({
   id: "parameters-list",
   title: "Global Parameters",
-  tooltip:
-    "Parameters are injected into dynamics, lambda, and kernel functions.",
+  tooltip: "Parameters are injected into dynamics, lambda, and kernel functions.",
   defaultCollapsed: false,
   resizable: {
     defaultHeight: 300,

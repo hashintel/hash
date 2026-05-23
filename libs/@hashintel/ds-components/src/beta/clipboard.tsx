@@ -26,22 +26,18 @@ type IndicatorProps = ComponentProps<typeof StyledIndicator>;
 
 const StyledIndicator = withContext(Clipboard.Indicator, "indicator");
 
-export const Indicator = forwardRef<HTMLDivElement, IndicatorProps>(
-  (props, ref) => {
-    return (
-      <StyledIndicator ref={ref} copied={<CheckIcon />} {...props}>
-        <CopyIcon />
-      </StyledIndicator>
-    );
-  },
-);
+export const Indicator = forwardRef<HTMLDivElement, IndicatorProps>((props, ref) => {
+  return (
+    <StyledIndicator ref={ref} copied={<CheckIcon />} {...props}>
+      <CopyIcon />
+    </StyledIndicator>
+  );
+});
 
-export const CopyText = forwardRef<HTMLDivElement, IndicatorProps>(
-  (props, ref) => {
-    return (
-      <StyledIndicator ref={ref} copied="Copied" {...props}>
-        Copy
-      </StyledIndicator>
-    );
-  },
-);
+export const CopyText = forwardRef<HTMLDivElement, IndicatorProps>((props, ref) => {
+  return (
+    <StyledIndicator ref={ref} copied="Copied" {...props}>
+      Copy
+    </StyledIndicator>
+  );
+});

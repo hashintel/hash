@@ -47,7 +47,4 @@ export interface CustomExpectedValue {
   data?: CustomExpectedValueData;
 }
 
-export type FlattenedCustomExpectedValueList = Record<
-  string,
-  CustomExpectedValue
->;
+export type FlattenedCustomExpectedValueList = Record<string, CustomExpectedValue>;

@@ -3,10 +3,7 @@ import type { InitializeContext } from "../../context/initialize.js";
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 100;
 
-export const fetchTypeAsJson = async (
-  versionedUrl: string,
-  context: InitializeContext,
-) => {
+export const fetchTypeAsJson = async (versionedUrl: string, context: InitializeContext) => {
   for (let retry = 0; retry < MAX_RETRIES; retry++) {
     const delay = RETRY_DELAY_MS * retry;
 

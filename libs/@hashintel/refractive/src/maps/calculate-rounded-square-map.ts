@@ -8,12 +8,7 @@ import type { ProcessPixelFunction } from "./process-pixel.type";
  *
  * See this notebook: https://observablehq.com/d/879ebd7e070ed87c
  */
-function calculateBorderIntersection(
-  radius: number,
-  cornerWidth: number,
-  x: number,
-  y: number,
-) {
+function calculateBorderIntersection(radius: number, cornerWidth: number, x: number, y: number) {
   const angleStart = Math.atan2(cornerWidth - radius, cornerWidth);
   const angleEnd = Math.atan2(cornerWidth, cornerWidth - radius);
   const aperture = angleEnd - angleStart;
@@ -23,20 +18,13 @@ function calculateBorderIntersection(
   if (pointAngleInSquare <= angleStart || pointAngleInSquare >= angleEnd) {
     // Outside the cone
     if (Math.abs(y) > Math.abs(x)) {
-      return [
-        Math.abs(x / y) * cornerWidth * Math.sign(x),
-        cornerWidth * Math.sign(y),
-      ] as const;
+      return [Math.abs(x / y) * cornerWidth * Math.sign(x), cornerWidth * Math.sign(y)] as const;
     } else {
-      return [
-        cornerWidth * Math.sign(x),
-        Math.abs(y / x) * cornerWidth * Math.sign(y),
-      ] as const;
+      return [cornerWidth * Math.sign(x), Math.abs(y / x) * cornerWidth * Math.sign(y)] as const;
     }
   } else {
     // Inside the cone
-    const pointAngleInCone =
-      (pointAngleInSquare - angleStart) / (aperture / (Math.PI / 2));
+    const pointAngleInCone = (pointAngleInSquare - angleStart) / (aperture / (Math.PI / 2));
 
     const intersectionX = Math.cos(pointAngleInCone);
     const intersectionY = Math.sin(pointAngleInCone);
@@ -117,27 +105,19 @@ export function calculateRoundedSquareMap(props: {
           : 0;
 
       // Find the intersection point on the border of the rounded square
-      const [intersectionX, intersectionY] = calculateBorderIntersection(
-        radius,
-        cornerWidth,
-        x,
-        y,
-      );
+      const [intersectionX, intersectionY] = calculateBorderIntersection(radius, cornerWidth, x, y);
 
       const distanceToCenterSquared = x * x + y * y;
-      const distanceToBorderSquared =
-        (intersectionX - x) ** 2 + (intersectionY - y) ** 2;
+      const distanceToBorderSquared = (intersectionX - x) ** 2 + (intersectionY - y) ** 2;
 
       // If the pixel is within corner square containing the quarter circle
       const isInRadiusSquare =
-        Math.abs(x) > cornerWidth - radius &&
-        Math.abs(y) > cornerWidth - radius;
+        Math.abs(x) > cornerWidth - radius && Math.abs(y) > cornerWidth - radius;
 
       // If the pixel is within corner square, but outside the quarter circle
       const isOutsideRadius =
         isInRadiusSquare &&
-        (Math.abs(x) - (cornerWidth - radius)) ** 2 +
-          (Math.abs(y) - (cornerWidth - radius)) ** 2 >=
+        (Math.abs(x) - (cornerWidth - radius)) ** 2 + (Math.abs(y) - (cornerWidth - radius)) ** 2 >=
           radiusPlusOneSquared;
 
       const isInRoundedSquare = !isInRadiusSquare || !isOutsideRadius;

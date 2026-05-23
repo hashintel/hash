@@ -100,11 +100,7 @@ export const PageHeader: FunctionComponent = () => {
                 <Tooltip title="Actions" placement="bottom">
                   <Link noLinkStyle href="/actions">
                     <HeaderIconButtonWithCount
-                      icon={
-                        <CheckRegularIcon
-                          sx={{ color: theme.palette.blue[70] }}
-                        />
-                      }
+                      icon={<CheckRegularIcon sx={{ color: theme.palette.blue[70] }} />}
                       count={draftEntitiesCount}
                     />
                   </Link>

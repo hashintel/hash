@@ -9,9 +9,7 @@ interface NamingConventionOptions {
   readonly tsx: boolean;
 }
 
-const namingConvention = ({
-  tsx,
-}: NamingConventionOptions): Linter.RuleEntry => [
+const namingConvention = ({ tsx }: NamingConventionOptions): Linter.RuleEntry => [
   "error",
   // adapted from https://github.com/AndreaPontrandolfo/sheriff/blob/3a6e3c9873c4b8fbbfbd01b6051c55fd1e57609a/packages/eslint-config-sheriff/src/getTsNamingConventionRule.ts#L9
   {
@@ -127,10 +125,7 @@ export const typescript = (config: readonly ESConfig[]): readonly ESConfig[] =>
         ],
         // Allow numbers in template expressions, as they are used quite frequently
         // and do not really suffer from the reasons described in the rule documentation
-        "@typescript-eslint/restrict-template-expressions": [
-          "error",
-          { allowNumber: true },
-        ],
+        "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       },
     },
     {

@@ -1,10 +1,7 @@
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 
-import {
-  findComponentNodes,
-  isParagraphNode,
-} from "@local/hash-isomorphic-utils/prosemirror";
+import { findComponentNodes, isParagraphNode } from "@local/hash-isomorphic-utils/prosemirror";
 
 import { Placeholder } from "./placeholder";
 
@@ -18,9 +15,7 @@ interface PlaceholderPluginState {
 const defaultState = { focused: false, editable: true };
 
 // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
-const placeholderPluginKey = new PluginKey<PlaceholderPluginState>(
-  "placeholderPlugin",
-);
+const placeholderPluginKey = new PluginKey<PlaceholderPluginState>("placeholderPlugin");
 
 export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
   // eslint-disable-next-line no-restricted-syntax -- prosemirror typing error
@@ -38,8 +33,7 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
     },
     view(view) {
       const update = () => {
-        const { editable } =
-          placeholderPluginKey.getState(view.state) ?? defaultState;
+        const { editable } = placeholderPluginKey.getState(view.state) ?? defaultState;
 
         if (view.editable !== editable) {
           view.dispatch(
@@ -63,16 +57,14 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
           return;
         }
 
-        const pluginState =
-          placeholderPluginKey.getState(state) ?? defaultState;
+        const pluginState = placeholderPluginKey.getState(state) ?? defaultState;
         const isFocused = pluginState.focused;
         const isEditable = pluginState.editable;
         const isParagraph = isParagraphNode(componentNode);
 
         const isEmpty = componentNode.childCount === 0;
 
-        const showPlaceholder =
-          isParagraph && isEmpty && isFocused && isEditable;
+        const showPlaceholder = isParagraph && isEmpty && isFocused && isEditable;
 
         if (!showPlaceholder) {
           return;
@@ -105,9 +97,7 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
       },
       handleDOMEvents: {
         blur(view) {
-          view.dispatch(
-            view.state.tr.setMeta(placeholderPluginKey, { focused: false }),
-          );
+          view.dispatch(view.state.tr.setMeta(placeholderPluginKey, { focused: false }));
           return false;
         },
         focus(view) {
@@ -117,9 +107,7 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
            */
           setImmediate(() => {
             setImmediate(() => {
-              view.dispatch(
-                view.state.tr.setMeta(placeholderPluginKey, { focused: true }),
-              );
+              view.dispatch(view.state.tr.setMeta(placeholderPluginKey, { focused: true }));
             });
           });
 

@@ -42,16 +42,14 @@ export const useDraftField = <T>({
 }) => {
   const [state, setState] = useState<DraftFieldState<T> | null>(null);
 
-  const isCurrent =
-    state?.sourceId === sourceId && Object.is(state.sourceValue, sourceValue);
+  const isCurrent = state?.sourceId === sourceId && Object.is(state.sourceValue, sourceValue);
   const value = isCurrent ? state.value : sourceValue;
   const error = isCurrent ? state.error : null;
 
   const setValue = (nextValue: T) => {
     setState((current) => {
       const keepError =
-        current?.sourceId === sourceId &&
-        Object.is(current.sourceValue, sourceValue);
+        current?.sourceId === sourceId && Object.is(current.sourceValue, sourceValue);
 
       return {
         sourceId,
@@ -65,8 +63,7 @@ export const useDraftField = <T>({
   const setError = (nextError: string | null) => {
     setState((current) => {
       const currentValue =
-        current?.sourceId === sourceId &&
-        Object.is(current.sourceValue, sourceValue)
+        current?.sourceId === sourceId && Object.is(current.sourceValue, sourceValue)
           ? current.value
           : sourceValue;
 

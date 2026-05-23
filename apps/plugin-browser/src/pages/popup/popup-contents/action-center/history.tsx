@@ -4,10 +4,7 @@ import { Skeleton } from "@hashintel/design-system";
 
 import { AutomaticallyTriggered } from "./history/automatically-triggered";
 import { ManuallyTriggered } from "./history/manually-triggered";
-import {
-  generateTabPanelA11yProps,
-  type TabPanelProps,
-} from "./shared/tab-props";
+import { generateTabPanelA11yProps, type TabPanelProps } from "./shared/tab-props";
 import { useFlowRuns } from "./shared/use-flow-runs";
 
 import type { PropsWithChildren } from "react";
@@ -51,20 +48,11 @@ export const History = (panelProps: TabPanelProps) => {
         <AutomaticallyTriggered flowRuns={flowRuns} />
       </HistorySection>
       <HistorySection>
-        <Typography
-          component="h4"
-          variant="smallCaps"
-          sx={{ fontSize: 12, mb: 1 }}
-        >
+        <Typography component="h4" variant="smallCaps" sx={{ fontSize: 12, mb: 1 }}>
           Other activity
         </Typography>
-        <Typography
-          component="p"
-          variant="microText"
-          sx={{ fontSize: 13, mb: 1 }}
-        >
-          The above tables show agent activity triggered from or using this
-          browser.
+        <Typography component="p" variant="microText" sx={{ fontSize: 13, mb: 1 }}>
+          The above tables show agent activity triggered from or using this browser.
         </Typography>
         <Typography component="p" variant="microText" sx={{ fontSize: 13 }}>
           To inspect non-browser events, visit your{" "}

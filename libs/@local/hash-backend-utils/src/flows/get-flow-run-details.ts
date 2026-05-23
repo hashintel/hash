@@ -1,7 +1,4 @@
-import {
-  defineSearchAttributeKey,
-  SearchAttributeType,
-} from "@temporalio/common";
+import { defineSearchAttributeKey, SearchAttributeType } from "@temporalio/common";
 import proto from "@temporalio/proto";
 
 import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
@@ -97,8 +94,7 @@ const eventTimeIsoStringFromEvent = (event?: IHistoryEvent) => {
   }
 
   return new Date(
-    eventTime.seconds.toInt() * 1000 +
-      (eventTime.nanos ? eventTime.nanos / 1_000_000 : 0),
+    eventTime.seconds.toInt() * 1000 + (eventTime.nanos ? eventTime.nanos / 1_000_000 : 0),
   ).toISOString();
 };
 
@@ -107,8 +103,7 @@ const eventTimeIsoStringFromEvent = (event?: IHistoryEvent) => {
  */
 const getActivityScheduledDetails = (event: IHistoryEvent) => {
   if (
-    event.eventType !==
-    proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
+    event.eventType !== proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
   ) {
     throw new Error(
       `Unexpected event type ${event.eventType}, expected ${proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED}`,
@@ -124,9 +119,7 @@ const getActivityScheduledDetails = (event: IHistoryEvent) => {
     throw new Error("No eventTime on scheduled event");
   }
 
-  const inputs = parseHistoryItemPayload(
-    event.activityTaskScheduledEventAttributes.input,
-  );
+  const inputs = parseHistoryItemPayload(event.activityTaskScheduledEventAttributes.input);
 
   return {
     activityId: event.activityTaskScheduledEventAttributes.activityId,
@@ -157,9 +150,7 @@ const getActivityStartedDetails = (
   const scheduledEvent = events.findLast(
     (item) =>
       item.eventId?.toString() === scheduledEventId?.toString() &&
-      item.eventType ===
-        proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
+      item.eventType === proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
   );
 
   if (!scheduledEvent) {
@@ -171,9 +162,7 @@ const getActivityStartedDetails = (
 
   const startedEvent = events.findLast(
     (item) =>
-      item.eventType ===
-        proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_STARTED &&
+      item.eventType === proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_STARTED &&
       item.activityTaskStartedEventAttributes?.scheduledEventId?.toString() ===
         scheduledEventId?.toString(),
   );
@@ -210,15 +199,14 @@ const getFlowRunDetailedFields = async ({
   let nextPageToken: Uint8Array | undefined;
   const events: IHistoryEvent[] = [];
   do {
-    const response =
-      await temporalClient.workflowService.getWorkflowExecutionHistory({
-        execution: {
-          workflowId,
-        },
-        maximumPageSize: 100,
-        namespace: temporalNamespace,
-        nextPageToken,
-      });
+    const response = await temporalClient.workflowService.getWorkflowExecutionHistory({
+      execution: {
+        workflowId,
+      },
+      maximumPageSize: 100,
+      namespace: temporalNamespace,
+      nextPageToken,
+    });
 
     nextPageToken = response.nextPageToken;
 
@@ -233,13 +221,12 @@ const getFlowRunDetailedFields = async ({
   const workflowExecutionStartedEventAttributes = events.find(
     (event) =>
       event.eventType ===
-      proto.temporal.api.enums.v1.EventType
-        .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
+      proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
   )?.workflowExecutionStartedEventAttributes;
 
-  const workflowInputs = parseHistoryItemPayload(
-    workflowExecutionStartedEventAttributes?.input,
-  ) as FlowInputs | undefined;
+  const workflowInputs = parseHistoryItemPayload(workflowExecutionStartedEventAttributes?.input) as
+    | FlowInputs
+    | undefined;
 
   /**
    * If this workflow run has been started after the original was reset or 'continue-as-new'd,
@@ -247,14 +234,10 @@ const getFlowRunDetailedFields = async ({
    * We can check if it has a different firstExecutionRunId and if so, get the start time of the original run.
    */
   let workflowStartedAt = workflow.startTime;
-  const firstExecutionRunId =
-    workflowExecutionStartedEventAttributes?.firstExecutionRunId;
+  const firstExecutionRunId = workflowExecutionStartedEventAttributes?.firstExecutionRunId;
 
   if (firstExecutionRunId && firstExecutionRunId !== workflow.runId) {
-    const originalRunHandle = temporalClient.workflow.getHandle(
-      workflowId,
-      firstExecutionRunId,
-    );
+    const originalRunHandle = temporalClient.workflow.getHandle(workflowId, firstExecutionRunId);
 
     try {
       const originalRun = await originalRunHandle.describe();
@@ -276,16 +259,14 @@ const getFlowRunDetailedFields = async ({
     events.find(
       (event) =>
         event.eventType ===
-        proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED,
+        proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED,
     )?.workflowExecutionCompletedEventAttributes?.result,
   );
 
   const workflowFailureMessage = events.find(
     (event) =>
       event.eventType ===
-      proto.temporal.api.enums.v1.EventType
-        .EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
+      proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
   )?.workflowExecutionFailedEventAttributes?.failure?.message;
 
   const unresolvedStepMap: {
@@ -304,12 +285,9 @@ const getFlowRunDetailedFields = async ({
 
   const inputRequestsById: Record<string, ExternalInputRequest> = {};
 
-  const workflowStoppedEarly = [
-    "TERMINATED",
-    "CANCELED",
-    "TIMED_OUT",
-    "FAILED",
-  ].includes(workflow.status.name);
+  const workflowStoppedEarly = ["TERMINATED", "CANCELED", "TIMED_OUT", "FAILED"].includes(
+    workflow.status.name,
+  );
 
   if (events.length) {
     /*
@@ -321,15 +299,12 @@ const getFlowRunDetailedFields = async ({
         throw new Error("Somehow out of bounds for events array");
       }
 
-      const signalName =
-        event.workflowExecutionSignaledEventAttributes?.signalName;
+      const signalName = event.workflowExecutionSignaledEventAttributes?.signalName;
 
       if (event.workflowExecutionSignaledEventAttributes?.signalName) {
         const time = eventTimeIsoStringFromEvent(event);
         if (!time) {
-          throw new Error(
-            `No eventTime on checkpoint signal event ${event.eventId?.toInt()}`,
-          );
+          throw new Error(`No eventTime on checkpoint signal event ${event.eventId?.toInt()}`);
         }
 
         switch (signalName as FlowSignalType) {
@@ -435,24 +410,15 @@ const getFlowRunDetailedFields = async ({
         event.activityTaskFailedEventAttributes ??
         event.activityTaskTimedOutEventAttributes;
 
-      if (
-        !nonScheduledAttributes &&
-        !event.activityTaskScheduledEventAttributes
-      ) {
+      if (!nonScheduledAttributes && !event.activityTaskScheduledEventAttributes) {
         // This is not an activity-related event. It may be a signal, which we handle in bulk below
         continue;
       }
 
-      const {
-        activityId,
-        activityType,
-        attempt,
-        inputs,
-        startedAt,
-        scheduledAt,
-      } = event.activityTaskScheduledEventAttributes
-        ? getActivityScheduledDetails(event)
-        : getActivityStartedDetails(events, nonScheduledAttributes!);
+      const { activityId, activityType, attempt, inputs, startedAt, scheduledAt } =
+        event.activityTaskScheduledEventAttributes
+          ? getActivityScheduledDetails(event)
+          : getActivityStartedDetails(events, nonScheduledAttributes!);
 
       if (
         [
@@ -479,57 +445,44 @@ const getFlowRunDetailedFields = async ({
         closedAt: workflowStoppedEarly ? workflow.closeTime?.toISOString() : "",
         inputs,
         logs: [],
-        status: workflowStoppedEarly
-          ? FlowStepStatus.Cancelled
-          : FlowStepStatus.Scheduled,
+        status: workflowStoppedEarly ? FlowStepStatus.Cancelled : FlowStepStatus.Scheduled,
         attempt,
       };
 
       unresolvedStepMap[activityId] = activityRecord;
 
       switch (event.eventType) {
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_SCHEDULED: {
+        case proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED: {
           if (!workflowStoppedEarly) {
             activityRecord.status = FlowStepStatus.Scheduled;
           }
           break;
         }
 
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_STARTED: {
+        case proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_STARTED: {
           if (!workflowStoppedEarly) {
             activityRecord.status = FlowStepStatus.Started;
-            activityRecord.lastFailure =
-              event.activityTaskStartedEventAttributes?.lastFailure;
+            activityRecord.lastFailure = event.activityTaskStartedEventAttributes?.lastFailure;
             activityRecord.logs.push({
               type: "ActivityFailed",
               stepId: activityId,
               // shaves off some precision, which will make the log appear before any relating to the activity starting again
-              recordedAt: new Date(
-                eventTimeIsoStringFromEvent(event)!,
-              ).toISOString(),
+              recordedAt: new Date(eventTimeIsoStringFromEvent(event)!).toISOString(),
               retrying: true,
               message:
-                event.activityTaskStartedEventAttributes?.lastFailure
-                  ?.message ?? "Unknown error",
+                event.activityTaskStartedEventAttributes?.lastFailure?.message ?? "Unknown error",
             });
           }
           break;
         }
 
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_COMPLETED: {
+        case proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_COMPLETED: {
           activityRecord.outputs =
-            parseHistoryItemPayload(
-              event.activityTaskCompletedEventAttributes?.result,
-            ) ?? [];
+            parseHistoryItemPayload(event.activityTaskCompletedEventAttributes?.result) ?? [];
 
           if (
             /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
-            activityRecord.outputs.every(
-              (output) => output.code !== StatusCode.Ok,
-            )
+            activityRecord.outputs.every((output) => output.code !== StatusCode.Ok)
           ) {
             activityRecord.status = FlowStepStatus.Failed;
           } else {
@@ -540,11 +493,9 @@ const getFlowRunDetailedFields = async ({
           break;
         }
 
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_FAILED: {
+        case proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_FAILED: {
           activityRecord.status = FlowStepStatus.Failed;
-          activityRecord.lastFailure =
-            event.activityTaskFailedEventAttributes?.failure;
+          activityRecord.lastFailure = event.activityTaskFailedEventAttributes?.failure;
           activityRecord.retryState =
             event.activityTaskFailedEventAttributes?.retryState?.toString();
           activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
@@ -554,34 +505,28 @@ const getFlowRunDetailedFields = async ({
             // shaves off some precision, which will make the log appear before any relating to the activity starting again
             recordedAt: new Date(activityRecord.closedAt!).toISOString(),
             retrying: false,
-            message:
-              event.activityTaskFailedEventAttributes?.failure?.message ??
-              "Unknown error",
+            message: event.activityTaskFailedEventAttributes?.failure?.message ?? "Unknown error",
           });
 
           break;
         }
 
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT: {
+        case proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT: {
           activityRecord.status = FlowStepStatus.TimedOut;
-          activityRecord.lastFailure =
-            event.activityTaskTimedOutEventAttributes?.failure;
+          activityRecord.lastFailure = event.activityTaskTimedOutEventAttributes?.failure;
           activityRecord.retryState =
             event.activityTaskTimedOutEventAttributes?.retryState?.toString();
           activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
           break;
         }
 
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_CANCELED: {
+        case proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_CANCELED: {
           activityRecord.status = FlowStepStatus.Cancelled;
           activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
           break;
         }
 
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_CANCEL_REQUESTED: {
+        case proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_CANCEL_REQUESTED: {
           activityRecord.status = FlowStepStatus.CancelRequested;
           break;
         }
@@ -767,14 +712,8 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
 }): Promise<SparseFlowRun> => {
   const handle = temporalClient.workflow.getHandle(temporalWorkflowId);
 
-  const {
-    startTime,
-    executionTime,
-    closeTime,
-    memo,
-    typedSearchAttributes,
-    status,
-  } = await handle.describe();
+  const { startTime, executionTime, closeTime, memo, typedSearchAttributes, status } =
+    await handle.describe();
 
   const temporalScheduledByIdKey = defineSearchAttributeKey(
     "TemporalScheduledById",
@@ -787,8 +726,7 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
 
   return {
     name,
-    flowDefinitionId:
-      (memo?.flowDefinitionId as string | undefined) ?? "unknown",
+    flowDefinitionId: (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     flowRunId,
     flowScheduleId,
     status: status.name as FlowRunStatus,

@@ -1,7 +1,4 @@
-import {
-  Button as DsButton,
-  type ButtonProps as DsButtonProps,
-} from "@hashintel/ds-components";
+import { Button as DsButton, type ButtonProps as DsButtonProps } from "@hashintel/ds-components";
 
 import { withTooltip } from "./hoc/with-tooltip";
 
@@ -22,7 +19,4 @@ export type ButtonProps = Omit<DsButtonProps, "onClick" | "type"> & {
   type?: "button" | "submit" | "reset";
 } & Record<`data-${string}`, unknown>;
 
-export const Button = withTooltip(
-  DsButton as ComponentType<ButtonProps>,
-  "block",
-);
+export const Button = withTooltip(DsButton as ComponentType<ButtonProps>, "block");

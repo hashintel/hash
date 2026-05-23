@@ -46,10 +46,7 @@ export function sampleDistribution(
       break;
     }
     case "mapped": {
-      const [innerValue, newRng] = sampleDistribution(
-        distribution.inner,
-        rngState,
-      );
+      const [innerValue, newRng] = sampleDistribution(distribution.inner, rngState);
       value = distribution.fn(innerValue);
       nextRng = newRng;
       break;

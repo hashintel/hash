@@ -1,13 +1,6 @@
 import "@xyflow/react/dist/style.css";
 import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
-import {
-  use,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { use, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import { css } from "@hashintel/ds-helpers/css";
@@ -80,11 +73,11 @@ export const SDCPNView: React.FC<{
   viewportActions?: ViewportAction[];
 }> = ({ viewportActions }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
-  const [reactFlowInstance, setReactFlowInstance] =
-    useState<PetrinautReactFlowInstance | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState<PetrinautReactFlowInstance | null>(
+    null,
+  );
 
-  const { compactNodes, showMinimap, snapToGrid, partialSelection } =
-    use(UserSettingsContext);
+  const { compactNodes, showMinimap, snapToGrid, partialSelection } = use(UserSettingsContext);
   const nodeTypes = useMemo(
     () => (compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES),
     [compactNodes],
@@ -118,15 +111,13 @@ export const SDCPNView: React.FC<{
   useRecenterOnPanelOpen(canvasContainer, reactFlowInstance, nodes);
 
   // Center viewport on SDCPN load
-  const fitLoadedNetIntoView = useEffectEvent(
-    (instance: PetrinautReactFlowInstance) => {
-      void instance.fitView({
-        padding: ZOOM_PADDING,
-        minZoom,
-        maxZoom: 1.1,
-      });
-    },
-  );
+  const fitLoadedNetIntoView = useEffectEvent((instance: PetrinautReactFlowInstance) => {
+    void instance.fitView({
+      padding: ZOOM_PADDING,
+      minZoom,
+      maxZoom: 1.1,
+    });
+  });
 
   useEffect(() => {
     if (!reactFlowInstance) return;
@@ -207,10 +198,7 @@ export const SDCPNView: React.FC<{
         placeId: source,
         weight: 1,
       });
-    } else if (
-      sourceNode.type === "transition" &&
-      targetNode.type === "place"
-    ) {
+    } else if (sourceNode.type === "transition" && targetNode.type === "place") {
       // Output arc: transition to place
       addArc({
         transitionId: source,
@@ -276,10 +264,7 @@ export const SDCPNView: React.FC<{
     selectItem({ type: "arc", id: edge.id });
   }
 
-  function onNodeMouseEnter(
-    _event: React.MouseEvent,
-    node: { id: string; type?: string },
-  ) {
+  function onNodeMouseEnter(_event: React.MouseEvent, node: { id: string; type?: string }) {
     const type = node.type as "place" | "transition" | undefined;
     if (type) setHoveredItem({ type, id: node.id });
   }
@@ -387,8 +372,7 @@ export const SDCPNView: React.FC<{
   }, []);
 
   // Determine ReactFlow props based on edition mode
-  const isAddMode =
-    editionMode === "add-place" || editionMode === "add-transition";
+  const isAddMode = editionMode === "add-place" || editionMode === "add-transition";
   const isPanMode = editionMode === "cursor" && cursorMode === "pan";
   const isSelectMode = editionMode === "cursor" && cursorMode === "select";
 
@@ -442,9 +426,7 @@ export const SDCPNView: React.FC<{
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
         elementsSelectable={!isAddMode}
-        selectionMode={
-          partialSelection ? SelectionMode.Partial : SelectionMode.Full
-        }
+        selectionMode={partialSelection ? SelectionMode.Partial : SelectionMode.Full}
         selectNodesOnDrag={false}
         nodeOrigin={[0.5, 0.5]}
         deleteKeyCode={null}

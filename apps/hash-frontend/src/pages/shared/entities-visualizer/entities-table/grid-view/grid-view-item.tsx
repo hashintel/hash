@@ -32,24 +32,18 @@ const mimeTypeStartsWithToIcon: Record<string, ReactNode> = {
   "video/": <FileVideoLightIcon />,
   "audio/": <FileAudioLightIcon />,
   "application/pdf": <FilePdfLightIcon />,
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": (
-    <FileWordLightIcon />
-  ),
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": <FileWordLightIcon />,
   "application/msword": <FileWordLightIcon />,
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": (
     <FilePowerpointLightIcon />
   ),
   "application/vnd.ms-powerpoint": <FilePowerpointLightIcon />,
   "application/vnd.ms-excel": <FileExcelLightIcon />,
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": (
-    <FileExcelLightIcon />
-  ),
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": <FileExcelLightIcon />,
 };
 
 const entityTypeIdToIcon: Record<BaseUrl, ReactNode> = {
-  [systemEntityTypes.pptxPresentation.entityTypeBaseUrl]: (
-    <FilePowerpointLightIcon />
-  ),
+  [systemEntityTypes.pptxPresentation.entityTypeBaseUrl]: <FilePowerpointLightIcon />,
   [systemEntityTypes.pdfDocument.entityTypeBaseUrl]: <FilePdfLightIcon />,
   [systemEntityTypes.docxDocument.entityTypeBaseUrl]: <FileWordLightIcon />,
   [systemEntityTypes.imageFile.entityTypeBaseUrl]: <FileImageLightIcon />,
@@ -66,9 +60,7 @@ export const GridViewItem: FunctionComponent<{
   const { includesSpecialEntityTypes } = useEntityTypesContextRequired();
 
   const fileEntity = useMemo(() => {
-    const isFileEntity = includesSpecialEntityTypes?.(
-      entity.metadata.entityTypeIds,
-    ).isFile;
+    const isFileEntity = includesSpecialEntityTypes?.(entity.metadata.entityTypeIds).isFile;
 
     if (isFileEntity) {
       return entity as HashEntity<FileEntity>;
@@ -77,13 +69,9 @@ export const GridViewItem: FunctionComponent<{
 
   const { fileName, fileNameWithoutExtension, fileExtension } = useMemo(() => {
     if (fileEntity) {
-      const { fileName: fullFileName } = simplifyProperties(
-        fileEntity.properties,
-      );
+      const { fileName: fullFileName } = simplifyProperties(fileEntity.properties);
 
-      const parsedFileExtension = fullFileName
-        ? fullFileName.split(".").pop()
-        : undefined;
+      const parsedFileExtension = fullFileName ? fullFileName.split(".").pop() : undefined;
 
       return {
         fileName: fullFileName,

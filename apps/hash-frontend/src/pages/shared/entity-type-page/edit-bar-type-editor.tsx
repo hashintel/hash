@@ -43,14 +43,12 @@ export const EditBarTypeEditor = ({
   discardButtonProps: Partial<ButtonProps>;
   errorMessage?: string;
 }) => {
-  const { dirtyFields, isSubmitting } =
-    useEntityTypeFormState<EntityTypeEditorFormData>();
+  const { dirtyFields, isSubmitting } = useEntityTypeFormState<EntityTypeEditorFormData>();
   const frozenVersion = useFrozenValue(currentVersion);
   const ref = useFreezeScrollWhileTransitioning();
   const zeroVersion = makeOntologyTypeVersion({ major: 0 });
 
-  const collapseIn =
-    currentVersion === zeroVersion || Object.keys(dirtyFields).length > 0;
+  const collapseIn = currentVersion === zeroVersion || Object.keys(dirtyFields).length > 0;
 
   const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
 
@@ -67,10 +65,7 @@ export const EditBarTypeEditor = ({
 
   return (
     <EditBarCollapse in={collapseIn} ref={ref}>
-      <EditBarContainer
-        hasErrors={!!errorMessage}
-        gentleErrorStyling={gentleErrorStyling}
-      >
+      <EditBarContainer hasErrors={!!errorMessage} gentleErrorStyling={gentleErrorStyling}>
         <EditBarContents
           hideConfirm={!!errorMessage}
           icon={
@@ -83,29 +78,21 @@ export const EditBarTypeEditor = ({
           title={errorMessage ? "Changes required" : "Currently editing"}
           label={label}
           discardButtonProps={{
-            children:
-              frozenVersion === zeroVersion
-                ? "Discard this type"
-                : "Discard changes",
+            children: frozenVersion === zeroVersion ? "Discard this type" : "Discard changes",
             disabled: frozenSubmitting,
             sx: errorMessage
               ? ({ palette }) => ({
-                  borderColor: gentleErrorStyling
-                    ? palette.gray[30]
-                    : palette.common.white,
+                  borderColor: gentleErrorStyling ? palette.gray[30] : palette.common.white,
                   color: gentleErrorStyling ? palette.gray[50] : undefined,
                   "&:hover": {
-                    backgroundColor: gentleErrorStyling
-                      ? palette.gray[50]
-                      : palette.red[50],
+                    backgroundColor: gentleErrorStyling ? palette.gray[50] : palette.red[50],
                   },
                 })
               : undefined,
             ...frozenDiscardButtonProps,
           }}
           confirmButtonProps={{
-            children:
-              frozenVersion === zeroVersion ? "Create" : "Publish update",
+            children: frozenVersion === zeroVersion ? "Create" : "Publish update",
             loading: frozenSubmitting,
             disabled: frozenSubmitting,
           }}

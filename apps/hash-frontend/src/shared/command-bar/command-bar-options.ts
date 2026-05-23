@@ -105,20 +105,11 @@ class CommandBarMenu {
 
 export const menu = new CommandBarMenu();
 
-export const createEntityOption = menu.addOption("Create Entity", "General", [
-  "Meta",
-  "e",
-]);
+export const createEntityOption = menu.addOption("Create Entity", "General", ["Meta", "e"]);
 
-export const createTypeOption = menu.addOption("Create Type", "General", [
-  "Meta",
-  "t",
-]);
+export const createTypeOption = menu.addOption("Create Type", "General", ["Meta", "t"]);
 
-export const createPageOption = menu.addOption("Create Page", "General", [
-  "Meta",
-  "p",
-]);
+export const createPageOption = menu.addOption("Create Page", "General", ["Meta", "p"]);
 
 /** @todo: introduce other menu options when relevant commands can be implemented */
 // export const childMenu = new CommandBarMenu(menu);

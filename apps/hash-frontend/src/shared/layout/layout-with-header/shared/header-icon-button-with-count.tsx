@@ -1,9 +1,4 @@
-import {
-  Box,
-  svgIconClasses,
-  Typography,
-  typographyClasses,
-} from "@mui/material";
+import { Box, svgIconClasses, Typography, typographyClasses } from "@mui/material";
 
 import { HeaderIconButton } from "./header-icon-button";
 
@@ -24,9 +19,7 @@ export const HeaderIconButtonWithCount: FunctionComponent<{
         borderRadius: isDisplayingCount ? 4 : "100%",
         backgroundColor: theme.palette.blue[70],
         [`.${svgIconClasses.root}`]: {
-          color: isDisplayingCount
-            ? `${theme.palette.blue[70]} !important`
-            : undefined,
+          color: isDisplayingCount ? `${theme.palette.blue[70]} !important` : undefined,
         },
         [`.${typographyClasses.root}`]: {
           color: `${theme.palette.blue[100]} !important`,

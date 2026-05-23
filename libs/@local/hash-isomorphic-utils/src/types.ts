@@ -14,12 +14,7 @@ export type TextToken =
   | { tokenType: "hardBreak" }
   | {
       tokenType: "mention";
-      mentionType:
-        | "user"
-        | "page"
-        | "entity"
-        | "property-value"
-        | "outgoing-link";
+      mentionType: "user" | "page" | "entity" | "property-value" | "outgoing-link";
       entityId: EntityId;
       propertyTypeBaseUrl?: BaseUrl;
       linkEntityTypeBaseUrl?: BaseUrl;

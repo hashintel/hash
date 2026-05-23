@@ -1,7 +1,6 @@
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 
-const isTrueObject = (obj: unknown): obj is object =>
-  obj !== null && typeof obj === "object";
+const isTrueObject = (obj: unknown): obj is object => obj !== null && typeof obj === "object";
 
 type ContextObject = {
   context: string;

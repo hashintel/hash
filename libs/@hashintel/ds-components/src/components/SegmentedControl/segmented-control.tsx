@@ -111,10 +111,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         borderRadius: ROOT_RADIUS,
       }}
     >
-      <div
-        className={rootBackdropStyles}
-        style={{ borderRadius: ROOT_RADIUS }}
-      />
+      <div className={rootBackdropStyles} style={{ borderRadius: ROOT_RADIUS }} />
 
       <SegmentGroup.Indicator
         className={indicatorStyles}
@@ -128,9 +125,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
           className={itemStyles}
           style={{ borderRadius: ROOT_RADIUS - ROOT_PADDING }}
         >
-          <SegmentGroup.ItemText className={itemTextStyles}>
-            {option.name}
-          </SegmentGroup.ItemText>
+          <SegmentGroup.ItemText className={itemTextStyles}>{option.name}</SegmentGroup.ItemText>
           <SegmentGroup.ItemControl />
           <SegmentGroup.ItemHiddenInput />
         </SegmentGroup.Item>

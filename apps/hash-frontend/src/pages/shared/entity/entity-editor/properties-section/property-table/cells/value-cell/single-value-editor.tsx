@@ -24,10 +24,7 @@ import type {
   FindDataTypeConversionTargetsQueryVariables,
 } from "../../../../../../../../graphql/api-types.gen";
 import type { ValueCell, ValueCellEditorComponent } from "./types";
-import type {
-  ClosedDataType,
-  PropertyValueMetadata,
-} from "@blockprotocol/type-system";
+import type { ClosedDataType, PropertyValueMetadata } from "@blockprotocol/type-system";
 import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
@@ -49,10 +46,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     dataType: ClosedDataType;
     schema: MergedDataTypeSingleSchema;
   } | null>(() => {
-    if (
-      permittedDataTypes.length === 1 &&
-      !permittedDataTypes[0]!.schema.abstract
-    ) {
+    if (permittedDataTypes.length === 1 && !permittedDataTypes[0]!.schema.abstract) {
       const dataType = permittedDataTypes[0]!;
       const schema = getMergedDataTypeSchema(dataType.schema);
 
@@ -125,14 +119,13 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   });
 
   const conversionTargetsById =
-    chosenDataType &&
-    data?.findDataTypeConversionTargets[chosenDataType.dataType.$id];
+    chosenDataType && data?.findDataTypeConversionTargets[chosenDataType.dataType.$id];
 
   useEffect(() => {
     if (
       chosenDataType &&
-      (valueMetadata as PropertyValueMetadata | undefined)?.metadata
-        .dataTypeId !== chosenDataType.dataType.$id
+      (valueMetadata as PropertyValueMetadata | undefined)?.metadata.dataTypeId !==
+        chosenDataType.dataType.$id
     ) {
       const { propertyMetadata } = generateNewMetadataObject({
         propertyKeyChain,
@@ -150,25 +143,14 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
       onChange(newCell);
     }
-  }, [
-    cell,
-    chosenDataType,
-    generateNewMetadataObject,
-    onChange,
-    propertyKeyChain,
-    valueMetadata,
-  ]);
+  }, [cell, chosenDataType, generateNewMetadataObject, onChange, propertyKeyChain, valueMetadata]);
 
   const latestValueCellRef = useRef<ValueCell>(cell);
   useEffect(() => {
     latestValueCellRef.current = cell;
   });
 
-  if (
-    !chosenDataType ||
-    !cell.data.propertyRow.valueMetadata ||
-    showTypePicker
-  ) {
+  if (!chosenDataType || !cell.data.propertyRow.valueMetadata || showTypePicker) {
     return (
       <GridEditorWrapper>
         <EditorTypePicker
@@ -204,8 +186,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
               onFinishedEditing(newCell);
             } else {
-              const conversions =
-                conversionTargetsById?.[type.$id]?.conversions;
+              const conversions = conversionTargetsById?.[type.$id]?.conversions;
 
               const newCell = produce(cell, (draftCell) => {
                 draftCell.data.propertyRow.valueMetadata = {
@@ -214,8 +195,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
                 draftCell.data.showTypePicker = false;
 
                 if (conversions) {
-                  const conversionFunction =
-                    createConversionFunction(conversions);
+                  const conversionFunction = createConversionFunction(conversions);
 
                   // @ts-expect-error - things other than numbers are not yet convertible.
                   // we could throw an error if we find a non-number value, but this way it'll just start working when we add support.
@@ -294,9 +274,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
           color={shouldClearOnClick ? "red" : "gray"}
           onClick={() => {
             const newCell = produce(cell, (draftCell) => {
-              draftCell.data.propertyRow.value = shouldClearOnClick
-                ? undefined
-                : spec.defaultValue;
+              draftCell.data.propertyRow.value = shouldClearOnClick ? undefined : spec.defaultValue;
             });
 
             onFinishedEditing(newCell);
@@ -359,8 +337,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
                 cursor: item === "value" ? "default" : "pointer",
                 px: 1,
                 py: 1,
-                background:
-                  item === value ? ({ palette }) => palette.blue[15] : "none",
+                background: item === value ? ({ palette }) => palette.blue[15] : "none",
               }}
             >
               <Typography

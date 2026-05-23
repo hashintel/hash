@@ -24,8 +24,7 @@ const TypeId: unique symbol = Symbol(
 
 export type TypeId = typeof TypeId;
 
-export interface ResponseHeader
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface ResponseHeader extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly protocol: Protocol.Protocol;
@@ -34,10 +33,7 @@ export interface ResponseHeader
   readonly flags: ResponseFlags.ResponseFlags;
 }
 
-const ResponseHeaderProto: Omit<
-  ResponseHeader,
-  "protocol" | "requestId" | "flags"
-> = {
+const ResponseHeaderProto: Omit<ResponseHeader, "protocol" | "requestId" | "flags"> = {
   [TypeId]: TypeId,
 
   [Equal.symbol](this: ResponseHeader, that: Equal.Equal) {
@@ -87,18 +83,12 @@ export const make = (
   protocol: Protocol.Protocol,
   requestId: RequestId.RequestId,
   flags: ResponseFlags.ResponseFlags,
-): ResponseHeader =>
-  createProto(ResponseHeaderProto, { protocol, requestId, flags });
+): ResponseHeader => createProto(ResponseHeaderProto, { protocol, requestId, flags });
 
 export const applyBodyVariant = (
   header: ResponseHeader,
   variant: ResponseBody.ResponseBodyVariant,
-) =>
-  make(
-    header.protocol,
-    header.requestId,
-    ResponseFlags.applyBodyVariant(header.flags, variant),
-  );
+) => make(header.protocol, header.requestId, ResponseFlags.applyBodyVariant(header.flags, variant));
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
@@ -128,9 +118,5 @@ export const isResponseHeader = (value: unknown): value is ResponseHeader =>
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc
-    .tuple(
-      Protocol.arbitrary(fc),
-      RequestId.arbitrary(fc),
-      ResponseFlags.arbitrary(fc),
-    )
+    .tuple(Protocol.arbitrary(fc), RequestId.arbitrary(fc), ResponseFlags.arbitrary(fc))
     .map(Function.tupled(make));

@@ -41,32 +41,17 @@ export type ExternalOntologyElementMetadata = {
   fetchedAt: Timestamp;
 };
 
-export type OntologyElementMetadata =
-  | DataTypeMetadata
-  | PropertyTypeMetadata
-  | EntityTypeMetadata;
+export type OntologyElementMetadata = DataTypeMetadata | PropertyTypeMetadata | EntityTypeMetadata;
 
 export type SystemDefinedProperties = "$schema" | "kind" | "$id";
 
-export type ConstructDataTypeParams = DistributiveOmit<
-  DataType,
-  SystemDefinedProperties
->;
+export type ConstructDataTypeParams = DistributiveOmit<DataType, SystemDefinedProperties>;
 
-export type ConstructPropertyTypeParams = Omit<
-  PropertyType,
-  SystemDefinedProperties
->;
+export type ConstructPropertyTypeParams = Omit<PropertyType, SystemDefinedProperties>;
 
-export type ConstructEntityTypeParams = Omit<
-  EntityType,
-  SystemDefinedProperties
->;
+export type ConstructEntityTypeParams = Omit<EntityType, SystemDefinedProperties>;
 
-export type DataTypeConversionTargets = Omit<
-  GraphApiDataTypeConversionTargets,
-  "conversions"
-> & {
+export type DataTypeConversionTargets = Omit<GraphApiDataTypeConversionTargets, "conversions"> & {
   conversions: ConversionDefinition[];
 };
 

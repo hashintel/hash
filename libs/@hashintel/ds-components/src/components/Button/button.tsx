@@ -12,40 +12,36 @@ import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 export type Variant = "solid" | "subtle" | "ghost" | "link" | "linkSubtle";
 export type Tone = "neutral" | "brand" | "error"; // success, warning, etc
 
-type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
-  {
-    className?: string;
-    /** The overall style of the button */
-    variant?: Variant;
-    /** Sets the color treatment of the button for destructive actions. */
-    tone?: Tone;
-    /** The size (height) of the button */
-    size?: FormInputSize;
-    /** The shape of the button. Non default shapes should VERY rarely be used */
-    shape?: "default" | "round";
-    /** Whether the button is in a loading state */
-    loading?: boolean;
-    /** Whether the button is in a pressed/active state */
-    pressed?: boolean;
-    disabled?: boolean;
-    tabIndex?: number;
-    onClick?: React.ButtonHTMLAttributes<Element>["onClick"];
-    onMouseDown?: React.ButtonHTMLAttributes<Element>["onMouseDown"];
-    onMouseUp?: React.ButtonHTMLAttributes<Element>["onMouseUp"];
-    onMouseEnter?: React.ButtonHTMLAttributes<Element>["onMouseEnter"];
-    onMouseLeave?: React.ButtonHTMLAttributes<Element>["onMouseLeave"];
-    onKeyDown?: React.ButtonHTMLAttributes<Element>["onKeyDown"];
-    onFocus?: React.ButtonHTMLAttributes<Element>["onFocus"];
-    onBlur?: React.ButtonHTMLAttributes<Element>["onBlur"];
-    tooltipOptions?: Omit<
-      React.ComponentProps<typeof Tooltip>,
-      "children" | "content"
-    >;
-  } & RequireAtLeastOne<{
-    tooltip?: string;
-    children?: React.ReactNode;
-  }> &
-    React.AriaAttributes;
+type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> = {
+  className?: string;
+  /** The overall style of the button */
+  variant?: Variant;
+  /** Sets the color treatment of the button for destructive actions. */
+  tone?: Tone;
+  /** The size (height) of the button */
+  size?: FormInputSize;
+  /** The shape of the button. Non default shapes should VERY rarely be used */
+  shape?: "default" | "round";
+  /** Whether the button is in a loading state */
+  loading?: boolean;
+  /** Whether the button is in a pressed/active state */
+  pressed?: boolean;
+  disabled?: boolean;
+  tabIndex?: number;
+  onClick?: React.ButtonHTMLAttributes<Element>["onClick"];
+  onMouseDown?: React.ButtonHTMLAttributes<Element>["onMouseDown"];
+  onMouseUp?: React.ButtonHTMLAttributes<Element>["onMouseUp"];
+  onMouseEnter?: React.ButtonHTMLAttributes<Element>["onMouseEnter"];
+  onMouseLeave?: React.ButtonHTMLAttributes<Element>["onMouseLeave"];
+  onKeyDown?: React.ButtonHTMLAttributes<Element>["onKeyDown"];
+  onFocus?: React.ButtonHTMLAttributes<Element>["onFocus"];
+  onBlur?: React.ButtonHTMLAttributes<Element>["onBlur"];
+  tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, "children" | "content">;
+} & RequireAtLeastOne<{
+  tooltip?: string;
+  children?: React.ReactNode;
+}> &
+  React.AriaAttributes;
 
 /** We support 2 apis for button icons, a simple api that maps directly to icon names
  * or a more customizable api for more complex use cases */
@@ -137,19 +133,13 @@ export const Button = (props: ButtonProps) => {
     ...rest
   } = props;
 
-  const iconElement = iconName ? (
-    <Icon name={iconName} size={iconSizeMap[size ?? "md"]} />
-  ) : null;
-  const prefixContent =
-    prefix ?? (iconPosition === "left" ? iconElement : null);
-  const suffixContent =
-    suffix ?? (iconPosition === "right" ? iconElement : null);
+  const iconElement = iconName ? <Icon name={iconName} size={iconSizeMap[size ?? "md"]} /> : null;
+  const prefixContent = prefix ?? (iconPosition === "left" ? iconElement : null);
+  const suffixContent = suffix ?? (iconPosition === "right" ? iconElement : null);
 
   const hasIcon = !!suffixContent || !!prefixContent;
   const isIconOnly =
-    ((!!suffixContent && !prefixContent) ||
-      (!!prefixContent && !suffixContent)) &&
-    !children;
+    ((!!suffixContent && !prefixContent) || (!!prefixContent && !suffixContent)) && !children;
 
   const classes = styles({
     size,
@@ -170,11 +160,7 @@ export const Button = (props: ButtonProps) => {
     <>
       {prefixContent ? "\u200B" : null}
       {prefixContent}
-      {hasIcon && children ? (
-        <span className={classes.iconText}>{children}</span>
-      ) : (
-        children
-      )}
+      {hasIcon && children ? <span className={classes.iconText}>{children}</span> : children}
       {suffixContent ? "\u200B" : null}
       {suffixContent}
     </>
@@ -225,9 +211,7 @@ export const Button = (props: ButtonProps) => {
     element = (
       <a
         {...sharedProps}
-        {...(isInactive
-          ? {}
-          : (sharedEventHandlers as React.DOMAttributes<HTMLAnchorElement>))}
+        {...(isInactive ? {} : (sharedEventHandlers as React.DOMAttributes<HTMLAnchorElement>))}
         ref={ref as React.Ref<HTMLAnchorElement>}
         href={isInactive ? undefined : href}
         role={isInactive ? "link" : undefined}

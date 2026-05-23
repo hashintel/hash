@@ -92,10 +92,7 @@ export const addLineNumbersToDiff = (diffOutput: string): string => {
     if (line.startsWith("-")) {
       // Format: -leftNum      :content [pos: X]
       formattedLines.push(
-        `-${padRight(left.toString(), ll)} ${padRight(
-          "",
-          rl,
-        )}:${content} [pos: ${position}]`,
+        `-${padRight(left.toString(), ll)} ${padRight("", rl)}:${content} [pos: ${position}]`,
       );
       left++;
       position++;
@@ -106,10 +103,7 @@ export const addLineNumbersToDiff = (diffOutput: string): string => {
     if (line.startsWith("+")) {
       // Format: +      rightNum:content [pos: X]
       formattedLines.push(
-        `+${padRight("", ll)} ${padRight(
-          right.toString(),
-          rl,
-        )}:${content} [pos: ${position}]`,
+        `+${padRight("", ll)} ${padRight(right.toString(), rl)}:${content} [pos: ${position}]`,
       );
       right++;
       position++;

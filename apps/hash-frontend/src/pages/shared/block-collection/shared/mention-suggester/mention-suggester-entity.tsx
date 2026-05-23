@@ -11,11 +11,7 @@ import {
 } from "@mui/material";
 import { forwardRef, useEffect, useRef } from "react";
 
-import {
-  AsteriskRegularIcon,
-  EntityOrTypeIcon,
-  IconButton,
-} from "@hashintel/design-system";
+import { AsteriskRegularIcon, EntityOrTypeIcon, IconButton } from "@hashintel/design-system";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
@@ -144,16 +140,11 @@ export const MentionSuggesterEntity = forwardRef<
               fill={({ palette }) => palette.gray[50]}
             />
           </ListItemIcon>
-          <ListItemPrimaryText>
-            {generateEntityLabel(entitiesSubgraph, entity)}
-          </ListItemPrimaryText>
+          <ListItemPrimaryText>{generateEntityLabel(entitiesSubgraph, entity)}</ListItemPrimaryText>
           <Box display="flex" alignItems="center" gap={1}>
             {displayTypeTitle
               ? entityTypes.map((entityType) => (
-                  <ListItemSecondaryText
-                    key={entityType.schema.$id}
-                    sx={{ marginLeft: 2 }}
-                  >
+                  <ListItemSecondaryText key={entityType.schema.$id} sx={{ marginLeft: 2 }}>
                     {entityType.schema.title}
                   </ListItemSecondaryText>
                 ))
@@ -168,8 +159,7 @@ export const MentionSuggesterEntity = forwardRef<
                   opacity: subMenuItems.length > 0 ? 1 : 0,
                   borderRadius: "4px",
                   p: 0.25,
-                  background: ({ palette }) =>
-                    displaySubMenu ? palette.gray[50] : undefined,
+                  background: ({ palette }) => (displaySubMenu ? palette.gray[50] : undefined),
                   "&:hover": {
                     background: ({ palette }) => palette.gray[40],
                     "> svg": {
@@ -218,9 +208,7 @@ export const MentionSuggesterEntity = forwardRef<
               <MentionSuggesterSubheading>Values</MentionSuggesterSubheading>
               <Button
                 variant="tertiary"
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
                 sx={{
                   flexShrink: 0,
                   color: ({ palette }) => palette.gray[50],
@@ -234,9 +222,7 @@ export const MentionSuggesterEntity = forwardRef<
                 }}
                 endIcon={<ArrowDownArrowUpRegularIcon />}
               >
-                {sortOrder === "asc"
-                  ? "Alphabetical (A-Z)"
-                  : "Reverse Alphabetical (Z-A)"}
+                {sortOrder === "asc" ? "Alphabetical (A-Z)" : "Reverse Alphabetical (Z-A)"}
               </Button>
             </Box>
             {subMenuItems.map((item, index) => (
@@ -250,11 +236,7 @@ export const MentionSuggesterEntity = forwardRef<
                 selected={index === subMenuIndex}
               >
                 <ListItemIcon sx={{ minWidth: "unset" }}>
-                  {item.kind === "outgoing-link" ? (
-                    <LinkRegularIcon />
-                  ) : (
-                    <AsteriskRegularIcon />
-                  )}
+                  {item.kind === "outgoing-link" ? <LinkRegularIcon /> : <AsteriskRegularIcon />}
                 </ListItemIcon>
                 <ListItemPrimaryText
                   sx={{

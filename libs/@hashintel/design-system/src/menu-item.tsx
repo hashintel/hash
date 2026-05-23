@@ -17,41 +17,27 @@ export type MenuItemProps = {
 } & MuiMenuItemProps;
 
 export const MenuItem = forwardRef<HTMLLIElement, MenuItemProps>(
-  (
-    {
-      children,
-      sx = [],
-      faded,
-      dangerous,
-      selected,
-      noSelectBackground,
-      ...props
-    },
-    ref,
-  ) => {
+  ({ children, sx = [], faded, dangerous, selected, noSelectBackground, ...props }, ref) => {
     return (
       <MuiMenuItem
         sx={[
           ({ palette }) => ({
             ...(faded && {
-              [`& .${listItemTextClasses.primary}, .${typographyClasses.root}`]:
-                {
-                  color: palette.gray[60],
-                },
+              [`& .${listItemTextClasses.primary}, .${typographyClasses.root}`]: {
+                color: palette.gray[60],
+              },
               [`& .${listItemIconClasses.root}, & svg`]: {
                 color: palette.gray[40],
               },
             }),
             ...(dangerous && {
-              [`& .${listItemTextClasses.primary}, .${typographyClasses.root}`]:
-                {
-                  color: palette.red[70],
-                },
+              [`& .${listItemTextClasses.primary}, .${typographyClasses.root}`]: {
+                color: palette.red[70],
+              },
               "&:hover": {
-                [`& .${listItemTextClasses.primary}, .${typographyClasses.root}`]:
-                  {
-                    color: palette.red[90],
-                  },
+                [`& .${listItemTextClasses.primary}, .${typographyClasses.root}`]: {
+                  color: palette.red[90],
+                },
               },
               [`& .${listItemIconClasses.root}, & svg`]: {
                 color: palette.red[50],

@@ -16,9 +16,7 @@ import type { PersistedNet } from "../use-process-save-and-load";
 import type { SDCPN } from "@hashintel/petrinaut";
 import type { PetriNet } from "@local/hash-isomorphic-utils/system-types/petrinet";
 
-export const getPersistedNetsFromSubgraph = (
-  data: QueryEntitySubgraphQuery,
-): PersistedNet[] => {
+export const getPersistedNetsFromSubgraph = (data: QueryEntitySubgraphQuery): PersistedNet[] => {
   const subgraph = deserializeQueryEntitySubgraphResponse<PetriNet>(
     data.queryEntitySubgraph,
   ).subgraph;
@@ -26,21 +24,16 @@ export const getPersistedNetsFromSubgraph = (
   const nets = getRoots(subgraph);
 
   return nets.map((net) => {
-    const netTitle =
-      net.properties["https://hash.ai/@h/types/property-type/title/"];
+    const netTitle = net.properties["https://hash.ai/@h/types/property-type/title/"];
 
     const rawDefinition =
-      net.properties[
-        "https://hash.ai/@h/types/property-type/definition-object/"
-      ];
+      net.properties["https://hash.ai/@h/types/property-type/definition-object/"];
 
     const definition = rawDefinition as SDCPN;
 
-    const userEditable =
-      !!data.queryEntitySubgraph.entityPermissions?.[net.entityId]?.update;
+    const userEditable = !!data.queryEntitySubgraph.entityPermissions?.[net.entityId]?.update;
 
-    const lastUpdated =
-      net.metadata.temporalVersioning.decisionTime.start.limit;
+    const lastUpdated = net.metadata.temporalVersioning.decisionTime.start.limit;
 
     return {
       entityId: net.entityId,
@@ -53,29 +46,29 @@ export const getPersistedNetsFromSubgraph = (
 };
 
 export const usePersistedNets = () => {
-  const { data, refetch } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    variables: {
-      request: {
-        filter: {
-          equal: [
-            {
-              path: ["type", "versionedUrl"],
-            },
-            {
-              parameter: systemEntityTypes.petriNet.entityTypeId,
-            },
-          ],
+  const { data, refetch } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
+    {
+      variables: {
+        request: {
+          filter: {
+            equal: [
+              {
+                path: ["type", "versionedUrl"],
+              },
+              {
+                parameter: systemEntityTypes.petriNet.entityTypeId,
+              },
+            ],
+          },
+          traversalPaths: [],
+          includeDrafts: false,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includePermissions: true,
         },
-        traversalPaths: [],
-        includeDrafts: false,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includePermissions: true,
       },
     },
-  });
+  );
 
   const persistedNets = useMemo(() => {
     if (!data) {

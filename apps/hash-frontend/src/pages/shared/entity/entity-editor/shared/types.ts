@@ -6,9 +6,6 @@ export type CustomEntityLinksColumn = {
   appliesToEntityTypeId: VersionedUrl;
   label: string;
   sortable: boolean;
-  calculateValue: (
-    entity: Entity,
-    subgraph: Subgraph<EntityRootType>,
-  ) => number | string;
+  calculateValue: (entity: Entity, subgraph: Subgraph<EntityRootType>) => number | string;
   width: number;
 };

@@ -28,8 +28,7 @@ const Page: NextPageWithLayout = () => {
   const entityUuid = router.query["entity-uuid"] as EntityUuid;
   const draftId = router.query.draftId as DraftId | undefined;
 
-  const { routeNamespace, loading: loadingRouteNamespace } =
-    useRouteNamespace();
+  const { routeNamespace, loading: loadingRouteNamespace } = useRouteNamespace();
 
   /**
    * This state is only necessary to update the entity's label in the HTML <title> when the entity is loaded and when it changes.
@@ -42,15 +41,11 @@ const Page: NextPageWithLayout = () => {
       if (
         initialEntity.metadata.entityTypeIds.some(
           (entityTypeId) =>
-            extractBaseUrl(entityTypeId) ===
-              systemEntityTypes.user.entityTypeBaseUrl ||
-            extractBaseUrl(entityTypeId) ===
-              systemEntityTypes.organization.entityTypeBaseUrl,
+            extractBaseUrl(entityTypeId) === systemEntityTypes.user.entityTypeBaseUrl ||
+            extractBaseUrl(entityTypeId) === systemEntityTypes.organization.entityTypeBaseUrl,
         )
       ) {
-        const { shortname } = simplifyProperties(
-          initialEntity.properties as UserProperties,
-        );
+        const { shortname } = simplifyProperties(initialEntity.properties as UserProperties);
 
         void router.push(shortname ? `/@${shortname}` : "/");
       }
@@ -60,9 +55,7 @@ const Page: NextPageWithLayout = () => {
 
   const entityId = useMemo(
     () =>
-      !routeNamespace
-        ? null
-        : entityIdFromComponents(routeNamespace.webId, entityUuid, draftId),
+      !routeNamespace ? null : entityIdFromComponents(routeNamespace.webId, entityUuid, draftId),
     [routeNamespace, entityUuid, draftId],
   );
 

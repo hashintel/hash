@@ -23,10 +23,7 @@ import type {
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
-import type {
-  PersistedEntityMetadata,
-  WebPage,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntityMetadata, WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   SimpleProperties,
   Simplified,
@@ -41,10 +38,7 @@ import type {
 type SimplifiedUser = {
   metadata: EntityMetadata;
   properties: Required<
-    Pick<
-      SimpleProperties<UserProperties>,
-      "email" | "displayName" | "shortname"
-    >
+    Pick<SimpleProperties<UserProperties>, "email" | "displayName" | "shortname">
   >;
   enabledFeatureFlags: FeatureFlag[];
 };
@@ -125,17 +119,13 @@ export type LocalStorage = PersistedUserSettings & {
   user: UserAndLinkedData | null;
 };
 
-const isDbPersistedSetting = (
-  key: keyof LocalStorage,
-): key is PersistedUserSettingsKey =>
+const isDbPersistedSetting = (key: keyof LocalStorage): key is PersistedUserSettingsKey =>
   persistedUserSettingKeys.includes(key as PersistedUserSettingsKey);
 
 export const getFromLocalStorage = async <Key extends keyof LocalStorage>(
   key: Key,
 ): Promise<LocalStorage[Key] | undefined> => {
-  return browser.storage.local
-    .get(key)
-    .then((result) => result[key] as LocalStorage[Key]);
+  return browser.storage.local.get(key).then((result) => result[key] as LocalStorage[Key]);
 };
 
 // Avoid spamming the db with updates if the user is editing settings quickly or writing a quick note
@@ -146,18 +136,12 @@ const debouncedEntityUpdate = debounce(async () => {
     throw new Error("User somehow has no browser plugin settings entity");
   }
 
-  const currentAutomaticConfig = await getFromLocalStorage(
-    "automaticInferenceConfig",
-  );
-  const currentManualConfig = await getFromLocalStorage(
-    "manualInferenceConfig",
-  );
+  const currentAutomaticConfig = await getFromLocalStorage("automaticInferenceConfig");
+  const currentManualConfig = await getFromLocalStorage("manualInferenceConfig");
   const currentPopupTab = await getFromLocalStorage("popupTab");
   const currentDraftNote = await getFromLocalStorage("draftQuickNote");
   if (!currentAutomaticConfig) {
-    throw new Error(
-      "User has no automatic inference config set in local storage",
-    );
+    throw new Error("User has no automatic inference config set in local storage");
   }
   if (!currentManualConfig) {
     throw new Error("User has no manual inference config set in local storage");
@@ -171,27 +155,22 @@ const debouncedEntityUpdate = debounce(async () => {
     entityTypeIds: [systemEntityTypes.browserPluginSettings.entityTypeId],
     updatedProperties: {
       value: {
-        "https://hash.ai/@h/types/property-type/automatic-inference-configuration/":
-          {
-            value: currentAutomaticConfig,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-            },
+        "https://hash.ai/@h/types/property-type/automatic-inference-configuration/": {
+          value: currentAutomaticConfig,
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
           },
-        "https://hash.ai/@h/types/property-type/manual-inference-configuration/":
-          {
-            value: currentManualConfig,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-            },
+        },
+        "https://hash.ai/@h/types/property-type/manual-inference-configuration/": {
+          value: currentManualConfig,
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
           },
+        },
         "https://hash.ai/@h/types/property-type/browser-plugin-tab/": {
           value: currentPopupTab,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
         ...(currentDraftNote
@@ -199,8 +178,7 @@ const debouncedEntityUpdate = debounce(async () => {
               "https://hash.ai/@h/types/property-type/draft-note/": {
                 value: currentDraftNote,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               },
             }

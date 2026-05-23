@@ -70,25 +70,13 @@ export function useRecenterOnPanelOpen(
       right: hasSelection ? propertiesPanelWidth : 0,
     });
 
-    const adjustment = recenterToFitViewport(
-      reactFlowInstance,
-      viewport,
-      selectedNodes,
-    );
+    const adjustment = recenterToFitViewport(reactFlowInstance, viewport, selectedNodes);
 
     if (adjustment && (adjustment.x !== 0 || adjustment.y !== 0)) {
       const paddingX =
-        adjustment.x === 0
-          ? 0
-          : adjustment.x < 0
-            ? RE_CENTER_PADDING * -1
-            : RE_CENTER_PADDING;
+        adjustment.x === 0 ? 0 : adjustment.x < 0 ? RE_CENTER_PADDING * -1 : RE_CENTER_PADDING;
       const paddingY =
-        adjustment.y === 0
-          ? 0
-          : adjustment.y < 0
-            ? RE_CENTER_PADDING * -1
-            : RE_CENTER_PADDING;
+        adjustment.y === 0 ? 0 : adjustment.y < 0 ? RE_CENTER_PADDING * -1 : RE_CENTER_PADDING;
       // adjustment is in flow coordinates; convert to screen pixels for the viewport transform
       reactFlowInstance
         .setViewport({

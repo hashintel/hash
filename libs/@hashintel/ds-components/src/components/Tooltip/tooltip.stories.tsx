@@ -13,9 +13,7 @@ export default {
 const richContent = (
   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
     <strong>Rich tooltip</strong>
-    <span>
-      This tooltip contains structured content with multiple elements.
-    </span>
+    <span>This tooltip contains structured content with multiple elements.</span>
   </div>
 );
 
@@ -86,11 +84,7 @@ export const AllPositions: Story = () => (
         <div />
       ) : (
         <Tooltip key={position} content={position} position={position}>
-          <Button
-            size="lg"
-            className={css({ width: "[100%]" })}
-            onClick={() => {}}
-          >
+          <Button size="lg" className={css({ width: "[100%]" })} onClick={() => {}}>
             {position}
           </Button>
         </Tooltip>

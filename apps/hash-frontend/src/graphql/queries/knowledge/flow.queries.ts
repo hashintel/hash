@@ -20,11 +20,7 @@ export const startFlowMutation = gql`
 
 export const resetFlowMutation = gql`
   mutation resetFlow($flowUuid: ID!, $checkpointId: ID!, $eventId: Int!) {
-    resetFlow(
-      checkpointId: $checkpointId
-      eventId: $eventId
-      flowUuid: $flowUuid
-    )
+    resetFlow(checkpointId: $checkpointId, eventId: $eventId, flowUuid: $flowUuid)
   }
 `;
 

@@ -1,10 +1,4 @@
-import {
-  Box,
-  Fade,
-  Tooltip,
-  Typography,
-  typographyClasses,
-} from "@mui/material";
+import { Box, Fade, Tooltip, Typography, typographyClasses } from "@mui/material";
 
 import { Link } from "../../../ui";
 

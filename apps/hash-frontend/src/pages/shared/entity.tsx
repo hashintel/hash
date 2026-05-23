@@ -33,18 +33,12 @@ import { QueryEditorToggle } from "./entity/query-editor-toggle";
 import { createDraftEntitySubgraph } from "./entity/shared/create-draft-entity-subgraph";
 import { EntityEditorTabProvider } from "./entity/shared/entity-editor-tabs";
 import { useApplyDraftLinkEntityChanges } from "./entity/shared/use-apply-draft-link-entity-changes";
-import {
-  type DraftLinksToCreate,
-  useDraftLinkState,
-} from "./entity/shared/use-draft-link-state";
+import { type DraftLinksToCreate, useDraftLinkState } from "./entity/shared/use-draft-link-state";
 import { useHandleTypeChanges } from "./entity/shared/use-handle-type-changes";
 import { NotFound } from "./not-found";
 import { useSlideStack } from "./slide-stack";
 import { useGetClosedMultiEntityTypes } from "./use-get-closed-multi-entity-type";
-import {
-  type MinimalEntityValidationReport,
-  useValidateEntity,
-} from "./use-validate-entity";
+import { type MinimalEntityValidationReport, useValidateEntity } from "./use-validate-entity";
 
 import type {
   QueryEntitySubgraphQuery,
@@ -182,20 +176,13 @@ export const Entity = ({
     | undefined
   >();
 
-  const [
-    draftLinksToCreate,
-    setDraftLinksToCreate,
-    draftLinksToArchive,
-    setDraftLinksToArchive,
-  ] = useDraftLinkState();
+  const [draftLinksToCreate, setDraftLinksToCreate, draftLinksToArchive, setDraftLinksToArchive] =
+    useDraftLinkState();
 
   const { getClosedMultiEntityTypes } = useGetClosedMultiEntityTypes();
 
   useEffect(() => {
-    if (
-      (draftLocalEntity || proposedEntitySubgraph) &&
-      !draftEntityTypesDetails
-    ) {
+    if ((draftLocalEntity || proposedEntitySubgraph) && !draftEntityTypesDetails) {
       let entityTypeIds: VersionedUrl[] | undefined;
 
       if (draftLocalEntity) {
@@ -227,11 +214,9 @@ export const Entity = ({
         );
 
         setDraftEntityTypesDetails({
-          linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-            result.closedMultiEntityTypes,
+          linkAndDestinationEntitiesClosedMultiEntityTypesMap: result.closedMultiEntityTypes,
           closedMultiEntityType,
-          closedMultiEntityTypesDefinitions:
-            result.closedMultiEntityTypesDefinitions,
+          closedMultiEntityTypesDefinitions: result.closedMultiEntityTypesDefinitions,
         });
       });
     }
@@ -244,9 +229,7 @@ export const Entity = ({
     proposedEntitySubgraph,
   ]);
 
-  const [loading, setLoading] = useState(
-    !proposedEntitySubgraph && !draftLocalEntity,
-  );
+  const [loading, setLoading] = useState(!proposedEntitySubgraph && !draftLocalEntity);
 
   const [isDirty, setIsDirty] = useState(!!draftLocalEntity);
 
@@ -256,16 +239,12 @@ export const Entity = ({
   >(queryEntitySubgraphQuery, {
     fetchPolicy: "cache-and-network",
     onCompleted: (data) => {
-      const subgraph = deserializeQueryEntitySubgraphResponse(
-        data.queryEntitySubgraph,
-      ).subgraph;
+      const subgraph = deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph;
 
       const { definitions, closedMultiEntityTypes } = data.queryEntitySubgraph;
 
       if (!definitions || !closedMultiEntityTypes) {
-        throw new Error(
-          "definitions and closedMultiEntityTypes must be present in entitySubgraph",
-        );
+        throw new Error("definitions and closedMultiEntityTypes must be present in entitySubgraph");
       }
 
       const returnedEntity = getRoots(subgraph)[0];
@@ -282,8 +261,7 @@ export const Entity = ({
       );
 
       setDraftEntityTypesDetails({
-        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-          closedMultiEntityTypes,
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypes,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
       });
@@ -292,8 +270,7 @@ export const Entity = ({
         entitySubgraph: subgraph,
         closedMultiEntityType,
         closedMultiEntityTypesDefinitions: definitions,
-        linkAndDestinationEntitiesClosedMultiEntityTypesMap:
-          closedMultiEntityTypes,
+        linkAndDestinationEntitiesClosedMultiEntityTypesMap: closedMultiEntityTypes,
       });
 
       setDraftEntitySubgraph(subgraph);
@@ -352,10 +329,9 @@ export const Entity = ({
     skip: !!draftLocalEntity || !!proposedEntitySubgraph,
   });
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+  );
 
   const applyDraftLinkEntityChanges = useApplyDraftLinkEntityChanges();
 
@@ -380,9 +356,7 @@ export const Entity = ({
     !!draftEntity?.metadata.archived ||
     !!proposedEntitySubgraph ||
     (!draftLocalEntity &&
-      !queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[
-        entityId
-      ]?.update);
+      !queryEntitySubgraphData?.queryEntitySubgraph.entityPermissions?.[entityId]?.update);
 
   const entityFromDb = useMemo(
     () => (dataFromDb ? getRoots(dataFromDb.entitySubgraph)[0] : null),
@@ -400,8 +374,7 @@ export const Entity = ({
         linkAndDestinationEntitiesClosedMultiEntityTypesMap:
           dataFromDb.linkAndDestinationEntitiesClosedMultiEntityTypesMap,
         closedMultiEntityType: dataFromDb.closedMultiEntityType,
-        closedMultiEntityTypesDefinitions:
-          dataFromDb.closedMultiEntityTypesDefinitions,
+        closedMultiEntityTypesDefinitions: dataFromDb.closedMultiEntityTypesDefinitions,
       });
     }
   };
@@ -413,8 +386,9 @@ export const Entity = ({
 
   const [savingChanges, setSavingChanges] = useState(false);
 
-  const [validationReport, setValidationReport] =
-    useState<MinimalEntityValidationReport | null>(null);
+  const [validationReport, setValidationReport] = useState<MinimalEntityValidationReport | null>(
+    null,
+  );
 
   const { validateEntity: validateFn } = useValidateEntity();
 
@@ -432,9 +406,7 @@ export const Entity = ({
 
   const handleSaveChanges = async (overrideProperties?: PropertyObject) => {
     if (!draftEntitySubgraph || !draftEntity) {
-      throw new Error(
-        "Draft subgraph and entity must be present to save entity",
-      );
+      throw new Error("Draft subgraph and entity must be present to save entity");
     }
 
     if (draftLocalEntity) {
@@ -473,11 +445,7 @@ export const Entity = ({
         throw new Error(`entity not found in subgraph`);
       }
 
-      await applyDraftLinkEntityChanges(
-        originalEntity,
-        draftLinksToCreate,
-        draftLinksToArchive,
-      );
+      await applyDraftLinkEntityChanges(originalEntity, draftLinksToCreate, draftLinksToArchive);
 
       const updatedEntity = await updateEntity({
         variables: {
@@ -511,10 +479,7 @@ export const Entity = ({
 
   const entityLabel =
     draftEntity && draftEntityTypesDetails
-      ? generateEntityLabel(
-          draftEntityTypesDetails.closedMultiEntityType,
-          draftEntity,
-        )
+      ? generateEntityLabel(draftEntityTypesDetails.closedMultiEntityType, draftEntity)
       : null;
 
   useEffect(() => {
@@ -523,19 +488,12 @@ export const Entity = ({
     }
   }, [entityLabel, onEntityLabelChange]);
 
-  if (
-    loading ||
-    !draftEntityTypesDetails ||
-    !draftEntitySubgraph ||
-    !entityLabel
-  ) {
+  if (loading || !draftEntityTypesDetails || !draftEntitySubgraph || !entityLabel) {
     return <EntityPageLoadingState />;
   }
 
   if (!draftEntity) {
-    return (
-      <NotFound resourceLabel={{ label: "entity", withArticle: "an entity" }} />
-    );
+    return <NotFound resourceLabel={{ label: "entity", withArticle: "an entity" }} />;
   }
 
   const haveChangesBeenMade =
@@ -601,8 +559,7 @@ export const Entity = ({
             await validateEntity(changedEntity);
 
             setIsDirty(
-              JSON.stringify(changedEntity.properties) !==
-                JSON.stringify(entityFromDb?.properties),
+              JSON.stringify(changedEntity.properties) !== JSON.stringify(entityFromDb?.properties),
             );
           }}
           validationReport={validationReport}
@@ -629,9 +586,7 @@ export const Entity = ({
       ) : (
         <>
           <EntityHeader
-            closedMultiEntityType={
-              draftEntityTypesDetails.closedMultiEntityType
-            }
+            closedMultiEntityType={draftEntityTypesDetails.closedMultiEntityType}
             editBar={
               <EditBarEntityEditor
                 visible={haveChangesBeenMade || !!draftLocalEntity}
@@ -691,9 +646,7 @@ export const Entity = ({
 
                 setIsDirty(
                   JSON.stringify(change.entityTypeIds.toSorted()) !==
-                    JSON.stringify(
-                      entityFromDb?.metadata.entityTypeIds.toSorted(),
-                    ),
+                    JSON.stringify(entityFromDb?.metadata.entityTypeIds.toSorted()),
                 );
               }}
               isDirty={isDirty}

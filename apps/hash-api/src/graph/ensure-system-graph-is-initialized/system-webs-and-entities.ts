@@ -6,10 +6,7 @@ import {
   getMachineEntityByIdentifier,
 } from "@local/hash-backend-utils/machine-actors";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
-import {
-  addActorGroupMember,
-  createAiActor,
-} from "@local/hash-graph-sdk/principal/actor-group";
+import { addActorGroupMember, createAiActor } from "@local/hash-graph-sdk/principal/actor-group";
 import { getWebByShortname } from "@local/hash-graph-sdk/principal/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -19,11 +16,7 @@ import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
 
 import type { ImpureGraphContext } from "../context-types";
-import type {
-  MachineId,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { MachineId, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 
@@ -63,8 +56,7 @@ export const getOrCreateOwningWebId = async (
 }> => {
   // We only need to resolve this once for each shortname during the seeding process
   const resolvedWebId = owningWebs[webShortname].webId;
-  const resolvedSystemActorMachineId =
-    owningWebs[webShortname].systemActorMachineId;
+  const resolvedSystemActorMachineId = owningWebs[webShortname].systemActorMachineId;
 
   // After this function has been run once, these should exist
   if (resolvedWebId && resolvedSystemActorMachineId) {
@@ -87,9 +79,7 @@ export const getOrCreateOwningWebId = async (
     webShortname,
   ).then((web) => {
     if (!web) {
-      throw new NotFoundError(
-        `Failed to get web for shortname: ${webShortname}`,
-      );
+      throw new NotFoundError(`Failed to get web for shortname: ${webShortname}`);
     }
     return web;
   });
@@ -121,10 +111,7 @@ export const ensureSystemWebEntitiesExist = async ({
   machineEntityTypeId?: VersionedUrl;
   organizationEntityTypeId?: VersionedUrl;
 }) => {
-  const { webId, systemActorMachineId } = await getOrCreateOwningWebId(
-    context,
-    webShortname,
-  );
+  const { webId, systemActorMachineId } = await getOrCreateOwningWebId(context, webShortname);
 
   const authentication = { actorId: systemActorMachineId };
 
@@ -202,18 +189,12 @@ export const ensureSystemWebEntitiesExist = async ({
  *
  * Also creates other required system entities, such as the HASH AI Assistant.
  */
-export const ensureSystemEntitiesExist = async (params: {
-  context: ImpureGraphContext;
-}) => {
+export const ensureSystemEntitiesExist = async (params: { context: ImpureGraphContext }) => {
   const { context } = params;
 
-  logger.debug(
-    "Ensuring account group organization and machine entities exist",
-  );
+  logger.debug("Ensuring account group organization and machine entities exist");
 
-  for (const [webShortname, { enabled, name, websiteUrl }] of typedEntries(
-    owningWebs,
-  )) {
+  for (const [webShortname, { enabled, name, websiteUrl }] of typedEntries(owningWebs)) {
     if (!enabled) {
       continue;
     }
@@ -236,13 +217,9 @@ export const ensureSystemEntitiesExist = async (params: {
   /**
    * Create the HASH _AI_ Machine actor and entity, which is added as needed to webs to run AI-related workflows.
    */
-  const aiMachine = await getMachineEntityByIdentifier(
-    context,
-    authentication,
-    {
-      identifier: "hash-ai",
-    },
-  );
+  const aiMachine = await getMachineEntityByIdentifier(context, authentication, {
+    identifier: "hash-ai",
+  });
   if (!aiMachine) {
     const hashWebId = owningWebs.h.webId;
     if (!hashWebId) {
@@ -252,49 +229,41 @@ export const ensureSystemEntitiesExist = async (params: {
     }
 
     const aiIdentifier = "hash-ai";
-    const aiAssistantAccountId = await createAiActor(
-      context.graphApi,
-      authentication,
-      {
-        identifier: aiIdentifier,
-      },
-    );
+    const aiAssistantAccountId = await createAiActor(context.graphApi, authentication, {
+      identifier: aiIdentifier,
+    });
 
     await addActorGroupMember(context.graphApi, authentication, {
       actorId: aiAssistantAccountId,
       actorGroupId: hashWebId,
     });
 
-    const instantiationPolicyId = await createPolicy(
-      context.graphApi,
-      authentication,
-      {
-        name: "tmp-ai-assistant-actor-instantiate",
-        effect: "permit",
-        principal: {
-          type: "actor",
-          actorType: "ai",
-          id: aiAssistantAccountId,
-        },
-        actions: ["instantiate"],
-        resource: {
-          type: "entityType",
-          filter: {
-            type: "any",
-            filters: [
-              {
-                type: "isBaseUrl",
-                baseUrl: systemEntityTypes.actor.entityTypeBaseUrl,
-              },
-              {
-                type: "isBaseUrl",
-                baseUrl: systemEntityTypes.machine.entityTypeBaseUrl,
-              },
-            ],
-          },
+    const instantiationPolicyId = await createPolicy(context.graphApi, authentication, {
+      name: "tmp-ai-assistant-actor-instantiate",
+      effect: "permit",
+      principal: {
+        type: "actor",
+        actorType: "ai",
+        id: aiAssistantAccountId,
+      },
+      actions: ["instantiate"],
+      resource: {
+        type: "entityType",
+        filter: {
+          type: "any",
+          filters: [
+            {
+              type: "isBaseUrl",
+              baseUrl: systemEntityTypes.actor.entityTypeBaseUrl,
+            },
+            {
+              type: "isBaseUrl",
+              baseUrl: systemEntityTypes.machine.entityTypeBaseUrl,
+            },
+          ],
         },
       },
-    );
+    });
 
     await createMachineActorEntity(context, {
       identifier: aiIdentifier,
@@ -304,12 +273,9 @@ export const ensureSystemEntitiesExist = async (params: {
       displayName: "HASH AI",
     });
 
-    await deletePolicyById(
-      context.graphApi,
-      authentication,
-      instantiationPolicyId,
-      { permanent: true },
-    );
+    await deletePolicyById(context.graphApi, authentication, instantiationPolicyId, {
+      permanent: true,
+    });
   }
 };
 

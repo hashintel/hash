@@ -23,11 +23,7 @@ export type AeroApiDepartureInput = Pick<
 /**
  * Maps AeroAPI departure data to a HASH "Departs From" link entity.
  */
-export const mapDepartsFrom: MappingFunction<
-  AeroApiDepartureInput,
-  HashDepartsFrom,
-  true
-> = (
+export const mapDepartsFrom: MappingFunction<AeroApiDepartureInput, HashDepartsFrom, true> = (
   input: AeroApiDepartureInput,
   provenance: Pick<ProvidedEntityEditionProvenance, "sources">,
 ) => {
@@ -37,8 +33,7 @@ export const mapDepartsFrom: MappingFunction<
         "https://hash.ai/@h/types/property-type/gate/": {
           value: input.gate_origin,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },
@@ -47,8 +42,7 @@ export const mapDepartsFrom: MappingFunction<
         "https://hash.ai/@h/types/property-type/terminal/": {
           value: input.terminal_origin,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },
@@ -57,8 +51,7 @@ export const mapDepartsFrom: MappingFunction<
         "https://hash.ai/@h/types/property-type/runway/": {
           value: input.actual_runway_off,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },

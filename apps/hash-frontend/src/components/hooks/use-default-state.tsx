@@ -3,12 +3,9 @@ import { useCallback, useState } from "react";
 
 import type { Dispatch, SetStateAction } from "react";
 
-export const useDefaultState = <
-  T extends object | number | string | boolean | null | undefined,
->(
+export const useDefaultState = <T extends object | number | string | boolean | null | undefined>(
   defaultValue: T,
-  produceNextValue: (nextValue: T, currentValue: T) => T = (nextValue) =>
-    nextValue,
+  produceNextValue: (nextValue: T, currentValue: T) => T = (nextValue) => nextValue,
 ): [T, Dispatch<SetStateAction<T>>] => {
   const [{ prevDefault, currentValue }, setNextValue] = useState({
     prevDefault: defaultValue,
@@ -24,8 +21,7 @@ export const useDefaultState = <
 
   const setState = useCallback((value: SetStateAction<T>) => {
     setNextValue((prevValue) => {
-      const nextValue =
-        typeof value === "function" ? value(prevValue.currentValue) : value;
+      const nextValue = typeof value === "function" ? value(prevValue.currentValue) : value;
 
       return {
         ...prevValue,
@@ -44,8 +40,7 @@ export const useCachedDefaultState = <
 >(
   defaultValue: T,
   key: string,
-  produceNextValue: (nextValue: T, currentValue: T) => T = (nextValue) =>
-    nextValue,
+  produceNextValue: (nextValue: T, currentValue: T) => T = (nextValue) => nextValue,
 ): [T, Dispatch<SetStateAction<T>>] => {
   const [{ prevDefault, currentValue }, setNextValue] = useLocalStorage({
     key,
@@ -66,8 +61,7 @@ export const useCachedDefaultState = <
   const setState = useCallback(
     (value: SetStateAction<T>) => {
       setNextValue((prevValue) => {
-        const nextValue =
-          typeof value === "function" ? value(prevValue.currentValue) : value;
+        const nextValue = typeof value === "function" ? value(prevValue.currentValue) : value;
 
         return {
           ...prevValue,

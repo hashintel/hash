@@ -41,9 +41,7 @@ export const Default: Story = {
         <Dialog.Card>
           <Dialog.Header>Title</Dialog.Header>
           <Dialog.Body>
-            <p className={bodyTextStyle}>
-              This is a basic dialog with a title and body content.
-            </p>
+            <p className={bodyTextStyle}>This is a basic dialog with a title and body content.</p>
           </Dialog.Body>
         </Dialog.Card>
         <Dialog.Footer>
@@ -66,13 +64,11 @@ export const WithDescription: Story = {
       </Dialog.Trigger>
       <Dialog.Content>
         <Dialog.Card>
-          <Dialog.Header description="This action cannot be undone.">
-            Delete item
-          </Dialog.Header>
+          <Dialog.Header description="This action cannot be undone.">Delete item</Dialog.Header>
           <Dialog.Body>
             <p className={bodyTextStyle}>
-              Are you sure you want to delete this item? All associated data
-              will be permanently removed.
+              Are you sure you want to delete this item? All associated data will be permanently
+              removed.
             </p>
           </Dialog.Body>
         </Dialog.Card>
@@ -98,13 +94,11 @@ export const WithoutFooter: Story = {
       </Dialog.Trigger>
       <Dialog.Content>
         <Dialog.Card>
-          <Dialog.Header description="Use the close button to dismiss.">
-            Information
-          </Dialog.Header>
+          <Dialog.Header description="Use the close button to dismiss.">Information</Dialog.Header>
           <Dialog.Body>
             <p className={bodyTextStyle}>
-              This dialog only has a close button in the top-right corner. No
-              footer actions are needed.
+              This dialog only has a close button in the top-right corner. No footer actions are
+              needed.
             </p>
           </Dialog.Body>
         </Dialog.Card>
@@ -121,17 +115,13 @@ const ControlledDialogExample = () => {
       <Button variant="subtle" onClick={() => setOpen(true)}>
         Open Controlled Dialog
       </Button>
-      <Dialog.Root
-        open={open}
-        onOpenChange={(details) => setOpen(details.open)}
-      >
+      <Dialog.Root open={open} onOpenChange={(details) => setOpen(details.open)}>
         <Dialog.Content>
           <Dialog.Card>
             <Dialog.Header>Controlled</Dialog.Header>
             <Dialog.Body>
               <p className={bodyTextStyle}>
-                This dialog is controlled via React state. The open state is
-                managed externally.
+                This dialog is controlled via React state. The open state is managed externally.
               </p>
             </Dialog.Body>
           </Dialog.Card>
@@ -163,13 +153,9 @@ export const OpenByDefault: Story = {
       </Dialog.Trigger>
       <Dialog.Content>
         <Dialog.Card>
-          <Dialog.Header description="Optional Description">
-            Title
-          </Dialog.Header>
+          <Dialog.Header description="Optional Description">Title</Dialog.Header>
           <Dialog.Body>
-            <p className={bodyTextStyle}>
-              This dialog opens automatically when the story loads.
-            </p>
+            <p className={bodyTextStyle}>This dialog opens automatically when the story loads.</p>
           </Dialog.Body>
         </Dialog.Card>
         <Dialog.Footer>

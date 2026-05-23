@@ -60,9 +60,7 @@ export const logLlmServerError = (log: LlmServerErrorLog) => {
   }
 };
 
-export const logLlmRequest = (
-  log: LlmLog & { transformedRequest?: Record<string, unknown> },
-) => {
+export const logLlmRequest = (log: LlmLog & { transformedRequest?: Record<string, unknown> }) => {
   const orderedLog = {
     requestId: log.requestId,
     finalized: log.finalized,

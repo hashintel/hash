@@ -1,9 +1,4 @@
-import {
-  faList,
-  faListCheck,
-  faListOl,
-  faListUl,
-} from "@fortawesome/free-solid-svg-icons";
+import { faList, faListCheck, faListOl, faListUl } from "@fortawesome/free-solid-svg-icons";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
 import {
@@ -159,19 +154,15 @@ export type DataTypesContextValue = {
   ) => ExpectedValueDisplay;
 };
 
-export const DataTypesOptionsContext =
-  createContext<DataTypesContextValue | null>(null);
+export const DataTypesOptionsContext = createContext<DataTypesContextValue | null>(null);
 
 const isTupleConstraints = (schema: ArraySchema): schema is TupleConstraints =>
   schema.items === false;
 
-const isArrayItemsSchema = (
-  schema: ValueConstraints,
-): schema is ArrayItemsSchema => "type" in schema && schema.type === "array";
+const isArrayItemsSchema = (schema: ValueConstraints): schema is ArrayItemsSchema =>
+  "type" in schema && schema.type === "array";
 
-const getArrayDataTypeDisplay = (
-  dataType: ArraySchema,
-): Omit<ExpectedValueDisplay, "title"> => {
+const getArrayDataTypeDisplay = (dataType: ArraySchema): Omit<ExpectedValueDisplay, "title"> => {
   // `items` are either the elements of a tuple or the items of a mixed anyOf-array
   let items: [ArrayItemsSchema, ...ArrayItemsSchema[]];
 
@@ -327,17 +318,13 @@ export const DataTypesOptionsContextProvider = ({
 
   const value = useMemo(() => {
     return {
-      dataTypes: Object.values(dataTypeOptions).sort((a, b) =>
-        a.title.localeCompare(b.title),
-      ),
+      dataTypes: Object.values(dataTypeOptions).sort((a, b) => a.title.localeCompare(b.title)),
       getExpectedValueDisplay,
     };
   }, [dataTypeOptions, getExpectedValueDisplay]);
 
   return (
-    <DataTypesOptionsContext.Provider value={value}>
-      {children}
-    </DataTypesOptionsContext.Provider>
+    <DataTypesOptionsContext.Provider value={value}>{children}</DataTypesOptionsContext.Provider>
   );
 };
 

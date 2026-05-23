@@ -1,17 +1,5 @@
-import {
-  Box,
-  Divider,
-  Fade,
-  Skeleton,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import {
-  format,
-  formatDistanceToNowStrict,
-  isBefore,
-  subWeeks,
-} from "date-fns";
+import { Box, Divider, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
+import { format, formatDistanceToNowStrict, isBefore, subWeeks } from "date-fns";
 import { Fragment, useCallback, useMemo, useState } from "react";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
@@ -53,9 +41,7 @@ const EntityRow: FunctionComponent<{
     includesPageEntityTypeId(entity.metadata.entityTypeIds) ? "" : "entities/"
   }${extractEntityUuidFromEntityId(entity.metadata.recordId.entityId)}`;
 
-  const updatedAt = new Date(
-    entity.metadata.temporalVersioning.decisionTime.start.limit,
-  );
+  const updatedAt = new Date(entity.metadata.temporalVersioning.decisionTime.start.limit);
 
   const updatedAtHumanReadable = isBefore(updatedAt, subWeeks(new Date(), 1))
     ? format(updatedAt, "d MMMM yyyy")
@@ -88,11 +74,9 @@ const EntityRow: FunctionComponent<{
               /**
                * @todo H-3363 use closed schema to take account of indirectly inherited link status
                */
-              entityType?.schema.$id ===
-                blockProtocolEntityTypes.link.entityTypeId ||
+              entityType?.schema.$id === blockProtocolEntityTypes.link.entityTypeId ||
               !!entityType?.schema.allOf?.some(
-                (allOf) =>
-                  allOf.$ref === blockProtocolEntityTypes.link.entityTypeId,
+                (allOf) => allOf.$ref === blockProtocolEntityTypes.link.entityTypeId,
               )
             }
           />
@@ -117,11 +101,7 @@ const EntityRow: FunctionComponent<{
   );
 };
 
-type SortOrder =
-  | "updated-at-asc"
-  | "updated-at-desc"
-  | "alphabetical-asc"
-  | "alphabetical-desc";
+type SortOrder = "updated-at-asc" | "updated-at-desc" | "alphabetical-asc" | "alphabetical-desc";
 
 const sortOrderHumanReadable: Record<SortOrder, string> = {
   "updated-at-asc": "Last edited (oldest first)",
@@ -139,9 +119,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("updated-at-desc");
 
-  const webId = (
-    profile.kind === "user" ? profile.accountId : profile.webId
-  ) as WebId;
+  const webId = (profile.kind === "user" ? profile.accountId : profile.webId) as WebId;
 
   const { lastRootPageIndex } = useAccountPages(webId);
   const [createUntitledPage] = useCreatePage({
@@ -184,8 +162,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
     [entities, entitiesSubgraph, sortOrder],
   );
 
-  const isPagesTab =
-    currentTab.entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl;
+  const isPagesTab = currentTab.entityTypeBaseUrl === systemEntityTypes.page.entityTypeBaseUrl;
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -247,12 +224,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
           }}
         >
           {sortedEntities?.length === 0 ? (
-            <Box
-              padding={6}
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-            >
+            <Box padding={6} display="flex" flexDirection="column" alignItems="center">
               <Typography
                 gutterBottom
                 sx={{
@@ -270,8 +242,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
                   fontWeight: 500,
                 }}
               >
-                No {currentTab.pluralTitle?.toLowerCase()} could be found in @
-                {profile.shortname}
+                No {currentTab.pluralTitle?.toLowerCase()} could be found in @{profile.shortname}
               </Typography>
               {isEditable && !isLinkEntityType ? (
                 <Box marginTop={2}>

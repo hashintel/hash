@@ -46,9 +46,7 @@ export const TypeSelector = <T extends TypeSelectorType>({
       data-testid="type-selector"
       noOptionsText="No results"
       dropdownProps={dropdownProps}
-      inputPlaceholder={`Search for ${
-        variant === "entity type" ? "an" : "a"
-      } ${variant}`}
+      inputPlaceholder={`Search for ${variant === "entity type" ? "an" : "a"} ${variant}`}
       inputRef={inputRef}
       isOptionEqualToValue={(option, value) => option.$id === value.$id}
       optionToRenderData={({ $id, Icon, title, description }) => ({

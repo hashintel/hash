@@ -1,7 +1,3 @@
 //@ run: pass
 //@ description: Nested let structures
-[
-  "if",
-  { "#literal": true },
-  ["let", "x", ["let", "y", { "#literal": 1 }, "y"], "x"]
-]
+["if", { "#literal": true }, ["let", "x", ["let", "y", { "#literal": 1 }, "y"], "x"]]

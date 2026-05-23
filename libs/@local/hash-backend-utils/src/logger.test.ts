@@ -87,10 +87,7 @@ describe("expandLogValue / cycles in plain objects", () => {
     const shared = { id: 1 };
     const payload = { left: shared, right: shared };
 
-    const expanded = expandLogValue(payload) as Record<
-      string,
-      Record<string, unknown>
-    >;
+    const expanded = expandLogValue(payload) as Record<string, Record<string, unknown>>;
 
     expect(expanded.left).toEqual({ id: 1 });
     expect(expanded.right).toEqual({ id: 1 });
@@ -109,9 +106,7 @@ describe("expandLogValue / non-JSON values", () => {
     const date = new Date("2026-01-01T00:00:00.000Z");
     expect(expandLogValue(date)).toBe(date);
     // ...so JSON.stringify still calls toJSON on them.
-    expect(safeStringify({ at: date })).toBe(
-      '{"at":"2026-01-01T00:00:00.000Z"}',
-    );
+    expect(safeStringify({ at: date })).toBe('{"at":"2026-01-01T00:00:00.000Z"}');
   });
 });
 

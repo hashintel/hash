@@ -9,9 +9,7 @@ type RoutePageInfo = {
   routePageEntityUuid: EntityUuid;
 };
 
-const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(
-  undefined,
-);
+const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(undefined);
 
 type PageParsedUrlQuery = {
   shortname: string;
@@ -21,8 +19,7 @@ type PageParsedUrlQuery = {
 export const isPageParsedUrlQuery = (
   queryParams: NextParsedUrlQuery,
 ): queryParams is PageParsedUrlQuery =>
-  typeof queryParams.shortname === "string" &&
-  typeof queryParams["page-slug"] === "string";
+  typeof queryParams.shortname === "string" && typeof queryParams["page-slug"] === "string";
 
 export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
   const workspaceShortname = params.shortname.slice(1);
@@ -54,9 +51,7 @@ export const RoutePageInfoProvider: FunctionComponent<{
   );
 
   return (
-    <RoutePageInfoContext.Provider value={contextValue}>
-      {children}
-    </RoutePageInfoContext.Provider>
+    <RoutePageInfoContext.Provider value={contextValue}>{children}</RoutePageInfoContext.Provider>
   );
 };
 

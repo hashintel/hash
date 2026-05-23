@@ -2,11 +2,7 @@ import { expect, test } from "vitest";
 
 import { HashEntity } from "../src/entity.js";
 
-import type {
-  BaseUrl,
-  Confidence,
-  PropertyObjectMetadata,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, Confidence, PropertyObjectMetadata } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 
 const base_url_a = "https://example.com/property-type/a/" as BaseUrl;
@@ -62,8 +58,7 @@ const createTestEntity = (): GraphApiEntity => ({
     recordId: {
       // random uuid
       editionId: "b152948f-5bc2-43e6-a6ff-87d8006f0fae",
-      entityId:
-        "36fb3cd2-a500-493e-ab1e-e0b3a40839aa~17562306-35b5-4bb1-bda3-1c5ddea833ea",
+      entityId: "36fb3cd2-a500-493e-ab1e-e0b3a40839aa~17562306-35b5-4bb1-bda3-1c5ddea833ea",
     },
     properties: {
       value: {
@@ -74,8 +69,7 @@ const createTestEntity = (): GraphApiEntity => ({
                 [base_url_aaa]: {
                   metadata: {
                     confidence: 0.1 as Confidence,
-                    dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                   },
                 },
               },
@@ -108,8 +102,7 @@ const createTestEntity = (): GraphApiEntity => ({
             {
               metadata: {
                 confidence: 0.5 as Confidence,
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
               },
             },
           ],
@@ -137,8 +130,7 @@ test("propertyMetadata access", () => {
           [base_url_aaa]: {
             metadata: {
               confidence: 0.1,
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         },
@@ -154,30 +146,21 @@ test("propertyMetadata access", () => {
       [base_url_aaa]: {
         metadata: {
           confidence: 0.1,
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
     },
   });
 
-  expect(
-    entityInstance.propertyMetadata([base_url_a, base_url_aa, base_url_aaa]),
-  ).toEqual({
+  expect(entityInstance.propertyMetadata([base_url_a, base_url_aa, base_url_aaa])).toEqual({
     metadata: {
       confidence: 0.1,
-      dataTypeId:
-        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+      dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
     },
   });
 
   expect(
-    entityInstance.propertyMetadata([
-      base_url_a,
-      base_url_aa,
-      base_url_aaa,
-      base_url_aaaa,
-    ]),
+    entityInstance.propertyMetadata([base_url_a, base_url_aa, base_url_aaa, base_url_aaaa]),
   ).toBeUndefined();
 
   expect(entityInstance.propertyMetadata([base_url_b])).toEqual({
@@ -187,8 +170,7 @@ test("propertyMetadata access", () => {
           [base_url_b10b]: {
             metadata: {
               confidence: 0.3,
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
             },
           },
         },
@@ -199,31 +181,21 @@ test("propertyMetadata access", () => {
     },
   });
 
-  expect(
-    entityInstance.propertyMetadata([base_url_b, base_url_bb]),
-  ).toBeUndefined();
+  expect(entityInstance.propertyMetadata([base_url_b, base_url_bb])).toBeUndefined();
 
   expect(entityInstance.propertyMetadata([base_url_b, 10])).toBeUndefined();
 
   expect(entityInstance.propertyMetadata([base_url_b, 20])).toBeUndefined();
 
-  expect(
-    entityInstance.propertyMetadata([base_url_b, 0, base_url_b10b]),
-  ).toEqual({
+  expect(entityInstance.propertyMetadata([base_url_b, 0, base_url_b10b])).toEqual({
     metadata: {
       confidence: 0.3,
-      dataTypeId:
-        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+      dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
     },
   });
 
   expect(
-    entityInstance.propertyMetadata([
-      base_url_b,
-      10,
-      base_url_b10b,
-      base_url_b10bb,
-    ]),
+    entityInstance.propertyMetadata([base_url_b, 10, base_url_b10b, base_url_b10bb]),
   ).toBeUndefined();
 
   expect(entityInstance.propertyMetadata([base_url_c])).toEqual({
@@ -231,8 +203,7 @@ test("propertyMetadata access", () => {
       {
         metadata: {
           confidence: 0.5,
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
         },
       },
     ],
@@ -240,15 +211,12 @@ test("propertyMetadata access", () => {
 
   expect(entityInstance.propertyMetadata([base_url_c, 1])).toBeUndefined();
 
-  expect(
-    entityInstance.propertyMetadata([base_url_c, 0, base_url_cc]),
-  ).toBeUndefined();
+  expect(entityInstance.propertyMetadata([base_url_c, 0, base_url_cc])).toBeUndefined();
 
   expect(entityInstance.propertyMetadata([base_url_c, 0])).toEqual({
     metadata: {
       confidence: 0.5,
-      dataTypeId:
-        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+      dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
     },
   });
 });
@@ -261,8 +229,7 @@ test("flattened properties", () => {
       path: [base_url_a, base_url_aa, base_url_aaa],
       metadata: {
         confidence: 0.1,
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
     { path: [base_url_a], metadata: { confidence: 0.2 } },
@@ -270,8 +237,7 @@ test("flattened properties", () => {
       path: [base_url_b, 0, base_url_b10b],
       metadata: {
         confidence: 0.3,
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
       },
     },
     { path: [base_url_b], metadata: { confidence: 0.4 } },
@@ -279,8 +245,7 @@ test("flattened properties", () => {
       path: [base_url_c, 0],
       metadata: {
         confidence: 0.5,
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
       },
     },
   ]);

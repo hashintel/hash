@@ -7,11 +7,7 @@ import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "./base-input.recipe";
 
-import type {
-  FormInputSize,
-  FormInputWidth,
-  SharedInputProps,
-} from "../../util/form-shared";
+import type { FormInputSize, FormInputWidth, SharedInputProps } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
 
 export type BaseInputProps = {
@@ -67,15 +63,11 @@ type PrefixOrSuffix =
   | { text: string; onClick?: () => void; disabled?: boolean }
   | { type: "text" | "interactive"; content: React.ReactNode };
 
-function isIconAdornment(
-  val: unknown,
-): val is { iconName: IconName; onClick?: () => void } {
+function isIconAdornment(val: unknown): val is { iconName: IconName; onClick?: () => void } {
   return val != null && typeof val === "object" && "iconName" in val;
 }
 
-function isTextAdornment(
-  val: unknown,
-): val is { text: string; onClick?: () => void } {
+function isTextAdornment(val: unknown): val is { text: string; onClick?: () => void } {
   return val != null && typeof val === "object" && "text" in val;
 }
 
@@ -126,8 +118,7 @@ function renderAdornment(
       </button>
     );
   }
-  const isInteractive =
-    "content" in adornment && adornment.type === "interactive";
+  const isInteractive = "content" in adornment && adornment.type === "interactive";
   return (
     <span
       className={cx(
@@ -185,10 +176,7 @@ export const BaseInput = ({
 }: BaseInputProps) => {
   const [focused, setFocused] = useState(false);
   const internalRef = useRef<HTMLInputElement>(null);
-  const mergedInputRef = useMergeRefs([
-    internalRef,
-    ...(inputRef ? [inputRef] : []),
-  ]);
+  const mergedInputRef = useMergeRefs([internalRef, ...(inputRef ? [inputRef] : [])]);
 
   const hasBrowserControls = type === "number";
   const noAutocomplete = !!clearable || autocomplete === false;
@@ -206,10 +194,7 @@ export const BaseInput = ({
     hasBrowserControls,
     hasIcons,
     editAndClear: showClear && showEditIcon,
-    willClear:
-      showClear &&
-      clearable.clearable &&
-      (value === null || value === undefined),
+    willClear: showClear && clearable.clearable && (value === null || value === undefined),
   });
 
   if (readonly) {
@@ -262,10 +247,7 @@ export const BaseInput = ({
       data-protonpass-ignore={noAutocomplete ? "true" : undefined}
       data-bwignore={noAutocomplete ? "1" : undefined}
       data-testid={testId}
-      className={cx(
-        classes.input,
-        styledValue && !focused ? classes.hiddenInput : undefined,
-      )}
+      className={cx(classes.input, styledValue && !focused ? classes.hiddenInput : undefined)}
       autoFocus={autoFocus === true ? true : undefined}
       data-no-autofocus={autoFocus === "never" ? true : undefined}
       {...ariaProps}
@@ -288,9 +270,7 @@ export const BaseInput = ({
 
       <div className={classes.inputWrapper}>
         {input}
-        {styledValue && !focused && (
-          <div className={classes.styledValueOverlay}>{styledValue}</div>
-        )}
+        {styledValue && !focused && <div className={classes.styledValueOverlay}>{styledValue}</div>}
         {showClear && (
           <button
             type="button"
@@ -307,17 +287,10 @@ export const BaseInput = ({
               clearable.onClear();
               internalRef.current?.focus();
             }}
-            className={cx(
-              classes.clear,
-              (!clearable.clearable || !value) && classes.hideClear,
-            )}
+            className={cx(classes.clear, (!clearable.clearable || !value) && classes.hideClear)}
             aria-label="Clear input"
           >
-            <Icon
-              name="close"
-              size={iconSizeMap[size]}
-              className={classes.clearIcon}
-            />
+            <Icon name="close" size={iconSizeMap[size]} className={classes.clearIcon} />
           </button>
         )}
         {!disabled && showEditIcon && (

@@ -189,8 +189,7 @@ const SimulationSettingsContent: React.FC = () => {
   const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+  const isSimulationActive = simulationState === "Running" || simulationState === "Paused";
 
   const selectedScenario = scenarios?.find((s) => s.id === selectedScenarioId);
 
@@ -230,9 +229,7 @@ const SimulationSettingsContent: React.FC = () => {
         <span className={scenarioLabelStyle}>Scenario</span>
         <Select
           value={selectedScenarioId}
-          onValueChange={(value) =>
-            setContextScenarioId(value === NO_SCENARIO ? null : value)
-          }
+          onValueChange={(value) => setContextScenarioId(value === NO_SCENARIO ? null : value)}
           options={scenarioOptions}
           size="xs"
           disabled={isSimulationActive}
@@ -240,11 +237,7 @@ const SimulationSettingsContent: React.FC = () => {
           renderItem={(option) => (
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {option.value === NO_SCENARIO && (
-                <Icon
-                  name="dash"
-                  size="xs"
-                  className={css({ opacity: "[0.4]" })}
-                />
+                <Icon name="dash" size="xs" className={css({ opacity: "[0.4]" })} />
               )}
               {option.label}
             </span>
@@ -304,21 +297,15 @@ const SimulationSettingsContent: React.FC = () => {
                 <div key={param.key} className={parameterRowStyle}>
                   <div>
                     <div className={parameterNameStyle}>{param.name}</div>
-                    <div className={parameterVarNameStyle}>
-                      {param.variableName}
-                    </div>
+                    <div className={parameterVarNameStyle}>{param.variableName}</div>
                   </div>
                   {param.type === "boolean" && selectedScenario ? (
                     <Switch
                       checked={
-                        (scenarioParameterValues[param.variableName] ??
-                          param.defaultValue) !== "0"
+                        (scenarioParameterValues[param.variableName] ?? param.defaultValue) !== "0"
                       }
                       onCheckedChange={(checked) =>
-                        setScenarioParameterValue(
-                          param.variableName,
-                          checked ? "1" : "0",
-                        )
+                        setScenarioParameterValue(param.variableName, checked ? "1" : "0")
                       }
                       disabled={isSimulationActive}
                     />
@@ -330,14 +317,10 @@ const SimulationSettingsContent: React.FC = () => {
                         max={1}
                         step={0.00001}
                         value={Number(
-                          scenarioParameterValues[param.variableName] ??
-                            param.defaultValue,
+                          scenarioParameterValues[param.variableName] ?? param.defaultValue,
                         )}
                         onChange={(e) =>
-                          setScenarioParameterValue(
-                            param.variableName,
-                            e.target.value,
-                          )
+                          setScenarioParameterValue(param.variableName, e.target.value)
                         }
                         disabled={isSimulationActive}
                       />
@@ -346,10 +329,7 @@ const SimulationSettingsContent: React.FC = () => {
                         min={0}
                         max={1}
                         step={0.00001}
-                        value={
-                          scenarioParameterValues[param.variableName] ??
-                          param.defaultValue
-                        }
+                        value={scenarioParameterValues[param.variableName] ?? param.defaultValue}
                         onChange={(e) =>
                           setScenarioParameterValue(
                             param.variableName,
@@ -365,10 +345,8 @@ const SimulationSettingsContent: React.FC = () => {
                       size="xs"
                       value={
                         selectedScenario
-                          ? (scenarioParameterValues[param.variableName] ??
-                            param.defaultValue)
-                          : (parameterValues[param.variableName] ??
-                            param.defaultValue)
+                          ? (scenarioParameterValues[param.variableName] ?? param.defaultValue)
+                          : (parameterValues[param.variableName] ?? param.defaultValue)
                       }
                       onChange={(event) => {
                         const val = (event.target as HTMLInputElement).value;
@@ -388,9 +366,7 @@ const SimulationSettingsContent: React.FC = () => {
             </div>
           ) : (
             <div className={emptyMessageStyle}>
-              {selectedScenario
-                ? "No scenario parameters defined"
-                : "No parameters defined"}
+              {selectedScenario ? "No scenario parameters defined" : "No parameters defined"}
             </div>
           )}
         </div>
@@ -412,9 +388,7 @@ const SimulationSettingsContent: React.FC = () => {
                 step={0.001}
                 value={dt}
                 onChange={(event) => {
-                  const value = Number.parseFloat(
-                    (event.target as HTMLInputElement).value,
-                  );
+                  const value = Number.parseFloat((event.target as HTMLInputElement).value);
                   if (value > 0) {
                     setDt(value);
                   }
@@ -450,7 +424,6 @@ const SimulationSettingsContent: React.FC = () => {
 export const simulationSettingsSubView: SubView = {
   id: "simulation-settings",
   title: "Simulation Settings",
-  tooltip:
-    "Configure simulation parameters including time step and ODE solver method.",
+  tooltip: "Configure simulation parameters including time step and ODE solver method.",
   component: SimulationSettingsContent,
 };

@@ -25,9 +25,7 @@ export type InsertTypeFieldProps<T extends TypeSelectorType> = {
  * width of the table when sticky. However, the selector should be the width
  * of the first two columns. This emulates that.
  */
-const useTableColumnWidth = (
-  tableRowRef: RefObject<HTMLTableRowElement | null>,
-) => {
+const useTableColumnWidth = (tableRowRef: RefObject<HTMLTableRowElement | null>) => {
   const [columnWidth, setColumnWidth] = useState<number | null>(null);
 
   useLayoutEffect(() => {
@@ -39,11 +37,7 @@ const useTableColumnWidth = (
 
       let table: HTMLElement = tableRow;
 
-      while (
-        table !== document.documentElement &&
-        table.parentNode &&
-        table.tagName !== "TABLE"
-      ) {
+      while (table !== document.documentElement && table.parentNode && table.tagName !== "TABLE") {
         table = table.parentNode as HTMLElement;
       }
 

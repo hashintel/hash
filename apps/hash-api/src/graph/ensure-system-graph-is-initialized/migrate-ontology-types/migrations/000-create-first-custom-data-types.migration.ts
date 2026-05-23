@@ -4,11 +4,7 @@ import { createSystemDataTypeIfNotExists } from "../util";
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
       allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
@@ -26,8 +22,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
       title: "Email",
-      description:
-        "An identifier for an email box to which messages are delivered.",
+      description: "An identifier for an email box to which messages are delivered.",
       format: "email",
       type: "string",
     },
@@ -36,96 +31,75 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const lengthDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        abstract: true,
-        title: "Length",
-        description: "A measure of distance.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const lengthDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      abstract: true,
+      title: "Length",
+      description: "A measure of distance.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
-  const metricLengthDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: lengthDataType.schema.$id }],
-        abstract: true,
-        title: "Metric Length (SI)",
-        description:
-          "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const metricLengthDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: lengthDataType.schema.$id }],
+      abstract: true,
+      title: "Metric Length (SI)",
+      description:
+        "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
-  const imperialLengthUkDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: lengthDataType.schema.$id }],
-        abstract: true,
-        title: "Imperial Length (UK)",
-        description:
-          "A measure of distance in the system of units defined in the British Weights and Measures Acts, in use alongside metric units in the UK and elsewhere.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const imperialLengthUkDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: lengthDataType.schema.$id }],
+      abstract: true,
+      title: "Imperial Length (UK)",
+      description:
+        "A measure of distance in the system of units defined in the British Weights and Measures Acts, in use alongside metric units in the UK and elsewhere.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
-  const imperialLengthUsDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: lengthDataType.schema.$id }],
-        abstract: true,
-        title: "Imperial Length (US)",
-        description:
-          "A measure of distance in the system of units commonly used in the United States, formally known as United States customary units.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const imperialLengthUsDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: lengthDataType.schema.$id }],
+      abstract: true,
+      title: "Imperial Length (US)",
+      description:
+        "A measure of distance in the system of units commonly used in the United States, formally known as United States customary units.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
-  const meterDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: metricLengthDataType.schema.$id }],
-        title: "Meters",
-        description:
-          "The base unit of length in the International System of Units (SI).",
-        label: {
-          right: "m",
-        },
-        type: "number",
+  const meterDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: metricLengthDataType.schema.$id }],
+      title: "Meters",
+      description: "The base unit of length in the International System of Units (SI).",
+      label: {
+        right: "m",
       },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
@@ -312,8 +286,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
       title: "DateTime",
-      description:
-        "A reference to a particular date and time, formatted according to RFC 3339.",
+      description: "A reference to a particular date and time, formatted according to RFC 3339.",
       type: "string",
       format: "date-time",
     },
@@ -326,8 +299,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
       title: "Time",
-      description:
-        "A reference to a particular clock time, formatted according to RFC 3339.",
+      description: "A reference to a particular clock time, formatted according to RFC 3339.",
       type: "string",
       format: "time",
     },
@@ -336,43 +308,35 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const frequencyDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        abstract: true,
-        title: "Frequency",
-        description:
-          "The number of occurrences of a repeating event per unit of time (temporal frequency).",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const frequencyDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      abstract: true,
+      title: "Frequency",
+      description:
+        "The number of occurrences of a repeating event per unit of time (temporal frequency).",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
-  const hertzDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: frequencyDataType.schema.$id }],
-        title: "Hertz",
-        description:
-          "A unit of frequency in the International System of Units (SI), equivalent to one cycle per second.",
-        label: {
-          right: "Hz",
-        },
-        type: "number",
+  const hertzDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: frequencyDataType.schema.$id }],
+      title: "Hertz",
+      description:
+        "A unit of frequency in the International System of Units (SI), equivalent to one cycle per second.",
+      label: {
+        right: "Hz",
       },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
@@ -437,41 +401,33 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const informationDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        abstract: true,
-        title: "Information",
-        description: "A measure of information content.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const informationDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      abstract: true,
+      title: "Information",
+      description: "A measure of information content.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
-  const bytesDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: informationDataType.schema.$id }],
-        title: "Bytes",
-        description: "A unit of information equal to eight bits.",
-        label: {
-          right: "B",
-        },
-        type: "number",
+  const bytesDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: informationDataType.schema.$id }],
+      title: "Bytes",
+      description: "A unit of information equal to eight bits.",
+      label: {
+        right: "B",
       },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
@@ -573,43 +529,34 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const powerDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        abstract: true,
-        title: "Power",
-        description:
-          "The amount of energy transferred or converted per unit time.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const powerDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      abstract: true,
+      title: "Power",
+      description: "The amount of energy transferred or converted per unit time.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
-  const wattsDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: powerDataType.schema.$id }],
-        title: "Watts",
-        description:
-          "The unit of power or radiant flux in the International System of Units (SI) – the rate at which work is done or energy is transferred. Equal to one joule per second.",
-        label: {
-          right: "W",
-        },
-        type: "number",
+  const wattsDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: powerDataType.schema.$id }],
+      title: "Watts",
+      description:
+        "The unit of power or radiant flux in the International System of Units (SI) – the rate at which work is done or energy is transferred. Equal to one joule per second.",
+      label: {
+        right: "W",
       },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {

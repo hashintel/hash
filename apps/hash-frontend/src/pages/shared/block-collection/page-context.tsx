@@ -20,9 +20,10 @@ const PageContext = createContext<PageContextProps | null>(null);
 
 type PageContextProviderProps = PropsWithChildren & { pageEntityId: EntityId };
 
-export const PageContextProvider: FunctionComponent<
-  PageContextProviderProps
-> = ({ children, pageEntityId }) => {
+export const PageContextProvider: FunctionComponent<PageContextProviderProps> = ({
+  children,
+  pageEntityId,
+}) => {
   const pageTitleRef = useRef<HTMLTextAreaElement>(null);
   const [editorContext, setEditorContext] = useState<EditorContext>();
 

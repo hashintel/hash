@@ -1,12 +1,5 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  chipClasses,
-  Collapse,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, chipClasses, Collapse, Stack, Tooltip, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
@@ -95,9 +88,7 @@ export const ExpectedValueBadge = ({
           borderRadius: 1,
           position: "relative",
           overflow: "hidden",
-          ...(prefix
-            ? { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }
-            : {}),
+          ...(prefix ? { borderTopLeftRadius: 0, borderBottomLeftRadius: 0 } : {}),
           ...(!isDataType
             ? {
                 width: "100%",
@@ -107,13 +98,7 @@ export const ExpectedValueBadge = ({
             : {}),
         }}
       >
-        <Box
-          display="flex"
-          alignItems="center"
-          justifyContent="space-between"
-          flex={1}
-          py={1}
-        >
+        <Box display="flex" alignItems="center" justifyContent="space-between" flex={1} py={1}>
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <FontAwesomeIcon
               icon={{

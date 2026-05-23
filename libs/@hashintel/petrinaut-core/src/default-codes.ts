@@ -46,9 +46,7 @@ export default Dynamics((tokens, parameters) => {
   });
 });`;
 
-export const generateDefaultLambdaCode = (
-  lambdaType: "predicate" | "stochastic",
-): string => `/**
+export const generateDefaultLambdaCode = (lambdaType: "predicate" | "stochastic"): string => `/**
 * This function controls when the transition will fire,
 * once enabled by sufficient tokens in its input places.
 * It receives tokens from input places keyed by place name,
@@ -93,10 +91,7 @@ export default TransitionKernel((tokensByPlace, parameters) => {
       .map(
         (arc) => `${arc.placeName}: [
       ${Array.from({ length: arc.weight })
-        .map(
-          () =>
-            `{ ${arc.type.elements.map((el) => `${el.name}: 0`).join(", ")} }`,
-        )
+        .map(() => `{ ${arc.type.elements.map((el) => `${el.name}: 0`).join(", ")} }`)
         .join(",\n      ")}
     ],`,
       )

@@ -1,9 +1,5 @@
 import { Box, ListItemText, Menu } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
@@ -41,9 +37,7 @@ export const OrgContextMenu = ({
           <ListItemText primary="View members" />
         </MenuItem>
         {!readonly && (
-          <MenuItem
-            href={`/settings/organizations/${org.shortname}/members#invite`}
-          >
+          <MenuItem href={`/settings/organizations/${org.shortname}/members#invite`}>
             <ListItemText primary="Invite new members" />
           </MenuItem>
         )}

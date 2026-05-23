@@ -1,10 +1,7 @@
 import axios from "axios";
 
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import {
-  Configuration,
-  DefaultApi as InternalApiClient,
-} from "@local/internal-api-client";
+import { Configuration, DefaultApi as InternalApiClient } from "@local/internal-api-client";
 
 import type { AxiosError } from "axios";
 
@@ -39,8 +36,4 @@ axiosInstance.interceptors.response.use(
   },
 );
 
-export const internalApiClient = new InternalApiClient(
-  config,
-  basePath,
-  axiosInstance,
-);
+export const internalApiClient = new InternalApiClient(config, basePath, axiosInstance);

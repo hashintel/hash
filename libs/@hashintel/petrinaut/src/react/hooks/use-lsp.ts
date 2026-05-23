@@ -1,9 +1,6 @@
 import { use } from "react";
 
-import {
-  LanguageClientContext,
-  type LanguageClientContextValue,
-} from "../lsp/context";
+import { LanguageClientContext, type LanguageClientContextValue } from "../lsp/context";
 
 import type { Diagnostic, DocumentUri } from "@hashintel/petrinaut-core";
 

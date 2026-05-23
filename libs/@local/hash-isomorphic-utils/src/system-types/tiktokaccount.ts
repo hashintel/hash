@@ -49,8 +49,7 @@ export type TikTokAccountOutgoingLinksByLinkEntityTypeId = {};
  */
 export type TikTokAccountProperties = ServiceAccountProperties & {};
 
-export type TikTokAccountPropertiesWithMetadata =
-  ServiceAccountPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type TikTokAccountPropertiesWithMetadata = ServiceAccountPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

@@ -11,9 +11,4 @@ export {
   yellow,
 } from "./gen/colors.gen";
 export { spacing } from "./gen/spacing.gen";
-export {
-  fonts,
-  fontSizes,
-  fontWeights,
-  lineHeights,
-} from "./gen/typography.gen";
+export { fonts, fontSizes, fontWeights, lineHeights } from "./gen/typography.gen";

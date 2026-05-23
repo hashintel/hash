@@ -38,13 +38,7 @@ export function splitImageDataToParts(props: {
   }
 
   const topLeft = imageDataToUrl(imageData, cornerWidth, cornerWidth, 0, 0);
-  const top = imageDataToUrl(
-    imageData,
-    lateralPartSize,
-    cornerWidth,
-    cornerWidth,
-    0,
-  );
+  const top = imageDataToUrl(imageData, lateralPartSize, cornerWidth, cornerWidth, 0);
   const topRight = imageDataToUrl(
     imageData,
     cornerWidth,
@@ -52,13 +46,7 @@ export function splitImageDataToParts(props: {
     cornerWidth + lateralPartSize,
     0,
   );
-  const left = imageDataToUrl(
-    imageData,
-    cornerWidth,
-    lateralPartSize,
-    0,
-    cornerWidth,
-  );
+  const left = imageDataToUrl(imageData, cornerWidth, lateralPartSize, 0, cornerWidth);
   const center = imageDataToUrl(
     imageData,
     lateralPartSize,

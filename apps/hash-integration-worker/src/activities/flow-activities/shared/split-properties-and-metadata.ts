@@ -16,9 +16,7 @@ import type {
 /**
  * Recursively extracts the raw property value from a PropertyWithMetadata.
  */
-const extractPropertyValue = (
-  propertyWithMetadata: PropertyWithMetadata,
-): PropertyValue => {
+const extractPropertyValue = (propertyWithMetadata: PropertyWithMetadata): PropertyValue => {
   // Check if it's a value with metadata (has metadata.dataTypeId at the value level)
   if (
     "metadata" in propertyWithMetadata &&
@@ -38,18 +36,12 @@ const extractPropertyValue = (
   }
 
   // Check if it's an object (PropertyObjectWithMetadata)
-  if (
-    typeof propertyWithMetadata.value === "object" &&
-    propertyWithMetadata.value !== null
-  ) {
+  if (typeof propertyWithMetadata.value === "object" && propertyWithMetadata.value !== null) {
     const entries = Object.entries(propertyWithMetadata.value);
     if (entries.length > 0 && entries.every(([key]) => isBaseUrl(key))) {
       // It's an object with BaseUrl keys, recurse into it
       return Object.fromEntries(
-        entries.map(([key, value]) => [
-          key,
-          extractPropertyValue(value as PropertyWithMetadata),
-        ]),
+        entries.map(([key, value]) => [key, extractPropertyValue(value as PropertyWithMetadata)]),
       ) as PropertyValue;
     }
   }
@@ -61,9 +53,7 @@ const extractPropertyValue = (
 /**
  * Recursively extracts the PropertyMetadata from a PropertyWithMetadata.
  */
-const extractPropertyMetadata = (
-  propertyWithMetadata: PropertyWithMetadata,
-): PropertyMetadata => {
+const extractPropertyMetadata = (propertyWithMetadata: PropertyWithMetadata): PropertyMetadata => {
   // Check if it's a value with metadata (has metadata.dataTypeId at the value level)
   if (
     "metadata" in propertyWithMetadata &&
@@ -86,8 +76,7 @@ const extractPropertyMetadata = (
     };
 
     // Add array-level metadata if present
-    const arrayMetadata = (propertyWithMetadata as { metadata?: ArrayMetadata })
-      .metadata;
+    const arrayMetadata = (propertyWithMetadata as { metadata?: ArrayMetadata }).metadata;
     if (arrayMetadata) {
       result.metadata = arrayMetadata;
     }
@@ -96,10 +85,7 @@ const extractPropertyMetadata = (
   }
 
   // Check if it's an object (PropertyObjectWithMetadata)
-  if (
-    typeof propertyWithMetadata.value === "object" &&
-    propertyWithMetadata.value !== null
-  ) {
+  if (typeof propertyWithMetadata.value === "object" && propertyWithMetadata.value !== null) {
     const entries = Object.entries(propertyWithMetadata.value);
     if (entries.length > 0 && entries.every(([key]) => isBaseUrl(key))) {
       // It's an object with BaseUrl keys
@@ -113,9 +99,7 @@ const extractPropertyMetadata = (
       };
 
       // Add object-level metadata if present
-      const objectMetadata = (
-        propertyWithMetadata as { metadata?: ObjectMetadata }
-      ).metadata;
+      const objectMetadata = (propertyWithMetadata as { metadata?: ObjectMetadata }).metadata;
       if (objectMetadata) {
         result.metadata = objectMetadata;
       }
@@ -148,13 +132,10 @@ export const splitPropertiesAndMetadata = (propertiesWithMetadata: {
   const properties: PropertyObject = {};
   const propertyMetadataValue: Record<BaseUrl, PropertyMetadata> = {};
 
-  for (const [key, propertyWithMetadata] of Object.entries(
-    propertiesWithMetadata.value,
-  )) {
+  for (const [key, propertyWithMetadata] of Object.entries(propertiesWithMetadata.value)) {
     const baseUrl = key as BaseUrl;
     properties[baseUrl] = extractPropertyValue(propertyWithMetadata);
-    propertyMetadataValue[baseUrl] =
-      extractPropertyMetadata(propertyWithMetadata);
+    propertyMetadataValue[baseUrl] = extractPropertyMetadata(propertyWithMetadata);
   }
 
   const result: PropertyObjectMetadata = {

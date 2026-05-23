@@ -22,10 +22,7 @@ type MessageContentBlock = {
 
 const typeAnimationSpeed = 95;
 
-const ExpandOnMount: FunctionComponent<CollapseProps> = ({
-  children,
-  ...remainingProps
-}) => {
+const ExpandOnMount: FunctionComponent<CollapseProps> = ({ children, ...remainingProps }) => {
   const [rendered, setRendered] = useState(false);
 
   useEffect(() => {
@@ -84,9 +81,7 @@ export const AiAssistantMessage: FunctionComponent<{
       }));
   }, [messageContent]);
 
-  const [displayedBlocks, setDisplayedBlocks] = useState<MessageContentBlock[]>(
-    blocks.slice(0, 1),
-  );
+  const [displayedBlocks, setDisplayedBlocks] = useState<MessageContentBlock[]>(blocks.slice(0, 1));
 
   useEffect(() => {
     setDisplayedBlocks(blocks.slice(0, 1));
@@ -98,11 +93,7 @@ export const AiAssistantMessage: FunctionComponent<{
         ? blocks.map(({ kind, content }, index) => (
             // eslint-disable-next-line react/no-array-index-key
             <Fragment key={index}>
-              {kind === "text" ? (
-                <Typography>{content}</Typography>
-              ) : (
-                <CodeBlock code={content} />
-              )}
+              {kind === "text" ? <Typography>{content}</Typography> : <CodeBlock code={content} />}
             </Fragment>
           ))
         : displayedBlocks.map(({ kind, content }, index) => {
@@ -116,10 +107,7 @@ export const AiAssistantMessage: FunctionComponent<{
               // eslint-disable-next-line react/no-array-index-key
               <Fragment key={index}>
                 {kind === "text" ? (
-                  <TextBlockTypeAnimation
-                    text={content}
-                    onAnimationEnd={onAnimationEnd}
-                  />
+                  <TextBlockTypeAnimation text={content} onAnimationEnd={onAnimationEnd} />
                 ) : (
                   <ExpandOnMount onAnimationEnd={onAnimationEnd}>
                     <CodeBlock code={content} />

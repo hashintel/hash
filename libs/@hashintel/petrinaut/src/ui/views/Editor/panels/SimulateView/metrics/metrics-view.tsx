@@ -89,16 +89,9 @@ export const MetricsView = () => {
         onSelect={(id) => setDrawer({ type: "view-metric", metricId: id })}
       />
 
-      <CreateMetricDrawer
-        open={drawer.type === "create-metric"}
-        onClose={closeDrawer}
-      />
+      <CreateMetricDrawer open={drawer.type === "create-metric"} onClose={closeDrawer} />
 
-      <ViewMetricDrawer
-        open={!!selectedMetric}
-        onClose={closeDrawer}
-        metric={selectedMetric}
-      />
+      <ViewMetricDrawer open={!!selectedMetric} onClose={closeDrawer} metric={selectedMetric} />
     </SimulateSubviewFrame>
   );
 };

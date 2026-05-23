@@ -8,9 +8,7 @@ import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js
 
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 
-export const getFileFromUrlAction: AiFlowActionActivity<
-  "getFileFromUrl"
-> = async ({ inputs }) => {
+export const getFileFromUrlAction: AiFlowActionActivity<"getFileFromUrl"> = async ({ inputs }) => {
   const {
     description,
     displayName,

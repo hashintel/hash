@@ -1,8 +1,5 @@
 import { Portal } from "@ark-ui/react/portal";
-import {
-  createListCollection,
-  Select as ArkSelect,
-} from "@ark-ui/react/select";
+import { createListCollection, Select as ArkSelect } from "@ark-ui/react/select";
 import { useMemo } from "react";
 
 import { Icon } from "@hashintel/ds-components";
@@ -247,9 +244,7 @@ const SelectBase: React.FC<SelectBaseProps> = ({
     [options],
   );
 
-  const selectedOption = value
-    ? options.find((opt) => opt.value === value)
-    : undefined;
+  const selectedOption = value ? options.find((opt) => opt.value === value) : undefined;
 
   const iconSize = ICON_SIZE[size];
 
@@ -267,9 +262,7 @@ const SelectBase: React.FC<SelectBaseProps> = ({
       disabled={disabled}
       className={cx(rootStyle, className)}
     >
-      <ArkSelect.Trigger
-        className={cx(triggerStyle({ size }), triggerClassName)}
-      >
+      <ArkSelect.Trigger className={cx(triggerStyle({ size }), triggerClassName)}>
         {renderTrigger ? (
           <ArkSelect.Context>
             {(context) => (
@@ -280,12 +273,7 @@ const SelectBase: React.FC<SelectBaseProps> = ({
           </ArkSelect.Context>
         ) : (
           <>
-            <span
-              className={cx(
-                triggerLabelStyle,
-                !selectedOption && placeholderStyle,
-              )}
-            >
+            <span className={cx(triggerLabelStyle, !selectedOption && placeholderStyle)}>
               {selectedOption?.label ?? placeholder}
             </span>
             <Icon name="chevronDown" size={iconSize} className={chevronStyle} />
@@ -300,17 +288,11 @@ const SelectBase: React.FC<SelectBaseProps> = ({
         >
           <ArkSelect.Content className={contentStyle}>
             {collection.items.map((item) => (
-              <ArkSelect.Item
-                key={item.value}
-                item={item}
-                className={itemStyle}
-              >
+              <ArkSelect.Item key={item.value} item={item} className={itemStyle}>
                 {renderItem ? (
                   renderItem(item)
                 ) : (
-                  <ArkSelect.ItemText className={itemTextStyle}>
-                    {item.label}
-                  </ArkSelect.ItemText>
+                  <ArkSelect.ItemText className={itemTextStyle}>{item.label}</ArkSelect.ItemText>
                 )}
               </ArkSelect.Item>
             ))}

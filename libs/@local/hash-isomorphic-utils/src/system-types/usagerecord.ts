@@ -265,8 +265,7 @@ export type CreatedPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  */
 export type CustomMetadataPropertyValue = ObjectDataType;
 
-export type CustomMetadataPropertyValueWithMetadata =
-  ObjectDataTypeWithMetadata;
+export type CustomMetadataPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 
 /**
  * Something that was incurred in something else.
@@ -296,16 +295,14 @@ export type IncurredInPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  */
 export type InputUnitCountPropertyValue = NumberDataType;
 
-export type InputUnitCountPropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+export type InputUnitCountPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * How many output units were or will be used
  */
 export type OutputUnitCountPropertyValue = NumberDataType;
 
-export type OutputUnitCountPropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+export type OutputUnitCountPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * The thing that something records usage of.
@@ -325,11 +322,10 @@ export type RecordsUsageOfOutgoingLinksByLinkEntityTypeId = {};
  */
 export type RecordsUsageOfProperties = LinkProperties & {};
 
-export type RecordsUsageOfPropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type RecordsUsageOfPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * The thing that something created.

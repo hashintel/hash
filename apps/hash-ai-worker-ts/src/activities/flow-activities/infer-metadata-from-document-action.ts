@@ -2,10 +2,7 @@ import { Context } from "@temporalio/activity";
 import PDFParser from "pdf2json";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import {
-  getStorageProvider,
-  storePayload,
-} from "@local/hash-backend-utils/flows/payload-storage";
+import { getStorageProvider, storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
   blockProtocolPropertyTypes,
@@ -125,9 +122,7 @@ export const inferMetadataFromDocumentAction: AiFlowActionActivity<
     documentEntity,
     async ({ fileSystemPath }) => {
       const documentJson = await new Promise<Output>((resolve, reject) => {
-        pdfParser.on("pdfParser_dataError", (errData) =>
-          reject(errData.parserError),
-        );
+        pdfParser.on("pdfParser_dataError", (errData) => reject(errData.parserError));
 
         pdfParser.on("pdfParser_dataReady", (pdfData) => {
           resolve(pdfData);
@@ -171,8 +166,9 @@ export const inferMetadataFromDocumentAction: AiFlowActionActivity<
       "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/"
     ]!;
 
-  const title = properties.value[systemPropertyTypes.title.propertyTypeBaseUrl]
-    ?.value as string | undefined;
+  const title = properties.value[systemPropertyTypes.title.propertyTypeBaseUrl]?.value as
+    | string
+    | undefined;
 
   const sourceProvenance: SourceProvenance = {
     type: "document",
@@ -232,15 +228,14 @@ export const inferMetadataFromDocumentAction: AiFlowActionActivity<
     },
   ]);
 
-  const proposedEntities =
-    await generateDocumentProposedEntitiesAndCreateClaims({
-      aiAssistantAccountId,
-      documentEntityId,
-      documentMetadata: { authors },
-      documentTitle: title ?? filename,
-      provenance,
-      propertyProvenance,
-    });
+  const proposedEntities = await generateDocumentProposedEntitiesAndCreateClaims({
+    aiAssistantAccountId,
+    documentEntityId,
+    documentMetadata: { authors },
+    documentTitle: title ?? filename,
+    provenance,
+    propertyProvenance,
+  });
 
   // Store the proposed entities in S3 to avoid passing large payloads through Temporal
   const storedRef = await storePayload({

@@ -16,9 +16,7 @@ export const createInferredEntityNotification = async ({
   operation: "create" | "update";
   notifiedUserAccountId: UserId;
 }) => {
-  const entityIsDraft = !!extractDraftIdFromEntityId(
-    entity.metadata.recordId.entityId,
-  );
+  const entityIsDraft = !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId);
 
   if (entityIsDraft) {
     /**
@@ -27,8 +25,7 @@ export const createInferredEntityNotification = async ({
     return;
   }
 
-  const entityEditionTimestamp =
-    entity.metadata.temporalVersioning.decisionTime.start.limit;
+  const entityEditionTimestamp = entity.metadata.temporalVersioning.decisionTime.start.limit;
 
   await createGraphChangeNotification(
     { graphApi: graphApiClient },

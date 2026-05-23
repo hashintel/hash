@@ -43,9 +43,7 @@ export const LanguageClientProvider: React.FC<{
    * disposes any client that ends up unused, including ones created by
    * StrictMode's simulated remount cycle.
    */
-  const [clientStore] = useState(() =>
-    createValueStore<LanguageClient | null>(null),
-  );
+  const [clientStore] = useState(() => createValueStore<LanguageClient | null>(null));
   const client = useSyncExternalStore(
     (listener) => clientStore.subscribe(listener),
     () => clientStore.getSnapshot(),
@@ -108,7 +106,5 @@ export const LanguageClientProvider: React.FC<{
     killMetricSession: client.killMetricSession,
   };
 
-  return (
-    <LanguageClientContext value={value}>{children}</LanguageClientContext>
-  );
+  return <LanguageClientContext value={value}>{children}</LanguageClientContext>;
 };

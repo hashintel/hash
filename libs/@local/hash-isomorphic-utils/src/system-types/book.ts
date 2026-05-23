@@ -60,11 +60,7 @@ import type {
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
 } from "./shared.js";
-import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
+import type { Confidence, ObjectMetadata, PropertyProvenance } from "@blockprotocol/type-system";
 
 export type {
   AffiliatedWith,

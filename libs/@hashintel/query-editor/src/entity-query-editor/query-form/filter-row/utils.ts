@@ -17,9 +17,7 @@ interface OperatorObject<T> {
   hasValue: boolean;
 }
 
-const typeOperators: OperatorObject<TypeOperator>[] = [
-  { operator: "is", hasValue: true },
-];
+const typeOperators: OperatorObject<TypeOperator>[] = [{ operator: "is", hasValue: true }];
 
 const propertyOperators: OperatorObject<PropertyOperator>[] = [
   { operator: "is", hasValue: true },
@@ -30,10 +28,8 @@ const propertyOperators: OperatorObject<PropertyOperator>[] = [
   { operator: "does not contain", hasValue: true },
 ];
 
-export const fieldOperators: Record<
-  FilterType,
-  OperatorObject<TypeOperator | PropertyOperator>[]
-> = {
-  Property: propertyOperators,
-  Type: typeOperators,
-};
+export const fieldOperators: Record<FilterType, OperatorObject<TypeOperator | PropertyOperator>[]> =
+  {
+    Property: propertyOperators,
+    Type: typeOperators,
+  };

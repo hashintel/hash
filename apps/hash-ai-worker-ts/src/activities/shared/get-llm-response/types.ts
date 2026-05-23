@@ -27,10 +27,7 @@ export type LlmToolDefinition<ToolName extends string = string> = {
 };
 
 export type CommonLlmParams<ToolName extends string = string> = {
-  model:
-    | PermittedAnthropicModel
-    | PermittedOpenAiModel
-    | PermittedGoogleAiModel;
+  model: PermittedAnthropicModel | PermittedOpenAiModel | PermittedGoogleAiModel;
   tools?: LlmToolDefinition<ToolName>[];
   systemPrompt?: string;
   messages: LlmMessage[];
@@ -42,37 +39,31 @@ export type CommonLlmParams<ToolName extends string = string> = {
   };
 };
 
-export type GoogleAiParams<ToolName extends string = string> =
-  CommonLlmParams<ToolName> & {
-    model: PermittedGoogleAiModel;
-    previousInvalidResponses?: (GenerateContentResponse & {
-      requestTime: number;
-    })[];
-  };
+export type GoogleAiParams<ToolName extends string = string> = CommonLlmParams<ToolName> & {
+  model: PermittedGoogleAiModel;
+  previousInvalidResponses?: (GenerateContentResponse & {
+    requestTime: number;
+  })[];
+};
 
-export type AnthropicLlmParams<ToolName extends string = string> =
-  CommonLlmParams<ToolName> & {
-    model: PermittedAnthropicModel;
-    maxTokens?: number;
-    previousInvalidResponses?: (AnthropicMessagesCreateResponse & {
-      requestTime: number;
-    })[];
-  } & Omit<
-      AnthropicMessagesCreateParams,
-      "tools" | "max_tokens" | "system" | "messages" | "tool_choice"
-    >;
+export type AnthropicLlmParams<ToolName extends string = string> = CommonLlmParams<ToolName> & {
+  model: PermittedAnthropicModel;
+  maxTokens?: number;
+  previousInvalidResponses?: (AnthropicMessagesCreateResponse & {
+    requestTime: number;
+  })[];
+} & Omit<
+    AnthropicMessagesCreateParams,
+    "tools" | "max_tokens" | "system" | "messages" | "tool_choice"
+  >;
 
-export type OpenAiLlmParams<ToolName extends string = string> =
-  CommonLlmParams<ToolName> & {
-    model: PermittedOpenAiModel;
-    trimMessageAtIndex?: number;
-    previousInvalidResponses?: (OpenAI.ChatCompletion & {
-      requestTime: number;
-    })[];
-  } & Omit<
-      OpenAI.ChatCompletionCreateParams,
-      "tools" | "messages" | "tool_choice"
-    >;
+export type OpenAiLlmParams<ToolName extends string = string> = CommonLlmParams<ToolName> & {
+  model: PermittedOpenAiModel;
+  trimMessageAtIndex?: number;
+  previousInvalidResponses?: (OpenAI.ChatCompletion & {
+    requestTime: number;
+  })[];
+} & Omit<OpenAI.ChatCompletionCreateParams, "tools" | "messages" | "tool_choice">;
 
 export type LlmParams<ToolName extends string = string> =
   | AnthropicLlmParams<ToolName>
@@ -105,13 +96,11 @@ export type LlmServerErrorLog = LlmRequestMetadata & {
   secondsTaken: number;
 };
 
-export const isLlmParamsAnthropicLlmParams = (
-  params: LlmParams,
-): params is AnthropicLlmParams => isPermittedAnthropicModel(params.model);
+export const isLlmParamsAnthropicLlmParams = (params: LlmParams): params is AnthropicLlmParams =>
+  isPermittedAnthropicModel(params.model);
 
-export const isLlmParamsGoogleAiParams = (
-  params: LlmParams,
-): params is GoogleAiParams => isPermittedGoogleAiModel(params.model);
+export const isLlmParamsGoogleAiParams = (params: LlmParams): params is GoogleAiParams =>
+  isPermittedGoogleAiModel(params.model);
 
 export type AnthropicResponse = Omit<
   AnthropicMessagesCreateResponse,
@@ -122,24 +111,15 @@ export type AnthropicResponse = Omit<
   })[];
 };
 
-export type OpenAiResponse = Omit<
-  OpenAI.ChatCompletion,
-  "usage" | "choices" | "object"
-> & {
+export type OpenAiResponse = Omit<OpenAI.ChatCompletion, "usage" | "choices" | "object"> & {
   invalidResponses: (OpenAI.ChatCompletion & { requestTime: number })[];
 };
 
-export type GoogleAiResponse = Omit<
-  GenerateContentResponse,
-  "usage" | "candidates"
-> & {
+export type GoogleAiResponse = Omit<GenerateContentResponse, "usage" | "candidates"> & {
   invalidResponses: (GenerateContentResponse & { requestTime: number })[];
 };
 
-export type ParsedLlmToolCall<
-  ToolName extends string = string,
-  Input extends object = object,
-> = {
+export type ParsedLlmToolCall<ToolName extends string = string, Input extends object = object> = {
   id: string;
   name: ToolName;
   input: Input;
@@ -156,12 +136,7 @@ export type ParsedLlmToolCall<
  * - `"content_filters"`: if content was omitted due to a flag from our content filters (OpenAI specific)
  * - `"stop_sequence"`: one of your provided custom `stop_sequences` was generated (Anthropic specific)
  */
-export type LlmStopReason =
-  | "stop"
-  | "tool_use"
-  | "length"
-  | "content_filter"
-  | "stop_sequence";
+export type LlmStopReason = "stop" | "tool_use" | "length" | "content_filter" | "stop_sequence";
 
 export type LlmUsage = {
   /**
@@ -186,9 +161,7 @@ export type LlmErrorResponse =
       provider: LlmProvider;
       lastRequestTime: number;
       totalRequestTime: number;
-      invalidResponses:
-        | AnthropicResponse["invalidResponses"]
-        | OpenAiResponse["invalidResponses"];
+      invalidResponses: AnthropicResponse["invalidResponses"] | OpenAiResponse["invalidResponses"];
       usage: LlmUsage;
     }
   | {
@@ -230,11 +203,7 @@ export type LlmResponse<T extends LlmParams> =
       lastRequestTime: number;
       totalRequestTime: number;
       message: LlmAssistantMessage<
-        T["tools"] extends (infer U)[]
-          ? U extends { name: infer N }
-            ? N
-            : never
-          : string
+        T["tools"] extends (infer U)[] ? (U extends { name: infer N } ? N : never) : string
       >;
     } & (T extends AnthropicLlmParams
       ? Omit<AnthropicResponse, "stop_reason">

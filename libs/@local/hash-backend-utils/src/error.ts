@@ -2,17 +2,13 @@ import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
 export class EntityTypeMismatchError extends Error {
   entityId: string;
-  expectedEntityTypeIdOrBaseUrl:
-    | (BaseUrl | VersionedUrl)
-    | (BaseUrl | VersionedUrl)[];
+  expectedEntityTypeIdOrBaseUrl: (BaseUrl | VersionedUrl) | (BaseUrl | VersionedUrl)[];
 
   actualEntityTypesBaseUrlOrVersionedUrls: BaseUrl[] | VersionedUrl[];
 
   constructor(
     entityId: string,
-    expectedEntityTypeIdOrBaseUrl:
-      | (BaseUrl | VersionedUrl)
-      | (BaseUrl | VersionedUrl)[],
+    expectedEntityTypeIdOrBaseUrl: (BaseUrl | VersionedUrl) | (BaseUrl | VersionedUrl)[],
     actualEntityTypesBaseUrlOrVersionedUrls: BaseUrl[] | VersionedUrl[],
   ) {
     super(
@@ -25,8 +21,7 @@ export class EntityTypeMismatchError extends Error {
     this.name = "TypeMismatchError";
     this.entityId = entityId;
     this.expectedEntityTypeIdOrBaseUrl = expectedEntityTypeIdOrBaseUrl;
-    this.actualEntityTypesBaseUrlOrVersionedUrls =
-      actualEntityTypesBaseUrlOrVersionedUrls;
+    this.actualEntityTypesBaseUrlOrVersionedUrls = actualEntityTypesBaseUrlOrVersionedUrls;
   }
 }
 

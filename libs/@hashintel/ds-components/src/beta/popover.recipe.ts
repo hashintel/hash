@@ -79,6 +79,4 @@ const popoverSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const popoverSlotRecipe = sva(popoverSlotRecipeDefinition);
 
-export type PopoverSlotRecipeProps = RecipeVariantProps<
-  typeof popoverSlotRecipe
->;
+export type PopoverSlotRecipeProps = RecipeVariantProps<typeof popoverSlotRecipe>;

@@ -16,19 +16,12 @@ export const LoggedIn = () => {
       <HomepageCard>
         <HomepageBigText>
           Get{" "}
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.purple[70] }}
-          >
+          <Box component="span" sx={{ color: ({ palette }) => palette.purple[70] }}>
             support
           </Box>
         </HomepageBigText>
         <HomepageMediumText>1:1 help with HASH</HomepageMediumText>
-        <Button
-          href="https://hash.ai/contact?topic=support"
-          variant="white_cta"
-          size="small"
-        >
+        <Button href="https://hash.ai/contact?topic=support" variant="white_cta" size="small">
           Send a message
           <EnvelopeRegularIcon
             sx={{
@@ -42,10 +35,7 @@ export const LoggedIn = () => {
       <HomepageCard>
         <HomepageBigText>
           Request{" "}
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.teal[70] }}
-          >
+          <Box component="span" sx={{ color: ({ palette }) => palette.teal[70] }}>
             a feature
           </Box>
         </HomepageBigText>
@@ -56,10 +46,7 @@ export const LoggedIn = () => {
           size="small"
         >
           Make
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.teal[70], ml: 0.6 }}
-          >
+          <Box component="span" sx={{ color: ({ palette }) => palette.teal[70], ml: 0.6 }}>
             a suggestion
           </Box>
           <ArrowRightRegularIcon
@@ -74,10 +61,7 @@ export const LoggedIn = () => {
       <HomepageCard>
         <HomepageBigText>
           Report{" "}
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.pink[80] }}
-          >
+          <Box component="span" sx={{ color: ({ palette }) => palette.pink[80] }}>
             a bug
           </Box>
         </HomepageBigText>

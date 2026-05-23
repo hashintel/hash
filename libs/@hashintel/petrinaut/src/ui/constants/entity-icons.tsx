@@ -26,9 +26,7 @@ const sizeToIconSize = (size: number): IconSize => {
 
 const makeIcon =
   (name: IconName) =>
-  ({ size }: { size: number }) => (
-    <Icon name={name} size={sizeToIconSize(size)} />
-  );
+  ({ size }: { size: number }) => <Icon name={name} size={sizeToIconSize(size)} />;
 
 /** Outline icons — used in PropertiesPanel headers */
 export const PlaceIcon = makeIcon("circleFilled");

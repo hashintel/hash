@@ -11,11 +11,7 @@ import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 
 import { resetGraph } from "../../../admin-server";
-import {
-  createTestImpureGraphContext,
-  createTestOrg,
-  createTestUser,
-} from "../../../util";
+import { createTestImpureGraphContext, createTestOrg, createTestUser } from "../../../util";
 
 import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import type { OrgMembership } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
@@ -46,11 +42,7 @@ describe("OrgMembership", () => {
     testUser = await createTestUser(graphContext, "orgMembershipTest", logger);
     authentication = { actorId: systemAccountId };
 
-    testOrg = await createTestOrg(
-      graphContext,
-      { actorId: systemAccountId },
-      "orgMembershipTest",
-    );
+    testOrg = await createTestOrg(graphContext, { actorId: systemAccountId }, "orgMembershipTest");
 
     return async () => {
       await deleteKratosIdentity({
@@ -64,14 +56,10 @@ describe("OrgMembership", () => {
   let testOrgMembership: OrgMembership;
 
   it("can create an OrgMembership", async () => {
-    testOrgMembership = await createOrgMembership(
-      graphContext,
-      authentication,
-      {
-        orgEntityId: testOrg.entity.metadata.recordId.entityId,
-        userEntityId: testUser.entity.metadata.recordId.entityId,
-      },
-    );
+    testOrgMembership = await createOrgMembership(graphContext, authentication, {
+      orgEntityId: testOrg.entity.metadata.recordId.entityId,
+      userEntityId: testUser.entity.metadata.recordId.entityId,
+    });
   });
 
   it("can get the org of an org membership", async () => {
@@ -83,13 +71,9 @@ describe("OrgMembership", () => {
   });
 
   it("can get the user of an org membership", async () => {
-    const fetchedUser = await getOrgMembershipUser(
-      graphContext,
-      authentication,
-      {
-        orgMembership: testOrgMembership,
-      },
-    );
+    const fetchedUser = await getOrgMembershipUser(graphContext, authentication, {
+      orgMembership: testOrgMembership,
+    });
 
     expect(fetchedUser.entity).toEqual(testUser.entity);
   });

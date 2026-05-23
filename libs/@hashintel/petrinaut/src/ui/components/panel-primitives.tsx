@@ -33,8 +33,7 @@ const cardStyle = css({
   position: "relative",
   backgroundColor: "neutral.s00",
   borderRadius: "xl",
-  boxShadow:
-    "[0px 0px 0px 1px rgba(0,0,0,0.08), 0px 12px 32px 0px rgba(0,0,0,0.02)]",
+  boxShadow: "[0px 0px 0px 1px rgba(0,0,0,0.08), 0px 12px 32px 0px rgba(0,0,0,0.02)]",
   overflow: "clip",
   display: "flex",
   flexDirection: "column",
@@ -128,13 +127,9 @@ const bodyStyle = css({
   flex: "[1]",
 });
 
-export const Body = ({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) => <div className={cx(bodyStyle, className)}>{children}</div>;
+export const Body = ({ children, className }: { children: ReactNode; className?: string }) => (
+  <div className={cx(bodyStyle, className)}>{children}</div>
+);
 
 // -- Footer --------------------------------------------------------------------
 
@@ -149,10 +144,6 @@ const footerStyle = css({
   zIndex: "[1]",
 });
 
-export const Footer = ({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) => <div className={cx(footerStyle, className)}>{children}</div>;
+export const Footer = ({ children, className }: { children: ReactNode; className?: string }) => (
+  <div className={cx(footerStyle, className)}>{children}</div>
+);

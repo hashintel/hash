@@ -20,20 +20,12 @@ export const NumberInput = ({
   onBlur,
   onKeyDown,
   ...props
-}: Omit<
-  BaseInputProps,
-  "type" | "maxLength" | "spellcheck" | "value" | "onChange"
-> & {
+}: Omit<BaseInputProps, "type" | "maxLength" | "spellcheck" | "value" | "onChange"> & {
   type: "integer" | "float";
   value: number | null | undefined;
-  onChange: (
-    value: number | null,
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => void;
+  onChange: (value: number | null, event: React.ChangeEvent<HTMLInputElement>) => void;
 }) => {
-  if (
-    type === "integer" ? max > Number.MAX_SAFE_INTEGER : max > Number.MAX_VALUE
-  ) {
+  if (type === "integer" ? max > Number.MAX_SAFE_INTEGER : max > Number.MAX_VALUE) {
     // eslint-disable-next-line no-console
     console.error(
       type === "integer"
@@ -63,21 +55,14 @@ export const NumberInput = ({
       }}
       onKeyDown={(event) => {
         onKeyDown?.(event);
-        if (
-          type === "integer" &&
-          !event.defaultPrevented &&
-          integerBlockedKeys.has(event.key)
-        ) {
+        if (type === "integer" && !event.defaultPrevented && integerBlockedKeys.has(event.key)) {
           event.preventDefault();
         }
       }}
       onChange={(newValue, event) => {
-        const parsedRaw =
-          type === "integer" ? parseInt(newValue, 10) : parseFloat(newValue);
+        const parsedRaw = type === "integer" ? parseInt(newValue, 10) : parseFloat(newValue);
         const parsed =
-          type === "integer" && !Number.isNaN(parsedRaw)
-            ? Math.trunc(parsedRaw)
-            : parsedRaw;
+          type === "integer" && !Number.isNaN(parsedRaw) ? Math.trunc(parsedRaw) : parsedRaw;
         onChange(Number.isNaN(parsed) ? null : parsed, event);
       }}
     />

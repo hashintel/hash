@@ -5,9 +5,7 @@ import type { SourceProvenance } from "@blockprotocol/type-system";
 /**
  * Deduplicate a list of sources, merging values as appropriate (see inline comments).
  */
-export const deduplicateSources = (
-  sources: SourceProvenance[],
-): SourceProvenance[] => {
+export const deduplicateSources = (sources: SourceProvenance[]): SourceProvenance[] => {
   const sourcesByIdentifier = new Map<string, SourceProvenance>();
 
   for (const source of sources) {
@@ -29,11 +27,7 @@ export const deduplicateSources = (
       continue;
     }
 
-    if (
-      existingSource.entityId &&
-      source.entityId &&
-      existingSource.entityId !== source.entityId
-    ) {
+    if (existingSource.entityId && source.entityId && existingSource.entityId !== source.entityId) {
       /**
        * The sources have different entityIds – we'll keep both.
        * The merging should happen at the entity level, elsewhere, if these are indeed the same source.
@@ -50,9 +44,7 @@ export const deduplicateSources = (
       continue;
     }
 
-    const clonedSource = JSON.parse(
-      JSON.stringify(existingSource),
-    ) as typeof existingSource;
+    const clonedSource = JSON.parse(JSON.stringify(existingSource)) as typeof existingSource;
 
     if (source.entityId) {
       clonedSource.entityId = source.entityId;
@@ -60,12 +52,7 @@ export const deduplicateSources = (
 
     clonedSource.authors =
       (existingSource.authors ?? source.authors)
-        ? [
-            ...new Set([
-              ...(existingSource.authors ?? []),
-              ...(source.authors ?? []),
-            ]),
-          ]
+        ? [...new Set([...(existingSource.authors ?? []), ...(source.authors ?? [])])]
         : undefined;
 
     /**

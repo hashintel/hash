@@ -4,15 +4,9 @@ import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
 import { useContext, useState } from "react";
 
-import {
-  entityIdFromComponents,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
+import { entityIdFromComponents, extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
-import {
-  HashEntity,
-  mergePropertyObjectAndMetadata,
-} from "@local/hash-graph-sdk/entity";
+import { HashEntity, mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
 
 import {
   createEntityMutation,
@@ -42,29 +36,28 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { activeWorkspace, activeWorkspaceWebId } =
-    useContext(WorkspaceContext);
+  const { activeWorkspace, activeWorkspaceWebId } = useContext(WorkspaceContext);
 
-  const [createEntity] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation, {
-    refetchQueries: activeWorkspaceWebId
-      ? [
-          /**
-           * This refetch query accounts for the "Entities" section
-           * in the sidebar being updated when the first instance of
-           * a type is created by a user that is from a different web.
-           */
-          {
-            query: queryEntitySubgraphQuery,
-            variables: generateSidebarEntityTypeEntitiesQueryVariables({
-              webId: activeWorkspaceWebId,
-            }),
-          },
-        ]
-      : [],
-  });
+  const [createEntity] = useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
+    createEntityMutation,
+    {
+      refetchQueries: activeWorkspaceWebId
+        ? [
+            /**
+             * This refetch query accounts for the "Entities" section
+             * in the sidebar being updated when the first instance of
+             * a type is created by a user that is from a different web.
+             */
+            {
+              query: queryEntitySubgraphQuery,
+              variables: generateSidebarEntityTypeEntitiesQueryVariables({
+                webId: activeWorkspaceWebId,
+              }),
+            },
+          ]
+        : [],
+    },
+  );
 
   /**
    * This state is only necessary to update the entity's label in the HTML <title> when the entity is loaded and when it changes.
@@ -101,9 +94,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         },
       });
 
-      const createdEntity = data?.createEntity
-        ? new HashEntity(data.createEntity)
-        : null;
+      const createdEntity = data?.createEntity ? new HashEntity(data.createEntity) : null;
 
       if (!createdEntity) {
         return;
@@ -111,9 +102,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
 
       await applyDraftLinkEntityChanges(createdEntity, draftLinksToCreate, []);
 
-      const entityUuid = extractEntityUuidFromEntityId(
-        createdEntity.metadata.recordId.entityId,
-      );
+      const entityUuid = extractEntityUuidFromEntityId(createdEntity.metadata.recordId.entityId);
 
       void router.push(`/@${activeWorkspace.shortname}/entities/${entityUuid}`);
     } catch (err) {
@@ -121,10 +110,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
     }
   };
 
-  const entityId = entityIdFromComponents(
-    activeWorkspaceWebId,
-    "draft" as EntityUuid,
-  );
+  const entityId = entityIdFromComponents(activeWorkspaceWebId, "draft" as EntityUuid);
 
   return (
     <>
@@ -138,8 +124,8 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
           type="warning"
         >
           <Typography>
-            Please <Link href="https://hash.ai/contact">contact us</Link> and
-            tell us what entity you were trying to create when this happened
+            Please <Link href="https://hash.ai/contact">contact us</Link> and tell us what entity
+            you were trying to create when this happened
           </Typography>
         </AlertModal>
       )}
@@ -156,19 +142,13 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
         isInSlide={false}
         onEntityLabelChange={setEntityLabel}
         onEntityUpdatedInDb={() => {
-          throw new Error(
-            "Unexpected call to onEntityUpdatedInDb from new entity page",
-          );
+          throw new Error("Unexpected call to onEntityUpdatedInDb from new entity page");
         }}
         onRemoteDraftArchived={() => {
-          throw new Error(
-            "Unexpected call to onRemoteDraftArchived from new entity page",
-          );
+          throw new Error("Unexpected call to onRemoteDraftArchived from new entity page");
         }}
         onRemoteDraftPublished={() => {
-          throw new Error(
-            "Unexpected call to onRemoteDraftPublished from new entity page",
-          );
+          throw new Error("Unexpected call to onRemoteDraftPublished from new entity page");
         }}
       />
 

@@ -22,9 +22,7 @@ const fetchRawPositions = ({
   poll,
 }: GetPositionsPayload): AbortingPromise<string> =>
   GET(
-    `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}/positions${
-      poll ? "?poll=true" : ""
-    }`,
+    `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}/positions${poll ? "?poll=true" : ""}`,
   );
 
 // If we switch pages without component remounting, the hook will be returning
@@ -39,10 +37,7 @@ interface PositionInfo {
   positions: CollabPosition[];
 }
 
-export const useCollabPositions = (
-  accountId: string,
-  pageEntityId: string,
-): CollabPosition[] => {
+export const useCollabPositions = (accountId: string, pageEntityId: string): CollabPosition[] => {
   const [positionInfo, setPositionInfo] = useState<PositionInfo>({
     accountId,
     pageEntityId,
@@ -65,9 +60,7 @@ export const useCollabPositions = (
           const response = await activeRequest;
           const positions =
             // Check for no content
-            response !== ""
-              ? (JSON.parse(response) as CollabPosition[])
-              : undefined;
+            response !== "" ? (JSON.parse(response) as CollabPosition[]) : undefined;
 
           activeRequest = undefined;
 
@@ -94,8 +87,7 @@ export const useCollabPositions = (
     };
   }, [accountId, pageEntityId]);
 
-  return positionInfo.accountId === accountId &&
-    positionInfo.pageEntityId === pageEntityId
+  return positionInfo.accountId === accountId && positionInfo.pageEntityId === pageEntityId
     ? positionInfo.positions
     : [];
 };

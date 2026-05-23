@@ -1,10 +1,4 @@
-import {
-  Box,
-  Checkbox,
-  checkboxClasses,
-  svgIconClasses,
-  Tooltip,
-} from "@mui/material";
+import { Box, Checkbox, checkboxClasses, svgIconClasses, Tooltip } from "@mui/material";
 
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 

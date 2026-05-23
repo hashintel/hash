@@ -2,10 +2,7 @@ import { get } from "@vercel/edge-config";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { buildCspHeader } from "./lib/csp";
-import {
-  returnTypeAsJson,
-  versionedUrlRegExp,
-} from "./middleware/return-types-as-json";
+import { returnTypeAsJson, versionedUrlRegExp } from "./middleware/return-types-as-json";
 import { maintenanceRoute } from "./pages/shared/maintenance";
 
 /**
@@ -14,18 +11,13 @@ import { maintenanceRoute } from "./pages/shared/maintenance";
 const generateNonce = (): string => {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
-    "",
-  );
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 };
 
 /**
  * Apply CSP headers and the `x-nonce` request header to a response.
  */
-const applyCspHeaders = (
-  response: NextResponse,
-  cspHeader: string,
-): NextResponse => {
+const applyCspHeaders = (response: NextResponse, cspHeader: string): NextResponse => {
   response.headers.set("Content-Security-Policy", cspHeader);
   return response;
 };
@@ -53,17 +45,14 @@ export const middleware = async (request: NextRequest) => {
       const isInMaintenanceMode = await get("isInMaintenanceMode");
 
       if (isInMaintenanceMode) {
-        const response = NextResponse.rewrite(
-          new URL(maintenanceRoute, request.url),
-          { request: { headers: requestHeaders } },
-        );
+        const response = NextResponse.rewrite(new URL(maintenanceRoute, request.url), {
+          request: { headers: requestHeaders },
+        });
         return applyCspHeaders(response, cspHeader);
       }
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error(
-        `Error fetching isInMaintenanceMode from edge config: ${error}`,
-      );
+      console.error(`Error fetching isInMaintenanceMode from edge config: ${error}`);
     }
   } else if (process.env.VERCEL) {
     // eslint-disable-next-line no-console
@@ -88,10 +77,7 @@ export const middleware = async (request: NextRequest) => {
    * Support for external requests depends on allowing any cross-origin request for type JSON, which is set via headers in next.config.js
    */
 
-  if (
-    ontologyType &&
-    (!accept?.includes("text/html") || ontologyType === "property-type")
-  ) {
+  if (ontologyType && (!accept?.includes("text/html") || ontologyType === "property-type")) {
     return returnTypeAsJson(request);
   }
 

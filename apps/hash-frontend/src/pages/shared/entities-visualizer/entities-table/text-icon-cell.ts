@@ -2,10 +2,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 
 import { customColors } from "@hashintel/design-system/theme";
 
-import {
-  getCellHorizontalPadding,
-  getYCenter,
-} from "../../../../components/grid/utils";
+import { getCellHorizontalPadding, getYCenter } from "../../../../components/grid/utils";
 import { drawTextWithIcon } from "../../../../components/grid/utils/draw-text-with-icon";
 
 import type { CustomIcon } from "../../../../components/grid/utils/custom-grid-icons";

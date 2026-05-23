@@ -15,10 +15,7 @@ import {
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
 import { DifferentialEquationsSectionHeaderAction } from "./differential-equations-list";
-import {
-  RowMenu,
-  createFilterableListSubView,
-} from "./filterable-list-sub-view";
+import { RowMenu, createFilterableListSubView } from "./filterable-list-sub-view";
 import { ParametersHeaderAction } from "./parameters-list";
 import { TypesSectionHeaderAction } from "./types-list";
 
@@ -46,8 +43,7 @@ interface EntityTreeItem {
 }
 
 const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
-  const { removeType, removeDifferentialEquation, removeParameter } =
-    use(MutationContext);
+  const { removeType, removeDifferentialEquation, removeParameter } = use(MutationContext);
   const { globalMode } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
@@ -69,8 +65,7 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
 
   const deleteActions: Partial<Record<string, () => void>> = {
     type: () => removeType({ typeId: item.id }),
-    differentialEquation: () =>
-      removeDifferentialEquation({ equationId: item.id }),
+    differentialEquation: () => removeDifferentialEquation({ equationId: item.id }),
     parameter: () => removeParameter({ parameterId: item.id }),
   };
   const deleteAction = deleteActions[type];
@@ -97,13 +92,7 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
 
 function useEntityTreeItems(): EntityTreeItem[] {
   const {
-    petriNetDefinition: {
-      places,
-      transitions,
-      types,
-      differentialEquations,
-      parameters,
-    },
+    petriNetDefinition: { places, transitions, types, differentialEquations, parameters },
   } = use(SDCPNContext);
 
   return [
@@ -175,8 +164,7 @@ export const entitiesTreeSubView: SubView = {
     id: "entities-tree",
     title: "Entities",
     useItems: useEntityTreeItems,
-    getSelectionItem: (item) =>
-      item.selectionItem ?? { type: "place", id: item.id },
+    getSelectionItem: (item) => item.selectionItem ?? { type: "place", id: item.id },
     renderItem: (item) => {
       if (item.variableName) {
         return (

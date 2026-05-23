@@ -1,11 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { Box, buttonClasses, Fade, ListItemText, Menu } from "@mui/material";
-import {
-  anchorRef,
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { anchorRef, bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useMemo, useState } from "react";
 
 import {
@@ -13,10 +8,7 @@ import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
 } from "@blockprotocol/graph/stdlib";
-import {
-  type EntityId,
-  extractDraftIdFromEntityId,
-} from "@blockprotocol/type-system";
+import { type EntityId, extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
 
 import {
@@ -62,9 +54,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     () =>
       draftEntities
         ? draftEntities.filter((draftEntity) =>
-            selectedDraftEntityIds.includes(
-              draftEntity.metadata.recordId.entityId,
-            ),
+            selectedDraftEntityIds.includes(draftEntity.metadata.recordId.entityId),
           )
         : [],
     [draftEntities, selectedDraftEntityIds],
@@ -85,24 +75,21 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
           draftEntitiesWithLinkedDataSubgraph,
           selectedDraftEntity.metadata.recordId.entityId,
         ).filter(
-          (linkEntity) =>
-            !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
+          (linkEntity) => !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
         ),
         ...getOutgoingLinksForEntity(
           draftEntitiesWithLinkedDataSubgraph,
           selectedDraftEntity.metadata.recordId.entityId,
         ).filter(
-          (linkEntity) =>
-            !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
+          (linkEntity) => !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
         ),
       ];
     });
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
-  const [archiveEntities] = useMutation<
-    ArchiveEntitiesMutation,
-    ArchiveEntitiesMutationVariables
-  >(archiveEntitiesMutation);
+  const [archiveEntities] = useMutation<ArchiveEntitiesMutation, ArchiveEntitiesMutationVariables>(
+    archiveEntitiesMutation,
+  );
 
   const ignoreAllSelectedDraftEntities = useCallback(async () => {
     if (!selectedDraftEntities.length) {
@@ -138,10 +125,8 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     selectedDraftEntityIds,
   ]);
 
-  const [
-    showDraftEntitiesWithDraftLinksWarning,
-    setShowDraftEntitiesWithDraftLinksWarning,
-  ] = useState<boolean>(false);
+  const [showDraftEntitiesWithDraftLinksWarning, setShowDraftEntitiesWithDraftLinksWarning] =
+    useState<boolean>(false);
 
   const handleIgnoreDraftLinkEntitiesWithDraftLinks = useCallback(async () => {
     await ignoreAllSelectedDraftEntities();
@@ -161,11 +146,7 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     }
 
     popupState.close();
-  }, [
-    ignoreAllSelectedDraftEntities,
-    popupState,
-    incomingOrOutgoingDraftLinksToIgnore,
-  ]);
+  }, [ignoreAllSelectedDraftEntities, popupState, incomingOrOutgoingDraftLinksToIgnore]);
 
   const leftOrRightDraftEntitiesToAccept = useMemo(() => {
     if (!draftEntitiesWithLinkedDataSubgraph) {
@@ -194,35 +175,31 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
          * `rightEntity` are nullable in this context.
          */
         leftEntity &&
-        extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId) !==
-          undefined
+        extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId) !== undefined
           ? leftEntity
           : [],
         rightEntity &&
-        extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId) !==
-          undefined
+        extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId) !== undefined
           ? rightEntity
           : [],
       ].flat();
     });
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
-  const [updateEntities] = useMutation<
-    UpdateEntitiesMutation,
-    UpdateEntitiesMutationVariables
-  >(updateEntitiesMutation);
+  const [updateEntities] = useMutation<UpdateEntitiesMutation, UpdateEntitiesMutationVariables>(
+    updateEntitiesMutation,
+  );
 
   const acceptAllSelectedDraftEntities = useCallback(async () => {
     await updateEntities({
       variables: {
-        entityUpdates: [
-          ...selectedDraftEntities,
-          ...(leftOrRightDraftEntitiesToAccept ?? []),
-        ].map((draftEntity) => ({
-          entityId: draftEntity.metadata.recordId.entityId,
-          propertyPatches: [],
-          draft: false,
-        })),
+        entityUpdates: [...selectedDraftEntities, ...(leftOrRightDraftEntitiesToAccept ?? [])].map(
+          (draftEntity) => ({
+            entityId: draftEntity.metadata.recordId.entityId,
+            propertyPatches: [],
+            draft: false,
+          }),
+        ),
       },
     });
 
@@ -251,12 +228,11 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning,
   ] = useState<boolean>(false);
 
-  const handleAcceptDraftLinkEntitiesWithDraftLeftOrRightEntities =
-    useCallback(async () => {
-      await acceptAllSelectedDraftEntities();
+  const handleAcceptDraftLinkEntitiesWithDraftLeftOrRightEntities = useCallback(async () => {
+    await acceptAllSelectedDraftEntities();
 
-      setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false);
-    }, [acceptAllSelectedDraftEntities]);
+    setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false);
+  }, [acceptAllSelectedDraftEntities]);
 
   const handleAcceptAll = useCallback(async () => {
     if (!leftOrRightDraftEntitiesToAccept) {
@@ -270,31 +246,25 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
     }
 
     popupState.close();
-  }, [
-    leftOrRightDraftEntitiesToAccept,
-    acceptAllSelectedDraftEntities,
-    popupState,
-  ]);
+  }, [leftOrRightDraftEntitiesToAccept, acceptAllSelectedDraftEntities, popupState]);
 
   return (
     <>
-      {showDraftEntitiesWithDraftLinksWarning &&
-        incomingOrOutgoingDraftLinksToIgnore && (
-          <AlertModal
-            callback={handleIgnoreDraftLinkEntitiesWithDraftLinks}
-            calloutMessage={
-              <>
-                {incomingOrOutgoingDraftLinksToIgnore.length} additional draft
-                link{incomingOrOutgoingDraftLinksToIgnore.length > 1 ? "s" : ""}{" "}
-                will be ignored because you are ignoring draft entities which
-                they depend on.
-              </>
-            }
-            close={() => setShowDraftEntitiesWithDraftLinksWarning(false)}
-            header="Ignore additional drafts"
-            type="info"
-          />
-        )}
+      {showDraftEntitiesWithDraftLinksWarning && incomingOrOutgoingDraftLinksToIgnore && (
+        <AlertModal
+          callback={handleIgnoreDraftLinkEntitiesWithDraftLinks}
+          calloutMessage={
+            <>
+              {incomingOrOutgoingDraftLinksToIgnore.length} additional draft link
+              {incomingOrOutgoingDraftLinksToIgnore.length > 1 ? "s" : ""} will be ignored because
+              you are ignoring draft entities which they depend on.
+            </>
+          }
+          close={() => setShowDraftEntitiesWithDraftLinksWarning(false)}
+          header="Ignore additional drafts"
+          type="info"
+        />
+      )}
       {showDraftLinkEntitiesWithDraftLeftOrRightEntityWarning &&
         leftOrRightDraftEntitiesToAccept && (
           <AlertModal
@@ -302,30 +272,18 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
             calloutMessage={
               <>
                 {leftOrRightDraftEntitiesToAccept.length} additional draft{" "}
-                {leftOrRightDraftEntitiesToAccept.length > 1
-                  ? "entities"
-                  : "entity"}{" "}
-                will be accepted because you are accepting links which depend on
-                them.
+                {leftOrRightDraftEntitiesToAccept.length > 1 ? "entities" : "entity"} will be
+                accepted because you are accepting links which depend on them.
               </>
             }
-            close={() =>
-              setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false)
-            }
+            close={() => setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false)}
             header="Accept additional drafts"
             type="info"
           />
         )}
       <Fade in={isMoreThanOneDraftSelected}>
-        <Box
-          display="flex"
-          columnGap={1}
-          alignItems="flex-end"
-          ref={anchorRef(popupState)}
-        >
-          <LayerGroupLightIcon
-            sx={{ fontSize: 16, color: ({ palette }) => palette.gray[50] }}
-          />
+        <Box display="flex" columnGap={1} alignItems="flex-end" ref={anchorRef(popupState)}>
+          <LayerGroupLightIcon sx={{ fontSize: 16, color: ({ palette }) => palette.gray[50] }} />
           <Button
             variant="tertiary_quiet"
             sx={{

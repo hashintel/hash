@@ -2,10 +2,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 
 import { customColors } from "@hashintel/design-system/theme";
 
-import {
-  getCellHorizontalPadding,
-  getYCenter,
-} from "../../../../../../../components/grid/utils";
+import { getCellHorizontalPadding, getYCenter } from "../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawVerticalIndentationLine } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 
@@ -31,20 +28,11 @@ export const createRenderPropertyNameCell = (
       (cell.data as any).kind === "property-name-cell",
     draw: (args, cell) => {
       const { ctx, theme, rect, spriteManager } = args;
-      const {
-        children,
-        depth,
-        title,
-        indent,
-        verticalLinesForEachIndent,
-        rowId,
-        isArray,
-      } = cell.data.propertyRow;
+      const { children, depth, title, indent, verticalLinesForEachIndent, rowId, isArray } =
+        cell.data.propertyRow;
 
       const yCenter = getYCenter(args);
-      const columnPadding = getCellHorizontalPadding(
-        !!children.length || depth > 0,
-      );
+      const columnPadding = getCellHorizontalPadding(!!children.length || depth > 0);
 
       const indentMultiplier = 16;
       const indentWidth = indent * indentMultiplier;
@@ -53,9 +41,7 @@ export const createRenderPropertyNameCell = (
 
       // prepare to fill text
       const shouldBeLightColor = depth && !children.length;
-      ctx.fillStyle = shouldBeLightColor
-        ? customColors.gray[50]
-        : theme.textHeader;
+      ctx.fillStyle = shouldBeLightColor ? customColors.gray[50] : theme.textHeader;
       ctx.font = theme.baseFontStyle;
 
       // fill text
@@ -102,10 +88,7 @@ export const createRenderPropertyNameCell = (
 
           if (dir) {
             const indentationLevel = i;
-            const lineLeft =
-              rect.x +
-              columnPadding +
-              indentMultiplier * (indentationLevel - 1);
+            const lineLeft = rect.x + columnPadding + indentMultiplier * (indentationLevel - 1);
 
             drawVerticalIndentationLine(args, lineLeft, dir);
           }

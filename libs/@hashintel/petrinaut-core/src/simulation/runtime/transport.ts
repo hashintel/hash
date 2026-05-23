@@ -5,9 +5,7 @@ import type { SimulationTransport, WorkerFactory } from "../api";
  * Wrap a `Worker` factory in a {@link SimulationTransport}. Messages sent
  * before the worker is ready are queued and flushed once it boots.
  */
-export function createWorkerTransport(
-  createWorker: WorkerFactory,
-): SimulationTransport {
+export function createWorkerTransport(createWorker: WorkerFactory): SimulationTransport {
   const listeners = new Set<(message: unknown) => void>();
   let worker: WorkerLike | null = null;
   let terminated = false;

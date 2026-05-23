@@ -18,9 +18,7 @@ describe("resolvePeerService", () => {
 
   it("matches suffix rules for subdomains", () => {
     expect(resolvePeerService("bigquery.googleapis.com")).toBe("Google Cloud");
-    expect(resolvePeerService("aiplatform.googleapis.com")).toBe(
-      "Google Cloud",
-    );
+    expect(resolvePeerService("aiplatform.googleapis.com")).toBe("Google Cloud");
   });
 
   it("does not match a suffix rule against the bare domain", () => {
@@ -86,10 +84,7 @@ describe("httpRequestSpanNameHook", () => {
       url: "/", // Express rewrites url after route matching
     } as Partial<IncomingMessage> & { originalUrl: string };
 
-    httpRequestSpanNameHook(
-      span,
-      incoming as IncomingMessage & { originalUrl: string },
-    );
+    httpRequestSpanNameHook(span, incoming as IncomingMessage & { originalUrl: string });
 
     expect(updates).toEqual(["POST /graphql"]);
   });

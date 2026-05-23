@@ -18,12 +18,9 @@ export const SignIn = () => {
       <Box mb={2}>
         <HashRainbowLockup sx={{ width: 120 }} />
       </Box>
-      <Typography
-        variant="smallTextParagraphs"
-        sx={{ color: ({ palette }) => palette.gray[90] }}
-      >
-        You do not appear to be logged in to HASH in this browser session.
-        Choose from the options below to get started.
+      <Typography variant="smallTextParagraphs" sx={{ color: ({ palette }) => palette.gray[90] }}>
+        You do not appear to be logged in to HASH in this browser session. Choose from the options
+        below to get started.
       </Typography>
       <Box mt={3}>
         <Typography
@@ -32,11 +29,7 @@ export const SignIn = () => {
         >
           Connect to HASH
         </Typography>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ minWidth: "max-content", mt: 1.5 }}
-        >
+        <Stack direction="row" spacing={1} sx={{ minWidth: "max-content", mt: 1.5 }}>
           <Button
             href={`${FRONTEND_ORIGIN}/signup`}
             size="small"

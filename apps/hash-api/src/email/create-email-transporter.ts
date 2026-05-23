@@ -1,10 +1,7 @@
 import path from "node:path";
 
 import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
-import {
-  getRequiredEnv,
-  monorepoRootDir,
-} from "@local/hash-backend-utils/environment";
+import { getRequiredEnv, monorepoRootDir } from "@local/hash-backend-utils/environment";
 
 import { isDevEnv, isProdEnv, isTestEnv } from "../lib/env-config";
 import { logger } from "../logger";
@@ -25,10 +22,7 @@ export const createEmailTransporter = (): EmailTransporter => {
 
     return new DummyEmailTransporter({
       filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH
-        ? path.resolve(
-            monorepoRootDir,
-            process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
-          )
+        ? path.resolve(monorepoRootDir, process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH)
         : undefined,
     });
   }

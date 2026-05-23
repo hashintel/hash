@@ -5,11 +5,7 @@ import { useEffect } from "react";
 import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
 import { useFullScreen } from "./full-screen-context";
 
-import type {
-  DynamicNodeSizing,
-  GraphVizConfig,
-  StaticNodeSizing,
-} from "./config-control";
+import type { DynamicNodeSizing, GraphVizConfig, StaticNodeSizing } from "./config-control";
 import type { GraphState } from "./state";
 
 export const labelRenderedSizeThreshold = {
@@ -47,11 +43,7 @@ const getRgb = (cssString: string): [number, number, number] | null => {
   // Check if it's in the hex format (#RRGGBB or shorthand #RGB)
   let hexMatch = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cssString);
   if (hexMatch) {
-    return [
-      parseInt(hexMatch[1]!, 16),
-      parseInt(hexMatch[2]!, 16),
-      parseInt(hexMatch[3]!, 16),
-    ];
+    return [parseInt(hexMatch[1]!, 16), parseInt(hexMatch[2]!, 16), parseInt(hexMatch[3]!, 16)];
   }
 
   // Check if it's in the shorthand hex format (#RGB)
@@ -68,11 +60,7 @@ const getRgb = (cssString: string): [number, number, number] | null => {
   const rgbMatch = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/;
   const match = rgbMatch.exec(cssString);
   if (match) {
-    return [
-      parseInt(match[1]!, 10),
-      parseInt(match[2]!, 10),
-      parseInt(match[3]!, 10),
-    ];
+    return [parseInt(match[1]!, 10), parseInt(match[2]!, 10), parseInt(match[3]!, 10)];
   }
 
   return null;
@@ -95,9 +83,7 @@ const lightenColor = (color: string) => {
 /**
  * See also {@link GraphContainer} for additional settings which aren't expected to change in the graph's lifetime
  */
-export const useSetDrawSettings = <
-  NodeSizing extends StaticNodeSizing | DynamicNodeSizing,
->(
+export const useSetDrawSettings = <NodeSizing extends StaticNodeSizing | DynamicNodeSizing>(
   graphState: GraphState,
   config: GraphVizConfig<NodeSizing>,
 ) => {
@@ -149,10 +135,7 @@ export const useSetDrawSettings = <
         const width = maxLineWidth + paddingX * 2;
 
         const backgroundHeight =
-          labelFontSize * lines.length +
-          labelBottomPadding * lines.length +
-          1 +
-          paddingY * 2;
+          labelFontSize * lines.length + labelBottomPadding * lines.length + 1 + paddingY * 2;
 
         const backgroundStartY = data.y - backgroundHeight / 2;
 
@@ -188,10 +171,7 @@ export const useSetDrawSettings = <
           context.fillText(
             lines[i]!,
             data.x + nodeSize + paddingX,
-            backgroundStartY +
-              paddingY +
-              labelFontSize +
-              (labelFontSize + labelBottomPadding) * i,
+            backgroundStartY + paddingY + labelFontSize + (labelFontSize + labelBottomPadding) * i,
           );
         }
       },
@@ -204,8 +184,7 @@ export const useSetDrawSettings = <
     sigma.setSetting("nodeReducer", (node, data) => {
       const nodeData = { ...data };
 
-      nodeData.color =
-        graphState.colorByNodeTypeId?.[nodeData.nodeTypeId] ?? nodeData.color;
+      nodeData.color = graphState.colorByNodeTypeId?.[nodeData.nodeTypeId] ?? nodeData.color;
 
       if (
         !graphState.selectedNodeId &&
@@ -276,10 +255,7 @@ export const useSetDrawSettings = <
         nodeData.forceLabel = true;
       }
 
-      if (
-        graphState.selectedNodeId === node ||
-        graphState.hoveredNodeId === node
-      ) {
+      if (graphState.selectedNodeId === node || graphState.hoveredNodeId === node) {
         nodeData.zIndex = 3;
         if (config.nodeSizing.mode !== "static") {
           nodeData.label = `${nodeData.label} (${nodeData.significance})`;
@@ -296,9 +272,7 @@ export const useSetDrawSettings = <
       const source = graph.source(edge);
       const sourceData = graph.getNodeAttributes(source);
 
-      const sourceColor =
-        graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ??
-        sourceData.color;
+      const sourceColor = graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ?? sourceData.color;
 
       edgeData.color = lightenColor(sourceColor);
 
@@ -317,13 +291,10 @@ export const useSetDrawSettings = <
         edgeData.label = `(${edgeData.significance})`;
       }
 
-      const selectedNode =
-        graphState.selectedNodeId ?? graphState.hoveredNodeId;
+      const selectedNode = graphState.selectedNodeId ?? graphState.hoveredNodeId;
 
       if (!selectedNode && !graphState.highlightedEdgePath) {
-        if (
-          edgeData.size < config.edgeSizing.nonHighlightedVisibleSizeThreshold
-        ) {
+        if (edgeData.size < config.edgeSizing.nonHighlightedVisibleSizeThreshold) {
           /**
            * If we don't have any node hovered, clicked or any edge highlighted,
            * hide the edge if it's below the threshold size
@@ -387,18 +358,15 @@ export const useSetDrawSettings = <
         switch (config.nodeHighlighting.direction) {
           case "All": {
             edgeWasFollowedInTraversal =
-              nodesTraversalPassesThrough.has(source) ||
-              nodesTraversalPassesThrough.has(target);
+              nodesTraversalPassesThrough.has(source) || nodesTraversalPassesThrough.has(target);
             break;
           }
           case "In": {
-            edgeWasFollowedInTraversal =
-              nodesTraversalPassesThrough.has(target);
+            edgeWasFollowedInTraversal = nodesTraversalPassesThrough.has(target);
             break;
           }
           case "Out": {
-            edgeWasFollowedInTraversal =
-              nodesTraversalPassesThrough.has(source);
+            edgeWasFollowedInTraversal = nodesTraversalPassesThrough.has(source);
             break;
           }
         }

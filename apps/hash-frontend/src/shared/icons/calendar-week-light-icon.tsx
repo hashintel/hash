@@ -3,9 +3,7 @@ import { SvgIcon } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const CalendarWeekLightIcon: FunctionComponent<SvgIconProps> = (
-  props,
-) => {
+export const CalendarWeekLightIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon {...props} height="16" width="14" viewBox="0 0 448 512">
       <path

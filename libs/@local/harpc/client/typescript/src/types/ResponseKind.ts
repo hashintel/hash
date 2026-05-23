@@ -17,14 +17,11 @@ import { MutableBuffer } from "../binary/index.js";
 import { createProto, implDecode, implEncode } from "../utils.js";
 import * as ErrorCode from "./ErrorCode.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/types/ResponseKind",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/types/ResponseKind");
 
 export type TypeId = typeof TypeId;
 
-export interface Ok
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface Ok extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly _tag: "Ok";
 }
@@ -68,8 +65,7 @@ const OkProto: Ok = {
 
 export const ok = (): Ok => createProto(OkProto, {});
 
-export interface Err
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface Err extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly _tag: "Err";
 
@@ -86,11 +82,7 @@ const ErrProto: Omit<Err, "code"> = {
   },
 
   [Hash.symbol](this: Err) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.code)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.code)), Hash.cached(this));
   },
 
   toString(this: Err) {
@@ -115,8 +107,7 @@ const ErrProto: Omit<Err, "code"> = {
   },
 };
 
-export const err = (code: ErrorCode.ErrorCode): Err =>
-  createProto(ErrProto, { code });
+export const err = (code: ErrorCode.ErrorCode): Err => createProto(ErrProto, { code });
 
 export type ResponseKind = Ok | Err;
 
@@ -124,9 +115,7 @@ export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, kind: ResponseKind) =>
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  isOk(kind)
-    ? MutableBuffer.putU16(buffer, 0)
-    : ErrorCode.encode(buffer, kind.code),
+  isOk(kind) ? MutableBuffer.putU16(buffer, 0) : ErrorCode.encode(buffer, kind.code),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
@@ -148,8 +137,7 @@ export const decode = implDecode((buffer) =>
 export const isResponseKind = (value: unknown): value is ResponseKind =>
   Predicate.hasProperty(value, TypeId);
 
-export const isOk = (value: unknown): value is Ok =>
-  isResponseKind(value) && value._tag === "Ok";
+export const isOk = (value: unknown): value is Ok => isResponseKind(value) && value._tag === "Ok";
 
 export const isErr = (value: unknown): value is Err =>
   isResponseKind(value) && value._tag === "Err";
@@ -185,9 +173,7 @@ export const match: {
   },
 );
 
-export const getErr = (
-  self: ResponseKind,
-): Option.Option<ErrorCode.ErrorCode> =>
+export const getErr = (self: ResponseKind): Option.Option<ErrorCode.ErrorCode> =>
   match(self, {
     onOk: Option.none,
     onErr: Option.some,

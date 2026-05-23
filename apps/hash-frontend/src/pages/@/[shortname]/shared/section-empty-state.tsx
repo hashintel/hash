@@ -10,11 +10,7 @@ interface SectionEmptyStateProps {
   description: string;
 }
 
-export const SectionEmptyState = ({
-  description,
-  title,
-  titleIcon,
-}: SectionEmptyStateProps) => {
+export const SectionEmptyState = ({ description, title, titleIcon }: SectionEmptyStateProps) => {
   return (
     <WhiteCard>
       <Box
@@ -35,9 +31,7 @@ export const SectionEmptyState = ({
           {titleIcon}
           {title}
         </Typography>
-        <Typography color={({ palette }) => palette.gray[60]}>
-          {description}
-        </Typography>
+        <Typography color={({ palette }) => palette.gray[60]}>{description}</Typography>
       </Box>
     </WhiteCard>
   );

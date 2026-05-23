@@ -1,17 +1,7 @@
-import {
-  Box,
-  outlinedInputClasses,
-  selectClasses,
-  Typography,
-} from "@mui/material";
+import { Box, outlinedInputClasses, selectClasses, Typography } from "@mui/material";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 
-import {
-  IconButton,
-  Select,
-  TextField,
-  XMarkRegularIcon,
-} from "@hashintel/design-system";
+import { IconButton, Select, TextField, XMarkRegularIcon } from "@hashintel/design-system";
 
 import { PlusRegularIcon } from "../../../../shared/icons/plus-regular";
 import { Button, MenuItem } from "../../../../shared/ui";
@@ -69,13 +59,11 @@ export const ServiceAccountsInput: FunctionComponent = () => {
                   },
                 }}
               >
-                {Object.entries(serviceAccountKindOptions).map(
-                  ([kind, name]) => (
-                    <MenuItem key={kind} value={kind}>
-                      {name}
-                    </MenuItem>
-                  ),
-                )}
+                {Object.entries(serviceAccountKindOptions).map(([kind, name]) => (
+                  <MenuItem key={kind} value={kind}>
+                    {name}
+                  </MenuItem>
+                ))}
               </Select>
             )}
             control={control}

@@ -132,18 +132,11 @@ function main() {
     const projectDir = getProjectDir();
     debug("Project directory:", projectDir);
 
-    const rulesPath = path.join(
-      projectDir,
-      ".claude",
-      "skills",
-      "skill-rules.json",
-    );
+    const rulesPath = path.join(projectDir, ".claude", "skills", "skill-rules.json");
 
     debug("Loading rules from:", rulesPath);
 
-    const rules: SkillRules = JSON.parse(
-      readFileSync(rulesPath, "utf-8"),
-    ) as SkillRules;
+    const rules: SkillRules = JSON.parse(readFileSync(rulesPath, "utf-8")) as SkillRules;
 
     debug("Rules loaded, checking", Object.keys(rules.skills).length, "skills");
 
@@ -162,9 +155,7 @@ function main() {
       // Keyword matching with fuzzy support
       if (triggers.keywords) {
         // Try exact substring match first (most specific)
-        const exactMatch = triggers.keywords.find((kw) =>
-          prompt.includes(kw.toLowerCase()),
-        );
+        const exactMatch = triggers.keywords.find((kw) => prompt.includes(kw.toLowerCase()));
 
         if (exactMatch) {
           debug(`Skill '${skillName}': MATCHED via exact keyword`, exactMatch);
@@ -178,9 +169,7 @@ function main() {
             // For multi-word keywords, ALL words must fuzzy-match
             // For single-word keywords, just check if it matches any prompt word
             if (keywordWords.length === 1) {
-              return promptWords.some((pWord) =>
-                isFuzzyMatch(keywordWords[0]!, pWord),
-              );
+              return promptWords.some((pWord) => isFuzzyMatch(keywordWords[0]!, pWord));
             }
 
             // Multi-word: all keyword words must match
@@ -190,10 +179,7 @@ function main() {
           });
 
           if (fuzzyMatch) {
-            debug(
-              `Skill '${skillName}': MATCHED via fuzzy keyword`,
-              fuzzyMatch,
-            );
+            debug(`Skill '${skillName}': MATCHED via fuzzy keyword`, fuzzyMatch);
             matchType = "keyword";
           } else {
             debug(`Skill '${skillName}': no keyword match`);
@@ -204,20 +190,12 @@ function main() {
       // Intent pattern matching (always check, even if keyword matched)
       if (triggers.intentPatterns) {
         try {
-          const compiledPatterns = compileRegexPatterns(
-            triggers.intentPatterns,
-            skillName,
-          );
+          const compiledPatterns = compileRegexPatterns(triggers.intentPatterns, skillName);
 
-          const matchedPattern = compiledPatterns.find((cp) =>
-            cp.regex.test(prompt),
-          );
+          const matchedPattern = compiledPatterns.find((cp) => cp.regex.test(prompt));
 
           if (matchedPattern) {
-            debug(
-              `Skill '${skillName}': MATCHED via intent pattern`,
-              matchedPattern.pattern,
-            );
+            debug(`Skill '${skillName}': MATCHED via intent pattern`, matchedPattern.pattern);
             // Only set matchType to intent if keyword didn't already match
             // (keywords are more specific and take priority)
             matchType ??= "intent";
@@ -225,9 +203,7 @@ function main() {
             debug(`Skill '${skillName}': no intent pattern match`);
           }
         } catch (error) {
-          console.error(
-            `Warning: Skipping skill '${skillName}' due to invalid regex pattern`,
-          );
+          console.error(`Warning: Skipping skill '${skillName}' due to invalid regex pattern`);
           console.error(error instanceof Error ? error.message : String(error));
           continue;
         }
@@ -249,18 +225,10 @@ function main() {
       output += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
 
       // Group by priority
-      const critical = matchedSkills.filter(
-        (skill) => skill.config.priority === "critical",
-      );
-      const high = matchedSkills.filter(
-        (skill) => skill.config.priority === "high",
-      );
-      const medium = matchedSkills.filter(
-        (skill) => skill.config.priority === "medium",
-      );
-      const low = matchedSkills.filter(
-        (skill) => skill.config.priority === "low",
-      );
+      const critical = matchedSkills.filter((skill) => skill.config.priority === "critical");
+      const high = matchedSkills.filter((skill) => skill.config.priority === "high");
+      const medium = matchedSkills.filter((skill) => skill.config.priority === "medium");
+      const low = matchedSkills.filter((skill) => skill.config.priority === "low");
 
       if (critical.length > 0) {
         output += "⚠️  CRITICAL SKILLS (REQUIRED):\n";
@@ -322,9 +290,7 @@ function main() {
       console.error(`Error: ${error.message}`);
 
       if (error.message.includes("ENOENT")) {
-        console.error(
-          "\nLikely cause: skill-rules.json not found or project directory incorrect",
-        );
+        console.error("\nLikely cause: skill-rules.json not found or project directory incorrect");
         console.error(`Project dir: ${getProjectDir()}`);
       }
 

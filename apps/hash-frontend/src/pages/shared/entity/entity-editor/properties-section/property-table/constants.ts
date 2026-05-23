@@ -19,8 +19,4 @@ export const propertyGridColumns: PropertyColumn[] = [
   },
 ];
 
-export const propertyGridIndexes: PropertyColumnKey[] = [
-  "title",
-  "value",
-  "permittedDataTypes",
-];
+export const propertyGridIndexes: PropertyColumnKey[] = ["title", "value", "permittedDataTypes"];

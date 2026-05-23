@@ -42,11 +42,7 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
   private fileUploadPath: string;
   private apiOrigin: string;
 
-  constructor({
-    app,
-    fileUploadPath,
-    apiOrigin,
-  }: LocalFileSystemStorageProviderConstructorArgs) {
+  constructor({ app, fileUploadPath, apiOrigin }: LocalFileSystemStorageProviderConstructorArgs) {
     this.fileUploadPath = path.join(appRoot.path, fileUploadPath);
     this.apiOrigin = apiOrigin;
     if (!fs.existsSync(this.fileUploadPath)) {
@@ -67,15 +63,13 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
           "https://hash.ai/@h/types/property-type/file-storage-key/": {
             value: key,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/file-storage-provider/": {
             value: this.storageType,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         } satisfies Pick<
@@ -88,8 +82,7 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
   }
 
   async presignDownload(params: PresignedDownloadRequest): Promise<Url> {
-    return new URL(path.join(DOWNLOAD_BASE_URL, params.key), this.apiOrigin)
-      .href as Url;
+    return new URL(path.join(DOWNLOAD_BASE_URL, params.key), this.apiOrigin).href as Url;
   }
 
   getFileEntityStorageKey({
@@ -172,10 +165,7 @@ export class LocalFileSystemStorageProvider implements FileStorageProvider {
             return;
           }
 
-          const fileWritePath = path.join(
-            this.fileUploadPath,
-            path.normalize(req.query.key),
-          );
+          const fileWritePath = path.join(this.fileUploadPath, path.normalize(req.query.key));
 
           if (!fileWritePath.startsWith(this.fileUploadPath)) {
             res.status(400).send("Invalid key query parameter");

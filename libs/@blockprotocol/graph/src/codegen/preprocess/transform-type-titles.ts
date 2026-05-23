@@ -8,16 +8,9 @@ import { generatedTypeSuffix } from "../shared.js";
 
 import type { PreprocessContext } from "../context.js";
 import type { JsonSchema } from "../shared.js";
-import type {
-  BaseUrl,
-  DataType,
-  EntityType,
-  PropertyType,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, DataType, EntityType, PropertyType } from "@blockprotocol/type-system";
 
-const typescriptKeywords = new Array(
-  ts.SyntaxKind.LastKeyword - ts.SyntaxKind.FirstKeyword,
-)
+const typescriptKeywords = new Array(ts.SyntaxKind.LastKeyword - ts.SyntaxKind.FirstKeyword)
   .fill(0)
   .map((_, idx) => ts.tokenToString(ts.SyntaxKind.FirstKeyword + idx)!);
 
@@ -38,14 +31,10 @@ const generateValidTypeScriptIdentifierFromTitle = (title: string): string => {
     .map((word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
     .join("");
 
-  const typeName = !/[a-zA-Z]/.test(pascalCase.charAt(0))
-    ? `T${pascalCase}`
-    : pascalCase;
+  const typeName = !/[a-zA-Z]/.test(pascalCase.charAt(0)) ? `T${pascalCase}` : pascalCase;
 
   if (isTypescriptKeyword(typeName)) {
-    throw new Error(
-      `Internal error: generated type name "${typeName}" is a TypeScript keyword`,
-    );
+    throw new Error(`Internal error: generated type name "${typeName}" is a TypeScript keyword`);
   }
 
   return typeName;
@@ -75,9 +64,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
 
   for (const [typeId, type] of typedEntries(context.allTypes)) {
     const override = typeNameOverrides[typeId];
-    const typeNameFromTitle = generateValidTypeScriptIdentifierFromTitle(
-      override ?? type.title,
-    );
+    const typeNameFromTitle = generateValidTypeScriptIdentifierFromTitle(override ?? type.title);
 
     if (override && typeNameFromTitle !== override) {
       context.logWarn(
@@ -110,16 +97,12 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
 
           // We want this process to be deterministic so we sort by Base URL
           const baseUrlToTypesEntries = typedEntries(baseUrlToTypes);
-          (baseUrlToTypesEntries as [BaseUrl, any][]).sort(
-            ([baseUrlA, _A], [baseUrlB, _B]) =>
-              baseUrlA.localeCompare(baseUrlB),
+          (baseUrlToTypesEntries as [BaseUrl, any][]).sort(([baseUrlA, _A], [baseUrlB, _B]) =>
+            baseUrlA.localeCompare(baseUrlB),
           );
 
           /* @todo - Add option to pass in a named capture-group regex which can extract more components */
-          for (const [
-            index,
-            [_baseUrl, typesOfBaseUrl],
-          ] of baseUrlToTypesEntries.entries()) {
+          for (const [index, [_baseUrl, typesOfBaseUrl]] of baseUrlToTypesEntries.entries()) {
             if (typesOfBaseUrl.length > 1) {
               for (const currentTypeRevision of typesOfBaseUrl) {
                 // We have multiple revisions of this type, so we need to differentiate it from the other types with the
@@ -136,9 +119,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
           }
         } else {
           // They're all revisions of the same type (same Base URL) so we can just differentiate them by their version
-          for (const type of mustBeDefined(
-            Object.values(baseUrlToTypes).pop(),
-          )) {
+          for (const type of mustBeDefined(Object.values(baseUrlToTypes).pop())) {
             type.title = `${typeName}V${extractVersion(type.$id).toString()}`;
           }
         }

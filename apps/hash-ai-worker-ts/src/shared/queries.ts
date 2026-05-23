@@ -19,5 +19,6 @@ export type GetExternalInputResponseQuery = QueryDefinition<
   "getExternalInputResponse"
 >;
 
-export const getExternalInputResponseQuery: GetExternalInputResponseQuery =
-  defineQuery("getExternalInputResponse");
+export const getExternalInputResponseQuery: GetExternalInputResponseQuery = defineQuery(
+  "getExternalInputResponse",
+);

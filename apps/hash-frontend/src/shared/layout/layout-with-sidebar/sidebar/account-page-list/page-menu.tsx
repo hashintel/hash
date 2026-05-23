@@ -62,9 +62,7 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
         title: copied ? "Copied!" : "Copy link to page",
         icon: faLink,
         onClick: () => {
-          void navigator.clipboard.writeText(
-            `${window.location.origin}${pagePath}`,
-          );
+          void navigator.clipboard.writeText(`${window.location.origin}${pagePath}`);
           setCopied(true);
           setTimeout(() => {
             setCopied(false);

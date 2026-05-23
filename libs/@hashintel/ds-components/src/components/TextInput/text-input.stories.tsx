@@ -13,11 +13,7 @@ type Variant = NonNullable<TextInputProps["variant"]>;
 type Align = NonNullable<TextInputProps["align"]>;
 
 const variants = ["default", "subtle"] as const satisfies readonly Variant[];
-const alignments = [
-  "left",
-  "center",
-  "right",
-] as const satisfies readonly Align[];
+const alignments = ["left", "center", "right"] as const satisfies readonly Align[];
 const widths = [
   "xs",
   "sm",
@@ -43,14 +39,10 @@ const noop = () => {};
 
 const Controlled = (props: TextInputProps) => {
   const [value, setValue] = useState(String(props.value ?? ""));
-  return (
-    <TextInput {...props} value={value} onChange={(val) => setValue(val)} />
-  );
+  return <TextInput {...props} value={value} onChange={(val) => setValue(val)} />;
 };
 
-const ClearableInput = (
-  props: Omit<TextInputProps, "clearable" | "onChange">,
-) => {
+const ClearableInput = (props: Omit<TextInputProps, "clearable" | "onChange">) => {
   const [value, setValue] = useState(String(props.value ?? ""));
   return (
     <TextInput
@@ -74,9 +66,7 @@ const StyledNumberInput = ({
       {...props}
       value={value}
       onChange={(val) => setValue(val)}
-      clearable={
-        clearable ? { clearable: true, onClear: () => setValue("") } : undefined
-      }
+      clearable={clearable ? { clearable: true, onClear: () => setValue("") } : undefined}
       styledValue={
         <span style={{ color: "green", fontWeight: "bold" }}>
           {Number(value).toLocaleString() || value}
@@ -205,12 +195,7 @@ export const Alignment: Story = () => (
     {alignments.map((align) => (
       <Fragment key={align}>
         <Controlled value={`Align: ${align}`} onChange={noop} align={align} />
-        <Controlled
-          value={`Align: ${align}`}
-          onChange={noop}
-          align={align}
-          readonly
-        />
+        <Controlled value={`Align: ${align}`} onChange={noop} align={align} readonly />
       </Fragment>
     ))}
   </div>
@@ -500,11 +485,7 @@ export const PrefixAndSuffix: Story = () => (
     {prefixSuffixRows.flatMap((row) =>
       variants.map((variant) =>
         row.clearable ? (
-          <ClearableInput
-            key={`${row.key}-${variant}`}
-            {...row.props}
-            variant={variant}
-          />
+          <ClearableInput key={`${row.key}-${variant}`} {...row.props} variant={variant} />
         ) : (
           <Controlled
             key={`${row.key}-${variant}`}

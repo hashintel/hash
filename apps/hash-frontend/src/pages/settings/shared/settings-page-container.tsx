@@ -14,24 +14,13 @@ export const SettingsPageContainer = forwardRef<
   }>
 >(
   (
-    {
-      topRightElement,
-      children,
-      heading,
-      subHeading,
-      disableContentWrapper,
-      sectionLabel,
-    },
+    { topRightElement, children, heading, subHeading, disableContentWrapper, sectionLabel },
     ref,
   ) => {
     return (
       <>
         <Box marginBottom={4}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-          >
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Typography
               ref={ref}
               variant="h2"

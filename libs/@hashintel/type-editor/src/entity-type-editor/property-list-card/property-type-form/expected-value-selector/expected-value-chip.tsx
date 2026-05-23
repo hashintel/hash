@@ -48,8 +48,7 @@ export const ExpectedValueChip = ({
                 color: colors.textColor,
                 py: 0.25,
                 pr: hovered ? 0.75 : 1.5,
-                transition: ({ transitions }) =>
-                  transitions.create("padding-right"),
+                transition: ({ transitions }) => transitions.create("padding-right"),
               }}
             >
               <FontAwesomeIcon

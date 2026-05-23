@@ -133,10 +133,7 @@ export type DropdownSelectorProps<OptionId extends string = string> = {
   sx?: SelectProps["sx"];
   onOpen: () => void;
   onClose: () => void;
-  renderValue?: (
-    selectedOption: Option,
-    selectedGroup: OptionGroup | null,
-  ) => JSX.Element;
+  renderValue?: (selectedOption: Option, selectedGroup: OptionGroup | null) => JSX.Element;
 };
 
 export const DropdownSelector = <OptionId extends string = string>({

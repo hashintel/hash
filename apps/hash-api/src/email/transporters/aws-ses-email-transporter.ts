@@ -5,10 +5,7 @@ import nodemailer from "nodemailer";
 
 import { logger } from "../../logger";
 
-import type {
-  EmailTransporter,
-  EmailTransporterSendMailOptions,
-} from "./types";
+import type { EmailTransporter, EmailTransporterSendMailOptions } from "./types";
 import type SESTransport from "nodemailer/lib/ses-transport";
 
 export interface AwsSesEmailTransporterConfig {

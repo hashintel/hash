@@ -20,17 +20,12 @@ const OntologyChip: ForwardRefRenderFunction<
   const icon = isHash ? <IconRainbowHash /> : null;
 
   const pathComponents = useMemo(() => {
-    const match = path.match(
-      /(@[\w-]+)(\/[^/]+\/[^/]*)?(?:\/([\w-]+))?(\/.*)?/,
-    );
+    const match = path.match(/(@[\w-]+)(\/[^/]+\/[^/]*)?(?:\/([\w-]+))?(\/.*)?/);
 
     return match
       ? {
           shortname: match[1],
-          between:
-            (match[2] ?? match[3])
-              ? `${match[2] ?? ""}${match[3] ? "/" : ""}`
-              : undefined,
+          between: (match[2] ?? match[3]) ? `${match[2] ?? ""}${match[3] ? "/" : ""}` : undefined,
           slug: match[3],
           after: match[4],
         }
@@ -68,13 +63,7 @@ const OntologyChip: ForwardRefRenderFunction<
         }}
       >
         {icon && (
-          <Box
-            width={16}
-            height={16}
-            mr={1.25}
-            overflow="hidden"
-            position="relative"
-          >
+          <Box width={16} height={16} mr={1.25} overflow="hidden" position="relative">
             {icon}
           </Box>
         )}
@@ -123,10 +112,7 @@ const OntologyChip: ForwardRefRenderFunction<
             >
               {pathComponents.shortname}
             </Typography>
-            <Typography
-              component="span"
-              color={(theme) => theme.palette.blue[70]}
-            >
+            <Typography component="span" color={(theme) => theme.palette.blue[70]}>
               {pathComponents.between}
             </Typography>
             {pathComponents.slug ? (
@@ -139,20 +125,13 @@ const OntologyChip: ForwardRefRenderFunction<
               </Typography>
             ) : null}
             {pathComponents.after ? (
-              <Typography
-                component="span"
-                color={(theme) => theme.palette.blue[70]}
-              >
+              <Typography component="span" color={(theme) => theme.palette.blue[70]}>
                 {pathComponents.after}
               </Typography>
             ) : null}
           </Box>
         ) : (
-          <Typography
-            component="span"
-            fontWeight="bold"
-            color={(theme) => theme.palette.blue[70]}
-          >
+          <Typography component="span" fontWeight="bold" color={(theme) => theme.palette.blue[70]}>
             {path}
           </Typography>
         )}

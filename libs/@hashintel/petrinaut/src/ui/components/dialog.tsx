@@ -61,22 +61,14 @@ const dialogOuterStyle = css({
 
 // -- Subcomponents -----------------------------------------------------------
 
-const Content = ({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) => {
+const Content = ({ children, className }: { children: ReactNode; className?: string }) => {
   const portalContainerRef = usePortalContainerRef();
 
   return (
     <Portal container={portalContainerRef}>
       <ArkDialog.Backdrop className={backdropStyle} />
       <ArkDialog.Positioner className={positionerStyle}>
-        <ArkDialog.Content
-          className={cx(outerStyle, dialogOuterStyle, className)}
-        >
+        <ArkDialog.Content className={cx(outerStyle, dialogOuterStyle, className)}>
           {children}
         </ArkDialog.Content>
       </ArkDialog.Positioner>
@@ -104,13 +96,9 @@ const Card = ({ children }: { children: ReactNode }) => (
   </PanelCard>
 );
 
-const Header = ({
-  children,
-  description,
-}: {
-  children: ReactNode;
-  description?: ReactNode;
-}) => <PanelHeader description={description}>{children}</PanelHeader>;
+const Header = ({ children, description }: { children: ReactNode; description?: ReactNode }) => (
+  <PanelHeader description={description}>{children}</PanelHeader>
+);
 
 // -- Compound export ---------------------------------------------------------
 

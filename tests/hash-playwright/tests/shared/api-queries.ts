@@ -38,33 +38,26 @@ const callGraphQlApi = async <Response, Variables>(
     data: { query, variables },
   });
   if (!resp.ok()) {
-    throw new Error(
-      `GraphQL request failed: ${resp.status()} ${resp.statusText()}`,
-    );
+    throw new Error(`GraphQL request failed: ${resp.status()} ${resp.statusText()}`);
   }
   const body = (await resp.json()) as {
     data?: Response;
     errors?: GraphQLError[];
   };
   if (body.errors?.length) {
-    throw new Error(
-      `GraphQL errors: ${body.errors.map((err) => err.message).join(", ")}`,
-    );
+    throw new Error(`GraphQL errors: ${body.errors.map((err) => err.message).join(", ")}`);
   }
   return body;
 };
 
 export const getUser = async (requestContext: APIRequestContext) => {
-  const { data } = await callGraphQlApi<MeQuery, MeQueryVariables>(
-    requestContext,
-    { query: meQuery },
-  );
+  const { data } = await callGraphQlApi<MeQuery, MeQueryVariables>(requestContext, {
+    query: meQuery,
+  });
   if (!data) {
     throw new Error("meQuery returned no data");
   }
-  return getRoots(
-    deserializeSubgraph<EntityRootType<HashEntity<User>>>(data.me.subgraph),
-  )[0];
+  return getRoots(deserializeSubgraph<EntityRootType<HashEntity<User>>>(data.me.subgraph))[0];
 };
 
 export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
@@ -78,20 +71,17 @@ export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
     webId: WebId;
   },
 ): Promise<Entity<T>> => {
-  return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
-    requestContext,
-    {
-      query: createEntityMutation,
-      variables: {
-        draft: params.draft,
-        entityTypeIds: params.entityTypeIds,
-        properties: params.properties,
-        linkData: params.linkData,
-        linkedEntities: params.linkedEntities,
-        webId: params.webId,
-      },
+  return callGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(requestContext, {
+    query: createEntityMutation,
+    variables: {
+      draft: params.draft,
+      entityTypeIds: params.entityTypeIds,
+      properties: params.properties,
+      linkData: params.linkData,
+      linkedEntities: params.linkedEntities,
+      webId: params.webId,
     },
-  ).then(({ data }) => {
+  }).then(({ data }) => {
     if (!data) {
       throw new Error("Entity not created");
     }

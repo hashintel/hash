@@ -16,11 +16,7 @@ import {
   isLlmParamsGoogleAiParams,
 } from "./get-llm-response/types.js";
 
-import type {
-  LlmParams,
-  LlmRequestMetadata,
-  LlmResponse,
-} from "./get-llm-response/types.js";
+import type { LlmParams, LlmRequestMetadata, LlmResponse } from "./get-llm-response/types.js";
 import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
@@ -47,8 +43,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   llmParams: T,
   usageTrackingParams: UsageTrackingParams,
 ): Promise<LlmResponse<T>> => {
-  const { customMetadata, graphApiClient, userAccountId, webId } =
-    usageTrackingParams;
+  const { customMetadata, graphApiClient, userAccountId, webId } = usageTrackingParams;
 
   /**
    * Check whether the web has exceeded its usage limit, before proceeding with the LLM request.
@@ -114,9 +109,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     stepId,
   };
 
-  const { llmResponse, transformedRequest } = isLlmParamsAnthropicLlmParams(
-    llmParams,
-  )
+  const { llmResponse, transformedRequest } = isLlmParamsAnthropicLlmParams(llmParams)
     ? await getAnthropicResponse(llmParams, metadata)
     : isLlmParamsGoogleAiParams(llmParams)
       ? await getGoogleAiResponse(llmParams, metadata)

@@ -8,10 +8,7 @@ import type { Aircraft as HashAircraft } from "@local/hash-isomorphic-utils/syst
 /**
  * Input type for aircraft mapping from AeroAPI data.
  */
-export type AeroApiAircraftInput = Pick<
-  AeroApiScheduledFlight,
-  "registration" | "aircraft_type"
->;
+export type AeroApiAircraftInput = Pick<AeroApiScheduledFlight, "registration" | "aircraft_type">;
 
 /**
  * Maps AeroAPI aircraft data to a HASH Aircraft entity.
@@ -21,10 +18,7 @@ export type AeroApiAircraftInput = Pick<
  * - registration: Aircraft registration number (e.g., "G-XLEA") – but sometimes missing
  * - aircraft_type: ICAO aircraft type code (e.g., "A388" for Airbus A380-800) - not yet encountered missing
  */
-export const mapAircraft: MappingFunction<
-  AeroApiAircraftInput,
-  HashAircraft
-> = (
+export const mapAircraft: MappingFunction<AeroApiAircraftInput, HashAircraft> = (
   input: AeroApiAircraftInput,
   provenance: Pick<ProvidedEntityEditionProvenance, "sources">,
 ) => {
@@ -43,8 +37,7 @@ export const mapAircraft: MappingFunction<
       "https://hash.ai/@h/types/property-type/registration-number/": {
         value: registration,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           provenance,
         },
       },
@@ -52,8 +45,7 @@ export const mapAircraft: MappingFunction<
         "https://hash.ai/@h/types/property-type/icao-code/": {
           value: input.aircraft_type,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },

@@ -53,8 +53,7 @@ export const generateProposeEntitiesTools = (params: {
   const { entityTypes } = params;
 
   let simplifiedEntityTypeIdMappings: Record<string, VersionedUrl> = {};
-  const reverseSimplifiedEntityTypeIdMappings: Record<VersionedUrl, string> =
-    {};
+  const reverseSimplifiedEntityTypeIdMappings: Record<VersionedUrl, string> = {};
   const tools: LlmToolDefinition<ProposeEntitiesToolName>[] = [
     {
       name: "create_entities",
@@ -62,69 +61,62 @@ export const generateProposeEntitiesTools = (params: {
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        properties: entityTypes.reduce<Record<string, JSONSchema>>(
-          (acc, { schema, isLink }) => {
-            const entityTypeId = schema.$id;
+        properties: entityTypes.reduce<Record<string, JSONSchema>>((acc, { schema, isLink }) => {
+          const entityTypeId = schema.$id;
 
-            const {
-              simplifiedTypeId: simplifiedEntityTypeId,
-              updatedTypeMappings,
-            } = generateSimplifiedTypeId({
+          const { simplifiedTypeId: simplifiedEntityTypeId, updatedTypeMappings } =
+            generateSimplifiedTypeId({
               title: schema.title,
               typeIdOrBaseUrl: entityTypeId,
               existingTypeMappings: simplifiedEntityTypeIdMappings,
-              existingReverseTypeMappings:
-                reverseSimplifiedEntityTypeIdMappings,
+              existingReverseTypeMappings: reverseSimplifiedEntityTypeIdMappings,
             });
 
-            simplifiedEntityTypeIdMappings = updatedTypeMappings;
+          simplifiedEntityTypeIdMappings = updatedTypeMappings;
 
-            /**
-             * @todo H-2241 support proposing entities with multiple types, or remove this code (used by the browser plugin)
-             *    in favour of propose-entities-from-claims
-             */
-            acc[simplifiedEntityTypeId] = {
-              type: "array",
-              title: `${schema.title} entities to create`,
-              items: {
-                type: "object",
-                additionalProperties: false,
-                title: schema.title,
-                description: schema.description,
+          /**
+           * @todo H-2241 support proposing entities with multiple types, or remove this code (used by the browser plugin)
+           *    in favour of propose-entities-from-claims
+           */
+          acc[simplifiedEntityTypeId] = {
+            type: "array",
+            title: `${schema.title} entities to create`,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              title: schema.title,
+              description: schema.description,
+              properties: {
+                entityId: {
+                  description:
+                    "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
+                  type: "number",
+                },
+                ...(isLink ? generateToolLinkFields() : {}),
                 properties: {
-                  entityId: {
-                    description:
-                      "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
-                    type: "number",
-                  },
-                  ...(isLink ? generateToolLinkFields() : {}),
-                  properties: {
-                    description: "The properties to set on the entity",
-                    default: {},
-                    type: "object",
-                    additionalProperties: false,
-                    properties: stripIdsFromDereferencedProperties({
-                      properties: schema.properties,
-                    }),
-                  },
-                } satisfies ProposedEntitySchemaOrData,
-                required: [
-                  "entityId",
-                  "properties",
-                  ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
-                ],
-              },
-            };
-            return acc;
-          },
-          {},
-        ),
+                  description: "The properties to set on the entity",
+                  default: {},
+                  type: "object",
+                  additionalProperties: false,
+                  properties: stripIdsFromDereferencedProperties({
+                    properties: schema.properties,
+                  }),
+                },
+              } satisfies ProposedEntitySchemaOrData,
+              required: [
+                "entityId",
+                "properties",
+                ...(isLink ? ["sourceEntityId", "targetEntityId"] : []),
+              ],
+            },
+          };
+          return acc;
+        }, {}),
       },
     },
     {
       name: "abandon_entities",
-      description:
-        "Give up trying to create, following failures which you cannot correct",
+      description: "Give up trying to create, following failures which you cannot correct",
       inputSchema: {
         type: "object",
         additionalProperties: false,

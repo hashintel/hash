@@ -17,9 +17,7 @@ export type CrossFrameProxyProps = GraphEmbedderMessageCallbacks & {
   onBlockLoaded: () => void;
 };
 
-const fetchSource = memoizeFetchFunction((url) =>
-  fetch(url).then((resp) => resp.text()),
-);
+const fetchSource = memoizeFetchFunction((url) => fetch(url).then((resp) => resp.text()));
 
 export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   sourceUrl,
@@ -127,10 +125,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   );
 
   useEffect(() => {
-    const msgHandler = ({
-      data,
-      source,
-    }: MessageEvent<MessageFromFramedBlock>) => {
+    const msgHandler = ({ data, source }: MessageEvent<MessageFromFramedBlock>) => {
       if (source !== frameRef.current?.contentWindow) {
         return;
       }

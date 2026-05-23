@@ -6,10 +6,7 @@ import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entit
 import { createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import { createComment } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
 import { getCommentNotification } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
-import {
-  createPage,
-  getPageBlocks,
-} from "@apps/hash-api/src/graph/knowledge/system-types/page";
+import { createPage, getPageBlocks } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -50,11 +47,7 @@ describe("Comment Notification", () => {
 
     triggerUser = await createTestUser(graphContext, "notifTrigger", logger);
 
-    recipientUser = await createTestUser(
-      graphContext,
-      "notifRecipient",
-      logger,
-    );
+    recipientUser = await createTestUser(graphContext, "notifRecipient", logger);
 
     testOrg = await createTestOrg(
       {
@@ -103,8 +96,9 @@ describe("Comment Notification", () => {
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
-                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-                  { value: [] },
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": {
+                  value: [],
+                },
               },
             },
           },
@@ -138,9 +132,7 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        webId: extractWebIdFromEntityId(
-          occurredInEntity.entity.metadata.recordId.entityId,
-        ),
+        webId: extractWebIdFromEntityId(occurredInEntity.entity.metadata.recordId.entityId),
         author: triggerUser,
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         textualContent: [],
@@ -187,8 +179,9 @@ describe("Comment Notification", () => {
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
-                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-                  { value: [] },
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": {
+                  value: [],
+                },
               },
             },
           },
@@ -222,9 +215,7 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: recipientUser.accountId },
       {
-        webId: extractWebIdFromEntityId(
-          occurredInEntity.entity.metadata.recordId.entityId,
-        ),
+        webId: extractWebIdFromEntityId(occurredInEntity.entity.metadata.recordId.entityId),
         author: recipientUser,
         parentEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         textualContent: [],
@@ -235,9 +226,7 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        webId: extractWebIdFromEntityId(
-          occurredInEntity.entity.metadata.recordId.entityId,
-        ),
+        webId: extractWebIdFromEntityId(occurredInEntity.entity.metadata.recordId.entityId),
         author: triggerUser,
         parentEntityId: comment.entity.metadata.recordId.entityId,
         textualContent: [],

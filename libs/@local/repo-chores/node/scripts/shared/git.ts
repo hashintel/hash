@@ -2,9 +2,7 @@ import { execa } from "execa";
 
 import { monorepoRootDirPath } from "./monorepo";
 
-export const checkIfDirHasUncommittedChanges = async (
-  dirPath: string,
-): Promise<boolean> => {
+export const checkIfDirHasUncommittedChanges = async (dirPath: string): Promise<boolean> => {
   const gitDiffResult = await execa("git", ["diff", "--exit-code", dirPath], {
     cwd: monorepoRootDirPath,
     reject: false,
@@ -24,8 +22,5 @@ export const checkIfDirHasUncommittedChanges = async (
   }
 
   // The exit code is undefined if the command was interrupted by a signal or failed to spawn
-  return (
-    (gitDiffResult.exitCode && gitDiffResult.exitCode > 0) ||
-    untrackedFiles.trim().length > 0
-  );
+  return (gitDiffResult.exitCode && gitDiffResult.exitCode > 0) || untrackedFiles.trim().length > 0;
 };

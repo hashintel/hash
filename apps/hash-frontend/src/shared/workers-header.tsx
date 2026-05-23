@@ -58,11 +58,7 @@ export const WorkersHeader = ({
       >
         <Container>
           <Box ml={4}>
-            <Stack
-              alignItems="center"
-              direction="row"
-              justifyContent="space-between"
-            >
+            <Stack alignItems="center" direction="row" justifyContent="space-between">
               <Stack alignItems="center" direction="row" gap={1.5}>
                 <title.Icon
                   sx={[
@@ -70,9 +66,7 @@ export const WorkersHeader = ({
                       fill: ({ palette }) => palette.blue[70],
                       fontSize: 39,
                     },
-                    ...(Array.isArray(title.iconSx)
-                      ? title.iconSx
-                      : [title.iconSx]),
+                    ...(Array.isArray(title.iconSx) ? title.iconSx : [title.iconSx]),
                   ]}
                 />
                 <Typography variant="h3" sx={{ fontSize: 26, fontWeight: 400 }}>

@@ -83,9 +83,7 @@ export const SelectScope = ({
   setInferenceConfig,
 }: {
   inferenceConfig: LocalStorage["automaticInferenceConfig"];
-  setInferenceConfig: (
-    config: LocalStorage["automaticInferenceConfig"],
-  ) => void;
+  setInferenceConfig: (config: LocalStorage["automaticInferenceConfig"]) => void;
 }) => {
   const { displayGroupedBy, rules } = inferenceConfig;
 
@@ -128,11 +126,7 @@ export const SelectScope = ({
             },
           })}
         >
-          <AddTypeButton
-            disabled={false}
-            onClick={() => setShowTable(true)}
-            label="SELECT TYPE"
-          />
+          <AddTypeButton disabled={false} onClick={() => setShowTable(true)} label="SELECT TYPE" />
           <Typography sx={{ fontSize: 14 }}>
             You must select at least one type to use auto-inference
           </Typography>

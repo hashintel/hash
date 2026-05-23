@@ -1,11 +1,5 @@
 import { useMutation } from "@apollo/client";
-import {
-  type Dispatch,
-  type SetStateAction,
-  useCallback,
-  useMemo,
-  useState,
-} from "react";
+import { type Dispatch, type SetStateAction, useCallback, useMemo, useState } from "react";
 
 import { isSDCPNEqual } from "@hashintel/petrinaut";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -31,10 +25,7 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
-import type {
-  EntityId,
-  PropertyObjectWithMetadata,
-} from "@blockprotocol/type-system";
+import type { EntityId, PropertyObjectWithMetadata } from "@blockprotocol/type-system";
 import type { SDCPN } from "@hashintel/petrinaut";
 import type { PetriNetPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/petrinet";
 
@@ -85,15 +76,13 @@ export const useProcessSaveAndLoad = ({
 
   const [userEditable, setUserEditable] = useState(true);
 
-  const [createEntity] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation);
+  const [createEntity] = useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
+    createEntityMutation,
+  );
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+  );
 
   const persistedNet = useMemo(() => {
     return persistedNets.find((net) => net.entityId === selectedNetId);
@@ -104,10 +93,7 @@ export const useProcessSaveAndLoad = ({
       return true;
     }
 
-    return (
-      title !== persistedNet.title ||
-      !isSDCPNEqual(petriNet, persistedNet.definition)
-    );
+    return title !== persistedNet.title || !isSDCPNEqual(petriNet, persistedNet.definition);
   }, [petriNet, persistedNet, title]);
 
   const loadPersistedNet = useCallback(
@@ -124,14 +110,10 @@ export const useProcessSaveAndLoad = ({
     async ({ updatedEntityId }: { updatedEntityId: EntityId | null }) => {
       const updatedNetsData = await refetch();
 
-      const transformedNets = getPersistedNetsFromSubgraph(
-        updatedNetsData.data,
-      );
+      const transformedNets = getPersistedNetsFromSubgraph(updatedNetsData.data);
 
       if (updatedEntityId) {
-        const updatedNet = transformedNets.find(
-          (net) => net.entityId === updatedEntityId,
-        );
+        const updatedNet = transformedNets.find((net) => net.entityId === updatedEntityId);
 
         if (updatedNet) {
           loadPersistedNet(updatedNet);
@@ -158,9 +140,7 @@ export const useProcessSaveAndLoad = ({
             propertyPatches: [
               {
                 op: "replace",
-                path: [
-                  systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
-                ],
+                path: [systemPropertyTypes.definitionObject.propertyTypeBaseUrl],
                 property: {
                   metadata: {
                     dataTypeId: blockProtocolDataTypes.object.dataTypeId,

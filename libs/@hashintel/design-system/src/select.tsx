@@ -28,24 +28,12 @@ export type SelectProps<T = unknown> = {
  */
 
 const Select = <T,>(
-  {
-    children,
-    sx = [],
-    selectSx = [],
-    error,
-    helperText,
-    label,
-    ...props
-  }: SelectProps<T>,
+  { children, sx = [], selectSx = [], error, helperText, label, ...props }: SelectProps<T>,
   ref: Ref<HTMLSelectElement>,
 ) => {
   return (
     <Box sx={sx}>
-      {label && (
-        <InputLabel {...(props.labelId && { id: props.labelId })}>
-          {label}
-        </InputLabel>
-      )}
+      {label && <InputLabel {...(props.labelId && { id: props.labelId })}>{label}</InputLabel>}
       <MuiSelect
         displayEmpty={!!props.placeholder}
         fullWidth
@@ -65,10 +53,7 @@ const Select = <T,>(
         {children}
       </MuiSelect>
       <Collapse in={!!helperText}>
-        <FormHelperText
-          error
-          sx={{ display: "flex", alignItems: "center", mt: 1 }}
-        >
+        <FormHelperText error sx={{ display: "flex", alignItems: "center", mt: 1 }}>
           <FontAwesomeIcon icon={faCircleExclamation} />
           <Typography variant="smallTextLabels">{helperText}</Typography>
         </FormHelperText>

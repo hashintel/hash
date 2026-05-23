@@ -14,16 +14,9 @@ import {
 } from "@mui/material";
 import { useContext, useState } from "react";
 
-import {
-  CheckIcon,
-  CloseIcon,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { CheckIcon, CloseIcon, FontAwesomeIcon } from "@hashintel/design-system";
 
-import {
-  useFileUploads,
-  useFileUploadsProgress,
-} from "../../../shared/file-upload-context";
+import { useFileUploads, useFileUploadsProgress } from "../../../shared/file-upload-context";
 import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
 import { SectionWrapper } from "../section-wrapper";
 import { WorkspaceContext } from "../workspace-context";
@@ -73,9 +66,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
     <SectionWrapper
       title="Upload file"
       titleTooltip={`This table lists all ‘${entityType.title}’ uploads you created during this session`}
-      tooltipIcon={
-        <FontAwesomeIcon icon={faCircleQuestion} sx={{ fontSize: 14 }} />
-      }
+      tooltipIcon={<FontAwesomeIcon icon={faCircleQuestion} sx={{ fontSize: 14 }} />}
     >
       {showUploadForm && (
         <Box
@@ -85,11 +76,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
             mb: 2,
           })}
         >
-          <FileUploadDropzone
-            image={isImage}
-            multiple
-            onFilesProvided={onFilesProvided}
-          />
+          <FileUploadDropzone image={isImage} multiple onFilesProvided={onFilesProvided} />
         </Box>
       )}
       {uploads.length ? (
@@ -165,17 +152,14 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                           sx={{
                             alignItems: "center",
                             borderRadius: 4,
-                            border: ({ palette }) =>
-                              `1px solid ${palette.gray[30]}`,
+                            border: ({ palette }) => `1px solid ${palette.gray[30]}`,
                             px: 1.2,
                             py: 0.8,
                             minWidth: 76,
                           }}
                         >
                           {upload.status === "complete" ? (
-                            <CheckIcon
-                              sx={{ color: "blue.70", fontSize: 14, mr: 0.3 }}
-                            />
+                            <CheckIcon sx={{ color: "blue.70", fontSize: 14, mr: 0.3 }} />
                           ) : upload.status === "error" ? (
                             <CloseIcon
                               sx={{
@@ -185,20 +169,10 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                               }}
                             />
                           ) : (
-                            <CircularProgress
-                              {...progressIndicatorProps}
-                              size={14}
-                            />
+                            <CircularProgress {...progressIndicatorProps} size={14} />
                           )}
-                          <Typography
-                            variant="microText"
-                            fontWeight={600}
-                            lineHeight={1}
-                            ml={0.5}
-                          >
-                            {upload.status === "error"
-                              ? "Error"
-                              : `${progressPercent.toFixed(0)}%`}
+                          <Typography variant="microText" fontWeight={600} lineHeight={1} ml={0.5}>
+                            {upload.status === "error" ? "Error" : `${progressPercent.toFixed(0)}%`}
                           </Typography>
                         </Stack>
                         <LinearProgress
@@ -208,10 +182,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                       </Stack>
                     </TableCell>
                     <TableCell sx={{ textAlign: "center", width: 85 }}>
-                      <Action
-                        onRetry={() => uploadFile(upload)}
-                        upload={upload}
-                      />
+                      <Action onRetry={() => uploadFile(upload)} upload={upload} />
                     </TableCell>
                   </TableRow>
                 );

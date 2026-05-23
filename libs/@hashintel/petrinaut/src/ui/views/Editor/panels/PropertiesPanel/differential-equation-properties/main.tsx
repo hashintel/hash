@@ -6,11 +6,7 @@ import { diffEqMainContentSubView } from "./subviews/main";
 
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
 import type { SubView } from "../../../../../components/sub-view/types";
-import type {
-  Color,
-  DifferentialEquation,
-  Place,
-} from "@hashintel/petrinaut-core";
+import type { Color, DifferentialEquation, Place } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",
@@ -28,9 +24,12 @@ interface DifferentialEquationPropertiesProps {
   updateDifferentialEquation: MutationContextValue["updateDifferentialEquation"];
 }
 
-export const DifferentialEquationProperties: React.FC<
-  DifferentialEquationPropertiesProps
-> = ({ differentialEquation, types, places, updateDifferentialEquation }) => {
+export const DifferentialEquationProperties: React.FC<DifferentialEquationPropertiesProps> = ({
+  differentialEquation,
+  types,
+  places,
+  updateDifferentialEquation,
+}) => {
   const value = {
     differentialEquation,
     types,
@@ -41,10 +40,7 @@ export const DifferentialEquationProperties: React.FC<
   return (
     <div className={containerStyle}>
       <DiffEqPropertiesContext value={value}>
-        <VerticalSubViewsContainer
-          name="diff-eq-properties"
-          subViews={subViews}
-        />
+        <VerticalSubViewsContainer name="diff-eq-properties" subViews={subViews} />
       </DiffEqPropertiesContext>
     </div>
   );

@@ -11,10 +11,7 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { Button } from "../../../../../components/button";
 import { DifferentialEquationIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
-import {
-  RowMenu,
-  createFilterableListSubView,
-} from "./filterable-list-sub-view";
+import { RowMenu, createFilterableListSubView } from "./filterable-list-sub-view";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 
@@ -36,9 +33,7 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
       size="xs"
       variant="ghost"
       disabled={isReadOnly}
-      tooltip={
-        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add differential equation"
-      }
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add differential equation"}
       tooltipDisplay="inline"
       iconName="plus"
       onClick={() => {
@@ -79,29 +74,28 @@ const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
 /**
  * SubView definition for Differential Equations list.
  */
-export const differentialEquationsListSubView: SubView =
-  createFilterableListSubView({
-    id: "differential-equations-list",
-    title: "Differential Equations",
-    tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
-    defaultCollapsed: false,
-    resizable: {
-      defaultHeight: 300,
-      minHeight: 200,
-      maxHeight: 600,
-    },
-    useItems: () => {
-      const {
-        petriNetDefinition: { differentialEquations },
-      } = use(SDCPNContext);
-      return differentialEquations.map((eq) => ({
-        ...eq,
-        icon: DifferentialEquationIcon,
-      }));
-    },
-    getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
-    renderItem: (eq) => eq.name,
-    renderRowMenu: DiffEqRowMenu,
-    emptyMessage: "No differential equations yet",
-    renderHeaderAction: () => <DifferentialEquationsSectionHeaderAction />,
-  });
+export const differentialEquationsListSubView: SubView = createFilterableListSubView({
+  id: "differential-equations-list",
+  title: "Differential Equations",
+  tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
+  defaultCollapsed: false,
+  resizable: {
+    defaultHeight: 300,
+    minHeight: 200,
+    maxHeight: 600,
+  },
+  useItems: () => {
+    const {
+      petriNetDefinition: { differentialEquations },
+    } = use(SDCPNContext);
+    return differentialEquations.map((eq) => ({
+      ...eq,
+      icon: DifferentialEquationIcon,
+    }));
+  },
+  getSelectionItem: (eq) => ({ type: "differentialEquation", id: eq.id }),
+  renderItem: (eq) => eq.name,
+  renderRowMenu: DiffEqRowMenu,
+  emptyMessage: "No differential equations yet",
+  renderHeaderAction: () => <DifferentialEquationsSectionHeaderAction />,
+});

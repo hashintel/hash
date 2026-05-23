@@ -1,13 +1,5 @@
 import { useQuery } from "@apollo/client";
-import {
-  Box,
-  Skeleton,
-  Stack,
-  TableBody,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Box, Skeleton, Stack, TableBody, TableHead, TableRow, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
@@ -51,45 +43,42 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
     data: linearIntegrationSyncLinksData,
     loading,
     refetch,
-  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
-    queryEntitiesQuery,
-    {
-      variables: {
-        request: {
-          filter: {
-            all: [
-              generateVersionedUrlMatchingFilter(
-                systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-              ),
-              {
-                equal: [
-                  {
-                    path: ["rightEntity", "webId"],
-                  },
-                  {
-                    parameter: org!.webId,
-                  },
-                ],
-              },
-              {
-                equal: [
-                  {
-                    path: ["archived"],
-                  },
-                  { parameter: false },
-                ],
-              },
-            ],
-          },
-          includeDrafts: false,
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includePermissions: true,
+  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(queryEntitiesQuery, {
+    variables: {
+      request: {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+            ),
+            {
+              equal: [
+                {
+                  path: ["rightEntity", "webId"],
+                },
+                {
+                  parameter: org!.webId,
+                },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["archived"],
+                },
+                { parameter: false },
+              ],
+            },
+          ],
         },
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includePermissions: true,
       },
-      skip: !org,
-      fetchPolicy: "cache-and-network",
     },
-  );
+    skip: !org,
+    fetchPolicy: "cache-and-network",
+  });
 
   const linearIntegrationLinks = useMemo(() => {
     if (!linearIntegrationSyncLinksData) {
@@ -153,46 +142,36 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {linearIntegrationLinks.map(
-                ({ entityId, canEdit, createdById }) => {
-                  const actor = actors?.find(
-                    ({ accountId }) => accountId === createdById,
-                  );
+              {linearIntegrationLinks.map(({ entityId, canEdit, createdById }) => {
+                const actor = actors?.find(({ accountId }) => accountId === createdById);
 
-                  const isUser = actor && "shortname" in actor;
+                const isUser = actor && "shortname" in actor;
 
-                  return (
-                    <TableRow key={entityId}>
-                      <SettingsTableCell>
-                        <Stack direction="row" alignItems="center" gap={1}>
-                          <LinearLogo sx={{ fontSize: 14 }} />
-                          Linear
-                        </Stack>
-                      </SettingsTableCell>
-                      <SettingsTableCell>
-                        {isUser ? (
-                          <Link
-                            href={`/@${actor.shortname}`}
-                            sx={{ textDecoration: "none" }}
-                          >
-                            {actor.displayName}
-                          </Link>
-                        ) : (
-                          actor?.displayName
-                        )}
-                      </SettingsTableCell>
-                      <SettingsTableCell>
-                        {canEdit && (
-                          <OrgIntegrationContextMenu
-                            linkEntityId={entityId}
-                            onUninstall={refetch}
-                          />
-                        )}
-                      </SettingsTableCell>
-                    </TableRow>
-                  );
-                },
-              )}
+                return (
+                  <TableRow key={entityId}>
+                    <SettingsTableCell>
+                      <Stack direction="row" alignItems="center" gap={1}>
+                        <LinearLogo sx={{ fontSize: 14 }} />
+                        Linear
+                      </Stack>
+                    </SettingsTableCell>
+                    <SettingsTableCell>
+                      {isUser ? (
+                        <Link href={`/@${actor.shortname}`} sx={{ textDecoration: "none" }}>
+                          {actor.displayName}
+                        </Link>
+                      ) : (
+                        actor?.displayName
+                      )}
+                    </SettingsTableCell>
+                    <SettingsTableCell>
+                      {canEdit && (
+                        <OrgIntegrationContextMenu linkEntityId={entityId} onUninstall={refetch} />
+                      )}
+                    </SettingsTableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </SettingsTable>
         )}

@@ -32,10 +32,7 @@ export const createPage = gql`
 `;
 
 export const updatePage = gql`
-  mutation updatePage(
-    $entityId: EntityId!
-    $updatedProperties: PageUpdateData!
-  ) {
+  mutation updatePage($entityId: EntityId!, $updatedProperties: PageUpdateData!) {
     updatePage(entityId: $entityId, updatedProperties: $updatedProperties) {
       metadata
     }

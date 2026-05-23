@@ -87,9 +87,7 @@ export const getDereferencedEntityTypesActivity = async (params: {
           // ...and that link must not have destination constraints which cannot be met
           !(
             "oneOf" in targetSchema.items &&
-            !targetSchema.items.oneOf.some(
-              (targetOption) => entityTypes[targetOption.$ref],
-            )
+            !targetSchema.items.oneOf.some((targetOption) => entityTypes[targetOption.$ref])
           ),
       ),
     );

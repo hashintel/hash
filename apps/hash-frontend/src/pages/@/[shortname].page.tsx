@@ -2,10 +2,7 @@ import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  getEntityTypeAndDescendantsById,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getEntityTypeAndDescendantsById, getRoots } from "@blockprotocol/graph/stdlib";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
@@ -20,11 +17,7 @@ import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity
 import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
 import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
-import {
-  constructOrg,
-  constructUser,
-  isEntityUserEntity,
-} from "../../lib/user-and-org";
+import { constructOrg, constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { useUserOrOrg } from "../../shared/use-user-or-org";
@@ -58,20 +51,16 @@ const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();
   const { latestEntityTypes } = useLatestEntityTypesOptional();
 
-  const { profileShortname, currentTabTitle } = parseProfilePageUrlQueryParams(
-    router.query,
-  );
+  const { profileShortname, currentTabTitle } = parseProfilePageUrlQueryParams(router.query);
 
-  const [displayEditUserProfileInfoModal, setDisplayEditUserProfileInfoModal] =
-    useState(false);
+  const [displayEditUserProfileInfoModal, setDisplayEditUserProfileInfoModal] = useState(false);
 
-  const { canUserEdit, userOrOrg, userOrOrgSubgraph, loading, refetch } =
-    useUserOrOrg({
-      shortname: profileShortname,
-      includeAvatar: true,
-      includeMembersOfOrg: true,
-      includePermissions: true,
-    });
+  const { canUserEdit, userOrOrg, userOrOrgSubgraph, loading, refetch } = useUserOrOrg({
+    shortname: profileShortname,
+    includeAvatar: true,
+    includeMembersOfOrg: true,
+    includePermissions: true,
+  });
 
   const profile = useMemo(() => {
     if (!userOrOrgSubgraph || !userOrOrg) {
@@ -91,8 +80,7 @@ const ProfilePage: NextPageWithLayout = () => {
     }
   }, [userOrOrgSubgraph, userOrOrg]);
 
-  const profileWebId =
-    profile?.kind === "org" ? profile.webId : profile?.accountId;
+  const profileWebId = profile?.kind === "org" ? profile.webId : profile?.accountId;
 
   const { data: entityTypesData, loading: entityTypesLoading } = useQuery<
     QueryEntityTypesQuery,
@@ -194,11 +182,7 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const webTypes = useMemo(() => {
-    const types: (
-      | PropertyTypeWithMetadata
-      | EntityTypeWithMetadata
-      | DataTypeWithMetadata
-    )[] = [];
+    const types: (PropertyTypeWithMetadata | EntityTypeWithMetadata | DataTypeWithMetadata)[] = [];
 
     if (propertyTypesData) {
       types.push(...propertyTypesData.queryPropertyTypes.propertyTypes);
@@ -222,9 +206,7 @@ const ProfilePage: NextPageWithLayout = () => {
   const pinnedEntityTypeBaseUrls = useMemo<BaseUrl[]>(
     () =>
       [
-        enabledFeatureFlags.pages
-          ? systemEntityTypes.page.entityTypeBaseUrl
-          : [],
+        enabledFeatureFlags.pages ? systemEntityTypes.page.entityTypeBaseUrl : [],
         ...(profile?.pinnedEntityTypeBaseUrls ?? []),
       ].flat(),
     [profile, enabledFeatureFlags],
@@ -288,10 +270,7 @@ const ProfilePage: NextPageWithLayout = () => {
                     equal: [
                       { path: ["webId"] },
                       {
-                        parameter:
-                          profile.kind === "org"
-                            ? profile.webId
-                            : profile.accountId,
+                        parameter: profile.kind === "org" ? profile.webId : profile.accountId,
                       },
                     ],
                   },
@@ -314,9 +293,7 @@ const ProfilePage: NextPageWithLayout = () => {
   });
 
   const entitiesSubgraph = pinnedEntityTypesData
-    ? deserializeQueryEntitySubgraphResponse(
-        pinnedEntityTypesData.queryEntitySubgraph,
-      ).subgraph
+    ? deserializeQueryEntitySubgraphResponse(pinnedEntityTypesData.queryEntitySubgraph).subgraph
     : undefined;
 
   const allPinnedEntities = useMemo(
@@ -329,18 +306,14 @@ const ProfilePage: NextPageWithLayout = () => {
       baseTabs.map((tab) => {
         if (tab.kind === "pinned-entity-type") {
           const entityType = latestEntityTypes?.find(
-            ({ metadata }) =>
-              metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
+            ({ metadata }) => metadata.recordId.baseUrl === tab.entityTypeBaseUrl,
           );
 
           let entityTypeAndDescendants = entityType ? [entityType] : [];
           try {
             entityTypeAndDescendants =
               entityType && entitiesSubgraph
-                ? getEntityTypeAndDescendantsById(
-                    entitiesSubgraph,
-                    entityType.schema.$id,
-                  )
+                ? getEntityTypeAndDescendantsById(entitiesSubgraph, entityType.schema.$id)
                 : entityType
                   ? [entityType]
                   : [];
@@ -350,16 +323,14 @@ const ProfilePage: NextPageWithLayout = () => {
              */
           }
 
-          const entityTypeBaseUrls = entityTypeAndDescendants.map(
-            ({ schema }) => extractBaseUrl(schema.$id),
+          const entityTypeBaseUrls = entityTypeAndDescendants.map(({ schema }) =>
+            extractBaseUrl(schema.$id),
           );
 
           const pluralTitle =
             // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
             entityType?.schema.titlePlural ||
-            (entityType?.schema.title
-              ? pluralize(entityType.schema.title)
-              : undefined);
+            (entityType?.schema.title ? pluralize(entityType.schema.title) : undefined);
 
           return {
             ...tab,
@@ -426,9 +397,7 @@ const ProfilePage: NextPageWithLayout = () => {
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         currentTab={currentTab}
         webTypes={webTypes}
-        webTypesLoading={
-          entityTypesLoading || propertyTypesLoading || dataTypesLoading
-        }
+        webTypesLoading={entityTypesLoading || propertyTypesLoading || dataTypesLoading}
       />
       {profile && profile.kind === "user" ? (
         <EditUserProfileInfoModal

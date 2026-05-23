@@ -13,19 +13,10 @@ import { createPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
-import type {
-  CreatePageMutation,
-  CreatePageMutationVariables,
-} from "../../graphql/api-types.gen";
+import type { CreatePageMutation, CreatePageMutationVariables } from "../../graphql/api-types.gen";
 import type { WebId } from "@blockprotocol/type-system";
 
-export const useCreatePage = ({
-  shortname,
-  webId,
-}: {
-  shortname?: string;
-  webId?: WebId;
-}) => {
+export const useCreatePage = ({ shortname, webId }: { shortname?: string; webId?: WebId }) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
@@ -39,9 +30,7 @@ export const useCreatePage = ({
             {
               query: queryEntitySubgraphQuery,
               variables: getAccountPagesVariables({
-                webId: extractWebIdFromEntityId(
-                  data.createPage.metadata.recordId.entityId,
-                ),
+                webId: extractWebIdFromEntityId(data.createPage.metadata.recordId.entityId),
               }),
             },
           ]

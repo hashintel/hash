@@ -12,9 +12,7 @@ import { distributionRuntimeCode } from "./distribution";
 function stripTypeAnnotations(code: string): string {
   const result = Babel.transform(code, {
     filename: "input.ts",
-    presets: [
-      ["typescript", { allowDeclareFields: true, onlyRemoveTypeImports: true }],
-    ],
+    presets: [["typescript", { allowDeclareFields: true, onlyRemoveTypeImports: true }]],
   });
   return result.code ?? "";
 }
@@ -57,9 +55,7 @@ export function compileUserCode<T extends unknown[] = unknown[]>(
   }
 
   // Verify that the default export uses the specified constructor function
-  const constructorPattern = new RegExp(
-    `export\\s+default\\s+${constructorFnName}\\s*\\(`,
-  );
+  const constructorPattern = new RegExp(`export\\s+default\\s+${constructorFnName}\\s*\\(`);
   if (!constructorPattern.test(sanitizedCode)) {
     throw new Error(
       `Default export must use the constructor function '${constructorFnName}'. Expected pattern: export default ${constructorFnName}(...)`,
@@ -88,22 +84,16 @@ export function compileUserCode<T extends unknown[] = unknown[]>(
 
     // Use Function constructor to create and execute the module
     // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-    const compiledFunction = new Function(executableCode)() as (
-      ...args: T
-    ) => unknown;
+    const compiledFunction = new Function(executableCode)() as (...args: T) => unknown;
 
     if (typeof compiledFunction !== "function") {
-      throw new Error(
-        `Expected default export to be a function, got ${typeof compiledFunction}`,
-      );
+      throw new Error(`Expected default export to be a function, got ${typeof compiledFunction}`);
     }
 
     return compiledFunction;
   } catch (error) {
     throw new Error(
-      `Failed to compile user code: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `Failed to compile user code: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }

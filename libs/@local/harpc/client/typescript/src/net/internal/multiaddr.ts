@@ -1,8 +1,4 @@
-import {
-  isMultiaddr,
-  type Multiaddr,
-  type MultiaddrInput,
-} from "@multiformats/multiaddr";
+import { isMultiaddr, type Multiaddr, type MultiaddrInput } from "@multiformats/multiaddr";
 import { Equal, Hash, pipe, Predicate } from "effect";
 
 import { createProto, hashUint8Array } from "../../utils.js";
@@ -11,9 +7,7 @@ const MultiaddrSymbol = Symbol.for("@multiformats/js-multiaddr/multiaddr");
 
 type MultiaddrSymbol = typeof MultiaddrSymbol;
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/net/internal/HashableMultiaddr",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/net/internal/HashableMultiaddr");
 
 type TypeId = typeof TypeId;
 

@@ -6,9 +6,7 @@ import { useUserOrOrg } from "../../shared/use-user-or-org";
 
 import type { WebId } from "@blockprotocol/type-system";
 
-export const useUserOrOrgShortnameByWebId = (params: {
-  webId: WebId | null;
-}) => {
+export const useUserOrOrgShortnameByWebId = (params: { webId: WebId | null }) => {
   const { webId } = params;
 
   const { userOrOrg, loading } = useUserOrOrg({

@@ -48,9 +48,11 @@ type SsoFlow =
   | { kind: "login"; flow: LoginFlow }
   | { kind: "registration"; flow: RegistrationFlow };
 
-export const SsoProviderButtons: FunctionComponent<
-  SsoFlow & { onFlowError: FlowErrorHandler }
-> = ({ kind, flow, onFlowError }) => {
+export const SsoProviderButtons: FunctionComponent<SsoFlow & { onFlowError: FlowErrorHandler }> = ({
+  kind,
+  flow,
+  onFlowError,
+}) => {
   const oidcNodes = flow.ui.nodes.filter(({ group }) => group === "oidc");
 
   if (oidcNodes.length === 0) {
@@ -76,9 +78,7 @@ export const SsoProviderButtons: FunctionComponent<
 
     void updateFlow
       .catch((err: AxiosError) => {
-        const data = err.response?.data as
-          | { redirect_browser_to?: string }
-          | undefined;
+        const data = err.response?.data as { redirect_browser_to?: string } | undefined;
         if (err.response?.status === 422 && data?.redirect_browser_to) {
           window.location.href = data.redirect_browser_to;
           return;
@@ -126,9 +126,7 @@ export const SsoProviderButtons: FunctionComponent<
               variant="tertiary"
               size="small"
               sx={ssoButtonSx}
-              startIcon={
-                Icon ? <Icon sx={{ width: 20, height: 20 }} /> : undefined
-              }
+              startIcon={Icon ? <Icon sx={{ width: 20, height: 20 }} /> : undefined}
               onClick={() => handleProviderClick(providerId)}
             >
               {providerName}

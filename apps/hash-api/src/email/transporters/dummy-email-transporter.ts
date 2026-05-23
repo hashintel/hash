@@ -7,10 +7,7 @@ import { dump } from "js-yaml";
 
 import { logger } from "../../logger";
 
-import type {
-  EmailTransporter,
-  EmailTransporterSendMailOptions,
-} from "./types";
+import type { EmailTransporter, EmailTransporterSendMailOptions } from "./types";
 
 interface EmailDump {
   date: string;

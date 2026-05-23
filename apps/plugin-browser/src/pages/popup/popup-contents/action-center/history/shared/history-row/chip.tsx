@@ -14,10 +14,7 @@ export const chipSx: SxProps<Theme> = ({ palette }) => ({
   },
 });
 
-export const Chip = ({
-  children,
-  sx,
-}: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
+export const Chip = ({ children, sx }: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
   <Stack
     direction="row"
     alignItems="center"

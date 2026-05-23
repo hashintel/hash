@@ -23,10 +23,7 @@ const randomStringSuffix = () => {
     .join("");
 };
 
-export const createTestImpureGraphContext = (): ImpureGraphContext<
-  true,
-  true
-> => {
+export const createTestImpureGraphContext = (): ImpureGraphContext<true, true> => {
   const logger = new Logger({
     environment: "test",
     level: "debug",
@@ -57,24 +54,16 @@ export const createTestImpureGraphContext = (): ImpureGraphContext<
     },
     uploadProvider: {
       getFlowOutputStorageKey: () => {
-        throw new Error(
-          "File fetching not implemented in tests. Override with mock to test.",
-        );
+        throw new Error("File fetching not implemented in tests. Override with mock to test.");
       },
       downloadDirect: () => {
-        throw new Error(
-          "File fetching not implemented in tests. Override with mock to test.",
-        );
+        throw new Error("File fetching not implemented in tests. Override with mock to test.");
       },
       uploadDirect: () => {
-        throw new Error(
-          "File fetching not implemented in tests. Override with mock to test.",
-        );
+        throw new Error("File fetching not implemented in tests. Override with mock to test.");
       },
       getFileEntityStorageKey: (_params) => {
-        throw new Error(
-          "File fetching not implemented in tests. Override with mock to test.",
-        );
+        throw new Error("File fetching not implemented in tests. Override with mock to test.");
       },
       presignDownload: (_params) => {
         throw new Error(
@@ -108,11 +97,7 @@ export const createTestUser = async (
     },
     verifyEmails: true,
   }).catch((err) => {
-    logger.error(
-      `Error when creating Kratos Identity, ${shortname}: ${
-        (err as Error).message
-      }`,
-    );
+    logger.error(`Error when creating Kratos Identity, ${shortname}: ${(err as Error).message}`);
     throw err;
   });
 

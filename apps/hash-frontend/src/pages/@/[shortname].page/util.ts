@@ -1,8 +1,5 @@
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 
@@ -25,9 +22,7 @@ export type ProfilePageTab =
       entitiesSubgraph?: Subgraph<EntityRootType<HashEntity>>;
     };
 
-export const parseProfilePageUrlQueryParams = (
-  queryParams: NextParsedUrlQuery | undefined,
-) => {
+export const parseProfilePageUrlQueryParams = (queryParams: NextParsedUrlQuery | undefined) => {
   const profileShortname = queryParams?.shortname;
 
   if (!profileShortname || typeof profileShortname !== "string") {
@@ -37,9 +32,7 @@ export const parseProfilePageUrlQueryParams = (
   const paramsCurrentTabTitle = queryParams.tab;
 
   const currentTabTitle =
-    typeof paramsCurrentTabTitle === "string"
-      ? paramsCurrentTabTitle
-      : "Profile";
+    typeof paramsCurrentTabTitle === "string" ? paramsCurrentTabTitle : "Profile";
 
   return { profileShortname, currentTabTitle };
 };

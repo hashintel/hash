@@ -44,10 +44,7 @@ export const Suggester = <T,>({
 
   // scroll the selected option into view
   const selectedRef = useRef<HTMLLIElement>(null);
-  useEffect(
-    () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
-    [selectedIndex],
-  );
+  useEffect(() => selectedRef.current?.scrollIntoView({ block: "nearest" }), [selectedIndex]);
 
   const onArrow = useCallback(
     (event: KeyboardEvent) => {
@@ -114,13 +111,7 @@ export const Suggester = <T,>({
           </li>
         )}
         {options.length === 0 && (
-          <Box
-            component="li"
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            py={1.5}
-          >
+          <Box component="li" display="flex" justifyContent="center" alignItems="center" py={1.5}>
             <Typography>No results</Typography>
           </Box>
         )}
@@ -130,10 +121,7 @@ export const Suggester = <T,>({
             ref={index === selectedIndex ? selectedRef : undefined}
             key={itemKey(option)}
             sx={({ palette }) => ({
-              backgroundColor:
-                index !== selectedIndex
-                  ? palette.common.white
-                  : palette.gray[20],
+              backgroundColor: index !== selectedIndex ? palette.common.white : palette.gray[20],
               display: "flex",
               "&:hover": {
                 backgroundColor: palette.gray[20],

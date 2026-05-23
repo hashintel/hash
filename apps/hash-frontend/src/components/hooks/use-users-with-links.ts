@@ -54,10 +54,9 @@ export const useUsersWithLinks = ({
                   },
                 ]
               : []),
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
+            generateVersionedUrlMatchingFilter(systemEntityTypes.user.entityTypeId, {
+              ignoreParents: true,
+            }),
           ],
         },
         traversalPaths: [

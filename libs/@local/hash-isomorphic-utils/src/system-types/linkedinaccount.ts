@@ -49,8 +49,7 @@ export type LinkedInAccountOutgoingLinksByLinkEntityTypeId = {};
  */
 export type LinkedInAccountProperties = ServiceAccountProperties & {};
 
-export type LinkedInAccountPropertiesWithMetadata =
-  ServiceAccountPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type LinkedInAccountPropertiesWithMetadata = ServiceAccountPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

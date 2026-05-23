@@ -3,16 +3,8 @@ import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { isDataTypeVertex } from "../../../types/subgraph/vertices.js";
 import { typedValues } from "../../../util/typed-entries.js";
 
-import type {
-  OntologyTypeVertexId,
-  OntologyVertices,
-  Subgraph,
-} from "../../../types/subgraph.js";
-import type {
-  BaseUrl,
-  DataTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { OntologyTypeVertexId, OntologyVertices, Subgraph } from "../../../types/subgraph.js";
+import type { BaseUrl, DataTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph
@@ -39,13 +31,8 @@ export const getDataTypeById = (
   subgraph: Subgraph,
   dataTypeId: VersionedUrl,
 ): DataTypeWithMetadata | undefined => {
-  const [baseUrl, version] = [
-    extractBaseUrl(dataTypeId),
-    extractVersion(dataTypeId),
-  ];
-  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[
-    version.toString()
-  ];
+  const [baseUrl, version] = [extractBaseUrl(dataTypeId), extractVersion(dataTypeId)];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version.toString()];
 
   if (!vertex) {
     return undefined;

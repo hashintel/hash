@@ -8,10 +8,7 @@ import {
 } from "@hashintel/design-system";
 
 import { EllipsisRegularIcon } from "../../../../../../../shared/icons/ellipsis-regular-icon";
-import {
-  statusToSimpleStatus,
-  useStatusForStep,
-} from "../../../../../../shared/flow-runs-context";
+import { statusToSimpleStatus, useStatusForStep } from "../../../../../../shared/flow-runs-context";
 
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -29,9 +26,7 @@ const iconSx = {
 type IconProps = { statusFor: StatusFor };
 
 export const SuccessIcon = ({ statusFor }: IconProps) => (
-  <CheckRegularIcon
-    sx={{ fill: ({ palette }) => palette.success.main, ...iconSx[statusFor] }}
-  />
+  <CheckRegularIcon sx={{ fill: ({ palette }) => palette.success.main, ...iconSx[statusFor] }} />
 );
 
 export const WaitingIcon = ({ statusFor }: IconProps) =>
@@ -40,9 +35,7 @@ export const WaitingIcon = ({ statusFor }: IconProps) =>
       sx={{ fill: ({ palette }) => palette.gray[50], ...iconSx[statusFor] }}
     />
   ) : (
-    <EllipsisRegularIcon
-      sx={{ fill: ({ palette }) => palette.gray[50], ...iconSx[statusFor] }}
-    />
+    <EllipsisRegularIcon sx={{ fill: ({ palette }) => palette.gray[50], ...iconSx[statusFor] }} />
   );
 
 export const ErrorIcon = ({ statusFor }: IconProps) => (
@@ -63,9 +56,7 @@ export const InProgressIcon = ({ statusFor }: IconProps) =>
       variant="indeterminate"
     />
   ) : (
-    <ArrowRightRegularIcon
-      sx={{ fill: ({ palette }) => palette.blue[70], ...iconSx[statusFor] }}
-    />
+    <ArrowRightRegularIcon sx={{ fill: ({ palette }) => palette.blue[70], ...iconSx[statusFor] }} />
   );
 
 export const GroupStepStatus = ({
@@ -83,16 +74,12 @@ export const GroupStepStatus = ({
     return null;
   }
 
-  const simpleStatus = statusForStep
-    ? statusToSimpleStatus(statusForStep.status)
-    : null;
+  const simpleStatus = statusForStep ? statusToSimpleStatus(statusForStep.status) : null;
 
   return (
     <Stack direction="row" ml={2} mb={1}>
       <Box>
-        {!simpleStatus ||
-        simpleStatus === "Waiting" ||
-        simpleStatus === "Information Required" ? (
+        {!simpleStatus || simpleStatus === "Waiting" || simpleStatus === "Information Required" ? (
           <WaitingIcon statusFor="step" />
         ) : simpleStatus === "In Progress" ? (
           <InProgressIcon statusFor="step" />

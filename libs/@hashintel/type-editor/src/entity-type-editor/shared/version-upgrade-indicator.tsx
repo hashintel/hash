@@ -1,10 +1,7 @@
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import { Stack, svgIconClasses, Tooltip, Typography } from "@mui/material";
 
-import {
-  ArrowRightRegularIcon,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { ArrowRightRegularIcon, FontAwesomeIcon } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { ChipIconButton } from "./chip-icon-button";
@@ -87,21 +84,11 @@ export const VersionUpgradeIndicator = ({
         </Tooltip>
       ) : (
         <>
-          <Typography
-            variant="smallTextLabels"
-            color="gray.50"
-            fontWeight={500}
-          >
+          <Typography variant="smallTextLabels" color="gray.50" fontWeight={500}>
             v{currentVersion.toString()}
           </Typography>
-          <ArrowRightRegularIcon
-            sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
-          />
-          <Typography
-            variant="smallTextLabels"
-            color="blue.70"
-            fontWeight={500}
-          >
+          <ArrowRightRegularIcon sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }} />
+          <Typography variant="smallTextLabels" color="blue.70" fontWeight={500}>
             v{latestVersion.toString()}
           </Typography>
           {updateButton}

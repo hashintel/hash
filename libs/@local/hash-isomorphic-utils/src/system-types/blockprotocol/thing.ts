@@ -8,9 +8,7 @@ import type { ObjectMetadata } from "@blockprotocol/type-system";
  * A generic thing
  */
 export type Thing = {
-  entityTypeIds: [
-    "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1",
-  ];
+  entityTypeIds: ["https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1"];
   properties: ThingProperties;
   propertiesWithMetadata: ThingPropertiesWithMetadata;
 };

@@ -15,10 +15,7 @@ const config: PlaywrightTestConfig = {
     },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  reporter: [
-    [ci ? "github" : "list"],
-    ["html", { open: ci ? "never" : "on-failure" }],
-  ],
+  reporter: [[ci ? "github" : "list"], ["html", { open: ci ? "never" : "on-failure" }]],
   retries: ci ? 2 : 0,
   testDir: "tests",
   snapshotDir: "tests/__snapshots__",

@@ -8,24 +8,21 @@ export const createDefaultSettings = ({
 }: {
   userWebWebId: WebId;
 }): PersistedUserSettings => {
-  const automaticInferenceConfig: PersistedUserSettings["automaticInferenceConfig"] =
-    {
-      createAs: "draft",
-      displayGroupedBy: "type",
-      enabled: false,
-      model: "gpt-4-turbo",
-      webId: userWebWebId,
-      rules:
-        FRONTEND_ORIGIN === "https://app.hash.ai" ? defaultProductionRules : [],
-    };
+  const automaticInferenceConfig: PersistedUserSettings["automaticInferenceConfig"] = {
+    createAs: "draft",
+    displayGroupedBy: "type",
+    enabled: false,
+    model: "gpt-4-turbo",
+    webId: userWebWebId,
+    rules: FRONTEND_ORIGIN === "https://app.hash.ai" ? defaultProductionRules : [],
+  };
 
-  const manualInferenceConfig: PersistedUserSettings["manualInferenceConfig"] =
-    {
-      createAs: "draft",
-      model: "gpt-4-turbo",
-      webId: userWebWebId,
-      targetEntityTypeIds: [],
-    };
+  const manualInferenceConfig: PersistedUserSettings["manualInferenceConfig"] = {
+    createAs: "draft",
+    model: "gpt-4-turbo",
+    webId: userWebWebId,
+    targetEntityTypeIds: [],
+  };
 
   return {
     automaticInferenceConfig,

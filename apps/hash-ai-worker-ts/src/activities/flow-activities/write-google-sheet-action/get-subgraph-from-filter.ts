@@ -2,11 +2,7 @@ import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import type {
-  EntityTraversalPath,
-  Filter,
-  GraphApi,
-} from "@local/hash-graph-client";
+import type { EntityTraversalPath, Filter, GraphApi } from "@local/hash-graph-client";
 
 export const getSubgraphFromFilter = async ({
   authentication,

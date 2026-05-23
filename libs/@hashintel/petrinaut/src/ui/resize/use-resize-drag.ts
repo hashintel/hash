@@ -38,11 +38,7 @@ const createOverlay = (direction: ResizeDirection): HTMLDivElement => {
  * While dragging, a full-screen overlay is rendered to capture all
  * pointer events and enforce the resize cursor.
  */
-export const useResizeDrag = ({
-  onDrag,
-  onDragEnd,
-  direction,
-}: UseResizeDragOptions) => {
+export const useResizeDrag = ({ onDrag, onDragEnd, direction }: UseResizeDragOptions) => {
   const [isResizing, setIsResizing] = useState(false);
   const startPosRef = useRef(0);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -53,16 +49,14 @@ export const useResizeDrag = ({
     (event: React.MouseEvent) => {
       event.preventDefault();
       setIsResizing(true);
-      startPosRef.current =
-        direction === "vertical" ? event.clientY : event.clientX;
+      startPosRef.current = direction === "vertical" ? event.clientY : event.clientX;
     },
     [direction],
   );
 
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
-      const currentPos =
-        direction === "vertical" ? event.clientY : event.clientX;
+      const currentPos = direction === "vertical" ? event.clientY : event.clientX;
       onDragRef.current(currentPos - startPosRef.current);
     },
     [direction, onDragRef],

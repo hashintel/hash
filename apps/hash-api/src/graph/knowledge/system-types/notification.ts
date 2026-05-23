@@ -1,13 +1,7 @@
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinksForEntity, getRoots } from "@blockprotocol/graph/stdlib";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import {
-  HashLinkEntity,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
+import { HashLinkEntity, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -23,20 +17,14 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { createEntity, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type { Block } from "./block";
 import type { Comment } from "./comment";
 import type { Page } from "./page";
 import type { Text } from "./text";
 import type { User } from "./user";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  CreateEntityParameters,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import type { CreateEntityParameters, HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ArchivedPropertyValueWithMetadata,
   CommentNotification as CommentNotificationEntity,
@@ -62,24 +50,25 @@ export const archiveNotification: ImpureGraphFunction<
   false,
   true
 > = async (context, authentication, params) => {
-  await updateEntity<
-    MentionNotificationEntity | CommentNotificationEntity | NotificationEntity
-  >(context, authentication, {
-    entity: params.notification.entity,
-    propertyPatches: [
-      {
-        op: "add",
-        path: [systemPropertyTypes.archived.propertyTypeBaseUrl],
-        property: {
-          value: true,
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-          },
-        } satisfies ArchivedPropertyValueWithMetadata,
-      },
-    ],
-  });
+  await updateEntity<MentionNotificationEntity | CommentNotificationEntity | NotificationEntity>(
+    context,
+    authentication,
+    {
+      entity: params.notification.entity,
+      propertyPatches: [
+        {
+          op: "add",
+          path: [systemPropertyTypes.archived.propertyTypeBaseUrl],
+          property: {
+            value: true,
+            metadata: {
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+            },
+          } satisfies ArchivedPropertyValueWithMetadata,
+        },
+      ],
+    },
+  );
 };
 
 export type MentionNotification = {
@@ -89,9 +78,7 @@ export type MentionNotification = {
 export const isEntityMentionNotificationEntity = (
   entity: HashEntity,
 ): entity is HashEntity<MentionNotificationEntity> =>
-  entity.metadata.entityTypeIds.includes(
-    systemEntityTypes.mentionNotification.entityTypeId,
-  );
+  entity.metadata.entityTypeIds.includes(systemEntityTypes.mentionNotification.entityTypeId);
 
 export const getMentionNotificationFromEntity: PureGraphFunction<
   { entity: HashEntity },
@@ -142,15 +129,11 @@ export const createMentionNotification: ImpureGraphFunction<
 
   const botAuthentication = { actorId: webMachineActorId };
 
-  const entity = await createEntity<MentionNotificationEntity>(
-    context,
-    botAuthentication,
-    {
-      webId,
-      properties: { value: {} },
-      entityTypeIds: [systemEntityTypes.mentionNotification.entityTypeId],
-    },
-  );
+  const entity = await createEntity<MentionNotificationEntity>(context, botAuthentication, {
+    webId,
+    properties: { value: {} },
+    entityTypeIds: [systemEntityTypes.mentionNotification.entityTypeId],
+  });
 
   await Promise.all(
     [
@@ -177,9 +160,7 @@ export const createMentionNotification: ImpureGraphFunction<
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         },
-        entityTypeIds: [
-          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-        ],
+        entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
       }),
       createLinkEntity<OccurredInBlock>(context, userAuthentication, {
         webId,
@@ -196,12 +177,9 @@ export const createMentionNotification: ImpureGraphFunction<
             properties: { value: {} },
             linkData: {
               leftEntityId: entity.metadata.recordId.entityId,
-              rightEntityId:
-                occurredInComment.entity.metadata.recordId.entityId,
+              rightEntityId: occurredInComment.entity.metadata.recordId.entityId,
             },
-            entityTypeIds: [
-              systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
-            ],
+            entityTypeIds: [systemLinkEntityTypes.occurredInComment.linkEntityTypeId],
           })
         : [],
       createLinkEntity<OccurredInText>(context, userAuthentication, {
@@ -241,37 +219,32 @@ export const getMentionNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.mentionNotification.entityTypeId,
-            { ignoreParents: true },
-          ),
+  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(systemEntityTypes.mentionNotification.entityTypeId, {
+          ignoreParents: true,
+        }),
+        {
+          equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
+        },
+        pageOrNotificationNotArchivedFilter,
+      ],
+    },
+    traversalPaths: [
+      {
+        edges: [
           {
-            equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
+            kind: "has-left-entity",
+            direction: "incoming",
           },
-          pageOrNotificationNotArchivedFilter,
         ],
       },
-      traversalPaths: [
-        {
-          edges: [
-            {
-              kind: "has-left-entity",
-              direction: "incoming",
-            },
-          ],
-        },
-      ],
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-      includePermissions: false,
-    },
-  );
+    ],
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+    includePermissions: false,
+  });
 
   /**
    * @todo: move these filters into the query when it is possible to filter
@@ -286,33 +259,23 @@ export const getMentionNotification: ImpureGraphFunction<
     ).map((linkEntity) => new HashLinkEntity(linkEntity));
 
     const triggeredByUserLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.triggeredByUser.linkEntityTypeId),
     );
 
     const occurredInEntityLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.occurredInEntity.linkEntityTypeId),
     );
 
     const occurredInBlockLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.occurredInBlock.linkEntityTypeId),
     );
 
     const occurredInTextLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.occurredInText.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.occurredInText.linkEntityTypeId),
     );
 
     const occurredInCommentLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.occurredInComment.linkEntityTypeId),
     );
 
     return (
@@ -358,9 +321,7 @@ export type CommentNotification = {
 export const isEntityCommentNotificationEntity = (
   entity: HashEntity,
 ): entity is HashEntity<CommentNotificationEntity> =>
-  entity.metadata.entityTypeIds.includes(
-    systemEntityTypes.commentNotification.entityTypeId,
-  );
+  entity.metadata.entityTypeIds.includes(systemEntityTypes.commentNotification.entityTypeId);
 
 export const getCommentNotificationFromEntity: PureGraphFunction<
   { entity: HashEntity },
@@ -432,8 +393,7 @@ export const createCommentNotification: ImpureGraphFunction<
     },
     {
       rightEntityId: triggeredByComment.entity.metadata.recordId.entityId,
-      linkEntityTypeId:
-        systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
+      linkEntityTypeId: systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
     },
     {
       rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
@@ -500,61 +460,50 @@ export const getCommentNotification: ImpureGraphFunction<
     includeDrafts = false,
   } = params;
 
-  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.commentNotification.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
-          },
-          /** @todo: enforce the type of these links somehow */
-          {
-            any: [
-              {
-                exists: {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.archived.propertyTypeBaseUrl,
-                  ],
-                },
-              },
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
-                  },
-                  { parameter: false },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      traversalPaths: [
+  const { subgraph: entitiesSubgraph } = await queryEntitySubgraph(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(systemEntityTypes.commentNotification.entityTypeId, {
+          ignoreParents: true,
+        }),
         {
-          // Get the outgoing links of the entities
-          edges: [
+          equal: [{ path: ["webId"] }, { parameter: recipient.accountId }],
+        },
+        /** @todo: enforce the type of these links somehow */
+        {
+          any: [
             {
-              kind: "has-left-entity",
-              direction: "incoming",
+              exists: {
+                path: ["properties", systemPropertyTypes.archived.propertyTypeBaseUrl],
+              },
+            },
+            {
+              equal: [
+                {
+                  path: ["properties", systemPropertyTypes.archived.propertyTypeBaseUrl],
+                },
+                { parameter: false },
+              ],
             },
           ],
         },
       ],
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-      includePermissions: false,
     },
-  );
+    traversalPaths: [
+      {
+        // Get the outgoing links of the entities
+        edges: [
+          {
+            kind: "has-left-entity",
+            direction: "incoming",
+          },
+        ],
+      },
+    ],
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+    includePermissions: false,
+  });
 
   /**
    * @todo: move these filters into the query when it is possible to filter
@@ -569,33 +518,23 @@ export const getCommentNotification: ImpureGraphFunction<
     ).map((linkEntity) => new HashLinkEntity(linkEntity));
 
     const triggeredByUserLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.triggeredByUser.linkEntityTypeId),
     );
 
     const occurredInEntityLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.occurredInEntity.linkEntityTypeId),
     );
 
     const occurredInBlockLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.occurredInBlock.linkEntityTypeId),
     );
 
     const triggeredByCommentLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.triggeredByComment.linkEntityTypeId),
     );
 
     const repliedToCommentLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.repliedToComment.linkEntityTypeId),
     );
 
     return (

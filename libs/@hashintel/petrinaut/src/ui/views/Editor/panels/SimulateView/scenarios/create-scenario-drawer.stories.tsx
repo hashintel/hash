@@ -1,8 +1,5 @@
 import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
-import {
-  SDCPNContext,
-  type SDCPNContextValue,
-} from "../../../../../../react/state/sdcpn-context";
+import { SDCPNContext, type SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import { MonacoProvider } from "../../../../../monaco/provider";
 import { CreateScenarioForm } from "./create-scenario-drawer";
 

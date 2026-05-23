@@ -118,8 +118,7 @@ export const baseInputRecipe = sva({
       color: "fg.body",
       cursor: "pointer",
       padding: "0",
-      transition:
-        "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
+      transition: "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
       "&:not([disabled]):hover": {
         background: "neutral.s30",
         color: "neutral.s120",
@@ -136,8 +135,7 @@ export const baseInputRecipe = sva({
       },
     },
     adornmentInteractive: {
-      transition:
-        "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
+      transition: "[background 0.15s ease, border 0.15s ease, color 0.15s ease]",
       _focusWithin: {
         outline: "[1px solid var(--colors-neutral-s80)]",
         outlineOffset: "0",
@@ -306,15 +304,13 @@ export const baseInputRecipe = sva({
           right: "[calc(var(--base-input-padding-x) * -1 + 1px)]",
         },
         editIcon: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+          right: "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
           _before: {
             background: "[transparent]",
           },
         },
         clear: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+          right: "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
           _before: {
             background: "[transparent]",
           },
@@ -413,10 +409,9 @@ export const baseInputRecipe = sva({
         input: {
           gridArea: "[1 / 1]",
           fieldSizing: "content",
-          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
-            {
-              marginLeft: "1.5",
-            },
+          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button": {
+            marginLeft: "1.5",
+          },
         },
         clear: {
           position: "relative",
@@ -475,12 +470,10 @@ export const baseInputRecipe = sva({
       loading: true,
       css: {
         clear: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
+          right: "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
         },
         editIcon: {
-          right:
-            "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
+          right: "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-1\\.5))]",
         },
       },
     },
@@ -611,10 +604,9 @@ export const baseInputRecipe = sva({
       css: {
         input: {
           // Hide the number scroll arrows in safari + firefox when not focused
-          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
-            {
-              WebkitAppearance: "none",
-            },
+          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button": {
+            WebkitAppearance: "none",
+          },
           "&[type=number]": {
             // @ts-expect-error moz-appearance is a valid firefox property
             "-moz-appearance": "textfield",

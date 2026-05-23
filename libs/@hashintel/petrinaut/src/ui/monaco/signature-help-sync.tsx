@@ -1,10 +1,6 @@
 import { Suspense, use, useEffect } from "react";
 
-import {
-  type MarkupContent,
-  Position,
-  type SignatureHelp,
-} from "@hashintel/petrinaut-core";
+import { type MarkupContent, Position, type SignatureHelp } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
 import { MonacoContext } from "./context";
@@ -12,9 +8,7 @@ import { MonacoContext } from "./context";
 import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
 /** Extract documentation string from LSP MarkupContent or plain string. */
-function extractDocumentation(
-  doc: string | MarkupContent | undefined,
-): string | undefined {
+function extractDocumentation(doc: string | MarkupContent | undefined): string | undefined {
   if (!doc) {
     return undefined;
   }
@@ -24,9 +18,7 @@ function extractDocumentation(
   return doc.value || undefined;
 }
 
-function toMonacoSignatureHelp(
-  result: SignatureHelp,
-): Monaco.languages.SignatureHelp {
+function toMonacoSignatureHelp(result: SignatureHelp): Monaco.languages.SignatureHelp {
   return {
     activeSignature: result.activeSignature ?? 0,
     activeParameter: result.activeParameter ?? 0,
@@ -34,10 +26,7 @@ function toMonacoSignatureHelp(
       label: sig.label,
       documentation: extractDocumentation(sig.documentation),
       parameters: (sig.parameters ?? []).map((param) => ({
-        label:
-          typeof param.label === "string"
-            ? param.label
-            : [param.label[0], param.label[1]],
+        label: typeof param.label === "string" ? param.label : [param.label[0], param.label[1]],
         documentation: extractDocumentation(param.documentation),
       })),
     })),
@@ -46,39 +35,31 @@ function toMonacoSignatureHelp(
 
 const SignatureHelpSyncInner = () => {
   const { monaco } = use(use(MonacoContext));
-  const { notifyDocumentChanged, requestSignatureHelp } = use(
-    LanguageClientContext,
-  );
+  const { notifyDocumentChanged, requestSignatureHelp } = use(LanguageClientContext);
 
   useEffect(() => {
-    const disposable = monaco.languages.registerSignatureHelpProvider(
-      "typescript",
-      {
-        signatureHelpTriggerCharacters: ["(", ","],
-        signatureHelpRetriggerCharacters: [","],
+    const disposable = monaco.languages.registerSignatureHelpProvider("typescript", {
+      signatureHelpTriggerCharacters: ["(", ","],
+      signatureHelpRetriggerCharacters: [","],
 
-        async provideSignatureHelp(model, monacoPosition) {
-          const uri = model.uri.toString();
-          // TODO(FE-497): Sync current content to ensure the worker has the latest text.
-          notifyDocumentChanged(uri, model.getValue());
-          // Convert Monaco 1-based position to LSP 0-based Position
-          const position = Position.create(
-            monacoPosition.lineNumber - 1,
-            monacoPosition.column - 1,
-          );
-          const result = await requestSignatureHelp(uri, position);
+      async provideSignatureHelp(model, monacoPosition) {
+        const uri = model.uri.toString();
+        // TODO(FE-497): Sync current content to ensure the worker has the latest text.
+        notifyDocumentChanged(uri, model.getValue());
+        // Convert Monaco 1-based position to LSP 0-based Position
+        const position = Position.create(monacoPosition.lineNumber - 1, monacoPosition.column - 1);
+        const result = await requestSignatureHelp(uri, position);
 
-          if (!result) {
-            return null;
-          }
+        if (!result) {
+          return null;
+        }
 
-          return {
-            value: toMonacoSignatureHelp(result),
-            dispose() {},
-          };
-        },
+        return {
+          value: toMonacoSignatureHelp(result),
+          dispose() {},
+        };
       },
-    );
+    });
 
     return () => disposable.dispose();
   }, [monaco, notifyDocumentChanged, requestSignatureHelp]);

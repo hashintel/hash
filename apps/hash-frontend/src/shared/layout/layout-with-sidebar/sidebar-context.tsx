@@ -30,7 +30,5 @@ export const SidebarContextProvider: FunctionComponent<{
     [sidebarOpen, setSidebarOpen],
   );
 
-  return (
-    <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
-  );
+  return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
 };

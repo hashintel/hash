@@ -120,31 +120,25 @@ describe("Block", () => {
   it("can update the block data entity", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const newBlockDataEntity = await createEntity(
-      graphContext,
-      authentication,
-      {
-        webId: testUser.accountId as WebId,
-        properties: { value: {} },
-        entityTypeIds: [dummyEntityType.schema.$id],
-      },
-    );
+    const newBlockDataEntity = await createEntity(graphContext, authentication, {
+      webId: testUser.accountId as WebId,
+      properties: { value: {} },
+      entityTypeIds: [dummyEntityType.schema.$id],
+    });
 
-    expect(newBlockDataEntity.toJSON()).not.toEqual(
-      testBlockDataEntity.toJSON(),
+    expect(newBlockDataEntity.toJSON()).not.toEqual(testBlockDataEntity.toJSON());
+    expect(await getBlockData(graphContext, authentication, { block: testBlock })).toEqual(
+      testBlockDataEntity,
     );
-    expect(
-      await getBlockData(graphContext, authentication, { block: testBlock }),
-    ).toEqual(testBlockDataEntity);
 
     await updateBlockDataEntity(graphContext, authentication, {
       block: testBlock,
       newBlockDataEntity,
     });
 
-    expect(
-      await getBlockData(graphContext, authentication, { block: testBlock }),
-    ).toEqual(newBlockDataEntity);
+    expect(await getBlockData(graphContext, authentication, { block: testBlock })).toEqual(
+      newBlockDataEntity,
+    );
   });
 
   it("cannot update the block data entity to the same data entity", async () => {

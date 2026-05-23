@@ -1,10 +1,5 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  Autocomplete,
-  ClickAwayListener,
-  outlinedInputClasses,
-  Typography,
-} from "@mui/material";
+import { Autocomplete, ClickAwayListener, outlinedInputClasses, Typography } from "@mui/material";
 import clsx from "clsx";
 import { createContext, useContext, useMemo, useState } from "react";
 
@@ -32,10 +27,7 @@ export const TYPE_SELECTOR_HEIGHT = 57;
 
 export type TypeListSelectorDropdownProps = {
   creationProps?: {
-    createButtonProps: Omit<
-      ButtonProps,
-      "children" | "variant" | "size"
-    > | null;
+    createButtonProps: Omit<ButtonProps, "children" | "variant" | "size"> | null;
     variant: "entity type" | "property type" | "entity" | "file" | "link type";
   };
   query: string;
@@ -66,10 +58,7 @@ const TypeListSelectorDropdown = ({
   const { query, creationProps, inputHeight, multiple } = useDropdownProps();
 
   return (
-    <AutocompleteDropdown
-      {...props}
-      inputHeight={multiple ? "auto" : inputHeight}
-    >
+    <AutocompleteDropdown {...props} inputHeight={multiple ? "auto" : inputHeight}>
       {children}
       {creationProps ? (
         <Button
@@ -143,10 +132,7 @@ type OptionRenderData = Omit<SelectorAutocompleteOptionProps, "liProps"> & {
   uniqueId: string;
 };
 
-export type SelectorAutocompleteProps<
-  T,
-  Multiple extends boolean | undefined = undefined,
-> = Omit<
+export type SelectorAutocompleteProps<T, Multiple extends boolean | undefined = undefined> = Omit<
   AutocompleteProps<T, Multiple, true, false>,
   "renderInput" | "renderOption" | "getOptionLabel" | "componentsProps"
 > & {
@@ -168,10 +154,7 @@ export type SelectorAutocompleteProps<
   onClickAway?: () => void;
 };
 
-export const SelectorAutocomplete = <
-  T,
-  Multiple extends boolean | undefined = undefined,
->({
+export const SelectorAutocomplete = <T, Multiple extends boolean | undefined = undefined>({
   open,
   isOptionEqualToValue,
   optionToRenderData,
@@ -280,9 +263,7 @@ export const SelectorAutocomplete = <
                     ? [
                         popperPlacementInputNoRadius,
                         popperPlacementInputNoBorder,
-                        joined
-                          ? { borderRadius: "0 !important", boxShadow: "none" }
-                          : {},
+                        joined ? { borderRadius: "0 !important", boxShadow: "none" } : {},
                       ]
                     : []),
                 ],

@@ -74,8 +74,8 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
      *   Once back references from live editions to drafts they were created from are available (H-3030),
      *   we can follow these references to construct the history.
      */
-    const editions = [...editionsData.queryEntitySubgraph.subgraph.roots].sort(
-      (a, b) => (a.revisionId > b.revisionId ? 1 : -1),
+    const editions = [...editionsData.queryEntitySubgraph.subgraph.roots].sort((a, b) =>
+      a.revisionId > b.revisionId ? 1 : -1,
     );
 
     if (!editions.length) {
@@ -113,11 +113,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
   });
 
   const historyEvents = useMemo<HistoryEvent[]>(() => {
-    if (
-      editionsLoading ||
-      !editionsData ||
-      (diffPairs.length > 0 && diffsLoading)
-    ) {
+    if (editionsLoading || !editionsData || (diffPairs.length > 0 && diffsLoading)) {
       return [];
     }
 
@@ -152,11 +148,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
         {loading || !subgraph ? (
           <Skeleton height={600} />
         ) : (
-          <HistoryTable
-            events={historyEvents}
-            subgraph={subgraph}
-            shortname={shortname ?? ""}
-          />
+          <HistoryTable events={historyEvents} subgraph={subgraph} shortname={shortname ?? ""} />
         )}
       </WhiteCard>
     </SectionWrapper>

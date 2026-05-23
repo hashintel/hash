@@ -8,11 +8,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
 import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
@@ -32,8 +28,7 @@ export const WorkspaceSwitcher = () => {
   });
   const { authenticatedUser } = useAuthenticatedUser();
   const { logout } = useLogoutFlow();
-  const { activeWorkspaceWebId, updateActiveWorkspaceWebId } =
-    useActiveWorkspace();
+  const { activeWorkspaceWebId, updateActiveWorkspaceWebId } = useActiveWorkspace();
 
   const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
     if (activeWorkspaceWebId === authenticatedUser.accountId) {
@@ -41,24 +36,19 @@ export const WorkspaceSwitcher = () => {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty displayName
         name: authenticatedUser.displayName || authenticatedUser.shortname!,
         avatarSrc: authenticatedUser.hasAvatar
-          ? getImageUrlFromEntityProperties(
-              authenticatedUser.hasAvatar.imageEntity.properties,
-            )
+          ? getImageUrlFromEntityProperties(authenticatedUser.hasAvatar.imageEntity.properties)
           : undefined,
       };
     } else {
       const { org: activeOrg } =
-        authenticatedUser.memberOf.find(
-          ({ org: { webId } }) => webId === activeWorkspaceWebId,
-        ) ?? {};
+        authenticatedUser.memberOf.find(({ org: { webId } }) => webId === activeWorkspaceWebId) ??
+        {};
 
       if (activeOrg) {
         return {
           name: activeOrg.name,
           avatarSrc: activeOrg.hasAvatar
-            ? getImageUrlFromEntityProperties(
-                activeOrg.hasAvatar.imageEntity.properties,
-              )
+            ? getImageUrlFromEntityProperties(activeOrg.hasAvatar.imageEntity.properties)
             : undefined,
         };
       }
@@ -75,22 +65,18 @@ export const WorkspaceSwitcher = () => {
         subText: `@${authenticatedUser.shortname ?? "user"}`,
         avatarTitle: authenticatedUser.displayName ?? "U",
         avatarSrc: authenticatedUser.hasAvatar
-          ? getImageUrlFromEntityProperties(
-              authenticatedUser.hasAvatar.imageEntity.properties,
-            )
+          ? getImageUrlFromEntityProperties(authenticatedUser.hasAvatar.imageEntity.properties)
           : undefined,
       },
-      ...authenticatedUser.memberOf.map(
-        ({ org: { webId, name, memberships, hasAvatar } }) => ({
-          webId,
-          title: name,
-          subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
-          avatarTitle: name,
-          avatarSrc: hasAvatar
-            ? getImageUrlFromEntityProperties(hasAvatar.imageEntity.properties)
-            : undefined,
-        }),
-      ),
+      ...authenticatedUser.memberOf.map(({ org: { webId, name, memberships, hasAvatar } }) => ({
+        webId,
+        title: name,
+        subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
+        avatarTitle: name,
+        avatarSrc: hasAvatar
+          ? getImageUrlFromEntityProperties(hasAvatar.imageEntity.properties)
+          : undefined,
+      })),
     ];
   }, [authenticatedUser]);
 
@@ -109,11 +95,7 @@ export const WorkspaceSwitcher = () => {
           })}
           {...bindTrigger(popupState)}
         >
-          <Avatar
-            size={22}
-            src={activeWorkspace.avatarSrc}
-            title={activeWorkspace.name}
-          />
+          <Avatar size={22} src={activeWorkspace.avatarSrc} title={activeWorkspace.name} />
           <Typography
             sx={{
               pr: 1,
@@ -159,9 +141,7 @@ export const WorkspaceSwitcher = () => {
                 src={avatarSrc}
                 size={34}
                 title={
-                  webId === authenticatedUser.accountId
-                    ? authenticatedUser.displayName
-                    : title
+                  webId === authenticatedUser.accountId ? authenticatedUser.displayName : title
                 }
               />
             </ListItemAvatar>

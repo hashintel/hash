@@ -1,10 +1,4 @@
-import {
-  Box,
-  Stack,
-  TableCell as MuiTableCell,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Stack, TableCell as MuiTableCell, Tooltip, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { memo, useCallback, useMemo, useState } from "react";
 
@@ -32,10 +26,7 @@ import {
 import { useFlowRunsUsage } from "../shared/use-flow-runs-usage";
 import { VirtualizedTable } from "../shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "../shared/virtualized-table/header";
-import {
-  PlaceholderContainer,
-  placeholderHeight,
-} from "./shared/table-placeholder";
+import { PlaceholderContainer, placeholderHeight } from "./shared/table-placeholder";
 
 import type { SimpleFlowRunStatus } from "../shared/flow-tables";
 import type {
@@ -48,18 +39,11 @@ import type { EntityUuid } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-type FieldId =
-  | "web"
-  | "type"
-  | "name"
-  | "executedAt"
-  | "closedAt"
-  | "status"
-  | "cost";
+type FieldId = "web" | "type" | "name" | "executedAt" | "closedAt" | "status" | "cost";
 
-const createColumns: (
-  usageAvailable: boolean,
-) => VirtualizedTableColumn<FieldId>[] = (usageAvailable) => [
+const createColumns: (usageAvailable: boolean) => VirtualizedTableColumn<FieldId>[] = (
+  usageAvailable,
+) => [
   {
     id: "web",
     label: "Web",
@@ -146,16 +130,12 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
 
   return (
     <>
-      <MuiTableCell
-        sx={{ ...flowTableCellSx, fontSize: 13, overflowX: "hidden" }}
-      >
+      <MuiTableCell sx={{ ...flowTableCellSx, fontSize: 13, overflowX: "hidden" }}>
         <FlowTableWebChip {...web} />
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
         <FlowTableChip>
-          <Icon
-            sx={{ fontSize: 14, fill: ({ palette }) => palette.blue[70] }}
-          />
+          <Icon sx={{ fontSize: 14, fill: ({ palette }) => palette.blue[70] }} />
           <Typography
             component="span"
             sx={{
@@ -197,26 +177,19 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
         </Stack>
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
-        <Typography
-          sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
-        >
-          {executedAt
-            ? format(new Date(executedAt), "yyyy-MM-dd HH:mm a")
-            : "Pending..."}
+        <Typography sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}>
+          {executedAt ? format(new Date(executedAt), "yyyy-MM-dd HH:mm a") : "Pending..."}
         </Typography>
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
         <Typography
           sx={{
             fontSize: 13,
-            color: ({ palette }) =>
-              closedAt ? palette.gray[70] : palette.common.black,
+            color: ({ palette }) => (closedAt ? palette.gray[70] : palette.common.black),
             fontWeight: closedAt ? 400 : 600,
           }}
         >
-          {closedAt
-            ? format(new Date(closedAt), "yyyy-MM-dd HH:mm a")
-            : "Currently running"}
+          {closedAt ? format(new Date(closedAt), "yyyy-MM-dd HH:mm a") : "Currently running"}
         </Typography>
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
@@ -239,24 +212,13 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
   );
 });
 
-const createRowContent: CreateVirtualizedRowContentFn<WorkerSummary> = (
-  _index,
-  row,
-) => <TableRow workerSummary={row.data} />;
+const createRowContent: CreateVirtualizedRowContentFn<WorkerSummary> = (_index, row) => (
+  <TableRow workerSummary={row.data} />
+);
 
-const EmptyComponent = ({
-  columnCount,
-  filtered,
-}: {
-  columnCount: number;
-  filtered: boolean;
-}) => (
+const EmptyComponent = ({ columnCount, filtered }: { columnCount: number; filtered: boolean }) => (
   <PlaceholderContainer columnCount={columnCount}>
-    <Stack
-      alignItems="center"
-      justifyContent="center"
-      sx={{ fontSize: 14, height: "100%" }}
-    >
+    <Stack alignItems="center" justifyContent="center" sx={{ fontSize: 14, height: "100%" }}>
       No worker activity {filtered && "for this flow"} yet
     </Stack>
   </PlaceholderContainer>
@@ -301,88 +263,80 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
     );
   }, [unfilteredFlowRuns, flowDefinitionIdFilter]);
 
-  const { isUsageAvailable: usageAvailable, usageByFlowRun } = useFlowRunsUsage(
-    {
-      flowRunIds: filteredFlowRuns.map((run) => run.flowRunId),
-    },
-  );
+  const { isUsageAvailable: usageAvailable, usageByFlowRun } = useFlowRunsUsage({
+    flowRunIds: filteredFlowRuns.map((run) => run.flowRunId),
+  });
 
   const flowRunRows = useMemo<VirtualizedTableRow<WorkerSummary>[]>(() => {
     const webByWebId: Record<string, WorkerSummary["web"] | undefined> = {};
 
-    const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
-      (flowRun) => {
-        const type = goalFlowDefinitionIds.includes(
-          flowRun.flowDefinitionId as EntityUuid,
-        )
-          ? "goal"
-          : "flow";
+    const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map((flowRun) => {
+      const type = goalFlowDefinitionIds.includes(flowRun.flowDefinitionId as EntityUuid)
+        ? "goal"
+        : "flow";
 
-        const flowDefinition = flowDefinitions.find(
-          (def) => def.flowDefinitionId === flowRun.flowDefinitionId,
-        );
+      const flowDefinition = flowDefinitions.find(
+        (def) => def.flowDefinitionId === flowRun.flowDefinitionId,
+      );
 
-        if (!flowDefinition) {
-          throw new Error(
-            `Could not find flow definition with id ${flowRun.flowDefinitionId}`,
-          );
-        }
+      if (!flowDefinition) {
+        throw new Error(`Could not find flow definition with id ${flowRun.flowDefinitionId}`);
+      }
 
-        const { webId, flowRunId, executedAt, closedAt, status } = flowRun;
+      const { webId, flowRunId, executedAt, closedAt, status } = flowRun;
 
-        let web: WorkerSummary["web"] | undefined = webByWebId[webId];
+      let web: WorkerSummary["web"] | undefined = webByWebId[webId];
 
-        if (!web) {
-          if (webId === authenticatedUser.accountId) {
-            web = {
-              avatarUrl:
-                authenticatedUser.hasAvatar?.imageEntity.properties[
-                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-                ],
-              name: authenticatedUser.displayName ?? "Unknown",
-              shortname: authenticatedUser.shortname ?? "unknown",
-            };
-          } else {
-            const org = authenticatedUser.memberOf.find(
-              (memberOf) => memberOf.org.webId === webId,
-            )?.org;
-            if (!org) {
-              throw new Error(`Could not find org with id ${webId}`);
-            }
-            web = {
-              avatarUrl:
-                org.hasAvatar?.imageEntity.properties[
-                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-                ],
-              name: org.name,
-              shortname: org.shortname,
-            };
+      if (!web) {
+        if (webId === authenticatedUser.accountId) {
+          web = {
+            avatarUrl:
+              authenticatedUser.hasAvatar?.imageEntity.properties[
+                "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+              ],
+            name: authenticatedUser.displayName ?? "Unknown",
+            shortname: authenticatedUser.shortname ?? "unknown",
+          };
+        } else {
+          const org = authenticatedUser.memberOf.find(
+            (memberOf) => memberOf.org.webId === webId,
+          )?.org;
+          if (!org) {
+            throw new Error(`Could not find org with id ${webId}`);
           }
-          webByWebId[webId] = web;
+          web = {
+            avatarUrl:
+              org.hasAvatar?.imageEntity.properties[
+                "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+              ],
+            name: org.name,
+            shortname: org.shortname,
+          };
         }
+        webByWebId[webId] = web;
+      }
 
-        const cost = usageByFlowRun[flowRunId]?.total ?? null;
+      const cost = usageByFlowRun[flowRunId]?.total ?? null;
 
-        // Extract flowScheduleId if present (for scheduled runs)
-        const flowScheduleId = (flowRun as FlowRun).flowScheduleId ?? null;
+      // Extract flowScheduleId if present (for scheduled runs)
+      const flowScheduleId = (flowRun as FlowRun).flowScheduleId ?? null;
 
-        return {
-          id: flowRunId,
-          data: {
-            flowRunId,
-            flowScheduleId,
-            web,
-            type,
-            name: flowRun.name,
-            closedAt: closedAt ?? null,
-            executedAt: executedAt ?? null,
-            status: flowRunStatusToStatusText(status),
-            cost,
-            usageAvailable,
-          },
-        };
-      },
-    );
+      return {
+        id: flowRunId,
+        data: {
+          flowRunId,
+          flowScheduleId,
+          web,
+          type,
+          name: flowRun.name,
+          closedAt: closedAt ?? null,
+          executedAt: executedAt ?? null,
+          status: flowRunStatusToStatusText(status),
+          cost,
+          usageAvailable,
+        },
+      };
+    });
 
     return rowData.sort((a, b) => {
       const field = sort.fieldId;
@@ -396,39 +350,22 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
         return ((a.data[field] ?? 0) - (b.data[field] ?? 0)) * direction;
       }
 
-      return (
-        (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
-      );
+      return (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction;
     });
-  }, [
-    authenticatedUser,
-    flowDefinitions,
-    filteredFlowRuns,
-    sort,
-    usageByFlowRun,
-    usageAvailable,
-  ]);
+  }, [authenticatedUser, flowDefinitions, filteredFlowRuns, sort, usageByFlowRun, usageAvailable]);
 
   const tableHeight = Math.min(
     600,
     virtualizedTableHeaderHeight +
       2 + // borders
-      (flowRunRows.length
-        ? flowRunRows.length * flowTableRowHeight
-        : placeholderHeight),
+      (flowRunRows.length ? flowRunRows.length * flowTableRowHeight : placeholderHeight),
   );
 
-  const columns = useMemo(
-    () => createColumns(usageAvailable),
-    [usageAvailable],
-  );
+  const columns = useMemo(() => createColumns(usageAvailable), [usageAvailable]);
 
   const EmptyPlaceholder = useCallback(
     () => (
-      <EmptyComponent
-        columnCount={columns.length}
-        filtered={!!flowDefinitionIdFilter?.length}
-      />
+      <EmptyComponent columnCount={columns.length} filtered={!!flowDefinitionIdFilter?.length} />
     ),
     [columns, flowDefinitionIdFilter],
   );
@@ -450,70 +387,67 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
           setSort={setSort}
         />
       </Box>
-      {pagination &&
-        (flowRunRows.length > 0 || pagination.previousCursors.length > 0) && (
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ px: 1, py: 1.5 }}
-          >
-            <Typography
-              sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
-            >
-              Showing <strong>{flowRunRows.length}</strong> result
-              {flowRunRows.length !== 1 ? "s" : ""}
-              {totalCount > 0 && (
-                <>
-                  {" "}
-                  of ~<strong>{totalCount}</strong> total
-                </>
-              )}
-            </Typography>
-            <Stack direction="row" gap={2}>
-              {pagination.previousCursors.length > 0 && (
-                <Typography
-                  component="button"
-                  onClick={() => pagination.onPreviousPage()}
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: ({ palette }) => palette.blue[70],
-                    cursor: "pointer",
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    "&:hover": {
-                      textDecoration: "underline",
-                    },
-                  }}
-                >
-                  Previous page
-                </Typography>
-              )}
-              {nextCursor && (
-                <Typography
-                  component="button"
-                  onClick={() => pagination.onNextPage(nextCursor)}
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: ({ palette }) => palette.blue[70],
-                    cursor: "pointer",
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    "&:hover": {
-                      textDecoration: "underline",
-                    },
-                  }}
-                >
-                  Next page
-                </Typography>
-              )}
-            </Stack>
+      {pagination && (flowRunRows.length > 0 || pagination.previousCursors.length > 0) && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ px: 1, py: 1.5 }}
+        >
+          <Typography sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}>
+            Showing <strong>{flowRunRows.length}</strong> result
+            {flowRunRows.length !== 1 ? "s" : ""}
+            {totalCount > 0 && (
+              <>
+                {" "}
+                of ~<strong>{totalCount}</strong> total
+              </>
+            )}
+          </Typography>
+          <Stack direction="row" gap={2}>
+            {pagination.previousCursors.length > 0 && (
+              <Typography
+                component="button"
+                onClick={() => pagination.onPreviousPage()}
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: ({ palette }) => palette.blue[70],
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  "&:hover": {
+                    textDecoration: "underline",
+                  },
+                }}
+              >
+                Previous page
+              </Typography>
+            )}
+            {nextCursor && (
+              <Typography
+                component="button"
+                onClick={() => pagination.onNextPage(nextCursor)}
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: ({ palette }) => palette.blue[70],
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  "&:hover": {
+                    textDecoration: "underline",
+                  },
+                }}
+              >
+                Next page
+              </Typography>
+            )}
           </Stack>
-        )}
+        </Stack>
+      )}
     </Box>
   );
 };

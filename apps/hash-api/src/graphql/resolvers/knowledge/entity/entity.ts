@@ -1,7 +1,4 @@
-import {
-  extractEntityUuidFromEntityId,
-  mustHaveAtLeastOne,
-} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
   HashEntity,
@@ -10,11 +7,7 @@ import {
   serializeQueryEntitiesResponse,
   serializeQueryEntitySubgraphResponse,
 } from "@local/hash-graph-sdk/entity";
-import {
-  createPolicy,
-  deletePolicyById,
-  queryPolicies,
-} from "@local/hash-graph-sdk/policy";
+import { createPolicy, deletePolicyById, queryPolicies } from "@local/hash-graph-sdk/policy";
 
 import {
   canUserReadEntity,
@@ -155,14 +148,11 @@ export const updateEntityResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const isIncompleteUser = !user.isAccountSignupComplete;
-  const isUpdatingOwnEntity =
-    entityId === user.entity.metadata.recordId.entityId;
+  const isUpdatingOwnEntity = entityId === user.entity.metadata.recordId.entityId;
 
   // The user needs to have completed signup if they aren't updating their own user entity
   if (isIncompleteUser && !isUpdatingOwnEntity) {
-    throw Error.forbidden(
-      "You must complete the sign-up process to perform this action.",
-    );
+    throw Error.forbidden("You must complete the sign-up process to perform this action.");
   }
 
   const entity = await getLatestEntityById(context, authentication, {
@@ -180,9 +170,7 @@ export const updateEntityResolver: ResolverFn<
   } else {
     updatedEntity = await updateEntity(context, authentication, {
       entity,
-      entityTypeIds: entityTypeIds
-        ? mustHaveAtLeastOne(entityTypeIds)
-        : undefined,
+      entityTypeIds: entityTypeIds ? mustHaveAtLeastOne(entityTypeIds) : undefined,
       propertyPatches,
       draft: draft ?? undefined,
     });
@@ -219,11 +207,7 @@ export const validateEntityResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const response = await HashEntity.validate(
-    context.graphApi,
-    authentication,
-    params,
-  );
+  const response = await HashEntity.validate(context.graphApi, authentication, params);
 
   return response;
 };
@@ -266,11 +250,7 @@ export const archiveEntitiesResolver: ResolverFn<
           entityId,
         });
 
-        await entity.archive(
-          context.graphApi,
-          authentication,
-          context.provenance,
-        );
+        await entity.archive(context.graphApi, authentication, context.provenance);
 
         archivedEntities.push(entity);
       } catch {
@@ -286,9 +266,7 @@ export const archiveEntitiesResolver: ResolverFn<
       ),
     );
 
-    throw Error.internal(
-      `Couldn't archive entities with IDs ${entityIds.join(", ")}`,
-    );
+    throw Error.internal(`Couldn't archive entities with IDs ${entityIds.join(", ")}`);
   }
 
   return true;
@@ -329,9 +307,7 @@ export const removeEntityViewerResolver: ResolverFn<
   MutationRemoveEntityViewerArgs
 > = async (_, { entityId, viewer }, graphQLContext) => {
   if (viewer.kind !== AuthorizationSubjectKind.Public) {
-    throw Error.badUserInput(
-      "Only public viewers can be removed from an entity",
-    );
+    throw Error.badUserInput("Only public viewers can be removed from an entity");
   }
 
   const { authentication } = graphQLContext;

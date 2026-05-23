@@ -66,19 +66,16 @@ const createClaim = async ({
       provenance,
       properties: {
         value: {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-            {
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                provenance: propertyProvenance,
-              },
-              value: claimText,
+          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": {
+            metadata: {
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              provenance: propertyProvenance,
             },
+            value: claimText,
+          },
           "https://hash.ai/@h/types/property-type/subject/": {
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               provenance: propertyProvenance,
             },
             value: subjectText,
@@ -86,8 +83,7 @@ const createClaim = async ({
 
           "https://hash.ai/@h/types/property-type/object/": {
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               provenance: propertyProvenance,
             },
             value: objectText,
@@ -121,16 +117,14 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
   const { createEntitiesAsDraft, webId } = await getFlowContext();
 
   const textDataTypeMetadata: TextDataTypeMetadata = {
-    dataTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
     provenance: propertyProvenance,
   };
 
   const nameOnlyPropertyMetadata: PropertyObjectMetadata = {
     value: {
       [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
-        metadata:
-          textDataTypeMetadata satisfies NamePropertyValueWithMetadata["metadata"],
+        metadata: textDataTypeMetadata satisfies NamePropertyValueWithMetadata["metadata"],
       },
     },
   };
@@ -149,14 +143,11 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     ) as typeof nameOnlyPropertyMetadata;
 
     const authorProperties: PersonProperties = {
-      "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-        authorName,
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/": authorName,
     };
 
     if (email) {
-      authorProperties["https://hash.ai/@h/types/property-type/email/"] = [
-        email,
-      ];
+      authorProperties["https://hash.ai/@h/types/property-type/email/"] = [email];
       authorPropertyMetadata.value[systemDataTypes.email.dataTypeBaseUrl] = {
         value: [
           {
@@ -233,10 +224,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     proposedEntities.push({
       claims: emptyClaims,
       entityTypeIds: [systemLinkEntityTypes.authoredBy.linkEntityTypeId],
-      localEntityId: entityIdFromComponents(
-        webId,
-        generateUuid() as EntityUuid,
-      ),
+      localEntityId: entityIdFromComponents(webId, generateUuid() as EntityUuid),
       properties: {},
       propertyMetadata: { value: {} },
       provenance,
@@ -250,20 +238,14 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     for (const affiliateName of affiliatedWith ?? []) {
       let institutionEntityId = institutionEntityIdByName[affiliateName];
       let institutionProposedEntity = institutionEntityId
-        ? proposedEntities.find(
-            (entity) => entity.localEntityId === institutionEntityId,
-          )
+        ? proposedEntities.find((entity) => entity.localEntityId === institutionEntityId)
         : null;
 
-      institutionEntityId ??= entityIdFromComponents(
-        webId,
-        generateUuid() as EntityUuid,
-      );
+      institutionEntityId ??= entityIdFromComponents(webId, generateUuid() as EntityUuid);
 
       if (!institutionProposedEntity) {
         const properties: InstitutionProperties = {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-            affiliateName,
+          "https://blockprotocol.org/@blockprotocol/types/property-type/name/": affiliateName,
         };
 
         institutionProposedEntity = {
@@ -297,13 +279,9 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
         subjectText: authorName,
       });
 
-      authorProposedEntity.claims.isSubjectOf.push(
-        authorToInstitutionClaim.entityId,
-      );
+      authorProposedEntity.claims.isSubjectOf.push(authorToInstitutionClaim.entityId);
 
-      institutionProposedEntity.claims.isSubjectOf.push(
-        authorToInstitutionClaim.entityId,
-      );
+      institutionProposedEntity.claims.isSubjectOf.push(authorToInstitutionClaim.entityId);
 
       /**
        * Propose the link between the person and the institution entity
@@ -311,10 +289,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       proposedEntities.push({
         claims: emptyClaims,
         entityTypeIds: [systemLinkEntityTypes.affiliatedWith.linkEntityTypeId],
-        localEntityId: entityIdFromComponents(
-          webId,
-          generateUuid() as EntityUuid,
-        ),
+        localEntityId: entityIdFromComponents(webId, generateUuid() as EntityUuid),
         properties: {},
         propertyMetadata: { value: {} },
         provenance,

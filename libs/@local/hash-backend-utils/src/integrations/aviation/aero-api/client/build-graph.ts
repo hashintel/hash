@@ -253,9 +253,7 @@ export const buildFlightGraphBatch = (
  * Converts a FlightGraphResult to a flat array of ProposedEntities.
  * Useful when you need to iterate over all elements uniformly.
  */
-export const flattenFlightGraph = (
-  result: FlightGraphResult,
-): AviationProposedEntity[] => {
+export const flattenFlightGraph = (result: FlightGraphResult): AviationProposedEntity[] => {
   const elements: AviationProposedEntity[] = [];
 
   elements.push(result.entities.flight);

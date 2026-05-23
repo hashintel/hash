@@ -12,11 +12,7 @@ export { createPersistIntegrationEntitiesAction as createPersistFlightEntitiesAc
 /**
  * Creates the aviation flow action activities.
  */
-export const createAviationActivities = ({
-  graphApiClient,
-}: {
-  graphApiClient: GraphApi;
-}) => ({
+export const createAviationActivities = ({ graphApiClient }: { graphApiClient: GraphApi }) => ({
   /**
    * Fetches historical flight arrivals from AeroAPI for a date range and returns them as ProposedEntity objects.
    */

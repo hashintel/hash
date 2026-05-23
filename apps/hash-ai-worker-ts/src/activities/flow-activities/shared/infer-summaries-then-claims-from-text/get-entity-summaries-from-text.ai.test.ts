@@ -22,15 +22,12 @@ test(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: [
-        "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
-      ],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });
 
-    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
-      .schema;
+    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!.schema;
 
     const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
@@ -76,8 +73,7 @@ test(
       graphApiClient,
     });
 
-    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
-      .schema;
+    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!.schema;
 
     const webPage = await getWebPageActivity({
       url: "https://openai.com/index/video-generation-models-as-world-simulators/" as Url,
@@ -117,8 +113,7 @@ test(
       graphApiClient,
     });
 
-    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
-      .schema;
+    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!.schema;
 
     const webPage = await getWebPageActivity({
       url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current" as Url,
@@ -135,8 +130,7 @@ test(
       text: htmlContent,
       dereferencedEntityTypes: [dereferencedEntityType],
       existingSummaries: [],
-      relevantEntitiesPrompt:
-        "Obtain the full list of the current members of Church Lab",
+      relevantEntitiesPrompt: "Obtain the full list of the current members of Church Lab",
     });
 
     expect(entitySummaries).toBeDefined();

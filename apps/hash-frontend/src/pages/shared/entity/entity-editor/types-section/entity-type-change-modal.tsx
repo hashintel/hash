@@ -12,11 +12,7 @@ import {
 } from "@mui/material";
 import { useCallback, useMemo } from "react";
 
-import {
-  AlertModal,
-  FontAwesomeIcon,
-  LinkIcon,
-} from "@hashintel/design-system";
+import { AlertModal, FontAwesomeIcon, LinkIcon } from "@hashintel/design-system";
 
 import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system";
 
@@ -91,17 +87,10 @@ type ChangeSummary = {
 };
 
 const generateCountString = (count: number, type: "property" | "link") =>
-  count > 1
-    ? `${count} ${type === "property" ? "properties" : "links"}`
-    : `${count} ${type}`;
+  count > 1 ? `${count} ${type === "property" ? "properties" : "links"}` : `${count} ${type}`;
 
 const CalloutMessage = ({
-  changeSummary: {
-    shouldWarn,
-    totalChangeCount,
-    linkChangeCount,
-    propertyChangeCount,
-  },
+  changeSummary: { shouldWarn, totalChangeCount, linkChangeCount, propertyChangeCount },
   type,
 }: {
   changeSummary: ChangeSummary;
@@ -111,9 +100,7 @@ const CalloutMessage = ({
   const messages: string[] = [];
 
   if (totalChangeCount === 0) {
-    messages.push(
-      "does not make any changes to properties or links for the entity",
-    );
+    messages.push("does not make any changes to properties or links for the entity");
   } else {
     {
       const {
@@ -138,19 +125,13 @@ const CalloutMessage = ({
         );
       }
       if (nowRequired > 0) {
-        messages.push(
-          `makes ${generateCountString(nowRequired, "property")} required`,
-        );
+        messages.push(`makes ${generateCountString(nowRequired, "property")} required`);
       }
       if (nowList > 0) {
-        messages.push(
-          `makes ${generateCountString(nowList, "property")} a list`,
-        );
+        messages.push(`makes ${generateCountString(nowList, "property")} a list`);
       }
       if (noLongerList > 0) {
-        messages.push(
-          `makes ${generateCountString(noLongerList, "property")} no longer a list`,
-        );
+        messages.push(`makes ${generateCountString(noLongerList, "property")} no longer a list`);
       }
       if (minItemsChanged > 0) {
         messages.push(
@@ -181,14 +162,10 @@ const CalloutMessage = ({
         messages.push(`removes ${generateCountString(removed, "link")}`);
       }
       if (changedDestination > 0) {
-        messages.push(
-          `changes the target of ${generateCountString(changedDestination, "link")}`,
-        );
+        messages.push(`changes the target of ${generateCountString(changedDestination, "link")}`);
       }
       if (nowRequired > 0) {
-        messages.push(
-          `makes ${generateCountString(nowRequired, "link")} required`,
-        );
+        messages.push(`makes ${generateCountString(nowRequired, "link")} required`);
       }
       if (minItemsChanged > 0) {
         messages.push(
@@ -201,9 +178,7 @@ const CalloutMessage = ({
         );
       }
       if (versionChanged > 0) {
-        messages.push(
-          `changes the type version of ${generateCountString(versionChanged, "link")}`,
-        );
+        messages.push(`changes the type version of ${generateCountString(versionChanged, "link")}`);
       }
     }
   }
@@ -233,8 +208,7 @@ const CalloutMessage = ({
         component="span"
         sx={{
           fontWeight: 700,
-          color: ({ palette }) =>
-            shouldWarn ? palette.yellow[80] : palette.blue[70],
+          color: ({ palette }) => (shouldWarn ? palette.yellow[80] : palette.blue[70]),
         }}
       >
         {type === "Update" ? "Update type" : "Removing type"}
@@ -351,10 +325,7 @@ export const EntityTypeChangeModal = ({
     }
 
     for (const linkChange of linkChanges) {
-      if (
-        linkChange.change === "Added (optional)" ||
-        linkChange.change === "Added (required)"
-      ) {
+      if (linkChange.change === "Added (optional)" || linkChange.change === "Added (required)") {
         summary.linkChangeCount.added++;
       }
       if (linkChange.change === "Link version changed") {
@@ -384,15 +355,9 @@ export const EntityTypeChangeModal = ({
 
   const { shouldWarn } = changeSummary;
 
-  const propertyChangesByTitle = Object.groupBy(
-    propertyChanges,
-    (change) => change.propertyTitle,
-  );
+  const propertyChangesByTitle = Object.groupBy(propertyChanges, (change) => change.propertyTitle);
 
-  const linkChangseByTitle = Object.groupBy(
-    linkChanges,
-    (change) => change.linkTitle,
-  );
+  const linkChangseByTitle = Object.groupBy(linkChanges, (change) => change.linkTitle);
 
   const acceptCallback = useCallback(() => {
     onAccept({
@@ -408,12 +373,7 @@ export const EntityTypeChangeModal = ({
   return (
     <AlertModal
       callback={acceptCallback}
-      calloutMessage={
-        <CalloutMessage
-          changeSummary={changeSummary}
-          type={proposedChange.type}
-        />
-      }
+      calloutMessage={<CalloutMessage changeSummary={changeSummary} type={proposedChange.type} />}
       close={onReject}
       confirmButtonText={`${proposedChange.type} entity type`}
       header={<ModalHeader proposedChange={proposedChange} />}
@@ -472,36 +432,28 @@ export const EntityTypeChangeModal = ({
                 <TableRow key={propertyTitle}>
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{propertyTitle}</TableCell>
-                  <TableCell>
-                    {changes.length > 1 ? "Multiple" : changes[0]!.change}
-                  </TableCell>
+                  <TableCell>{changes.length > 1 ? "Multiple" : changes[0]!.change}</TableCell>
                 </TableRow>
               ))}
-            {Object.entries(linkChangseByTitle).map(
-              ([linkTitle, changes = []], index) => (
-                <TableRow key={linkTitle}>
-                  <TableCell>{index + 1 + propertyChanges.length}</TableCell>
-                  <TableCell>
-                    <Stack alignItems="center" direction="row" gap={0.5}>
-                      {linkTitle}
-                      <LinkIcon
-                        sx={{
-                          fontSize: 12,
-                          color: ({ palette }) => palette.gray[50],
-                        }}
-                      />
-                    </Stack>
-                  </TableCell>
-                  <Tooltip
-                    title={changes.length > 1 ? <Box>Multiple</Box> : ""}
-                  >
-                    <TableCell>
-                      {changes.length > 1 ? "Multiple" : changes[0]!.change}
-                    </TableCell>
-                  </Tooltip>
-                </TableRow>
-              ),
-            )}
+            {Object.entries(linkChangseByTitle).map(([linkTitle, changes = []], index) => (
+              <TableRow key={linkTitle}>
+                <TableCell>{index + 1 + propertyChanges.length}</TableCell>
+                <TableCell>
+                  <Stack alignItems="center" direction="row" gap={0.5}>
+                    {linkTitle}
+                    <LinkIcon
+                      sx={{
+                        fontSize: 12,
+                        color: ({ palette }) => palette.gray[50],
+                      }}
+                    />
+                  </Stack>
+                </TableCell>
+                <Tooltip title={changes.length > 1 ? <Box>Multiple</Box> : ""}>
+                  <TableCell>{changes.length > 1 ? "Multiple" : changes[0]!.change}</TableCell>
+                </Tooltip>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       )}

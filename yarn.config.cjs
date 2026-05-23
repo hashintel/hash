@@ -66,9 +66,7 @@ const shouldIgnoreDependencyForProtocol = (dependency) =>
  * @param {Context} context - The Yarn constraint context.
  */
 function enforceConsistentDependenciesAcrossTheProject({ Yarn }) {
-  const workspaceIdents = new Set(
-    Yarn.workspaces().map((workspace) => workspace.ident),
-  );
+  const workspaceIdents = new Set(Yarn.workspaces().map((workspace) => workspace.ident));
 
   for (const dependency of Yarn.dependencies()) {
     if (shouldIgnoreDependencyForConsistency(dependency)) {
@@ -127,9 +125,7 @@ function enforceProtocols({ Yarn }) {
     if (workspaceDependency) {
       const isPublishable = dependency.workspace.manifest.private !== true;
       const expectedRange =
-        isPublishable && dependency.type !== "devDependencies"
-          ? "workspace:^"
-          : "workspace:*";
+        isPublishable && dependency.type !== "devDependencies" ? "workspace:^" : "workspace:*";
 
       if (dependency.range !== expectedRange) {
         dependency.update(expectedRange);
@@ -155,10 +151,7 @@ function enforceProtocols({ Yarn }) {
 
     let shouldCheckIfValidGitDependency = false;
 
-    if (
-      dependency.range.startsWith("https://") ||
-      dependency.range.startsWith("http://")
-    ) {
+    if (dependency.range.startsWith("https://") || dependency.range.startsWith("http://")) {
       // always prefix with the git protocol
       dependency.update(`git:${dependency.range}`);
       shouldCheckIfValidGitDependency = true;
@@ -171,8 +164,7 @@ function enforceProtocols({ Yarn }) {
     }
 
     if (
-      (shouldCheckIfValidGitDependency ||
-        dependency.range.startsWith("git:")) &&
+      (shouldCheckIfValidGitDependency || dependency.range.startsWith("git:")) &&
       !allowedGitDependencies.includes(dependency.ident)
     ) {
       dependency.error(
@@ -184,9 +176,7 @@ function enforceProtocols({ Yarn }) {
     if (dependency.range.startsWith("patch:")) {
       const dependencySpecification = dependency.range.match(/^patch:([^#]+)/);
       if (!dependencySpecification) {
-        dependency.error(
-          `invalid patch protocol, dependency: ${dependency.ident}`,
-        );
+        dependency.error(`invalid patch protocol, dependency: ${dependency.ident}`);
         continue;
       }
 
@@ -240,9 +230,7 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
     };
 
     for (const script of Object.values(scripts)) {
-      for (const [key, { commands }] of Object.entries(
-        enforcedDevDependencies,
-      )) {
+      for (const [key, { commands }] of Object.entries(enforcedDevDependencies)) {
         if (workspace.ident === "@local/eslint" && key === "eslint") {
           continue;
         }
@@ -262,11 +250,7 @@ function enforceDevDependenciesAreProperlyDeclared({ Yarn }) {
           continue;
         }
 
-        if (
-          allowedUnscriptedDevDependencies[workspace.ident]?.has(
-            dependencies[key].ident,
-          )
-        ) {
+        if (allowedUnscriptedDevDependencies[workspace.ident]?.has(dependencies[key].ident)) {
           continue;
         }
 

@@ -45,21 +45,20 @@ const createQuickNote = async (text: string) => {
           entityTypeIds: [systemEntityTypes.text.entityTypeId],
           properties: {
             value: {
-              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-                {
-                  value: [
-                    {
-                      value: {
-                        tokenType: "text",
-                        text: paragraph,
-                      } satisfies TextToken,
-                      metadata: {
-                        dataTypeId:
-                          "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-                      },
+              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": {
+                value: [
+                  {
+                    value: {
+                      tokenType: "text",
+                      text: paragraph,
+                    } satisfies TextToken,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
                     },
-                  ],
-                },
+                  },
+                ],
+              },
             },
           },
         }),
@@ -70,8 +69,7 @@ const createQuickNote = async (text: string) => {
               "https://hash.ai/@h/types/property-type/component-id/": {
                 value: paragraphBlockComponentId,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               },
             },
@@ -101,16 +99,13 @@ const createQuickNote = async (text: string) => {
   await Promise.all(
     blockEntities.map(async (blockEntity, index) =>
       createEntity<HasIndexedContent>({
-        entityTypeIds: [
-          systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
-        ],
+        entityTypeIds: [systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId],
         properties: {
           value: {
             "https://hash.ai/@h/types/property-type/fractional-index/": {
               value: fractionalIndexes[index]!,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
             },
           },
@@ -127,10 +122,7 @@ const createQuickNote = async (text: string) => {
 };
 
 export const QuickNoteAction = () => {
-  const [draftQuickNote, setDraftQuickNote] = useStorageSync(
-    "draftQuickNote",
-    "",
-  );
+  const [draftQuickNote, setDraftQuickNote] = useStorageSync("draftQuickNote", "");
 
   const saveQuickNote = () => {
     if (!draftQuickNote) {

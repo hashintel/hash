@@ -11,9 +11,7 @@ import type {
 
 export const mapPreviousCoordinatorCallsToLlmMessages = (params: {
   includeErrorsOnly: boolean;
-  previousCalls: CompletedCoordinatorToolCall<
-    CoordinatorToolName | SubCoordinatingAgentToolName
-  >[];
+  previousCalls: CompletedCoordinatorToolCall<CoordinatorToolName | SubCoordinatingAgentToolName>[];
 }): LlmMessage[] => {
   const { includeErrorsOnly, previousCalls } = params;
 

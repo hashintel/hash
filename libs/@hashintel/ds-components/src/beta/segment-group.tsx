@@ -9,9 +9,7 @@ import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { segmentGroupSlotRecipe } from "./segment-group.recipe";
 
-const { withProvider, withContext } = createStyleContext(
-  segmentGroupSlotRecipe,
-);
+const { withProvider, withContext } = createStyleContext(segmentGroupSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 
@@ -46,12 +44,7 @@ export const Items = (props: ItemsProps) => {
   const data = useMemo(() => normalize(items), [items]);
 
   return data.map((item) => (
-    <Item
-      key={item.value}
-      value={item.value}
-      disabled={item.disabled}
-      {...itemProps}
-    >
+    <Item key={item.value} value={item.value} disabled={item.disabled} {...itemProps}>
       <ItemText>{item.label}</ItemText>
       <ItemHiddenInput />
     </Item>
@@ -59,6 +52,4 @@ export const Items = (props: ItemsProps) => {
 };
 
 const normalize = (items: Array<string | Item>): Item[] =>
-  items.map((item) =>
-    typeof item === "string" ? { value: item, label: item } : item,
-  );
+  items.map((item) => (typeof item === "string" ? { value: item, label: item } : item));

@@ -1,9 +1,6 @@
 /** Required to load environment variables */
 import "@local/hash-backend-utils/environment";
-import {
-  ExpressInstrumentation,
-  ExpressLayerType,
-} from "@opentelemetry/instrumentation-express";
+import { ExpressInstrumentation, ExpressLayerType } from "@opentelemetry/instrumentation-express";
 import { GraphQLInstrumentation } from "@opentelemetry/instrumentation-graphql";
 import * as Sentry from "@sentry/node";
 
@@ -59,10 +56,7 @@ export const otelSetup = (() => {
       throw error;
     }
     // eslint-disable-next-line no-console
-    console.error(
-      "OpenTelemetry bootstrap failed; service will start without telemetry.",
-      error,
-    );
+    console.error("OpenTelemetry bootstrap failed; service will start without telemetry.", error);
     return undefined;
   }
 })();

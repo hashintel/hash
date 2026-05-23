@@ -1,16 +1,11 @@
-import {
-  ArrowUpWideShortLightIcon,
-  IconButton,
-} from "@hashintel/design-system";
+import { ArrowUpWideShortLightIcon, IconButton } from "@hashintel/design-system";
 
 export type VirtualizedTableSort<Id extends string = string> = {
   fieldId: Id;
   direction: "asc" | "desc";
 };
 
-export type TableSortProps<
-  Sort extends VirtualizedTableSort = VirtualizedTableSort,
-> = {
+export type TableSortProps<Sort extends VirtualizedTableSort = VirtualizedTableSort> = {
   sort?: Sort;
   setSort: (sort: Sort) => void;
 };
@@ -37,11 +32,9 @@ export const SortButton = <Sort extends VirtualizedTableSort>({
     >
       <ArrowUpWideShortLightIcon
         sx={{
-          fill: ({ palette }) =>
-            isSorted ? palette.blue[70] : palette.gray[50],
+          fill: ({ palette }) => (isSorted ? palette.blue[70] : palette.gray[50]),
           transform: isSortedAscending ? "rotate(180deg)" : "rotate(0deg)",
-          transition: ({ transitions }) =>
-            transitions.create(["transform", "fill"]),
+          transition: ({ transitions }) => transitions.create(["transform", "fill"]),
         }}
       />
     </IconButton>

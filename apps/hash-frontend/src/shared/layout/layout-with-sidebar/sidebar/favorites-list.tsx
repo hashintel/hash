@@ -22,9 +22,7 @@ import type { SortType } from "./shared/sort-actions-dropdown";
 export const FavoritesList = () => {
   const preferences = useUserPreferences();
 
-  const [expanded, setExpanded] = useState<boolean>(
-    preferences.sidebarSections.favorites.expanded,
-  );
+  const [expanded, setExpanded] = useState<boolean>(preferences.sidebarSections.favorites.expanded);
 
   const [updateUser] = useUpdateAuthenticatedUser();
 
@@ -57,9 +55,7 @@ export const FavoritesList = () => {
     if (latestEntityTypes) {
       return latestEntityTypes.filter((root) =>
         preferences.favorites.find(
-          (favorite) =>
-            favorite.type === "entityType" &&
-            favorite.entityTypeId === root.schema.$id,
+          (favorite) => favorite.type === "entityType" && favorite.entityTypeId === root.schema.$id,
         ),
       );
     }
@@ -100,11 +96,7 @@ export const FavoritesList = () => {
                     },
                   })}
                 >
-                  {sortType === "asc" ? (
-                    <ArrowDownAZRegularIcon />
-                  ) : (
-                    <ArrowUpZARegularIcon />
-                  )}
+                  {sortType === "asc" ? <ArrowDownAZRegularIcon /> : <ArrowUpZARegularIcon />}
                 </IconButton>
               </Tooltip>
             </Fade>
@@ -125,9 +117,7 @@ export const FavoritesList = () => {
                 <Collapse key={root.schema.$id}>
                   <EntityOrTypeSidebarItem
                     entityType={root.schema}
-                    href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
-                      root.schema.$id,
-                    )}`}
+                    href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(root.schema.$id)}`}
                     variant="entity"
                   />
                 </Collapse>

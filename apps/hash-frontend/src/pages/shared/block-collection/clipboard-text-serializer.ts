@@ -9,18 +9,12 @@ import type { Node, NodeType, Slice } from "prosemirror-model";
 //  * @todo find a way of not having to do this centrally
 //  * @todo look into whether this is needed for mentions and for links
 //  */
-export const clipboardTextSerializer =
-  (lineBreakNodetype?: NodeType) => (slice: Slice) => {
-    return slice.content.textBetween(
-      0,
-      slice.content.size,
-      "\n\n",
-      (node: Node) => {
-        if (node.type === lineBreakNodetype) {
-          return "\n";
-        }
+export const clipboardTextSerializer = (lineBreakNodetype?: NodeType) => (slice: Slice) => {
+  return slice.content.textBetween(0, slice.content.size, "\n\n", (node: Node) => {
+    if (node.type === lineBreakNodetype) {
+      return "\n";
+    }
 
-        return "";
-      },
-    );
-  };
+    return "";
+  });
+};

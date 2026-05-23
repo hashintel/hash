@@ -66,9 +66,7 @@ function createEventStream<T>(): EventStream<T> & { emit(event: T): void } {
  * `Petrinaut` instance — pass `instance.handle.doc()` (or any other SDCPN
  * value) and you're done.
  */
-export function createSimulation(
-  config: CreateSimulationConfig,
-): Promise<Simulation> {
+export function createSimulation(config: CreateSimulationConfig): Promise<Simulation> {
   const transport: SimulationTransport =
     "transport" in config && config.transport !== undefined
       ? config.transport

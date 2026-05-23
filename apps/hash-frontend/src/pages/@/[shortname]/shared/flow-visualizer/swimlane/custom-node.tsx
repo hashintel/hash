@@ -15,10 +15,7 @@ import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
 import { statusSx } from "./custom-node/node-styles";
 
-import type {
-  SimpleStatus,
-  StepRunStatus,
-} from "../../../../../shared/flow-runs-context";
+import type { SimpleStatus, StepRunStatus } from "../../../../../shared/flow-runs-context";
 import type { NodeData } from "../shared/types";
 import type {
   ExternalInputRequest,
@@ -53,9 +50,7 @@ const useStatusText = ({
        * This provides a visual indicator that the triggering user should stick around to see if any questions are asked,
        * which is replaced once the plan has been produced or questions have been asked.
        */
-      const hasCreatedPlan = statusData?.logs.some(
-        (log) => log.type === "CreatedPlan",
-      );
+      const hasCreatedPlan = statusData?.logs.some((log) => log.type === "CreatedPlan");
       if (!hasCreatedPlan) {
         return "Deciding whether to ask questions...";
       }
@@ -89,9 +84,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
 
   if (
     selectedFlowRun?.closedAt &&
-    ["In Progress", "Waiting", "Information Required"].includes(
-      simpleStatusName,
-    )
+    ["In Progress", "Waiting", "Information Required"].includes(simpleStatusName)
   ) {
     simpleStatusName = "Cancelled";
   }
@@ -132,9 +125,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
 
   const isoString = closedAt ?? scheduledAt;
 
-  const [timeAgo, setTimeAgo] = useState(
-    isoString ? getTimeAgo(isoString) : "",
-  );
+  const [timeAgo, setTimeAgo] = useState(isoString ? getTimeAgo(isoString) : "");
 
   const isParallelizedGroup = data.kind === "parallel-group";
 
@@ -187,20 +178,14 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
           onClose={() => setShowQuestionModal(false)}
         />
       )}
-      <NodeContainer
-        kind={data.kind}
-        selected={selected}
-        stepStatusName={simpleStatusName}
-      >
+      <NodeContainer kind={data.kind} selected={selected} stepStatusName={simpleStatusName}>
         <Stack justifyContent="space-between" sx={{ height: "100%" }}>
           <Typography sx={{ textAlign: "left", fontSize: 14, fontWeight: 400 }}>
             {data.label}
             {isParallelizedStep ? "[]" : ""}
           </Typography>
           <Stack direction="row" mb={2} mt={1}>
-            <Typography sx={{ fontSize: 12, fontWeight: 500 }}>
-              {timeAgo}
-            </Typography>
+            <Typography sx={{ fontSize: 12, fontWeight: 500 }}>{timeAgo}</Typography>
             <Typography
               sx={{
                 fontSize: 12,

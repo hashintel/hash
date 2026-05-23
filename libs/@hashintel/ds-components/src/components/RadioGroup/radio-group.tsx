@@ -48,17 +48,15 @@ const radioItemRecipe = cva({
       outlineOffset: "[2px]",
     },
     // Hover state for radio control when hovering Item - target only item-control
-    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='unchecked']":
-      {
-        borderColor: "[#C7C7C7]",
-        transform: "[scale(0.8)]",
-      },
-    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='checked']":
-      {
-        backgroundColor: "[#1567E0]",
-        borderColor: "[#1567E0]",
-        transform: "[scale(0.8)]",
-      },
+    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='unchecked']": {
+      borderColor: "[#C7C7C7]",
+      transform: "[scale(0.8)]",
+    },
+    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='checked']": {
+      backgroundColor: "[#1567E0]",
+      borderColor: "[#1567E0]",
+      transform: "[scale(0.8)]",
+    },
   },
   variants: {
     variant: {
@@ -283,9 +281,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
                   </BaseRadioGroup.ItemText>
 
                   {option.description && (
-                    <p className={descriptionTextStyles}>
-                      {option.description}
-                    </p>
+                    <p className={descriptionTextStyles}>{option.description}</p>
                   )}
                 </div>
               </div>

@@ -1,8 +1,4 @@
-import {
-  createWorkerLspTransport,
-  type LspTransport,
-  type LspWorkerFactory,
-} from "./transport";
+import { createWorkerLspTransport, type LspTransport, type LspWorkerFactory } from "./transport";
 
 import type { ReadableStore } from "../handle";
 import type { SDCPN } from "../types/sdcpn";
@@ -50,16 +46,8 @@ export interface LanguageClient {
   killMetricSession(this: void, sessionId: string): void;
 
   // --- Requests (return Promise) ---
-  requestCompletion(
-    this: void,
-    uri: DocumentUri,
-    position: Position,
-  ): Promise<CompletionList>;
-  requestHover(
-    this: void,
-    uri: DocumentUri,
-    position: Position,
-  ): Promise<Hover | null>;
+  requestCompletion(this: void, uri: DocumentUri, position: Position): Promise<CompletionList>;
+  requestHover(this: void, uri: DocumentUri, position: Position): Promise<Hover | null>;
   requestSignatureHelp(
     this: void,
     uri: DocumentUri,
@@ -105,9 +93,7 @@ function createReadableStore<T>(initial: T): ReadableStore<T> & {
   };
 }
 
-function buildSnapshot(
-  allParams: PublishDiagnosticsParams[],
-): DiagnosticsSnapshot {
+function buildSnapshot(allParams: PublishDiagnosticsParams[]): DiagnosticsSnapshot {
   const byUri = new Map<DocumentUri, Diagnostic[]>();
   let total = 0;
   for (const param of allParams) {
@@ -126,9 +112,7 @@ function buildSnapshot(
  * Either pass a `createWorker` factory (the function builds a transport) or a
  * pre-built `transport` (ownership transfers — `dispose()` will terminate it).
  */
-export function createLanguageClient(
-  config: CreateLanguageClientConfig,
-): LanguageClient {
+export function createLanguageClient(config: CreateLanguageClientConfig): LanguageClient {
   const transport: LspTransport =
     "transport" in config && config.transport !== undefined
       ? config.transport
@@ -142,8 +126,7 @@ export function createLanguageClient(
   let nextId = 0;
   let disposed = false;
 
-  const diagnostics =
-    createReadableStore<DiagnosticsSnapshot>(EMPTY_DIAGNOSTICS);
+  const diagnostics = createReadableStore<DiagnosticsSnapshot>(EMPTY_DIAGNOSTICS);
 
   transport.onMessage((msg) => {
     if ("id" in msg) {
@@ -169,10 +152,7 @@ export function createLanguageClient(
     transport.send(message as ClientMessage);
   }
 
-  function sendRequest<T>(
-    method: ClientMessage["method"],
-    params: unknown,
-  ): Promise<T> {
+  function sendRequest<T>(method: ClientMessage["method"], params: unknown): Promise<T> {
     if (disposed) {
       return Promise.reject(new Error("LanguageClient disposed"));
     }

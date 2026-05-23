@@ -28,17 +28,11 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "../primitive/entity";
-import {
-  createLinkEntity,
-  getLinkEntityRightEntity,
-} from "../primitive/link-entity";
+import { createLinkEntity, getLinkEntityRightEntity } from "../primitive/link-entity";
 import { getBlockComments, getBlockFromEntity } from "./block";
 import { addBlockToBlockCollection } from "./block-collection";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type { Block } from "./block";
 import type { Comment } from "./comment";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
@@ -60,9 +54,7 @@ export type Page = {
   entity: HashEntity<Canvas | Document>;
 };
 
-function assertPageEntity(
-  entity: HashEntity,
-): asserts entity is HashEntity<Canvas | Document> {
+function assertPageEntity(entity: HashEntity): asserts entity is HashEntity<Canvas | Document> {
   if (!includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -72,14 +64,10 @@ function assertPageEntity(
   }
 }
 
-export const getPageFromEntity: PureGraphFunction<
-  { entity: HashEntity },
-  Page
-> = ({ entity }) => {
+export const getPageFromEntity: PureGraphFunction<{ entity: HashEntity }, Page> = ({ entity }) => {
   assertPageEntity(entity);
 
-  const { title, summary, fractionalIndex, icon, archived } =
-    simplifyProperties(entity.properties);
+  const { title, summary, fractionalIndex, icon, archived } = simplifyProperties(entity.properties);
 
   return {
     title,
@@ -137,15 +125,13 @@ export const createPage: ImpureGraphFunction<
       "https://hash.ai/@h/types/property-type/title/": {
         value: title,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
       "https://hash.ai/@h/types/property-type/fractional-index/": {
         value: fractionalIndex,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
       ...(summary !== undefined
@@ -153,8 +139,7 @@ export const createPage: ImpureGraphFunction<
             "https://hash.ai/@h/types/property-type/summary/": {
               value: summary,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
             },
           }
@@ -182,8 +167,10 @@ export const createPage: ImpureGraphFunction<
         type === "document"
           ? {
               indexPosition: {
-                "https://hash.ai/@h/types/property-type/fractional-index/":
-                  generateKeyBetween(null, null),
+                "https://hash.ai/@h/types/property-type/fractional-index/": generateKeyBetween(
+                  null,
+                  null,
+                ),
               },
             }
           : {
@@ -214,8 +201,7 @@ export const getPageParentPage: ImpureGraphFunction<
 > = async (ctx, authentication, { page }) => {
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl:
-      systemLinkEntityTypes.hasParent.linkEntityTypeId,
+    linkEntityTypeVersionedUrl: systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -254,9 +240,7 @@ export const isPageArchived: ImpureGraphFunction<
 
   const parentPage = await getPageParentPage(ctx, authentication, { page });
 
-  return parentPage
-    ? await isPageArchived(ctx, authentication, { page: parentPage })
-    : false;
+  return parentPage ? await isPageArchived(ctx, authentication, { page: parentPage }) : false;
 };
 
 /**
@@ -293,10 +277,7 @@ export const getAllPagesInWorkspace: ImpureGraphFunction<
 
   return await Promise.all(
     pages.map(async (page) => {
-      if (
-        !includeArchived &&
-        (await isPageArchived(ctx, authentication, { page }))
-      ) {
+      if (!includeArchived && (await isPageArchived(ctx, authentication, { page }))) {
         return [];
       }
       return page;
@@ -321,10 +302,7 @@ export const pageHasParentPage: ImpureGraphFunction<
 > = async (ctx, authentication, params) => {
   const { page, parentPage } = params;
 
-  if (
-    page.entity.metadata.recordId.entityId ===
-    parentPage.entity.metadata.recordId.entityId
-  ) {
+  if (page.entity.metadata.recordId.entityId === parentPage.entity.metadata.recordId.entityId) {
     throw new Error("A page cannot be the parent of itself");
   }
 
@@ -337,8 +315,7 @@ export const pageHasParentPage: ImpureGraphFunction<
   }
 
   if (
-    actualParentPage.entity.metadata.recordId.entityId ===
-    page.entity.metadata.recordId.entityId
+    actualParentPage.entity.metadata.recordId.entityId === page.entity.metadata.recordId.entityId
   ) {
     return true;
   }
@@ -366,8 +343,7 @@ export const removeParentPage: ImpureGraphFunction<
   const { page } = params;
   const parentPageLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: page.entity.metadata.recordId.entityId,
-    linkEntityTypeVersionedUrl:
-      systemLinkEntityTypes.hasParent.linkEntityTypeId,
+    linkEntityTypeVersionedUrl: systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
@@ -454,8 +430,7 @@ export const setPageParentPage: ImpureGraphFunction<
           property: {
             value: newIndex,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           } satisfies FractionalIndexPropertyValueWithMetadata,
         },
@@ -477,39 +452,28 @@ export const getPageBlocks: ImpureGraphFunction<
   { pageEntityId: EntityId; type: "canvas" | "document" },
   Promise<
     {
-      linkEntity: HashLinkEntity<
-        HasIndexedContent | HasSpatiallyPositionedContent
-      >;
+      linkEntity: HashLinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>;
       rightEntity: Block;
     }[]
   >,
   false,
   true
 > = async (ctx, authentication, { pageEntityId, type }) => {
-  const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: pageEntityId,
-      linkEntityTypeVersionedUrl:
-        type === "document"
-          ? systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId
-          : systemLinkEntityTypes.hasSpatiallyPositionedContent
-              .linkEntityTypeId,
-    },
-  )) as
-    | HashLinkEntity<HasIndexedContent>[]
-    | HashLinkEntity<HasSpatiallyPositionedContent>[];
+  const outgoingBlockDataLinks = (await getEntityOutgoingLinks(ctx, authentication, {
+    entityId: pageEntityId,
+    linkEntityTypeVersionedUrl:
+      type === "document"
+        ? systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId
+        : systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId,
+  })) as HashLinkEntity<HasIndexedContent>[] | HashLinkEntity<HasSpatiallyPositionedContent>[];
 
   return await Promise.all(
-    outgoingBlockDataLinks
-      .sort(sortBlockCollectionLinks)
-      .map(async (linkEntity) => ({
+    outgoingBlockDataLinks.sort(sortBlockCollectionLinks).map(async (linkEntity) => ({
+      linkEntity,
+      rightEntity: await getLinkEntityRightEntity(ctx, authentication, {
         linkEntity,
-        rightEntity: await getLinkEntityRightEntity(ctx, authentication, {
-          linkEntity,
-        }).then((entity) => getBlockFromEntity({ entity })),
-      })),
+      }).then((entity) => getBlockFromEntity({ entity })),
+    })),
   );
 };
 
@@ -530,12 +494,8 @@ export const getPageComments: ImpureGraphFunction<
   });
 
   const comments = await Promise.all(
-    blocks.map(({ rightEntity }) =>
-      getBlockComments(ctx, authentication, { block: rightEntity }),
-    ),
+    blocks.map(({ rightEntity }) => getBlockComments(ctx, authentication, { block: rightEntity })),
   );
 
-  return comments
-    .flat()
-    .filter((comment) => !comment.resolvedAt && !comment.deletedAt);
+  return comments.flat().filter((comment) => !comment.resolvedAt && !comment.deletedAt);
 };

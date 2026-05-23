@@ -3,10 +3,7 @@ import { SvgIcon } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const HashLockup: FunctionComponent<SvgIconProps> = ({
-  sx,
-  ...props
-}) => {
+export const HashLockup: FunctionComponent<SvgIconProps> = ({ sx, ...props }) => {
   return (
     <SvgIcon
       width="100"
@@ -39,26 +36,10 @@ export const HashLockup: FunctionComponent<SvgIconProps> = ({
         d="M83.9102 0.537109H88.5739V6.87204H94.5599V0.537109H99.2236V17.4625H94.5599V11.0308H88.5739V17.4625H83.9102V0.537109Z"
         fill="#4D5C6C"
       />
-      <path
-        opacity="0.886277"
-        d="M10.0918 18H15.1036V0H10.0918V18Z"
-        fill="#0775E3"
-      />
-      <path
-        opacity="0.898345"
-        d="M2.89648 18H7.90794V0H2.89648V18Z"
-        fill="#0775E3"
-      />
-      <path
-        opacity="0.881278"
-        d="M0 7.71497H18V2.70312H0V7.71497Z"
-        fill="#0775E3"
-      />
-      <path
-        opacity="0.855632"
-        d="M0 15.0388H18V10.0273H0V15.0388Z"
-        fill="#0775E3"
-      />
+      <path opacity="0.886277" d="M10.0918 18H15.1036V0H10.0918V18Z" fill="#0775E3" />
+      <path opacity="0.898345" d="M2.89648 18H7.90794V0H2.89648V18Z" fill="#0775E3" />
+      <path opacity="0.881278" d="M0 7.71497H18V2.70312H0V7.71497Z" fill="#0775E3" />
+      <path opacity="0.855632" d="M0 15.0388H18V10.0273H0V15.0388Z" fill="#0775E3" />
     </SvgIcon>
   );
 };

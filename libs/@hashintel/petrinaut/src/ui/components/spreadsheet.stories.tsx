@@ -44,31 +44,19 @@ const InteractiveSpreadsheet = ({
   const [data, setData] = useState(initialData);
   return (
     <Container>
-      <Spreadsheet
-        columns={columns}
-        data={data}
-        onChange={readOnly ? undefined : setData}
-      />
+      <Spreadsheet columns={columns} data={data} onChange={readOnly ? undefined : setData} />
     </Container>
   );
 };
 
 export const Default: Story = {
   name: "Default (editable)",
-  render: () => (
-    <InteractiveSpreadsheet columns={COLUMNS_3} initialData={SAMPLE_DATA} />
-  ),
+  render: () => <InteractiveSpreadsheet columns={COLUMNS_3} initialData={SAMPLE_DATA} />,
 };
 
 export const ReadOnly: Story = {
   name: "Read-only",
-  render: () => (
-    <InteractiveSpreadsheet
-      columns={COLUMNS_3}
-      initialData={SAMPLE_DATA}
-      readOnly
-    />
-  ),
+  render: () => <InteractiveSpreadsheet columns={COLUMNS_3} initialData={SAMPLE_DATA} readOnly />,
 };
 
 export const Empty: Story = {
@@ -91,11 +79,7 @@ export const ManyRows: Story = {
   render: () => (
     <InteractiveSpreadsheet
       columns={COLUMNS_3}
-      initialData={Array.from({ length: 25 }, (_, i) => [
-        i + 1,
-        (i + 1) * 10,
-        (i + 1) * 100,
-      ])}
+      initialData={Array.from({ length: 25 }, (_, i) => [i + 1, (i + 1) * 10, (i + 1) * 100])}
     />
   ),
 };

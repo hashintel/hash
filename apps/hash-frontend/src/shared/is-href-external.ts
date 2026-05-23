@@ -26,9 +26,7 @@ export const isHrefExternal = (href: string) => {
   if (
     new URL(href).hostname === "hash.ai" &&
     !isSelfHostedInstance &&
-    /(.*\/@.+\/types\/(entity-type|data-type|property-type)\/[^/]+\/)(?:v\/(\d+))?$/.test(
-      href,
-    )
+    /(.*\/@.+\/types\/(entity-type|data-type|property-type)\/[^/]+\/)(?:v\/(\d+))?$/.test(href)
   ) {
     /**
      * This is a type URL with a hash.ai origin, on a non-self-hosted instance, so either:

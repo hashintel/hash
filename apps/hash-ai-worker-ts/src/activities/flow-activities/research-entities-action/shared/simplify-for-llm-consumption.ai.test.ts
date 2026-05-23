@@ -10,9 +10,7 @@ test("Test researchEntitiesAction: find subsidiary companies of Google", async (
   const { userAuthentication } = await getFlowContext();
 
   const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-    entityTypeIds: [
-      "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
-    ],
+    entityTypeIds: ["https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1"],
     actorId: userAuthentication.actorId,
     graphApiClient,
   });

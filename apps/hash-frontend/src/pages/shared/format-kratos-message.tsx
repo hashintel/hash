@@ -43,19 +43,18 @@ export const formatKratosMessage = (message: UiText): ReactNode => {
   // Original: 'You tried to sign in with "email", but that email is already
   // used by another account...'
   if (message.id === 1010016 && context) {
-    const email = (context.duplicateIdentifier ??
-      context.duplicate_identifier) as string | undefined;
+    const email = (context.duplicateIdentifier ?? context.duplicate_identifier) as
+      | string
+      | undefined;
     const providerId = context.provider as string | undefined;
-    const provider = providerId
-      ? (providerDisplayNames[providerId] ?? providerId)
-      : undefined;
+    const provider = providerId ? (providerDisplayNames[providerId] ?? providerId) : undefined;
 
     return (
       <>
-        An account with {email ? <strong>{email}</strong> : "this email"}{" "}
-        already exists. Sign in with your password to link{" "}
-        {provider ? <strong>{provider}</strong> : "the external provider"} as
-        another way to sign in.
+        An account with {email ? <strong>{email}</strong> : "this email"} already exists. Sign in
+        with your password to link{" "}
+        {provider ? <strong>{provider}</strong> : "the external provider"} as another way to sign
+        in.
       </>
     );
   }

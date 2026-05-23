@@ -14,9 +14,7 @@ export {
   StatusCode,
 } from "./status-code.js";
 
-export const isStatus = (
-  value: unknown,
-): value is Status<Record<string, unknown>> => {
+export const isStatus = (value: unknown): value is Status<Record<string, unknown>> => {
   return (
     typeof value === "object" &&
     value !== null &&

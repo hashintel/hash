@@ -10,11 +10,7 @@ export const App = () => {
   return (
     <Stack gap="4">
       {variants.map((variant) => (
-        <InputGroup
-          key={variant}
-          startElement={<EuroIcon />}
-          endElement={<InfoIcon />}
-        >
+        <InputGroup key={variant} startElement={<EuroIcon />} endElement={<InfoIcon />}>
           <Input placeholder="0.00" variant={variant} />
         </InputGroup>
       ))}

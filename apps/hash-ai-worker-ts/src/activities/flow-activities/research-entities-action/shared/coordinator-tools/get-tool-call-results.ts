@@ -21,10 +21,7 @@ import type {
   ParsedSubCoordinatorToolCallMap,
   SubCoordinatingAgentToolName,
 } from "../coordinator-tools.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../coordinators.js";
+import type { CoordinatingAgentInput, CoordinatingAgentState } from "../coordinators.js";
 import type { Url } from "@blockprotocol/type-system";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -75,14 +72,8 @@ export function getToolCallResults(
  * so it may be worth investing the effort in a more complicated merging of results at some point.
  */
 export async function getToolCallResults(
-  params:
-    | GetCoordinatorToolCallResultsParams
-    | GetSubCoordinatorToolCallResultsParams,
-): Promise<
-  CompletedCoordinatorToolCall<
-    CoordinatorToolName | SubCoordinatingAgentToolName
-  >
-> {
+  params: GetCoordinatorToolCallResultsParams | GetSubCoordinatorToolCallResultsParams,
+): Promise<CompletedCoordinatorToolCall<CoordinatorToolName | SubCoordinatingAgentToolName>> {
   const { stepId } = await getFlowContext();
 
   const { agentType, input, state, toolCall, workerIdentifiers } = params;
@@ -103,9 +94,7 @@ export async function getToolCallResults(
     };
   } else if (toolCall.name === "requestHumanInput") {
     if (agentType === "sub-coordinator") {
-      throw new Error(
-        "Sub-coordinators cannot use the requestHumanInput tool.",
-      );
+      throw new Error("Sub-coordinators cannot use the requestHumanInput tool.");
     }
 
     const { questions } = toolCall.input;
@@ -119,15 +108,12 @@ export async function getToolCallResults(
       };
     }
 
-    logger.debug(
-      `Requesting human input for questions: ${stringify(questions)}`,
-    );
+    logger.debug(`Requesting human input for questions: ${stringify(questions)}`);
 
     const response = await getAnswersFromHuman(toolCall.input.questions);
 
     // eslint-disable-next-line no-param-reassign
-    params.state.questionsAndAnswers =
-      (params.state.questionsAndAnswers ?? "") + response;
+    params.state.questionsAndAnswers = (params.state.questionsAndAnswers ?? "") + response;
 
     return {
       ...nullReturns,
@@ -232,9 +218,7 @@ export async function getToolCallResults(
       inferredClaims: response.inferredClaims,
       entitySummaries: response.inferredSummaries,
       suggestionsForNextStepsMade: [response.suggestionForNextSteps],
-      resourceUrlsVisited: response.exploredResources.map(
-        (resource) => resource.url,
-      ),
+      resourceUrlsVisited: response.exploredResources.map((resource) => resource.url),
       isError: response.status === "error",
       output:
         response.status === "error"
@@ -256,8 +240,7 @@ export async function getToolCallResults(
     );
 
     const existingClaimsAboutRelevantEntities = state.inferredClaims.filter(
-      ({ subjectEntityLocalId }) =>
-        relevantEntityIds.includes(subjectEntityLocalId),
+      ({ subjectEntityLocalId }) => relevantEntityIds.includes(subjectEntityLocalId),
     );
 
     const delegatedTaskIdentifiers = {
@@ -296,12 +279,8 @@ export async function getToolCallResults(
     logProgress([
       {
         type: "ClosedSubCoordinator",
-        errorMessage:
-          response.status !== "ok" ? response.explanation : undefined,
-        explanation:
-          response.status === "ok"
-            ? response.explanation
-            : response.explanation,
+        errorMessage: response.status !== "ok" ? response.explanation : undefined,
+        explanation: response.status === "ok" ? response.explanation : response.explanation,
         goal,
         output:
           response.status === "ok"

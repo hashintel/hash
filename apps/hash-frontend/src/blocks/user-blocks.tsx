@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 
 import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
 
@@ -13,12 +7,7 @@ import { useGetBlockProtocolBlocks } from "../components/hooks/use-get-block-pro
 
 import type { EntityType } from "@blockprotocol/type-system";
 import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
-import type {
-  Dispatch,
-  FunctionComponent,
-  ReactNode,
-  SetStateAction,
-} from "react";
+import type { Dispatch, FunctionComponent, ReactNode, SetStateAction } from "react";
 
 interface UserBlocksContextState {
   value: ComponentIdHashBlockMap;
@@ -139,11 +128,7 @@ export const UserBlocksProvider: FunctionComponent<{
     [value, setValue, error],
   );
 
-  return (
-    <UserBlocksContext.Provider value={state}>
-      {children}
-    </UserBlocksContext.Provider>
-  );
+  return <UserBlocksContext.Provider value={state}>{children}</UserBlocksContext.Provider>;
 };
 
 export const useUserBlocks = () => {

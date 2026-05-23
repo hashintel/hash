@@ -1,10 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
-import {
-  type ActorGroupEntityUuid,
-  type WebId,
-} from "@blockprotocol/type-system";
+import { type ActorGroupEntityUuid, type WebId } from "@blockprotocol/type-system";
 
 import { removeUserFromOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import { Link } from "../../../../../shared/ui/link";
@@ -50,10 +47,7 @@ export const MemberRow = ({
   return (
     <TableRow key={membership.linkEntity.metadata.recordId.entityId}>
       <SettingsTableCell>
-        <Link
-          href={`/@${membership.user.shortname}`}
-          sx={{ textDecoration: "none" }}
-        >
+        <Link href={`/@${membership.user.shortname}`} sx={{ textDecoration: "none" }}>
           {membership.user.displayName}
         </Link>
       </SettingsTableCell>
@@ -75,9 +69,7 @@ export const MemberRow = ({
         </Typography>
       </TableCell>
       <TableCell>
-        {!readonly && (
-          <MemberContextMenu removeFromOrg={removeFromOrg} self={self} />
-        )}
+        {!readonly && <MemberContextMenu removeFromOrg={removeFromOrg} self={self} />}
       </TableCell>
     </TableRow>
   );

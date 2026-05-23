@@ -112,9 +112,7 @@ export const calculateGraphLayout = async (
   const positionsByNodeId: Record<string, NodePosition> = {};
   for (const child of updatedElements.children ?? []) {
     if (child.x !== undefined && child.y !== undefined) {
-      const nodeDimensions = placeIds.has(child.id)
-        ? dimensions.place
-        : dimensions.transition;
+      const nodeDimensions = placeIds.has(child.id) ? dimensions.place : dimensions.transition;
 
       positionsByNodeId[child.id] = {
         x: child.x + nodeDimensions.width / 2,

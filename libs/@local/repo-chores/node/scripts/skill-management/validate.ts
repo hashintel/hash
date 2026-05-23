@@ -32,9 +32,7 @@ const run = async (skillsDir: string) => {
   }
 
   if (errors.length > 0) {
-    console.log(
-      chalk.red(`Validation failed with ${errors.length} error(s):\n`),
-    );
+    console.log(chalk.red(`Validation failed with ${errors.length} error(s):\n`));
 
     for (const { path: errorPath, error } of errors) {
       const skillName = path.basename(path.dirname(errorPath));
@@ -46,9 +44,7 @@ const run = async (skillsDir: string) => {
     return false;
   }
 
-  const validCount = skills.filter(
-    (skill) => skill.frontmatter !== null,
-  ).length;
+  const validCount = skills.filter((skill) => skill.frontmatter !== null).length;
   console.log(chalk.green(`Validated ${validCount} skill(s) successfully`));
 
   return true;
@@ -60,7 +56,4 @@ export const validate = async () => {
   return success;
 };
 
-export const validateParser = o.command(
-  "validate",
-  o.object({ action: o.constant("validate") }),
-);
+export const validateParser = o.command("validate", o.object({ action: o.constant("validate") }));

@@ -4,11 +4,7 @@ import { createSystemDataTypeIfNotExists } from "../util";
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
       allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
@@ -24,39 +20,31 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const durationDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        abstract: true,
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        title: "Duration",
-        description: "A measure of the length of time.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const durationDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      abstract: true,
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      title: "Duration",
+      description: "A measure of the length of time.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
-  const secondDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: durationDataType.schema.$id }],
-        title: "Second",
-        description:
-          "The base unit of duration in the International System of Units (SI), defined as about 9 billion oscillations of the caesium atom.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const secondDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: durationDataType.schema.$id }],
+      title: "Second",
+      description:
+        "The base unit of duration in the International System of Units (SI), defined as about 9 billion oscillations of the caesium atom.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
@@ -98,8 +86,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       allOf: [{ $ref: durationDataType.schema.$id }],
       title: "Minute",
-      description:
-        "A measure of the length of time, defined as exactly 60 seconds.",
+      description: "A measure of the length of time, defined as exactly 60 seconds.",
       type: "number",
     },
     conversions: {
@@ -116,8 +103,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       allOf: [{ $ref: durationDataType.schema.$id }],
       title: "Hour",
-      description:
-        "A measure of the length of time, defined as exactly 3,600 seconds.",
+      description: "A measure of the length of time, defined as exactly 3,600 seconds.",
       type: "number",
     },
     conversions: {

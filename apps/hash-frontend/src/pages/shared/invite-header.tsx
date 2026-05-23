@@ -10,23 +10,21 @@ type InviteHeaderProps = {
   };
 };
 
-export const InviteHeader: FunctionComponent<InviteHeaderProps> = memo(
-  ({ invitationInfo }) => {
-    return (
-      <p
-        style={{
-          color: "#3B82F6",
-          fontSize: "1.5rem",
-          fontWeight: "700",
-          lineHeight: "2rem",
-          marginBottom: "3rem",
-        }}
-      >
-        {invitationInfo.inviterDisplayName
-          ? `${invitationInfo.inviterDisplayName} has invited you to join 
+export const InviteHeader: FunctionComponent<InviteHeaderProps> = memo(({ invitationInfo }) => {
+  return (
+    <p
+      style={{
+        color: "#3B82F6",
+        fontSize: "1.5rem",
+        fontWeight: "700",
+        lineHeight: "2rem",
+        marginBottom: "3rem",
+      }}
+    >
+      {invitationInfo.inviterDisplayName
+        ? `${invitationInfo.inviterDisplayName} has invited you to join 
           ${invitationInfo.orgName}`
-          : ` You have been invited you to join ${invitationInfo.orgName}`}
-      </p>
-    );
-  },
-);
+        : ` You have been invited you to join ${invitationInfo.orgName}`}
+    </p>
+  );
+});

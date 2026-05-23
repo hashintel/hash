@@ -26,10 +26,7 @@ import type {
 } from "./coordinators.js";
 import type { WebResourceSummary } from "./handle-web-search-tool-call.js";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type {
-  FlowDataSources,
-  WorkerIdentifiers,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDataSources, WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 export const coordinatorToolNames = [
   "complete",
@@ -73,9 +70,7 @@ const explanationDefinition = {
   `),
 } as const;
 
-export const generateToolDefinitions = <
-  T extends CoordinatorToolName[],
->(params: {
+export const generateToolDefinitions = <T extends CoordinatorToolName[]>(params: {
   dataSources: FlowDataSources;
   omitTools?: T;
   state: CoordinatingAgentState | SubCoordinatingAgentState;
@@ -96,10 +91,7 @@ export const generateToolDefinitions = <
     omitTools.push("waitForOutstandingTasks", "stopTasks");
   }
 
-  const allToolDefinitions: Record<
-    CoordinatorToolName,
-    LlmToolDefinition<CoordinatorToolName>
-  > = {
+  const allToolDefinitions: Record<CoordinatorToolName, LlmToolDefinition<CoordinatorToolName>> = {
     waitForOutstandingTasks: {
       name: "waitForOutstandingTasks",
       description:
@@ -164,8 +156,7 @@ export const generateToolDefinitions = <
             type: "array",
             items: {
               type: "string",
-              description:
-                "A question to help clarify or complete the research task",
+              description: "A question to help clarify or complete the research task",
             },
             description: "An array of questions to ask the user",
           },
@@ -237,8 +228,7 @@ export const generateToolDefinitions = <
     },
     webSearch: {
       name: "webSearch",
-      description:
-        dedent(`Perform a web search via a web search engine, returning a list of URLs.
+      description: dedent(`Perform a web search via a web search engine, returning a list of URLs.
         For best results, the query should be specific and concise.
         Bear in mind that all the information you require may not be available via a single web search
         – if you have various attributes to gather about specific entities, it may be worth performing multiple searches
@@ -473,10 +463,7 @@ export type CoordinatorToolCallArguments = Subtype<
 >;
 
 export type ParsedCoordinatorToolCallMap = {
-  [K in keyof CoordinatorToolCallArguments]: ParsedLlmToolCall<
-    K,
-    CoordinatorToolCallArguments[K]
-  >;
+  [K in keyof CoordinatorToolCallArguments]: ParsedLlmToolCall<K, CoordinatorToolCallArguments[K]>;
 };
 
 export type ParsedCoordinatorToolCall =
@@ -624,9 +611,7 @@ export function triggerToolCallsRequests(
 export function triggerToolCallsRequests({
   toolCalls,
   ...restParams
-}:
-  | TriggerCoordinatorToolCallsRequestsParams
-  | TriggerSubCoordinatorToolCallsRequestsParams):
+}: TriggerCoordinatorToolCallsRequestsParams | TriggerSubCoordinatorToolCallsRequestsParams):
   | OutstandingCoordinatorTask<ParsedCoordinatorToolCall>[]
   | OutstandingCoordinatorTask<ParsedSubCoordinatorToolCall>[] {
   return toolCalls.map((toolCall) => {
@@ -723,8 +708,7 @@ export async function getSomeToolCallResults({
   state: CoordinatingAgentState | SubCoordinatingAgentState;
   waitForAll: boolean;
 }): Promise<
-  | CompletedToolCall<CoordinatorToolName>[]
-  | CompletedToolCall<SubCoordinatingAgentToolName>[]
+  CompletedToolCall<CoordinatorToolName>[] | CompletedToolCall<SubCoordinatingAgentToolName>[]
 > {
   const outstandingShortLivedTasks = state.outstandingTasks.filter(
     ({ longRunning }) => !longRunning,
@@ -734,19 +718,13 @@ export async function getSomeToolCallResults({
   );
 
   const readyTasks = waitForAll
-    ? await Promise.all(
-        state.outstandingTasks.map(({ resultsPromise }) => resultsPromise),
-      )
+    ? await Promise.all(state.outstandingTasks.map(({ resultsPromise }) => resultsPromise))
     : (
         await Promise.all([
           /**
            * Wait for all the short-lived tasks to complete
            */
-          Promise.all(
-            outstandingShortLivedTasks.map(
-              ({ resultsPromise }) => resultsPromise,
-            ),
-          ),
+          Promise.all(outstandingShortLivedTasks.map(({ resultsPromise }) => resultsPromise)),
 
           /**
            * Wait for the first long-lived task to complete
@@ -757,9 +735,7 @@ export async function getSomeToolCallResults({
           ...(outstandingLongRunningTasks.length
             ? [
                 Promise.race(
-                  outstandingLongRunningTasks.map(
-                    ({ resultsPromise }) => resultsPromise,
-                  ),
+                  outstandingLongRunningTasks.map(({ resultsPromise }) => resultsPromise),
                 ),
               ]
             : []),
@@ -772,11 +748,7 @@ export async function getSomeToolCallResults({
   await sleep(5_000);
 
   for (const outstandingTask of outstandingLongRunningTasks) {
-    if (
-      readyTasks.find(
-        (readyTask) => readyTask.id === outstandingTask.toolCall.id,
-      )
-    ) {
+    if (readyTasks.find((readyTask) => readyTask.id === outstandingTask.toolCall.id)) {
       /** we already have this one */
       continue;
     }
@@ -789,9 +761,7 @@ export async function getSomeToolCallResults({
   // eslint-disable-next-line no-param-reassign
   state.outstandingTasks = state.outstandingTasks.filter(
     (outstandingTask) =>
-      !readyTasks.find(
-        (readyTask) => readyTask.id === outstandingTask.toolCall.id,
-      ),
+      !readyTasks.find((readyTask) => readyTask.id === outstandingTask.toolCall.id),
     // this is a reasonably safe assertion for the compiler's benefit that we're not changing the array type
   ) as typeof state.outstandingTasks;
 

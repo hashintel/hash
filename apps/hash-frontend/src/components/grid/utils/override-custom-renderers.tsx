@@ -21,11 +21,7 @@ import type { DataEditorProps } from "@glideapps/glide-data-grid";
  *
  * @todo make the slide stacks consistent when this becomes an issue, and lock the slide scroll.
  */
-const ScrollLockWrapper = ({
-  children,
-}: {
-  children: ReactNode | Promise<ReactNode>;
-}) => {
+const ScrollLockWrapper = ({ children }: { children: ReactNode | Promise<ReactNode> }) => {
   const { currentSlideRef } = useSlideStack();
 
   useScrollLock(true, currentSlideRef?.current ?? document.body);
@@ -46,47 +42,40 @@ export const overrideCustomRenderers = (
   customRenderers: DataEditorProps["customRenderers"],
   tableIdRef: RefObject<string>,
 ): DataEditorProps["customRenderers"] => {
-  return customRenderers?.map(
-    ({ draw, provideEditor, onClick, ...restFields }) => {
-      return {
-        ...restFields,
-        draw: (args, cell) =>
-          draw({ ...args, tableId: tableIdRef.current }, cell),
-        onClick: (args) => {
-          const [colIndex, rowIndex] = args.location;
+  return customRenderers?.map(({ draw, provideEditor, onClick, ...restFields }) => {
+    return {
+      ...restFields,
+      draw: (args, cell) => draw({ ...args, tableId: tableIdRef.current }, cell),
+      onClick: (args) => {
+        const [colIndex, rowIndex] = args.location;
 
-          const wasClickHandledByManager = InteractableManager.handleClick(
-            `${tableIdRef.current}-${colIndex}-${rowIndex}`,
-            args,
-          );
+        const wasClickHandledByManager = InteractableManager.handleClick(
+          `${tableIdRef.current}-${colIndex}-${rowIndex}`,
+          args,
+        );
 
-          if (wasClickHandledByManager) {
-            args.preventDefault();
-          } else {
-            onClick?.(args);
-          }
+        if (wasClickHandledByManager) {
+          args.preventDefault();
+        } else {
+          onClick?.(args);
+        }
 
-          return undefined;
-        },
-        provideEditor: (cell) => {
-          const editorProps = provideEditor?.(cell);
+        return undefined;
+      },
+      provideEditor: (cell) => {
+        const editorProps = provideEditor?.(cell);
 
-          return {
-            ...editorProps,
-            editor: (props) => {
-              if (isObjectEditorCallbackResult(editorProps)) {
-                return (
-                  <ScrollLockWrapper>
-                    {editorProps.editor(props)}
-                  </ScrollLockWrapper>
-                );
-              }
+        return {
+          ...editorProps,
+          editor: (props) => {
+            if (isObjectEditorCallbackResult(editorProps)) {
+              return <ScrollLockWrapper>{editorProps.editor(props)}</ScrollLockWrapper>;
+            }
 
-              return null;
-            },
-          };
-        },
-      };
-    },
-  );
+            return null;
+          },
+        };
+      },
+    };
+  });
 };

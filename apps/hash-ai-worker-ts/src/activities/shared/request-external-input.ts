@@ -15,9 +15,7 @@ import type { Client as TemporalClient } from "@temporalio/client";
 
 let temporalClient: TemporalClient | undefined;
 
-export const requestExternalInput = async <
-  Request extends ExternalInputRequestSignal,
->(
+export const requestExternalInput = async <Request extends ExternalInputRequestSignal>(
   request: Request,
 ): Promise<ExternalInputResponseSignal<Request["type"]>> => {
   temporalClient = temporalClient ?? (await createTemporalClient());

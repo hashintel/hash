@@ -21,9 +21,7 @@ const ErrorView: FunctionComponent<ErrorProps> = ({ errored }) => {
           The collaborative server has errored.{" "}
           <strong>Recent changes may not have been saved.</strong>
         </Typography>
-        <Typography mb={4}>
-          Please refresh to ensure no further work is lost.
-        </Typography>
+        <Typography mb={4}>Please refresh to ensure no further work is lost.</Typography>
         <Stack direction="row" justifyContent="center">
           <Button size="large" onClick={() => window.location.reload()}>
             Refresh

@@ -3,10 +3,7 @@ import { Tooltip } from "../tooltip";
 
 export const App = () => {
   return (
-    <Tooltip
-      content="This is the tooltip content"
-      positioning={{ placement: "right-end" }}
-    >
+    <Tooltip content="This is the tooltip content" positioning={{ placement: "right-end" }}>
       <Button variant="outline" size="sm">
         Hover me
       </Button>

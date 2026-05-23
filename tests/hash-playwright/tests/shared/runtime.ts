@@ -61,10 +61,7 @@ export const test = base.extend<Page>({
         (entry) => entry.status === status && entry.urlPattern.test(res.url()),
       );
       if (ok) {
-        toleratedFailuresByStatus.set(
-          status,
-          (toleratedFailuresByStatus.get(status) ?? 0) + 1,
-        );
+        toleratedFailuresByStatus.set(status, (toleratedFailuresByStatus.get(status) ?? 0) + 1);
       }
     });
 
@@ -91,9 +88,6 @@ export const test = base.extend<Page>({
     // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
     // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page);
-    expect(
-      messages,
-      "Unexpected browser console messages during test",
-    ).toStrictEqual([]);
+    expect(messages, "Unexpected browser console messages during test").toStrictEqual([]);
   },
 });

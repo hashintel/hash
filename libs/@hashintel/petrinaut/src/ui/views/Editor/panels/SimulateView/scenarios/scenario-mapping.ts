@@ -9,17 +9,12 @@ import type { Scenario } from "@hashintel/petrinaut-core";
  * @param id - the scenario id (use a new UUID for new scenarios, the existing
  *   scenario's id when updating)
  */
-export function buildScenarioFromFormState(
-  state: ScenarioFormState,
-  id: string,
-): Scenario {
+export function buildScenarioFromFormState(state: ScenarioFormState, id: string): Scenario {
   return {
     id,
     name: state.name.trim(),
     description: state.description.trim() || undefined,
-    scenarioParameters: state.scenarioParams.map(
-      ({ _key: _, ...rest }) => rest,
-    ),
+    scenarioParameters: state.scenarioParams.map(({ _key: _, ...rest }) => rest),
     parameterOverrides: state.parameterOverrides,
     initialState: state.initialStateAsCode
       ? { type: "code", content: state.initialStateCode }

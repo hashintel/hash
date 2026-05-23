@@ -20,25 +20,16 @@ import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomor
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 
-const officeParserTextParsingFunction: TextParsingFunction = async (
-  fileBuffer,
-) => {
-  const text = await officeParser
-    .parseOffice(fileBuffer)
-    .then((ast) => ast.toText());
+const officeParserTextParsingFunction: TextParsingFunction = async (fileBuffer) => {
+  const text = await officeParser.parseOffice(fileBuffer).then((ast) => ast.toText());
 
   return text;
 };
 
-const fileEntityTypeToParsingFunction: Record<
-  VersionedUrl,
-  TextParsingFunction
-> = {
-  [systemEntityTypes.docxDocument.entityTypeId]:
-    officeParserTextParsingFunction,
+const fileEntityTypeToParsingFunction: Record<VersionedUrl, TextParsingFunction> = {
+  [systemEntityTypes.docxDocument.entityTypeId]: officeParserTextParsingFunction,
   [systemEntityTypes.pdfDocument.entityTypeId]: officeParserTextParsingFunction,
-  [systemEntityTypes.pptxPresentation.entityTypeId]:
-    officeParserTextParsingFunction,
+  [systemEntityTypes.pptxPresentation.entityTypeId]: officeParserTextParsingFunction,
 };
 
 export const parseTextFromFile = async (
@@ -80,14 +71,11 @@ export const parseTextFromFile = async (
         propertyPatches: [
           {
             op: "add",
-            path: [
-              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
-            ],
+            path: [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl],
             property: {
               value: textualContent,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
             } satisfies TextualContentPropertyValueWithMetadata,
           },

@@ -21,15 +21,11 @@ export const TypeSelector = ({ index }: { index: number }) => {
         selectProps={{ size: "xs", disabled: readonly }}
         rules={{
           onChange: (event: { target: { value: FilterType } }) => {
-            const firstOperatorOfSelectedType =
-              fieldOperators[event.target.value][0]!;
+            const firstOperatorOfSelectedType = fieldOperators[event.target.value][0]!;
 
             setValue(`filters.${index}.value`, "");
 
-            setValue(
-              `filters.${index}.operator`,
-              firstOperatorOfSelectedType.operator,
-            );
+            setValue(`filters.${index}.operator`, firstOperatorOfSelectedType.operator);
           },
         }}
       >

@@ -3,10 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import {
-  compareOntologyTypeVersions,
-  extractBaseUrl,
-} from "@blockprotocol/type-system";
+import { compareOntologyTypeVersions, extractBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
@@ -64,8 +61,7 @@ export const DataTypeConversions = ({
 
     const latestDataTypeByBaseUrl: Record<BaseUrl, DataTypeWithMetadata> = {};
     for (const dataTypeOption of Object.values(dataTypes ?? {})) {
-      const currentLatest =
-        latestDataTypeByBaseUrl[dataTypeOption.metadata.recordId.baseUrl];
+      const currentLatest = latestDataTypeByBaseUrl[dataTypeOption.metadata.recordId.baseUrl];
 
       if (
         !currentLatest ||
@@ -74,14 +70,11 @@ export const DataTypeConversions = ({
           currentLatest.metadata.recordId.version,
         ) > 0
       ) {
-        latestDataTypeByBaseUrl[dataTypeOption.metadata.recordId.baseUrl] =
-          dataTypeOption;
+        latestDataTypeByBaseUrl[dataTypeOption.metadata.recordId.baseUrl] = dataTypeOption;
       }
     }
 
-    for (const [targetBaseUrl, conversions] of typedEntries(
-      ownConversions ?? {},
-    )) {
+    for (const [targetBaseUrl, conversions] of typedEntries(ownConversions ?? {})) {
       const target = latestDataTypeByBaseUrl[targetBaseUrl];
 
       if (!target) {
@@ -134,9 +127,7 @@ export const DataTypeConversions = ({
        * 2. The user may be editing them locally
        */
       dataTypeIds: Object.keys(combinedConversions).length
-        ? Object.values(combinedConversions).map(
-            ({ target }) => target.schema.$id,
-          )
+        ? Object.values(combinedConversions).map(({ target }) => target.schema.$id)
         : /**
            * If the data type has no conversions defined, we fetch its own conversionTargets.
            * A data type which is the TARGET of conversions in a group won't have any defined on itself.
@@ -166,25 +157,18 @@ export const DataTypeConversions = ({
       }
 
       const localConversions =
-        combinedConversions[extractBaseUrl(directTargetDataTypeId)]
-          ?.conversions;
+        combinedConversions[extractBaseUrl(directTargetDataTypeId)]?.conversions;
 
       if (!localConversions) {
-        throw new Error(
-          `Local conversions not found for ${directTargetDataTypeId}`,
-        );
+        throw new Error(`Local conversions not found for ${directTargetDataTypeId}`);
       }
 
-      const conversionFnToDirectTarget = createConversionFunction([
-        localConversions.to,
-      ]);
+      const conversionFnToDirectTarget = createConversionFunction([localConversions.to]);
 
       const directTarget = dataTypes?.[directTargetDataTypeId];
 
       if (!directTarget) {
-        throw new Error(
-          `Direct target data type not found: ${directTargetDataTypeId}`,
-        );
+        throw new Error(`Direct target data type not found: ${directTargetDataTypeId}`);
       }
 
       const directTargetData = {
@@ -196,10 +180,7 @@ export const DataTypeConversions = ({
       return [
         directTargetData,
         ...typedEntries(onwardConversionsMap).map(
-          ([
-            onwardTargetDataTypeId,
-            { conversions: onwardConversions, title },
-          ]) => {
+          ([onwardTargetDataTypeId, { conversions: onwardConversions, title }]) => {
             if (onwardTargetDataTypeId === dataType.$id) {
               return null;
             }
@@ -255,11 +236,7 @@ export const DataTypeConversions = ({
                   <Box component="span" sx={{ fontWeight: 500 }}>
                     {formatNumber(conversionTarget.valueForOneOfThese)}
                     <Link
-                      href={
-                        generateLinkParameters(
-                          conversionTarget.targetDataTypeId,
-                        ).href
-                      }
+                      href={generateLinkParameters(conversionTarget.targetDataTypeId).href}
                       onClick={(event) => {
                         event.preventDefault();
                         pushToSlideStack({
@@ -288,20 +265,18 @@ export const DataTypeConversions = ({
           >
             Calculated according to the following formulae:
           </Typography>
-          {typedValues(combinedConversions).map(
-            ({ conversions, inheritedFromTitle, target }) => {
-              return (
-                <ConversionEditor
-                  conversions={conversions}
-                  dataType={dataType}
-                  inheritedFromTitle={inheritedFromTitle}
-                  isReadOnly={isReadOnly}
-                  key={target.metadata.recordId.baseUrl}
-                  target={target}
-                />
-              );
-            },
-          )}
+          {typedValues(combinedConversions).map(({ conversions, inheritedFromTitle, target }) => {
+            return (
+              <ConversionEditor
+                conversions={conversions}
+                dataType={dataType}
+                inheritedFromTitle={inheritedFromTitle}
+                isReadOnly={isReadOnly}
+                key={target.metadata.recordId.baseUrl}
+                target={target}
+              />
+            );
+          })}
         </Box>
       )}
 

@@ -30,8 +30,7 @@ export const EditorTypePicker = ({
   }, [expectedTypes, closedMultiEntityTypesDefinitions]);
 
   const onSelect = (dataTypeId: VersionedUrl) => {
-    const selectedType =
-      closedMultiEntityTypesDefinitions.dataTypes[dataTypeId];
+    const selectedType = closedMultiEntityTypesDefinitions.dataTypes[dataTypeId];
 
     if (!selectedType) {
       throw new Error(`Could not find data type with id ${dataTypeId}`);

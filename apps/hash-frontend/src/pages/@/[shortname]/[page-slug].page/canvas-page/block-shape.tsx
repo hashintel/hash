@@ -1,10 +1,5 @@
 import { toDomPrecision } from "@tldraw/primitives";
-import {
-  defineShape,
-  HTMLContainer,
-  TLBoxTool,
-  TLBoxUtil,
-} from "@tldraw/tldraw";
+import { defineShape, HTMLContainer, TLBoxTool, TLBoxUtil } from "@tldraw/tldraw";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/graphql/queries/block-collection.queries";
@@ -81,16 +76,13 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
 
   // gather a shape's positional information into a flat object
   // they are split up in TLDraw because x, y and rotation are properties on every shape, whereas w and h are not
-  static shapeToCanvasPosition = (
-    shape: BlockShape,
-  ): HasSpatiallyPositionedContentProperties => {
+  static shapeToCanvasPosition = (shape: BlockShape): HasSpatiallyPositionedContentProperties => {
     return {
       "https://hash.ai/@h/types/property-type/x-position/": shape.x,
       "https://hash.ai/@h/types/property-type/y-position/": shape.y,
       "https://hash.ai/@h/types/property-type/width-in-pixels/": shape.props.w,
       "https://hash.ai/@h/types/property-type/height-in-pixels/": shape.props.h,
-      "https://hash.ai/@h/types/property-type/rotation-in-rads/":
-        shape.rotation,
+      "https://hash.ai/@h/types/property-type/rotation-in-rads/": shape.rotation,
     };
   };
 
@@ -144,12 +136,7 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
   override render(shape: BlockShape) {
     const bounds = this.bounds(shape);
 
-    const {
-      opacity: _opacity,
-      w: _width,
-      h: _height,
-      blockLoaderProps,
-    } = shape.props;
+    const { opacity: _opacity, w: _width, h: _height, blockLoaderProps } = shape.props;
 
     return (
       <HTMLContainer
@@ -165,15 +152,11 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
             {(collectionContext) => (
               <BlockLoader
                 {...blockLoaderProps}
-                blockCollectionSubgraph={
-                  collectionContext!.blockCollectionSubgraph
-                }
+                blockCollectionSubgraph={collectionContext!.blockCollectionSubgraph}
                 editableRef={null}
                 onBlockLoaded={() => null}
                 readonly
-                userPermissionsOnEntities={
-                  collectionContext!.userPermissionsOnEntities
-                }
+                userPermissionsOnEntities={collectionContext!.userPermissionsOnEntities}
               />
             )}
           </BlockCollectionContext.Consumer>

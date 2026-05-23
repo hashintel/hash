@@ -42,10 +42,9 @@ export const BasicInfoSection: FunctionComponent<{
   const [loading, setLoading] = useState(false);
   const [submissionError, setSubmissionError] = useState("");
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+  );
 
   const innerSubmit = handleSubmit(async (data) => {
     try {
@@ -80,9 +79,7 @@ export const BasicInfoSection: FunctionComponent<{
 
       reset(refetchedUser);
     } catch (err) {
-      setSubmissionError(
-        typeof err === "string" ? err : (err as Error).message,
-      );
+      setSubmissionError(typeof err === "string" ? err : (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -128,9 +125,7 @@ export const BasicInfoSection: FunctionComponent<{
                   {...getTagProps({ index })}
                   key={option}
                   variant="outlined"
-                  label={`${option.slice(0, 1).toUpperCase()}${option.slice(
-                    1,
-                  )}`}
+                  label={`${option.slice(0, 1).toUpperCase()}${option.slice(1)}`}
                 />
               ))
             }
@@ -141,12 +136,7 @@ export const BasicInfoSection: FunctionComponent<{
         <Button disabled={!isSubmitEnabled} type="submit">
           Save Changes
         </Button>
-        <Button
-          disabled={!isDirty}
-          onClick={() => reset(user)}
-          type="button"
-          variant="tertiary"
-        >
+        <Button disabled={!isDirty} onClick={() => reset(user)} type="button" variant="tertiary">
           Discard changes
         </Button>
       </Stack>

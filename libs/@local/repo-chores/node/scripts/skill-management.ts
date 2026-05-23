@@ -10,12 +10,7 @@ import {
 import { init, initParser } from "./skill-management/init";
 import { validate, validateParser } from "./skill-management/validate";
 
-const parser = o.or(
-  generateSkillRulesParser,
-  skillRulesSchemaParser,
-  initParser,
-  validateParser,
-);
+const parser = o.or(generateSkillRulesParser, skillRulesSchemaParser, initParser, validateParser);
 
 const command = o.run(parser, "skill-management", process.argv.slice(2));
 

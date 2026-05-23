@@ -13,11 +13,8 @@ import type {
 import type { SubCoordinatingAgentInput } from "./input.js";
 import type { SubCoordinatingAgentState } from "./state.js";
 
-export const generateSystemPromptPrefix = (params: {
-  input: SubCoordinatingAgentInput;
-}) => {
-  const { relevantEntities, existingClaimsAboutRelevantEntities } =
-    params.input;
+export const generateSystemPromptPrefix = (params: { input: SubCoordinatingAgentInput }) => {
+  const { relevantEntities, existingClaimsAboutRelevantEntities } = params.input;
 
   return dedent(`
     You are a researcher tasked with discovering claims about entities to satisfy a research goal.
@@ -49,12 +46,7 @@ export const generateSystemPromptPrefix = (params: {
 export const generateInitialUserMessage = (params: {
   input: SubCoordinatingAgentInput;
 }): LlmUserMessage => {
-  const {
-    goal,
-    relevantEntities,
-    existingClaimsAboutRelevantEntities,
-    entityTypes,
-  } = params.input;
+  const { goal, relevantEntities, existingClaimsAboutRelevantEntities, entityTypes } = params.input;
 
   return {
     role: "user",
@@ -64,9 +56,7 @@ export const generateInitialUserMessage = (params: {
         text: dedent(`
 <Goal>${goal}</Goal>
 <EntityTypes>
-${entityTypes
-  .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
-  .join("\n")}
+${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
 </EntityTypes>
 ${
   relevantEntities.length > 0
@@ -82,10 +72,7 @@ ${
             Summary: ${summary}
             ${entityTypeIds.length > 1 ? "Entity Types" : "Entity Type"}: ${entityTypeIds.join(", ")}
             Claims known at start of task: ${claimsAboutEntity
-              .map(
-                (claim) =>
-                  `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`,
-              )
+              .map((claim) => `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`)
               .join("\n")}
           </Entity>`);
         })

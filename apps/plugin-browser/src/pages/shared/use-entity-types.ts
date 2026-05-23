@@ -18,20 +18,17 @@ import type {
 import type { EntityTypeRootType } from "@blockprotocol/graph";
 
 const queryEntityTypeSubgraph = (request: QueryEntityTypeSubgraphParams) => {
-  return queryGraphQlApi<
-    QueryEntityTypeSubgraphQuery,
-    QueryEntityTypeSubgraphQueryVariables
-  >(queryEntityTypeSubgraphQuery, {
-    request,
-  }).then(({ data }) => data.queryEntityTypeSubgraph);
+  return queryGraphQlApi<QueryEntityTypeSubgraphQuery, QueryEntityTypeSubgraphQueryVariables>(
+    queryEntityTypeSubgraphQuery,
+    {
+      request,
+    },
+  ).then(({ data }) => data.queryEntityTypeSubgraph);
 };
 
 export const useEntityTypes = () => {
   const [entityTypes, setEntityTypes] = useStorageSync("entityTypes", []);
-  const [entityTypesSubgraph, setEntityTypesSubgraph] = useStorageSync(
-    "entityTypesSubgraph",
-    null,
-  );
+  const [entityTypesSubgraph, setEntityTypesSubgraph] = useStorageSync("entityTypesSubgraph", null);
 
   useEffect(() => {
     void queryEntityTypeSubgraph({
@@ -44,16 +41,11 @@ export const useEntityTypes = () => {
       },
       traversalPaths: [],
     }).then((response) => {
-      const mappedSubgraph =
-        deserializeQueryEntityTypeSubgraphResponse(response).subgraph;
+      const mappedSubgraph = deserializeQueryEntityTypeSubgraphResponse(response).subgraph;
 
       const apiEntityTypes = getRoots<EntityTypeRootType>(mappedSubgraph);
 
-      setEntityTypes(
-        apiEntityTypes.sort((a, b) =>
-          a.schema.title.localeCompare(b.schema.title),
-        ),
-      );
+      setEntityTypes(apiEntityTypes.sort((a, b) => a.schema.title.localeCompare(b.schema.title)));
       setEntityTypesSubgraph(mappedSubgraph);
     });
   }, [setEntityTypes, setEntityTypesSubgraph]);

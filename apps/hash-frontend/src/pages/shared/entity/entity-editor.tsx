@@ -83,10 +83,7 @@ export interface EntityEditorProps extends DraftLinkState {
   /**
    * A function to call when a type is clicked (e.g. an entity's type, or a data type for a property)
    */
-  onTypeClick: (
-    type: "dataType" | "entityType",
-    versionedUrl: VersionedUrl,
-  ) => void;
+  onTypeClick: (type: "dataType" | "entityType", versionedUrl: VersionedUrl) => void;
   /**
    * A function to call when the entity is updated
    */

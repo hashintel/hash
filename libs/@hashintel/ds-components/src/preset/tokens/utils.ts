@@ -40,10 +40,7 @@ function fgOnSolid(
  *       plus link and onSolid (contrast color for solid backgrounds).
  * bd — alpha-based borders at three weights: subtle, solid, strong.
  */
-export function createSemanticSet(
-  palette: string = "neutral",
-  kind: PaletteKind = "normal",
-) {
+export function createSemanticSet(palette: string = "neutral", kind: PaletteKind = "normal") {
   const ps = (step: string) => ({ value: `{${palette}.${step}}` });
 
   const solidAccentStep = kind === "neutral" ? "s125" : "s90";

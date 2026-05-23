@@ -4,11 +4,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import { MutationContext } from "../../../../../../../react/state/mutation-context";
-import {
-  ArcItem,
-  ArcList,
-  type PlaceOption,
-} from "../../../../../../components/arc-item";
+import { ArcItem, ArcList, type PlaceOption } from "../../../../../../components/arc-item";
 import { Button } from "../../../../../../components/button";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
@@ -46,9 +42,7 @@ const TransitionMainContent: React.FC = () => {
   const toPlaceOption = (pl: (typeof places)[number]): PlaceOption => ({
     id: pl.id,
     name: pl.name,
-    color: pl.colorId
-      ? types.find((tp) => tp.id === pl.colorId)?.displayColor
-      : undefined,
+    color: pl.colorId ? types.find((tp) => tp.id === pl.colorId)?.displayColor : undefined,
   });
 
   const getAvailableInputPlaces = (currentPlaceId: string): PlaceOption[] => {
@@ -69,10 +63,7 @@ const TransitionMainContent: React.FC = () => {
     return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
   };
 
-  const handleInputArcPlaceChange = (
-    oldPlaceId: string,
-    newPlaceId: string,
-  ) => {
+  const handleInputArcPlaceChange = (oldPlaceId: string, newPlaceId: string) => {
     updateArcPlace({
       transitionId: transition.id,
       arcDirection: "input",
@@ -81,10 +72,7 @@ const TransitionMainContent: React.FC = () => {
     });
   };
 
-  const handleOutputArcPlaceChange = (
-    oldPlaceId: string,
-    newPlaceId: string,
-  ) => {
+  const handleOutputArcPlaceChange = (oldPlaceId: string, newPlaceId: string) => {
     updateArcPlace({
       transitionId: transition.id,
       arcDirection: "output",
@@ -129,15 +117,11 @@ const TransitionMainContent: React.FC = () => {
 
       <Section title="Input Arcs" collapsible>
         {transition.inputArcs.length === 0 ? (
-          <div className={emptyArcMessageStyle}>
-            Connect inputs to the transition's left side.
-          </div>
+          <div className={emptyArcMessageStyle}>Connect inputs to the transition's left side.</div>
         ) : (
           <ArcList>
             {transition.inputArcs.map((arc) => {
-              const place = places.find(
-                (placeItem) => placeItem.id === arc.placeId,
-              );
+              const place = places.find((placeItem) => placeItem.id === arc.placeId);
               return (
                 <ArcItem
                   key={arc.placeId}
@@ -147,9 +131,7 @@ const TransitionMainContent: React.FC = () => {
                   color={getPlaceColor(arc.placeId)}
                   disabled={isReadOnly}
                   availablePlaces={getAvailableInputPlaces(arc.placeId)}
-                  onPlaceChange={(newPlaceId) =>
-                    handleInputArcPlaceChange(arc.placeId, newPlaceId)
-                  }
+                  onPlaceChange={(newPlaceId) => handleInputArcPlaceChange(arc.placeId, newPlaceId)}
                   onWeightChange={(weight) => {
                     onArcWeightUpdate({
                       transitionId: transition.id,
@@ -174,9 +156,7 @@ const TransitionMainContent: React.FC = () => {
         ) : (
           <ArcList>
             {transition.outputArcs.map((arc) => {
-              const place = places.find(
-                (placeItem) => placeItem.id === arc.placeId,
-              );
+              const place = places.find((placeItem) => placeItem.id === arc.placeId);
               return (
                 <ArcItem
                   key={arc.placeId}

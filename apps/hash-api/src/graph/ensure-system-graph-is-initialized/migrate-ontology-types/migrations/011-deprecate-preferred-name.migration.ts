@@ -18,11 +18,7 @@ import { upgradeEntityTypeDependencies } from "../util/upgrade-entity-type-depen
 import type { MigrationFunction } from "../types";
 import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /**
    * Step 1. Update the `Actor` entity type to define the `displayName` property type
    */
@@ -32,25 +28,17 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const actorEntityType = await getEntityTypeById(
-    context.graphApi,
-    authentication,
-    {
-      entityTypeId: currentActorEntityTypeId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  );
+  const actorEntityType = await getEntityTypeById(context.graphApi, authentication, {
+    entityTypeId: currentActorEntityTypeId,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!actorEntityType) {
-    throw new NotFoundError(
-      `Could not find entity type with ID ${currentActorEntityTypeId}`,
-    );
+    throw new NotFoundError(`Could not find entity type with ID ${currentActorEntityTypeId}`);
   }
 
-  const {
-    propertyTypeId: displayNamePropertyTypeId,
-    propertyTypeBaseUrl: displayNameBaseUrl,
-  } = blockProtocolPropertyTypes.displayName;
+  const { propertyTypeId: displayNamePropertyTypeId, propertyTypeBaseUrl: displayNameBaseUrl } =
+    blockProtocolPropertyTypes.displayName;
 
   const newActorEntityTypeSchema: EntityType = {
     ...actorEntityType.schema,
@@ -63,12 +51,15 @@ const migrate: MigrationFunction = async ({
     labelProperty: displayNameBaseUrl,
   };
 
-  const { updatedEntityTypeId: updatedActorEntityTypeId } =
-    await updateSystemEntityType(context, authentication, {
+  const { updatedEntityTypeId: updatedActorEntityTypeId } = await updateSystemEntityType(
+    context,
+    authentication,
+    {
       currentEntityTypeId: currentActorEntityTypeId,
       migrationState,
       newSchema: newActorEntityTypeSchema,
-    });
+    },
+  );
 
   /**
    * Step 2. Update `Machine` to inherit from the latest version of `Actor`
@@ -111,19 +102,13 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const userEntityType = await getEntityTypeById(
-    context.graphApi,
-    authentication,
-    {
-      entityTypeId: currentUserEntityTypeId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  );
+  const userEntityType = await getEntityTypeById(context.graphApi, authentication, {
+    entityTypeId: currentUserEntityTypeId,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!userEntityType) {
-    throw new NotFoundError(
-      `Could not find entity type with ID ${currentUserEntityTypeId}`,
-    );
+    throw new NotFoundError(`Could not find entity type with ID ${currentUserEntityTypeId}`);
   }
 
   const newUserEntityTypeSchema: EntityType = {
@@ -141,10 +126,7 @@ const migrate: MigrationFunction = async ({
     }),
     properties: Object.entries(userEntityType.schema.properties).reduce(
       (prev, [propertyTypeBaseUrl, value]) => {
-        if (
-          propertyTypeBaseUrl ===
-          systemPropertyTypes.preferredName.propertyTypeBaseUrl
-        ) {
+        if (propertyTypeBaseUrl === systemPropertyTypes.preferredName.propertyTypeBaseUrl) {
           return prev;
         } else {
           return {
@@ -157,12 +139,15 @@ const migrate: MigrationFunction = async ({
     ),
   };
 
-  const { updatedEntityTypeId: updatedUserEntityTypeId } =
-    await updateSystemEntityType(context, authentication, {
+  const { updatedEntityTypeId: updatedUserEntityTypeId } = await updateSystemEntityType(
+    context,
+    authentication,
+    {
       currentEntityTypeId: currentUserEntityTypeId,
       migrationState,
       newSchema: newUserEntityTypeSchema,
-    });
+    },
+  );
 
   /**
    * Step 5: Update entity types that reference the `User` entity type
@@ -214,8 +199,7 @@ const migrate: MigrationFunction = async ({
     migrateProperties: {
       [systemEntityTypes.user.entityTypeBaseUrl]: (previousUserProperties) => {
         const {
-          [systemPropertyTypes.preferredName.propertyTypeBaseUrl]:
-            previousPreferredName,
+          [systemPropertyTypes.preferredName.propertyTypeBaseUrl]: previousPreferredName,
           ...remainingProperties
         } = previousUserProperties.value;
 

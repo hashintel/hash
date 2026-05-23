@@ -1,17 +1,7 @@
-import {
-  autocompleteClasses,
-  Box,
-  outlinedInputClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { autocompleteClasses, Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 
-import {
-  AngleRightRegularIcon,
-  Autocomplete,
-  Avatar,
-} from "@hashintel/design-system";
+import { AngleRightRegularIcon, Autocomplete, Avatar } from "@hashintel/design-system";
 
 import { MenuItem } from "../../shared/ui/menu-item";
 import { useAuthenticatedUser } from "./auth-info-context";
@@ -81,25 +71,21 @@ export const WebSelector = ({
         label: "My web",
         value: authenticatedUser.accountId as WebId,
       },
-      ...authenticatedUser.memberOf.map(
-        ({ org: { webId, name, hasAvatar } }) => ({
-          avatarComponent: (
-            <Avatar
-              size={avatarSize ?? 26}
-              src={
-                hasAvatar
-                  ? getImageUrlFromEntityProperties(
-                      hasAvatar.imageEntity.properties,
-                    )
-                  : undefined
-              }
-              title={name}
-            />
-          ),
-          label: name,
-          value: webId,
-        }),
-      ),
+      ...authenticatedUser.memberOf.map(({ org: { webId, name, hasAvatar } }) => ({
+        avatarComponent: (
+          <Avatar
+            size={avatarSize ?? 26}
+            src={
+              hasAvatar
+                ? getImageUrlFromEntityProperties(hasAvatar.imageEntity.properties)
+                : undefined
+            }
+            title={name}
+          />
+        ),
+        label: name,
+        value: webId,
+      })),
     ];
   }, [avatarSize, authenticatedUser]);
 
@@ -128,9 +114,7 @@ export const WebSelector = ({
             }}
           />
         ),
-        startAdornment: selectedWeb ? (
-          <Box>{selectedWeb.avatarComponent}</Box>
-        ) : undefined,
+        startAdornment: selectedWeb ? <Box>{selectedWeb.avatarComponent}</Box> : undefined,
         sx: {
           [`&.${outlinedInputClasses.root}`]: {
             px: optionPx,

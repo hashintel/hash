@@ -1,29 +1,10 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  Divider,
-  inputLabelClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Divider, inputLabelClasses, Stack, Typography } from "@mui/material";
 import { bindDialog, bindToggle } from "material-ui-popup-state/hooks";
-import {
-  createElement,
-  forwardRef,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createElement, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { FormProvider, useForm, useFormContext } from "react-hook-form";
 
-import {
-  Button,
-  FontAwesomeIcon,
-  IconButton,
-  Modal,
-  TextField,
-} from "@hashintel/design-system";
+import { Button, FontAwesomeIcon, IconButton, Modal, TextField } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { QuestionIcon } from "./question-icon";
@@ -44,10 +25,7 @@ import type {
 } from "react";
 import type { DeepPartial, DefaultValues } from "react-hook-form";
 
-type TypeFormSubmitProps = Omit<
-  ButtonProps,
-  "size" | "variant" | "disabled" | "type" | "loading"
->;
+type TypeFormSubmitProps = Omit<ButtonProps, "size" | "variant" | "disabled" | "type" | "loading">;
 
 export const TypeFormTitleField = ({
   fieldDisabled,
@@ -135,8 +113,7 @@ export const TypeFormDescriptionField = ({
    *
    * @todo remove this when all property types have descriptions
    */
-  const descriptionRequired =
-    !("description" in defaultValues) || !!defaultValues.description;
+  const descriptionRequired = !("description" in defaultValues) || !!defaultValues.description;
 
   return (
     <TextField
@@ -183,30 +160,25 @@ export const TypeFormDescriptionField = ({
   );
 };
 
-type TypeFormModalProps<T extends ElementType = "div"> =
-  ComponentPropsWithoutRef<T> & {
-    as?: T;
-    popupState: PopupState;
-    ref?: Ref<ComponentPropsWithRef<T>["ref"]> | null;
-    baseUrl?: BaseUrl;
-  };
+type TypeFormModalProps<T extends ElementType = "div"> = ComponentPropsWithoutRef<T> & {
+  as?: T;
+  popupState: PopupState;
+  ref?: Ref<ComponentPropsWithRef<T>["ref"]> | null;
+  baseUrl?: BaseUrl;
+};
 
 type PolymorphicProps<P, T extends ElementType> = P & TypeFormModalProps<T>;
 
-type PolymorphicComponent<
-  P = Record<string, unknown>,
-  D extends ElementType = "div",
-> = <T extends ElementType = D>(
+type PolymorphicComponent<P = Record<string, unknown>, D extends ElementType = "div"> = <
+  T extends ElementType = D,
+>(
   props: PolymorphicProps<P, T>,
 ) => ReactElement | null;
 
 // @ts-expect-error -- fix this at some point, search 'PolymorphicComponent with forwardRef'
 export const TypeFormModal: PolymorphicComponent = forwardRef(
   // @ts-expect-error -- fix this at some point, search 'PolymorphicComponent with forwardRef'
-  <T extends ElementType>(
-    props: TypeFormModalProps<T>,
-    ref: Ref<HTMLElement>,
-  ) => {
+  <T extends ElementType>(props: TypeFormModalProps<T>, ref: Ref<HTMLElement>) => {
     const { as = "div", popupState, ...restProps } = props;
 
     const inner = createElement(as, {
@@ -263,10 +235,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
   validateTitle: (title: string) => ReturnType<TitleValidationFunction>;
 } & TypeFormProps<T>) => {
   const defaultValues = useMemo(() => getDefaultValues(), [getDefaultValues]);
-  const defaultDirtyValues = useMemo(
-    () => getDirtyFields?.(),
-    [getDirtyFields],
-  );
+  const defaultDirtyValues = useMemo(() => getDirtyFields?.(), [getDirtyFields]);
 
   const formMethods = useForm<T>({
     defaultValues,
@@ -311,8 +280,7 @@ export const TypeForm = <T extends TypeFormDefaults>({
     }
   }, [setValue, defaultDirtyValues]);
 
-  const defaultField =
-    (defaultDirtyValues?.name ?? defaultValues.name) ? "description" : "name";
+  const defaultField = (defaultDirtyValues?.name ?? defaultValues.name) ? "description" : "name";
 
   useEffect(() => {
     setFocus(

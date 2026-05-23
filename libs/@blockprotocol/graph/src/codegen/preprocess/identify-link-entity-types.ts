@@ -31,9 +31,7 @@ const isLinkEntityType = (
           return false;
         }
 
-        const inheritedType = mustBeDefined(
-          context.entityTypes[inheritedTypeUrl.$ref],
-        );
+        const inheritedType = mustBeDefined(context.entityTypes[inheritedTypeUrl.$ref]);
 
         stack.push(inheritedType);
         return false;
@@ -57,11 +55,7 @@ export const identifyLinkEntityTypes = (context: PreprocessContext) => {
   for (const entityType of typedValues(context.entityTypes)) {
     const isLinkType = isLinkEntityType(entityType, context, explored);
 
-    context.logTrace(
-      `Entity type ${entityType.$id} is ${
-        isLinkType ? "a" : "not a"
-      } link type`,
-    );
+    context.logTrace(`Entity type ${entityType.$id} is ${isLinkType ? "a" : "not a"} link type`);
 
     context.linkTypeMap[entityType.$id] = isLinkType;
   }

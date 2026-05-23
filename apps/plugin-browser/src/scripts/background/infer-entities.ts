@@ -8,10 +8,7 @@ import {
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { FlowRunStatus } from "../../graphql/api-types.gen";
-import {
-  getFromLocalStorage,
-  getSetFromLocalStorageValue,
-} from "../../shared/storage";
+import { getFromLocalStorage, getSetFromLocalStorageValue } from "../../shared/storage";
 import { getWebsiteContent } from "./infer-entities/get-website-content";
 
 import type { InferEntitiesRequest } from "../../shared/messages";
@@ -29,9 +26,7 @@ import type {
   ManualInferenceArguments,
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 
-const setExternalInputRequestsValue = getSetFromLocalStorageValue(
-  "externalInputRequests",
-);
+const setExternalInputRequestsValue = getSetFromLocalStorageValue("externalInputRequests");
 
 const getApiOriginUrl = async () => {
   const apiOrigin = await getFromLocalStorage("apiOrigin");
@@ -51,9 +46,7 @@ const buildWebsocketCookieString = async () => {
   const url = await getApiOriginUrl();
   const allCookies = await browser.cookies.getAll({ url });
   const relevant = allCookies.filter(
-    (cookie) =>
-      cookie.name.startsWith("csrf_token_") ||
-      cookie.name === "ory_kratos_session",
+    (cookie) => cookie.name.startsWith("csrf_token_") || cookie.name === "ory_kratos_session",
   );
 
   if (relevant.length < 2) {
@@ -107,9 +100,7 @@ const waitForConnection = async (socket: WebSocket) => {
     await sleep(200);
   }
   if (socket.readyState !== socket.OPEN) {
-    throw new Error(
-      `WebSocket is ${socket.readyState === socket.CLOSING ? "closing" : "closed"}`,
-    );
+    throw new Error(`WebSocket is ${socket.readyState === socket.CLOSING ? "closing" : "closed"}`);
   }
 };
 
@@ -152,10 +143,7 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
   });
 
   newWs.addEventListener("error", (event) => {
-    console.error(
-      "WebSocket error encountered. Closing and attempting to reconnect...",
-      event,
-    );
+    console.error("WebSocket error encountered. Closing and attempting to reconnect...", event);
     newWs.close();
   });
 
@@ -174,8 +162,7 @@ const createWebSocket = async ({ onClose }: { onClose: () => void }) => {
 
       const { workflowId, payload } = message;
       if (payload.type === "get-urls-html-content") {
-        const inputRequests =
-          (await getFromLocalStorage("externalInputRequests")) ?? {};
+        const inputRequests = (await getFromLocalStorage("externalInputRequests")) ?? {};
 
         const request = inputRequests[payload.requestId];
 
@@ -293,17 +280,11 @@ const sendInferEntitiesMessage = async (
     JSON.stringify({
       cookie,
       ...params,
-    } satisfies
-      | AutomaticInferenceWebsocketRequestMessage
-      | ManualInferenceWebsocketRequestMessage),
+    } satisfies AutomaticInferenceWebsocketRequestMessage | ManualInferenceWebsocketRequestMessage),
   );
 };
 
-export const cancelInferEntities = async ({
-  flowRunId,
-}: {
-  flowRunId: string;
-}) => {
+export const cancelInferEntities = async ({ flowRunId }: { flowRunId: string }) => {
   const cookie = await buildWebsocketCookieString();
 
   const socket = await getWebSocket();

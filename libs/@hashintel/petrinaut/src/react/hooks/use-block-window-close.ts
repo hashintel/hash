@@ -7,11 +7,7 @@ import { useEffect } from "react";
  * may skip `beforeunload` entirely. This should be treated as a guardrail, not
  * a guarantee that the window cannot be closed.
  */
-export function useBlockWindowClose({
-  shouldBlock,
-}: {
-  shouldBlock: boolean;
-}): void {
+export function useBlockWindowClose({ shouldBlock }: { shouldBlock: boolean }): void {
   useEffect(() => {
     if (!shouldBlock) {
       return;

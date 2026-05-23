@@ -14,15 +14,11 @@ import {
 import { MutableBuffer } from "../../binary/index.js";
 import { createProto, implDecode, implEncode } from "../../utils.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/models/ProtocolVersion",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/models/ProtocolVersion");
 
 export type TypeId = typeof TypeId;
 
-export class InvalidProtocolVersionError extends Data.TaggedError(
-  "InvalidProtocolVersionError",
-)<{
+export class InvalidProtocolVersionError extends Data.TaggedError("InvalidProtocolVersionError")<{
   received: number;
 }> {
   get message(): string {
@@ -30,8 +26,7 @@ export class InvalidProtocolVersionError extends Data.TaggedError(
   }
 }
 
-export interface ProtocolVersion
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface ProtocolVersion extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly value: number;
 }
@@ -45,11 +40,7 @@ const ProtocolVersionProto: Omit<ProtocolVersion, "value"> = {
   },
 
   [Hash.symbol](this: ProtocolVersion) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.number(this.value)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.number(this.value)), Hash.cached(this));
   },
 
   toString(this: ProtocolVersion) {
@@ -73,8 +64,7 @@ const ProtocolVersionProto: Omit<ProtocolVersion, "value"> = {
   },
 };
 
-const make = (value: number): ProtocolVersion =>
-  createProto(ProtocolVersionProto, { value });
+const make = (value: number): ProtocolVersion => createProto(ProtocolVersionProto, { value });
 
 export const encode = implEncode((buffer, version: ProtocolVersion) =>
   MutableBuffer.putU8(buffer, version.value),
@@ -87,9 +77,7 @@ export const decode = implDecode((buffer) =>
     const version = yield* MutableBuffer.getU8(buffer);
 
     if (version !== 1) {
-      yield* Either.left(
-        new InvalidProtocolVersionError({ received: version }),
-      );
+      yield* Either.left(new InvalidProtocolVersionError({ received: version }));
     }
 
     return make(version);

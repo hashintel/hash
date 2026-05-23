@@ -1,16 +1,5 @@
-import {
-  faCopy,
-  faMessage,
-  faPenToSquare,
-  faTrashCan,
-} from "@fortawesome/free-regular-svg-icons";
-import {
-  faAdd,
-  faArrowRight,
-  faGear,
-  faLink,
-  faRefresh,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCopy, faMessage, faPenToSquare, faTrashCan } from "@fortawesome/free-regular-svg-icons";
+import { faAdd, faArrowRight, faGear, faLink, faRefresh } from "@fortawesome/free-solid-svg-icons";
 import { useHotkeys } from "@mantine/hooks";
 import { Box, Divider, Menu, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
@@ -46,18 +35,12 @@ type BlockContextMenuProps = {
   canSwap: boolean;
 };
 
-const BlockContextMenu: ForwardRefRenderFunction<
-  HTMLDivElement,
-  BlockContextMenuProps
-> = (
+const BlockContextMenu: ForwardRefRenderFunction<HTMLDivElement, BlockContextMenuProps> = (
   { blockEntity, deleteBlock, openConfigMenu, popupState, canSwap },
   ref,
 ) => {
-  const {
-    setBlockSubgraph,
-    blockSelectDataModalIsOpen,
-    setBlockSelectDataModalIsOpen,
-  } = useBlockContext();
+  const { setBlockSubgraph, blockSelectDataModalIsOpen, setBlockSelectDataModalIsOpen } =
+    useBlockContext();
   const fetchBlockSubgraph = useFetchBlockSubgraph();
 
   const { users: _users } = useUsers();
@@ -99,10 +82,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
     }
 
     const { recordId, entityTypeIds } = blockEntity.blockChildEntity.metadata;
-    const newBlockSubgraph = await fetchBlockSubgraph(
-      entityTypeIds,
-      recordId.entityId,
-    );
+    const newBlockSubgraph = await fetchBlockSubgraph(entityTypeIds, recordId.entityId);
 
     setBlockSubgraph(newBlockSubgraph.subgraph);
   }, [blockEntity, fetchBlockSubgraph, setBlockSubgraph]);
@@ -128,12 +108,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
                     /**
                      * @todo make menu properly support multi-type entities
                      */
-                    blockEntity?.blockChildEntity?.metadata.entityTypeIds[0] ??
-                    null
+                    blockEntity?.blockChildEntity?.metadata.entityTypeIds[0] ?? null
                   }
                   childEntityEntityId={
-                    blockEntity?.blockChildEntity?.metadata.recordId.entityId ??
-                    null
+                    blockEntity?.blockChildEntity?.metadata.recordId.entityId ?? null
                   }
                   closeParentContextMenu={() => popupState.close()}
                 />
@@ -200,9 +178,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
               key: "swap-block",
               title: "Swap block type",
               icon: <FontAwesomeIcon icon={faRefresh} />,
-              subMenu: (
-                <BlockListMenuContent compatibleBlocks={compatibleBlocks} />
-              ),
+              subMenu: <BlockListMenuContent compatibleBlocks={compatibleBlocks} />,
               subMenuWidth: 228,
             },
           ]
@@ -293,15 +269,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         </Box>
 
         {menuItems.map(
-          ({
-            icon,
-            isNotYetImplemented,
-            key,
-            onClick,
-            subMenu,
-            subMenuWidth,
-            title,
-          }) => {
+          ({ icon, isNotYetImplemented, key, onClick, subMenu, subMenuWidth, title }) => {
             if (key === "copy-link" && !entityId) {
               return null;
             }

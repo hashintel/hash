@@ -87,10 +87,7 @@ const _flowMetadata = {
 export const flowMetadata = {
   ..._flowMetadata,
   settingsWithPassword: _flowMetadata.settings,
-} as const satisfies Record<
-  FlowNames,
-  { uiPath: string; kratosBrowserPath: string }
->;
+} as const satisfies Record<FlowNames, { uiPath: string; kratosBrowserPath: string }>;
 
 /**
  * Look up the UI route for a `redirect_browser_to` URL that points at a
@@ -101,9 +98,7 @@ export const flowMetadata = {
  * Query parameters are forwarded to the UI route; URL fragments are not
  * (Kratos doesn't use them, and the frontend routes don't read them).
  */
-export const uiPathForKratosBrowserRedirect = (
-  redirectUrl: string,
-): string | undefined => {
+export const uiPathForKratosBrowserRedirect = (redirectUrl: string): string | undefined => {
   let parsed: URL;
   try {
     parsed = new URL(redirectUrl);
@@ -120,9 +115,7 @@ export const uiPathForKratosBrowserRedirect = (
   return match ? `${match.uiPath}${parsed.search}` : undefined;
 };
 
-export const gatherUiNodeValuesFromFlow = <T extends FlowNames>(
-  flow: Flows[T][0],
-): Flows[T][1] =>
+export const gatherUiNodeValuesFromFlow = <T extends FlowNames>(flow: Flows[T][0]): Flows[T][1] =>
   flow.ui.nodes
     .map(({ attributes }) => attributes)
     .filter(

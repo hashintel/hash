@@ -41,11 +41,7 @@ export const updateBlockCollectionContents: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateBlockCollectionContentsArgs
-> = async (
-  _,
-  { entityId: blockCollectionEntityId, actions },
-  graphQLContext,
-) => {
+> = async (_, { entityId: blockCollectionEntityId, actions }, graphQLContext) => {
   const { authentication, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 

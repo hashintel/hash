@@ -11,10 +11,7 @@ export { useStore, useStoreSelector } from "./use-store";
 // --- Provider unification ---
 export { PetrinautProvider } from "./petrinaut-provider";
 export type { PetrinautProviderProps } from "./petrinaut-provider";
-export {
-  NetManagementContext,
-  type NetManagement,
-} from "./net-management-context";
+export { NetManagementContext, type NetManagement } from "./net-management-context";
 export { ExperimentsContext, isExperimentActive } from "./experiments/context";
 export type {
   CreateExperimentInput,

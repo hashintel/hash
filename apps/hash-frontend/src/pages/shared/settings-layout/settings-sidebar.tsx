@@ -1,12 +1,4 @@
-import {
-  Box,
-  Collapse,
-  ListItem,
-  Stack,
-  styled,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, Collapse, ListItem, Stack, styled, Typography, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
@@ -63,11 +55,9 @@ const SidebarItem = ({
   const router = useRouter();
   const active =
     router.asPath.startsWith(item.href) ||
-    (!!item.activeIfPathStartsWith &&
-      router.asPath.startsWith(item.activeIfPathStartsWith));
+    (!!item.activeIfPathStartsWith && router.asPath.startsWith(item.activeIfPathStartsWith));
 
-  const parentActive =
-    item.parentHref && router.asPath.startsWith(item.parentHref);
+  const parentActive = item.parentHref && router.asPath.startsWith(item.parentHref);
 
   const expanded = expandedItemHrefs.includes(item.href);
 
@@ -143,12 +133,7 @@ const SidebarItem = ({
             })}
           />
         ) : null}
-        <ItemLink
-          active={active}
-          color={itemColor}
-          href={item.href}
-          level={level}
-        >
+        <ItemLink active={active} color={itemColor} href={item.href} level={level}>
           {item.label}
         </ItemLink>
         {expandableViaButtton && (
@@ -172,8 +157,7 @@ const SidebarItem = ({
           >
             <CaretDownSolidIcon
               sx={{
-                fill:
-                  level === 2 && !active ? theme.palette.gray[40] : itemColor,
+                fill: level === 2 && !active ? theme.palette.gray[40] : itemColor,
               }}
             />
           </IconButton>
@@ -233,8 +217,7 @@ export const SettingsSidebar = ({
     const activeItem = menuItems.find(
       (item) =>
         router.asPath === item.href ||
-        (item.activeIfPathStartsWith &&
-          router.asPath.startsWith(item.activeIfPathStartsWith)),
+        (item.activeIfPathStartsWith && router.asPath.startsWith(item.activeIfPathStartsWith)),
     );
 
     return activeItem ? findItemAndParentsHrefs(activeItem) : [];
@@ -258,8 +241,7 @@ export const SettingsSidebar = ({
       const activeItem = menuItems.find(
         (item) =>
           path === item.href ||
-          (item.activeIfPathStartsWith &&
-            path.startsWith(item.activeIfPathStartsWith)),
+          (item.activeIfPathStartsWith && path.startsWith(item.activeIfPathStartsWith)),
       );
 
       if (activeItem) {

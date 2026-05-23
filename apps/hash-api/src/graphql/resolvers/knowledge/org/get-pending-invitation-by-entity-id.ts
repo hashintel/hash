@@ -3,10 +3,7 @@ import { systemAccountId } from "../../../../graph/system-account";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getPendingOrgInvitationsFromSubgraph } from "./shared";
 
-import type {
-  QueryGetPendingInvitationByEntityIdArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { QueryGetPendingInvitationByEntityIdArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 

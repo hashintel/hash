@@ -14,8 +14,7 @@ export default [
           patterns: [
             {
               group: ["@local/*"],
-              message:
-                "You cannot use unpublished local packages in a published package.",
+              message: "You cannot use unpublished local packages in a published package.",
             },
           ],
         },

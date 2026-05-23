@@ -1,19 +1,12 @@
 import { createContext, useContext } from "react";
 
-import type {
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { PropertyTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 
-export type PropertyTypesByVersionedUrl = Record<
-  VersionedUrl,
-  PropertyTypeWithMetadata
->;
+export type PropertyTypesByVersionedUrl = Record<VersionedUrl, PropertyTypeWithMetadata>;
 export type PropertyTypesContextValue = PropertyTypesByVersionedUrl;
 
-export const PropertyTypesOptionsContext =
-  createContext<PropertyTypesContextValue | null>(null);
+export const PropertyTypesOptionsContext = createContext<PropertyTypesContextValue | null>(null);
 
 export const PropertyTypesOptionsContextProvider = ({
   children,

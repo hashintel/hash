@@ -3,11 +3,6 @@
 [
   "if",
   { "#literal": true },
-  [
-    "let",
-    "x",
-    { "#literal": 3 },
-    ["let", "y", { "#literal": 2 }, [">=", "x", "y"]]
-  ],
+  ["let", "x", { "#literal": 3 }, ["let", "y", { "#literal": 2 }, [">=", "x", "y"]]],
   { "#literal": false }
 ]

@@ -18,26 +18,21 @@ export const getFlowRunEntityById = async (params: {
 
   const {
     entities: [existingFlowEntity],
-  } = await queryEntities<FlowRunEntity>(
-    { graphApi: graphApiClient },
-    userAuthentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: flowRunId }],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
+  } = await queryEntities<FlowRunEntity>({ graphApi: graphApiClient }, userAuthentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["uuid"] }, { parameter: flowRunId }],
+        },
+        generateVersionedUrlMatchingFilter(systemEntityTypes.flowRun.entityTypeId, {
+          ignoreParents: true,
+        }),
+      ],
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   return existingFlowEntity ?? null;
 };

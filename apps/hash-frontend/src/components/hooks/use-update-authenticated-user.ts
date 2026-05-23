@@ -41,10 +41,10 @@ export const useUpdateAuthenticatedUser = () => {
     fetchPolicy: "cache-and-network",
   });
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation, { errorPolicy: "all" });
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+    { errorPolicy: "all" },
+  );
 
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -68,9 +68,7 @@ export const useUpdateAuthenticatedUser = () => {
         const latestUserEntitySubgraph = await getMe()
           .then(({ data }) => {
             const subgraph = data
-              ? mapGqlSubgraphFieldsFragmentToSubgraph<
-                  EntityRootType<HashEntity>
-                >(data.me.subgraph)
+              ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(data.me.subgraph)
               : undefined;
 
             return subgraph;
@@ -78,9 +76,7 @@ export const useUpdateAuthenticatedUser = () => {
           .catch(() => undefined);
 
         if (!latestUserEntitySubgraph) {
-          throw new Error(
-            "Could not get latest user entity when updating the authenticated user.",
-          );
+          throw new Error("Could not get latest user entity when updating the authenticated user.");
         }
 
         const latestUserEntity = getRoots(latestUserEntitySubgraph)[0]!;

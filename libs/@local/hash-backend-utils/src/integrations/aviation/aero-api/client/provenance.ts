@@ -4,10 +4,7 @@ import {
   type Url,
 } from "@blockprotocol/type-system";
 
-export const generateAeroApiProvenance = (): Pick<
-  ProvidedEntityEditionProvenance,
-  "sources"
-> => ({
+export const generateAeroApiProvenance = (): Pick<ProvidedEntityEditionProvenance, "sources"> => ({
   sources: [
     {
       type: "integration",

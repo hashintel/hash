@@ -1,9 +1,7 @@
 import chalk from "chalk";
 import { execa } from "execa";
 import { z } from "zod";
-import zodToJsonSchema, {
-  type JsonSchema7ObjectType,
-} from "zod-to-json-schema";
+import zodToJsonSchema, { type JsonSchema7ObjectType } from "zod-to-json-schema";
 
 import { hydrateLinearIssue } from "@local/hash-backend-utils/linear";
 
@@ -52,9 +50,7 @@ export const extractLinearTicketIds = async (
     const extractTicketIdsTool = {
       name: "submit_linear_ticket_ids",
       description: "Provide the Linear ticket IDs from the input string.",
-      input_schema: zodToJsonSchema(
-        LinearTicketIdsSchema,
-      ) as JsonSchema7ObjectType,
+      input_schema: zodToJsonSchema(LinearTicketIdsSchema) as JsonSchema7ObjectType,
     };
 
     const response = await anthropic.messages.create({
@@ -72,9 +68,7 @@ export const extractLinearTicketIds = async (
       ],
     });
 
-    const toolUseBlock = response.content.find(
-      (block) => block.type === "tool_use",
-    );
+    const toolUseBlock = response.content.find((block) => block.type === "tool_use");
 
     if (!toolUseBlock) {
       throw new Error("No tool use block found in extract ticket IDs response");
@@ -84,17 +78,12 @@ export const extractLinearTicketIds = async (
 
     return ticketIds;
   } catch {
-    console.error(
-      chalk.red(`Error extracting Linear ticket IDs from PR details`),
-    );
+    console.error(chalk.red(`Error extracting Linear ticket IDs from PR details`));
     return [];
   }
 };
 
-export const fetchLinearTickets = async (
-  linear: LinearClient,
-  ticketIds: string[],
-) => {
+export const fetchLinearTickets = async (linear: LinearClient, ticketIds: string[]) => {
   const tickets = await Promise.all(
     ticketIds.map(async (id) => {
       const issue = await linear.issue(id);

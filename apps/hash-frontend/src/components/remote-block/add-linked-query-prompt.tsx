@@ -37,14 +37,10 @@ export const AddLinkedQueryPrompt: FunctionComponent<{
         />
       ) : null}
       <Typography gutterBottom textAlign="center">
-        The <strong>{blockName.toLowerCase()} block</strong> needs to know what
-        information to display
+        The <strong>{blockName.toLowerCase()} block</strong> needs to know what information to
+        display
       </Typography>
-      <Button
-        variant="tertiary"
-        onClick={() => setBlockSelectDataModalIsOpen(true)}
-        size="small"
-      >
+      <Button variant="tertiary" onClick={() => setBlockSelectDataModalIsOpen(true)} size="small">
         Click here to select data
       </Button>
     </Box>

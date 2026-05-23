@@ -64,9 +64,7 @@ Title: ${title}
 Description: ${description}
 Properties:
 ${propertyTypes
-  .map((propertyType) =>
-    simplifyPropertyTypeForLlmConsumption({ propertyType }),
-  )
+  .map((propertyType) => simplifyPropertyTypeForLlmConsumption({ propertyType }))
   .join("\n")}
 </${title}EntityType>
   `;
@@ -100,13 +98,10 @@ export const simplifyProposedEntityForLlmConsumption = (params: {
     properties: entityProperties,
   } = proposedEntity;
 
-  const missingProperties = entityTypes.flatMap(
-    ({ schema, simplifiedPropertyTypeMappings }) =>
-      Object.entries(schema.properties).filter(
-        ([simpleKey]) =>
-          entityProperties[simplifiedPropertyTypeMappings[simpleKey]!] ===
-          undefined,
-      ),
+  const missingProperties = entityTypes.flatMap(({ schema, simplifiedPropertyTypeMappings }) =>
+    Object.entries(schema.properties).filter(
+      ([simpleKey]) => entityProperties[simplifiedPropertyTypeMappings[simpleKey]!] === undefined,
+    ),
   );
 
   return `
@@ -115,10 +110,7 @@ export const simplifyProposedEntityForLlmConsumption = (params: {
 <EntityType>${entityTypeIds.length > 1 ? "Entity Types" : "Entity Type"}: ${entityTypeIds.map((entityTypeId) => urlToTitleCase(entityTypeId) ?? "").join(", ")}</EntityType>
 <Properties>
 ${Object.entries(entityProperties)
-  .map(
-    ([baseUrl, value]) =>
-      `${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`,
-  )
+  .map(([baseUrl, value]) => `${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`)
   .join("\n")}
 </Properties>
     ${

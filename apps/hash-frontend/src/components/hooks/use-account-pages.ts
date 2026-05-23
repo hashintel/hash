@@ -1,10 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
@@ -38,10 +35,7 @@ export type AccountPagesInfo = {
   refetch: () => Promise<ApolloQueryResult<QueryEntitySubgraphQuery>>;
 };
 
-export const useAccountPages = (
-  webId?: WebId,
-  includeArchived?: boolean,
-): AccountPagesInfo => {
+export const useAccountPages = (webId?: WebId, includeArchived?: boolean): AccountPagesInfo => {
   const { hashInstance } = useHashInstance();
 
   const { data, loading, refetch } = useQuery<
@@ -82,9 +76,7 @@ export const useAccountPages = (
         ...simplifyProperties(latestPage.properties as PageProperties),
         metadata: latestPage.metadata,
         parentPage: parentPage ? { metadata: parentPage.metadata } : null,
-        type: latestPage.metadata.entityTypeIds.includes(
-          systemEntityTypes.canvas.entityTypeId,
-        )
+        type: latestPage.metadata.entityTypeIds.includes(systemEntityTypes.canvas.entityTypeId)
           ? "canvas"
           : "document",
       };

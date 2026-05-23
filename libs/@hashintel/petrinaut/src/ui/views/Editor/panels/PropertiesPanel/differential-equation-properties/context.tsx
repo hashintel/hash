@@ -1,11 +1,7 @@
 import { createContext, use } from "react";
 
 import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
-import type {
-  Color,
-  DifferentialEquation,
-  Place,
-} from "@hashintel/petrinaut-core";
+import type { Color, DifferentialEquation, Place } from "@hashintel/petrinaut-core";
 
 export interface DiffEqPropertiesContextValue {
   differentialEquation: DifferentialEquation;
@@ -14,8 +10,7 @@ export interface DiffEqPropertiesContextValue {
   updateDifferentialEquation: MutationContextValue["updateDifferentialEquation"];
 }
 
-export const DiffEqPropertiesContext =
-  createContext<DiffEqPropertiesContextValue | null>(null);
+export const DiffEqPropertiesContext = createContext<DiffEqPropertiesContextValue | null>(null);
 
 export const useDiffEqPropertiesContext = (): DiffEqPropertiesContextValue => {
   const context = use(DiffEqPropertiesContext);

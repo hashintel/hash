@@ -55,9 +55,7 @@ export function runSandboxed<T>(action: () => T): T {
     Number.prototype,
     Boolean.prototype,
   ];
-  const saved = prototypes.map((p) =>
-    Object.getOwnPropertyDescriptor(p, "constructor"),
-  );
+  const saved = prototypes.map((p) => Object.getOwnPropertyDescriptor(p, "constructor"));
   const blocked = () => {
     throw new Error("Access to .constructor is blocked inside user code.");
   };

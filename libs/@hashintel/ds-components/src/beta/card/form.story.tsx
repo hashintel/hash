@@ -14,8 +14,7 @@ export const App = () => {
       <Card.Header gap="1">
         <Card.Title>Sign Up</Card.Title>
         <Card.Description>
-          Create an account and discover the worlds' best UI component
-          framework.
+          Create an account and discover the worlds' best UI component framework.
         </Card.Description>
       </Card.Header>
       <Card.Body>

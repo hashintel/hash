@@ -5,10 +5,7 @@ export type SlideEntityItem = {
   kind: "entity";
   itemId: EntityId;
   onEntityDbChange?: (entityId: EntityId) => void;
-} & Pick<
-  EntitySlideProps,
-  "defaultOutgoingLinkFilters" | "proposedEntitySubgraph"
->;
+} & Pick<EntitySlideProps, "defaultOutgoingLinkFilters" | "proposedEntitySubgraph">;
 
 export type SlideEntityTypeItem = {
   kind: "entityType";
@@ -22,9 +19,6 @@ export type SlideDataTypeItem = {
   onUpdate?: (dataTypeId: VersionedUrl) => void;
 };
 
-export type SlideItem =
-  | SlideEntityItem
-  | SlideEntityTypeItem
-  | SlideDataTypeItem;
+export type SlideItem = SlideEntityItem | SlideEntityTypeItem | SlideDataTypeItem;
 
 export type PushToStackFn = (item: SlideItem) => void;

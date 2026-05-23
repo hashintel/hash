@@ -4,12 +4,7 @@ import type { Story, StoryDefault } from "@ladle/react";
 
 // User icon SVG
 const UserIcon = (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    stroke="currentColor"
-  >
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor">
     <circle cx="12" cy="8" r="4" strokeWidth="2" />
     <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" strokeWidth="2" />
   </svg>
@@ -95,17 +90,7 @@ export default {
     indicatorColorScheme: {
       name: "Color Scheme",
       control: { type: "select" },
-      options: [
-        "red",
-        "orange",
-        "yellow",
-        "green",
-        "blue",
-        "purple",
-        "pink",
-        "gray",
-        "white",
-      ],
+      options: ["red", "orange", "yellow", "green", "blue", "purple", "pink", "gray", "white"],
       description: "Color scheme of the status indicator",
       table: {
         category: "Indicator",
@@ -148,8 +133,7 @@ Default.args = {
   indicatorSquared: false,
 };
 
-export const WithInitials: Story<AvatarStoryArgs> = (args) =>
-  renderAvatar(args);
+export const WithInitials: Story<AvatarStoryArgs> = (args) => renderAvatar(args);
 WithInitials.args = {
   fallback: "AT",
   size: "32",

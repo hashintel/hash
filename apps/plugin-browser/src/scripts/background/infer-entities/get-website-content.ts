@@ -1,9 +1,6 @@
 import browser from "webextension-polyfill";
 
-import type {
-  GetTabContentRequest,
-  GetTabContentReturn,
-} from "../../../shared/messages";
+import type { GetTabContentRequest, GetTabContentReturn } from "../../../shared/messages";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 
 export const getWebsiteContent = async (urls: string[]) => {
@@ -45,12 +42,12 @@ export const getWebsiteContent = async (urls: string[]) => {
       browser.tabs.onUpdated.addListener(tabChangeListener);
     });
 
-    const webPage = await browser.tabs.sendMessage<
-      GetTabContentRequest,
-      GetTabContentReturn
-    >(tab.id, {
-      type: "get-tab-content",
-    });
+    const webPage = await browser.tabs.sendMessage<GetTabContentRequest, GetTabContentReturn>(
+      tab.id,
+      {
+        type: "get-tab-content",
+      },
+    );
 
     webPages.push(webPage);
 

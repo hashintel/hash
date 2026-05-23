@@ -18,8 +18,8 @@ export type EitherImportNamesOrAllowImportName =
   | { importNames?: string[]; allowImportNames?: never }
   | { allowImportNames?: string[]; importNames?: never };
 
-export type ValidNoRestrictedImportPathOptions =
-  NoRestrictedImportPathCommonOptions & EitherImportNamesOrAllowImportName;
+export type ValidNoRestrictedImportPathOptions = NoRestrictedImportPathCommonOptions &
+  EitherImportNamesOrAllowImportName;
 
 export interface NoRestrictedImportPatternCommonOptions {
   message?: string;
@@ -59,7 +59,6 @@ export type EitherNameSpecifiers =
     };
 
 // Adds oneOf and not constraints, ensuring group or regex are present and mutually exclusive sets for importNames, allowImportNames, etc., as per the schema.
-export type ValidNoRestrictedImportPatternOptions =
-  NoRestrictedImportPatternCommonOptions &
-    EitherGroupOrRegEx &
-    EitherNameSpecifiers;
+export type ValidNoRestrictedImportPatternOptions = NoRestrictedImportPatternCommonOptions &
+  EitherGroupOrRegEx &
+  EitherNameSpecifiers;

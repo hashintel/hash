@@ -74,16 +74,13 @@ export const inferSummariesThenClaimsFromText = async (params: {
     workerIdentifiers,
   } = params;
 
-  const { entitySummaries: newEntitySummaries } =
-    await getEntitySummariesFromText({
-      existingSummaries: existingEntitiesOfInterest,
-      text,
-      dereferencedEntityTypes: Object.values(dereferencedEntityTypes).map(
-        (type) => type.schema,
-      ),
-      relevantEntitiesPrompt: goal,
-      testingParams,
-    });
+  const { entitySummaries: newEntitySummaries } = await getEntitySummariesFromText({
+    existingSummaries: existingEntitiesOfInterest,
+    text,
+    dereferencedEntityTypes: Object.values(dereferencedEntityTypes).map((type) => type.schema),
+    relevantEntitiesPrompt: goal,
+    testingParams,
+  });
 
   const entitySummariesForInferenceByType = [
     ...newEntitySummaries,
@@ -123,33 +120,24 @@ export const inferSummariesThenClaimsFromText = async (params: {
 
         return await Promise.all(
           entitySummariesOfType.map(async (entity) => {
-            const { claims: claimsForSingleEntity } =
-              await inferEntityClaimsFromTextAgent({
-                subjectEntities: [entity],
-                linkEntityTypesById: Object.fromEntries(
-                  Object.entries(dereferencedEntityTypes)
-                    .filter(([linkEntityTypeId]) =>
-                      Object.keys(dereferencedEntityType.links ?? {}).includes(
-                        linkEntityTypeId,
-                      ),
-                    )
-                    .map(([linkEntityTypeId, linkEntity]) => [
-                      linkEntityTypeId,
-                      linkEntity.schema,
-                    ]),
-                ),
-                potentialObjectEntities: [
-                  ...newEntitySummaries,
-                  ...existingEntitiesOfInterest,
-                ],
-                goal,
-                text,
-                title,
-                url: url as Url,
-                contentType,
-                dereferencedEntityType,
-                workerIdentifiers,
-              });
+            const { claims: claimsForSingleEntity } = await inferEntityClaimsFromTextAgent({
+              subjectEntities: [entity],
+              linkEntityTypesById: Object.fromEntries(
+                Object.entries(dereferencedEntityTypes)
+                  .filter(([linkEntityTypeId]) =>
+                    Object.keys(dereferencedEntityType.links ?? {}).includes(linkEntityTypeId),
+                  )
+                  .map(([linkEntityTypeId, linkEntity]) => [linkEntityTypeId, linkEntity.schema]),
+              ),
+              potentialObjectEntities: [...newEntitySummaries, ...existingEntitiesOfInterest],
+              goal,
+              text,
+              title,
+              url: url as Url,
+              contentType,
+              dereferencedEntityType,
+              workerIdentifiers,
+            });
 
             return claimsForSingleEntity;
           }),

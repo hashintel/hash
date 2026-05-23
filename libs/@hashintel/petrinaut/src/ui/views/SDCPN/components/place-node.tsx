@@ -54,13 +54,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const {
-    globalMode,
-    isSelected,
-    isNotSelectedConnection,
-    hoveredItem,
-    isNotHoveredConnection,
-  } = use(EditorContext);
+  const { globalMode, isSelected, isNotSelectedConnection, hoveredItem, isNotHoveredConnection } =
+    use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame } = use(PlaybackContext);
@@ -81,8 +76,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
+      : isNotHoveredConnection(id) || (!hoveredItem && isNotSelectedConnection(id))
         ? "notSelectedConnection"
         : "none";
 
@@ -119,9 +113,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
       title={data.label}
       subtitle={subtitle}
       badge={
-        tokenCount !== null ? (
-          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-        ) : undefined
+        tokenCount !== null ? <div className={tokenCountBadgeStyle}>{tokenCount}</div> : undefined
       }
       isConnectable={isConnectable}
     />

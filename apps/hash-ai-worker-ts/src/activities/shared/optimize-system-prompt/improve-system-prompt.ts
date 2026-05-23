@@ -37,29 +37,27 @@ const improveSystemPromptSystemPrompt = dedent(`
   Prompts with full, clear examples are generally better than prompts without examples.
 `);
 
-const proposeSystemPromptToolDefinition: LlmToolDefinition<"proposeSystemPrompt"> =
-  {
-    name: "proposeSystemPrompt",
-    description:
-      "Propose an improved system prompt based on the previous system prompt and metric results.",
-    inputSchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        improvedSystemPrompt: {
-          type: "string",
-          description:
-            "The improved system prompt that is expected to improve the LLM performance.",
-        },
-        reasoning: {
-          type: "string",
-          description:
-            "A detailed explanation of why the proposed system prompt is expected to improve the LLM performance.",
-        },
+const proposeSystemPromptToolDefinition: LlmToolDefinition<"proposeSystemPrompt"> = {
+  name: "proposeSystemPrompt",
+  description:
+    "Propose an improved system prompt based on the previous system prompt and metric results.",
+  inputSchema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      improvedSystemPrompt: {
+        type: "string",
+        description: "The improved system prompt that is expected to improve the LLM performance.",
       },
-      required: ["improvedSystemPrompt"],
+      reasoning: {
+        type: "string",
+        description:
+          "A detailed explanation of why the proposed system prompt is expected to improve the LLM performance.",
+      },
     },
-  };
+    required: ["improvedSystemPrompt"],
+  },
+};
 
 export const improveSystemPrompt = async (params: {
   previousSystemPrompt: string;
@@ -76,10 +74,7 @@ export const improveSystemPrompt = async (params: {
         .flat(),
     )
     .flat()
-    .filter(
-      (metric, index, all) =>
-        all.findIndex(({ name }) => metric.name === name) === index,
-    );
+    .filter((metric, index, all) => all.findIndex(({ name }) => metric.name === name) === index);
 
   const userMessage: LlmUserMessage = {
     role: "user",
@@ -101,15 +96,14 @@ export const improveSystemPrompt = async (params: {
              */
             results.map(({ systemPrompt, metricResultsForModels }) => ({
               systemPrompt,
-              metricResultsForModels: metricResultsForModels.map(
-                ({ model, metricResults }) =>
-                  metricResults.map(({ metric, result }) => ({
-                    model,
-                    metric: metric.name,
-                    score: result.score,
-                    report: result.naturalLanguageReport,
-                    error: result.encounteredError,
-                  })),
+              metricResultsForModels: metricResultsForModels.map(({ model, metricResults }) =>
+                metricResults.map(({ metric, result }) => ({
+                  model,
+                  metric: metric.name,
+                  score: result.score,
+                  report: result.naturalLanguageReport,
+                  error: result.encounteredError,
+                })),
               ),
             })),
           )}
@@ -139,9 +133,7 @@ export const improveSystemPrompt = async (params: {
   );
 
   if (response.status !== "ok") {
-    throw new Error(
-      `Failed to get response from LLM: ${JSON.stringify(response)}`,
-    );
+    throw new Error(`Failed to get response from LLM: ${JSON.stringify(response)}`);
   }
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({
@@ -151,16 +143,13 @@ export const improveSystemPrompt = async (params: {
   const [proposeSystemPromptToolCall] = toolCalls;
 
   if (!proposeSystemPromptToolCall) {
-    throw new Error(
-      `Expected a tool call for the proposeSystemPrompt tool, but got none.`,
-    );
+    throw new Error(`Expected a tool call for the proposeSystemPrompt tool, but got none.`);
   }
 
-  const { improvedSystemPrompt, reasoning } =
-    proposeSystemPromptToolCall.input as {
-      improvedSystemPrompt: string;
-      reasoning: string;
-    };
+  const { improvedSystemPrompt, reasoning } = proposeSystemPromptToolCall.input as {
+    improvedSystemPrompt: string;
+    reasoning: string;
+  };
 
   logger.debug(`Proposed system prompt: ${improvedSystemPrompt}`);
   /**

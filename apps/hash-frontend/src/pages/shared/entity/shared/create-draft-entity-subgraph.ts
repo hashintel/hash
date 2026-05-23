@@ -1,17 +1,9 @@
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import type {
-  EntityRevisionId,
-  EntityRootType,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRevisionId, EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { KnowledgeGraphEditionMap } from "@blockprotocol/graph/types";
-import type {
-  BaseUrl,
-  EntityMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, EntityMetadata, VersionedUrl } from "@blockprotocol/type-system";
 
 export const createDraftEntitySubgraph = ({
   currentSubgraph,
@@ -30,9 +22,7 @@ export const createDraftEntitySubgraph = ({
    *   For places where we mutate elements, we should probably store them separately from the subgraph to
    *   allow for optimistic updates without being incorrect.
    */
-  const metadata = JSON.parse(
-    JSON.stringify(entity.metadata),
-  ) as EntityMetadata;
+  const metadata = JSON.parse(JSON.stringify(entity.metadata)) as EntityMetadata;
   metadata.entityTypeIds = entityTypeIds;
 
   const newEntityRevisionId = new Date().toISOString() as EntityRevisionId;

@@ -1,10 +1,7 @@
 import { Box, Checkbox, Typography } from "@mui/material";
 import { useMemo } from "react";
 
-import {
-  getClosedMultiEntityTypeFromMap,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap, type HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
@@ -55,11 +52,7 @@ export const DraftEntity: FunctionComponent<{
 
   return (
     <Box paddingRight={4.5} paddingLeft={6} paddingY={3.25}>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="flex-start"
-      >
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
         <Box display="flex" alignItems="center">
           <Checkbox
             checked={selected}
@@ -71,8 +64,7 @@ export const DraftEntity: FunctionComponent<{
                 width: 18,
                 height: 18,
               },
-              marginLeft: ({ spacing }) =>
-                `calc(-1 * (18px + ${spacing(1.5)}))`,
+              marginLeft: ({ spacing }) => `calc(-1 * (18px + ${spacing(1.5)}))`,
               paddingRight: 1.5,
             }}
           />
@@ -101,8 +93,7 @@ export const DraftEntity: FunctionComponent<{
           >
             <Box
               sx={{
-                transition: ({ transitions }) =>
-                  transitions.create("background"),
+                transition: ({ transitions }) => transitions.create("background"),
                 borderRadius: "6px",
                 paddingY: 0.5,
                 paddingX: 1,

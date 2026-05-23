@@ -1,12 +1,5 @@
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  Collapse,
-  type SxProps,
-  type Theme,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Collapse, type SxProps, type Theme, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { EntityOrTypeIcon } from "./entity-or-type-icon";

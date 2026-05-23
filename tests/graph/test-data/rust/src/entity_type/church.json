@@ -15,7 +15,5 @@
       "$ref": "https://blockprotocol.org/@alice/types/property-type/number-bells/v/1"
     }
   },
-  "required": [
-    "https://blockprotocol.org/@alice/types/property-type/number-bells/"
-  ]
+  "required": ["https://blockprotocol.org/@alice/types/property-type/number-bells/"]
 }

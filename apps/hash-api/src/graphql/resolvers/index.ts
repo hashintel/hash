@@ -59,16 +59,10 @@ import { getPendingInvitationByEntityIdResolver } from "./knowledge/org/get-pend
 import { inviteUserToOrgResolver } from "./knowledge/org/invite-user-to-org";
 import { removeUserFromOrgResolver } from "./knowledge/org/remove-user-from-org";
 import { pageContents } from "./knowledge/page";
-import {
-  createPageResolver,
-  pageCommentsResolver,
-} from "./knowledge/page/page";
+import { createPageResolver, pageCommentsResolver } from "./knowledge/page/page";
 import { setParentPageResolver } from "./knowledge/page/set-parent-page";
 import { updatePageResolver } from "./knowledge/page/update-page";
-import {
-  canUserEdit,
-  checkUserPermissionsOnEntity,
-} from "./knowledge/shared/check-permissions";
+import { canUserEdit, checkUserPermissionsOnEntity } from "./knowledge/shared/check-permissions";
 import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
 import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-position";
 import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
@@ -142,9 +136,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getWaitlistPosition: loggedInMiddleware(getWaitlistPositionResolver),
 
     /** Logged in and signed up users */
-    getBlockProtocolBlocks: loggedInAndSignedUpMiddleware(
-      getBlockProtocolBlocksResolver,
-    ),
+    getBlockProtocolBlocks: loggedInAndSignedUpMiddleware(getBlockProtocolBlocksResolver),
     getUsageRecords: loggedInAndSignedUpMiddleware(getUsageRecordsResolver),
     pageComments: loggedInAndSignedUpMiddleware(pageCommentsResolver),
     blocks: loggedInAndSignedUpMiddleware(blocksResolver),
@@ -153,22 +145,14 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(() => {
-      throw new Error(
-        "`getEntityAuthorizationRelationships` is not implemented",
-      );
+      throw new Error("`getEntityAuthorizationRelationships` is not implemented");
     }),
     countEntities: loggedInAndSignedUpMiddleware(countEntitiesResolver),
     queryEntities: loggedInAndSignedUpMiddleware(queryEntitiesResolver),
-    queryEntitySubgraph: loggedInAndSignedUpMiddleware(
-      queryEntitySubgraphResolver,
-    ),
-    getMyPendingInvitations: loggedInAndSignedUpMiddleware(
-      getMyPendingInvitationsResolver,
-    ),
+    queryEntitySubgraph: loggedInAndSignedUpMiddleware(queryEntitySubgraphResolver),
+    getMyPendingInvitations: loggedInAndSignedUpMiddleware(getMyPendingInvitationsResolver),
 
-    getLinearOrganization: loggedInAndSignedUpMiddleware(
-      getLinearOrganizationResolver,
-    ),
+    getLinearOrganization: loggedInAndSignedUpMiddleware(getLinearOrganizationResolver),
     checkUserPermissionsOnEntity: (_, { metadata }, context, info) =>
       checkUserPermissionsOnEntity({ metadata }, _, context, info),
     checkUserPermissionsOnEntityType: loggedInAndSignedUpMiddleware(
@@ -191,25 +175,15 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     updateEntity: loggedInMiddleware(updateEntityResolver),
 
     /** Logged in and signed up users */
-    updateBlockCollectionContents: loggedInAndSignedUpMiddleware(
-      updateBlockCollectionContents,
-    ),
+    updateBlockCollectionContents: loggedInAndSignedUpMiddleware(updateBlockCollectionContents),
     requestFileUpload: loggedInAndSignedUpMiddleware(requestFileUpload),
     createFileFromUrl: loggedInAndSignedUpMiddleware(createFileFromUrl),
 
     // Ontology
-    createPropertyType: loggedInAndSignedUpMiddleware(
-      createPropertyTypeResolver,
-    ),
-    updatePropertyType: loggedInAndSignedUpMiddleware(
-      updatePropertyTypeResolver,
-    ),
-    archivePropertyType: loggedInAndSignedUpMiddleware(
-      archivePropertyTypeResolver,
-    ),
-    unarchivePropertyType: loggedInAndSignedUpMiddleware(
-      unarchivePropertyTypeResolver,
-    ),
+    createPropertyType: loggedInAndSignedUpMiddleware(createPropertyTypeResolver),
+    updatePropertyType: loggedInAndSignedUpMiddleware(updatePropertyTypeResolver),
+    archivePropertyType: loggedInAndSignedUpMiddleware(archivePropertyTypeResolver),
+    unarchivePropertyType: loggedInAndSignedUpMiddleware(unarchivePropertyTypeResolver),
     createDataType: loggedInAndSignedUpMiddleware(createDataTypeResolver),
     updateDataType: loggedInAndSignedUpMiddleware(updateDataTypeResolver),
     archiveDataType: loggedInAndSignedUpMiddleware(archiveDataTypeResolver),
@@ -218,9 +192,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     updateEntityType: loggedInAndSignedUpMiddleware(updateEntityTypeResolver),
     updateEntityTypes: loggedInAndSignedUpMiddleware(updateEntityTypesResolver),
     archiveEntityType: loggedInAndSignedUpMiddleware(archiveEntityTypeResolver),
-    unarchiveEntityType: loggedInAndSignedUpMiddleware(
-      unarchiveEntityTypeResolver,
-    ),
+    unarchiveEntityType: loggedInAndSignedUpMiddleware(unarchiveEntityTypeResolver),
 
     // Knowledge
     createEntity: loggedInAndSignedUpMiddleware(createEntityResolver),
@@ -237,12 +209,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
     inviteUserToOrg: loggedInAndSignedUpMiddleware(inviteUserToOrgResolver),
-    acceptOrgInvitation: loggedInAndSignedUpMiddleware(
-      acceptOrgInvitationResolver,
-    ),
-    declineOrgInvitation: loggedInAndSignedUpMiddleware(
-      declineOrgInvitationResolver,
-    ),
+    acceptOrgInvitation: loggedInAndSignedUpMiddleware(acceptOrgInvitationResolver),
+    declineOrgInvitation: loggedInAndSignedUpMiddleware(declineOrgInvitationResolver),
     removeUserFromOrg: loggedInAndSignedUpMiddleware(removeUserFromOrgResolver),
 
     addEntityOwner: loggedInAndSignedUpMiddleware(() => {
@@ -258,30 +226,18 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       throw new Error("`removeEntityEditor` is not implemented");
     }),
     addEntityViewer: loggedInAndSignedUpMiddleware(addEntityViewerResolver),
-    removeEntityViewer: loggedInAndSignedUpMiddleware(
-      removeEntityViewerResolver,
-    ),
+    removeEntityViewer: loggedInAndSignedUpMiddleware(removeEntityViewerResolver),
 
     cancelFlow: loggedInAndSignedUpMiddleware(cancelFlow),
     resetFlow: loggedInAndSignedUpMiddleware(resetFlow),
     startFlow: loggedInAndSignedUpMiddleware(startFlow),
-    submitExternalInputResponse: loggedInAndSignedUpMiddleware(
-      submitExternalInputResponse,
-    ),
+    submitExternalInputResponse: loggedInAndSignedUpMiddleware(submitExternalInputResponse),
 
-    createFlowSchedule: loggedInAndSignedUpMiddleware(
-      createFlowScheduleResolver,
-    ),
-    updateFlowSchedule: loggedInAndSignedUpMiddleware(
-      updateFlowScheduleResolver,
-    ),
+    createFlowSchedule: loggedInAndSignedUpMiddleware(createFlowScheduleResolver),
+    updateFlowSchedule: loggedInAndSignedUpMiddleware(updateFlowScheduleResolver),
     pauseFlowSchedule: loggedInAndSignedUpMiddleware(pauseFlowScheduleResolver),
-    resumeFlowSchedule: loggedInAndSignedUpMiddleware(
-      resumeFlowScheduleResolver,
-    ),
-    archiveFlowSchedule: loggedInAndSignedUpMiddleware(
-      archiveFlowScheduleResolver,
-    ),
+    resumeFlowSchedule: loggedInAndSignedUpMiddleware(resumeFlowScheduleResolver),
+    archiveFlowSchedule: loggedInAndSignedUpMiddleware(archiveFlowScheduleResolver),
 
     // Integration
     syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(

@@ -1,9 +1,6 @@
 import { getEntityRevision, getRoots } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import {
-  type HashEntity,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -37,12 +34,9 @@ export const getSecretEntitiesForIntegration = async ({
   return queryEntitySubgraph({ graphApi: graphApiClient }, authentication, {
     filter: {
       all: [
-        generateVersionedUrlMatchingFilter(
-          systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-          {
-            ignoreParents: true,
-          },
-        ),
+        generateVersionedUrlMatchingFilter(systemLinkEntityTypes.usesUserSecret.linkEntityTypeId, {
+          ignoreParents: true,
+        }),
         {
           equal: [
             { path: ["leftEntity", "uuid"] },
@@ -80,9 +74,7 @@ export const getSecretEntitiesForIntegration = async ({
 
     for (const link of linkEntities) {
       if (
-        !link.metadata.entityTypeIds.includes(
-          systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-        )
+        !link.metadata.entityTypeIds.includes(systemLinkEntityTypes.usesUserSecret.linkEntityTypeId)
       ) {
         throw new Error(
           `Unexpected entity type ${link.metadata.entityTypeIds.join(", ")} in getSecretsForAccount subgraph`,
@@ -90,9 +82,7 @@ export const getSecretEntitiesForIntegration = async ({
       }
 
       if (!link.linkData) {
-        throw new Error(
-          `Link entity ${link.metadata.recordId.entityId} is missing link data`,
-        );
+        throw new Error(`Link entity ${link.metadata.recordId.entityId} is missing link data`);
       }
 
       const target = getEntityRevision(subgraph, link.linkData.rightEntityId);
@@ -103,11 +93,7 @@ export const getSecretEntitiesForIntegration = async ({
         );
       }
 
-      if (
-        !target.metadata.entityTypeIds.includes(
-          systemEntityTypes.userSecret.entityTypeId,
-        )
-      ) {
+      if (!target.metadata.entityTypeIds.includes(systemEntityTypes.userSecret.entityTypeId)) {
         throw new Error(
           `Unexpected entity type(s) ${target.metadata.entityTypeIds.join(", ")} in getSecretsForAccount subgraph`,
         );

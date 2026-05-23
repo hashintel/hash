@@ -1,29 +1,16 @@
 import { useLocalStorage } from "@mantine/hooks";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 import { useEventHandlers } from "./use-event-handlers";
 import { useSetDrawSettings } from "./use-set-draw-settings";
 
-import type {
-  DynamicNodeSizing,
-  GraphVizConfig,
-  StaticNodeSizing,
-} from "./config-control";
+import type { DynamicNodeSizing, GraphVizConfig, StaticNodeSizing } from "./config-control";
 import type { GraphVizFilters } from "./filter-control";
 import type { GraphState } from "./state";
 import type { RegisterEventsArgs } from "./use-event-handlers";
 import type { PropsWithChildren, RefObject } from "react";
 
-export type GraphContextType<
-  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
-> = {
+export type GraphContextType<NodeSizing extends DynamicNodeSizing | StaticNodeSizing> = {
   config: GraphVizConfig<NodeSizing>;
   configPanelOpen: boolean;
   filters: GraphVizFilters;
@@ -37,29 +24,22 @@ export type GraphContextType<
   setConfigPanelOpen: (open: boolean) => void;
   setFilters: (filters: GraphVizFilters) => void;
   setFilterPanelOpen: (open: boolean) => void;
-  setGraphState: <K extends keyof GraphState>(
-    key: K,
-    value: GraphState[K],
-  ) => void;
+  setGraphState: <K extends keyof GraphState>(key: K, value: GraphState[K]) => void;
   setPathFinderPanelOpen: (open: boolean) => void;
   setSearchPanelOpen: (open: boolean) => void;
 };
 
-const GraphContext = createContext<GraphContextType<
-  DynamicNodeSizing | StaticNodeSizing
-> | null>(null);
+const GraphContext = createContext<GraphContextType<DynamicNodeSizing | StaticNodeSizing> | null>(
+  null,
+);
 
-export type GraphContextProviderProps<
-  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
-> = {
+export type GraphContextProviderProps<NodeSizing extends DynamicNodeSizing | StaticNodeSizing> = {
   defaultConfig: GraphVizConfig<NodeSizing>;
   defaultFilters?: GraphVizFilters;
   graphContainerRef: RefObject<HTMLDivElement | null>;
 } & Pick<RegisterEventsArgs, "onEdgeClick" | "onNodeSecondClick" | "onRender">;
 
-export const GraphContextProvider = <
-  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
->({
+export const GraphContextProvider = <NodeSizing extends DynamicNodeSizing | StaticNodeSizing>({
   children,
   defaultConfig,
   defaultFilters,
@@ -104,10 +84,9 @@ export const GraphContextProvider = <
     selectedNodeId: null,
   });
 
-  const setGraphState: GraphContextType<NodeSizing>["setGraphState"] =
-    useCallback((key, value) => {
-      graphState.current[key] = value;
-    }, []);
+  const setGraphState: GraphContextType<NodeSizing>["setGraphState"] = useCallback((key, value) => {
+    graphState.current[key] = value;
+  }, []);
 
   useSetDrawSettings(graphState.current, config);
 
@@ -166,9 +145,7 @@ export const GraphContextProvider = <
          * this should be safe as the useMemo enforces the correct type, but ideally we wouldn't have to assert any type.
          * probably involves losing the generic or wrapping createContext in a function
          */
-        value as unknown as GraphContextType<
-          DynamicNodeSizing | StaticNodeSizing
-        >
+        value as unknown as GraphContextType<DynamicNodeSizing | StaticNodeSizing>
       }
     >
       {children}

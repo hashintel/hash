@@ -38,10 +38,7 @@ export type CustomizationOptions = {
    *  A callback to provide custom handling a user clicking a link to another type.
    *  If defined, default anchor behavior will be prevented on click.
    */
-  onNavigateToType?: (
-    kind: "entityType" | "dataType",
-    url: VersionedUrl,
-  ) => void;
+  onNavigateToType?: (kind: "entityType" | "dataType", url: VersionedUrl) => void;
 };
 
 export type EntityTypeEditorProps = {
@@ -74,15 +71,9 @@ export const EntityTypeEditor = ({
       <ReadonlyContext.Provider value={readonly || !ontologyFunctions}>
         <CustomizationContext.Provider value={customization}>
           <OntologyFunctionsContext.Provider value={ontologyFunctions}>
-            <EntityTypesOptionsContextProvider
-              entityTypeOptions={entityTypeOptions}
-            >
-              <PropertyTypesOptionsContextProvider
-                propertyTypeOptions={propertyTypeOptions}
-              >
-                <DataTypesOptionsContextProvider
-                  dataTypeOptions={dataTypeOptions}
-                >
+            <EntityTypesOptionsContextProvider entityTypeOptions={entityTypeOptions}>
+              <PropertyTypesOptionsContextProvider propertyTypeOptions={propertyTypeOptions}>
+                <DataTypesOptionsContextProvider dataTypeOptions={dataTypeOptions}>
                   <Stack spacing={6.5} className={fluidFontClassName}>
                     <Box>
                       <Typography variant="h5" mb={2}>

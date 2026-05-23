@@ -12,10 +12,7 @@ import {
   mapMultiFilterToFormValues,
 } from "./entity-query-editor/utils";
 
-import type {
-  FormValues,
-  QueryEntitiesFunc,
-} from "./entity-query-editor/types";
+import type { FormValues, QueryEntitiesFunc } from "./entity-query-editor/types";
 import type { MultiFilter } from "@blockprotocol/graph";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import type { BoxProps } from "@mui/system";
@@ -54,9 +51,7 @@ export const EntityQueryEditor = ({
       : { operator: "AND", filters: [] },
   });
 
-  const [multiFilter, setMultiFilter] = useState<MultiFilter | undefined>(
-    defaultValue,
-  );
+  const [multiFilter, setMultiFilter] = useState<MultiFilter | undefined>(defaultValue);
 
   const onSubmitPreview = (data: FormValues) => {
     setMultiFilter(mapFormValuesToMultiFilter(data));
@@ -96,9 +91,7 @@ export const EntityQueryEditor = ({
             {queryEntities ? (
               <Button
                 onClick={
-                  showPreview
-                    ? () => setShowPreview(false)
-                    : form.handleSubmit(onSubmitPreview)
+                  showPreview ? () => setShowPreview(false) : form.handleSubmit(onSubmitPreview)
                 }
               >
                 {showPreview ? "Hide preview" : "Preview query"}
@@ -115,11 +108,7 @@ export const EntityQueryEditor = ({
               </Button>
             )}
             {!readonly && (
-              <Button
-                variant="tertiary"
-                onClick={handleDiscard}
-                disabled={saving}
-              >
+              <Button variant="tertiary" onClick={handleDiscard} disabled={saving}>
                 {discardTitle ?? "Discard query"}
               </Button>
             )}

@@ -19,19 +19,12 @@ export const ConvertTypeMenuItem = ({
 }: ConvertTypeMenuItemProps) => {
   const { closeContextMenu } = useContextBarActionsContext();
 
-  const [
-    showConvertTypeConfirmationModal,
-    setShowConvertTypeConfirmationModal,
-  ] = useState(false);
+  const [showConvertTypeConfirmationModal, setShowConvertTypeConfirmationModal] = useState(false);
 
   return (
     <>
       <Tooltip
-        title={
-          disabled
-            ? "Please save or discard your changes before converting the type"
-            : ""
-        }
+        title={disabled ? "Please save or discard your changes before converting the type" : ""}
       >
         {/* Tooltips don't work placed directly on MenuItems, a wrapping div is required */}
         <div>

@@ -9,21 +9,19 @@ export const getInstanceAdminsTeam = async (
   ctx: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
 ): Promise<Omit<Team, "parentId"> & { webId: WebId }> =>
-  getTeamByName(ctx.graphApi, authentication, "instance-admins").then(
-    (team) => {
-      if (!team) {
-        throw new Error("Failed to get instance admins team");
-      }
-      if (team.parentId.actorGroupType !== "web") {
-        throw new Error("Instance admins parent is not a web");
-      }
-      return {
-        id: team.id,
-        name: team.name,
-        webId: team.parentId.id,
-      };
-    },
-  );
+  getTeamByName(ctx.graphApi, authentication, "instance-admins").then((team) => {
+    if (!team) {
+      throw new Error("Failed to get instance admins team");
+    }
+    if (team.parentId.actorGroupType !== "web") {
+      throw new Error("Instance admins parent is not a web");
+    }
+    return {
+      id: team.id,
+      name: team.name,
+      webId: team.parentId.id,
+    };
+  });
 
 /**
  * Check whether or not the user is a hash instance admin.

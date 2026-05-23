@@ -14,9 +14,7 @@ import { generateArcId } from "./arc-id";
 import type { SDCPN } from "./types/sdcpn";
 
 export type MutationHelperFunctions = {
-  [Name in keyof typeof mutationActionInputSchemas]: (
-    input: MutationActionInput<Name>,
-  ) => void;
+  [Name in keyof typeof mutationActionInputSchemas]: (input: MutationActionInput<Name>) => void;
 };
 
 export function createPetrinautActions(
@@ -42,8 +40,7 @@ export function createPetrinautActions(
       });
     },
     updatePlacePosition(input) {
-      const parsed =
-        mutationActionInputSchemas.updatePlacePosition.parse(input);
+      const parsed = mutationActionInputSchemas.updatePlacePosition.parse(input);
       mutate((sdcpn) => {
         for (const place of sdcpn.places) {
           if (place.id === parsed.placeId) {
@@ -55,8 +52,7 @@ export function createPetrinautActions(
       });
     },
     removePlace(input) {
-      const { placeId: parsedPlaceId } =
-        mutationActionInputSchemas.removePlace.parse(input);
+      const { placeId: parsedPlaceId } = mutationActionInputSchemas.removePlace.parse(input);
       mutate((sdcpn) => {
         for (const [placeIndex, place] of sdcpn.places.entries()) {
           if (place.id === parsedPlaceId) {
@@ -98,8 +94,7 @@ export function createPetrinautActions(
       });
     },
     updateTransitionPosition(input) {
-      const parsed =
-        mutationActionInputSchemas.updateTransitionPosition.parse(input);
+      const parsed = mutationActionInputSchemas.updateTransitionPosition.parse(input);
       mutate((sdcpn) => {
         for (const transition of sdcpn.transitions) {
           if (transition.id === parsed.transitionId) {
@@ -153,9 +148,10 @@ export function createPetrinautActions(
               parsed.arcDirection === "input" ? "inputArcs" : "outputArcs"
             ].entries()) {
               if (arc.placeId === parsed.placeId) {
-                transition[
-                  parsed.arcDirection === "input" ? "inputArcs" : "outputArcs"
-                ].splice(index, 1);
+                transition[parsed.arcDirection === "input" ? "inputArcs" : "outputArcs"].splice(
+                  index,
+                  1,
+                );
                 break;
               }
             }
@@ -302,8 +298,7 @@ export function createPetrinautActions(
       });
     },
     removeType(input) {
-      const { typeId: parsedTypeId } =
-        mutationActionInputSchemas.removeType.parse(input);
+      const { typeId: parsedTypeId } = mutationActionInputSchemas.removeType.parse(input);
       mutate((sdcpn) => {
         for (const [index, type] of sdcpn.types.entries()) {
           if (type.id === parsedTypeId) {
@@ -330,8 +325,7 @@ export function createPetrinautActions(
       });
     },
     updateDifferentialEquation(input) {
-      const parsed =
-        mutationActionInputSchemas.updateDifferentialEquation.parse(input);
+      const parsed = mutationActionInputSchemas.updateDifferentialEquation.parse(input);
       mutate((sdcpn) => {
         for (const equation of sdcpn.differentialEquations) {
           if (equation.id === parsed.equationId) {
@@ -450,8 +444,7 @@ export function createPetrinautActions(
       });
     },
     removeMetric(input) {
-      const { metricId: parsedMetricId } =
-        mutationActionInputSchemas.removeMetric.parse(input);
+      const { metricId: parsedMetricId } = mutationActionInputSchemas.removeMetric.parse(input);
       mutate((sdcpn) => {
         const metrics = sdcpn.metrics;
         if (!metrics) {
@@ -466,8 +459,7 @@ export function createPetrinautActions(
       });
     },
     deleteItemsByIds(input) {
-      const parsedItems =
-        mutationActionInputSchemas.deleteItemsByIds.parse(input).items;
+      const parsedItems = mutationActionInputSchemas.deleteItemsByIds.parse(input).items;
       mutate((sdcpn) => {
         const placeIds = new Set<string>();
         const transitionIds = new Set<string>();
@@ -500,8 +492,7 @@ export function createPetrinautActions(
           }
         }
 
-        const hasCanvasDeletes =
-          placeIds.size > 0 || transitionIds.size > 0 || arcIds.size > 0;
+        const hasCanvasDeletes = placeIds.size > 0 || transitionIds.size > 0 || arcIds.size > 0;
 
         if (hasCanvasDeletes) {
           for (let i = sdcpn.transitions.length - 1; i >= 0; i--) {
@@ -576,10 +567,7 @@ export function createPetrinautActions(
             }
           }
           for (const place of sdcpn.places) {
-            if (
-              place.differentialEquationId &&
-              equationIds.has(place.differentialEquationId)
-            ) {
+            if (place.differentialEquationId && equationIds.has(place.differentialEquationId)) {
               place.differentialEquationId = null;
             }
           }

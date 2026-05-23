@@ -16,15 +16,12 @@ test(
     const status = await getWebPageSummaryAction({
       inputs: [
         {
-          inputName:
-            "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
+          inputName: "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
           payload: { kind: "Text", value: url },
         },
         ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
           ({ name, default: defaultValue }) =>
-            !defaultValue || name === "url"
-              ? []
-              : [{ inputName: name, payload: defaultValue }],
+            !defaultValue || name === "url" ? [] : [{ inputName: name, payload: defaultValue }],
         ),
       ],
     });

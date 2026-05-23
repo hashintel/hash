@@ -43,10 +43,7 @@ const config: PlaywrightTestConfig = {
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  reporter: [
-    [ci ? "github" : "list"],
-    ["html", { open: !ci ? "on-failure" : "never" }],
-  ],
+  reporter: [[ci ? "github" : "list"], ["html", { open: !ci ? "on-failure" : "never" }]],
   testDir: "tests",
   use: {
     baseURL: "http://localhost:3000",

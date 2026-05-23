@@ -40,8 +40,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
 
   const { shortname } = router.query as { shortname: string };
 
-  const { authenticatedUser, refetch: refetchAuthenticatedUser } =
-    useAuthenticatedUser();
+  const { authenticatedUser, refetch: refetchAuthenticatedUser } = useAuthenticatedUser();
 
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
 
@@ -76,9 +75,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
         sectionLabel="Members"
         ref={topRef}
       >
-        <SettingsTable
-          sx={{ background: ({ palette }) => palette.common.white }}
-        >
+        <SettingsTable sx={{ background: ({ palette }) => palette.common.white }}>
           <TableHead>
             <TableRow>
               <SettingsTableCell width="70%">Name</SettingsTableCell>
@@ -97,9 +94,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
                   accountGroupId={org.webId as ActorGroupEntityUuid}
                   key={membership.linkEntity.metadata.recordId.entityId}
                   membership={membership}
-                  self={
-                    membership.user.accountId === authenticatedUser.accountId
-                  }
+                  self={membership.user.accountId === authenticatedUser.accountId}
                   readonly={readonly}
                 />
               ))}

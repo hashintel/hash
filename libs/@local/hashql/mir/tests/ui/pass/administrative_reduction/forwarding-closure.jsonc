@@ -7,13 +7,7 @@
   [
     "let",
     "f2",
-    [
-      "fn",
-      { "#tuple": [] },
-      { "#struct": { "x": "Boolean" } },
-      "_",
-      ["f1", "x"]
-    ],
+    ["fn", { "#tuple": [] }, { "#struct": { "x": "Boolean" } }, "_", ["f1", "x"]],
     ["f2", { "#literal": true }]
   ]
 ]

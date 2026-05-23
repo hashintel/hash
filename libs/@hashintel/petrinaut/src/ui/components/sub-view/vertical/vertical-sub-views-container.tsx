@@ -215,8 +215,7 @@ const sectionToggleIconStyle = css({
   justifyContent: "center",
   alignItems: "center",
   overflow: "hidden",
-  transition:
-    "[width 150ms ease-out, opacity 150ms ease-out, transform 150ms ease-out]",
+  transition: "[width 150ms ease-out, opacity 150ms ease-out, transform 150ms ease-out]",
 });
 
 const sectionToggleIconExpandedStyle = css({
@@ -279,9 +278,7 @@ const useTransientTransition = (durationMs = 200) => {
  * Wraps children in a scrollable container with top/bottom gradient shadows
  * that fade in when content overflows in that direction.
  */
-const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+const ScrollableContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollUp, setCanScrollUp] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
@@ -368,11 +365,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
   renderHeaderAction,
   alwaysShowHeaderAction,
 }) => (
-  <div
-    className={
-      main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })
-    }
-  >
+  <div className={main ? mainHeaderRowStyle : headerRowStyle({ isCollapsed: !isExpanded })}>
     {main ? (
       <div className={mainHeaderContentStyle}>
         {HeaderIcon && (
@@ -380,11 +373,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
             <HeaderIcon size={HEADER_ICON_SIZE} />
           </span>
         )}
-        {renderTitle ? (
-          renderTitle()
-        ) : (
-          <span className={mainTitleStyle}>{title}</span>
-        )}
+        {renderTitle ? renderTitle() : <span className={mainTitleStyle}>{title}</span>}
       </div>
     ) : (
       <div
@@ -403,10 +392,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
       >
         <div
           data-toggle-icon
-          className={cx(
-            sectionToggleIconStyle,
-            isExpanded && sectionToggleIconExpandedStyle,
-          )}
+          className={cx(sectionToggleIconStyle, isExpanded && sectionToggleIconExpandedStyle)}
         >
           <Icon name="chevronRight" size="xxs" />
         </div>
@@ -423,9 +409,7 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
     {isExpanded && renderHeaderAction && (
       <div
         {...(!alwaysShowHeaderAction && { "data-header-action": true })}
-        className={
-          alwaysShowHeaderAction ? headerActionVisibleStyle : headerActionStyle
-        }
+        className={alwaysShowHeaderAction ? headerActionVisibleStyle : headerActionStyle}
       >
         {renderHeaderAction()}
       </div>
@@ -447,11 +431,12 @@ interface VerticalSubViewsContainerProps {
  * Uses react-resizable-panels for drag-to-resize between sections.
  * Each section can be collapsed by clicking its header.
  */
-export const VerticalSubViewsContainer: React.FC<
-  VerticalSubViewsContainerProps
-> = ({ name, subViews, defaultExpanded = true }) => {
-  const { showAnimations, subViewPanels, updateSubViewSection } =
-    use(UserSettingsContext);
+export const VerticalSubViewsContainer: React.FC<VerticalSubViewsContainerProps> = ({
+  name,
+  subViews,
+  defaultExpanded = true,
+}) => {
+  const { showAnimations, subViewPanels, updateSubViewSection } = use(UserSettingsContext);
 
   const containerSettings = subViewPanels[name];
 
@@ -463,13 +448,10 @@ export const VerticalSubViewsContainer: React.FC<
     return sv.defaultCollapsed ?? !defaultExpanded;
   };
 
-  const getSavedHeight = (id: string): number | undefined =>
-    containerSettings?.[id]?.height;
+  const getSavedHeight = (id: string): number | undefined => containerSettings?.[id]?.height;
 
   // Debounce height saves to avoid writing to context on every drag frame
-  const heightTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-    {},
-  );
+  const heightTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const handleResize = (id: string) => (panelSize: { inPixels: number }) => {
     if (panelSize.inPixels <= HEADER_HEIGHT) {
@@ -481,8 +463,7 @@ export const VerticalSubViewsContainer: React.FC<
     }, 300);
   };
 
-  const { active: isAnimating, trigger: triggerTransition } =
-    useTransientTransition(200);
+  const { active: isAnimating, trigger: triggerTransition } = useTransientTransition(200);
 
   const toggleSection = (sv: SubView) => {
     if (showAnimations) {
@@ -506,8 +487,7 @@ export const VerticalSubViewsContainer: React.FC<
         const isCollapsible = !isMain && (subView.collapsible ?? true);
         const isExpanded = !isCollapsible || !isSectionCollapsed(subView);
         const Component = subView.component;
-        const minSize =
-          subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
+        const minSize = subView.resizable?.minHeight ?? DEFAULT_MIN_PANEL_HEIGHT;
 
         return (
           <Fragment key={subView.id}>
@@ -542,9 +522,7 @@ export const VerticalSubViewsContainer: React.FC<
               </div>
             </Panel>
 
-            {index < subViews.length - 1 && (
-              <Separator className={resizeHandleStyle} />
-            )}
+            {index < subViews.length - 1 && <Separator className={resizeHandleStyle} />}
           </Fragment>
         );
       })}

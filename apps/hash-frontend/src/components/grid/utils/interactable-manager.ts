@@ -28,10 +28,7 @@ class InteractableManagerClass {
    * };
    * ```
    */
-  private interactableStore: Record<
-    CellPath | ColumnHeaderPath,
-    Record<string, Interactable>
-  > = {};
+  private interactableStore: Record<CellPath | ColumnHeaderPath, Record<string, Interactable>> = {};
 
   getInteractable(path: CellPath | ColumnHeaderPath, id: string) {
     return Object.values(this.interactableStore[path] ?? {}).find(
@@ -89,10 +86,7 @@ class InteractableManagerClass {
    * @param args Draw args of cell
    * @param interactables List of the interactables for a specific cell.
    */
-  setInteractablesForCell(
-    args: DrawArgs<CustomCell>,
-    interactables: Interactable[],
-  ) {
+  setInteractablesForCell(args: DrawArgs<CustomCell>, interactables: Interactable[]) {
     const path = drawArgsToCellPath(args);
 
     /**
@@ -103,9 +97,7 @@ class InteractableManagerClass {
       const existing = this.interactableStore[path]?.[interactable.id];
 
       if (existing && existing.hovered !== interactable.hovered) {
-        const event = interactable.hovered
-          ? interactable.onMouseEnter
-          : interactable.onMouseLeave;
+        const event = interactable.hovered ? interactable.onMouseEnter : interactable.onMouseLeave;
 
         event?.(interactable);
       }
@@ -123,10 +115,7 @@ class InteractableManagerClass {
    * @param args Draw args of column header
    * @param interactables List of the interactables for a specific column header.
    */
-  setInteractablesForColumnHeader(
-    args: ColumnHeaderDrawArgs,
-    interactables: Interactable[],
-  ) {
+  setInteractablesForColumnHeader(args: ColumnHeaderDrawArgs, interactables: Interactable[]) {
     const path = drawArgsToColumnHeaderPath(args);
 
     /** @todo: trigger on mouse enter/leave events? */
@@ -185,10 +174,7 @@ class InteractableManagerClass {
 
         const { rowIndex } = splitPath(path);
 
-        if (
-          rowIndex < boundaries.deleteBeforeRow ||
-          rowIndex > boundaries.deleteAfterRow
-        ) {
+        if (rowIndex < boundaries.deleteBeforeRow || rowIndex > boundaries.deleteAfterRow) {
           return true;
         }
       }

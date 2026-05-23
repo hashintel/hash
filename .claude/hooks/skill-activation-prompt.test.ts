@@ -39,8 +39,7 @@ describe("Skill Activation Snapshots", () => {
 
   it("update dependencies", ({ task }) => createSnapshot(task.name));
 
-  it("update Cargo.toml workspace dependencies", ({ task }) =>
-    createSnapshot(task.name));
+  it("update Cargo.toml workspace dependencies", ({ task }) => createSnapshot(task.name));
 
   it("improve documentation", ({ task }) => createSnapshot(task.name));
 

@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 import { getBlockDomId } from "../shared/get-block-dom-id";
 
@@ -25,21 +18,18 @@ type BlockLoadedProviderProps = {
   routeHash?: string;
 };
 
-export const BlockLoadedProvider: FunctionComponent<
-  BlockLoadedProviderProps
-> = ({ routeHash, children }) => {
+export const BlockLoadedProvider: FunctionComponent<BlockLoadedProviderProps> = ({
+  routeHash,
+  children,
+}) => {
   const scrollingComplete = useRef(false);
-  const scrollFrameRequestIdRef = useRef<ReturnType<
-    typeof requestAnimationFrame
-  > | null>(null);
+  const scrollFrameRequestIdRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
 
   /**
    * The initial value is `routeHash`, so when the page is first open, the block which has its id in URL is highlighted
    * `highlightedBlockId` will be used when block context menus are open to indicate which block is being edited
    */
-  const [highlightedBlockId, setHighlightedBlockId] = useState<
-    string | undefined
-  >(routeHash);
+  const [highlightedBlockId, setHighlightedBlockId] = useState<string | undefined>(routeHash);
 
   const onBlockLoaded = useCallback(
     (blockEntityId: string) => {
@@ -59,14 +49,9 @@ export const BlockLoadedProvider: FunctionComponent<
         }
       }
 
-      if (
-        routeHash === getBlockDomId(blockEntityId) &&
-        !scrollingComplete.current
-      ) {
+      if (routeHash === getBlockDomId(blockEntityId) && !scrollingComplete.current) {
         clearScrollInterval();
-        scrollFrameRequestIdRef.current = requestAnimationFrame(() =>
-          frame(routeHash),
-        );
+        scrollFrameRequestIdRef.current = requestAnimationFrame(() => frame(routeHash));
       }
     },
     [routeHash],
@@ -77,11 +62,7 @@ export const BlockLoadedProvider: FunctionComponent<
     [highlightedBlockId, setHighlightedBlockId, onBlockLoaded],
   );
 
-  return (
-    <BlockLoadedContext.Provider value={value}>
-      {children}
-    </BlockLoadedContext.Provider>
-  );
+  return <BlockLoadedContext.Provider value={value}>{children}</BlockLoadedContext.Provider>;
 };
 
 export const useBlockLoadedContext = () => {

@@ -54,15 +54,11 @@ const NotesPage: NextPageWithLayout = () => {
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.note.entityTypeId,
-              { ignoreParents: true },
-            ),
+            generateVersionedUrlMatchingFilter(systemEntityTypes.note.entityTypeId, {
+              ignoreParents: true,
+            }),
             {
-              equal: [
-                { path: ["webId"] },
-                { parameter: authenticatedUser.accountId },
-              ],
+              equal: [{ path: ["webId"] }, { parameter: authenticatedUser.accountId }],
             },
           ],
         },
@@ -77,8 +73,7 @@ const NotesPage: NextPageWithLayout = () => {
   });
 
   const quickNotesSubgraph = useMemo(() => {
-    const response = (quickNotesData ?? previouslyFetchedQuickNotesData)
-      ?.queryEntitySubgraph;
+    const response = (quickNotesData ?? previouslyFetchedQuickNotesData)?.queryEntitySubgraph;
 
     if (!response) {
       return undefined;
@@ -99,19 +94,13 @@ const NotesPage: NextPageWithLayout = () => {
     () =>
       latestQuickNoteEntities
         ?.sort((a, b) => {
-          const aCreatedAt = new Date(
-            a.metadata.provenance.createdAtDecisionTime,
-          );
-          const bCreatedAt = new Date(
-            b.metadata.provenance.createdAtDecisionTime,
-          );
+          const aCreatedAt = new Date(a.metadata.provenance.createdAtDecisionTime);
+          const bCreatedAt = new Date(b.metadata.provenance.createdAtDecisionTime);
 
           return bCreatedAt.getTime() - aCreatedAt.getTime();
         })
         .reduce<Record<string, HashEntity[]>>((acc, quickNoteEntity) => {
-          const createdAt = new Date(
-            quickNoteEntity.metadata.provenance.createdAtDecisionTime,
-          );
+          const createdAt = new Date(quickNoteEntity.metadata.provenance.createdAtDecisionTime);
 
           const key = format(createdAt, "yyyy-MM-dd");
 
@@ -216,9 +205,7 @@ const NotesPage: NextPageWithLayout = () => {
           <UserBlocksProvider value={{}}>
             <BlockCollectionContextProvider
               blockCollectionSubgraph={quickNotesSubgraph}
-              userPermissionsOnEntities={
-                quickNotesData?.queryEntitySubgraph.entityPermissions
-              }
+              userPermissionsOnEntities={quickNotesData?.queryEntitySubgraph.entityPermissions}
             >
               <TodaySection
                 ref={(element) => {
@@ -228,8 +215,7 @@ const NotesPage: NextPageWithLayout = () => {
                 }}
                 quickNoteEntities={quickNotesEntitiesCreatedToday}
                 quickNotesSubgraph={
-                  quickNotesEntitiesCreatedToday &&
-                  quickNotesEntitiesCreatedToday.length === 0
+                  quickNotesEntitiesCreatedToday && quickNotesEntitiesCreatedToday.length === 0
                     ? null
                     : quickNotesSubgraph
                 }

@@ -1,9 +1,6 @@
 import browser from "webextension-polyfill";
 
-import {
-  type GetTabContentReturn,
-  isWellFormattedMessage,
-} from "../shared/messages";
+import { type GetTabContentReturn, isWellFormattedMessage } from "../shared/messages";
 
 import type { Url } from "@blockprotocol/type-system";
 
@@ -28,8 +25,7 @@ browser.runtime.onMessage.addListener(async (message: unknown) => {
   }
 
   if (message.type === "get-tab-content") {
-    const docContent =
-      document.querySelector("main") ?? document.querySelector("body");
+    const docContent = document.querySelector("main") ?? document.querySelector("body");
 
     /**
      * Take the URL without any anchor hash on the assumption that it does not affect page content.

@@ -20,12 +20,7 @@ export const NotificationsDropdown: FunctionComponent = () => {
     <Tooltip title="Notifications" placement="bottom">
       <Link noLinkStyle href="/notifications">
         <HeaderIconButtonWithCount
-          icon={
-            <FontAwesomeIcon
-              icon={faBell}
-              sx={{ color: theme.palette.blue[70] }}
-            />
-          }
+          icon={<FontAwesomeIcon icon={faBell} sx={{ color: theme.palette.blue[70] }} />}
           count={(numberOfUnreadNotifications ?? 0) + pendingInvites.length}
         />
       </Link>

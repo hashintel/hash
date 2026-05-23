@@ -27,8 +27,7 @@ export const generateLinkParameters = (
   isExternal: boolean;
   href: string;
 } => {
-  const href =
-    typeof hrefToCheck === "string" ? hrefToCheck : hrefToCheck?.href;
+  const href = typeof hrefToCheck === "string" ? hrefToCheck : hrefToCheck?.href;
 
   if (href === null || href === undefined) {
     return {
@@ -54,10 +53,7 @@ export const generateLinkParameters = (
     sanitizedHref.split("?")[0]!.match(typeUrlRegExp) ?? [];
 
   if (typeBaseUrl) {
-    if (
-      (isExternal && typeKind === "entity-type") ||
-      (isExternal && typeKind === "data-type")
-    ) {
+    if ((isExternal && typeKind === "entity-type") || (isExternal && typeKind === "data-type")) {
       // If it's an external entity type, use the type route for loading external types
       const base64EncodedBaseUrl = btoa(typeBaseUrl);
       return {
@@ -72,9 +68,7 @@ export const generateLinkParameters = (
 
     return {
       isExternal,
-      href: isExternal
-        ? href
-        : `${pathname}${paramsString ? `?${paramsString}` : ""}`,
+      href: isExternal ? href : `${pathname}${paramsString ? `?${paramsString}` : ""}`,
     };
   }
 

@@ -66,8 +66,7 @@ type CommonLogFields = {
   level: number;
 };
 
-export type StandaloneLog = (StepProgressLog | StateChangeLog) &
-  CommonLogFields;
+export type StandaloneLog = (StepProgressLog | StateChangeLog) & CommonLogFields;
 
 export type LogThread = {
   label: string;

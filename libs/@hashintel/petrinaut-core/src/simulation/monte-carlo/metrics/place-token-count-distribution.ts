@@ -14,9 +14,7 @@ function growHistogram(
   return nextHistogram;
 }
 
-function toSparseBins(
-  histogram: Uint32Array<ArrayBufferLike>,
-): PlaceTokenCountDistributionBin[] {
+function toSparseBins(histogram: Uint32Array<ArrayBufferLike>): PlaceTokenCountDistributionBin[] {
   const bins: PlaceTokenCountDistributionBin[] = [];
 
   for (let tokenCount = 0; tokenCount < histogram.length; tokenCount++) {
@@ -52,11 +50,7 @@ export function createPlaceTokenCountDistributionMetric(): PlaceTokenCountDistri
       );
 
       context.forEachActiveRunPlaceCounts((_runIndex, placeCounts) => {
-        for (
-          let placeIndex = 0;
-          placeIndex < context.placeIds.length;
-          placeIndex++
-        ) {
+        for (let placeIndex = 0; placeIndex < context.placeIds.length; placeIndex++) {
           const tokenCount = placeCounts[placeIndex] ?? 0;
           let histogram = histograms[placeIndex]!;
           if (tokenCount >= histogram.length) {

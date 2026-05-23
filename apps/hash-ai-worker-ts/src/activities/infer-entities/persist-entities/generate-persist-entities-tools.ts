@@ -18,9 +18,7 @@ const stringifyArray = (array: unknown[]): string =>
  * Validates that the provided object is a valid ProposedEntitiesByType object.
  * @throws Error if the provided object does not match ProposedEntitiesByType
  */
-export const validateProposedEntitiesByType = <
-  EntityUpdate extends boolean = false,
->(
+export const validateProposedEntitiesByType = <EntityUpdate extends boolean = false>(
   parsedJson: JsonObject,
   update: EntityUpdate,
 ): parsedJson is EntityUpdate extends true
@@ -52,18 +50,12 @@ export const validateProposedEntitiesByType = <
 
   if (invalidArrays.length > 0) {
     throw new Error(
-      `Invalid entities arrays in AI-provided response: ${stringifyArray(
-        invalidArrays,
-      )}`,
+      `Invalid entities arrays in AI-provided response: ${stringifyArray(invalidArrays)}`,
     );
   }
 
   const invalidEntities = maybeEntitiesArrays.flat().filter((maybeEntity) => {
-    if (
-      maybeEntity === null ||
-      typeof maybeEntity !== "object" ||
-      Array.isArray(maybeEntity)
-    ) {
+    if (maybeEntity === null || typeof maybeEntity !== "object" || Array.isArray(maybeEntity)) {
       return true;
     }
 
@@ -86,11 +78,7 @@ export const validateProposedEntitiesByType = <
   });
 
   if (invalidEntities.length > 0) {
-    throw new Error(
-      `Invalid entities in AI-provided response: ${stringifyArray(
-        invalidEntities,
-      )}`,
-    );
+    throw new Error(`Invalid entities in AI-provided response: ${stringifyArray(invalidEntities)}`);
   }
 
   return true;

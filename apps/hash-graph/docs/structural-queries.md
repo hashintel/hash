@@ -209,16 +209,10 @@ For an exhaustive list of all supported paths, please generate the Rust document
   filter: {
     all: [
       {
-        equal: [
-          { path: ["leftEntity", "id"] },
-          { parameter: "{{source_entity_id}}" },
-        ],
+        equal: [{ path: ["leftEntity", "id"] }, { parameter: "{{source_entity_id}}" }],
       },
       {
-        equal: [
-          { path: ["rightEntity", "id"] },
-          { parameter: "{{target_entity_id}}" },
-        ],
+        equal: [{ path: ["rightEntity", "id"] }, { parameter: "{{target_entity_id}}" }],
       },
     ],
   },
@@ -233,10 +227,7 @@ For an exhaustive list of all supported paths, please generate the Rust document
 ```json5
 {
   filter: {
-    equal: [
-      { path: ["outgoingLinks", "uuid"] },
-      { parameter: "{{entity_uuid}}" },
-    ],
+    equal: [{ path: ["outgoingLinks", "uuid"] }, { parameter: "{{entity_uuid}}" }],
   },
   graphResolveDepths: {
     // ...
@@ -249,10 +240,7 @@ For an exhaustive list of all supported paths, please generate the Rust document
 ```json5
 {
   filter: {
-    equal: [
-      { path: ["incomingLinks", "uuid"] },
-      { parameter: "{{entity_uuid}}" },
-    ],
+    equal: [{ path: ["incomingLinks", "uuid"] }, { parameter: "{{entity_uuid}}" }],
   },
   graphResolveDepths: {
     // ...

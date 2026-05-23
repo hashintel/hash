@@ -47,9 +47,7 @@ export const createEntityWithPlaceholdersFn =
   async (originalDefinition: EntityDefinition, webId: WebId) => {
     const entityDefinition = produce(originalDefinition, (draft) => {
       if (draft.existingEntityId) {
-        draft.existingEntityId = placeholderResults.get(
-          draft.existingEntityId,
-        ) as EntityId;
+        draft.existingEntityId = placeholderResults.get(draft.existingEntityId) as EntityId;
       }
     });
 
@@ -59,9 +57,7 @@ export const createEntityWithPlaceholdersFn =
           entityId: entityDefinition.existingEntityId,
         });
       } catch {
-        throw Error.notFound(
-          `Entity ${entityDefinition.existingEntityId} not found`,
-        );
+        throw Error.notFound(`Entity ${entityDefinition.existingEntityId} not found`);
       }
     } else {
       if (!entityDefinition.entityTypeIds?.[0]) {
@@ -72,10 +68,7 @@ export const createEntityWithPlaceholdersFn =
 
       return await createEntityWithLinks(context, authentication, {
         webId,
-        entityTypeIds: entityDefinition.entityTypeIds as [
-          VersionedUrl,
-          ...VersionedUrl[],
-        ],
+        entityTypeIds: entityDefinition.entityTypeIds as [VersionedUrl, ...VersionedUrl[]],
         properties: entityDefinition.entityProperties ?? { value: {} },
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
       });
@@ -95,15 +88,16 @@ export const filterForAction = <T extends UpdateBlockCollectionActionKey>(
   actions: UpdateBlockCollectionAction[],
   key: T,
 ): { action: NonNullable<UpdateBlockCollectionAction[T]>; index: number }[] =>
-  actions.reduce<
-    { action: NonNullable<UpdateBlockCollectionAction[T]>; index: number }[]
-  >((acc, current, index) => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    if (current != null && key in current) {
-      acc.push({ action: current[key]!, index });
-    }
-    return acc;
-  }, []);
+  actions.reduce<{ action: NonNullable<UpdateBlockCollectionAction[T]>; index: number }[]>(
+    (acc, current, index) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
+      if (current != null && key in current) {
+        acc.push({ action: current[key]!, index });
+      }
+      return acc;
+    },
+    [],
+  );
 
 const isPlaceholderId = (value: unknown): value is `placeholder-${string}` =>
   typeof value === "string" && value.startsWith("placeholder-");
@@ -126,10 +120,7 @@ export class PlaceholderResultsMap {
     return this.map.has(placeholderId);
   }
 
-  set(
-    placeholderId: string | null | undefined,
-    entity: { entityId: EntityId },
-  ) {
+  set(placeholderId: string | null | undefined, entity: { entityId: EntityId }) {
     if (isPlaceholderId(placeholderId)) {
       this.map.set(placeholderId, entity.entityId);
     }
@@ -159,18 +150,13 @@ export const handleCreateNewEntity = async (params: {
 }): Promise<void> => {
   try {
     const {
-      createEntityAction: {
-        entity: entityDefinition,
-        webId: entityWebId,
-        entityPlaceholderId,
-      },
+      createEntityAction: { entity: entityDefinition, webId: entityWebId, entityPlaceholderId },
       createEntityWithPlaceholders,
       placeholderResults,
     } = params;
     placeholderResults.set(entityPlaceholderId, {
-      entityId: (
-        await createEntityWithPlaceholders(entityDefinition, entityWebId)
-      ).metadata.recordId.entityId,
+      entityId: (await createEntityWithPlaceholders(entityDefinition, entityWebId)).metadata
+        .recordId.entityId,
     });
   } catch (error) {
     if (
@@ -275,9 +261,7 @@ export const handleInsertNewBlock = async (
     }
 
     throw Error.internal(
-      `insertBlock: Could not insert new or existing block: ${JSON.stringify(
-        error,
-      )}`,
+      `insertBlock: Could not insert new or existing block: ${JSON.stringify(error)}`,
     );
   }
 };
@@ -310,13 +294,9 @@ export const handleSwapBlockData = async (
 
   const { newEntityEntityId } = params.swapBlockDataAction;
 
-  const newBlockDataEntity = await getLatestEntityById(
-    context,
-    authentication,
-    {
-      entityId: newEntityEntityId,
-    },
-  );
+  const newBlockDataEntity = await getLatestEntityById(context, authentication, {
+    entityId: newEntityEntityId,
+  });
 
   await updateBlockDataEntity(context, authentication, {
     block,
@@ -356,9 +336,7 @@ export const handleUpdateEntity = async (
         ({
           op: entity.properties[key] === value ? "replace" : "add",
           path: [key],
-          property: mergePropertiesAndMetadata(
-            (value ?? undefined) as PropertyValue,
-          ),
+          property: mergePropertiesAndMetadata((value ?? undefined) as PropertyValue),
         }) satisfies PropertyPatchOperation,
     ),
   });

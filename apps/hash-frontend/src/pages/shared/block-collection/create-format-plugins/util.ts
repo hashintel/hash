@@ -126,8 +126,7 @@ export function removeLink(editorView: EditorView) {
           linkMark = targetMark;
         } else {
           // We are only concerned with nodes that have the same attributes(url)
-          linkMark =
-            node.marks.find((mark) => mark.type === linkMarkType) ?? null;
+          linkMark = node.marks.find((mark) => mark.type === linkMarkType) ?? null;
         }
 
         if (linkMark) {
@@ -146,8 +145,7 @@ export function removeLink(editorView: EditorView) {
         if (targetMark && node.marks.includes(targetMark)) {
           linkMark = targetMark;
         } else {
-          linkMark =
-            node.marks.find((mark) => mark.type === linkMarkType) ?? null;
+          linkMark = node.marks.find((mark) => mark.type === linkMarkType) ?? null;
         }
 
         if (linkMark) {

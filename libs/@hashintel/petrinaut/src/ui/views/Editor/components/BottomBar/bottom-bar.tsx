@@ -96,10 +96,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
   useEffect(() => {
-    if (
-      mode === "simulate" &&
-      (editionMode === "add-place" || editionMode === "add-transition")
-    ) {
+    if (mode === "simulate" && (editionMode === "add-place" || editionMode === "add-transition")) {
       onEditionModeChange("cursor");
     }
   }, [mode, editionMode, onEditionModeChange]);
@@ -160,10 +157,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
               <Icon name="chevronUp" size="sm" />
             )}
           </ToolbarButton>
-          <DiagnosticsIndicator
-            onClick={showDiagnostics}
-            isExpanded={isBottomPanelOpen}
-          />
+          <DiagnosticsIndicator onClick={showDiagnostics} isExpanded={isBottomPanelOpen} />
           <ToolbarDivider />
           <SimulationControls disabled={hasDiagnostics} />
         </div>

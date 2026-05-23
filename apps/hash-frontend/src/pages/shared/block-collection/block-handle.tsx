@@ -24,10 +24,10 @@ type BlockHandleProps = {
   onClick: () => void;
 };
 
-const BlockHandle: ForwardRefRenderFunction<
-  HTMLDivElement,
-  BlockHandleProps
-> = ({ deleteBlock, draftId, entityStore, onMouseDown, onClick }, ref) => {
+const BlockHandle: ForwardRefRenderFunction<HTMLDivElement, BlockHandleProps> = (
+  { deleteBlock, draftId, entityStore, onMouseDown, onClick },
+  ref,
+) => {
   const contextMenuPopupState = usePopupState({
     variant: "popover",
     popupId: "block-context-menu",
@@ -63,10 +63,7 @@ const BlockHandle: ForwardRefRenderFunction<
     if (!childEntity) {
       throw new Error(`No child entity on block to update`);
     }
-    blockView.manager.updateEntityProperties(
-      childEntity.metadata.recordId.entityId,
-      properties,
-    );
+    blockView.manager.updateEntityProperties(childEntity.metadata.recordId.entityId, properties);
   };
 
   const blockContext = useBlockContext();

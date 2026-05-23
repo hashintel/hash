@@ -69,9 +69,7 @@ const loginToVaultViaIam = async (opts: {
   const region = process.env.AWS_REGION;
 
   if (!region) {
-    throw new Error(
-      "Cannot login to Vault via IAM, AWS_REGION is not set in environment",
-    );
+    throw new Error("Cannot login to Vault via IAM, AWS_REGION is not set in environment");
   }
 
   const signer = new SignatureV4({
@@ -90,9 +88,7 @@ const loginToVaultViaIam = async (opts: {
   try {
     signed = await signer.sign(unsigned);
   } catch {
-    throw new Error(
-      "Failed to sign AWS request – probably no suitable credentials in environment",
-    );
+    throw new Error("Failed to sign AWS request – probably no suitable credentials in environment");
   }
 
   /**
@@ -209,10 +205,7 @@ export class VaultClient {
     this.#client = axios.create({
       baseURL: `${params.endpoint}/v1`,
       headers: {
-        "X-Vault-Token":
-          typeof params.token === "string"
-            ? params.token
-            : params.token.clientToken,
+        "X-Vault-Token": typeof params.token === "string" ? params.token : params.token.clientToken,
       },
     });
 
@@ -229,10 +222,7 @@ export class VaultClient {
       // eslint-disable-next-line no-param-reassign
       cfg.headers = new AxiosHeaders({
         ...cfg.headers,
-        "X-Vault-Token":
-          typeof this.#token === "string"
-            ? this.#token
-            : this.#token.clientToken,
+        "X-Vault-Token": typeof this.#token === "string" ? this.#token : this.#token.clientToken,
       });
 
       return cfg;
@@ -246,9 +236,7 @@ export class VaultClient {
             ? ["Secret not found"]
             : (error.response?.data.errors ?? [error.message]);
 
-        return Promise.reject(
-          new Error(`Vault API Error: ${vaultErrorMessages.join(", ")}`),
-        );
+        return Promise.reject(new Error(`Vault API Error: ${vaultErrorMessages.join(", ")}`));
       },
     );
   }
@@ -285,8 +273,7 @@ export class VaultClient {
             this.#logger,
           );
 
-          this.#token.leaseDurationMs =
-            now + renewedToken.lease_duration * 1_000;
+          this.#token.leaseDurationMs = now + renewedToken.lease_duration * 1_000;
 
           this.#token.renewable = renewedToken.renewable;
           return;
@@ -362,9 +349,7 @@ export const createVaultClient = async ({ logger }: { logger: Logger }) => {
     return undefined;
   }
 
-  const secretMountPath = normalizeVaultMountPath(
-    process.env.HASH_VAULT_MOUNT_PATH,
-  );
+  const secretMountPath = normalizeVaultMountPath(process.env.HASH_VAULT_MOUNT_PATH);
   if (!secretMountPath) {
     logger.error(
       `Invalid HASH_VAULT_MOUNT_PATH "${process.env.HASH_VAULT_MOUNT_PATH}": must contain only alphanumeric characters, underscores, hyphens, and periods (hyphens/periods not at start/end)`,
@@ -396,9 +381,7 @@ export const createVaultClient = async ({ logger }: { logger: Logger }) => {
     }
   }
 
-  logger.info(
-    "Creating Vault client with HASH_VAULT_ROOT_TOKEN from environment",
-  );
+  logger.info("Creating Vault client with HASH_VAULT_ROOT_TOKEN from environment");
 
   return new VaultClient({
     endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,

@@ -17,8 +17,9 @@ export type ExpectedValueSelectorContextValue = {
   textFieldRef: RefObject<HTMLDivElement | null>;
 };
 
-export const ExpectedValueSelectorContext =
-  createContext<ExpectedValueSelectorContextValue | null>(null);
+export const ExpectedValueSelectorContext = createContext<ExpectedValueSelectorContextValue | null>(
+  null,
+);
 
 export const useExpectedValueSelectorContext = () => {
   const value = useContext(ExpectedValueSelectorContext);

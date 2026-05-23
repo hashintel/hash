@@ -27,9 +27,7 @@ Sentry.init({
   ],
   release: buildStamp,
   replaysOnErrorSampleRate: 1,
-  replaysSessionSampleRate: parseFloat(
-    SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "0",
-  ),
+  replaysSessionSampleRate: parseFloat(SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "0"),
   sendDefaultPii: true,
   tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
   tracesSampleRate: isProduction ? 1.0 : 0,

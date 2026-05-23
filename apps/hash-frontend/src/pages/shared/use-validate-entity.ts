@@ -10,11 +10,7 @@ import type {
   ValidateEntityQuery,
   ValidateEntityQueryVariables,
 } from "../../graphql/api-types.gen";
-import type {
-  BaseUrl,
-  PropertyObjectWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, PropertyObjectWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type { ArrayItemNumberMismatch } from "@local/hash-graph-client/api";
 import type {
   EntityValidationReport,
@@ -67,9 +63,7 @@ export type MinimalEntityValidationReport = {
   errors: MinimalPropertyValidationReport[];
 };
 
-const generateArrayErrorMessage = (
-  numItems: ArrayItemNumberMismatch,
-): string => {
+const generateArrayErrorMessage = (numItems: ArrayItemNumberMismatch): string => {
   if (numItems.type === "tooFew") {
     return `At least ${numItems.data.min} items required`;
   }
@@ -129,9 +123,7 @@ const generatePropertyObjectValidationReports = (
         reports.push({
           propertyPath,
           type: "array",
-          message: generateArrayErrorMessage(
-            firstValidationError.data.numItems,
-          ),
+          message: generateArrayErrorMessage(firstValidationError.data.numItems),
         });
         break;
       }
@@ -182,12 +174,12 @@ export const generateMinimalValidationReport = (
 };
 
 export const useValidateEntity = () => {
-  const [validate, { loading }] = useLazyQuery<
-    ValidateEntityQuery,
-    ValidateEntityQueryVariables
-  >(validateEntityQuery, {
-    fetchPolicy: "network-only",
-  });
+  const [validate, { loading }] = useLazyQuery<ValidateEntityQuery, ValidateEntityQueryVariables>(
+    validateEntityQuery,
+    {
+      fetchPolicy: "network-only",
+    },
+  );
 
   const validateEntity = useCallback(
     async ({
@@ -211,9 +203,7 @@ export const useValidateEntity = () => {
       });
 
       if (!data) {
-        throw new Error(
-          error?.message ?? "No data returned from validation query",
-        );
+        throw new Error(error?.message ?? "No data returned from validation query");
       }
 
       if (!data.validateEntity) {

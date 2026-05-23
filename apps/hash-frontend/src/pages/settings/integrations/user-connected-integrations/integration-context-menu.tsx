@@ -1,18 +1,10 @@
 import { Box, ListItemText, Menu } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 
 import { MenuItem } from "../../../../shared/ui";
 import { ContextButton, contextMenuProps } from "../../shared/context-menu";
 
-export const UserIntegrationContextMenu = ({
-  integrationType,
-}: {
-  integrationType: "linear";
-}) => {
+export const UserIntegrationContextMenu = ({ integrationType }: { integrationType: "linear" }) => {
   const popupState = usePopupState({
     variant: "popover",
     popupId: "actions-dropdown-menu",

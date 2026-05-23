@@ -1,15 +1,9 @@
-import {
-  getPageById,
-  setPageParentPage,
-} from "../../../../graph/knowledge/system-types/page";
+import { getPageById, setPageParentPage } from "../../../../graph/knowledge/system-types/page";
 import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapPageToGQL } from "../graphql-mapping";
 
-import type {
-  MutationSetParentPageArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { MutationSetParentPageArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { UnresolvedPageGQL } from "../graphql-mapping";
 
@@ -20,12 +14,7 @@ export const setParentPageResolver: ResolverFn<
   MutationSetParentPageArgs
 > = async (
   _,
-  {
-    pageEntityId,
-    parentPageEntityId,
-    prevFractionalIndex = null,
-    nextIndex = null,
-  },
+  { pageEntityId, parentPageEntityId, prevFractionalIndex = null, nextIndex = null },
   graphQLContext,
 ) => {
   const { authentication } = graphQLContext;

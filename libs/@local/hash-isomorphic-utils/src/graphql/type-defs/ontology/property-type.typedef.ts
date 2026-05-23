@@ -10,9 +10,7 @@ export const propertyTypeTypedef = gql`
   scalar OntologyTemporalMetadata
 
   extend type Query {
-    queryPropertyTypes(
-      request: QueryPropertyTypesParams!
-    ): QueryPropertyTypesResponse!
+    queryPropertyTypes(request: QueryPropertyTypesParams!): QueryPropertyTypesResponse!
 
     queryPropertyTypeSubgraph(
       request: QueryPropertyTypeSubgraphParams!

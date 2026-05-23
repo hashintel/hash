@@ -32,10 +32,7 @@ const deleteExpectedValueAndChildren = (
   if (removedExpectedValue) {
     if (removedExpectedValue.data && "itemIds" in removedExpectedValue.data) {
       for (const childId of removedExpectedValue.data.itemIds) {
-        newExpectedValues = deleteExpectedValueAndChildren(
-          childId,
-          newExpectedValues,
-        );
+        newExpectedValues = deleteExpectedValueAndChildren(childId, newExpectedValues);
       }
     }
 
@@ -53,9 +50,13 @@ type ArrayExpectedValueChildProps = {
   onDelete: (typeId: string) => void;
 };
 
-const ArrayExpectedValueChild: FunctionComponent<
-  ArrayExpectedValueChildProps
-> = ({ id, index, onlyChild, firstChild, onDelete }) => {
+const ArrayExpectedValueChild: FunctionComponent<ArrayExpectedValueChildProps> = ({
+  id,
+  index,
+  onlyChild,
+  firstChild,
+  onDelete,
+}) => {
   const [show, setShow] = useState(false);
 
   const { control } = useFormContext<ExpectedValueSelectorFormValues>();
@@ -73,8 +74,7 @@ const ArrayExpectedValueChild: FunctionComponent<
     return null;
   }
 
-  const hasContents =
-    "itemIds" in arrayChild.data && arrayChild.data.itemIds.length;
+  const hasContents = "itemIds" in arrayChild.data && arrayChild.data.itemIds.length;
 
   const deleteChild = () => {
     if (arrayChild.data?.typeId) {
@@ -90,9 +90,7 @@ const ArrayExpectedValueChild: FunctionComponent<
           <ArrayExpectedValueBuilder
             expectedValueId={id}
             prefix={firstChild ? "CONTAINING AN" : "OR AN"}
-            deleteTooltip={`Delete array${
-              hasContents ? " and its contents" : ""
-            }`}
+            deleteTooltip={`Delete array${hasContents ? " and its contents" : ""}`}
             index={index}
             onDelete={deleteChild}
           />
@@ -100,18 +98,14 @@ const ArrayExpectedValueChild: FunctionComponent<
           <ObjectExpectedValueBuilder
             expectedValueId={id}
             prefix={firstChild ? "CONTAINING A" : "OR A"}
-            deleteTooltip={`Delete property object${
-              hasContents ? " and its contents" : ""
-            }`}
+            deleteTooltip={`Delete property object${hasContents ? " and its contents" : ""}`}
             index={index}
             onDelete={deleteChild}
           />
         ) : (
           <ExpectedValueBadge
             typeId={arrayChild.data.typeId}
-            prefix={`${
-              onlyChild ? "CONTAINING" : firstChild ? "CONTAINING EITHER" : "OR"
-            }`}
+            prefix={`${onlyChild ? "CONTAINING" : firstChild ? "CONTAINING EITHER" : "OR"}`}
             deleteTooltip="Remove data type"
             onDelete={deleteChild}
           />
@@ -129,11 +123,14 @@ type ArrayExpectedValueBuilderProps = {
   index?: number[];
 };
 
-export const ArrayExpectedValueBuilder: FunctionComponent<
-  ArrayExpectedValueBuilderProps
-> = ({ expectedValueId, prefix, deleteTooltip, onDelete, index = [] }) => {
-  const { getValues, setValue, control } =
-    useFormContext<ExpectedValueSelectorFormValues>();
+export const ArrayExpectedValueBuilder: FunctionComponent<ArrayExpectedValueBuilderProps> = ({
+  expectedValueId,
+  prefix,
+  deleteTooltip,
+  onDelete,
+  index = [],
+}) => {
+  const { getValues, setValue, control } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const [flattenedExpectedValues, editingExpectedValueIndex] = useWatch({
     control,
@@ -184,8 +181,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
   const deleteExpectedValueById = (typeId: string) => {
     const removedExpectedValue = Object.values(flattenedExpectedValues).find(
       (expectedValue) =>
-        expectedValue.parentId === expectedValueId &&
-        expectedValue.data?.typeId === typeId,
+        expectedValue.parentId === expectedValueId && expectedValue.data?.typeId === typeId,
     );
 
     if (removedExpectedValue) {
@@ -225,17 +221,12 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
   const dataTypeOptions = useMemo(() => {
     return buildDataTypeTreesForSelector({
       targetDataTypes: dataTypes.filter((dataType) =>
-        dataType.allOf?.some(
-          ({ $ref }) => $ref === blockProtocolDataTypes.value.dataTypeId,
-        ),
+        dataType.allOf?.some(({ $ref }) => $ref === blockProtocolDataTypes.value.dataTypeId),
       ),
-      dataTypePoolById: dataTypes.reduce<Record<VersionedUrl, DataType>>(
-        (acc, dataType) => {
-          acc[dataType.$id] = dataType;
-          return acc;
-        },
-        {},
-      ),
+      dataTypePoolById: dataTypes.reduce<Record<VersionedUrl, DataType>>((acc, dataType) => {
+        acc[dataType.$id] = dataType;
+        return acc;
+      }, {}),
     });
   }, [dataTypes]);
 
@@ -259,8 +250,7 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
         sx={{
           padding: 1.5,
           flex: 1,
-          background: ({ palette }) =>
-            palette.gray[index.length % 2 !== 0 ? 20 : 10],
+          background: ({ palette }) => palette.gray[index.length % 2 !== 0 ? 20 : 10],
           borderBottomRightRadius: 4,
           borderBottomLeftRadius: 4,
           position: "relative",
@@ -299,10 +289,10 @@ export const ArrayExpectedValueBuilder: FunctionComponent<
                 data: defaultData,
               },
             });
-            setValue(
-              `flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`,
-              [...itemIds, childId],
-            );
+            setValue(`flattenedCustomExpectedValueList.${expectedValueId}.data.itemIds`, [
+              ...itemIds,
+              childId,
+            ]);
           }}
           placeholder="Choose expected array item type..."
           selectedDataTypeIds={selectedDataTypeIds}

@@ -15,20 +15,14 @@ export const dataTypeTypedef = gql`
   extend type Query {
     queryDataTypes(request: QueryDataTypesParams!): QueryDataTypesResponse!
 
-    queryDataTypeSubgraph(
-      request: QueryDataTypeSubgraphParams!
-    ): QueryDataTypeSubgraphResponse!
+    queryDataTypeSubgraph(request: QueryDataTypeSubgraphParams!): QueryDataTypeSubgraphResponse!
 
-    findDataTypeConversionTargets(
-      dataTypeIds: [VersionedUrl!]!
-    ): DataTypeFullConversionTargetsMap!
+    findDataTypeConversionTargets(dataTypeIds: [VersionedUrl!]!): DataTypeFullConversionTargetsMap!
 
     """
     Check the requesting user's permissions on a data type
     """
-    checkUserPermissionsOnDataType(
-      dataTypeId: VersionedUrl!
-    ): UserPermissionsOnDataType!
+    checkUserPermissionsOnDataType(dataTypeId: VersionedUrl!): UserPermissionsOnDataType!
   }
 
   extend type Mutation {

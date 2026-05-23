@@ -24,9 +24,7 @@ export const listPublishablePackages = async (): Promise<PackageInfo[]> => {
   const packagePaths = (
     await Promise.all(
       packageParentFolders.map((parent) =>
-        fs
-          .readdir(parent)
-          .then((children) => children.map((child) => `${parent}/${child}`)),
+        fs.readdir(parent).then((children) => children.map((child) => `${parent}/${child}`)),
       ),
     )
   ).flat();
@@ -52,9 +50,7 @@ export const listPublishablePackages = async (): Promise<PackageInfo[]> => {
       }
 
       /* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access */
-      const packageJson = await fs.readJson(
-        `${resolvedPackagePath}/package.json`,
-      );
+      const packageJson = await fs.readJson(`${resolvedPackagePath}/package.json`);
 
       if (packageJson.private !== true) {
         result.push({
@@ -81,9 +77,7 @@ export const derivePackageInfoFromEnv = async (): Promise<PackageInfo> => {
   const packageDirPath = path.resolve(env.PACKAGE_DIR);
 
   if (packageDirPath !== env.PACKAGE_DIR) {
-    throw new UserFriendlyError(
-      `PACKAGE_DIR must be an absolute path, got ${packageDirPath}`,
-    );
+    throw new UserFriendlyError(`PACKAGE_DIR must be an absolute path, got ${packageDirPath}`);
   }
 
   const publishablePackageInfos = await listPublishablePackages();

@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  intersection,
-  linkedTreeFlatten,
-  topologicalSort,
-  treeFromParentReferences,
-} from "./util";
+import { intersection, linkedTreeFlatten, topologicalSort, treeFromParentReferences } from "./util";
 
 describe("topological sort", () => {
   it("can do topological sort", () => {
@@ -223,9 +218,9 @@ describe("restructure flat list to tree", () => {
       { id: "5" },
     ] as Element[];
 
-    expect(() =>
-      treeFromParentReferences(test1, "id", "ref", "children"),
-    ).toThrow("graph is not acyclic");
+    expect(() => treeFromParentReferences(test1, "id", "ref", "children")).toThrow(
+      "graph is not acyclic",
+    );
   });
 
   it("can rebuild tree with invalid refs", () => {

@@ -1,8 +1,3 @@
 //@ run: pass
 //@ description: mangle the name of any nested types
-[
-  "type",
-  "Foo",
-  "String",
-  ["type", "Bar<T: Foo>", { "#struct": { "foo": "T" } }, "_"]
-]
+["type", "Foo", "String", ["type", "Bar<T: Foo>", { "#struct": { "foo": "T" } }, "_"]]

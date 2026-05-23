@@ -50,10 +50,7 @@ export const useStorageSync = <Key extends keyof LocalStorage>(
   }, [initialValue, key, storageChecked]);
 
   useEffect(() => {
-    const listener = (
-      changes: Record<string, browser.Storage.StorageChange>,
-      areaName: string,
-    ) => {
+    const listener = (changes: Record<string, browser.Storage.StorageChange>, areaName: string) => {
       if (
         areaName === "local" &&
         key in changes &&

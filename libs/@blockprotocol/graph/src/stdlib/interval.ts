@@ -19,12 +19,7 @@ export const intervalCompareWithInterval = (
   intervalA: TemporalInterval<TemporalBound, TemporalBound>,
   intervalB: TemporalInterval<TemporalBound, TemporalBound>,
 ): number => {
-  const startComparison = compareBounds(
-    intervalA.start,
-    intervalB.start,
-    "start",
-    "start",
-  );
+  const startComparison = compareBounds(intervalA.start, intervalB.start, "start", "start");
 
   return startComparison !== 0
     ? startComparison
@@ -37,9 +32,7 @@ export const intervalCompareWithInterval = (
  *
  * @param {TemporalInterval[]} intervals
  */
-export const sortIntervals = (
-  intervals: TemporalInterval<TemporalBound, TemporalBound>[],
-) => {
+export const sortIntervals = (intervals: TemporalInterval<TemporalBound, TemporalBound>[]) => {
   intervals.sort(intervalCompareWithInterval);
 };
 
@@ -87,8 +80,7 @@ export const intervalIsAdjacentToInterval = (
    Contains Interval  |   true    |   true    |   false   |   false   |   false
    */
   return (
-    boundIsAdjacentToBound(left.end, right.start) ||
-    boundIsAdjacentToBound(left.start, right.end)
+    boundIsAdjacentToBound(left.end, right.start) || boundIsAdjacentToBound(left.start, right.end)
   );
 };
 
@@ -221,13 +213,8 @@ export const intervalIntersectionWithInterval = <
   } else {
     return {
       start:
-        compareBounds(left.start, right.start, "start", "start") <= 0
-          ? right.start
-          : left.start,
-      end:
-        compareBounds(left.end, right.end, "end", "end") <= 0
-          ? left.end
-          : right.end,
+        compareBounds(left.start, right.start, "start", "start") <= 0 ? right.start : left.start,
+      end: compareBounds(left.end, right.end, "end", "end") <= 0 ? left.end : right.end,
     } as IntersectionReturn<LeftInterval, RightInterval>;
   }
 };
@@ -285,14 +272,8 @@ export const intervalMergeWithInterval = <
    Merge      |  [-------]  |  [-------]  | [-----------) | (-------------] | [---------]
    */
   return {
-    start:
-      compareBounds(left.start, right.start, "start", "start") <= 0
-        ? left.start
-        : right.start,
-    end:
-      compareBounds(left.end, right.end, "end", "end") >= 0
-        ? left.end
-        : right.end,
+    start: compareBounds(left.start, right.start, "start", "start") <= 0 ? left.start : right.start,
+    end: compareBounds(left.end, right.end, "end", "end") >= 0 ? left.end : right.end,
   } as MergeReturn<LeftInterval, RightInterval>;
 };
 
@@ -329,10 +310,7 @@ export const intervalUnionWithInterval = <
    -----------|-------------|-------------|---------------|-----------------|-------------
    Union      |  [-------]  |  [-------]  | [---]   [---) | (-----] [-----] | [---------]
    */
-  if (
-    intervalOverlapsInterval(left, right) ||
-    intervalIsAdjacentToInterval(left, right)
-  ) {
+  if (intervalOverlapsInterval(left, right) || intervalIsAdjacentToInterval(left, right)) {
     return [intervalMergeWithInterval(left, right)];
   } else if (compareBounds(left.start, right.start, "start", "start") < 0) {
     return [left, right];

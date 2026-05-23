@@ -1,9 +1,4 @@
-import {
-  ApolloClient,
-  ApolloLink,
-  HttpLink,
-  InMemoryCache,
-} from "@apollo/client";
+import { ApolloClient, ApolloLink, HttpLink, InMemoryCache } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
 
@@ -21,19 +16,12 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
           return;
         }
 
-        const error = new Error(
-          `GraphQL Error: ${path?.[0]?.toString() ?? "?"}`,
-        );
+        const error = new Error(`GraphQL Error: ${path?.[0]?.toString() ?? "?"}`);
         scope.setExtra("Exception", extensions.exception);
         scope.setExtra("Location", path);
         scope.setExtra("Query", operation.query.loc?.source.body);
-        scope.setExtra(
-          "Variables",
-          JSON.stringify(operation.variables, undefined, 2),
-        );
-        error.message = `GraphQL error - ${
-          path?.[0]?.toString() ?? "undefined"
-        } - ${message}`;
+        scope.setExtra("Variables", JSON.stringify(operation.variables, undefined, 2));
+        error.message = `GraphQL error - ${path?.[0]?.toString() ?? "undefined"} - ${message}`;
         Sentry.captureException(error);
       });
     }
@@ -52,10 +40,7 @@ export const createApolloClient = (params?: {
    *
    * @todo disable this in production due to caching concerns
    */
-  const wrappedFetch = (
-    uri: string | Request,
-    options: RequestInit | undefined,
-  ) => {
+  const wrappedFetch = (uri: string | Request, options: RequestInit | undefined) => {
     let operationName: string | null = null;
 
     if (typeof options?.body === "string") {
@@ -69,9 +54,7 @@ export const createApolloClient = (params?: {
 
     return fetch(
       operationName
-        ? `${
-            typeof uri === "string" ? uri : JSON.stringify(uri)
-          }?${operationName}`
+        ? `${typeof uri === "string" ? uri : JSON.stringify(uri)}?${operationName}`
         : uri,
       options,
     );

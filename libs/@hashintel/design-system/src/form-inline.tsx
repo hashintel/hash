@@ -14,9 +14,7 @@ type FormInlineProps = {
  * </FormInline>
  * @see https://www.figma.com/file/gydVGka9FjNEg9E2STwhi2/HASH-Editor?node-id=823%3A67158
  */
-export const FormInline: FunctionComponent<FormInlineProps> = ({
-  children,
-}) => {
+export const FormInline: FunctionComponent<FormInlineProps> = ({ children }) => {
   return (
     <Box
       sx={{

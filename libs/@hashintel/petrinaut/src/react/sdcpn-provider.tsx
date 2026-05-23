@@ -12,9 +12,7 @@ import { useStore } from "./use-store";
  * from {@link NetManagementContext}, republishes through the existing
  * {@link SDCPNContext} so `/ui` consumers don't change.
  */
-export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const instance = usePetrinautInstance();
   const netManagement = use(NetManagementContext);
 
@@ -39,17 +37,11 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
         return "type";
       }
 
-      if (
-        petriNetDefinition.parameters.some((parameter) => parameter.id === id)
-      ) {
+      if (petriNetDefinition.parameters.some((parameter) => parameter.id === id)) {
         return "parameter";
       }
 
-      if (
-        petriNetDefinition.differentialEquations.some(
-          (equation) => equation.id === id,
-        )
-      ) {
+      if (petriNetDefinition.differentialEquations.some((equation) => equation.id === id)) {
         return "differentialEquation";
       }
 
@@ -57,11 +49,7 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
         return "place";
       }
 
-      if (
-        petriNetDefinition.transitions.some(
-          (transition) => transition.id === id,
-        )
-      ) {
+      if (petriNetDefinition.transitions.some((transition) => transition.id === id)) {
         return "transition";
       }
 
@@ -69,7 +57,5 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
     },
   };
 
-  return (
-    <SDCPNContext.Provider value={value}>{children}</SDCPNContext.Provider>
-  );
+  return <SDCPNContext.Provider value={value}>{children}</SDCPNContext.Provider>;
 };

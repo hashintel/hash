@@ -83,10 +83,7 @@ export const toTitleCase = (skillName: string): string => {
     .join(" ");
 };
 
-export const loadTemplate = async (
-  templatePath: string,
-  replacements: Record<string, string>,
-) => {
+export const loadTemplate = async (templatePath: string, replacements: Record<string, string>) => {
   let content = await readFile(templatePath, "utf-8");
 
   for (const [key, value] of Object.entries(replacements)) {

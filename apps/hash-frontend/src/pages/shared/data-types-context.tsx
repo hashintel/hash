@@ -12,11 +12,7 @@ import type {
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import type {
-  BaseUrl,
-  DataTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, DataTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 
 export type DataTypesContextValue = {
@@ -26,9 +22,7 @@ export type DataTypesContextValue = {
   refetch: () => void;
 };
 
-export const DataTypesContext = createContext<null | DataTypesContextValue>(
-  null,
-);
+export const DataTypesContext = createContext<null | DataTypesContextValue>(null);
 
 export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
   const { data, loading, refetch } = useQuery<
@@ -60,9 +54,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     const all: Record<VersionedUrl, DataTypeWithMetadata> = {};
     const latest: Record<BaseUrl, DataTypeWithMetadata> = {};
 
-    const subgraph = deserializeQueryDataTypeSubgraphResponse(
-      data.queryDataTypeSubgraph,
-    ).subgraph;
+    const subgraph = deserializeQueryDataTypeSubgraphResponse(data.queryDataTypeSubgraph).subgraph;
 
     for (const versionToVertexMap of Object.values(subgraph.vertices)) {
       let highestVersion: DataTypeWithMetadata | null = null;
@@ -99,11 +91,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
     };
   }, [dataTypes, latestDataTypes, loading, refetch]);
 
-  return (
-    <DataTypesContext.Provider value={value}>
-      {children}
-    </DataTypesContext.Provider>
-  );
+  return <DataTypesContext.Provider value={value}>{children}</DataTypesContext.Provider>;
 };
 
 export const useDataTypesContext = () => {

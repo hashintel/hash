@@ -10,11 +10,7 @@ export const EmptyOutputBox = ({
   label: string;
   Icon: FunctionComponent<SvgIconProps>;
 }) => (
-  <Stack
-    alignItems="center"
-    justifyContent="center"
-    sx={{ height: "100%", p: 3 }}
-  >
+  <Stack alignItems="center" justifyContent="center" sx={{ height: "100%", p: 3 }}>
     <Icon
       sx={{
         color: ({ palette }) => palette.gray[40],

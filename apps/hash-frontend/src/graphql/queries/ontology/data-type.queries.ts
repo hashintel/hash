@@ -30,11 +30,7 @@ export const createDataTypeMutation = gql`
     $dataType: ConstructDataTypeParams!
     $conversions: DataTypeDirectConversionsMap
   ) {
-    createDataType(
-      webId: $webId
-      dataType: $dataType
-      conversions: $conversions
-    )
+    createDataType(webId: $webId, dataType: $dataType, conversions: $conversions)
   }
 `;
 
@@ -44,10 +40,6 @@ export const updateDataTypeMutation = gql`
     $dataType: ConstructDataTypeParams!
     $conversions: DataTypeDirectConversionsMap
   ) {
-    updateDataType(
-      dataTypeId: $dataTypeId
-      dataType: $dataType
-      conversions: $conversions
-    )
+    updateDataType(dataTypeId: $dataTypeId, dataType: $dataType, conversions: $conversions)
   }
 `;

@@ -17,9 +17,7 @@ export const stringifyPropertyValue = (propertyValue: unknown): string => {
       // If the property value is null, we treat this as an empty string
       return "";
     } else if (Array.isArray(propertyValue)) {
-      return propertyValue
-        .map((value) => stringifyPropertyValue(value))
-        .join(",\n");
+      return propertyValue.map((value) => stringifyPropertyValue(value)).join(",\n");
     } else {
       // If the property value is an object, we stringify it
       return JSON.stringify(propertyValue);

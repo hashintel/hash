@@ -7,10 +7,7 @@ import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { simplifyEntityTypeForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
+import type { CoordinatingAgentInput, CoordinatingAgentState } from "../shared/coordinators.js";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
 type SubmitVerdictToolCallInput = {
@@ -62,9 +59,7 @@ export const checkDelegatedTasksAgent = async (params: {
        *
        * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
        */
-      input.linkEntityTypes
-        ? `Link Types: ${JSON.stringify(input.linkEntityTypes)}`
-        : ""
+      input.linkEntityTypes ? `Link Types: ${JSON.stringify(input.linkEntityTypes)}` : ""
     }
 
     Pay careful attention to the properties of the entities and links when
@@ -94,13 +89,11 @@ export const checkDelegatedTasksAgent = async (params: {
       don't name and specify which entities to focus on. Otherwise each delegated task may look up information about different entities.
   `;
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const submitVerdictToolDefinition: LlmToolDefinition<"submitVerdict"> = {
     name: "submitVerdict",
-    description:
-      "Submit the verdict of which delegatedTasks to accept or reject",
+    description: "Submit the verdict of which delegatedTasks to accept or reject",
     inputSchema: {
       additionalProperties: false,
       type: "object",
@@ -117,8 +110,7 @@ export const checkDelegatedTasksAgent = async (params: {
               },
               reason: {
                 type: "string",
-                description:
-                  "The reason for accepting or rejecting the delegated task",
+                description: "The reason for accepting or rejecting the delegated task",
               },
             },
             required: ["reason", "accept"],
@@ -126,9 +118,7 @@ export const checkDelegatedTasksAgent = async (params: {
         }),
         {} as Record<string, JSONSchemaDefinition>,
       ),
-      required: [
-        ...delegatedTasks.map(({ delegatedTaskId }) => delegatedTaskId),
-      ],
+      required: [...delegatedTasks.map(({ delegatedTaskId }) => delegatedTaskId)],
     },
   };
 
@@ -174,8 +164,7 @@ export const checkDelegatedTasksAgent = async (params: {
       throw new Error("No tool call found in the LLM response");
     }
 
-    const submitVerdictToolCallInput =
-      toolCall.input as SubmitVerdictToolCallInput;
+    const submitVerdictToolCallInput = toolCall.input as SubmitVerdictToolCallInput;
 
     const acceptedDelegatedTasks: {
       delegatedTaskId: string;

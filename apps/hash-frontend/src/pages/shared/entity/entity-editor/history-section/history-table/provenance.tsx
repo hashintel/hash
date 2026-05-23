@@ -24,9 +24,7 @@ import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
 const ProvenanceHeader = ({ label }: { label: string }) => (
-  <Typography sx={{ color: "black", fontWeight: 700, fontSize: 14 }}>
-    {label}
-  </Typography>
+  <Typography sx={{ color: "black", fontWeight: 700, fontSize: 14 }}>{label}</Typography>
 );
 
 const provenanceIconSx: SxProps<Theme> = {
@@ -34,10 +32,7 @@ const provenanceIconSx: SxProps<Theme> = {
   fontSize: 14,
 };
 
-const provenanceIconMap: Record<
-  OriginProvenance["type"],
-  FunctionComponent<SvgIconProps>
-> = {
+const provenanceIconMap: Record<OriginProvenance["type"], FunctionComponent<SvgIconProps>> = {
   flow: InfinityLightIcon,
   "browser-extension": UserIcon,
   "web-app": UserIcon,
@@ -87,9 +82,7 @@ export const Provenance = ({
   const actor = actors?.[0];
 
   if (!actor) {
-    throw new Error(
-      `Could not fetch creator actor with id ${edition.createdById}`,
-    );
+    throw new Error(`Could not fetch creator actor with id ${edition.createdById}`);
   }
 
   const originType = edition.origin.type;
@@ -154,8 +147,7 @@ export const Provenance = ({
                     fontWeight: 600,
                     textDecoration: "none",
                     pl: 1.5,
-                    borderLeft: ({ palette }) =>
-                      `1px solid ${palette.gray[40]}`,
+                    borderLeft: ({ palette }) => `1px solid ${palette.gray[40]}`,
                   }}
                   target="_blank"
                 >
@@ -182,9 +174,7 @@ export const Provenance = ({
                   {actor.kind === "machine" ? (
                     actor.displayName
                   ) : (
-                    <Link href={`/@${actor.shortname}`}>
-                      {actor.displayName}
-                    </Link>
+                    <Link href={`/@${actor.shortname}`}>{actor.displayName}</Link>
                   )}
                 </Box>
               </Typography>
@@ -210,8 +200,7 @@ export const Provenance = ({
                       ml: 0.6,
                     }}
                   >
-                    {sources.length}{" "}
-                    {sources.length === 1 ? "source" : "sources"}
+                    {sources.length} {sources.length === 1 ? "source" : "sources"}
                   </Box>
                 </Typography>
               </ProvenanceRow>

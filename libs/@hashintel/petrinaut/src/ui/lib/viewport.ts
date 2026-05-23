@@ -1,7 +1,4 @@
-import type {
-  PetrinautReactFlowInstance,
-  NodeType,
-} from "../views/SDCPN/reactflow-types";
+import type { PetrinautReactFlowInstance, NodeType } from "../views/SDCPN/reactflow-types";
 
 type Viewport = {
   x: number;
@@ -30,11 +27,7 @@ const isOffscreen = (
   viewport: Viewport,
   nodes: NodeType[],
 ) => {
-  const { left, right, top, bottom } = getOffscreenAmount(
-    reactFlowInstance,
-    viewport,
-    nodes,
-  );
+  const { left, right, top, bottom } = getOffscreenAmount(reactFlowInstance, viewport, nodes);
   return left > 0 || right > 0 || top > 0 || bottom > 0;
 };
 
@@ -59,11 +52,7 @@ export const recenterToFitViewport = (
   if (!isOffscreen(reactFlowInstance, viewport, nodes)) return;
   if (!canFitInViewport(reactFlowInstance, viewport, nodes)) return;
 
-  const { left, right, top, bottom } = getOffscreenAmount(
-    reactFlowInstance,
-    viewport,
-    nodes,
-  );
+  const { left, right, top, bottom } = getOffscreenAmount(reactFlowInstance, viewport, nodes);
   return { x: left > 0 ? left * -1 : right, y: top > 0 ? top * -1 : bottom };
 };
 
@@ -79,10 +68,8 @@ export const getViewportRect = (
 ) => {
   const { width, height } = canvas.getBoundingClientRect();
   return {
-    width:
-      (width - (overlays.left ?? 0) - (overlays.right ?? 0)) / viewport.zoom,
-    height:
-      (height - (overlays.top ?? 0) - (overlays.bottom ?? 0)) / viewport.zoom,
+    width: (width - (overlays.left ?? 0) - (overlays.right ?? 0)) / viewport.zoom,
+    height: (height - (overlays.top ?? 0) - (overlays.bottom ?? 0)) / viewport.zoom,
     x: (-viewport.x + (overlays.left ?? 0)) / viewport.zoom,
     y: (-viewport.y + (overlays.top ?? 0)) / viewport.zoom,
     zoom: viewport.zoom,

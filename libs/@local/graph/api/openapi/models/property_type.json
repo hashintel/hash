@@ -5,9 +5,7 @@
   "properties": {
     "$schema": {
       "type": "string",
-      "enum": [
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"
-      ]
+      "enum": ["https://blockprotocol.org/types/modules/graph/0.3/schema/property-type"]
     },
     "kind": {
       "type": "string",

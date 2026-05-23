@@ -44,9 +44,7 @@ export const Stack: React.FC<StackProps> = ({
     display: "flex",
   });
 
-  const combinedClassName = className
-    ? `${baseClassName} ${className}`
-    : baseClassName;
+  const combinedClassName = className ? `${baseClassName} ${className}` : baseClassName;
 
   const inlineStyle: CSSProperties = {
     flexDirection: direction,

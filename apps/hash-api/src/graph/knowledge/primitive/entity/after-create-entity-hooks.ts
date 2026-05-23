@@ -8,10 +8,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 
 import { isProdEnv } from "../../../../lib/env-config";
 import { createOrUpdateMailchimpUser } from "../../../../mailchimp";
-import {
-  getBlockCollectionByBlock,
-  getBlockFromEntity,
-} from "../../system-types/block";
+import { getBlockCollectionByBlock, getBlockFromEntity } from "../../system-types/block";
 import {
   getCommentAncestorBlock,
   getCommentAuthor,
@@ -24,18 +21,12 @@ import {
   getMentionNotification,
 } from "../../system-types/notification";
 import { getPageFromEntity } from "../../system-types/page";
-import {
-  getMentionedUsersInTextualContent,
-  getTextById,
-} from "../../system-types/text";
+import { getMentionedUsersInTextualContent, getTextById } from "../../system-types/text";
 import { getUser } from "../../system-types/user";
 import { checkPermissionsOnEntity } from "../entity";
 import { getTextUpdateOccurredIn } from "./shared/mention-notification";
 
-import type {
-  AfterCreateEntityHook,
-  AfterCreateEntityHookCallback,
-} from "./create-entity-hooks";
+import type { AfterCreateEntityHook, AfterCreateEntityHookCallback } from "./create-entity-hooks";
 import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
@@ -57,17 +48,11 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
   });
 
   // If the parent of the comment is a block, check if we need to create a comment notification
-  if (
-    commentParent.metadata.entityTypeIds.includes(
-      systemEntityTypes.block.entityTypeId,
-    )
-  ) {
+  if (commentParent.metadata.entityTypeIds.includes(systemEntityTypes.block.entityTypeId)) {
     const parentBlock = getBlockFromEntity({ entity: commentParent });
-    const blockCollectionEntity = await getBlockCollectionByBlock(
-      context,
-      authentication,
-      { block: parentBlock },
-    );
+    const blockCollectionEntity = await getBlockCollectionByBlock(context, authentication, {
+      block: parentBlock,
+    });
 
     if (
       blockCollectionEntity &&
@@ -77,8 +62,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
         entity: blockCollectionEntity,
       });
 
-      const pageAuthorAccountId =
-        occurredInEntity.entity.metadata.provenance.createdById;
+      const pageAuthorAccountId = occurredInEntity.entity.metadata.provenance.createdById;
 
       const pageAuthorEntityId = entityIdFromComponents(
         pageAuthorAccountId as WebId,
@@ -105,10 +89,7 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
       // If the comment author is not the page creator, and the page
       // creator can view the page, then create a page comment notification
-      if (
-        commentAuthor.accountId !== pageAuthor.accountId &&
-        pageAuthorCanViewPage
-      ) {
+      if (commentAuthor.accountId !== pageAuthor.accountId && pageAuthorCanViewPage) {
         await createCommentNotification(
           context,
           { actorId: pageAuthor.accountId },
@@ -124,23 +105,17 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
     }
     // If the parent is another comment check if we need to create a comment reply notification
   } else if (
-    commentParent.metadata.entityTypeIds.includes(
-      systemEntityTypes.comment.entityTypeId,
-    )
+    commentParent.metadata.entityTypeIds.includes(systemEntityTypes.comment.entityTypeId)
   ) {
     const parentComment = getCommentFromEntity({ entity: commentParent });
 
-    const ancestorBlock = await getCommentAncestorBlock(
-      context,
-      authentication,
-      { commentEntityId: parentComment.entity.metadata.recordId.entityId },
-    );
+    const ancestorBlock = await getCommentAncestorBlock(context, authentication, {
+      commentEntityId: parentComment.entity.metadata.recordId.entityId,
+    });
 
-    const blockCollectionEntity = await getBlockCollectionByBlock(
-      context,
-      authentication,
-      { block: ancestorBlock },
-    );
+    const blockCollectionEntity = await getBlockCollectionByBlock(context, authentication, {
+      block: ancestorBlock,
+    });
 
     if (
       blockCollectionEntity &&
@@ -159,12 +134,11 @@ const commentCreateHookCallback: AfterCreateEntityHookCallback = async ({
         }),
       ]);
 
-      const { view: parentCommentAuthorCanViewPage } =
-        await checkPermissionsOnEntity(
-          context,
-          { actorId: parentCommentAuthor.accountId },
-          { entity: occurredInEntity.entity },
-        );
+      const { view: parentCommentAuthorCanViewPage } = await checkPermissionsOnEntity(
+        context,
+        { actorId: parentCommentAuthor.accountId },
+        { entity: occurredInEntity.entity },
+      );
 
       // If the comment author is not the parent comment author, and the
       // parent comment author can view the page, then create a comment
@@ -206,10 +180,13 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
     entityId: entity.linkData!.rightEntityId,
   });
 
-  const { occurredInComment, occurredInEntity, occurredInBlock } =
-    await getTextUpdateOccurredIn(context, authentication, {
+  const { occurredInComment, occurredInEntity, occurredInBlock } = await getTextUpdateOccurredIn(
+    context,
+    authentication,
+    {
       text,
-    });
+    },
+  );
 
   if (!occurredInEntity || !occurredInBlock) {
     return undefined;
@@ -217,11 +194,9 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
 
   const { textualContent } = text;
 
-  const mentionedUsers = await getMentionedUsersInTextualContent(
-    context,
-    authentication,
-    { textualContent },
-  );
+  const mentionedUsers = await getMentionedUsersInTextualContent(context, authentication, {
+    textualContent,
+  });
 
   const triggeredByUserEntityId = entityIdFromComponents(
     authentication.actorId as WebId,
@@ -240,12 +215,11 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
     ...mentionedUsers
       .filter((user) => user.accountId !== triggeredByUser.accountId)
       .map(async (mentionedUser) => {
-        const { view: mentionedUserCanViewPage } =
-          await checkPermissionsOnEntity(
-            context,
-            { actorId: mentionedUser.accountId },
-            { entity: occurredInEntity.entity },
-          );
+        const { view: mentionedUserCanViewPage } = await checkPermissionsOnEntity(
+          context,
+          { actorId: mentionedUser.accountId },
+          { entity: occurredInEntity.entity },
+        );
 
         if (!mentionedUserCanViewPage) {
           return;
@@ -284,9 +258,7 @@ const hasTextCreateHookCallback: AfterCreateEntityHookCallback = async ({
   ]);
 };
 
-const userCreateHookCallback: AfterCreateEntityHookCallback = async ({
-  entity,
-}) => {
+const userCreateHookCallback: AfterCreateEntityHookCallback = async ({ entity }) => {
   if (isProdEnv) {
     const {
       email: emails,

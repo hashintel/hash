@@ -22,21 +22,19 @@ export interface SkeletonTextProps extends SkeletonProps {
   rootProps?: StackProps | undefined;
 }
 
-export const SkeletonText = forwardRef<HTMLDivElement, SkeletonTextProps>(
-  (props, ref) => {
-    const { noOfLines = 3, gap, rootProps, ...skeletonProps } = props;
-    return (
-      <Stack ref={ref} gap={gap} width="full" {...rootProps}>
-        {[...Array(noOfLines).keys()].map((index) => (
-          <Skeleton
-            key={index}
-            height="4"
-            // @ts-expect-error - percentage strings are not in the size token set
-            _last={{ maxW: noOfLines === 1 ? "100%" : "80%" }}
-            {...skeletonProps}
-          />
-        ))}
-      </Stack>
-    );
-  },
-);
+export const SkeletonText = forwardRef<HTMLDivElement, SkeletonTextProps>((props, ref) => {
+  const { noOfLines = 3, gap, rootProps, ...skeletonProps } = props;
+  return (
+    <Stack ref={ref} gap={gap} width="full" {...rootProps}>
+      {[...Array(noOfLines).keys()].map((index) => (
+        <Skeleton
+          key={index}
+          height="4"
+          // @ts-expect-error - percentage strings are not in the size token set
+          _last={{ maxW: noOfLines === 1 ? "100%" : "80%" }}
+          {...skeletonProps}
+        />
+      ))}
+    </Stack>
+  );
+});

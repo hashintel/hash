@@ -1,19 +1,12 @@
 import { getKratosRecoveryCode } from "../shared/get-kratos-verification-code";
 import { expect, test } from "../shared/runtime";
-import {
-  clearSessionCookies,
-  expectSignedIn,
-  signInWithPassword,
-} from "../shared/signin-utils";
+import { clearSessionCookies, expectSignedIn, signInWithPassword } from "../shared/signin-utils";
 import { createUserAndCompleteSignup } from "../shared/signup-utils";
 import { testUsers } from "../shared/test-users";
 
 test("user can change password from settings", async ({ page }) => {
   const newPassword = "changed-pw-5ef6";
-  const credentials = await createUserAndCompleteSignup(
-    page,
-    testUsers.pwChange,
-  );
+  const credentials = await createUserAndCompleteSignup(page, testUsers.pwChange);
 
   await page.goto("/settings/security", { waitUntil: "networkidle" });
 
@@ -34,10 +27,7 @@ test("user can change password from settings", async ({ page }) => {
 
 test("user can recover account and set a new password", async ({ page }) => {
   const newPassword = "recovered-pw-3cd4";
-  const credentials = await createUserAndCompleteSignup(
-    page,
-    testUsers.pwRecovery,
-  );
+  const credentials = await createUserAndCompleteSignup(page, testUsers.pwRecovery);
 
   await clearSessionCookies(page);
 
@@ -54,10 +44,7 @@ test("user can recover account and set a new password", async ({ page }) => {
 
   const recoveryTimestamp = Date.now();
 
-  await page.fill(
-    '[placeholder="Enter your email address"]',
-    credentials.email,
-  );
+  await page.fill('[placeholder="Enter your email address"]', credentials.email);
 
   const recoverySubmitComplete = page.waitForResponse(
     (response) =>
@@ -69,14 +56,11 @@ test("user can recover account and set a new password", async ({ page }) => {
   await page.click("text=Recover account");
   await recoverySubmitComplete;
 
-  await expect(
-    page.locator('[placeholder="Enter your verification code"]'),
-  ).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('[placeholder="Enter your verification code"]')).toBeVisible({
+    timeout: 5_000,
+  });
 
-  const recoveryCode = await getKratosRecoveryCode(
-    credentials.email,
-    recoveryTimestamp,
-  );
+  const recoveryCode = await getKratosRecoveryCode(credentials.email, recoveryTimestamp);
 
   // Kratos redirects to settings/security after successful recovery, and the
   // page then fetches the settings flow from Kratos. Wait for that fetch

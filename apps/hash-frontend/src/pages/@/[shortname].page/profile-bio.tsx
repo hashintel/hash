@@ -2,10 +2,7 @@ import { useQuery } from "@apollo/client";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  extractWebIdFromEntityId,
-  splitEntityId,
-} from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId, splitEntityId } from "@blockprotocol/type-system";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -43,9 +40,7 @@ export const ProfileBio: FunctionComponent<{
     ? []
     : splitEntityId(profile.hasBio.profileBioEntity.metadata.recordId.entityId);
 
-  const webId = extractWebIdFromEntityId(
-    profile.entity.metadata.recordId.entityId,
-  );
+  const webId = extractWebIdFromEntityId(profile.entity.metadata.recordId.entityId);
 
   const { data, loading, refetch } = useQuery<
     QueryEntitySubgraphQuery,
@@ -84,8 +79,7 @@ export const ProfileBio: FunctionComponent<{
     ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
     : undefined;
 
-  const profileBioEntityId =
-    profile.hasBio?.profileBioEntity.metadata.recordId.entityId;
+  const profileBioEntityId = profile.hasBio?.profileBioEntity.metadata.recordId.entityId;
 
   const [isEditing, setIsEditing] = useState(false);
   const [isTogglingEdit, setIsTogglingEdit] = useState(false);
@@ -151,9 +145,7 @@ export const ProfileBio: FunctionComponent<{
   return (
     <>
       <Box display="flex" columnGap={1.5}>
-        <ProfileSectionHeading marginBottom={1.5}>
-          Overview
-        </ProfileSectionHeading>
+        <ProfileSectionHeading marginBottom={1.5}>Overview</ProfileSectionHeading>
         <Typography
           sx={{
             fontSize: 12,
@@ -162,12 +154,8 @@ export const ProfileBio: FunctionComponent<{
           }}
         >
           Always{" "}
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.common.black }}
-          >
-            <GlobeRegularIcon sx={{ fontSize: 11, marginBottom: -0.1 }} />{" "}
-            Public
+          <Box component="span" sx={{ color: ({ palette }) => palette.common.black }}>
+            <GlobeRegularIcon sx={{ fontSize: 11, marginBottom: -0.1 }} /> Public
           </Box>
         </Typography>
       </Box>
@@ -201,15 +189,12 @@ export const ProfileBio: FunctionComponent<{
                   <BlockCollection
                     contents={profileBioContents}
                     webId={webId}
-                    entityId={
-                      profile.hasBio.profileBioEntity.metadata.recordId.entityId
-                    }
+                    entityId={profile.hasBio.profileBioEntity.metadata.recordId.entityId}
                     readonly={!isEditable || !isEditing}
                     sx={{
                       ".ProseMirror": {
                         paddingLeft: isEditing ? 1 : 0,
-                        transition: ({ transitions }) =>
-                          transitions.create("padding"),
+                        transition: ({ transitions }) => transitions.create("padding"),
                       },
                     }}
                   />
@@ -226,8 +211,7 @@ export const ProfileBio: FunctionComponent<{
             }}
             sx={{ color: ({ palette }) => palette.gray[60] }}
           >
-            Add a bio for{" "}
-            {profile.kind === "user" ? profile.displayName : profile.name}...
+            Add a bio for {profile.kind === "user" ? profile.displayName : profile.name}...
           </Typography>
         ) : (
           <Skeleton width="75%" />

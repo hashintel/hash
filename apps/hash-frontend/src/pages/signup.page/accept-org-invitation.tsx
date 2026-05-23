@@ -27,8 +27,7 @@ export const AcceptOrgInvitation = ({
         </Box>
       </Typography>
       <Button onClick={onAccept} size="small" sx={{ px: 4, py: 2 }}>
-        Accept invite and create account{" "}
-        <ChevronRightRegularIcon sx={{ fontSize: 14, ml: 2 }} />
+        Accept invite and create account <ChevronRightRegularIcon sx={{ fontSize: 14, ml: 2 }} />
       </Button>
     </Box>
   );

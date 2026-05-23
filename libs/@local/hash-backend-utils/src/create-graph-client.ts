@@ -3,10 +3,7 @@ import { inspect } from "node:util";
 import { HttpAgent, HttpsAgent } from "agentkeepalive";
 import axios from "axios";
 
-import {
-  Configuration,
-  GraphApi as GraphApiClient,
-} from "@local/hash-graph-client";
+import { Configuration, GraphApi as GraphApiClient } from "@local/hash-graph-client";
 import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 
 import type { Logger } from "./logger.js";
@@ -27,8 +24,7 @@ const httpsAgent = new HttpsAgent(agentConfig);
 
 type GraphStatus = Status<Record<string, unknown>>;
 
-const isErrorAxiosError = (error: Error): error is AxiosError =>
-  (error as AxiosError).isAxiosError;
+const isErrorAxiosError = (error: Error): error is AxiosError => (error as AxiosError).isAxiosError;
 
 class GraphApiError extends Error {
   status: GraphStatus;
@@ -67,9 +63,7 @@ class GraphApiError extends Error {
           contents: [errorInfo],
         };
       } else {
-        throw new Error(
-          `Unknown response format from Graph API: ${inspect(responseData)}`,
-        );
+        throw new Error(`Unknown response format from Graph API: ${inspect(responseData)}`);
       }
     } else {
       // No response from server - likely timeout, connection refused, or network error

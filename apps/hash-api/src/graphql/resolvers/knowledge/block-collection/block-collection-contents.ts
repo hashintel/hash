@@ -12,9 +12,7 @@ import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-type
 
 export const blockCollectionContents: ResolverFn<
   {
-    linkEntity: HashLinkEntity<
-      HasSpatiallyPositionedContent | HasIndexedContent
-    >;
+    linkEntity: HashLinkEntity<HasSpatiallyPositionedContent | HasIndexedContent>;
     rightEntity: UnresolvedBlockGQL;
   }[],
   Entity,
@@ -23,14 +21,10 @@ export const blockCollectionContents: ResolverFn<
 > = async (blockCollection, _, graphQLContext) => {
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const contentItems = await getBlockCollectionBlocks(
-    context,
-    graphQLContext.authentication,
-    {
-      blockCollectionEntityId: blockCollection.metadata.recordId.entityId,
-      blockCollectionEntityTypeIds: blockCollection.metadata.entityTypeIds,
-    },
-  );
+  const contentItems = await getBlockCollectionBlocks(context, graphQLContext.authentication, {
+    blockCollectionEntityId: blockCollection.metadata.recordId.entityId,
+    blockCollectionEntityTypeIds: blockCollection.metadata.entityTypeIds,
+  });
 
   return contentItems.map(({ linkEntity, rightEntity }) => ({
     linkEntity,

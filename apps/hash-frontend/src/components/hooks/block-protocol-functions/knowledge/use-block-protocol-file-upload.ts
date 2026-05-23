@@ -70,8 +70,7 @@ export const useBlockProtocolFileUpload = (
           return {
             errors: [
               {
-                message:
-                  "An error occurred while creating a file from an external link",
+                message: "An error occurred while creating a file from an external link",
                 code: "INTERNAL_ERROR",
               },
             ],

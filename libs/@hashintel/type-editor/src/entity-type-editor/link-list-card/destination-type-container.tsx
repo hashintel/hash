@@ -2,10 +2,7 @@ import { Stack } from "@mui/material";
 
 import type { StackProps } from "@mui/material";
 
-export const DestinationTypeContainer = ({
-  children,
-  ...props
-}: StackProps) => (
+export const DestinationTypeContainer = ({ children, ...props }: StackProps) => (
   <Stack
     direction="row"
     flexWrap="wrap"

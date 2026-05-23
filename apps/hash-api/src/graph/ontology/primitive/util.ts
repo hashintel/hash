@@ -18,18 +18,12 @@ export const getWebShortname: ImpureGraphFunction<
   },
   Promise<string>
 > = (ctx, authentication, params) =>
-  getWebById(ctx.graphApi, authentication, params.accountOrAccountGroupId).then(
-    (web) => {
-      if (!web) {
-        throw new Error(
-          `failed to get web for id: ${params.accountOrAccountGroupId}`,
-        );
-      }
-      if (!web.shortname) {
-        throw new Error(
-          `Shortname is not set for web: ${params.accountOrAccountGroupId}`,
-        );
-      }
-      return web.shortname;
-    },
-  );
+  getWebById(ctx.graphApi, authentication, params.accountOrAccountGroupId).then((web) => {
+    if (!web) {
+      throw new Error(`failed to get web for id: ${params.accountOrAccountGroupId}`);
+    }
+    if (!web.shortname) {
+      throw new Error(`Shortname is not set for web: ${params.accountOrAccountGroupId}`);
+    }
+    return web.shortname;
+  });

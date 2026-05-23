@@ -9,11 +9,7 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { GrayToBlueIconButton } from "../../gray-to-blue-icon-button";
 import { simplePathSorts } from "./path-finder-control/types";
-import {
-  ControlPanel,
-  ControlSectionContainer,
-  ItemLabel,
-} from "./shared/control-components";
+import { ControlPanel, ControlSectionContainer, ItemLabel } from "./shared/control-components";
 import { useGraphContext } from "./shared/graph-context";
 import { IntegerInput } from "./shared/integer-input";
 import { SimpleAutocomplete } from "./shared/simple-autocomplete";
@@ -60,10 +56,7 @@ const PathTerminusSelector = ({
   const lowercasedLabel = label.toLowerCase();
 
   return (
-    <ControlSectionContainer
-      label={label}
-      tooltip={`Where the path should ${lowercasedLabel}`}
-    >
+    <ControlSectionContainer label={label} tooltip={`Where the path should ${lowercasedLabel}`}>
       <Stack gap={1}>
         {typeOptions.length > 1 && (
           <SimpleAutocomplete
@@ -86,61 +79,52 @@ const PathTerminusSelector = ({
   );
 };
 
-const generatePathKey = ({
-  from,
-  to,
-  via,
-}: {
-  from: string;
-  to: string;
-  via?: string;
-}) => `${from}-${to}-${via}`;
+const generatePathKey = ({ from, to, via }: { from: string; to: string; via?: string }) =>
+  `${from}-${to}-${via}`;
 
 const PathFinderPanel: FunctionComponent<{
   nodes: GraphVizNode[];
   open: boolean;
   onClose: () => void;
 }> = ({ nodes, open, onClose }) => {
-  const { config, filters, setGraphState, graphContainerRef } =
-    useGraphContext();
+  const { config, filters, setGraphState, graphContainerRef } = useGraphContext();
 
   const sigma = useSigma();
 
-  const { visibleNodesByTypeId, visibleTypesByTypeId, visibleNodeIds } =
-    useMemo(() => {
-      const { includeByNodeTypeId } = filters;
+  const { visibleNodesByTypeId, visibleTypesByTypeId, visibleNodeIds } = useMemo(() => {
+    const { includeByNodeTypeId } = filters;
 
-      const visibleNodes: NodesByTypeId = {};
-      const visibleTypes: TypesByTypeId = {};
-      const visibleIds = new Set<string>();
+    const visibleNodes: NodesByTypeId = {};
+    const visibleTypes: TypesByTypeId = {};
+    const visibleIds = new Set<string>();
 
-      for (const node of nodes) {
-        const { nodeTypeId = "none", nodeTypeLabel = "No type", nodeId } = node;
+    for (const node of nodes) {
+      const { nodeTypeId = "none", nodeTypeLabel = "No type", nodeId } = node;
 
-        if (node.nodeTypeId && !includeByNodeTypeId?.[node.nodeTypeId]) {
-          continue;
-        }
-
-        visibleIds.add(nodeId);
-
-        if (nodeTypeId && nodeTypeLabel) {
-          visibleTypes[nodeTypeId] ??= {
-            label: nodeTypeLabel,
-            typeId: nodeTypeId,
-            valueForSelector: nodeTypeId,
-          };
-
-          visibleNodes[nodeTypeId] ??= [];
-          visibleNodes[nodeTypeId].push({ ...node, valueForSelector: nodeId });
-        }
+      if (node.nodeTypeId && !includeByNodeTypeId?.[node.nodeTypeId]) {
+        continue;
       }
 
-      return {
-        visibleNodeIds: visibleIds,
-        visibleNodesByTypeId: visibleNodes,
-        visibleTypesByTypeId: visibleTypes,
-      };
-    }, [filters, nodes]);
+      visibleIds.add(nodeId);
+
+      if (nodeTypeId && nodeTypeLabel) {
+        visibleTypes[nodeTypeId] ??= {
+          label: nodeTypeLabel,
+          typeId: nodeTypeId,
+          valueForSelector: nodeTypeId,
+        };
+
+        visibleNodes[nodeTypeId] ??= [];
+        visibleNodes[nodeTypeId].push({ ...node, valueForSelector: nodeId });
+      }
+    }
+
+    return {
+      visibleNodeIds: visibleIds,
+      visibleNodesByTypeId: visibleNodes,
+      visibleTypesByTypeId: visibleTypes,
+    };
+  }, [filters, nodes]);
 
   const hasMultipleTypes = Object.keys(visibleTypesByTypeId).length > 1;
   const firstType = Object.values(visibleTypesByTypeId)[0] ?? null;
@@ -154,14 +138,10 @@ const PathFinderPanel: FunctionComponent<{
         : firstType,
   );
   const [endNode, setEndNode] = useState<NodeData | null>(null);
-  const [endType, setEndType] = useState<TypeData | null>(
-    hasMultipleTypes ? null : firstType,
-  );
+  const [endType, setEndType] = useState<TypeData | null>(hasMultipleTypes ? null : firstType);
 
   const [viaNode, setViaNode] = useState<NodeData | null>(null);
-  const [viaType, setViaType] = useState<TypeData | null>(
-    hasMultipleTypes ? null : firstType,
-  );
+  const [viaType, setViaType] = useState<TypeData | null>(hasMultipleTypes ? null : firstType);
 
   useEffect(() => {
     if (!visibleTypesByTypeId[startType?.typeId ?? ""]) {
@@ -197,13 +177,10 @@ const PathFinderPanel: FunctionComponent<{
 
   const [maxSimplePathDepth, setMaxSimplePathDepth] = useState(3);
   const [allowRepeatedNodeTypes, setAllowRepeatedNodeTypes] = useState(false);
-  const [simplePathSort, setSimplePathSort] =
-    useState<SimplePathSort>("Significance");
+  const [simplePathSort, setSimplePathSort] = useState<SimplePathSort>("Significance");
 
   const [simplePaths, setSimplePaths] = useState<Path[]>([]);
-  const [selectedSimplePath, _setSelectedSimplePath] = useState<Path | null>(
-    null,
-  );
+  const [selectedSimplePath, _setSelectedSimplePath] = useState<Path | null>(null);
   const [waitingSimplePathResult, setWaitingSimplePathResult] = useState(false);
 
   const highlightPath = useCallback(
@@ -235,9 +212,7 @@ const PathFinderPanel: FunctionComponent<{
   const [worker, setWorker] = useState<Worker | null>(null);
 
   useEffect(() => {
-    const webWorker = new Worker(
-      new URL("./path-finder-control/worker.ts", import.meta.url),
-    );
+    const webWorker = new Worker(new URL("./path-finder-control/worker.ts", import.meta.url));
     setWorker(webWorker);
 
     return () => {
@@ -298,20 +273,13 @@ const PathFinderPanel: FunctionComponent<{
   ]);
 
   const sortedTypes = useMemo(
-    () =>
-      Object.values(visibleTypesByTypeId).sort((a, b) =>
-        a.label.localeCompare(b.label),
-      ),
+    () => Object.values(visibleTypesByTypeId).sort((a, b) => a.label.localeCompare(b.label)),
     [visibleTypesByTypeId],
   );
 
   const { endNodeOptions, viaNodeOptions } = useMemo(() => {
-    const endNodes = endType
-      ? (visibleNodesByTypeId[endType.typeId] ?? [])
-      : [];
-    const viaNodes = viaType
-      ? (visibleNodesByTypeId[viaType.typeId] ?? [])
-      : [];
+    const endNodes = endType ? (visibleNodesByTypeId[endType.typeId] ?? []) : [];
+    const viaNodes = viaType ? (visibleNodesByTypeId[viaType.typeId] ?? []) : [];
 
     const shortestPathByKey: { [key: string]: string[] | null } = {};
 
@@ -334,10 +302,7 @@ const PathFinderPanel: FunctionComponent<{
             node.nodeId,
             viaNode.nodeId,
           ) as string[] | null; // library types are wrong, might be null
-          shortestPath =
-            firstPart && secondPart
-              ? firstPart.concat(secondPart.slice(1))
-              : null;
+          shortestPath = firstPart && secondPart ? firstPart.concat(secondPart.slice(1)) : null;
 
           const pathKey = generatePathKey({
             from: startNode.nodeId,
@@ -350,11 +315,7 @@ const PathFinderPanel: FunctionComponent<{
             node.nodePathToHighlight = shortestPath;
           }
         } else {
-          shortestPath = dijkstra.bidirectional(
-            sigma.getGraph(),
-            startNode.nodeId,
-            node.nodeId,
-          );
+          shortestPath = dijkstra.bidirectional(sigma.getGraph(), startNode.nodeId, node.nodeId);
         }
 
         let pathLength: string;
@@ -394,10 +355,7 @@ const PathFinderPanel: FunctionComponent<{
               node.nodeId,
               endNode.nodeId,
             ) as string[] | null;
-            shortestPath =
-              firstPart && secondPart
-                ? firstPart.concat(secondPart.slice(1))
-                : null;
+            shortestPath = firstPart && secondPart ? firstPart.concat(secondPart.slice(1)) : null;
           }
 
           let pathLength: string;
@@ -416,15 +374,7 @@ const PathFinderPanel: FunctionComponent<{
     }
 
     return { endNodeOptions: endOptions, viaNodeOptions: viaOptions };
-  }, [
-    endNode,
-    endType,
-    sigma,
-    startNode,
-    viaNode,
-    viaType,
-    visibleNodesByTypeId,
-  ]);
+  }, [endNode, endType, sigma, startNode, viaNode, viaType, visibleNodesByTypeId]);
 
   const selectStartType = (type: TypeData | null) => {
     if (type !== startType) {
@@ -472,12 +422,7 @@ const PathFinderPanel: FunctionComponent<{
   };
 
   return (
-    <ControlPanel
-      onClose={onClose}
-      open={open}
-      position="left"
-      title="Path finder"
-    >
+    <ControlPanel onClose={onClose} open={open} position="left" title="Path finder">
       <Stack
         direction="row"
         spacing={1}
@@ -488,9 +433,7 @@ const PathFinderPanel: FunctionComponent<{
         <PathTerminusSelector
           label="Start at"
           node={startNode}
-          nodeOptions={
-            startType ? (visibleNodesByTypeId[startType.typeId] ?? []) : []
-          }
+          nodeOptions={startType ? (visibleNodesByTypeId[startType.typeId] ?? []) : []}
           setNode={selectStartNode}
           setType={selectStartType}
           type={startType}
@@ -555,9 +498,7 @@ const PathFinderPanel: FunctionComponent<{
             />
           </Box>
           <Box>
-            <ItemLabel tooltip="How to sort the simple path options">
-              Sort
-            </ItemLabel>
+            <ItemLabel tooltip="How to sort the simple path options">Sort</ItemLabel>
             <Select
               value={simplePathSort}
               onChange={(event) => {

@@ -61,15 +61,12 @@ export type GraphBlockMessageCallbacks = {
 };
 
 export type GraphEmbedderMessages<
-  Key extends keyof GraphBlockMessageCallbacks =
-    keyof GraphBlockMessageCallbacks,
+  Key extends keyof GraphBlockMessageCallbacks = keyof GraphBlockMessageCallbacks,
 > = {
   [key in Key]: ({
     data,
     errors,
-  }: Parameters<GraphBlockMessageCallbacks[key]>[0]) => ReturnType<
-    GraphBlockMessageCallbacks[key]
-  >;
+  }: Parameters<GraphBlockMessageCallbacks[key]>[0]) => ReturnType<GraphBlockMessageCallbacks[key]>;
 };
 
 export type CreateResourceError =
@@ -89,12 +86,7 @@ export type ReadOrModifyResourceError =
  * @todo Generate these types from the JSON definition, to avoid manually keeping the JSON and types in sync
  */
 export type GraphEmbedderMessageCallbacks = {
-  createEntity: MessageCallback<
-    CreateEntityData,
-    null,
-    MessageReturn<Entity>,
-    CreateResourceError
-  >;
+  createEntity: MessageCallback<CreateEntityData, null, MessageReturn<Entity>, CreateResourceError>;
   updateEntity: MessageCallback<
     UpdateEntityData,
     null,
@@ -179,12 +171,7 @@ export type GraphEmbedderMessageCallbacks = {
     MessageReturn<QueryDataTypesResult<Subgraph<DataTypeRootType>>>,
     ReadOrModifyResourceError
   >;
-  requestLinkedQuery: MessageCallback<
-    null,
-    null,
-    MessageReturn<null>,
-    "NOT_IMPLEMENTED"
-  >;
+  requestLinkedQuery: MessageCallback<null, null, MessageReturn<null>, "NOT_IMPLEMENTED">;
   /** @todo - Reimplement linked queries */
   // createLinkedQuery: MessageCallback<
   //   CreateLinkedQueryData,
@@ -219,8 +206,7 @@ export type GraphEmbedderMessageCallbacks = {
 };
 
 export type GraphBlockMessages<
-  Key extends keyof GraphEmbedderMessageCallbacks =
-    keyof GraphEmbedderMessageCallbacks,
+  Key extends keyof GraphEmbedderMessageCallbacks = keyof GraphEmbedderMessageCallbacks,
 > = {
   [key in Key]: ({
     data,

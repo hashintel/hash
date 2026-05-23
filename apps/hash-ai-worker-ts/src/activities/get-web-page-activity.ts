@@ -12,10 +12,7 @@ import { getFlowContext } from "./shared/get-flow-context.js";
 import { requestExternalInput } from "./shared/request-external-input.js";
 
 import type { Url } from "@blockprotocol/type-system";
-import type {
-  FlowInternetAccessSettings,
-  WebPage,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowInternetAccessSettings, WebPage } from "@local/hash-isomorphic-utils/flows/types";
 
 const sliceContentForLlmConsumption = (params: {
   content: string;
@@ -63,14 +60,7 @@ const disallowedTags = ["script", "style", "link", "canvas", "svg"];
  * The tags that will be filtered from the HTML content if they don't have
  * any of the relevant attributes (defined in `allowedAttributes`).
  */
-const disallowedTagsWithNoRelevantAttributes = [
-  "div",
-  "span",
-  "strong",
-  "b",
-  "i",
-  "em",
-];
+const disallowedTagsWithNoRelevantAttributes = ["div", "span", "strong", "b", "i", "em"];
 
 export const sanitizeHtmlForLlmConsumption = (params: {
   htmlContent: string;
@@ -79,9 +69,7 @@ export const sanitizeHtmlForLlmConsumption = (params: {
   const { htmlContent, maximumNumberOfTokens } = params;
 
   const sanitizedHtml = sanitizeHtml(htmlContent, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.filter(
-      (tag) => !disallowedTags.includes(tag),
-    ),
+    allowedTags: sanitizeHtml.defaults.allowedTags.filter((tag) => !disallowedTags.includes(tag)),
     allowedAttributes: { "*": allowedAttributes },
     disallowedTagsMode: "discard",
   });
@@ -89,9 +77,7 @@ export const sanitizeHtmlForLlmConsumption = (params: {
   const dom = new JSDOM(sanitizedHtml);
   const document = dom.window.document;
 
-  const elements = document.querySelectorAll(
-    disallowedTagsWithNoRelevantAttributes.join(","),
-  );
+  const elements = document.querySelectorAll(disallowedTagsWithNoRelevantAttributes.join(","));
 
   for (const element of elements) {
     if (!element.attributes.length) {
@@ -110,14 +96,8 @@ export const sanitizeHtmlForLlmConsumption = (params: {
   /**
    * Cut repeated newlines and tabs to a maximum of 2.
    */
-  sanitizedHtmlWithNoDisallowedTags = sanitizedHtmlWithNoDisallowedTags.replace(
-    /\n{3,}/g,
-    "\n\n",
-  );
-  sanitizedHtmlWithNoDisallowedTags = sanitizedHtmlWithNoDisallowedTags.replace(
-    /\t{3,}$/g,
-    "\t\t",
-  );
+  sanitizedHtmlWithNoDisallowedTags = sanitizedHtmlWithNoDisallowedTags.replace(/\n{3,}/g, "\n\n");
+  sanitizedHtmlWithNoDisallowedTags = sanitizedHtmlWithNoDisallowedTags.replace(/\t{3,}$/g, "\t\t");
 
   const slicedSanitizedHtml = sliceContentForLlmConsumption({
     content: sanitizedHtmlWithNoDisallowedTags,
@@ -138,10 +118,7 @@ const getRemoteBrowserWsEndpoint = (): string => {
   return endpoint;
 };
 
-const maxConcurrentSessions = parseInt(
-  process.env.BROWSER_MAX_CONCURRENT_SESSIONS ?? "2",
-  10,
-);
+const maxConcurrentSessions = parseInt(process.env.BROWSER_MAX_CONCURRENT_SESSIONS ?? "2", 10);
 
 let activeSessions = 0;
 const sessionQueue: Array<() => void> = [];
@@ -167,9 +144,7 @@ const releaseSessionSlot = () => {
   }
 };
 
-const getWebPageFromRemoteBrowser = async (
-  url: Url,
-): Promise<WebPage | { error: string }> => {
+const getWebPageFromRemoteBrowser = async (url: Url): Promise<WebPage | { error: string }> => {
   await acquireSessionSlot();
 
   let browser: puppeteer.Browser | undefined;
@@ -197,9 +172,7 @@ const getWebPageFromRemoteBrowser = async (
     }
 
     if (response.status() < 200 || response.status() >= 300) {
-      throw new Error(
-        `Page load failed: ${response.status()}: ${response.statusText()}`,
-      );
+      throw new Error(`Page load failed: ${response.status()}: ${response.statusText()}`);
     }
 
     await page.waitForSelector("body", { timeout: 5_000 });
@@ -230,9 +203,7 @@ const getWebPageFromRemoteBrowser = async (
   }
 };
 
-const getWebPageFromBrowser = async (
-  url: Url,
-): Promise<WebPage | { error: string }> => {
+const getWebPageFromBrowser = async (url: Url): Promise<WebPage | { error: string }> => {
   const externalResponse = await requestExternalInput({
     requestId: generateUuid(),
     stepId: Context.current().info.activityId,
@@ -287,9 +258,7 @@ export const getWebPageActivity = async (params: {
   const shouldAskBrowser =
     browserPluginSettings.enabled &&
     (browserPluginSettings.domains.includes(urlObject.host) ||
-      browserPluginSettings.domains.some((domain) =>
-        urlObject.host.endsWith(`.${domain}`),
-      )) &&
+      browserPluginSettings.domains.some((domain) => urlObject.host.endsWith(`.${domain}`))) &&
     /**
      * @todo: find way to mock the temporal context to allow for accessing the
      * browser plugin in tests.

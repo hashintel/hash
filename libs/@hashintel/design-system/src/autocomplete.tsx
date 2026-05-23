@@ -1,8 +1,5 @@
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  Autocomplete as MUIAutocomplete,
-  outlinedInputClasses,
-} from "@mui/material";
+import { Autocomplete as MUIAutocomplete, outlinedInputClasses } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
 import { AutocompleteDropdown } from "./autocomplete-dropdown";
@@ -27,10 +24,7 @@ type AutocompleteProps<
   Multiple extends boolean | undefined,
   DisableClearable extends boolean | undefined,
   FreeSolo extends boolean | undefined,
-> = Omit<
-  MUIAutocompleteProps<T, Multiple, DisableClearable, FreeSolo>,
-  "renderInput"
-> & {
+> = Omit<MUIAutocompleteProps<T, Multiple, DisableClearable, FreeSolo>, "renderInput"> & {
   inputHeight?: number | string;
   inputRef?: Ref<Element>;
   inputLabel?: string;
@@ -96,11 +90,7 @@ export const Autocomplete = <
   const paperComponent = useCallback(
     ({ children, ...props }: PaperProps) =>
       options.length ? (
-        <AutocompleteDropdown
-          {...props}
-          joined={joined}
-          inputHeight={inputHeight}
-        >
+        <AutocompleteDropdown {...props} joined={joined} inputHeight={inputHeight}>
           {children}
         </AutocompleteDropdown>
       ) : null,
@@ -167,9 +157,7 @@ export const Autocomplete = <
                 // Focus is handled by the options popover
                 "&.Mui-focused": {
                   boxShadow: "none",
-                  ...(open === undefined && options.length
-                    ? popperOpenStyles
-                    : {}),
+                  ...(open === undefined && options.length ? popperOpenStyles : {}),
                 },
 
                 [`.${outlinedInputClasses.notchedOutline}`]: {

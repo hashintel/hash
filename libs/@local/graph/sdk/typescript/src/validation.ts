@@ -156,10 +156,7 @@ export type PropertyArrayValidationReport = Subtype<
     }
 >;
 
-export type ArrayValidationReport = Omit<
-  ArrayValidationReportGraphApi,
-  "numItems" | "items"
-> & {
+export type ArrayValidationReport = Omit<ArrayValidationReportGraphApi, "numItems" | "items"> & {
   numItems?: ArrayItemNumberMismatchGraphApi;
   items?: { [index: string]: PropertyValidationReport };
 };
@@ -176,10 +173,7 @@ export type PropertyObjectValidationReport = Subtype<
     }
 >;
 
-export type ObjectValidationReport = Omit<
-  ObjectValidationReportGraphApi,
-  "properties"
-> & {
+export type ObjectValidationReport = Omit<ObjectValidationReportGraphApi, "properties"> & {
   properties?: { [property: BaseUrl]: ObjectPropertyValidationReport };
 };
 
@@ -219,10 +213,7 @@ export type LinkTargetError = Subtype<
   { type: "unexpectedEntityType"; data: UnexpectedEntityType }
 >;
 
-export type UnexpectedEntityType = Omit<
-  UnexpectedEntityTypeGraphApi,
-  "actual" | "expected"
-> & {
+export type UnexpectedEntityType = Omit<UnexpectedEntityTypeGraphApi, "actual" | "expected"> & {
   actual: [VersionedUrl, ...VersionedUrl[]];
   expected: [VersionedUrl, ...VersionedUrl[]];
 };

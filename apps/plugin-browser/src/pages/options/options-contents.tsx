@@ -36,14 +36,9 @@ export const OptionsContents = () => {
           <Box sx={{ mb: 1.5, width: "100%" }}>
             <HashLockup />
           </Box>
-          <Typography
-            sx={{ fontSize: 34, color: ({ palette }) => palette.gray[70] }}
-          >
+          <Typography sx={{ fontSize: 34, color: ({ palette }) => palette.gray[70] }}>
             Get started with{" "}
-            <Typography
-              component="span"
-              sx={{ color: ({ palette }) => palette.common.black }}
-            >
+            <Typography component="span" sx={{ color: ({ palette }) => palette.common.black }}>
               HASH for {browserName}
             </Typography>
             <Typography
@@ -68,10 +63,7 @@ export const OptionsContents = () => {
               })}
             >
               {loading ? (
-                <Skeleton
-                  sx={{ borderRadius: 1, height: 100 }}
-                  variant="rectangular"
-                />
+                <Skeleton sx={{ borderRadius: 1, height: 100 }} variant="rectangular" />
               ) : user ? (
                 <>
                   <Typography

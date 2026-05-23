@@ -151,6 +151,4 @@ const radioCardGroupSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const radioCardGroupSlotRecipe = sva(radioCardGroupSlotRecipeDefinition);
 
-export type RadioCardGroupSlotRecipeProps = RecipeVariantProps<
-  typeof radioCardGroupSlotRecipe
->;
+export type RadioCardGroupSlotRecipeProps = RecipeVariantProps<typeof radioCardGroupSlotRecipe>;

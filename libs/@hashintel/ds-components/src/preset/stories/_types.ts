@@ -49,15 +49,7 @@ export type ElevationScale = ShadowToken extends infer T
     : never
   : never;
 
-export type TextStyle =
-  | "xs"
-  | "sm"
-  | "base"
-  | "lg"
-  | "xl"
-  | "2xl"
-  | "3xl"
-  | "4xl";
+export type TextStyle = "xs" | "sm" | "base" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
 
 export type Leading = "tight" | "normal" | "loose";
 export type Density = "compact" | "normal" | "comfortable";

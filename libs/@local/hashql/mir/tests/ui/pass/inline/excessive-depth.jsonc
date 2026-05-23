@@ -19,13 +19,7 @@
       [
         "let",
         "f4",
-        [
-          "fn",
-          { "#tuple": [] },
-          { "#struct": { "x": "Boolean" } },
-          "_",
-          ["input", "a", "Boolean"]
-        ],
+        ["fn", { "#tuple": [] }, { "#struct": { "x": "Boolean" } }, "_", ["input", "a", "Boolean"]],
         [
           "let",
           "f3",

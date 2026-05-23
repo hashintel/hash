@@ -1,10 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { createContext, useContext, useMemo, useState } from "react";
 
-import {
-  deserializeQueryEntitiesResponse,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitiesResponse, type HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
@@ -12,10 +9,7 @@ import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context
 import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthInfo } from "../shared/auth-info-context";
 
-import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
+import type { QueryEntitiesQuery, QueryEntitiesQueryVariables } from "../../graphql/api-types.gen";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
@@ -26,8 +20,7 @@ export type DraftEntitiesContextValue = {
   refetch: () => Promise<void>;
 };
 
-export const DraftEntitiesContext =
-  createContext<null | DraftEntitiesContextValue>(null);
+export const DraftEntitiesContext = createContext<null | DraftEntitiesContextValue>(null);
 
 export const useDraftEntities = () => {
   const draftEntitiesContext = useContext(DraftEntitiesContext);
@@ -43,13 +36,11 @@ export const useDraftEntities = () => {
  * Context to provide full information of draft entities, for use in the actions page.
  * A separate app-wide context provides simply a count of draft entities.
  */
-export const DraftEntitiesContextProvider: FunctionComponent<
-  PropsWithChildren
-> = ({ children }) => {
-  const [
-    previouslyFetchedDraftEntitiesData,
-    setPreviouslyFetchedDraftEntitiesData,
-  ] = useState<QueryEntitiesQuery>();
+export const DraftEntitiesContextProvider: FunctionComponent<PropsWithChildren> = ({
+  children,
+}) => {
+  const [previouslyFetchedDraftEntitiesData, setPreviouslyFetchedDraftEntitiesData] =
+    useState<QueryEntitiesQuery>();
 
   const { authenticatedUser } = useAuthInfo();
 
@@ -61,43 +52,39 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     data: draftEntitiesData,
     refetch: refetchFullData,
     loading,
-  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
-    queryEntitiesQuery,
-    {
-      variables: {
-        request: {
-          filter: {
-            all: [
-              {
-                not: {
-                  exists: {
-                    path: ["draftId"],
-                  },
+  } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(queryEntitiesQuery, {
+    variables: {
+      request: {
+        filter: {
+          all: [
+            {
+              not: {
+                exists: {
+                  path: ["draftId"],
                 },
               },
-              {
-                equal: [{ path: ["archived"] }, { parameter: false }],
-              },
-            ],
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: true,
-          includePermissions: false,
+            },
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
+          ],
         },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: true,
+        includePermissions: false,
       },
-      onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
-      pollInterval,
-      fetchPolicy: "network-only",
-      skip: !authenticatedUser,
     },
-  );
+    onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
+    pollInterval,
+    fetchPolicy: "network-only",
+    skip: !authenticatedUser,
+  });
 
   const draftEntities = useMemo(
     () =>
       (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)
         ? deserializeQueryEntitiesResponse(
-            (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!
-              .queryEntities,
+            (draftEntitiesData ?? previouslyFetchedDraftEntitiesData)!.queryEntities,
           ).entities
         : undefined,
     [draftEntitiesData, previouslyFetchedDraftEntitiesData],
@@ -115,9 +102,5 @@ export const DraftEntitiesContextProvider: FunctionComponent<
     [draftEntities, loading, refetchFullData, refetchDraftEntitiesCount],
   );
 
-  return (
-    <DraftEntitiesContext.Provider value={value}>
-      {children}
-    </DraftEntitiesContext.Provider>
-  );
+  return <DraftEntitiesContext.Provider value={value}>{children}</DraftEntitiesContext.Provider>;
 };

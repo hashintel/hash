@@ -90,18 +90,14 @@ export const getGoogleAiResponse = async <ToolName extends string>(
             function_calling_config: {
               mode: FunctionCallingMode.ANY,
               allowed_function_names:
-                toolChoice !== "required"
-                  ? [toolChoice]
-                  : tools.map((tool) => tool.name),
+                toolChoice !== "required" ? [toolChoice] : tools.map((tool) => tool.name),
             },
           }
         : undefined,
     tools: tools
       ? [
           {
-            functionDeclarations: tools.map(
-              mapLlmToolDefinitionToGoogleAiToolDefinition,
-            ),
+            functionDeclarations: tools.map(mapLlmToolDefinitionToGoogleAiToolDefinition),
           },
         ]
       : undefined,
@@ -122,10 +118,7 @@ export const getGoogleAiResponse = async <ToolName extends string>(
       };
     }
 
-    const message =
-      "message" in (error as Error)
-        ? (error as Error).message
-        : "Unknown error";
+    const message = "message" in (error as Error) ? (error as Error).message : "Unknown error";
 
     return {
       llmResponse: {
@@ -186,14 +179,9 @@ export const getGoogleAiResponse = async <ToolName extends string>(
   }
 
   const usage: LlmUsage = {
-    inputTokens:
-      (previousUsage?.inputTokens ?? 0) +
-      (usageMetadata?.promptTokenCount ?? 0),
-    outputTokens:
-      (previousUsage?.outputTokens ?? 0) +
-      (usageMetadata?.candidatesTokenCount ?? 0),
-    totalTokens:
-      (previousUsage?.totalTokens ?? 0) + (usageMetadata?.totalTokenCount ?? 0),
+    inputTokens: (previousUsage?.inputTokens ?? 0) + (usageMetadata?.promptTokenCount ?? 0),
+    outputTokens: (previousUsage?.outputTokens ?? 0) + (usageMetadata?.candidatesTokenCount ?? 0),
+    totalTokens: (previousUsage?.totalTokens ?? 0) + (usageMetadata?.totalTokenCount ?? 0),
   };
 
   const normalizedResponse: LlmResponse<GoogleAiParams> = {

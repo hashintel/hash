@@ -14,19 +14,17 @@ interface TransitionPropertiesContextValue {
   removeArc: MutationContextValue["removeArc"];
 }
 
-const TransitionPropertiesContext =
-  createContext<TransitionPropertiesContextValue | null>(null);
+const TransitionPropertiesContext = createContext<TransitionPropertiesContextValue | null>(null);
 
-export const useTransitionPropertiesContext =
-  (): TransitionPropertiesContextValue => {
-    const context = use(TransitionPropertiesContext);
-    if (!context) {
-      throw new Error(
-        "useTransitionPropertiesContext must be used within a TransitionPropertiesProvider",
-      );
-    }
-    return context;
-  };
+export const useTransitionPropertiesContext = (): TransitionPropertiesContextValue => {
+  const context = use(TransitionPropertiesContext);
+  if (!context) {
+    throw new Error(
+      "useTransitionPropertiesContext must be used within a TransitionPropertiesProvider",
+    );
+  }
+  return context;
+};
 
 interface TransitionPropertiesProviderProps {
   transition: Transition;
@@ -40,9 +38,7 @@ interface TransitionPropertiesProviderProps {
   children: ReactNode;
 }
 
-export const TransitionPropertiesProvider: React.FC<
-  TransitionPropertiesProviderProps
-> = ({
+export const TransitionPropertiesProvider: React.FC<TransitionPropertiesProviderProps> = ({
   transition,
   places,
   types,

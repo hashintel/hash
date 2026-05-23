@@ -1,10 +1,7 @@
 import { createContext, useContext, useMemo } from "react";
 
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  EntityPermissionsMap,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import type { EntityPermissionsMap, HashEntity } from "@local/hash-graph-sdk/entity";
 import type { PropsWithChildren } from "react";
 
 export type BlockCollectionContextType = {
@@ -12,8 +9,7 @@ export type BlockCollectionContextType = {
   userPermissionsOnEntities?: EntityPermissionsMap;
 };
 
-export const BlockCollectionContext =
-  createContext<BlockCollectionContextType | null>(null);
+export const BlockCollectionContext = createContext<BlockCollectionContextType | null>(null);
 
 export const useBlockCollectionContext = () => {
   const blockCollectionContext = useContext(BlockCollectionContext);
@@ -39,8 +35,6 @@ export const BlockCollectionContextProvider = ({
   );
 
   return (
-    <BlockCollectionContext.Provider value={context}>
-      {children}
-    </BlockCollectionContext.Provider>
+    <BlockCollectionContext.Provider value={context}>{children}</BlockCollectionContext.Provider>
   );
 };

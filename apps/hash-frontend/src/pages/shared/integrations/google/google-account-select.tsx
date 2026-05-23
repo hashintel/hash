@@ -25,18 +25,13 @@ export const GoogleAccountSelect = ({
 
     return authContext.accounts
       .sort((a, b) =>
-        a.metadata.provenance.createdAtDecisionTime >
-        b.metadata.provenance.createdAtDecisionTime
+        a.metadata.provenance.createdAtDecisionTime > b.metadata.provenance.createdAtDecisionTime
           ? -1
           : 1,
       )
       .map((account) => ({
-        label:
-          account.properties["https://hash.ai/@h/types/property-type/email/"],
-        value:
-          account.properties[
-            "https://hash.ai/@google/types/property-type/account-id/"
-          ],
+        label: account.properties["https://hash.ai/@h/types/property-type/email/"],
+        value: account.properties["https://hash.ai/@google/types/property-type/account-id/"],
       }));
   }, [authContext]);
 
@@ -65,12 +60,11 @@ export const GoogleAccountSelect = ({
             onChange={(event) => setGoogleAccountId(event.target.value)}
             placeholder="Select Google Account"
             sx={{
-              [`.${outlinedInputClasses.root} .${outlinedInputClasses.input}`]:
-                {
-                  fontSize: 15,
-                  px: 2,
-                  py: 1,
-                },
+              [`.${outlinedInputClasses.root} .${outlinedInputClasses.input}`]: {
+                fontSize: 15,
+                px: 2,
+                py: 1,
+              },
               width: 160,
             }}
             value={googleAccountId}

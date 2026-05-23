@@ -4,14 +4,8 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type {
-  EntityTypeReference,
-  EntityTypeWithMetadata,
-} from "@blockprotocol/type-system";
-import type {
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/dist/cjs";
+import type { EntityTypeReference, EntityTypeWithMetadata } from "@blockprotocol/type-system";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/dist/cjs";
 
 export const getParentIds = (
   entityType: Pick<EntityType, "allOf">,
@@ -23,9 +17,7 @@ export const getParentIds = (
     parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {
       const parentEntityType = allEntityTypes[$ref];
       if (!parentEntityType) {
-        throw new Error(
-          `Entity type ${$ref} not found when looking up ancestors of entity type`,
-        );
+        throw new Error(`Entity type ${$ref} not found when looking up ancestors of entity type`);
       }
       return parentEntityType.schema.allOf ?? [];
     });
@@ -41,13 +33,11 @@ export const isSpecialEntityType = (
   const parentIds = getParentIds(entityType, allEntityTypes);
 
   let isFile = entityType.$id
-    ? extractBaseUrl(entityType.$id) ===
-      systemEntityTypes.file.entityTypeBaseUrl
+    ? extractBaseUrl(entityType.$id) === systemEntityTypes.file.entityTypeBaseUrl
     : false;
 
   let isImage = entityType.$id
-    ? extractBaseUrl(entityType.$id) ===
-      systemEntityTypes.imageFile.entityTypeBaseUrl
+    ? extractBaseUrl(entityType.$id) === systemEntityTypes.imageFile.entityTypeBaseUrl
     : false;
 
   let isLink = entityType.$id === blockProtocolEntityTypes.link.entityTypeId;
@@ -59,10 +49,7 @@ export const isSpecialEntityType = (
     if (extractBaseUrl(id) === systemEntityTypes.imageFile.entityTypeBaseUrl) {
       isImage = true;
     }
-    if (
-      extractBaseUrl(id) ===
-      extractBaseUrl(blockProtocolEntityTypes.link.entityTypeId)
-    ) {
+    if (extractBaseUrl(id) === extractBaseUrl(blockProtocolEntityTypes.link.entityTypeId)) {
       isLink = true;
     }
   }

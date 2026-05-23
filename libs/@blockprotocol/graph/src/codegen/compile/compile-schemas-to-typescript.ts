@@ -9,12 +9,7 @@ import { redundantTypePlaceholder } from "../shared.js";
 import type { CompileContext } from "../context.js";
 import type { CompiledTsType, JsonSchema } from "../shared.js";
 import type { HTTPResolverOptions } from "@apidevtools/json-schema-ref-parser";
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { DataType, EntityType, PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 const compileIndividualSchemaToTypescript = async (
   type: DataType | PropertyType | EntityType | JsonSchema,
@@ -58,16 +53,11 @@ const compileIndividualSchemaToTypescript = async (
     },
   });
 
-export const compileSchemasToTypescript = async (
-  context: CompileContext,
-): Promise<void> => {
+export const compileSchemasToTypescript = async (context: CompileContext): Promise<void> => {
   await Promise.all(
     typedValues(context.allTypes).map(async (type) => {
       context.logDebug(`Compiling schema for ${type.$id}...`);
-      context.addCompiledTsType(
-        type.$id,
-        await compileIndividualSchemaToTypescript(type, context),
-      );
+      context.addCompiledTsType(type.$id, await compileIndividualSchemaToTypescript(type, context));
     }),
   );
 };

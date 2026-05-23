@@ -1,9 +1,7 @@
 import type { SimulationFrameReader } from "../../../react/simulation/context";
 import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
 
-type TransitionFrameState = NonNullable<
-  ReturnType<SimulationFrameReader["getTransitionState"]>
->;
+type TransitionFrameState = NonNullable<ReturnType<SimulationFrameReader["getTransitionState"]>>;
 
 //
 // Specific types for ReactFlow nodes, arcs, and instance.
@@ -66,7 +64,4 @@ export type PetrinautReactFlowDefinitionObject = {
 /**
  * ReactFlow instance type for Petrinaut.
  */
-export type PetrinautReactFlowInstance = ReactFlowInstance<
-  NodeType,
-  ArcEdgeType
->;
+export type PetrinautReactFlowInstance = ReactFlowInstance<NodeType, ArcEdgeType>;

@@ -8,10 +8,7 @@ export const sanitizeHref = (url?: string) => {
   }
 
   try {
-    const { href, protocol } = new URL(
-      url,
-      url.startsWith("/") ? frontendUrl : undefined,
-    );
+    const { href, protocol } = new URL(url, url.startsWith("/") ? frontendUrl : undefined);
     if (protocol !== "https:" && protocol !== "http:") {
       return "";
     }

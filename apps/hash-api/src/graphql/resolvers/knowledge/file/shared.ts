@@ -23,9 +23,7 @@ export const triggerPdfAnalysisWorkflow = async ({
   const { entityId, properties } = entity;
 
   const mimeType =
-    properties[
-      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"
-    ];
+    properties["https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"];
 
   if (mimeType !== "application/pdf") {
     return;
@@ -67,8 +65,7 @@ export const triggerPdfAnalysisWorkflow = async ({
     taskQueue: "ai",
     args: [params],
     memo: {
-      flowDefinitionId:
-        inferMetadataFromDocumentFlowDefinition.flowDefinitionId,
+      flowDefinitionId: inferMetadataFromDocumentFlowDefinition.flowDefinitionId,
       userAccountId,
       webId,
     },

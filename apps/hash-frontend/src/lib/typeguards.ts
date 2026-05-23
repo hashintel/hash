@@ -19,8 +19,6 @@ export const isPropertyValueArray = (
 
 export const isPropertyValueObject = (
   propertyValue: PropertyValues,
-): propertyValue is PropertyValueObject<
-  ValueOrArray<PropertyTypeReference>
-> => {
+): propertyValue is PropertyValueObject<ValueOrArray<PropertyTypeReference>> => {
   return "type" in propertyValue && propertyValue.type === "object";
 };

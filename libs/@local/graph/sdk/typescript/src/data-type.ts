@@ -8,10 +8,7 @@ import type { AuthenticationContext } from "./authentication-context.js";
 import type { HashEntity, SerializedSubgraph } from "./entity.js";
 import type { DataTypeConversionTargets } from "./ontology.js";
 import type { DataTypeRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  DataTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { DataTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   DistributiveOmit,
   DistributiveReplaceProperties,
@@ -37,10 +34,7 @@ export const hasPermissionForDataTypes = (
     HasPermissionForDataTypesParams,
     {
       dataTypeIds: VersionedUrl[];
-      action: Subtype<
-        ActionName,
-        "viewDataType" | "updateDataType" | "archiveDataType"
-      >;
+      action: Subtype<ActionName, "viewDataType" | "updateDataType" | "archiveDataType">;
     }
   >,
 ): Promise<VersionedUrl[]> =>
@@ -48,10 +42,7 @@ export const hasPermissionForDataTypes = (
     .hasPermissionForDataTypes(authentication.actorId, params)
     .then(({ data: permitted }) => permitted as VersionedUrl[]);
 
-export type QueryDataTypesParams = Omit<
-  QueryDataTypesParamsGraphApi,
-  "after"
-> & {
+export type QueryDataTypesParams = Omit<QueryDataTypesParamsGraphApi, "after"> & {
   after?: VersionedUrl;
 };
 
@@ -63,22 +54,19 @@ export type QueryDataTypesResponse = Omit<
   cursor?: VersionedUrl;
 };
 
-const mapGraphApiDataTypesToDataTypes = (
-  dataTypes: DataTypeWithMetadataGraphApi[],
-) => dataTypes as unknown as DataTypeWithMetadata[];
+const mapGraphApiDataTypesToDataTypes = (dataTypes: DataTypeWithMetadataGraphApi[]) =>
+  dataTypes as unknown as DataTypeWithMetadata[];
 
 export const queryDataTypes = (
   graphApi: GraphApi,
   authentication: AuthenticationContext,
   params: QueryDataTypesParams,
 ): Promise<QueryDataTypesResponse> =>
-  graphApi
-    .queryDataTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      ...response,
-      dataTypes: mapGraphApiDataTypesToDataTypes(response.dataTypes),
-      cursor: response.cursor as VersionedUrl | undefined,
-    }));
+  graphApi.queryDataTypes(authentication.actorId, params).then(({ data: response }) => ({
+    ...response,
+    dataTypes: mapGraphApiDataTypesToDataTypes(response.dataTypes),
+    cursor: response.cursor as VersionedUrl | undefined,
+  }));
 
 export type QueryDataTypeSubgraphParams = ExclusiveUnion<
   DistributiveReplaceProperties<
@@ -109,13 +97,11 @@ export const queryDataTypeSubgraph = (
   authentication: AuthenticationContext,
   params: QueryDataTypeSubgraphParams,
 ): Promise<QueryDataTypeSubgraphResponse> =>
-  graphApi
-    .queryDataTypeSubgraph(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      ...response,
-      subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
-      cursor: response.cursor as VersionedUrl | undefined,
-    }));
+  graphApi.queryDataTypeSubgraph(authentication.actorId, params).then(({ data: response }) => ({
+    ...response,
+    subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
+    cursor: response.cursor as VersionedUrl | undefined,
+  }));
 
 export const serializeQueryDataTypeSubgraphResponse = (
   response: QueryDataTypeSubgraphResponse,
@@ -142,23 +128,14 @@ export const deserializeQueryDataTypeSubgraphResponse = (
 });
 
 const mapGraphApiDataTypeConversions = (
-  conversions: Record<
-    string,
-    Record<string, GraphApiDataTypeConversionTargets>
-  >,
-) =>
-  conversions as Record<
-    VersionedUrl,
-    Record<VersionedUrl, DataTypeConversionTargets>
-  >;
+  conversions: Record<string, Record<string, GraphApiDataTypeConversionTargets>>,
+) => conversions as Record<VersionedUrl, Record<VersionedUrl, DataTypeConversionTargets>>;
 
 export const findDataTypeConversionTargets = (
   graphApi: GraphApi,
   authentication: AuthenticationContext,
   params: { dataTypeIds: VersionedUrl[] },
-): Promise<
-  Record<VersionedUrl, Record<VersionedUrl, DataTypeConversionTargets>>
-> =>
+): Promise<Record<VersionedUrl, Record<VersionedUrl, DataTypeConversionTargets>>> =>
   graphApi
     .findDataTypeConversionTargets(authentication.actorId, params)
     .then(({ data }) => mapGraphApiDataTypeConversions(data.conversions));
@@ -166,10 +143,9 @@ export const findDataTypeConversionTargets = (
 export const getDataTypeById = async (
   graphApi: GraphApi,
   authentication: AuthenticationContext,
-  params: Omit<
-    QueryDataTypesParams,
-    "filter" | "includeCount" | "after" | "limit"
-  > & { dataTypeId: VersionedUrl },
+  params: Omit<QueryDataTypesParams, "filter" | "includeCount" | "after" | "limit"> & {
+    dataTypeId: VersionedUrl;
+  },
 ): Promise<DataTypeWithMetadata | null> => {
   const { dataTypeId, ...rest } = params;
 

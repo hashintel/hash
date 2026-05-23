@@ -13,11 +13,7 @@ import {
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /**
    * Step 1: Create data types
    */
@@ -26,123 +22,95 @@ const migrate: MigrationFunction = async ({
    * Angle data type hierarchy: Angle → Degree → Latitude/Longitude
    */
 
-  const angleDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        abstract: true,
-        title: "Angle",
-        description:
-          "A measure of rotation or the space between two intersecting lines.",
-        type: "number",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const angleDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      abstract: true,
+      title: "Angle",
+      description: "A measure of rotation or the space between two intersecting lines.",
+      type: "number",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const degreeDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: angleDataType.schema.$id }],
-        title: "Degree",
-        description:
-          "A unit of angular measure equal to 1/360 of a full rotation.",
-        label: {
-          right: "°",
-        },
-        type: "number",
+  const degreeDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: angleDataType.schema.$id }],
+      title: "Degree",
+      description: "A unit of angular measure equal to 1/360 of a full rotation.",
+      label: {
+        right: "°",
       },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+      type: "number",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const latitudeDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: degreeDataType.schema.$id }],
-        title: "Latitude",
-        description:
-          "The angular distance of a position north or south of the equator, ranging from -90° (South Pole) to +90° (North Pole).",
-        minimum: -90,
-        maximum: 90,
-        type: "number",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const latitudeDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: degreeDataType.schema.$id }],
+      title: "Latitude",
+      description:
+        "The angular distance of a position north or south of the equator, ranging from -90° (South Pole) to +90° (North Pole).",
+      minimum: -90,
+      maximum: 90,
+      type: "number",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const longitudeDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: degreeDataType.schema.$id }],
-        title: "Longitude",
-        description:
-          "The angular distance of a position east or west of the prime meridian, ranging from -180° to +180°.",
-        minimum: -180,
-        maximum: 180,
-        type: "number",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const longitudeDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: degreeDataType.schema.$id }],
+      title: "Longitude",
+      description:
+        "The angular distance of a position east or west of the prime meridian, ranging from -180° to +180°.",
+      minimum: -180,
+      maximum: 180,
+      type: "number",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
   /**
    * Speed data type hierarchy: Speed → Meters per Second (canonical) → km/h, knots, ft/min
    */
 
-  const speedDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        abstract: true,
-        title: "Speed",
-        description:
-          "A measure of the rate of movement or change in position over time.",
-        type: "number",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const speedDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      abstract: true,
+      title: "Speed",
+      description: "A measure of the rate of movement or change in position over time.",
+      type: "number",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const metersPerSecondDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: speedDataType.schema.$id }],
-        title: "Meters per Second",
-        description:
-          "The SI unit of speed, expressing the number of meters traveled in one second.",
-        label: {
-          right: "m/s",
-        },
-        type: "number",
+  const metersPerSecondDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: speedDataType.schema.$id }],
+      title: "Meters per Second",
+      description: "The SI unit of speed, expressing the number of meters traveled in one second.",
+      label: {
+        right: "m/s",
       },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+      type: "number",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
   const _kilometersPerHourDataType = await createSystemDataTypeIfNotExists(
     context,
@@ -151,8 +119,7 @@ const migrate: MigrationFunction = async ({
       dataTypeDefinition: {
         allOf: [{ $ref: speedDataType.schema.$id }],
         title: "Kilometers per Hour",
-        description:
-          "A unit of speed expressing the number of kilometers traveled in one hour.",
+        description: "A unit of speed expressing the number of kilometers traveled in one hour.",
         label: {
           right: "km/h",
         },
@@ -184,149 +151,125 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const knotsDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: speedDataType.schema.$id }],
-        title: "Knots",
-        description:
-          "A unit of speed equal to one nautical mile per hour, commonly used in aviation and maritime contexts.",
-        label: {
-          right: "kn",
-        },
-        type: "number",
+  const knotsDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: speedDataType.schema.$id }],
+      title: "Knots",
+      description:
+        "A unit of speed equal to one nautical mile per hour, commonly used in aviation and maritime contexts.",
+      label: {
+        right: "kn",
       },
-      conversions: {
-        [metersPerSecondDataType.metadata.recordId.baseUrl]: {
-          // 1 knot = 1852m / 3600s (1 nautical mile = 1852m exactly)
-          // m/s → knots: self * 3600 / 1852
-          from: {
-            expression: [
-              "/",
-              ["*", "self", { const: 3600, type: "number" }],
-              { const: 1852, type: "number" },
-            ],
-          },
-          // knots → m/s: self * 1852 / 3600
-          to: {
-            expression: [
-              "/",
-              ["*", "self", { const: 1852, type: "number" }],
-              { const: 3600, type: "number" },
-            ],
-          },
-        },
-      },
-      migrationState,
-      webShortname: "h",
+      type: "number",
     },
-  );
+    conversions: {
+      [metersPerSecondDataType.metadata.recordId.baseUrl]: {
+        // 1 knot = 1852m / 3600s (1 nautical mile = 1852m exactly)
+        // m/s → knots: self * 3600 / 1852
+        from: {
+          expression: [
+            "/",
+            ["*", "self", { const: 3600, type: "number" }],
+            { const: 1852, type: "number" },
+          ],
+        },
+        // knots → m/s: self * 1852 / 3600
+        to: {
+          expression: [
+            "/",
+            ["*", "self", { const: 1852, type: "number" }],
+            { const: 3600, type: "number" },
+          ],
+        },
+      },
+    },
+    migrationState,
+    webShortname: "h",
+  });
 
-  const feetPerMinuteDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: speedDataType.schema.$id }],
-        title: "Feet per Minute",
-        description:
-          "A unit of vertical speed commonly used in aviation to measure rate of climb or descent.",
-        label: {
-          right: "ft/min",
-        },
-        type: "number",
+  const feetPerMinuteDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: speedDataType.schema.$id }],
+      title: "Feet per Minute",
+      description:
+        "A unit of vertical speed commonly used in aviation to measure rate of climb or descent.",
+      label: {
+        right: "ft/min",
       },
-      conversions: {
-        [metersPerSecondDataType.metadata.recordId.baseUrl]: {
-          // 1 ft/min = 0.3048m / 60s (1 foot = 0.3048m exactly)
-          // m/s → ft/min: self * 60 / 0.3048
-          from: {
-            expression: [
-              "/",
-              ["*", "self", { const: 60, type: "number" }],
-              { const: 0.3048, type: "number" },
-            ],
-          },
-          // ft/min → m/s: self * 0.3048 / 60
-          to: {
-            expression: [
-              "/",
-              ["*", "self", { const: 0.3048, type: "number" }],
-              { const: 60, type: "number" },
-            ],
-          },
-        },
-      },
-      migrationState,
-      webShortname: "h",
+      type: "number",
     },
-  );
+    conversions: {
+      [metersPerSecondDataType.metadata.recordId.baseUrl]: {
+        // 1 ft/min = 0.3048m / 60s (1 foot = 0.3048m exactly)
+        // m/s → ft/min: self * 60 / 0.3048
+        from: {
+          expression: [
+            "/",
+            ["*", "self", { const: 60, type: "number" }],
+            { const: 0.3048, type: "number" },
+          ],
+        },
+        // ft/min → m/s: self * 0.3048 / 60
+        to: {
+          expression: [
+            "/",
+            ["*", "self", { const: 0.3048, type: "number" }],
+            { const: 60, type: "number" },
+          ],
+        },
+      },
+    },
+    migrationState,
+    webShortname: "h",
+  });
 
   /**
    * Step 2: Create property types
    */
 
-  const iataCodePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "IATA Code",
-        description:
-          "A code assigned by the International Air Transport Association (IATA) to identify airports, airlines, or aircraft types.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const iataCodePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "IATA Code",
+      description:
+        "A code assigned by the International Air Transport Association (IATA) to identify airports, airlines, or aircraft types.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const icaoCodePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "ICAO Code",
-        description:
-          "A code assigned by the International Civil Aviation Organization (ICAO) to identify airports, airlines, or aircraft types.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const icaoCodePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "ICAO Code",
+      description:
+        "A code assigned by the International Civil Aviation Organization (ICAO) to identify airports, airlines, or aircraft types.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const gatePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Gate",
-        description:
-          "The gate number or identifier at an airport terminal where passengers board or disembark.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const gatePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Gate",
+      description:
+        "The gate number or identifier at an airport terminal where passengers board or disembark.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const terminalPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Terminal",
-        description:
-          "The terminal building or area at an airport where passengers check in, wait, and board flights.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const terminalPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Terminal",
+      description:
+        "The terminal building or area at an airport where passengers check in, wait, and board flights.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const baggageClaimPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -376,8 +319,10 @@ const migrate: MigrationFunction = async ({
   /**
    * Gate times (pushback/arrival at gate)
    */
-  const scheduledGateTimePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const scheduledGateTimePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Scheduled Gate Time",
         description:
@@ -386,19 +331,22 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const estimatedGateTimePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const estimatedGateTimePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Estimated Gate Time",
-        description:
-          "The predicted date and time for gate departure (pushback) or arrival.",
+        description: "The predicted date and time for gate departure (pushback) or arrival.",
         possibleValues: [{ dataTypeId: datetimeDataTypeId }],
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const actualGateTimePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -406,8 +354,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Actual Gate Time",
-        description:
-          "The actual date and time of gate departure (pushback) or arrival.",
+        description: "The actual date and time of gate departure (pushback) or arrival.",
         possibleValues: [{ dataTypeId: datetimeDataTypeId }],
       },
       migrationState,
@@ -418,8 +365,10 @@ const migrate: MigrationFunction = async ({
   /**
    * Runway times (takeoff/touchdown)
    */
-  const scheduledRunwayTimePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const scheduledRunwayTimePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Scheduled Runway Time",
         description:
@@ -428,10 +377,13 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const estimatedRunwayTimePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const estimatedRunwayTimePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Estimated Runway Time",
         description:
@@ -440,10 +392,13 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const actualRunwayTimePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const actualRunwayTimePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Actual Runway Time",
         description:
@@ -452,7 +407,8 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const flightNumberPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -469,30 +425,19 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const flightStatusDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
-        title: "Flight Status",
-        description:
-          "The current operational status of a flight, indicating whether it is scheduled, in progress, completed, or has encountered issues.",
-        enum: [
-          "Scheduled",
-          "Active",
-          "Landed",
-          "Cancelled",
-          "Incident",
-          "Diverted",
-        ],
-        type: "string",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const flightStatusDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+      title: "Flight Status",
+      description:
+        "The current operational status of a flight, indicating whether it is scheduled, in progress, completed, or has encountered issues.",
+      enum: ["Scheduled", "Active", "Landed", "Cancelled", "Incident", "Diverted"],
+      type: "string",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
   const flightStatusPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -514,8 +459,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Flight Date",
-        description:
-          "The calendar date on which a flight is scheduled to operate.",
+        description: "The calendar date on which a flight is scheduled to operate.",
         possibleValues: [{ dataTypeId: dateDataTypeId }],
       },
       migrationState,
@@ -523,48 +467,35 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const timezonePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Timezone",
-        description:
-          "A time zone identifier (e.g. 'America/Los_Angeles', 'Europe/London').",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const timezonePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Timezone",
+      description: "A time zone identifier (e.g. 'America/Los_Angeles', 'Europe/London').",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const cityPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "City",
-        description: "The city where something is located, occurred, etc.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const cityPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "City",
+      description: "The city where something is located, occurred, etc.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const runwayPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Runway",
-        description: "The runway identifier used for takeoff or landing.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const runwayPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Runway",
+      description: "The runway identifier used for takeoff or landing.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const flightTypePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -580,35 +511,33 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const codesharePropertyType = await createSystemPropertyTypeIfNotExists(
+  const codesharePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Codeshare",
+      description:
+        "A codeshare flight number, where multiple airlines sell seats on the same flight under their own flight numbers.",
+      possibleValues: [
+        {
+          propertyTypeObjectProperties: {
+            [iataCodePropertyType.metadata.recordId.baseUrl]: {
+              $ref: iataCodePropertyType.schema.$id,
+            },
+            [icaoCodePropertyType.metadata.recordId.baseUrl]: {
+              $ref: icaoCodePropertyType.schema.$id,
+            },
+          },
+          propertyTypeObjectRequiredProperties: [],
+        },
+      ],
+    },
+    migrationState,
+    webShortname: "h",
+  });
+
+  const registrationNumberPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Codeshare",
-        description:
-          "A codeshare flight number, where multiple airlines sell seats on the same flight under their own flight numbers.",
-        possibleValues: [
-          {
-            propertyTypeObjectProperties: {
-              [iataCodePropertyType.metadata.recordId.baseUrl]: {
-                $ref: iataCodePropertyType.schema.$id,
-              },
-              [icaoCodePropertyType.metadata.recordId.baseUrl]: {
-                $ref: icaoCodePropertyType.schema.$id,
-              },
-            },
-            propertyTypeObjectRequiredProperties: [],
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const registrationNumberPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Registration Number",
         description:
@@ -617,72 +546,54 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const metersDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "meters",
     migrationState,
   });
 
-  const latitudePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Latitude",
-        description:
-          "The angular distance of a position north or south of the equator.",
-        possibleValues: [{ dataTypeId: latitudeDataType.schema.$id }],
-      },
-      migrationState,
-      webShortname: "h",
+  const latitudePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Latitude",
+      description: "The angular distance of a position north or south of the equator.",
+      possibleValues: [{ dataTypeId: latitudeDataType.schema.$id }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const longitudePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Longitude",
-        description:
-          "The angular distance of a position east or west of the prime meridian.",
-        possibleValues: [{ dataTypeId: longitudeDataType.schema.$id }],
-      },
-      migrationState,
-      webShortname: "h",
+  const longitudePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Longitude",
+      description: "The angular distance of a position east or west of the prime meridian.",
+      possibleValues: [{ dataTypeId: longitudeDataType.schema.$id }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const altitudePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Altitude",
-        description:
-          "The height of an object above a reference point, such as sea level or the ground.",
-        possibleValues: [{ dataTypeId: metersDataTypeId }],
-      },
-      migrationState,
-      webShortname: "h",
+  const altitudePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Altitude",
+      description:
+        "The height of an object above a reference point, such as sea level or the ground.",
+      possibleValues: [{ dataTypeId: metersDataTypeId }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const directionPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Direction",
-        description:
-          "The heading or bearing of something, measured in degrees from true north.",
-        possibleValues: [{ dataTypeId: degreeDataType.schema.$id }],
-      },
-      migrationState,
-      webShortname: "h",
+  const directionPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Direction",
+      description: "The heading or bearing of something, measured in degrees from true north.",
+      possibleValues: [{ dataTypeId: degreeDataType.schema.$id }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const groundSpeedPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -690,8 +601,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Ground Speed",
-        description:
-          "The horizontal speed of an aircraft relative to the ground.",
+        description: "The horizontal speed of an aircraft relative to the ground.",
         possibleValues: [{ dataTypeId: knotsDataType.schema.$id }],
       },
       migrationState,
@@ -731,95 +641,81 @@ const migrate: MigrationFunction = async ({
    * Step 2: Create entity types
    */
 
-  const airportEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Airport",
-        titlePlural: "Airports",
-        icon: "🏢",
-        description:
-          "A facility where aircraft take off and land, with infrastructure for passenger and cargo services.",
-        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: iataCodePropertyType,
-          },
-          {
-            propertyType: icaoCodePropertyType,
-          },
-          {
-            propertyType: timezonePropertyType,
-          },
-          {
-            propertyType: cityPropertyType,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const airportEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Airport",
+      titlePlural: "Airports",
+      icon: "🏢",
+      description:
+        "A facility where aircraft take off and land, with infrastructure for passenger and cargo services.",
+      labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+      properties: [
+        {
+          propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+          required: true,
+        },
+        {
+          propertyType: iataCodePropertyType,
+        },
+        {
+          propertyType: icaoCodePropertyType,
+        },
+        {
+          propertyType: timezonePropertyType,
+        },
+        {
+          propertyType: cityPropertyType,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const airlineEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Airline",
-        titlePlural: "Airlines",
-        icon: "🏦",
-        description:
-          "A company that provides air transport services for passengers and/or cargo.",
-        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: iataCodePropertyType,
-          },
-          {
-            propertyType: icaoCodePropertyType,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const airlineEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Airline",
+      titlePlural: "Airlines",
+      icon: "🏦",
+      description: "A company that provides air transport services for passengers and/or cargo.",
+      labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+      properties: [
+        {
+          propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+          required: true,
+        },
+        {
+          propertyType: iataCodePropertyType,
+        },
+        {
+          propertyType: icaoCodePropertyType,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const aircraftEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Aircraft",
-        titlePlural: "Aircraft",
-        icon: "🛩️",
-        description:
-          "A vehicle designed for air travel, such as an airplane or helicopter.",
-        labelProperty: registrationNumberPropertyType.metadata.recordId.baseUrl,
-        properties: [
-          {
-            propertyType: registrationNumberPropertyType,
-            required: true,
-          },
-          {
-            propertyType: icaoCodePropertyType,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const aircraftEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Aircraft",
+      titlePlural: "Aircraft",
+      icon: "🛩️",
+      description: "A vehicle designed for air travel, such as an airplane or helicopter.",
+      labelProperty: registrationNumberPropertyType.metadata.recordId.baseUrl,
+      properties: [
+        {
+          propertyType: registrationNumberPropertyType,
+          required: true,
+        },
+        {
+          propertyType: icaoCodePropertyType,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   /**
    * Step 3: Create link entity types
@@ -856,37 +752,33 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const arrivesAtLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Arrives At",
-        icon: "🛬",
-        inverse: {
-          title: "Arrival For",
-        },
-        description:
-          "Indicates the airport at which a flight arrives, including arrival-specific details.",
-        properties: [
-          { propertyType: gatePropertyType },
-          { propertyType: terminalPropertyType },
-          { propertyType: runwayPropertyType },
-          { propertyType: baggageClaimPropertyType },
-          { propertyType: delayInSecondsPropertyType },
-          { propertyType: scheduledGateTimePropertyType },
-          { propertyType: estimatedGateTimePropertyType },
-          { propertyType: actualGateTimePropertyType },
-          { propertyType: scheduledRunwayTimePropertyType },
-          { propertyType: estimatedRunwayTimePropertyType },
-          { propertyType: actualRunwayTimePropertyType },
-        ],
+  const arrivesAtLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Arrives At",
+      icon: "🛬",
+      inverse: {
+        title: "Arrival For",
       },
-      migrationState,
-      webShortname: "h",
+      description:
+        "Indicates the airport at which a flight arrives, including arrival-specific details.",
+      properties: [
+        { propertyType: gatePropertyType },
+        { propertyType: terminalPropertyType },
+        { propertyType: runwayPropertyType },
+        { propertyType: baggageClaimPropertyType },
+        { propertyType: delayInSecondsPropertyType },
+        { propertyType: scheduledGateTimePropertyType },
+        { propertyType: estimatedGateTimePropertyType },
+        { propertyType: actualGateTimePropertyType },
+        { propertyType: scheduledRunwayTimePropertyType },
+        { propertyType: estimatedRunwayTimePropertyType },
+        { propertyType: actualRunwayTimePropertyType },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const operatedByLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -930,91 +822,87 @@ const migrate: MigrationFunction = async ({
    * Step 4: Create the Flight entity type with links
    */
 
-  const _flightEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Flight",
-        titlePlural: "Flights",
-        icon: "✈️",
-        description: "A scheduled air transport service between two airports.",
-        labelProperty: flightNumberPropertyType.metadata.recordId.baseUrl,
-        properties: [
-          {
-            propertyType: flightNumberPropertyType,
-            required: true,
-          },
-          {
-            propertyType: iataCodePropertyType,
-          },
-          {
-            propertyType: icaoCodePropertyType,
-          },
-          {
-            propertyType: flightTypePropertyType,
-          },
-          {
-            propertyType: flightStatusPropertyType,
-          },
-          {
-            propertyType: flightDatePropertyType,
-          },
-          {
-            propertyType: codesharePropertyType,
-            array: true,
-          },
-          {
-            propertyType: latitudePropertyType,
-          },
-          {
-            propertyType: longitudePropertyType,
-          },
-          {
-            propertyType: altitudePropertyType,
-          },
-          {
-            propertyType: directionPropertyType,
-          },
-          {
-            propertyType: groundSpeedPropertyType,
-          },
-          {
-            propertyType: verticalSpeedPropertyType,
-          },
-          {
-            propertyType: isOnGroundPropertyType,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: departsFromLinkEntityType,
-            destinationEntityTypes: [airportEntityType.schema.$id],
-            minItems: 1,
-            maxItems: 1,
-          },
-          {
-            linkEntityType: arrivesAtLinkEntityType,
-            destinationEntityTypes: [airportEntityType.schema.$id],
-            minItems: 1,
-            maxItems: 1,
-          },
-          {
-            linkEntityType: operatedByLinkEntityType,
-            destinationEntityTypes: [airlineEntityType.schema.$id],
-            maxItems: 1,
-          },
-          {
-            linkEntityType: usesAircraftLinkEntityType,
-            destinationEntityTypes: [aircraftEntityType.schema.$id],
-            maxItems: 1,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const _flightEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Flight",
+      titlePlural: "Flights",
+      icon: "✈️",
+      description: "A scheduled air transport service between two airports.",
+      labelProperty: flightNumberPropertyType.metadata.recordId.baseUrl,
+      properties: [
+        {
+          propertyType: flightNumberPropertyType,
+          required: true,
+        },
+        {
+          propertyType: iataCodePropertyType,
+        },
+        {
+          propertyType: icaoCodePropertyType,
+        },
+        {
+          propertyType: flightTypePropertyType,
+        },
+        {
+          propertyType: flightStatusPropertyType,
+        },
+        {
+          propertyType: flightDatePropertyType,
+        },
+        {
+          propertyType: codesharePropertyType,
+          array: true,
+        },
+        {
+          propertyType: latitudePropertyType,
+        },
+        {
+          propertyType: longitudePropertyType,
+        },
+        {
+          propertyType: altitudePropertyType,
+        },
+        {
+          propertyType: directionPropertyType,
+        },
+        {
+          propertyType: groundSpeedPropertyType,
+        },
+        {
+          propertyType: verticalSpeedPropertyType,
+        },
+        {
+          propertyType: isOnGroundPropertyType,
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: departsFromLinkEntityType,
+          destinationEntityTypes: [airportEntityType.schema.$id],
+          minItems: 1,
+          maxItems: 1,
+        },
+        {
+          linkEntityType: arrivesAtLinkEntityType,
+          destinationEntityTypes: [airportEntityType.schema.$id],
+          minItems: 1,
+          maxItems: 1,
+        },
+        {
+          linkEntityType: operatedByLinkEntityType,
+          destinationEntityTypes: [airlineEntityType.schema.$id],
+          maxItems: 1,
+        },
+        {
+          linkEntityType: usesAircraftLinkEntityType,
+          destinationEntityTypes: [aircraftEntityType.schema.$id],
+          maxItems: 1,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   return migrationState;
 };

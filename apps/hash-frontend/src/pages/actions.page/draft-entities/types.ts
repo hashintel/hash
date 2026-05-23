@@ -8,7 +8,4 @@ type EntityTypeDisplayInfo = {
   version: OntologyTypeVersion;
 };
 
-export type EntityTypeDisplayInfoByBaseUrl = Record<
-  BaseUrl,
-  EntityTypeDisplayInfo
->;
+export type EntityTypeDisplayInfoByBaseUrl = Record<BaseUrl, EntityTypeDisplayInfo>;

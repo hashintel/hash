@@ -10,10 +10,7 @@ import { Button } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
 import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
-import {
-  gatherUiNodeValuesFromFlow,
-  oryKratosClient,
-} from "./shared/ory-kratos";
+import { gatherUiNodeValuesFromFlow, oryKratosClient } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 
 import type { NextPageWithLayout } from "../shared/layout";
@@ -22,8 +19,7 @@ import type { FormEventHandler } from "react";
 
 const extractFlowEmailValue = (flowToSearch: RecoveryFlow | undefined) => {
   const uiCode = flowToSearch?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "email",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "email",
   );
   if (uiCode?.attributes && "value" in uiCode.attributes) {
     return String(uiCode.attributes.value);
@@ -32,8 +28,7 @@ const extractFlowEmailValue = (flowToSearch: RecoveryFlow | undefined) => {
 
 const extractFlowCodeValue = (flowToSearch: RecoveryFlow | undefined) => {
   const uiCode = flowToSearch?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "code",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "code",
   );
   if (uiCode?.attributes && "value" in uiCode.attributes) {
     return String(uiCode.attributes.value);
@@ -87,9 +82,7 @@ const RecoveryPage: NextPageWithLayout = () => {
         setFlow(data);
 
         const initialEmail =
-          typeof router.query.email === "string"
-            ? router.query.email
-            : undefined;
+          typeof router.query.email === "string" ? router.query.email : undefined;
 
         setEmail(initialEmail ?? "");
         setCode("");
@@ -127,11 +120,7 @@ const RecoveryPage: NextPageWithLayout = () => {
         return;
       }
 
-      void router.replace(
-        `/recovery`,
-        { query: { flow: flow.id } },
-        { shallow: true },
-      );
+      void router.replace(`/recovery`, { query: { flow: flow.id } }, { shallow: true });
 
       const { csrf_token } = gatherUiNodeValuesFromFlow<"recovery">(flow);
 
@@ -158,23 +147,19 @@ const RecoveryPage: NextPageWithLayout = () => {
 
   const resetFlow = () => {
     // Remove the flow Id from the query params
-    void router
-      .replace(`/recovery`, { query: {} }, { shallow: true })
-      .then(() => {
-        setFlow(undefined);
-        setEmail("");
-        setCode("");
-      });
+    void router.replace(`/recovery`, { query: {} }, { shallow: true }).then(() => {
+      setFlow(undefined);
+      setEmail("");
+      setCode("");
+    });
   };
 
   const emailInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "email",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "email",
   );
 
   const codeInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "code",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "code",
   );
 
   const hasSubmittedEmail = flow && flow.state !== "choose_method";
@@ -205,9 +190,7 @@ const RecoveryPage: NextPageWithLayout = () => {
             placeholder="Enter your email address"
             value={email}
             onChange={({ target }) => setEmail(target.value)}
-            error={
-              !!emailInputUiNode?.messages.find(({ type }) => type === "error")
-            }
+            error={!!emailInputUiNode?.messages.find(({ type }) => type === "error")}
             helperText={emailInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
@@ -215,11 +198,7 @@ const RecoveryPage: NextPageWithLayout = () => {
             required
           />
           <Collapse in={!hasSubmittedEmail} sx={{ width: "100%" }}>
-            <Button
-              type="submit"
-              disabled={hasSubmittedEmail}
-              sx={{ width: "100%" }}
-            >
+            <Button type="submit" disabled={hasSubmittedEmail} sx={{ width: "100%" }}>
               Recover account
             </Button>
           </Collapse>
@@ -250,9 +229,7 @@ const RecoveryPage: NextPageWithLayout = () => {
                   submitCode(value);
                 }
               }}
-              error={
-                !!codeInputUiNode?.messages.find(({ type }) => type === "error")
-              }
+              error={!!codeInputUiNode?.messages.find(({ type }) => type === "error")}
               helperText={codeInputUiNode?.messages.map(({ id, text }) => (
                 <Typography key={id}>{text}</Typography>
               ))}

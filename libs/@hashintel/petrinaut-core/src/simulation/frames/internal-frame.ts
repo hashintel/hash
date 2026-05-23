@@ -169,31 +169,16 @@ function readHeader(frame: EngineFrame): EngineFrameHeader {
     transitionCount: view.getUint32(HeaderOffset.TransitionCount, true),
     tokenValueCount: view.getUint32(HeaderOffset.TokenValueCount, true),
     placeCountsOffset: view.getUint32(HeaderOffset.PlaceCountsOffset, true),
-    placeValueOffsetsOffset: view.getUint32(
-      HeaderOffset.PlaceValueOffsetsOffset,
-      true,
-    ),
-    transitionElapsedOffset: view.getUint32(
-      HeaderOffset.TransitionElapsedOffset,
-      true,
-    ),
-    transitionFiringCountsOffset: view.getUint32(
-      HeaderOffset.TransitionFiringCountsOffset,
-      true,
-    ),
-    transitionFiredFlagsOffset: view.getUint32(
-      HeaderOffset.TransitionFiredFlagsOffset,
-      true,
-    ),
+    placeValueOffsetsOffset: view.getUint32(HeaderOffset.PlaceValueOffsetsOffset, true),
+    transitionElapsedOffset: view.getUint32(HeaderOffset.TransitionElapsedOffset, true),
+    transitionFiringCountsOffset: view.getUint32(HeaderOffset.TransitionFiringCountsOffset, true),
+    transitionFiredFlagsOffset: view.getUint32(HeaderOffset.TransitionFiredFlagsOffset, true),
     tokenValuesOffset: view.getUint32(HeaderOffset.TokenValuesOffset, true),
     byteLength,
   };
 }
 
-function assertLayoutMatchesFrame(
-  layout: EngineFrameLayout,
-  header: EngineFrameHeader,
-): void {
+function assertLayoutMatchesFrame(layout: EngineFrameLayout, header: EngineFrameHeader): void {
   if (layout.placeIds.length !== header.placeCount) {
     throw new Error(
       `EngineFrame place count mismatch: layout has ${layout.placeIds.length}, frame has ${header.placeCount}`,
@@ -214,36 +199,16 @@ function writeHeader(buffer: ArrayBuffer, header: EngineFrameHeader): void {
   view.setUint32(HeaderOffset.PlaceCount, header.placeCount, true);
   view.setUint32(HeaderOffset.TransitionCount, header.transitionCount, true);
   view.setUint32(HeaderOffset.TokenValueCount, header.tokenValueCount, true);
-  view.setUint32(
-    HeaderOffset.PlaceCountsOffset,
-    header.placeCountsOffset,
-    true,
-  );
-  view.setUint32(
-    HeaderOffset.PlaceValueOffsetsOffset,
-    header.placeValueOffsetsOffset,
-    true,
-  );
-  view.setUint32(
-    HeaderOffset.TransitionElapsedOffset,
-    header.transitionElapsedOffset,
-    true,
-  );
+  view.setUint32(HeaderOffset.PlaceCountsOffset, header.placeCountsOffset, true);
+  view.setUint32(HeaderOffset.PlaceValueOffsetsOffset, header.placeValueOffsetsOffset, true);
+  view.setUint32(HeaderOffset.TransitionElapsedOffset, header.transitionElapsedOffset, true);
   view.setUint32(
     HeaderOffset.TransitionFiringCountsOffset,
     header.transitionFiringCountsOffset,
     true,
   );
-  view.setUint32(
-    HeaderOffset.TransitionFiredFlagsOffset,
-    header.transitionFiredFlagsOffset,
-    true,
-  );
-  view.setUint32(
-    HeaderOffset.TokenValuesOffset,
-    header.tokenValuesOffset,
-    true,
-  );
+  view.setUint32(HeaderOffset.TransitionFiredFlagsOffset, header.transitionFiredFlagsOffset, true);
+  view.setUint32(HeaderOffset.TokenValuesOffset, header.tokenValuesOffset, true);
   view.setUint32(HeaderOffset.ByteLength, header.byteLength, true);
 }
 
@@ -278,8 +243,7 @@ export function createEngineFrame(
   }
 
   const placeCountsOffset = HEADER_BYTES;
-  const placeValueOffsetsOffset =
-    placeCountsOffset + packedPlaceCounts.byteLength;
+  const placeValueOffsetsOffset = placeCountsOffset + packedPlaceCounts.byteLength;
   const transitionElapsedOffset = alignTo(
     placeValueOffsetsOffset + packedPlaceOffsets.byteLength,
     8,
@@ -287,14 +251,12 @@ export function createEngineFrame(
   const transitionFiringCountsOffset =
     transitionElapsedOffset + transitionCount * Float64Array.BYTES_PER_ELEMENT;
   const transitionFiredFlagsOffset =
-    transitionFiringCountsOffset +
-    transitionCount * Uint32Array.BYTES_PER_ELEMENT;
+    transitionFiringCountsOffset + transitionCount * Uint32Array.BYTES_PER_ELEMENT;
   const tokenValuesOffset = alignTo(
     transitionFiredFlagsOffset + transitionCount * Uint8Array.BYTES_PER_ELEMENT,
     8,
   );
-  const byteLength =
-    tokenValuesOffset + tokenValueCount * Float64Array.BYTES_PER_ELEMENT;
+  const byteLength = tokenValuesOffset + tokenValueCount * Float64Array.BYTES_PER_ELEMENT;
 
   const frame = new ArrayBuffer(byteLength);
   writeHeader(frame, {
@@ -311,25 +273,15 @@ export function createEngineFrame(
   });
 
   new Uint32Array(frame, placeCountsOffset, placeCount).set(packedPlaceCounts);
-  new Uint32Array(frame, placeValueOffsetsOffset, placeCount).set(
-    packedPlaceOffsets,
-  );
+  new Uint32Array(frame, placeValueOffsetsOffset, placeCount).set(packedPlaceOffsets);
 
-  const transitionElapsed = new Float64Array(
-    frame,
-    transitionElapsedOffset,
-    transitionCount,
-  );
+  const transitionElapsed = new Float64Array(frame, transitionElapsedOffset, transitionCount);
   const transitionFiringCounts = new Uint32Array(
     frame,
     transitionFiringCountsOffset,
     transitionCount,
   );
-  const transitionFiredFlags = new Uint8Array(
-    frame,
-    transitionFiredFlagsOffset,
-    transitionCount,
-  );
+  const transitionFiredFlags = new Uint8Array(frame, transitionFiredFlagsOffset, transitionCount);
 
   for (let index = 0; index < transitionCount; index++) {
     const transitionId = layout.transitionIds[index]!;
@@ -343,11 +295,7 @@ export function createEngineFrame(
     transitionFiredFlags[index] = transitionState.firedInThisFrame ? 1 : 0;
   }
 
-  const tokenValues = new Float64Array(
-    frame,
-    tokenValuesOffset,
-    tokenValueCount,
-  );
+  const tokenValues = new Float64Array(frame, tokenValuesOffset, tokenValueCount);
   for (let index = 0; index < placeCount; index++) {
     const placeId = layout.placeIds[index]!;
     const dimensions = layout.placeDimensions[index] ?? 0;
@@ -368,18 +316,11 @@ export function createEngineFrame(
   return frame;
 }
 
-export function readEngineFrame(
-  layout: EngineFrameLayout,
-  frame: EngineFrame,
-): EngineFrameView {
+export function readEngineFrame(layout: EngineFrameLayout, frame: EngineFrame): EngineFrameView {
   const header = readHeader(frame);
   assertLayoutMatchesFrame(layout, header);
 
-  const placeCounts = new Uint32Array(
-    frame,
-    header.placeCountsOffset,
-    header.placeCount,
-  );
+  const placeCounts = new Uint32Array(frame, header.placeCountsOffset, header.placeCount);
   const placeValueOffsets = new Uint32Array(
     frame,
     header.placeValueOffsetsOffset,
@@ -400,11 +341,7 @@ export function readEngineFrame(
     header.transitionFiredFlagsOffset,
     header.transitionCount,
   );
-  const tokenValues = new Float64Array(
-    frame,
-    header.tokenValuesOffset,
-    header.tokenValueCount,
-  );
+  const tokenValues = new Float64Array(frame, header.tokenValuesOffset, header.tokenValueCount);
 
   const getPlaceState = (placeId: ID): EngineFramePlaceState | null => {
     const index = layout.placeIndexById.get(placeId);
@@ -419,9 +356,7 @@ export function readEngineFrame(
     };
   };
 
-  const getTransitionState = (
-    transitionId: ID,
-  ): SimulationTransitionState | null => {
+  const getTransitionState = (transitionId: ID): SimulationTransitionState | null => {
     const index = layout.transitionIndexById.get(transitionId);
     if (index === undefined) {
       return null;
@@ -438,10 +373,7 @@ export function readEngineFrame(
     layout.placeIds.map((placeId) => [placeId, getPlaceState(placeId)!]);
 
   const getTransitionEntries = (): [ID, SimulationTransitionState][] =>
-    layout.transitionIds.map((transitionId) => [
-      transitionId,
-      getTransitionState(transitionId)!,
-    ]);
+    layout.transitionIds.map((transitionId) => [transitionId, getTransitionState(transitionId)!]);
 
   return {
     tokenValues,

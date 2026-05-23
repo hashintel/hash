@@ -26,10 +26,7 @@ export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
 export const LEFT_SIDEBAR_TREE_SUBVIEWS: SubView[] = [entitiesTreeSubView];
 
 // Base subviews always visible in the bottom panel
-export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
-  diagnosticsSubView,
-  simulationSettingsSubView,
-];
+export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [diagnosticsSubView, simulationSettingsSubView];
 
 // Subviews only visible when simulation is running/paused
 export const SIMULATION_ONLY_SUBVIEWS: SubView[] = [simulationTimelineSubView];

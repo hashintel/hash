@@ -7,10 +7,7 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stripHashFromUrl } from "../shared/are-urls-equal.js";
 
-import type {
-  LlmParams,
-  LlmToolDefinition,
-} from "../../../shared/get-llm-response/types.js";
+import type { LlmParams, LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 
 export type Link = {
   url: string;
@@ -134,27 +131,16 @@ export const chooseRelevantLinksFromContent = async (params: {
     systemPrompt?: string;
   };
 }) => {
-  const {
-    content: unfilteredContent,
-    contentUrl,
-    contentType,
-    goal,
-    testingParams,
-  } = params;
+  const { content: unfilteredContent, contentUrl, contentType, goal, testingParams } = params;
 
-  const { userAuthentication, webId, flowEntityId, stepId } =
-    await getFlowContext();
+  const { userAuthentication, webId, flowEntityId, stepId } = await getFlowContext();
 
   const content =
-    contentType === "text"
-      ? unfilteredContent
-      : extractLinksFromHtml(unfilteredContent);
+    contentType === "text" ? unfilteredContent : extractLinksFromHtml(unfilteredContent);
 
   const response = await getLlmResponse(
     {
-      systemPrompt:
-        testingParams?.systemPrompt ??
-        chooseRelevantLinksFromContentSystemPrompt,
+      systemPrompt: testingParams?.systemPrompt ?? chooseRelevantLinksFromContentSystemPrompt,
       messages: [
         {
           role: "user",

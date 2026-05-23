@@ -6,12 +6,7 @@
   [
     "let",
     "x",
-    [
-      "if",
-      ["<=", { "#literal": 1 }, { "#literal": 2 }],
-      { "#literal": 100 },
-      { "#literal": 100 }
-    ],
+    ["if", ["<=", { "#literal": 1 }, { "#literal": 2 }], { "#literal": 100 }, { "#literal": 100 }],
     ["let", "wrapped", { "#tuple": ["x"] }, "wrapped.0"]
   ],
   { "#literal": 0 }

@@ -56,10 +56,9 @@ export const useOrgsWithLinks = ({
                   },
                 ]
               : []),
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.organization.entityTypeId,
-              { ignoreParents: true },
-            ),
+            generateVersionedUrlMatchingFilter(systemEntityTypes.organization.entityTypeId, {
+              ignoreParents: true,
+            }),
           ],
         },
         traversalPaths: [
@@ -110,9 +109,7 @@ export const useOrgsWithLinks = ({
       return undefined;
     }
 
-    const subgraph = deserializeQueryEntitySubgraphResponse(
-      queryEntitySubgraphResponse,
-    ).subgraph;
+    const subgraph = deserializeQueryEntitySubgraphResponse(queryEntitySubgraphResponse).subgraph;
 
     return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {

@@ -5,10 +5,7 @@ import { useCallback, useMemo } from "react";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 
-import {
-  constructMinimalUser,
-  isEntityUserEntity,
-} from "../../../lib/user-and-org";
+import { constructMinimalUser, isEntityUserEntity } from "../../../lib/user-and-org";
 import { Link } from "../../../shared/ui";
 import { useUserOrOrg } from "../../../shared/use-user-or-org";
 import { SettingsPageContainer } from "../../settings/shared/settings-page-container";
@@ -21,9 +18,7 @@ import type { ActorEntityUuid } from "@blockprotocol/type-system";
 const AdminUserPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const userEntityUuid = router.query["user-entity-uuid"] as
-    | ActorEntityUuid
-    | undefined;
+  const userEntityUuid = router.query["user-entity-uuid"] as ActorEntityUuid | undefined;
 
   const { userOrOrg, refetch, loading } = useUserOrOrg({
     accountOrAccountGroupId: userEntityUuid,
@@ -47,9 +42,7 @@ const AdminUserPage: NextPageWithLayout = () => {
     );
 
     if (!rootEntity || !isEntityUserEntity(rootEntity)) {
-      throw new Error(
-        "The refetched user entity subgraph does not contain the user entity.",
-      );
+      throw new Error("The refetched user entity subgraph does not contain the user entity.");
     }
 
     return constructMinimalUser({ userEntity: rootEntity });

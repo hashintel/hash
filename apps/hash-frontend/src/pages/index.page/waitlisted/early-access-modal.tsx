@@ -91,20 +91,12 @@ const Input = ({
       }}
     >
       {label}
-      <Box
-        component="span"
-        sx={{ color: ({ palette }) => palette.blue[70], ml: 0.5 }}
-      >
+      <Box component="span" sx={{ color: ({ palette }) => palette.blue[70], ml: 0.5 }}>
         *
       </Box>
       <Box>
         {url ? (
-          <UrlInput
-            autoFocus
-            onChange={onChange}
-            placeholder={placeholder}
-            value={value}
-          />
+          <UrlInput autoFocus onChange={onChange} placeholder={placeholder} value={value} />
         ) : options ? (
           <Select
             value={value}
@@ -151,28 +143,23 @@ type EarlyAccessFormModalProps = {
   onSubmit: (properties: ProspectiveUserProperties) => Promise<void>;
 };
 
-export const EarlyAccessFormModal = ({
-  open,
-  onClose,
-  onSubmit,
-}: EarlyAccessFormModalProps) => {
+export const EarlyAccessFormModal = ({ open, onClose, onSubmit }: EarlyAccessFormModalProps) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [urlError, setUrlError] = useState("");
 
-  const [formState, setFormState] = useState<Record<keyof FormFields, string>>(
-    () =>
-      typedKeys(formFields).reduce(
-        (acc, key) => {
-          if (key === "https://hash.ai/@h/types/property-type/email/") {
-            acc[key] = authenticatedUser.emails[0]!.address;
-          } else {
-            acc[key] = "";
-          }
-          return acc;
-        },
-        {} as Record<keyof FormFields, string>,
-      ),
+  const [formState, setFormState] = useState<Record<keyof FormFields, string>>(() =>
+    typedKeys(formFields).reduce(
+      (acc, key) => {
+        if (key === "https://hash.ai/@h/types/property-type/email/") {
+          acc[key] = authenticatedUser.emails[0]!.address;
+        } else {
+          acc[key] = "";
+        }
+        return acc;
+      },
+      {} as Record<keyof FormFields, string>,
+    ),
   );
 
   const [pending, setPending] = useState(false);
@@ -181,9 +168,7 @@ export const EarlyAccessFormModal = ({
     event.preventDefault();
 
     try {
-      void new URL(
-        formState["https://hash.ai/@h/types/property-type/website-url/"],
-      );
+      void new URL(formState["https://hash.ai/@h/types/property-type/website-url/"]);
     } catch {
       setUrlError("Please enter a valid URL.");
       return;
@@ -194,9 +179,7 @@ export const EarlyAccessFormModal = ({
     await onSubmit(formState);
   };
 
-  const allValuesPresent = Object.values(formState).every(
-    (value) => value.trim().length > 0,
-  );
+  const allValuesPresent = Object.values(formState).every((value) => value.trim().length > 0);
 
   return (
     <Modal
@@ -211,9 +194,7 @@ export const EarlyAccessFormModal = ({
             <Input
               key={key}
               error={
-                key === "https://hash.ai/@h/types/property-type/website-url/"
-                  ? urlError
-                  : undefined
+                key === "https://hash.ai/@h/types/property-type/website-url/" ? urlError : undefined
               }
               {...metadata}
               onChange={(value) =>
@@ -227,20 +208,10 @@ export const EarlyAccessFormModal = ({
           );
         })}
         <Stack direction="row" mt={3} mb={2}>
-          <Button
-            disabled={!allValuesPresent || pending}
-            size="small"
-            type="submit"
-          >
+          <Button disabled={!allValuesPresent || pending} size="small" type="submit">
             {pending ? "Submitting..." : "Submit answers"}
           </Button>
-          <Button
-            size="small"
-            onClick={onClose}
-            sx={{ ml: 1.5 }}
-            type="button"
-            variant="tertiary"
-          >
+          <Button size="small" onClick={onClose} sx={{ ml: 1.5 }} type="button" variant="tertiary">
             Discard
           </Button>
         </Stack>

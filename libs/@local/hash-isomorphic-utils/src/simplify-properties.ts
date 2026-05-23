@@ -31,10 +31,7 @@ type BeforeTrailingLast<
  * An entity properties object where the baseUrl keys have been replaced by the last segment of the URL, camelCased
  */
 export type SimpleProperties<Properties extends PropertyObject> = {
-  [Key in keyof Properties as BeforeTrailingLast<
-    Extract<Key, string>,
-    "/"
-  >]: Properties[Key];
+  [Key in keyof Properties as BeforeTrailingLast<Extract<Key, string>, "/">]: Properties[Key];
 };
 
 export type Simplified<T extends HashEntity | BpEntity> = {

@@ -8,9 +8,11 @@ interface CollabPositionIndicatorProps {
   children?: ReactNode;
 }
 
-export const CollabPositionIndicator: FunctionComponent<
-  CollabPositionIndicatorProps
-> = ({ backgroundColor, title, children }) => (
+export const CollabPositionIndicator: FunctionComponent<CollabPositionIndicatorProps> = ({
+  backgroundColor,
+  title,
+  children,
+}) => (
   <motion.div
     initial={{
       opacity: 0,

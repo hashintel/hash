@@ -4,28 +4,20 @@ import { createSystemDataTypeIfNotExists } from "../util";
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
-  const currencyDataTypes = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        abstract: true,
-        title: "Currency",
-        description:
-          "A system of money in common use within a specific environment over time, especially for people in a nation state.",
-        type: "number",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
+  const currencyDataTypes = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      abstract: true,
+      title: "Currency",
+      description:
+        "A system of money in common use within a specific environment over time, especially for people in a nation state.",
+      type: "number",
     },
-  );
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {

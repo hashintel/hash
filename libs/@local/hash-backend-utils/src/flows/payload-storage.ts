@@ -22,10 +22,7 @@ export const getStorageProvider = (): FileStorageProvider => {
   return _storageProvider;
 };
 
-export type StorePayloadParams<
-  K extends StoredPayloadKind,
-  IsArray extends boolean,
-> = {
+export type StorePayloadParams<K extends StoredPayloadKind, IsArray extends boolean> = {
   storageProvider: FileStorageProvider;
   workflowId: string;
   runId: string;
@@ -54,15 +51,7 @@ export const storePayload = async <
   kind: K;
   value: V;
 }): Promise<StoredPayloadRef<K, V extends unknown[] ? true : false>> => {
-  const {
-    storageProvider,
-    workflowId,
-    runId,
-    stepId,
-    outputName,
-    kind,
-    value,
-  } = params;
+  const { storageProvider, workflowId, runId, stepId, outputName, kind, value } = params;
 
   const storageKey = storageProvider.getFlowOutputStorageKey({
     workflowId,
@@ -91,15 +80,10 @@ export const storePayload = async <
 /**
  * Retrieve a payload from S3 using a stored reference.
  */
-export const retrievePayload = async <
-  K extends StoredPayloadKind,
-  IsArray extends boolean,
->(
+export const retrievePayload = async <K extends StoredPayloadKind, IsArray extends boolean>(
   storageProvider: FileStorageProvider,
   ref: StoredPayloadRef<K, IsArray>,
-): Promise<
-  IsArray extends true ? PayloadKindValues[K][] : PayloadKindValues[K]
-> => {
+): Promise<IsArray extends true ? PayloadKindValues[K][] : PayloadKindValues[K]> => {
   const buffer = await storageProvider.downloadDirect({ key: ref.storageKey });
   const data = JSON.parse(buffer.toString("utf-8")) as IsArray extends true
     ? PayloadKindValues[K][]
@@ -116,15 +100,10 @@ export const retrievePayload = async <
  *
  * @param _kind - The payload kind, used for type inference at call sites
  */
-export const resolvePayloadValue = async <
-  K extends StoredPayloadKind,
-  IsArray extends boolean,
->(
+export const resolvePayloadValue = async <K extends StoredPayloadKind, IsArray extends boolean>(
   storageProvider: FileStorageProvider,
   _kind: K,
   ref: StoredPayloadRef<K, IsArray>,
-): Promise<
-  IsArray extends true ? PayloadKindValues[K][] : PayloadKindValues[K]
-> => {
+): Promise<IsArray extends true ? PayloadKindValues[K][] : PayloadKindValues[K]> => {
   return retrievePayload(storageProvider, ref);
 };

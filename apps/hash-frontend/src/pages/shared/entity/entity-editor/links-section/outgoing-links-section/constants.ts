@@ -20,8 +20,4 @@ export const linkGridColumns: LinkColumn[] = [
   },
 ];
 
-export const linkGridIndexes: LinkColumnKey[] = [
-  "linkTitle",
-  "linkedWith",
-  "expectedEntityTypes",
-];
+export const linkGridIndexes: LinkColumnKey[] = ["linkTitle", "linkedWith", "expectedEntityTypes"];

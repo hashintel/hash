@@ -20,10 +20,7 @@ export const SidebarMenuItem = ({
   icon: IconDefinition | ReactElement;
   faded?: boolean;
   popupState: PopupState;
-} & (
-  | { href: string; onClick?: null }
-  | { href?: null; onClick: () => void }
-)) => {
+} & ({ href: string; onClick?: null } | { href?: null; onClick: () => void })) => {
   return (
     <MenuItem
       {...(href ? { href } : {})}
@@ -37,9 +34,7 @@ export const SidebarMenuItem = ({
         },
       }}
     >
-      <ListItemIcon>
-        {"icon" in icon ? <FontAwesomeIcon icon={icon} /> : icon}
-      </ListItemIcon>
+      <ListItemIcon>{"icon" in icon ? <FontAwesomeIcon icon={icon} /> : icon}</ListItemIcon>
       <ListItemText primary={title} />
     </MenuItem>
   );

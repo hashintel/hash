@@ -26,16 +26,13 @@ export const sanitizeInputBeforeValidation = (params: {
     "properties" in params.input &&
     typeof params.input.properties === "object" &&
     params.input.properties !== null &&
-    !Object.keys(toolDefinition.inputSchema.properties ?? {}).includes(
-      "properties",
-    )
+    !Object.keys(toolDefinition.inputSchema.properties ?? {}).includes("properties")
       ? params.input.properties
       : params.input;
 
   if (toolDefinition.sanitizeInputBeforeValidation) {
     try {
-      const sanitizedInput =
-        toolDefinition.sanitizeInputBeforeValidation(input);
+      const sanitizedInput = toolDefinition.sanitizeInputBeforeValidation(input);
 
       return sanitizedInput;
     } catch {
@@ -45,9 +42,7 @@ export const sanitizeInputBeforeValidation = (params: {
        * input. In this case, we can proceed to the JSON Schema validation
        * step which should produce a more informative error message for the LLM.
        */
-      logger.error(
-        `Error sanitizing input before validation: ${stringify(input)}`,
-      );
+      logger.error(`Error sanitizing input before validation: ${stringify(input)}`);
     }
   }
 
@@ -69,9 +64,7 @@ const getValidator = () => {
   return _ajv;
 };
 
-const applyAdditionalPropertiesFalseToSchema = (params: {
-  schema: JSONSchema;
-}): JSONSchema => {
+const applyAdditionalPropertiesFalseToSchema = (params: { schema: JSONSchema }): JSONSchema => {
   const { schema } = params;
 
   if (typeof schema !== "object") {

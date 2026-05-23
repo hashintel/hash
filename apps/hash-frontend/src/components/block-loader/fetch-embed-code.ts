@@ -2,10 +2,7 @@ import { apiGraphQLEndpoint } from "@local/hash-isomorphic-utils/environment";
 
 import type { JsonObject } from "@blockprotocol/core";
 
-export type FetchEmbedCodeFn = (
-  url: string,
-  type?: string,
-) => Promise<JsonObject>;
+export type FetchEmbedCodeFn = (url: string, type?: string) => Promise<JsonObject>;
 
 export const fetchEmbedCode: FetchEmbedCodeFn = (url, type?) => {
   return fetch(apiGraphQLEndpoint, {

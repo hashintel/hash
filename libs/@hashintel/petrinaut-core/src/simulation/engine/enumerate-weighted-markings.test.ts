@@ -207,9 +207,7 @@ describe("enumerateWeightedMarkingIndicesGenerator", () => {
   });
 
   it("yields nothing when a weight exceeds the token count", () => {
-    const iterator = enumerateWeightedMarkingIndicesGenerator([
-      { count: 2, weight: 3 },
-    ]);
+    const iterator = enumerateWeightedMarkingIndicesGenerator([{ count: 2, weight: 3 }]);
     expect(Array.from(iterator)).toEqual([]);
   });
 

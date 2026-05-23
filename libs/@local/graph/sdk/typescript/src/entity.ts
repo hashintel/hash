@@ -100,16 +100,12 @@ import type {
   QueryEntitySubgraphResponse as QueryEntitySubgraphResponseGraphApi,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
-import type {
-  CreateEntityPolicyParams,
-  EntityPermissions,
-} from "@rust/hash-graph-store/types";
+import type { CreateEntityPolicyParams, EntityPermissions } from "@rust/hash-graph-store/types";
 import type { Client as TemporalClient } from "@temporalio/client";
 
-export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
-  T & {
-    [K in keyof T as Brand<K, "BaseUrl">]: T[K];
-  };
+export type BrandedPropertyObject<T extends Record<string, PropertyValue>> = T & {
+  [K in keyof T as Brand<K, "BaseUrl">]: T[K];
+};
 
 // Helper function to create branded objects
 export const brandPropertyObject = <T extends Record<string, PropertyValue>>(
@@ -131,8 +127,7 @@ export type SerializedKnowledgeGraphVertices = {
   };
 };
 
-export type SerializedVertices = OntologyVertices &
-  SerializedKnowledgeGraphVertices;
+export type SerializedVertices = OntologyVertices & SerializedKnowledgeGraphVertices;
 
 export type SerializedEntityRootType = {
   vertexId: EntityVertexId;
@@ -167,12 +162,7 @@ export type CreateEntityParameters<
   T extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = Omit<
   GraphApiCreateEntityParams,
-  | "decisionTime"
-  | "entityTypeIds"
-  | "draft"
-  | "properties"
-  | "provenance"
-  | "policies"
+  "decisionTime" | "entityTypeIds" | "draft" | "properties" | "provenance" | "policies"
 > & {
   webId: WebId;
   properties: T["propertiesWithMetadata"];
@@ -220,18 +210,14 @@ export type ConversionRequest = {
   dataTypeId: VersionedUrl;
 };
 
-export type QueryEntitiesRequest = DistributiveOmit<
-  QueryEntitiesRequestGraphApi,
-  "conversions"
-> & {
+export type QueryEntitiesRequest = DistributiveOmit<QueryEntitiesRequestGraphApi, "conversions"> & {
   conversions?: ConversionRequest[];
 };
 
 export type EntityPermissionsMap = Record<EntityId, EntityPermissions>;
 
 export type QueryEntitiesResponse<
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitiesResponseGraphApi,
   | "entities"
@@ -256,8 +242,7 @@ export type QueryEntitiesResponse<
 };
 
 export type SerializedQueryEntitiesResponse<
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = DistributiveReplaceProperties<
   QueryEntitiesResponse<PropertyMap>,
   {
@@ -275,8 +260,7 @@ export type QueryEntitySubgraphRequest = ExclusiveUnion<
 >;
 
 export type QueryEntitySubgraphResponse<
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = DistributiveOmit<
   QueryEntitySubgraphResponseGraphApi,
   | "subgraph"
@@ -312,8 +296,7 @@ export type SerializedQueryEntitySubgraphResponse = DistributiveOmit<
  * @param params.query the structural query to filter entities by.
  */
 export const queryEntitySubgraph = async <
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 >(
   context: { graphApi: GraphApi; temporalClient?: TemporalClient },
   authentication: AuthenticationContext,
@@ -341,8 +324,7 @@ export const queryEntitySubgraph = async <
           // @ts-expect-error - The subgraph vertices are entity vertices so `Timestamp` is the correct type to get
           //                    the latest revision
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata)
-            .archived &&
+          (editionMap[latestEditionTimestamp].inner.metadata as EntityMetadata).archived &&
           // if the vertex is in the roots of the query, then it is intentionally included
           !subgraph.roots.find((root) => root.baseId === entityId)
         ) {
@@ -364,19 +346,13 @@ export const queryEntitySubgraph = async <
             )
           : undefined,
         webIds: response.webIds as Record<WebId, number> | undefined,
-        createdByIds: response.createdByIds as
-          | Record<ActorEntityUuid, number>
-          | undefined,
+        createdByIds: response.createdByIds as Record<ActorEntityUuid, number> | undefined,
         editionCreatedByIds: response.editionCreatedByIds as
           | Record<ActorEntityUuid, number>
           | undefined,
         typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
-        typeTitles: response.typeTitles as
-          | Record<VersionedUrl, string>
-          | undefined,
-        entityPermissions: response.entityPermissions as
-          | EntityPermissionsMap
-          | undefined,
+        typeTitles: response.typeTitles as Record<VersionedUrl, string> | undefined,
+        entityPermissions: response.entityPermissions as EntityPermissionsMap | undefined,
       };
     });
 };
@@ -394,8 +370,7 @@ export const serializeQueryEntitySubgraphResponse = (
 });
 
 export const deserializeQueryEntitySubgraphResponse = <
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 >(
   response: SerializedQueryEntitySubgraphResponse,
 ): QueryEntitySubgraphResponse<PropertyMap> => ({
@@ -408,9 +383,7 @@ export const deserializeQueryEntitySubgraphResponse = <
   },
 });
 
-const typeId: unique symbol = Symbol.for(
-  "@local/hash-graph-sdk/entity/SerializedEntity",
-);
+const typeId: unique symbol = Symbol.for("@local/hash-graph-sdk/entity/SerializedEntity");
 type TypeId = typeof typeId;
 
 export interface SerializedEntity<
@@ -421,18 +394,14 @@ export interface SerializedEntity<
   [typeId]: TypeId;
 }
 
-type EntityData<
-  Properties extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
-> = {
-  metadata: EntityMetadata<Properties["entityTypeIds"]>;
-  properties: Properties["properties"];
-  linkData?: LinkData;
-};
+type EntityData<Properties extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity> =
+  {
+    metadata: EntityMetadata<Properties["entityTypeIds"]>;
+    properties: Properties["properties"];
+    linkData?: LinkData;
+  };
 
-type EntityInput<Properties extends PropertyObject> =
-  | GraphApiEntity
-  | SerializedEntity<Properties>;
+type EntityInput<Properties extends PropertyObject> = GraphApiEntity | SerializedEntity<Properties>;
 
 export const propertyObjectToPatches = (
   object: PropertyObjectWithMetadata,
@@ -467,10 +436,7 @@ export const patchesFromPropertyObjects = ({
   const patches: PropertyPatchOperation[] = [];
 
   for (const [key, property] of typedEntries(newProperties.value)) {
-    if (
-      typeof oldProperties[key] !== "undefined" &&
-      oldProperties[key] !== property.value
-    ) {
+    if (typeof oldProperties[key] !== "undefined" && oldProperties[key] !== property.value) {
       patches.push({
         op: "replace",
         path: [key],
@@ -523,17 +489,11 @@ export const patchesFromPropertyObjects = ({
  * both a generic and as an argument, and (2) the propertyPatches provided each time. Unimplemented TS proposal partial
  * type argument inference would solve (1) but not (2).
  */
-export const getDefinedPropertyFromPatchesGetter = <
-  Properties extends PropertyObject,
->(
+export const getDefinedPropertyFromPatchesGetter = <Properties extends PropertyObject>(
   propertyPatches: PropertyPatchOperation[],
 ) => {
-  return <Key extends keyof Properties>(
-    baseUrl: Key,
-  ): Properties[Key] | undefined => {
-    const foundPatch = propertyPatches.find(
-      (patch) => patch.path[0] === baseUrl,
-    );
+  return <Key extends keyof Properties>(baseUrl: Key): Properties[Key] | undefined => {
+    const foundPatch = propertyPatches.find((patch) => patch.path[0] === baseUrl);
 
     if (!foundPatch || foundPatch.op === "remove") {
       return;
@@ -541,11 +501,7 @@ export const getDefinedPropertyFromPatchesGetter = <
 
     if (Array.isArray(foundPatch.property.value)) {
       return foundPatch.property.value.map((arrayEntry) => {
-        if (
-          typeof arrayEntry === "object" &&
-          arrayEntry !== null &&
-          "value" in arrayEntry
-        ) {
+        if (typeof arrayEntry === "object" && arrayEntry !== null && "value" in arrayEntry) {
           return arrayEntry.value;
         }
 
@@ -570,9 +526,7 @@ export const isValueRemovedByPatches = <Properties extends PropertyObject>({
   baseUrl: keyof Properties;
   propertyPatches: PropertyPatchOperation[];
 }): boolean => {
-  return propertyPatches.some(
-    (patch) => patch.op === "remove" && patch.path[0] === baseUrl,
-  );
+  return propertyPatches.some((patch) => patch.op === "remove" && patch.path[0] === baseUrl);
 };
 
 /**
@@ -588,9 +542,7 @@ export const mergePropertiesAndMetadata = (
   if (Array.isArray(property)) {
     if (!metadata) {
       return {
-        value: property.map((element) =>
-          mergePropertiesAndMetadata(element, undefined),
-        ),
+        value: property.map((element) => mergePropertiesAndMetadata(element, undefined)),
         metadata: undefined,
       } satisfies PropertyArrayWithMetadata;
     }
@@ -658,17 +610,10 @@ export const mergePropertiesAndMetadata = (
             .map(([key, value]) => {
               if (!isBaseUrl(key)) {
                 throw new Error(
-                  `Expected property key to be a base URL, but got ${JSON.stringify(
-                    key,
-                    null,
-                    2,
-                  )}`,
+                  `Expected property key to be a base URL, but got ${JSON.stringify(key, null, 2)}`,
                 );
               }
-              return [
-                key,
-                mergePropertiesAndMetadata(value, metadata.value[key]),
-              ];
+              return [key, mergePropertiesAndMetadata(value, metadata.value[key])];
             }),
         ),
         metadata: metadata.metadata,
@@ -730,9 +675,7 @@ export const mergePropertiesAndMetadata = (
  * Merge a property object with property metadata
  * – this creates the format the Graph API requires for create and validate calls.
  */
-export const mergePropertyObjectAndMetadata = <
-  T extends TypeIdsAndPropertiesForEntity,
->(
+export const mergePropertyObjectAndMetadata = <T extends TypeIdsAndPropertiesForEntity>(
   property: T["properties"],
   metadata?: PropertyObjectMetadata,
 ): T["propertiesWithMetadata"] => {
@@ -744,11 +687,7 @@ export const mergePropertyObjectAndMetadata = <
         .map(([key, value]) => {
           if (!isBaseUrl(key)) {
             throw new Error(
-              `Expected property key to be a base URL, but got ${JSON.stringify(
-                key,
-                null,
-                2,
-              )}`,
+              `Expected property key to be a base URL, but got ${JSON.stringify(key, null, 2)}`,
             );
           }
           return [key, mergePropertiesAndMetadata(value, metadata?.value[key])];
@@ -769,10 +708,7 @@ export const flattenPropertyMetadata = (
     metadata: Required<PropertyMetadata>["metadata"];
   }[] = [];
 
-  const visitElement = (
-    path: PropertyPath,
-    element: PropertyMetadata,
-  ): void => {
+  const visitElement = (path: PropertyPath, element: PropertyMetadata): void => {
     if ("value" in element) {
       if (Array.isArray(element.value)) {
         for (const [index, value] of element.value.entries()) {
@@ -799,9 +735,7 @@ export const flattenPropertyMetadata = (
 };
 
 export const getDisplayFieldsForClosedEntityType = (
-  closedType:
-    | Pick<ClosedMultiEntityType, "allOf">
-    | Pick<ClosedEntityType, "allOf" | "$id">,
+  closedType: Pick<ClosedMultiEntityType, "allOf"> | Pick<ClosedEntityType, "allOf" | "$id">,
 ) => {
   let foundLabelProperty = undefined;
   let foundIcon = undefined;
@@ -820,9 +754,7 @@ export const getDisplayFieldsForClosedEntityType = (
          * which would process the entire inheritance chain of each type in the multi-type before moving to the next
          * one.
          */
-        closedType.allOf
-          .flatMap((type) => type.allOf)
-          .sort((a, b) => a.depth - b.depth);
+        closedType.allOf.flatMap((type) => type.allOf).sort((a, b) => a.depth - b.depth);
 
   for (const { icon, labelProperty, $id } of breadthFirstArray) {
     if (!foundIcon && icon) {
@@ -859,9 +791,7 @@ export const isClosedMultiEntityTypeForEntityTypeIds = (
   closedMultiEntityType: ClosedMultiEntityType,
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
 ) => {
-  const entityTypeIdsSet = new Set(
-    entityTypeIds.map((entityTypeId) => entityTypeId),
-  );
+  const entityTypeIdsSet = new Set(entityTypeIds.map((entityTypeId) => entityTypeId));
   const closedMultiEntityTypeIdsSet = new Set(
     closedMultiEntityType.allOf.map((entityType) => entityType.$id),
   );
@@ -890,9 +820,7 @@ export const getPropertyTypeForClosedMultiEntityType = (
   const schema = closedMultiEntityType.properties[propertyTypeBaseUrl];
 
   if (!schema) {
-    throw new Error(
-      `Expected ${propertyTypeBaseUrl} to appear in closed entity type properties`,
-    );
+    throw new Error(`Expected ${propertyTypeBaseUrl} to appear in closed entity type properties`);
   }
 
   const propertyTypeId = "items" in schema ? schema.items.$ref : schema.$ref;
@@ -900,9 +828,7 @@ export const getPropertyTypeForClosedMultiEntityType = (
   const propertyType = definitions.propertyTypes[propertyTypeId];
 
   if (!propertyType) {
-    throw new Error(
-      `Expected ${propertyTypeId} to appear in definitions.propertyTypes`,
-    );
+    throw new Error(`Expected ${propertyTypeId} to appear in definitions.propertyTypes`);
   }
 
   return propertyType;
@@ -953,24 +879,17 @@ export const getClosedMultiEntityTypeFromMap = (
   const unMappedFirstEntityType = closedMultiEntityTypes[firstEntityTypeId];
 
   if (!unMappedFirstEntityType) {
-    throw new Error(
-      `Could not find closed entity type for id ${firstEntityTypeId} in map`,
-    );
+    throw new Error(`Could not find closed entity type for id ${firstEntityTypeId} in map`);
   }
 
-  const unmappedClosedEntityType = restEntityTypesIds.reduce(
-    (map, entityTypeId) => {
-      const nextEntityType = map.inner?.[entityTypeId];
-      if (!nextEntityType) {
-        throw new Error(
-          `Could not find closed entity type for id ${entityTypeId} in map`,
-        );
-      }
+  const unmappedClosedEntityType = restEntityTypesIds.reduce((map, entityTypeId) => {
+    const nextEntityType = map.inner?.[entityTypeId];
+    if (!nextEntityType) {
+      throw new Error(`Could not find closed entity type for id ${entityTypeId} in map`);
+    }
 
-      return nextEntityType;
-    },
-    unMappedFirstEntityType,
-  );
+    return nextEntityType;
+  }, unMappedFirstEntityType);
 
   return unmappedClosedEntityType.schema as ClosedMultiEntityType;
 };
@@ -987,9 +906,7 @@ export const getPropertyTypeForClosedEntityType = ({
   const schema = closedMultiEntityType.properties[propertyTypeBaseUrl];
 
   if (!schema) {
-    throw new Error(
-      `Expected ${propertyTypeBaseUrl} to appear in entity properties`,
-    );
+    throw new Error(`Expected ${propertyTypeBaseUrl} to appear in entity properties`);
   }
 
   const propertyTypeId = "items" in schema ? schema.items.$ref : schema.$ref;
@@ -997,9 +914,7 @@ export const getPropertyTypeForClosedEntityType = ({
   const propertyType = definitions.propertyTypes[propertyTypeId];
 
   if (!propertyType) {
-    throw new Error(
-      `Expected ${propertyTypeId} to appear in definitions.propertyTypes`,
-    );
+    throw new Error(`Expected ${propertyTypeId} to appear in definitions.propertyTypes`);
   }
 
   return {
@@ -1114,8 +1029,7 @@ export const generateChangedPropertyMetadataObject = (
 };
 
 export class HashEntity<
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > implements Entity<PropertyMap> {
   #entity: EntityData<PropertyMap>;
 
@@ -1128,9 +1042,7 @@ export class HashEntity<
     authentication: AuthenticationContext,
     params: CreateEntityParameters<T>,
   ): Promise<HashEntity<T>> {
-    return (
-      await HashEntity.createMultiple<[T]>(graphAPI, authentication, [params])
-    )[0];
+    return (await HashEntity.createMultiple<[T]>(graphAPI, authentication, [params]))[0];
   }
 
   public static async createMultiple<T extends TypeIdsAndPropertiesForEntity[]>(
@@ -1198,9 +1110,7 @@ export class HashEntity<
         for (const patch of propertyPatches) {
           const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
           if (targetBaseUrl === undefined) {
-            throw new Error(
-              "Cannot replace the entire property object on a user entity",
-            );
+            throw new Error("Cannot replace the entire property object on a user entity");
           }
 
           if (
@@ -1252,9 +1162,7 @@ export class HashEntity<
         for (const patch of propertyPatches) {
           const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
           if (targetBaseUrl === undefined) {
-            throw new Error(
-              "Cannot replace the entire property object on an organization",
-            );
+            throw new Error("Cannot replace the entire property object on an organization");
           }
 
           if (patch.path[0] === shortnamePropertyBaseUrl) {
@@ -1380,9 +1288,7 @@ export class HashEntity<
     path: PropertyPath;
     metadata: PropertyMetadata["metadata"];
   }[] {
-    return flattenPropertyMetadata(
-      this.#entity.metadata.properties ?? { value: {} },
-    );
+    return flattenPropertyMetadata(this.#entity.metadata.properties ?? { value: {} });
   }
 
   public get linkData(): LinkData | undefined {
@@ -1399,8 +1305,7 @@ export class HashEntity<
 }
 
 export class HashLinkEntity<
-  Properties extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > extends HashEntity<Properties> {
   constructor(entity: EntityInput<Properties> | HashEntity) {
     const input = (entity instanceof HashEntity ? entity.toJSON() : entity) as
@@ -1408,9 +1313,7 @@ export class HashLinkEntity<
       | EntityData<Properties>;
 
     if (!input.linkData) {
-      throw new Error(
-        `Expected link entity to have link data, but got \`${input.linkData}\``,
-      );
+      throw new Error(`Expected link entity to have link data, but got \`${input.linkData}\``);
     }
 
     super(input as EntityInput<Properties>);
@@ -1445,11 +1348,7 @@ export class HashLinkEntity<
     authentication: AuthenticationContext,
     params: CreateEntityParameters<T> & { linkData: LinkData },
   ): Promise<HashLinkEntity<T>> {
-    return (
-      await HashLinkEntity.createMultiple<[T]>(graphAPI, authentication, [
-        params,
-      ])
-    )[0];
+    return (await HashLinkEntity.createMultiple<[T]>(graphAPI, authentication, [params]))[0];
   }
 
   public async patch(
@@ -1471,9 +1370,7 @@ export class HashLinkEntity<
         for (const patch of propertyPatches) {
           const targetBaseUrl = patch.path[0] as BaseUrl | undefined;
           if (targetBaseUrl === undefined) {
-            throw new Error(
-              "Cannot replace the entire property object on a user entity",
-            );
+            throw new Error("Cannot replace the entire property object on a user entity");
           }
           if (
             !userSelfUpdatablePropertyBaseUrls.has(targetBaseUrl) &&
@@ -1503,8 +1400,7 @@ export class HashLinkEntity<
 }
 
 export const queryEntities = async <
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 >(
   context: {
     graphApi: GraphApi;
@@ -1534,23 +1430,18 @@ export const queryEntities = async <
           )
         : undefined,
       webIds: response.webIds as Record<WebId, number> | undefined,
-      createdByIds: response.createdByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
+      createdByIds: response.createdByIds as Record<ActorEntityUuid, number> | undefined,
       editionCreatedByIds: response.editionCreatedByIds as
         | Record<ActorEntityUuid, number>
         | undefined,
       typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
-      typeTitles: response.typeTitles as
-        | Record<VersionedUrl, string>
-        | undefined,
+      typeTitles: response.typeTitles as Record<VersionedUrl, string> | undefined,
       permissions: response.permissions as EntityPermissionsMap | undefined,
     }));
 };
 
 export const serializeQueryEntitiesResponse = <
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 >(
   response: QueryEntitiesResponse<PropertyMap>,
 ): SerializedQueryEntitiesResponse<PropertyMap> => ({
@@ -1559,8 +1450,7 @@ export const serializeQueryEntitiesResponse = <
 });
 
 export const deserializeQueryEntitiesResponse = <
-  PropertyMap extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 >(
   response: SerializedQueryEntitiesResponse<PropertyMap>,
 ): QueryEntitiesResponse<PropertyMap> => ({

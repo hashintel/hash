@@ -2,36 +2,14 @@ import { css } from "@hashintel/ds-helpers/css";
 import { Grid, HStack, VStack } from "@hashintel/ds-helpers/jsx";
 import { token } from "@hashintel/ds-helpers/tokens";
 
-import type {
-  BaseShadow,
-  ElevationLevel,
-  ElevationScale,
-  InsetShadow,
-} from "./_types";
+import type { BaseShadow, ElevationLevel, ElevationScale, InsetShadow } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
 import type { Story } from "@ladle/react";
 
-const SHADOW_STEPS: readonly BaseShadow[] = [
-  "2xs",
-  "xs",
-  "sm",
-  "md",
-  "lg",
-  "xl",
-  "2xl",
-];
-const INSET_STEPS: readonly InsetShadow[] = [
-  "inset-2xs",
-  "inset-xs",
-  "inset-sm",
-];
+const SHADOW_STEPS: readonly BaseShadow[] = ["2xs", "xs", "sm", "md", "lg", "xl", "2xl"];
+const INSET_STEPS: readonly InsetShadow[] = ["inset-2xs", "inset-xs", "inset-sm"];
 
-const ELEVATION_LEVELS: readonly ElevationLevel[] = [
-  "drop",
-  "lift",
-  "raise",
-  "float",
-];
+const ELEVATION_LEVELS: readonly ElevationLevel[] = ["drop", "lift", "raise", "float"];
 const ELEVATION_SCALES: readonly ElevationScale[] = ["micro", "macro"];
 
 const labelStyles = css({
@@ -58,13 +36,7 @@ const sectionTitleStyles = css({
   width: "[100%]",
 });
 
-const ShadowSwatch = ({
-  name,
-  tokenPath,
-}: {
-  name: string;
-  tokenPath: string;
-}) => {
+const ShadowSwatch = ({ name, tokenPath }: { name: string; tokenPath: string }) => {
   const shadowValue = token(`shadows.${tokenPath}` as Token);
 
   return (
@@ -84,13 +56,7 @@ const ShadowSwatch = ({
   );
 };
 
-const InsetSwatch = ({
-  name,
-  tokenPath,
-}: {
-  name: string;
-  tokenPath: string;
-}) => {
+const InsetSwatch = ({ name, tokenPath }: { name: string; tokenPath: string }) => {
   const shadowValue = token(`shadows.${tokenPath}` as Token);
 
   return (
@@ -110,13 +76,7 @@ const InsetSwatch = ({
   );
 };
 
-const ElevationSwatch = ({
-  level,
-  scale,
-}: {
-  level: string;
-  scale: string;
-}) => {
+const ElevationSwatch = ({ level, scale }: { level: string; scale: string }) => {
   const tokenPath = `shadows.elevation.${level}.${scale}` as Token;
   const shadowValue = token(tokenPath);
   const size = scale === "macro" ? "[120px]" : "[64px]";
@@ -142,9 +102,7 @@ const ElevationSwatch = ({
 
 export const Shadows: Story = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
-    <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
-      Shadows &amp; Elevation
-    </h1>
+    <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>Shadows &amp; Elevation</h1>
     <p
       className={css({
         textStyle: "sm",
@@ -152,9 +110,8 @@ export const Shadows: Story = () => (
         maxWidth: "[700px]",
       })}
     >
-      Base shadow tokens (2xs–2xl) for direct use, plus semantic elevation
-      tokens (drop, lift, raise, float) in macro (large surfaces) and micro
-      (small surfaces) scales.
+      Base shadow tokens (2xs–2xl) for direct use, plus semantic elevation tokens (drop, lift,
+      raise, float) in macro (large surfaces) and micro (small surfaces) scales.
     </p>
 
     <VStack gap="8" alignItems="flex-start" width="[100%]">
@@ -170,11 +127,7 @@ export const Shadows: Story = () => (
       <h2 className={sectionTitleStyles}>Inset Shadows</h2>
       <HStack gap="6" flexWrap="wrap">
         {INSET_STEPS.map((step) => (
-          <InsetSwatch
-            key={step}
-            name={step.replace("inset-", "")}
-            tokenPath={step}
-          />
+          <InsetSwatch key={step} name={step.replace("inset-", "")} tokenPath={step} />
         ))}
       </HStack>
     </VStack>
@@ -189,9 +142,8 @@ export const Shadows: Story = () => (
           mt: "[-16px]",
         })}
       >
-        Semantic elevation levels map to base shadows. Macro is for large
-        surface areas (cards, panels), micro is for small elements (buttons,
-        badges).
+        Semantic elevation levels map to base shadows. Macro is for large surface areas (cards,
+        panels), micro is for small elements (buttons, badges).
       </p>
 
       <Grid columns={2} gap="10" width="[100%]">
@@ -212,9 +164,7 @@ export const Shadows: Story = () => (
                   ml: "2",
                 })}
               >
-                {scale === "macro"
-                  ? "Large Surface Area"
-                  : "Small Surface Area"}
+                {scale === "macro" ? "Large Surface Area" : "Small Surface Area"}
               </span>
             </span>
             <HStack gap="6" flexWrap="wrap">

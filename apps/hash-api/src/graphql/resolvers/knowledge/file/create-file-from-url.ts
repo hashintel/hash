@@ -4,10 +4,7 @@ import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-ty
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { triggerPdfAnalysisWorkflow } from "./shared";
 
-import type {
-  MutationCreateFileFromUrlArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { MutationCreateFileFromUrlArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { Entity } from "@blockprotocol/type-system";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -19,13 +16,7 @@ export const createFileFromUrl: ResolverFn<
   MutationCreateFileFromUrlArgs
 > = async (
   _,
-  {
-    description,
-    fileEntityCreationInput,
-    fileEntityUpdateInput,
-    displayName,
-    url,
-  },
+  { description, fileEntityCreationInput, fileEntityUpdateInput, displayName, url },
   graphQLContext,
 ) => {
   const { authentication, temporal, user } = graphQLContext;

@@ -5,12 +5,7 @@ import type {
   PlaceTokenCountDistributionFrame,
 } from "@hashintel/petrinaut-core";
 
-export type ExperimentStatus =
-  | "initializing"
-  | "running"
-  | "complete"
-  | "error"
-  | "cancelled";
+export type ExperimentStatus = "initializing" | "running" | "complete" | "error" | "cancelled";
 
 export type CreateExperimentInput = {
   name: string;
@@ -39,9 +34,7 @@ export type ExperimentRecord = {
 };
 
 export function isExperimentActive(experiment: ExperimentRecord): boolean {
-  return (
-    experiment.status === "initializing" || experiment.status === "running"
-  );
+  return experiment.status === "initializing" || experiment.status === "running";
 }
 
 export type ExperimentsContextValue = {
@@ -64,6 +57,4 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   removeExperiment: () => {},
 };
 
-export const ExperimentsContext = createContext<ExperimentsContextValue>(
-  DEFAULT_CONTEXT_VALUE,
-);
+export const ExperimentsContext = createContext<ExperimentsContextValue>(DEFAULT_CONTEXT_VALUE);

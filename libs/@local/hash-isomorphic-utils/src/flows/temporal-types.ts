@@ -10,8 +10,7 @@ import type { EntityUuid, UserId, WebId } from "@blockprotocol/type-system";
 import type { Status } from "@local/status";
 
 export type BaseRunFlowWorkflowParams<
-  ValidActionDefinitionId extends FlowActionDefinitionId =
-    FlowActionDefinitionId,
+  ValidActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
 > = {
   /**
    * Optionally provide the UUID to use when persisting the Flow Entity.
@@ -34,14 +33,11 @@ export type BaseRunFlowWorkflowParams<
   webId: WebId;
 };
 
-export type RunAiFlowWorkflowParams =
-  BaseRunFlowWorkflowParams<AiFlowActionDefinitionId> & {
-    dataSources: FlowDataSources;
-  };
+export type RunAiFlowWorkflowParams = BaseRunFlowWorkflowParams<AiFlowActionDefinitionId> & {
+  dataSources: FlowDataSources;
+};
 
-export type RunFlowWorkflowParams =
-  | BaseRunFlowWorkflowParams
-  | RunAiFlowWorkflowParams;
+export type RunFlowWorkflowParams = BaseRunFlowWorkflowParams | RunAiFlowWorkflowParams;
 
 export type RunFlowWorkflowResponse = Status<{
   flow?: LocalFlowRun;

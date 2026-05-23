@@ -13,15 +13,8 @@ import {
   FlowDefinitionsContextProvider,
   useFlowDefinitionsContext,
 } from "./shared/flow-definitions-context";
-import {
-  FlowRunsContextProvider,
-  useFlowRunsContext,
-} from "./shared/flow-runs-context";
-import {
-  flowTableCellSx,
-  flowTableRowHeight,
-  FlowTableWebChip,
-} from "./shared/flow-tables";
+import { FlowRunsContextProvider, useFlowRunsContext } from "./shared/flow-runs-context";
+import { flowTableCellSx, flowTableRowHeight, FlowTableWebChip } from "./shared/flow-tables";
 import { VirtualizedTable } from "./shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
 
@@ -103,16 +96,12 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
         </Link>
       </TableCell>
       <TableCell sx={flowTableCellSx}>
-        <Typography
-          sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
-        >
+        <Typography sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}>
           {description}
         </Typography>
       </TableCell>
       <TableCell sx={flowTableCellSx}>
-        <Typography
-          sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
-        >
+        <Typography sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}>
           {lastRunStartedAt
             ? `${formatDistanceToNowStrict(new Date(lastRunStartedAt))} ago`
             : "Never"}
@@ -122,10 +111,9 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
   );
 });
 
-const createRowContent: CreateVirtualizedRowContentFn<FlowSummary> = (
-  _index,
-  row,
-) => <TableRow flowSummary={row.data} />;
+const createRowContent: CreateVirtualizedRowContentFn<FlowSummary> = (_index, row) => (
+  <TableRow flowSummary={row.data} />
+);
 
 const FlowsPageContent = () => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
@@ -179,17 +167,13 @@ const FlowsPageContent = () => {
         return a.data[field].name.localeCompare(b.data[field].name) * direction;
       }
 
-      return (
-        (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
-      );
+      return (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction;
     });
   }, [allFlowDefinitions, flowRuns, sort]);
 
   const tableHeight = Math.min(
     600,
-    virtualizedTableHeaderHeight +
-      flowTableRowHeight * flowDefinitionRows.length +
-      2, // account for borders
+    virtualizedTableHeaderHeight + flowTableRowHeight * flowDefinitionRows.length + 2, // account for borders
   );
 
   return (

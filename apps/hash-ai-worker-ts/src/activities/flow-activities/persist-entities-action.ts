@@ -20,16 +20,15 @@ import type {
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-export const persistEntitiesAction: AiFlowActionActivity<
-  "persistEntities"
-> = async ({ inputs }) => {
+export const persistEntitiesAction: AiFlowActionActivity<"persistEntities"> = async ({
+  inputs,
+}) => {
   const { runId, stepId, workflowId } = await getFlowContext();
 
-  const { draft, proposedEntities: proposedEntitiesInput } =
-    getSimplifiedAiFlowActionInputs({
-      inputs,
-      actionType: "persistEntities",
-    });
+  const { draft, proposedEntities: proposedEntitiesInput } = getSimplifiedAiFlowActionInputs({
+    inputs,
+    actionType: "persistEntities",
+  });
 
   const proposedEntities = await resolvePayloadValue(
     getStorageProvider(),
@@ -42,48 +41,41 @@ export const persistEntitiesAction: AiFlowActionActivity<
    * 1. Files first, because we might need to refer to them as a provenance source for other entities.
    * 2. Non-link entities before link entities, because we can't create a link entity without the entities it links to.
    */
-  const entitiesWithDependenciesSortedLast = proposedEntities.toSorted(
-    (a, b) => {
-      const isAFileEntity = a.entityTypeIds.some((entityTypeId) =>
-        fileEntityTypeIds.includes(entityTypeId),
-      );
-      const isBFileEntity = b.entityTypeIds.some((entityTypeId) =>
-        fileEntityTypeIds.includes(entityTypeId),
-      );
-      if (isAFileEntity && !isBFileEntity) {
-        return -1;
-      } else if (isBFileEntity && !isAFileEntity) {
-        return 1;
-      }
-
-      /**
-       * This assumes that there are no link entities which link to other link entities, which require being able to
-       * create multiple entities at once in a single transaction (since they refer to each other).
-       *
-       * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178. See also entity-result-table
-       */
-      if (
-        (a.sourceEntityId && b.sourceEntityId) ||
-        (!a.sourceEntityId && !b.sourceEntityId)
-      ) {
-        return 0;
-      }
-
-      if (a.sourceEntityId) {
-        return 1;
-      }
-
+  const entitiesWithDependenciesSortedLast = proposedEntities.toSorted((a, b) => {
+    const isAFileEntity = a.entityTypeIds.some((entityTypeId) =>
+      fileEntityTypeIds.includes(entityTypeId),
+    );
+    const isBFileEntity = b.entityTypeIds.some((entityTypeId) =>
+      fileEntityTypeIds.includes(entityTypeId),
+    );
+    if (isAFileEntity && !isBFileEntity) {
       return -1;
-    },
-  );
+    } else if (isBFileEntity && !isAFileEntity) {
+      return 1;
+    }
 
-  const persistedFilesByOriginalUrl: Record<string, PersistedEntityMetadata> =
-    {};
+    /**
+     * This assumes that there are no link entities which link to other link entities, which require being able to
+     * create multiple entities at once in a single transaction (since they refer to each other).
+     *
+     * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178. See also entity-result-table
+     */
+    if ((a.sourceEntityId && b.sourceEntityId) || (!a.sourceEntityId && !b.sourceEntityId)) {
+      return 0;
+    }
+
+    if (a.sourceEntityId) {
+      return 1;
+    }
+
+    return -1;
+  });
+
+  const persistedFilesByOriginalUrl: Record<string, PersistedEntityMetadata> = {};
 
   const failedEntitiesByLocalId: Record<EntityId, FailedEntityProposal> = {};
 
-  const persistedEntitiesByLocalId: Record<EntityId, PersistedEntityMetadata> =
-    {};
+  const persistedEntitiesByLocalId: Record<EntityId, PersistedEntityMetadata> = {};
 
   /**
    * We could potentially parallelize the creation of (a) non-link entities and then (b) link entities in batches,
@@ -162,9 +154,9 @@ export const persistEntitiesAction: AiFlowActionActivity<
 
     const entitySources = [
       ...(entityWithResolvedLinks.provenance.sources ?? []),
-      ...flattenPropertyMetadata(
-        entityWithResolvedLinks.propertyMetadata,
-      ).flatMap(({ metadata }) => metadata.provenance?.sources ?? []),
+      ...flattenPropertyMetadata(entityWithResolvedLinks.propertyMetadata).flatMap(
+        ({ metadata }) => metadata.provenance?.sources ?? [],
+      ),
     ];
 
     for (const source of entitySources) {
@@ -187,8 +179,7 @@ export const persistEntitiesAction: AiFlowActionActivity<
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         proposedEntity: unresolvedEntity,
         message:
-          persistedEntityOutputs.message ??
-          `No outputs returned when attempting to persist entity`,
+          persistedEntityOutputs.message ?? `No outputs returned when attempting to persist entity`,
       };
       continue;
     }

@@ -49,8 +49,7 @@ export type FacebookAccountOutgoingLinksByLinkEntityTypeId = {};
  */
 export type FacebookAccountProperties = ServiceAccountProperties & {};
 
-export type FacebookAccountPropertiesWithMetadata =
-  ServiceAccountPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type FacebookAccountPropertiesWithMetadata = ServiceAccountPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

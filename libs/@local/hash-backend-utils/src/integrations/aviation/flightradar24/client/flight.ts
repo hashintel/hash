@@ -59,8 +59,7 @@ export const mapFlight = (
     "https://hash.ai/@h/types/property-type/is-on-ground/": {
       value: input.alt === 0,
       metadata: {
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
         provenance,
       },
     },

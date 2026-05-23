@@ -16,9 +16,9 @@ describe("Empty snapshot", () => {
   });
 
   it("cannot upload a snapshot without metadata", async () => {
-    await expect(
-      restoreSnapshot(path.join(__dirname, "fail", "empty.jsonl")),
-    ).rejects.toThrow("does not contain metadata");
+    await expect(restoreSnapshot(path.join(__dirname, "fail", "empty.jsonl"))).rejects.toThrow(
+      "does not contain metadata",
+    );
   });
 
   it("cannot upload a snapshot with wrong version", async () => {

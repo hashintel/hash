@@ -4,15 +4,9 @@ import { crossFrameFetchFn } from "../sandbox/framed-block/util";
 
 import type { ReactElement } from "react";
 
-export type UnknownBlock =
-  | string
-  | typeof HTMLElement
-  | ((...props: unknown[]) => ReactElement);
+export type UnknownBlock = string | typeof HTMLElement | ((...props: unknown[]) => ReactElement);
 
-export type FetchSourceFn = (
-  url: string,
-  signal?: AbortSignal,
-) => Promise<string>;
+export type FetchSourceFn = (url: string, signal?: AbortSignal) => Promise<string>;
 
 /**
  * Adapted from https://github.com/Paciolan/remote-module-loader
@@ -20,9 +14,7 @@ export type FetchSourceFn = (
 
 const requires = (name: string) => {
   if (!(name in blockDependencies)) {
-    throw new Error(
-      `Could not require '${name}'. '${name}' does not exist in dependencies.`,
-    );
+    throw new Error(`Could not require '${name}'. '${name}' does not exist in dependencies.`);
   }
 
   return blockDependencies[name];
@@ -33,10 +25,7 @@ const defaultFetchFn: FetchSourceFn = (url, signal) =>
 
 type FetchAndParseFn = (
   fetchSourceFn: FetchSourceFn,
-) => (
-  url: string,
-  signal?: AbortSignal,
-) => Promise<string | Record<string, UnknownBlock>>;
+) => (url: string, signal?: AbortSignal) => Promise<string | Record<string, UnknownBlock>>;
 
 const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
   fetchSourceFn(url, signal).then((source) => {
@@ -67,9 +56,7 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     return module.exports;
   });
 
-export const loadRemoteBlock = memoizeFetchFunction(
-  fetchAndParseBlock(defaultFetchFn),
-);
+export const loadRemoteBlock = memoizeFetchFunction(fetchAndParseBlock(defaultFetchFn));
 
 export const loadCrossFrameRemoteBlock = memoizeFetchFunction(
   fetchAndParseBlock(crossFrameFetchFn),

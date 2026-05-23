@@ -14,9 +14,7 @@ export const App = () => {
           <PinInput.Input index={3} />
         </PinInput.Control>
       </PinInput.Root>
-      <Field.HelperText>
-        Enter the 4-digit pin sent to your email address.
-      </Field.HelperText>
+      <Field.HelperText>Enter the 4-digit pin sent to your email address.</Field.HelperText>
     </Field.Root>
   );
 };

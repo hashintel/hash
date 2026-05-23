@@ -16,14 +16,11 @@ import * as ResponseBody from "./ResponseBody.js";
 import * as ResponseFlags from "./ResponseFlags.js";
 import * as ResponseHeader from "./ResponseHeader.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/models/response/Response",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/models/response/Response");
 
 export type TypeId = typeof TypeId;
 
-export interface Response
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface Response extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly header: ResponseHeader.ResponseHeader;
@@ -113,9 +110,7 @@ export const decode = implDecode((buffer) =>
     const header = yield* ResponseHeader.decode(buffer);
     const isBegin = ResponseFlags.isBeginOfResponse(header.flags);
 
-    const body = yield* ResponseBody.decode(
-      isBegin ? "ResponseBegin" : "ResponseFrame",
-    )(buffer);
+    const body = yield* ResponseBody.decode(isBegin ? "ResponseBegin" : "ResponseFrame")(buffer);
 
     return make(header, body);
   }),
@@ -125,6 +120,4 @@ export const isResponse = (value: unknown): value is Response =>
   Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(ResponseHeader.arbitrary(fc), ResponseBody.arbitrary(fc))
-    .map(Function.tupled(make));
+  fc.tuple(ResponseHeader.arbitrary(fc), ResponseBody.arbitrary(fc)).map(Function.tupled(make));

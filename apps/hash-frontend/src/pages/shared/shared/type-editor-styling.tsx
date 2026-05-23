@@ -18,13 +18,8 @@ export const TypeDefinitionContainer = ({
   inSlide?: boolean;
 }) => {
   return (
-    <Box
-      py={5}
-      sx={({ palette }) => ({ background: palette.gray[10], height: "100%" })}
-    >
-      <Container sx={inSlide ? inSlideContainerStyles : {}}>
-        {children}
-      </Container>
+    <Box py={5} sx={({ palette }) => ({ background: palette.gray[10], height: "100%" })}>
+      <Container sx={inSlide ? inSlideContainerStyles : {}}>{children}</Container>
     </Box>
   );
 };

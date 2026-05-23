@@ -55,9 +55,7 @@ export const linkedTreeFlatten = <
   // The return value will be a list of the Outer type optionally augmented with metadata and a parentid
   type ResultWithMeta = Omit<AugmentedOuter, K | "currentIndex">;
 
-  const queue: AugmentedOuter[][] = [
-    [{ parentIndex: -1, currentIndex: 0, ...graph }],
-  ];
+  const queue: AugmentedOuter[][] = [[{ parentIndex: -1, currentIndex: 0, ...graph }]];
   const result: ResultWithMeta[] = [];
 
   let index = 1;

@@ -12,13 +12,7 @@ export const BlockErrorMessage: FunctionComponent<BlockErrorMessageProps> = ({
   ...props
 }) => {
   return (
-    <Box
-      {...props}
-      display="flex"
-      flexDirection="column"
-      justifyContent="center"
-      gap={1}
-    >
+    <Box {...props} display="flex" flexDirection="column" justifyContent="center" gap={1}>
       <Typography
         variant="smallTextLabels"
         sx={{

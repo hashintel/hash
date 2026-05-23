@@ -36,9 +36,7 @@ type ExperimentHandleRegistration = {
   off: () => void;
 };
 
-function mapExperimentStatus(
-  status: MonteCarloExperimentState,
-): ExperimentStatus {
+function mapExperimentStatus(status: MonteCarloExperimentState): ExperimentStatus {
   switch (status) {
     case "Initializing":
     case "Ready":
@@ -59,9 +57,7 @@ function parseScenarioParameterValue(
   rawValue: string | undefined,
 ): number | string {
   const value =
-    rawValue === undefined || rawValue.trim() === ""
-      ? String(parameter.default)
-      : rawValue.trim();
+    rawValue === undefined || rawValue.trim() === "" ? String(parameter.default) : rawValue.trim();
 
   if (parameter.type === "boolean") {
     const normalizedValue = value.toLowerCase();
@@ -96,10 +92,7 @@ function parseScenarioParameterValues(
   const errors: string[] = [];
 
   for (const parameter of scenario.scenarioParameters) {
-    const parsed = parseScenarioParameterValue(
-      parameter,
-      rawValues[parameter.identifier],
-    );
+    const parsed = parseScenarioParameterValue(parameter, rawValues[parameter.identifier]);
 
     if (typeof parsed === "string") {
       errors.push(parsed);
@@ -137,13 +130,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const { addNotification } = use(NotificationsContext);
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
-  const registrationsRef = useRef(
-    new Map<string, ExperimentHandleRegistration>(),
-  );
+  const registrationsRef = useRef(new Map<string, ExperimentHandleRegistration>());
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
-  const [selectedExperimentId, setSelectedExperimentId] = useState<
-    string | null
-  >(null);
+  const [selectedExperimentId, setSelectedExperimentId] = useState<string | null>(null);
   useBlockWindowClose({ shouldBlock: experiments.some(isExperimentActive) });
 
   useEffect(() => {
@@ -157,15 +146,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     };
   }, []);
 
-  const patchExperiment = (
-    experimentId: string,
-    patch: Partial<ExperimentRecord>,
-  ) => {
+  const patchExperiment = (experimentId: string, patch: Partial<ExperimentRecord>) => {
     setExperiments((prev) =>
       prev.map((experiment) =>
-        experiment.id === experimentId
-          ? { ...experiment, ...patch }
-          : experiment,
+        experiment.id === experimentId ? { ...experiment, ...patch } : experiment,
       ),
     );
   };
@@ -181,10 +165,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     registrationsRef.current.delete(experimentId);
   };
 
-  const registerExperimentHandle = (
-    experiment: ExperimentRecord,
-    handle: MonteCarloExperiment,
-  ) => {
+  const registerExperimentHandle = (experiment: ExperimentRecord, handle: MonteCarloExperiment) => {
     const { id: experimentId, name: experimentName } = experiment;
 
     const sync = () => {
@@ -236,16 +217,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sync();
   };
 
-  const createExperiment: ExperimentsContextValue["createExperiment"] = async (
-    input,
-  ) => {
+  const createExperiment: ExperimentsContextValue["createExperiment"] = async (input) => {
     assertExperimentInput(input);
 
     const sdcpn = petriNetDefinitionRef.current;
     const selectedScenario = input.scenarioId
-      ? (sdcpn.scenarios ?? []).find(
-          (scenario) => scenario.id === input.scenarioId,
-        )
+      ? (sdcpn.scenarios ?? []).find((scenario) => scenario.id === input.scenarioId)
       : null;
     if (input.scenarioId && !selectedScenario) {
       throw new Error("Selected scenario does not exist");
@@ -326,27 +303,18 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     return experimentId;
   };
 
-  const cancelExperiment: ExperimentsContextValue["cancelExperiment"] = (
-    experimentId,
-  ) => {
+  const cancelExperiment: ExperimentsContextValue["cancelExperiment"] = (experimentId) => {
     registrationsRef.current.get(experimentId)?.handle.cancel();
   };
 
-  const removeExperiment: ExperimentsContextValue["removeExperiment"] = (
-    experimentId,
-  ) => {
+  const removeExperiment: ExperimentsContextValue["removeExperiment"] = (experimentId) => {
     disposeExperimentHandle(experimentId);
-    setExperiments((prev) =>
-      prev.filter((experiment) => experiment.id !== experimentId),
-    );
-    setSelectedExperimentId((current) =>
-      current === experimentId ? null : current,
-    );
+    setExperiments((prev) => prev.filter((experiment) => experiment.id !== experimentId));
+    setSelectedExperimentId((current) => (current === experimentId ? null : current));
   };
 
   const selectedExperiment =
-    experiments.find((experiment) => experiment.id === selectedExperimentId) ??
-    null;
+    experiments.find((experiment) => experiment.id === selectedExperimentId) ?? null;
 
   const contextValue: ExperimentsContextValue = {
     experiments,
@@ -358,9 +326,5 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     removeExperiment: useStableCallback(removeExperiment),
   };
 
-  return (
-    <ExperimentsContext.Provider value={contextValue}>
-      {children}
-    </ExperimentsContext.Provider>
-  );
+  return <ExperimentsContext.Provider value={contextValue}>{children}</ExperimentsContext.Provider>;
 };

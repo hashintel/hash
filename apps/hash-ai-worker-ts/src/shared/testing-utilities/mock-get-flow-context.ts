@@ -9,11 +9,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { graphApiClient } from "../../activities/shared/graph-api-client.js";
 import { getAliceUserAccountId } from "./get-alice-user-account-id.js";
 
-import type {
-  ActorEntityUuid,
-  EntityUuid,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
@@ -84,9 +80,7 @@ vi.mock("@temporalio/activity", async (importOriginal) => {
           info: {
             workflowExecution: {
               workflowId:
-                dummyFlowEntity.properties[
-                  "https://hash.ai/@h/types/property-type/workflow-id/"
-                ],
+                dummyFlowEntity.properties["https://hash.ai/@h/types/property-type/workflow-id/"],
             },
             activityId: "test-activity-id",
           },

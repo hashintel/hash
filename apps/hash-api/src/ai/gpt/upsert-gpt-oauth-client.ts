@@ -52,18 +52,14 @@ export const upsertGptOauthClient: RequestHandler<
   }
 
   if (!redirectUri) {
-    res
-      .status(400)
-      .send({ error: "redirectUri is required in the request body" });
+    res.status(400).send({ error: "redirectUri is required in the request body" });
     return;
   }
 
   const parsedUrl = new URL(redirectUri);
 
   if (parsedUrl.hostname !== "chat.openai.com") {
-    res
-      .status(400)
-      .send({ error: "redirectUri must be a valid ChatGPT redirect URI" });
+    res.status(400).send({ error: "redirectUri must be a valid ChatGPT redirect URI" });
     return;
   }
 
@@ -72,9 +68,7 @@ export const upsertGptOauthClient: RequestHandler<
   });
 
   if (existingClients.length > 1) {
-    res
-      .status(500)
-      .send({ error: `Multiple clients with the name ${clientName} exist` });
+    res.status(500).send({ error: `Multiple clients with the name ${clientName} exist` });
   } else if (existingClients.length === 0) {
     const { data: newClient } = await hydraAdmin.createOAuth2Client({
       oAuth2Client: {

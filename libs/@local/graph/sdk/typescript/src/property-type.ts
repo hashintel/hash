@@ -7,10 +7,7 @@ import {
 import type { AuthenticationContext } from "./authentication-context.js";
 import type { HashEntity, SerializedSubgraph } from "./entity.js";
 import type { PropertyTypeRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { PropertyTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   DistributiveOmit,
   DistributiveReplaceProperties,
@@ -46,10 +43,7 @@ export const hasPermissionForPropertyTypes = (
     .hasPermissionForPropertyTypes(authentication.actorId, params)
     .then(({ data: permitted }) => permitted as VersionedUrl[]);
 
-export type QueryPropertyTypesParams = Omit<
-  QueryPropertyTypesParamsGraphApi,
-  "after"
-> & {
+export type QueryPropertyTypesParams = Omit<QueryPropertyTypesParamsGraphApi, "after"> & {
   after?: VersionedUrl;
 };
 
@@ -70,15 +64,11 @@ export const queryPropertyTypes = (
   authentication: AuthenticationContext,
   params: QueryPropertyTypesParams,
 ): Promise<QueryPropertyTypesResponse> =>
-  graphApi
-    .queryPropertyTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      ...response,
-      propertyTypes: mapGraphApiPropertyTypesToPropertyTypes(
-        response.propertyTypes,
-      ),
-      cursor: response.cursor as VersionedUrl | undefined,
-    }));
+  graphApi.queryPropertyTypes(authentication.actorId, params).then(({ data: response }) => ({
+    ...response,
+    propertyTypes: mapGraphApiPropertyTypesToPropertyTypes(response.propertyTypes),
+    cursor: response.cursor as VersionedUrl | undefined,
+  }));
 
 export type QueryPropertyTypeSubgraphParams = ExclusiveUnion<
   DistributiveReplaceProperties<
@@ -109,13 +99,11 @@ export const queryPropertyTypeSubgraph = (
   authentication: AuthenticationContext,
   params: QueryPropertyTypeSubgraphParams,
 ): Promise<QueryPropertyTypeSubgraphResponse> =>
-  graphApi
-    .queryPropertyTypeSubgraph(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      ...response,
-      subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
-      cursor: response.cursor as VersionedUrl | undefined,
-    }));
+  graphApi.queryPropertyTypeSubgraph(authentication.actorId, params).then(({ data: response }) => ({
+    ...response,
+    subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
+    cursor: response.cursor as VersionedUrl | undefined,
+  }));
 
 export const serializeQueryPropertyTypeSubgraphResponse = (
   response: QueryPropertyTypeSubgraphResponse,
@@ -144,10 +132,9 @@ export const deserializeQueryPropertyTypeSubgraphResponse = (
 export const getPropertyTypeById = async (
   graphApi: GraphApi,
   authentication: AuthenticationContext,
-  params: Omit<
-    QueryPropertyTypesParams,
-    "filter" | "includeCount" | "after" | "limit"
-  > & { propertyTypeId: VersionedUrl },
+  params: Omit<QueryPropertyTypesParams, "filter" | "includeCount" | "after" | "limit"> & {
+    propertyTypeId: VersionedUrl;
+  },
 ): Promise<PropertyTypeWithMetadata | null> => {
   const { propertyTypeId, ...rest } = params;
 
@@ -171,16 +158,12 @@ export const getPropertyTypeSubgraphById = async (
 ): Promise<Subgraph<PropertyTypeRootType> | null> => {
   const { propertyTypeId, ...rest } = params;
 
-  const { subgraph } = await queryPropertyTypeSubgraph(
-    graphApi,
-    authentication,
-    {
-      ...rest,
-      filter: {
-        equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
-      },
+  const { subgraph } = await queryPropertyTypeSubgraph(graphApi, authentication, {
+    ...rest,
+    filter: {
+      equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
     },
-  );
+  });
 
   if (subgraph.roots.length === 0) {
     return null;

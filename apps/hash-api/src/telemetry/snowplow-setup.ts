@@ -1,8 +1,4 @@
-import {
-  buildStructEvent,
-  newTracker,
-  type Tracker,
-} from "@snowplow/node-tracker";
+import { buildStructEvent, newTracker, type Tracker } from "@snowplow/node-tracker";
 
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
@@ -11,8 +7,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
  * This tracking function simply sends an event when the platform starts to record usage metrics.
  */
 export const setupTelemetry = async (): Promise<Tracker> => {
-  const protocol =
-    process.env.HASH_TELEMETRY_HTTPS === "true" ? "https" : "http";
+  const protocol = process.env.HASH_TELEMETRY_HTTPS === "true" ? "https" : "http";
 
   const tracker = newTracker(
     {

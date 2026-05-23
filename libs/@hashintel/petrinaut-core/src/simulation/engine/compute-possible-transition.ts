@@ -6,11 +6,7 @@ import { sampleDistribution } from "./sample-distribution";
 import { nextRandom } from "./seeded-rng";
 
 import type { ID } from "../../types/sdcpn";
-import type {
-  EngineFrame,
-  SimulationInstance,
-  TransitionTokenValues,
-} from "./types";
+import type { EngineFrame, SimulationInstance, TransitionTokenValues } from "./types";
 
 type PlaceID = ID;
 
@@ -40,18 +36,14 @@ export function computePossibleTransition(
 
   const transition = simulation.compiledTransitions.get(transitionId);
   if (!transition) {
-    throw new Error(
-      `Transition definition for transition ${transitionId} not found.`,
-    );
+    throw new Error(`Transition definition for transition ${transitionId} not found.`);
   }
 
   // Gather input places with their weights relative to this transition.
   const inputPlaces = transition.inputPlaces.map((inputPlace) => {
     const placeState = snapshot.places[inputPlace.placeId];
     if (!placeState) {
-      throw new Error(
-        `Place with ID ${inputPlace.placeId} not found in current marking.`,
-      );
+      throw new Error(`Place with ID ${inputPlace.placeId} not found in current marking.`);
     }
 
     return {
@@ -102,10 +94,7 @@ export function computePossibleTransition(
     // Convert to object format with place names as keys
     const tokenCombinationValues: TransitionTokenValues = {};
 
-    for (const [
-      placeIndex,
-      placeTokenIndices,
-    ] of tokenCombinationIndices.entries()) {
+    for (const [placeIndex, placeTokenIndices] of tokenCombinationIndices.entries()) {
       const inputPlace = inputPlacesWithAtLeastOneDimension[placeIndex]!;
       const placeOffsetInBuffer = inputPlace.offset;
       const dimensions = inputPlace.dimensions;
@@ -119,21 +108,18 @@ export function computePossibleTransition(
       const elementNames = inputPlace.elementNames;
 
       // Convert tokens for this place to objects with named dimensions
-      const placeTokens: Record<string, number>[] = placeTokenIndices.map(
-        (tokenIndexInPlace) => {
-          // Offset within the global buffer
-          const globalIndex =
-            placeOffsetInBuffer + tokenIndexInPlace * dimensions;
+      const placeTokens: Record<string, number>[] = placeTokenIndices.map((tokenIndexInPlace) => {
+        // Offset within the global buffer
+        const globalIndex = placeOffsetInBuffer + tokenIndexInPlace * dimensions;
 
-          // Create token object with named dimensions
-          const token: Record<string, number> = {};
-          for (let dimIdx = 0; dimIdx < dimensions; dimIdx++) {
-            const dimensionName = elementNames[dimIdx]!;
-            token[dimensionName] = snapshot.buffer[globalIndex + dimIdx]!;
-          }
-          return token;
-        },
-      );
+        // Create token object with named dimensions
+        const token: Record<string, number> = {};
+        for (let dimIdx = 0; dimIdx < dimensions; dimIdx++) {
+          const dimensionName = elementNames[dimIdx]!;
+          token[dimensionName] = snapshot.buffer[globalIndex + dimIdx]!;
+        }
+        return token;
+      });
 
       tokenCombinationValues[inputPlace.placeName] = placeTokens;
     }
@@ -167,15 +153,11 @@ export function computePossibleTransition(
     // Find the first combination of tokens where e^(-lambda) < U1
     // We should normally find the minimum for all possibilities, but we try to reduce as much as we can here.
     if (Math.exp(-lambdaValue) <= U1) {
-      let transitionKernelOutput: ReturnType<
-        typeof transition.transitionKernelFn
-      >;
+      let transitionKernelOutput: ReturnType<typeof transition.transitionKernelFn>;
       try {
         // Transition fires!
         // Return result of the transition kernel as is (no stochasticity for now, only one result)
-        transitionKernelOutput = transition.transitionKernelFn(
-          tokenCombinationValues,
-        );
+        transitionKernelOutput = transition.transitionKernelFn(tokenCombinationValues);
       } catch (err) {
         throw new SDCPNItemError(
           `Error while executing transition kernel for transition \`${transition.name}\`:\n\n${
@@ -195,17 +177,12 @@ export function computePossibleTransition(
       for (const outputPlace of transition.outputPlaces) {
         const outputPlaceState = snapshot.places[outputPlace.placeId];
         if (!outputPlaceState) {
-          throw new Error(
-            `Output place with ID ${outputPlace.placeId} not found in frame`,
-          );
+          throw new Error(`Output place with ID ${outputPlace.placeId} not found in frame`);
         }
 
         // If place has no type, create n empty tuples where n is the arc weight
         if (!outputPlace.elementNames) {
-          const emptyTokens: number[][] = Array.from(
-            { length: outputPlace.weight },
-            () => [],
-          );
+          const emptyTokens: number[][] = Array.from({ length: outputPlace.weight }, () => []);
           addMap[outputPlace.placeId] = emptyTokens;
           continue;
         }
@@ -227,10 +204,7 @@ export function computePossibleTransition(
           for (const elementName of outputPlace.elementNames) {
             const raw = token[elementName]!;
             if (isDistribution(raw)) {
-              const [sampled, nextRng] = sampleDistribution(
-                raw,
-                currentRngState,
-              );
+              const [sampled, nextRng] = sampleDistribution(raw, currentRngState);
               currentRngState = nextRng;
               values.push(sampled);
             } else {

@@ -9,9 +9,7 @@ export const App = () => {
         <NumberInput.Control />
         <NumberInput.Input />
       </NumberInput.Root>
-      <Field.HelperText>
-        Please enter a number between 5 and 50
-      </Field.HelperText>
+      <Field.HelperText>Please enter a number between 5 and 50</Field.HelperText>
     </Field.Root>
   );
 };

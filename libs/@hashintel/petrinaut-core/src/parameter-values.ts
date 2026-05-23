@@ -12,9 +12,7 @@ export type DefaultParameterValues = Record<string, number | boolean>;
  * @param parameters - The list of parameters from the SDCPN definition
  * @returns A record mapping parameter variable names to their default values
  */
-export function deriveDefaultParameterValues(
-  parameters: Parameter[],
-): DefaultParameterValues {
+export function deriveDefaultParameterValues(parameters: Parameter[]): DefaultParameterValues {
   const parameterValues: DefaultParameterValues = {};
 
   for (const param of parameters) {

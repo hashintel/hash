@@ -117,12 +117,7 @@ const EditInCodePenButton = forwardRef<
   );
 
   return (
-    <CodeBlockButton
-      onClick={handleSubmit}
-      variant="tertiary"
-      endIcon={<CodePenIcon />}
-      ref={ref}
-    >
+    <CodeBlockButton onClick={handleSubmit} variant="tertiary" endIcon={<CodePenIcon />} ref={ref}>
       Edit in CodePen
     </CodeBlockButton>
   );
@@ -150,21 +145,16 @@ export const CodeBlock: FunctionComponent<{ code: string }> = ({ code }) => {
   const detectedLanguage = useMemo(() => {
     const match = code.match(codeLanguageRegex);
 
-    return match && match[0] && supportedLanguages.includes(match[0])
-      ? match[0]
-      : undefined;
+    return match && match[0] && supportedLanguages.includes(match[0]) ? match[0] : undefined;
   }, [code]);
 
   // Strip the language from the code block if it has been parsed successfully.
   const sanitizedCode = useMemo(
-    () =>
-      detectedLanguage ? code.replace(codeLanguageRegex, "").trim() : code,
+    () => (detectedLanguage ? code.replace(codeLanguageRegex, "").trim() : code),
     [detectedLanguage, code],
   );
 
-  const [language, setLanguage] = useState<string>(
-    detectedLanguage ?? "plaintext",
-  );
+  const [language, setLanguage] = useState<string>(detectedLanguage ?? "plaintext");
 
   useEffect(() => {
     setLanguage(detectedLanguage ?? "plaintext");
@@ -225,19 +215,13 @@ export const CodeBlock: FunctionComponent<{ code: string }> = ({ code }) => {
           <CodeBlockButton
             onClick={handleCopy}
             variant="tertiary"
-            endIcon={
-              copied ? <CheckIcon sx={{ fontSize: 22 }} /> : <CopyIcon />
-            }
+            endIcon={copied ? <CheckIcon sx={{ fontSize: 22 }} /> : <CopyIcon />}
           >
             {copied ? "Copied" : "Copy"}
           </CodeBlockButton>
         </Box>
       </Box>
-      <SyntaxHighlighter
-        language={language}
-        showLineNumbers
-        useInlineStyles={false}
-      >
+      <SyntaxHighlighter language={language} showLineNumbers useInlineStyles={false}>
         {sanitizedCode}
       </SyntaxHighlighter>
     </Box>

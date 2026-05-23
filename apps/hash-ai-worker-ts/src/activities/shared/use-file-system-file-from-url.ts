@@ -18,16 +18,10 @@ const baseFilePath = path.join(tmpdir(), "hash-tmp-files");
 
 export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
   fileEntity: Pick<HashEntity<File>, "entityId" | "properties">,
-  callback: ({
-    fileSystemPath,
-  }: {
-    fileSystemPath: string;
-  }) => Promise<CallbackResponse>,
+  callback: ({ fileSystemPath }: { fileSystemPath: string }) => Promise<CallbackResponse>,
 ): Promise<CallbackResponse> => {
   const fileUrl =
-    fileEntity.properties[
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-    ];
+    fileEntity.properties["https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"];
 
   if (!fileUrl) {
     throw new Error(
@@ -42,9 +36,7 @@ export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
   }
 
   const storageKey =
-    fileEntity.properties[
-      "https://hash.ai/@h/types/property-type/file-storage-key/"
-    ];
+    fileEntity.properties["https://hash.ai/@h/types/property-type/file-storage-key/"];
 
   if (!storageKey) {
     throw new Error(
@@ -79,16 +71,12 @@ export const useFileSystemPathFromEntity = async <CallbackResponse = unknown>(
   try {
     const fileStream = createWriteStream(filePath);
     await finished(
-      Readable.fromWeb(
-        fetchFileResponse.body as ReadableStream<Uint8Array>,
-      ).pipe(fileStream),
+      Readable.fromWeb(fetchFileResponse.body as ReadableStream<Uint8Array>).pipe(fileStream),
     );
   } catch (error) {
     await unlink(filePath).catch(() => {});
 
-    throw new Error(
-      `Failed to write file to file system: ${(error as Error).message}`,
-    );
+    throw new Error(`Failed to write file to file system: ${(error as Error).message}`);
   }
 
   try {

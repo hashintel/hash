@@ -14,11 +14,7 @@ import { getEditorSpecs } from "./value-cell/editor-specs";
 import type { PropertyRow } from "../types";
 import type { ValueCell } from "./value-cell/types";
 import type { ClosedDataType } from "@blockprotocol/type-system";
-import type {
-  CustomCell,
-  CustomRenderer,
-  DataEditorRef,
-} from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer, DataEditorRef } from "@glideapps/glide-data-grid";
 import type { RefObject } from "react";
 
 export interface ChangeTypeCellProps {
@@ -82,12 +78,7 @@ export const createRenderChangeTypeCell = (
       const changeTextLeft = chipLeft + chipWidth + changeTextGap;
 
       const mergedChipWidth =
-        chipWidth +
-        changeTextGap +
-        changeTextWidth +
-        iconGap +
-        iconSize +
-        chipPadding;
+        chipWidth + changeTextGap + changeTextWidth + iconGap + iconSize + chipPadding;
 
       drawChip(args, chipLeft, mergedChipWidth, customColors.gray[10]);
 
@@ -114,9 +105,7 @@ export const createRenderChangeTypeCell = (
 
       const [_, rowIndex] = args.location;
 
-      const valueCellColumnIndex = propertyGridIndexes.findIndex(
-        (val) => val === "value",
-      );
+      const valueCellColumnIndex = propertyGridIndexes.findIndex((val) => val === "value");
 
       const newContent = produce(valueCellOfThisRow, (draft) => {
         draft.data.showTypePicker = true;

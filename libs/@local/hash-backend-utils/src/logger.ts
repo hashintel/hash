@@ -21,8 +21,7 @@ export type LoggerConfig = {
   metadata?: Record<string, string>;
 };
 
-const tbdIsLogLevel = (level: string): level is LogLevel =>
-  LOG_LEVELS.includes(level as LogLevel);
+const tbdIsLogLevel = (level: string): level is LogLevel => LOG_LEVELS.includes(level as LogLevel);
 
 const getDefaultLoggerLevel = () => {
   const envLogLevel = process.env.LOG_LEVEL;
@@ -69,10 +68,7 @@ function mapWinstonLevelToOtel(level: string): SeverityNumber {
  * v1.12+ is known to produce `Error.cause` chains that loop back on
  * themselves, which would otherwise blow the stack.
  */
-export const expandLogValue = (
-  value: unknown,
-  ancestors: Set<object> = new Set(),
-): unknown => {
+export const expandLogValue = (value: unknown, ancestors: Set<object> = new Set()): unknown => {
   if (value instanceof Error) {
     if (ancestors.has(value)) {
       return "[Circular]";
@@ -155,11 +151,7 @@ export const safeStringify = (
   },
 ): string => {
   try {
-    return JSON.stringify(
-      expandLogValue(value),
-      options?.replacer,
-      options?.space,
-    );
+    return JSON.stringify(expandLogValue(value), options?.replacer, options?.space);
   } catch (error) {
     return `[unserializable: ${(error as Error).message}]`;
   }
@@ -184,11 +176,7 @@ function toAnyValue(value: unknown): AnyValue {
     return undefined;
   }
   const typeofValue = typeof value;
-  if (
-    typeofValue === "string" ||
-    typeofValue === "number" ||
-    typeofValue === "boolean"
-  ) {
+  if (typeofValue === "string" || typeofValue === "number" || typeofValue === "boolean") {
     return value as AnyValue;
   }
   return safeStringify(value);
@@ -218,33 +206,29 @@ function sanitizeAttributes(obj: Record<string, unknown>): AnyValueMap {
  */
 const rewriteForConsole = format(
   (original: winston.Logform.TransformableInfo & { message: unknown }) => {
-    const consolePrefix = (original as { consolePrefix?: unknown })
-      .consolePrefix;
+    const consolePrefix = (original as { consolePrefix?: unknown }).consolePrefix;
 
     if (typeof consolePrefix !== "string" || consolePrefix.length === 0) {
       return original;
     }
 
     const fullMessage = original.message;
-    const detailedFromMeta = (original as { detailedFields?: unknown })
-      .detailedFields;
+    const detailedFromMeta = (original as { detailedFields?: unknown }).detailedFields;
     let detailedKeys: string[] | undefined = Array.isArray(detailedFromMeta)
       ? (detailedFromMeta as string[])
       : undefined;
 
     let message: string;
     if (typeof fullMessage === "object" && fullMessage !== null) {
-      const { detailedFields: detailedFromMessage, ...restMessage } =
-        fullMessage as {
-          detailedFields?: string[];
-          [key: string]: unknown;
-        };
+      const { detailedFields: detailedFromMessage, ...restMessage } = fullMessage as {
+        detailedFields?: string[];
+        [key: string]: unknown;
+      };
 
       detailedKeys = detailedKeys ?? detailedFromMessage;
 
       message = safeStringify(restMessage, {
-        replacer: (key, value) =>
-          detailedKeys?.includes(key) ? undefined : value,
+        replacer: (key, value) => (detailedKeys?.includes(key) ? undefined : value),
       });
     } else {
       message = fullMessage as string;

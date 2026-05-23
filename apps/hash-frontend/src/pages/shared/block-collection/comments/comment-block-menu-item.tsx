@@ -10,9 +10,11 @@ type CommentBlockMenuItemProps = {
   onClick: () => void;
 };
 
-export const CommentBlockMenuItem: FunctionComponent<
-  CommentBlockMenuItemProps
-> = ({ title, icon, onClick }) => (
+export const CommentBlockMenuItem: FunctionComponent<CommentBlockMenuItemProps> = ({
+  title,
+  icon,
+  onClick,
+}) => (
   <MenuItem key={title} onClick={onClick}>
     <ListItemIcon>{icon}</ListItemIcon>
     <ListItemText primary={title} />

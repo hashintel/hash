@@ -12,18 +12,11 @@ import { useEntitiesTableData } from "./use-entities-table-data";
 
 import type { QueryEntitySubgraphQuery } from "../../../graphql/api-types.gen";
 import type { VisualizerView } from "../visualizer-views";
-import type {
-  EntitiesTableData,
-  EntitiesTableRow,
-  UpdateTableDataFn,
-} from "./types";
+import type { EntitiesTableData, EntitiesTableRow, UpdateTableDataFn } from "./types";
 import type { ApolloQueryResult } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
-import type {
-  EntityQueryCursor,
-  EntityQuerySortingRecord,
-} from "@local/hash-graph-client";
+import type { EntityQueryCursor, EntityQuerySortingRecord } from "@local/hash-graph-client";
 
 export type EntitiesVisualizerData = Partial<
   Pick<
@@ -135,16 +128,13 @@ export const useEntitiesVisualizerData = (params: {
         return;
       }
 
-      const newSubgraph = deserializeQueryEntitySubgraphResponse(
-        data.queryEntitySubgraph,
-      ).subgraph;
+      const newSubgraph = deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph;
 
       const newEntities = getRoots(newSubgraph);
 
       updateTableData({
         appliedPaginationCursor: cursor ?? null,
-        closedMultiEntityTypesRootMap:
-          data.queryEntitySubgraph.closedMultiEntityTypes ?? {},
+        closedMultiEntityTypesRootMap: data.queryEntitySubgraph.closedMultiEntityTypes ?? {},
         definitions: data.queryEntitySubgraph.definitions,
         entities: newEntities,
         subgraph: newSubgraph,

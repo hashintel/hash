@@ -56,27 +56,12 @@ type FilterItemDataProp = {
   closeMenu: () => void;
   items: FilterItemData[];
   selectedFilterItemIds: Set<string> | undefined;
-  setSelectedFilterItemIds:
-    | ((selectedFilterItemIds: Set<string>) => void)
-    | undefined;
+  setSelectedFilterItemIds: ((selectedFilterItemIds: Set<string>) => void) | undefined;
 };
 
 const FilterItem = memo(
-  ({
-    data,
-    index,
-    style,
-  }: {
-    data: FilterItemDataProp;
-    index: number;
-    style: CSSProperties;
-  }) => {
-    const {
-      closeMenu,
-      items,
-      selectedFilterItemIds,
-      setSelectedFilterItemIds,
-    } = data;
+  ({ data, index, style }: { data: FilterItemDataProp; index: number; style: CSSProperties }) => {
+    const { closeMenu, items, selectedFilterItemIds, setSelectedFilterItemIds } = data;
 
     const item = items[index]!;
     const { id, count, doesNotApplyValue, label, labelSuffix, checked } = item;
@@ -89,9 +74,7 @@ const FilterItem = memo(
             setSelectedFilterItemIds?.(
               checked
                 ? new Set(
-                    [...(selectedFilterItemIds ?? [])].filter(
-                      (selectedId) => selectedId !== id,
-                    ),
+                    [...(selectedFilterItemIds ?? [])].filter((selectedId) => selectedId !== id),
                   )
                 : new Set([...(selectedFilterItemIds ?? []), id]),
             )
@@ -108,11 +91,7 @@ const FilterItem = memo(
             maxWidth: "100%",
           }}
         >
-          <Stack
-            direction="row"
-            alignItems="center"
-            sx={{ maxWidth: "calc(100% - 30px)" }}
-          >
+          <Stack direction="row" alignItems="center" sx={{ maxWidth: "calc(100% - 30px)" }}>
             <ListItemIcon>
               <Checkbox
                 sx={{
@@ -153,8 +132,7 @@ const FilterItem = memo(
                 doesNotApplyValue
                   ? {
                       sx: {
-                        color: ({ palette }) =>
-                          `${palette.gray[60]} !important`,
+                        color: ({ palette }) => `${palette.gray[60]} !important`,
                       },
                     }
                   : {}
@@ -195,13 +173,11 @@ export const ColumnFilterMenu = <R extends GridRow>({
   columnFilter?: ColumnFilter<string, R>;
   onClose: () => void;
 } & PopperProps) => {
-  const [previousColumnFilter, setPreviousColumnFilter] =
-    useState<ColumnFilter<string, R>>();
+  const [previousColumnFilter, setPreviousColumnFilter] = useState<ColumnFilter<string, R>>();
 
   if (
     columnFilter &&
-    (!previousColumnFilter ||
-      previousColumnFilter.columnKey !== columnFilter.columnKey)
+    (!previousColumnFilter || previousColumnFilter.columnKey !== columnFilter.columnKey)
   ) {
     setPreviousColumnFilter(columnFilter);
   }
@@ -220,19 +196,14 @@ export const ColumnFilterMenu = <R extends GridRow>({
     closeMenu: () => void;
     items: FilterItemData[];
     selectedFilterItemIds: Set<string> | undefined;
-    setSelectedFilterItemIds:
-      | ((selectedFilterItemIds: Set<string>) => void)
-      | undefined;
+    setSelectedFilterItemIds: ((selectedFilterItemIds: Set<string>) => void) | undefined;
   }>(() => {
     const filteredItems: FilterItemData[] = [];
 
     const lowerCasedSearchText = searchText.toLowerCase().trim();
 
     for (const item of filterItems ?? []) {
-      if (
-        searchText &&
-        !item.label.toLowerCase().includes(lowerCasedSearchText)
-      ) {
+      if (searchText && !item.label.toLowerCase().includes(lowerCasedSearchText)) {
         continue;
       }
 
@@ -282,13 +253,7 @@ export const ColumnFilterMenu = <R extends GridRow>({
       selectedFilterItemIds,
       setSelectedFilterItemIds,
     };
-  }, [
-    filterItems,
-    onClose,
-    searchText,
-    selectedFilterItemIds,
-    setSelectedFilterItemIds,
-  ]);
+  }, [filterItems, onClose, searchText, selectedFilterItemIds, setSelectedFilterItemIds]);
 
   return (
     <Popper open={open} {...popoverProps}>

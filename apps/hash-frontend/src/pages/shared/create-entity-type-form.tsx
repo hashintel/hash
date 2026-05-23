@@ -5,10 +5,7 @@ import { useRouter } from "next/router";
 import { useCallback, useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 
-import {
-  ENTITY_TYPE_META_SCHEMA,
-  makeOntologyTypeVersion,
-} from "@blockprotocol/type-system";
+import { ENTITY_TYPE_META_SCHEMA, makeOntologyTypeVersion } from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -88,13 +85,14 @@ export const CreateEntityTypeForm = ({
   const titlePlural = watch("titlePlural");
   const inverseTitle = watch("inverseTitle");
 
-  const { data: isGenerationAvailableData } =
-    useQuery<IsGenerationAvailableQuery>(isGenerationAvailableQuery, {
+  const { data: isGenerationAvailableData } = useQuery<IsGenerationAvailableQuery>(
+    isGenerationAvailableQuery,
+    {
       fetchPolicy: "no-cache",
-    });
+    },
+  );
 
-  const generationAvailable =
-    !!isGenerationAvailableData?.isGenerationAvailable.available;
+  const generationAvailable = !!isGenerationAvailableData?.isGenerationAvailable.available;
 
   const [requestHasBeenMade, setRequestHasBeenMade] = useState(false);
 
@@ -176,9 +174,7 @@ export const CreateEntityTypeForm = ({
 
   const entityTypes = useEntityTypesOptional();
   const parentType = extendsEntityTypeId
-    ? entityTypes?.find(
-        (entityType) => entityType.schema.$id === extendsEntityTypeId,
-      )
+    ? entityTypes?.find((entityType) => entityType.schema.$id === extendsEntityTypeId)
     : null;
 
   if (!activeWorkspace) {
@@ -234,15 +230,12 @@ export const CreateEntityTypeForm = ({
     ? extractNamespaceFromVersionedUrl(parentType.schema.$id)
     : undefined;
 
-  const crossWebAction =
-    parentType && parentWebName !== activeWorkspace.shortname;
+  const crossWebAction = parentType && parentWebName !== activeWorkspace.shortname;
 
   const potentiallyUndesiredCrossWebAction =
     crossWebAction &&
     authenticatedUser.memberOf.find(
-      ({ org }) =>
-        org.shortname === parentWebName ||
-        org.shortname === activeWorkspace.shortname,
+      ({ org }) => org.shortname === parentWebName || org.shortname === activeWorkspace.shortname,
     );
 
   return (
@@ -269,24 +262,17 @@ export const CreateEntityTypeForm = ({
         })}
         spacing={3}
       >
-        {parentType &&
-          parentType.schema.$id !==
-            blockProtocolEntityTypes.link.entityTypeId && (
-            <Callout
-              type={potentiallyUndesiredCrossWebAction ? "warning" : "info"}
-              sx={{ width: { md: inModal ? "100%" : formItemWidth } }}
-            >
-              You are extending the <strong>{parentType.schema.title}</strong>{" "}
-              entity type from <strong>@{parentWebName}</strong>
-              {" to create a new entity type within "}
-              {crossWebAction ? (
-                <strong>@{activeWorkspace.shortname}</strong>
-              ) : (
-                "the same web"
-              )}
-              .
-            </Callout>
-          )}
+        {parentType && parentType.schema.$id !== blockProtocolEntityTypes.link.entityTypeId && (
+          <Callout
+            type={potentiallyUndesiredCrossWebAction ? "warning" : "info"}
+            sx={{ width: { md: inModal ? "100%" : formItemWidth } }}
+          >
+            You are extending the <strong>{parentType.schema.title}</strong> entity type from{" "}
+            <strong>@{parentWebName}</strong>
+            {" to create a new entity type within "}
+            {crossWebAction ? <strong>@{activeWorkspace.shortname}</strong> : "the same web"}.
+          </Callout>
+        )}
         <Stack
           direction="row"
           alignItems="center"
@@ -319,9 +305,7 @@ export const CreateEntityTypeForm = ({
                   },
                 });
 
-                return res.data?.roots.length
-                  ? "Entity type name must be unique"
-                  : true;
+                return res.data?.roots.length ? "Entity type name must be unique" : true;
               },
             })}
             autoFocus
@@ -341,11 +325,7 @@ export const CreateEntityTypeForm = ({
                 clearErrors("titlePlural");
               },
             })}
-            disabled={
-              !title ||
-              pluralLoading ||
-              (generationAvailable && !requestHasBeenMade)
-            }
+            disabled={!title || pluralLoading || (generationAvailable && !requestHasBeenMade)}
             loading={pluralLoading}
             required
             label="Pluralized name"
@@ -374,11 +354,7 @@ export const CreateEntityTypeForm = ({
                 clearErrors("inverseTitle");
               },
             })}
-            disabled={
-              !title ||
-              inverseLoading ||
-              (generationAvailable && !requestHasBeenMade)
-            }
+            disabled={!title || inverseLoading || (generationAvailable && !requestHasBeenMade)}
             required
             label="Inverse name"
             type="text"

@@ -9,8 +9,7 @@ import type { Entity, PropertyObject } from "@blockprotocol/type-system";
 export interface BlockElementBase<
   RootEntity extends Entity = Entity,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- this is used in the class definition
-  RootEntityLinkedEntities extends LinkEntityAndRightEntity[] =
-    LinkEntityAndRightEntity[],
+  RootEntityLinkedEntities extends LinkEntityAndRightEntity[] = LinkEntityAndRightEntity[],
 >
   extends LitElement, BlockGraphProperties<RootEntity> {}
 
@@ -19,10 +18,7 @@ export interface BlockElementBase<
  * This class handles establishing communication with the embedding application.
  */
 // eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
-export abstract class BlockElementBase<
-  RootEntity,
-  RootEntityLinkedEntities,
-> extends LitElement {
+export abstract class BlockElementBase<RootEntity, RootEntityLinkedEntities> extends LitElement {
   /**
    * The 'graphModule' is a handler for sending messages to the embedding application, e.g. 'graphModule.updateEntity'
    * It starts off undefined and will be available once the initial exchange of messages has taken place (handled internally)
@@ -99,9 +95,7 @@ export abstract class BlockElementBase<
    */
   protected updateSelfProperties(properties: PropertyObject) {
     if (!this.graphModule) {
-      throw new Error(
-        "Cannot updateSelfProperties – graphModule not yet connected.",
-      );
+      throw new Error("Cannot updateSelfProperties – graphModule not yet connected.");
     }
 
     const blockEntity = this.getBlockEntity();

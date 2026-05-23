@@ -3,9 +3,7 @@ import path from "node:path";
 
 import type { InitializeContext } from "../context/initialize.js";
 
-export const cleanOutputDir = async (
-  context: InitializeContext,
-): Promise<void> => {
+export const cleanOutputDir = async (context: InitializeContext): Promise<void> => {
   context.logDebug("Cleaning target dir");
 
   const resolvedTargetDir = path.resolve(context.parameters.outputFolder);

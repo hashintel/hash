@@ -58,22 +58,18 @@ export class ExpectedItemCountMismatchError extends Data.TaggedError(
   get message() {
     return pipe(
       Match.value({ min: this.min, max: this.max }),
-      Match.when(
-        { min: Option.isSome<number>, max: Option.isSome<number> },
-        ({ min, max }) =>
-          min.value === max.value
-            ? `Expected exactly ${min.value} items, got ${this.received}`
-            : `Expected between ${min.value} and ${max.value} items, got ${this.received}`,
+      Match.when({ min: Option.isSome<number>, max: Option.isSome<number> }, ({ min, max }) =>
+        min.value === max.value
+          ? `Expected exactly ${min.value} items, got ${this.received}`
+          : `Expected between ${min.value} and ${max.value} items, got ${this.received}`,
       ),
       Match.when(
         { min: Option.isSome<number>, max: Option.isNone<number> },
-        ({ min }) =>
-          `Expected at least ${min.value} items, got ${this.received}`,
+        ({ min }) => `Expected at least ${min.value} items, got ${this.received}`,
       ),
       Match.when(
         { min: Option.isNone<number>, max: Option.isSome<number> },
-        ({ max }) =>
-          `Expected at most ${max.value} items, got ${this.received}`,
+        ({ max }) => `Expected at most ${max.value} items, got ${this.received}`,
       ),
       Match.when(
         { min: Option.isNone<number>, max: Option.isNone<number> },

@@ -16,9 +16,7 @@ export const EntityEditorContainer = ({
         bgcolor: palette.gray[10],
       })}
     >
-      <Container sx={{ py: 7, ...(isInSlide ? inSlideContainerStyles : {}) }}>
-        {children}
-      </Container>
+      <Container sx={{ py: 7, ...(isInSlide ? inSlideContainerStyles : {}) }}>{children}</Container>
     </Box>
   );
 };

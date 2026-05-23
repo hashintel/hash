@@ -14,9 +14,7 @@ import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 /**
  * Generate tool definitions for the sub-coordinating agent, to be passed to the LLM.
  */
-export const generateToolDefinitions = <
-  T extends SubCoordinatingAgentCustomToolName[],
->(params: {
+export const generateToolDefinitions = <T extends SubCoordinatingAgentCustomToolName[]>(params: {
   dataSources: FlowDataSources;
   omitTools: T;
   state: SubCoordinatingAgentState;
@@ -41,8 +39,7 @@ export const generateToolDefinitions = <
         properties: {
           explanation: {
             type: "string",
-            description:
-              "The explanation for how the gathered claims satisfy the research task.",
+            description: "The explanation for how the gathered claims satisfy the research task.",
           },
         },
       },

@@ -5,10 +5,7 @@ import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
-import {
-  generateInitialUserMessage,
-  generateSystemPromptPrefix,
-} from "./generate-messages.js";
+import { generateInitialUserMessage, generateSystemPromptPrefix } from "./generate-messages.js";
 import { generateToolDefinitions } from "./sub-coordinator-tools.js";
 
 import type {
@@ -30,8 +27,7 @@ export const createInitialPlan = async (params: {
     Do not make any other tool calls.
   `);
 
-  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
@@ -62,18 +58,14 @@ export const createInitialPlan = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
-    );
+    throw new Error(`Failed to get LLM response: ${JSON.stringify(llmResponse)}`);
   }
 
   const { message } = llmResponse;
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
-  const updatePlanToolCall = toolCalls.find(
-    (toolCall) => toolCall.name === "updatePlan",
-  );
+  const updatePlanToolCall = toolCalls.find((toolCall) => toolCall.name === "updatePlan");
 
   if (updatePlanToolCall) {
     const { plan } =
@@ -83,8 +75,6 @@ export const createInitialPlan = async (params: {
   }
 
   throw new Error(
-    `Could not find "updatePlan" tool call in LLM response: ${JSON.stringify(
-      llmResponse,
-    )}`,
+    `Could not find "updatePlan" tool call in LLM response: ${JSON.stringify(llmResponse)}`,
   );
 };

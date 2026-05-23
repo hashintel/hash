@@ -81,9 +81,8 @@ export const NotFound = ({
               variant="regularTextParagraphs"
               sx={{ color: ({ palette }) => palette.gray[80] }}
             >
-              If you believe you should be able to see{" "}
-              {resourceLabel.withArticle} here, try contacting its owner. You
-              are logged in as{" "}
+              If you believe you should be able to see {resourceLabel.withArticle} here, try
+              contacting its owner. You are logged in as{" "}
               <strong>{authenticatedUser.emails[0]?.address}</strong>
             </Typography>
             {additionalText && (
@@ -105,9 +104,8 @@ export const NotFound = ({
               variant="regularTextParagraphs"
               sx={{ color: ({ palette }) => palette.gray[80] }}
             >
-              <strong>You are not currently logged in.</strong> If you believe
-              you should be able to see a page here, create an account or sign
-              in.
+              <strong>You are not currently logged in.</strong> If you believe you should be able to
+              see a page here, create an account or sign in.
             </Typography>
             <Stack direction="row" gap={1.5} mt={5}>
               <Button

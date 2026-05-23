@@ -1,23 +1,16 @@
-import {
-  getUserPendingInvitations,
-  type User,
-} from "../graph/knowledge/system-types/user";
+import { getUserPendingInvitations, type User } from "../graph/knowledge/system-types/user";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 
 const isArrayOfStrings = (value: unknown): value is string[] => {
-  return (
-    Array.isArray(value) && value.every((item) => typeof item === "string")
-  );
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
 };
 
 let userEmailAllowList: string[] | undefined;
 if (process.env.USER_EMAIL_ALLOW_LIST) {
   try {
-    const uncheckedUserEmailAllowList = JSON.parse(
-      process.env.USER_EMAIL_ALLOW_LIST,
-    ) as unknown;
+    const uncheckedUserEmailAllowList = JSON.parse(process.env.USER_EMAIL_ALLOW_LIST) as unknown;
 
     if (!isArrayOfStrings(uncheckedUserEmailAllowList)) {
       throw new Error(
@@ -67,19 +60,13 @@ export const userHasAccessToHash = async (
     return { allowed: true };
   }
 
-  const allowedEmails = user.emails.filter((email) =>
-    userEmailAllowList.includes(email),
-  );
+  const allowedEmails = user.emails.filter((email) => userEmailAllowList.includes(email));
 
   if (allowedEmails.length > 0) {
     return { allowed: true, onlyForEmails: allowedEmails };
   }
 
-  const pendingInvitations = await getUserPendingInvitations(
-    context,
-    authentication,
-    { user },
-  );
+  const pendingInvitations = await getUserPendingInvitations(context, authentication, { user });
 
   return { allowed: pendingInvitations.length > 0 };
 };

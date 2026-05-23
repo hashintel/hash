@@ -57,9 +57,7 @@ const lookupDefinition = (
   return {
     identifier,
     compiledContents,
-    dependentOnIdentifiers: typedValues(
-      linkEntityTypeIdToLinkAndTargetIdentifiers,
-    ),
+    dependentOnIdentifiers: typedValues(linkEntityTypeIdToLinkAndTargetIdentifiers),
   };
 };
 
@@ -75,9 +73,7 @@ const linkAndTargetsUnionDefinition = (
 ): IdentifierToCompiledDefinition => {
   const identifier = `${entityName}OutgoingLinkAndTarget`;
   const unionItems =
-    linkAndTargetIdentifiers.length > 0
-      ? linkAndTargetIdentifiers.join(" | ")
-      : "never";
+    linkAndTargetIdentifiers.length > 0 ? linkAndTargetIdentifiers.join(" | ") : "never";
   const compiledContents = `export type ${identifier} = ${unionItems}`;
 
   return {
@@ -106,9 +102,7 @@ const generateOutgoingLinkAndTargetDefinitionsForEntity = (
     { linkIdentifier: string; targetIdentifiers: string[] }
   > = {};
 
-  for (const [linkTypeId, targetEntityTypeRefs] of typedEntries(
-    entityType.links ?? {},
-  )) {
+  for (const [linkTypeId, targetEntityTypeRefs] of typedEntries(entityType.links ?? {})) {
     const linkEntityIdentifier = entityDefinitionNameForEntityType(
       mustBeDefined(context.entityTypes[linkTypeId]).title,
     );
@@ -117,18 +111,13 @@ const generateOutgoingLinkAndTargetDefinitionsForEntity = (
       linkIdentifier: linkEntityIdentifier,
       targetIdentifiers: [],
     };
-    const targetIdentifiers =
-      mappedLinkAndTargetIdentifiers[linkTypeId].targetIdentifiers;
+    const targetIdentifiers = mappedLinkAndTargetIdentifiers[linkTypeId].targetIdentifiers;
 
     if ("oneOf" in targetEntityTypeRefs.items) {
       for (const targetEntityTypeRef of targetEntityTypeRefs.items.oneOf) {
-        const targetEntityType = mustBeDefined(
-          context.entityTypes[targetEntityTypeRef.$ref],
-        );
+        const targetEntityType = mustBeDefined(context.entityTypes[targetEntityTypeRef.$ref]);
 
-        targetIdentifiers.push(
-          entityDefinitionNameForEntityType(targetEntityType.title),
-        );
+        targetIdentifiers.push(entityDefinitionNameForEntityType(targetEntityType.title));
       }
     } else {
       // Unconstrained link destination, allow any entity
@@ -157,25 +146,18 @@ const generateOutgoingLinkAndTargetDefinitionsForEntity = (
   );
 
   const linkEntityTypeIdsToLinkAndTargetIdentifiers = Object.fromEntries(
-    typedEntries(linkTypeIdsTolinkAndTargets).map(
-      ([linkTypeId, { identifier }]) => [linkTypeId, identifier],
-    ),
+    typedEntries(linkTypeIdsTolinkAndTargets).map(([linkTypeId, { identifier }]) => [
+      linkTypeId,
+      identifier,
+    ]),
   );
 
-  const lookup = lookupDefinition(
-    entityName,
-    linkEntityTypeIdsToLinkAndTargetIdentifiers,
-  );
+  const lookup = lookupDefinition(entityName, linkEntityTypeIdsToLinkAndTargetIdentifiers);
 
   const linkAndTargets = typedValues(linkTypeIdsTolinkAndTargets);
-  const linkAndTargetIdentifiers = linkAndTargets.map(
-    ({ identifier }) => identifier,
-  );
+  const linkAndTargetIdentifiers = linkAndTargets.map(({ identifier }) => identifier);
 
-  const linkAndTargetsUnion = linkAndTargetsUnionDefinition(
-    entityName,
-    linkAndTargetIdentifiers,
-  );
+  const linkAndTargetsUnion = linkAndTargetsUnionDefinition(entityName, linkAndTargetIdentifiers);
 
   return {
     entityName,
@@ -195,15 +177,9 @@ const allocateOutgoingLinkAndTargetDefinitionsToFile = (
   }[],
   context: PostprocessContext,
 ) => {
-  context.logTrace(
-    `Adding outgoing link and target definitions for ${entityName}`,
-  );
+  context.logTrace(`Adding outgoing link and target definitions for ${entityName}`);
 
-  for (const {
-    identifier,
-    compiledContents,
-    dependentOnIdentifiers,
-  } of definitions) {
+  for (const { identifier, compiledContents, dependentOnIdentifiers } of definitions) {
     context.defineIdentifierInFile(
       identifier,
       {
@@ -221,16 +197,11 @@ const allocateOutgoingLinkAndTargetDefinitionsToFile = (
  *
  * @param context
  */
-export const generateLinkAndTargetDefinitions = (
-  context: PostprocessContext,
-): void => {
+export const generateLinkAndTargetDefinitions = (context: PostprocessContext): void => {
   context.logDebug("Adding entity link and target definitions");
 
   const entityTypeIdentifiersToIds = Object.fromEntries(
-    typedEntries(context.entityTypes).map(([entityTypeId, { title }]) => [
-      title,
-      entityTypeId,
-    ]),
+    typedEntries(context.entityTypes).map(([entityTypeId, { title }]) => [title, entityTypeId]),
   );
 
   const entityTypeIdsToOutgoingLinkAndTargetDefinitions = Object.fromEntries(
@@ -239,25 +210,18 @@ export const generateLinkAndTargetDefinitions = (
 
       return [
         entityTypeId,
-        generateOutgoingLinkAndTargetDefinitionsForEntity(
-          entityName,
-          entityTypeId,
-          context,
-        ),
+        generateOutgoingLinkAndTargetDefinitionsForEntity(entityName, entityTypeId, context),
       ];
     }),
   );
 
-  for (const [file, dependentIdentifiers] of typedEntries(
-    context.filesToDependentIdentifiers,
-  )) {
+  for (const [file, dependentIdentifiers] of typedEntries(context.filesToDependentIdentifiers)) {
     for (const dependentIdentifier of dependentIdentifiers) {
       const entityTypeId = entityTypeIdentifiersToIds[dependentIdentifier];
       if (entityTypeId) {
-        const { entityName, lookup, linkAndTargets, linkAndTargetsUnion } =
-          mustBeDefined(
-            entityTypeIdsToOutgoingLinkAndTargetDefinitions[entityTypeId],
-          );
+        const { entityName, lookup, linkAndTargets, linkAndTargetsUnion } = mustBeDefined(
+          entityTypeIdsToOutgoingLinkAndTargetDefinitions[entityTypeId],
+        );
 
         if (context.filesToDefinedIdentifiers[file]?.has(dependentIdentifier)) {
           allocateOutgoingLinkAndTargetDefinitionsToFile(
@@ -267,11 +231,7 @@ export const generateLinkAndTargetDefinitions = (
             context,
           );
         } else {
-          for (const { identifier } of [
-            lookup,
-            linkAndTargetsUnion,
-            ...linkAndTargets,
-          ]) {
+          for (const { identifier } of [lookup, linkAndTargetsUnion, ...linkAndTargets]) {
             context.addDependentIdentifierInFile(identifier, file);
           }
         }

@@ -12,16 +12,7 @@ export type PlayMode = "viewOnly" | "computeBuffer" | "computeMax";
 
 export type ComputePlayMode = Exclude<PlayMode, "viewOnly">;
 
-export const PLAYBACK_SPEEDS = [
-  1,
-  2,
-  5,
-  10,
-  30,
-  60,
-  120,
-  Number.POSITIVE_INFINITY,
-] as const;
+export const PLAYBACK_SPEEDS = [1, 2, 5, 10, 30, 60, 120, Number.POSITIVE_INFINITY] as const;
 
 export type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number];
 
@@ -41,9 +32,7 @@ export type PlayModeBackpressure = {
   batchSize: number;
 };
 
-export function getPlayModeBackpressure(
-  mode: ComputePlayMode,
-): PlayModeBackpressure {
+export function getPlayModeBackpressure(mode: ComputePlayMode): PlayModeBackpressure {
   return mode === "computeBuffer"
     ? { maxFramesAhead: 40, batchSize: 10 }
     : { maxFramesAhead: 10000, batchSize: 500 };

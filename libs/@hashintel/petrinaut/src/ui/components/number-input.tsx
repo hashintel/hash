@@ -88,10 +88,7 @@ const numberInputStyle = cva({
   },
 });
 
-type NumberInputProps = Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  "type" | "size"
-> & {
+type NumberInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "size"> & {
   /** Size variant */
   size?: "xs" | "sm" | "md" | "lg";
   /** Whether the input has an error */

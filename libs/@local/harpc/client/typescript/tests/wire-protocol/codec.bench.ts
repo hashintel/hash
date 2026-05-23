@@ -36,9 +36,7 @@ const responseEncoded = pipe(
 
 describe("request", () => {
   bench("encode", () => {
-    Request.encode(MutableBuffer.makeWrite(), request[0]!).pipe(
-      Either.getOrThrow,
-    );
+    Request.encode(MutableBuffer.makeWrite(), request[0]!).pipe(Either.getOrThrow);
   });
 
   bench("decode", () => {
@@ -50,9 +48,7 @@ describe("request", () => {
 
 describe("response", () => {
   bench("encode", () => {
-    Response.encode(MutableBuffer.makeWrite(), response[0]!).pipe(
-      Either.getOrThrow,
-    );
+    Response.encode(MutableBuffer.makeWrite(), response[0]!).pipe(Either.getOrThrow);
   });
 
   bench("decode", () => {

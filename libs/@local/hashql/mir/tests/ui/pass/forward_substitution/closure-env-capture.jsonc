@@ -8,12 +8,7 @@
     "let",
     "captured",
     { "#literal": 42 },
-    [
-      "let",
-      "f",
-      ["fn", { "#tuple": [] }, { "#struct": {} }, "_", "captured"],
-      ["f"]
-    ]
+    ["let", "f", ["fn", { "#tuple": [] }, { "#struct": {} }, "_", "captured"], ["f"]]
   ],
   { "#literal": 0 }
 ]

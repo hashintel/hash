@@ -1,10 +1,4 @@
-import {
-  Box,
-  CircularProgress,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, CircularProgress, Stack, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
@@ -23,10 +17,7 @@ import {
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import {
-  useFileUploads,
-  useFileUploadsProgress,
-} from "../../../../shared/file-upload-context";
+import { useFileUploads, useFileUploadsProgress } from "../../../../shared/file-upload-context";
 import { FileUploadDropzone } from "../../../settings/shared/file-upload-dropzone";
 import { useAuthInfo } from "../../auth-info-context";
 import { getFileProperties } from "../../get-file-properties";
@@ -148,11 +139,7 @@ const ReplaceFile = ({
 
   return (
     <>
-      <FileUploadDropzone
-        image={isImage}
-        multiple={false}
-        onFilesProvided={onFilesProvided}
-      />
+      <FileUploadDropzone image={isImage} multiple={false} onFilesProvided={onFilesProvided} />
       <ActionButtonsContainer>
         <Tooltip title="Cancel">
           <Box>
@@ -175,8 +162,7 @@ export const FilePreviewSection = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showThumbnails, setShowThumbnails] = useState(true);
 
-  const { isDirty, readonly, closedMultiEntityType, entity } =
-    useEntityEditor();
+  const { isDirty, readonly, closedMultiEntityType, entity } = useEntityEditor();
 
   const { isImage, fileUrl } = getFileProperties(entity.properties);
 
@@ -192,8 +178,7 @@ export const FilePreviewSection = () => {
     entity.properties as FileProperties,
   );
 
-  const title =
-    displayName ?? generateEntityLabel(closedMultiEntityType, entity);
+  const title = displayName ?? generateEntityLabel(closedMultiEntityType, entity);
 
   const alt = description ?? title;
 
@@ -205,21 +190,17 @@ export const FilePreviewSection = () => {
       titleStartContent={
         isPdf ? (
           <Stack direction="row" gap={1} ml={3}>
-            <GrayToBlueIconButton
-              onClick={() => setShowThumbnails(!showThumbnails)}
-            >
+            <GrayToBlueIconButton onClick={() => setShowThumbnails(!showThumbnails)}>
               <SidebarRegularIcon
                 sx={{
-                  color: ({ palette }) =>
-                    showThumbnails ? palette.blue[70] : undefined,
+                  color: ({ palette }) => (showThumbnails ? palette.blue[70] : undefined),
                 }}
               />
             </GrayToBlueIconButton>
             <GrayToBlueIconButton onClick={() => setShowSearch(!showSearch)}>
               <MagnifyingGlassRegularIcon
                 sx={{
-                  color: ({ palette }) =>
-                    showSearch ? palette.blue[70] : undefined,
+                  color: ({ palette }) => (showSearch ? palette.blue[70] : undefined),
                 }}
               />
             </GrayToBlueIconButton>
@@ -240,45 +221,26 @@ export const FilePreviewSection = () => {
           {!readonly && (
             <Tooltip
               placement="top"
-              title={
-                isDirty
-                  ? "Save or discard your changes to replace the file"
-                  : "Replace"
-              }
+              title={isDirty ? "Save or discard your changes to replace the file" : "Replace"}
             >
               <Box>
-                <GrayToBlueIconButton
-                  disabled={isDirty}
-                  onClick={() => setReplacing(true)}
-                >
+                <GrayToBlueIconButton disabled={isDirty} onClick={() => setReplacing(true)}>
                   <RotateRegularIcon />
                 </GrayToBlueIconButton>
               </Box>
             </Tooltip>
           )}
           <Tooltip placement="top" title="Download">
-            <Box
-              component="a"
-              download
-              href={fileUrl}
-              rel="nofollow noopener noreferrer"
-            >
+            <Box component="a" download href={fileUrl} rel="nofollow noopener noreferrer">
               <GrayToBlueIconButton>
                 <DownloadRegularIcon />
               </GrayToBlueIconButton>
             </Box>
           </Tooltip>
           <Tooltip placement="top" title="Open in new tab">
-            <Box
-              component="a"
-              href={fileUrl}
-              target="_blank"
-              rel="nofollow noopener noreferrer"
-            >
+            <Box component="a" href={fileUrl} target="_blank" rel="nofollow noopener noreferrer">
               <GrayToBlueIconButton>
-                <ArrowUpRightFromSquareRegularIcon
-                  sx={{ width: 13, height: 13 }}
-                />
+                <ArrowUpRightFromSquareRegularIcon sx={{ width: 13, height: 13 }} />
               </GrayToBlueIconButton>
             </Box>
           </Tooltip>
@@ -337,9 +299,7 @@ export const FilePreviewSection = () => {
                 fontSize: 48,
               }}
             />
-            <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
-              {fileName}
-            </Typography>
+            <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>{fileName}</Typography>
           </Stack>
         )}
       </Stack>

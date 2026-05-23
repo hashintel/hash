@@ -14,46 +14,33 @@ import {
 import type { MigrationFunction } from "../types";
 import type { EntityType } from "@blockprotocol/type-system";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /**
    * Create the integration entity type to act as a parent type for all integration types.
    */
-  const integrationEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Integration",
-        description: "An integration with a third-party service.",
-        properties: [],
-      },
-      migrationState,
-      webShortname: "h",
+  const integrationEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Integration",
+      description: "An integration with a third-party service.",
+      properties: [],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   if (enabledIntegrations.linear) {
     /**
      * Add the integration entity type as a parent of the linear integration entity type.
      */
-    const currentLinearIntegrationEntityTypeId =
-      getCurrentHashSystemEntityTypeId({
-        entityTypeKey: "linearIntegration",
-        migrationState,
-      });
+    const currentLinearIntegrationEntityTypeId = getCurrentHashSystemEntityTypeId({
+      entityTypeKey: "linearIntegration",
+      migrationState,
+    });
 
-    const linearIntegrationEntityType = await getEntityTypeById(
-      context.graphApi,
-      authentication,
-      {
-        entityTypeId: currentLinearIntegrationEntityTypeId,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    );
+    const linearIntegrationEntityType = await getEntityTypeById(context.graphApi, authentication, {
+      entityTypeId: currentLinearIntegrationEntityTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    });
 
     if (!linearIntegrationEntityType) {
       throw new NotFoundError(
@@ -77,9 +64,7 @@ const migrate: MigrationFunction = async ({
     });
 
     await upgradeEntitiesToNewTypeVersion(context, authentication, {
-      entityTypeBaseUrls: [
-        systemEntityTypes.linearIntegration.entityTypeBaseUrl,
-      ],
+      entityTypeBaseUrls: [systemEntityTypes.linearIntegration.entityTypeBaseUrl],
       migrationState,
     });
   }

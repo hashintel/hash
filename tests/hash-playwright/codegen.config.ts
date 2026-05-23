@@ -4,8 +4,7 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema:
-    "../../libs/@local/hash-isomorphic-utils/src/graphql/type-defs/**/*.ts",
+  schema: "../../libs/@local/hash-isomorphic-utils/src/graphql/type-defs/**/*.ts",
   generates: {
     "./tests/graphql/fragment-types.gen.json": {
       plugins: ["fragment-matcher"],

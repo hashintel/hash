@@ -70,13 +70,9 @@ const resolveAAAA = (hostname: string) =>
     ),
   );
 
-const logEnvironment = Effect.fn("logEnvironment")(function* (
-  hostname: string,
-) {
+const logEnvironment = Effect.fn("logEnvironment")(function* (hostname: string) {
   const servers = dns.getServers();
-  const records = yield* Effect.tryPromise(() => dns.resolveAny(hostname)).pipe(
-    Effect.merge,
-  );
+  const records = yield* Effect.tryPromise(() => dns.resolveAny(hostname)).pipe(Effect.merge);
 
   yield* Effect.logTrace("resolved DNS environment").pipe(
     Effect.annotateLogs({ hostname, servers, records }),
@@ -88,10 +84,7 @@ interface Query {
 }
 
 /** @internal */
-export const resolve = Effect.fn("resolve")(function* (
-  hostname: string,
-  query: Query,
-) {
+export const resolve = Effect.fn("resolve")(function* (hostname: string, query: Query) {
   const resolvers: Effect.Effect<DnsRecord[], DnsError>[] = [];
 
   if (query.records.includes("A")) {
@@ -132,13 +125,9 @@ export const resolve = Effect.fn("resolve")(function* (
 
   yield* Effect.fork(logEnvironment(hostname));
 
-  const [excluded, satisfying] = yield* Effect.partition(
-    resolvers,
-    Function.identity,
-    {
-      concurrency: "unbounded",
-    },
-  );
+  const [excluded, satisfying] = yield* Effect.partition(resolvers, Function.identity, {
+    concurrency: "unbounded",
+  });
 
   if (satisfying.length === 0) {
     // means that excluded is non empty
@@ -153,10 +142,7 @@ export const resolve = Effect.fn("resolve")(function* (
 });
 
 /** @internal */
-export const lookup = Effect.fn("lookup")(function* (
-  hostname: string,
-  query: Query,
-) {
+export const lookup = Effect.fn("lookup")(function* (hostname: string, query: Query) {
   const records = yield* Effect.tryPromise({
     try: () => dns.lookup(hostname, { all: true }),
     catch: (cause) => new DnsError({ cause }),
@@ -165,10 +151,7 @@ export const lookup = Effect.fn("lookup")(function* (
   yield* Effect.fork(logEnvironment(hostname));
 
   // partition into A and AAAA records
-  const [excluded, satisfying] = Array.partition(
-    records,
-    (record) => record.family === 4,
-  );
+  const [excluded, satisfying] = Array.partition(records, (record) => record.family === 4);
 
   // we cannot determine the TTL of lookup records, therefore we set it to infinity
   // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs

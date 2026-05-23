@@ -61,13 +61,8 @@ const RenderOptionContent = ({ label }: Pick<ModelOption, "label">) => {
 
 const inputHeight = 30;
 
-export const ModelSelector = ({
-  selectedModel,
-  setSelectedModel,
-}: ModelSelectorProps) => {
-  const selectedModelOption = modelOptions.find(
-    (option) => option.value === selectedModel,
-  );
+export const ModelSelector = ({ selectedModel, setSelectedModel }: ModelSelectorProps) => {
+  const selectedModelOption = modelOptions.find((option) => option.value === selectedModel);
 
   return (
     <Autocomplete
@@ -97,12 +92,7 @@ export const ModelSelector = ({
       }}
       options={modelOptions}
       renderOption={(props, option) => (
-        <MenuItem
-          {...props}
-          key={option.value}
-          value={option.value}
-          sx={menuItemSx}
-        >
+        <MenuItem {...props} key={option.value} value={option.value} sx={menuItemSx}>
           <RenderOptionContent {...option} />
         </MenuItem>
       )}

@@ -6,15 +6,9 @@ import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { usePetrinautInstance } from "../../../../../react/use-petrinaut-instance";
-import {
-  copySelectionToClipboard,
-  pasteFromClipboard,
-} from "../../../../clipboard/clipboard";
+import { copySelectionToClipboard, pasteFromClipboard } from "../../../../clipboard/clipboard";
 
-import type {
-  CursorMode,
-  EditorState,
-} from "../../../../../react/state/editor-context";
+import type { CursorMode, EditorState } from "../../../../../react/state/editor-context";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 type EditorMode = EditorState["globalMode"];
@@ -68,11 +62,7 @@ export function useKeyboardShortcuts(
 
     // Open search with Ctrl/Cmd+F, or focus input if already open.
     // Skip when focus is inside Monaco or another input so their native find works.
-    if (
-      !isInputFocused &&
-      (event.metaKey || event.ctrlKey) &&
-      event.key.toLowerCase() === "f"
-    ) {
+    if (!isInputFocused && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
       event.preventDefault();
       if (isSearchOpen) {
         searchInputRef.current?.focus();
@@ -101,11 +91,7 @@ export function useKeyboardShortcuts(
 
       if (key === "c" && hasSelection) {
         event.preventDefault();
-        void copySelectionToClipboard(
-          petriNetDefinition,
-          selection,
-          petriNetId,
-        );
+        void copySelectionToClipboard(petriNetDefinition, selection, petriNetId);
         return;
       }
 
@@ -113,11 +99,7 @@ export function useKeyboardShortcuts(
         event.preventDefault();
         void pasteFromClipboard(instance.mutate).then((newItemIds) => {
           if (newItemIds && newItemIds.length > 0) {
-            setSelection(
-              new Map(
-                newItemIds.map((item) => [item.id, item as SelectionItem]),
-              ),
-            );
+            setSelection(new Map(newItemIds.map((item) => [item.id, item as SelectionItem])));
           }
         });
         return;
@@ -145,11 +127,7 @@ export function useKeyboardShortcuts(
     }
 
     // Delete selected items with Backspace or Delete
-    if (
-      (event.key === "Delete" || event.key === "Backspace") &&
-      !isReadonly &&
-      hasSelection
-    ) {
+    if ((event.key === "Delete" || event.key === "Backspace") && !isReadonly && hasSelection) {
       event.preventDefault();
       deleteItemsByIds({ items: Array.from(selection.values()) });
       clearSelection();

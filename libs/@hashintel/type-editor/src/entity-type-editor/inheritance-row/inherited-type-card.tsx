@@ -29,9 +29,7 @@ export const InheritedTypeCard = ({
 
   const [currentVersion, latestVersion] = useTypeVersions($id, entityTypes);
   const newVersion =
-    compareOntologyTypeVersions(currentVersion, latestVersion) < 0
-      ? latestVersion
-      : undefined;
+    compareOntologyTypeVersions(currentVersion, latestVersion) < 0 ? latestVersion : undefined;
 
   const isReadOnly = useIsReadonly();
 
@@ -61,9 +59,7 @@ export const InheritedTypeCard = ({
   };
 
   /** @todo H-3363 take account of inheritance by using closed schema */
-  const isLink = directParentEntityTypeIds.includes(
-    blockProtocolEntityTypes.link.entityTypeId,
-  );
+  const isLink = directParentEntityTypeIds.includes(blockProtocolEntityTypes.link.entityTypeId);
 
   return (
     <TypeCard

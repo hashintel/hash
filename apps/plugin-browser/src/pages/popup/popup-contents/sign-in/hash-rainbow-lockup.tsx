@@ -5,13 +5,7 @@ import type { FunctionComponent } from "react";
 
 export const HashRainbowLockup: FunctionComponent<SvgIconProps> = (props) => {
   return (
-    <SvgIcon
-      width="120"
-      height="22"
-      viewBox="0 0 120 22"
-      fill="none"
-      {...props}
-    >
+    <SvgIcon width="120" height="22" viewBox="0 0 120 22" fill="none" {...props}>
       <path
         d="M30.3247 0.656738H35.965V8.39942H43.2043V0.656738H48.8446V21.3433H43.2043V13.4824H35.965V21.3433H30.3247V0.656738Z"
         fill="black"

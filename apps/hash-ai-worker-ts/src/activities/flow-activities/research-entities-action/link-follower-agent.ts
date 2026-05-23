@@ -7,10 +7,7 @@ import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-stor
 
 import { getWebPageActivity } from "../../get-web-page-activity.js";
 import { logger } from "../../shared/activity-logger.js";
-import {
-  getFlowContext,
-  getProvidedFileByUrl,
-} from "../../shared/get-flow-context.js";
+import { getFlowContext, getProvidedFileByUrl } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
 import { inferSummariesThenClaimsFromText } from "../shared/infer-summaries-then-claims-from-text.js";
@@ -88,9 +85,7 @@ const isContentAtUrlPdfFile = async (params: { url: string }) => {
     }
   } catch (error) {
     logger.error(
-      `Error encountered when checking if content at URL ${url} is a PDF file: ${stringify(
-        error,
-      )}`,
+      `Error encountered when checking if content at URL ${url} is a PDF file: ${stringify(error)}`,
     );
   }
   return false;
@@ -141,9 +136,7 @@ const exploreResource = async (params: {
      * and otherwise use the proxy URL stored on the entity itself in logs and provenance records.
      */
     const storageKey =
-      hashEntityForFile.properties[
-        "https://hash.ai/@h/types/property-type/file-storage-key/"
-      ];
+      hashEntityForFile.properties["https://hash.ai/@h/types/property-type/file-storage-key/"];
 
     if (storageKey) {
       urlForDownload = await getStorageProvider().presignDownload({
@@ -156,8 +149,7 @@ const exploreResource = async (params: {
     return {
       status: "not-explored",
       resource,
-      reason:
-        "Public internet access is disabled – you provided a URL to the public web.",
+      reason: "Public internet access is disabled – you provided a URL to the public web.",
     };
   }
 
@@ -217,9 +209,7 @@ const exploreResource = async (params: {
       query,
     });
 
-    const textChunks = sourceNodes?.map(({ node }) =>
-      node.getContent(MetadataMode.NONE),
-    );
+    const textChunks = sourceNodes?.map(({ node }) => node.getContent(MetadataMode.NONE));
 
     if (!textChunks || textChunks.length === 0) {
       return {
@@ -229,18 +219,13 @@ const exploreResource = async (params: {
       };
     }
 
-    logger.debug(
-      `Vector DB query returned ${textChunks.length} chunks: ${stringify(
-        textChunks,
-      )}`,
-    );
+    logger.debug(`Vector DB query returned ${textChunks.length} chunks: ${stringify(textChunks)}`);
 
-    const filteredAndRankedTextChunksResponse =
-      await filterAndRankTextChunksAgent({
-        description: resource.descriptionOfExpectedContent,
-        exampleText: resource.exampleOfExpectedContent,
-        textChunks,
-      });
+    const filteredAndRankedTextChunksResponse = await filterAndRankTextChunksAgent({
+      description: resource.descriptionOfExpectedContent,
+      exampleText: resource.exampleOfExpectedContent,
+      textChunks,
+    });
 
     if (
       filteredAndRankedTextChunksResponse.status !== "ok" ||
@@ -267,14 +252,10 @@ const exploreResource = async (params: {
 
     const { orderedRelevantTextChunks } = filteredAndRankedTextChunksResponse;
 
-    logger.debug(
-      `Ordered relevant text chunks: ${stringify(orderedRelevantTextChunks)}`,
-    );
+    logger.debug(`Ordered relevant text chunks: ${stringify(orderedRelevantTextChunks)}`);
 
     content = dedent(`
-      Here is a list of the most relevant sections of the PDF file with file URL ${
-        resource.url
-      }:
+      Here is a list of the most relevant sections of the PDF file with file URL ${resource.url}:
       ${orderedRelevantTextChunks
         .map((text, index) => `Relevant section ${index + 1}: ${text}`)
         .join("\n")}
@@ -345,28 +326,25 @@ const exploreResource = async (params: {
     `Extracted relevant ${relevantLinksFromContent.length} links from the content of the resource with URL ${resource.url}`,
   );
 
-  const dereferencedEntityTypesById =
-    entityTypes.reduce<DereferencedEntityTypesByTypeId>(
-      (prev, schema) => ({
-        ...prev,
-        [schema.$id]: { schema, isLink: false },
-      }),
-      {},
-    );
+  const dereferencedEntityTypesById = entityTypes.reduce<DereferencedEntityTypesByTypeId>(
+    (prev, schema) => ({
+      ...prev,
+      [schema.$id]: { schema, isLink: false },
+    }),
+    {},
+  );
 
-  const {
-    claims: inferredClaimsFromContent,
-    entitySummaries: inferredEntitySummariesFromContent,
-  } = await inferSummariesThenClaimsFromText({
-    existingEntitiesOfInterest,
-    text: content,
-    url: resource.url,
-    contentType: isResourcePdfFile ? "document" : "webpage",
-    title: resourceTitle ?? null,
-    goal: resource.goal,
-    dereferencedEntityTypes: dereferencedEntityTypesById,
-    workerIdentifiers,
-  });
+  const { claims: inferredClaimsFromContent, entitySummaries: inferredEntitySummariesFromContent } =
+    await inferSummariesThenClaimsFromText({
+      existingEntitiesOfInterest,
+      text: content,
+      url: resource.url,
+      contentType: isResourcePdfFile ? "document" : "webpage",
+      title: resourceTitle ?? null,
+      goal: resource.goal,
+      dereferencedEntityTypes: dereferencedEntityTypesById,
+      workerIdentifiers,
+    });
 
   logProgress([
     {
@@ -473,8 +451,7 @@ export const linkFollowerAgent = async (params: {
     /**
      * Prior to exploring more resources, check if we should stop.
      */
-    const preExploreResourcesStopCheck =
-      await checkIfWorkerShouldStop(workerIdentifiers);
+    const preExploreResourcesStopCheck = await checkIfWorkerShouldStop(workerIdentifiers);
 
     if (preExploreResourcesStopCheck.shouldStop) {
       /**
@@ -525,9 +502,7 @@ export const linkFollowerAgent = async (params: {
         inferredClaims.push(...response.inferredClaims);
         inferredEntitySummaries.push(...response.inferredEntitySummaries);
       } else {
-        logger.debug(
-          `Resource at URL ${response.resource.url} not explored: ${response.reason}`,
-        );
+        logger.debug(`Resource at URL ${response.resource.url} not explored: ${response.reason}`);
 
         if (resourcesToExplore.length === 1) {
           return {
@@ -543,10 +518,7 @@ export const linkFollowerAgent = async (params: {
     }
 
     if (inferredEntitySummaries.length > 0) {
-      if (
-        allInferredEntitySummaries.length === 0 &&
-        resourcesToExplore.length === 1
-      ) {
+      if (allInferredEntitySummaries.length === 0 && resourcesToExplore.length === 1) {
         /**
          * If we previously haven't encountered any entities, and we only explored
          * a single resource, we can safely assume that any entities inferred
@@ -566,34 +538,25 @@ export const linkFollowerAgent = async (params: {
           ...allInferredEntitySummaries,
           ...inferredEntitySummaries,
         ].filter(
-          ({ localId }) =>
-            !duplicates.some(({ duplicateIds }) =>
-              duplicateIds.includes(localId),
-            ),
+          ({ localId }) => !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
         );
 
-        allInferredClaims = [...allInferredClaims, ...inferredClaims].map(
-          (claim) => {
-            const { subjectEntityLocalId, objectEntityLocalId } = claim;
-            const subjectDuplicate = duplicates.find(({ duplicateIds }) =>
-              duplicateIds.includes(subjectEntityLocalId),
-            );
+        allInferredClaims = [...allInferredClaims, ...inferredClaims].map((claim) => {
+          const { subjectEntityLocalId, objectEntityLocalId } = claim;
+          const subjectDuplicate = duplicates.find(({ duplicateIds }) =>
+            duplicateIds.includes(subjectEntityLocalId),
+          );
 
-            const objectDuplicate = objectEntityLocalId
-              ? duplicates.find(({ duplicateIds }) =>
-                  duplicateIds.includes(objectEntityLocalId),
-                )
-              : undefined;
+          const objectDuplicate = objectEntityLocalId
+            ? duplicates.find(({ duplicateIds }) => duplicateIds.includes(objectEntityLocalId))
+            : undefined;
 
-            return {
-              ...claim,
-              subjectEntityLocalId:
-                subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
-              objectEntityLocalId:
-                objectDuplicate?.canonicalId ?? objectEntityLocalId,
-            };
-          },
-        );
+          return {
+            ...claim,
+            subjectEntityLocalId: subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
+            objectEntityLocalId: objectDuplicate?.canonicalId ?? objectEntityLocalId,
+          };
+        });
       }
     }
 
@@ -617,15 +580,13 @@ export const linkFollowerAgent = async (params: {
         /**
          * Don't include duplicates
          */
-        all.findIndex((innerLink) => areUrlsEqual(link.url, innerLink.url)) ===
-          index,
+        all.findIndex((innerLink) => areUrlsEqual(link.url, innerLink.url)) === index,
     );
 
     /**
      * Prior to asking the link follower to decide on its next actions, check if we should stop.
      */
-    const preRequestNextActionsShouldStop =
-      await checkIfWorkerShouldStop(workerIdentifiers);
+    const preRequestNextActionsShouldStop = await checkIfWorkerShouldStop(workerIdentifiers);
 
     if (preRequestNextActionsShouldStop.shouldStop) {
       logProgress([

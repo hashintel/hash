@@ -8,11 +8,7 @@ export const GridViewItemSkeleton: FunctionComponent<{
   numberOfItems: number;
   index: number;
 }> = ({ numberOfItems, index }) => (
-  <GridViewItemWrapper
-    numberOfItems={numberOfItems}
-    index={index}
-    sx={{ padding: 3 }}
-  >
+  <GridViewItemWrapper numberOfItems={numberOfItems} index={index} sx={{ padding: 3 }}>
     <Box
       sx={{
         display: "flex",

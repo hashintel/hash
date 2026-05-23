@@ -32,11 +32,7 @@ import type { StatsD } from "hot-shots";
 import type Keyv from "keyv";
 import type { Server } from "node:http";
 
-const statsPlugin = ({
-  statsd,
-}: {
-  statsd?: StatsD;
-}): ApolloServerPlugin<GraphQLContext> => ({
+const statsPlugin = ({ statsd }: { statsd?: StatsD }): ApolloServerPlugin<GraphQLContext> => ({
   requestDidStart: async () => {
     const startTimestamp = performance.now();
 
@@ -84,9 +80,7 @@ const statsPlugin = ({
         const elapsed = performance.now() - startTimestamp;
 
         // take the first part of the UA to help identify browser vs server requests
-        const userAgent = ctx.request.http?.headers
-          .get("user-agent")
-          ?.split(" ")[0];
+        const userAgent = ctx.request.http?.headers.get("user-agent")?.split(" ")[0];
 
         const msg = {
           operation: ctx.operationName,

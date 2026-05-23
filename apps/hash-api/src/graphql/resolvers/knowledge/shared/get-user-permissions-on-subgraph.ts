@@ -21,12 +21,8 @@ const werePermissionsRequested = (info: GraphQLResolveInfo) => {
   }
 
   return {
-    entities: !!(
-      requestedFieldsOnSubgraph as Record<
-        keyof SubgraphAndPermissions,
-        ResolveTree
-      >
-    ).userPermissionsOnEntities,
+    entities: !!(requestedFieldsOnSubgraph as Record<keyof SubgraphAndPermissions, ResolveTree>)
+      .userPermissionsOnEntities,
   };
 };
 
@@ -37,8 +33,7 @@ export const getUserPermissionsOnSubgraph = async (
 ): Promise<UserPermissionsOnEntities> => {
   const { authentication } = graphQLContext;
 
-  const userPermissionsOnEntities = werePermissionsRequested(resolveInfo)
-    .entities
+  const userPermissionsOnEntities = werePermissionsRequested(resolveInfo).entities
     ? await checkPermissionsOnEntitiesInSubgraph(
         graphQLContextToImpureGraphContext(graphQLContext),
         authentication,

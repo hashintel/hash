@@ -64,25 +64,21 @@ const findExistingEntity = async (params: {
 
   const propertyFilter = entityMatcher(proposedEntity);
 
-  const { entities } = await queryEntities(
-    { graphApi: graphApiClient },
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(entityTypeId, {
-            ignoreParents: true,
-          }),
-          { equal: [{ path: ["webId"] }, { parameter: webId }] },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-          propertyFilter,
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
+  const { entities } = await queryEntities({ graphApi: graphApiClient }, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(entityTypeId, {
+          ignoreParents: true,
+        }),
+        { equal: [{ path: ["webId"] }, { parameter: webId }] },
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+        propertyFilter,
+      ],
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   const [entity] = entities;
   return entity ?? null;
@@ -132,14 +128,8 @@ const findExistingLink = async (params: {
   rightEntityId: EntityId;
   webId: WebId;
 }): Promise<HashLinkEntity | null> => {
-  const {
-    graphApiClient,
-    authentication,
-    linkEntityTypeId,
-    leftEntityId,
-    rightEntityId,
-    webId,
-  } = params;
+  const { graphApiClient, authentication, linkEntityTypeId, leftEntityId, rightEntityId, webId } =
+    params;
 
   const linkTypeBaseUrl = extractBaseUrl(linkEntityTypeId);
 
@@ -152,25 +142,21 @@ const findExistingLink = async (params: {
 
   const linkFilter = linkMatcher({ leftEntityId, rightEntityId });
 
-  const { entities } = await queryEntities(
-    { graphApi: graphApiClient },
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(linkEntityTypeId, {
-            ignoreParents: true,
-          }),
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-          { equal: [{ path: ["webId"] }, { parameter: webId }] },
-          linkFilter,
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
+  const { entities } = await queryEntities({ graphApi: graphApiClient }, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(linkEntityTypeId, {
+          ignoreParents: true,
+        }),
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+        { equal: [{ path: ["webId"] }, { parameter: webId }] },
+        linkFilter,
+      ],
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   const [entity] = entities;
   return entity ? new HashLinkEntity(entity) : null;
@@ -186,9 +172,7 @@ type EntityToCreate = {
 type EntityToPatch = {
   proposedEntity: ProposedEntity;
   existingEntity: HashEntity;
-  propertyPatches: Parameters<
-    typeof HashEntity.prototype.patch
-  >[2]["propertyPatches"];
+  propertyPatches: Parameters<typeof HashEntity.prototype.patch>[2]["propertyPatches"];
 };
 
 type EntityUnchanged = {
@@ -211,13 +195,7 @@ const persistEntities = async (params: {
   failedEntityProposals: FailedEntityProposal[];
   entityIdsByLocalId: Map<EntityId, EntityId>;
 }> => {
-  const {
-    authentication,
-    graphApiClient,
-    proposedEntities,
-    provenance,
-    webId,
-  } = params;
+  const { authentication, graphApiClient, proposedEntities, provenance, webId } = params;
 
   const persistedEntitiesMetadata: PersistedEntityMetadata[] = [];
   const failedEntityProposals: FailedEntityProposal[] = [];
@@ -283,8 +261,7 @@ const persistEntities = async (params: {
         });
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       failedEntityProposals.push({
         proposedEntity,
         message: `Failed to find existing entity: ${errorMessage}. ${stringifyError(error)}`,
@@ -294,10 +271,7 @@ const persistEntities = async (params: {
 
   // Phase 2: Handle unchanged entities (no API call needed)
   for (const { proposedEntity, existingEntity } of unchangedEntities) {
-    entityIdsByLocalId.set(
-      proposedEntity.localEntityId,
-      existingEntity.metadata.recordId.entityId,
-    );
+    entityIdsByLocalId.set(proposedEntity.localEntityId, existingEntity.metadata.recordId.entityId);
     persistedEntitiesMetadata.push({
       entityId: existingEntity.metadata.recordId.entityId,
       operation: "already-exists-as-proposed",
@@ -311,10 +285,7 @@ const persistEntities = async (params: {
     batchStartIndex += BATCH_SIZE
   ) {
     Context.current().heartbeat();
-    const batch = entitiesToCreate.slice(
-      batchStartIndex,
-      batchStartIndex + BATCH_SIZE,
-    );
+    const batch = entitiesToCreate.slice(batchStartIndex, batchStartIndex + BATCH_SIZE);
 
     try {
       const createdEntities = await HashEntity.createMultiple(
@@ -342,8 +313,7 @@ const persistEntities = async (params: {
       }
     } catch (error) {
       // If batch creation fails, add all entities in this batch to failed proposals
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       for (const { proposedEntity } of batch) {
         failedEntityProposals.push({
           proposedEntity,
@@ -360,21 +330,16 @@ const persistEntities = async (params: {
       BATCH_SIZE,
       async ({ proposedEntity, existingEntity, propertyPatches }) => {
         try {
-          const updatedEntity = await existingEntity.patch(
-            graphApiClient,
-            authentication,
-            {
-              propertyPatches,
-              provenance: {
-                ...provenance,
-                sources: proposedEntity.provenance.sources,
-              },
+          const updatedEntity = await existingEntity.patch(graphApiClient, authentication, {
+            propertyPatches,
+            provenance: {
+              ...provenance,
+              sources: proposedEntity.provenance.sources,
             },
-          );
+          });
           return { success: true as const, proposedEntity, updatedEntity };
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           return {
             success: false as const,
             proposedEntity,
@@ -418,9 +383,7 @@ type LinkToCreate = {
 type LinkToPatch = {
   proposedLink: ProposedEntity;
   existingLink: HashLinkEntity;
-  propertyPatches: Parameters<
-    typeof HashLinkEntity.prototype.patch
-  >[2]["propertyPatches"];
+  propertyPatches: Parameters<typeof HashLinkEntity.prototype.patch>[2]["propertyPatches"];
 };
 
 type LinkUnchanged = {
@@ -550,8 +513,7 @@ const persistLinks = async (params: {
         });
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       failedEntityProposals.push({
         proposedEntity: proposedLink,
         message: `Failed to find existing link: ${errorMessage}. ${stringifyError(error)}`,
@@ -574,10 +536,7 @@ const persistLinks = async (params: {
     batchStartIndex += BATCH_SIZE
   ) {
     Context.current().heartbeat();
-    const batch = linksToCreate.slice(
-      batchStartIndex,
-      batchStartIndex + BATCH_SIZE,
-    );
+    const batch = linksToCreate.slice(batchStartIndex, batchStartIndex + BATCH_SIZE);
 
     try {
       const createdLinks = await HashLinkEntity.createMultiple(
@@ -586,11 +545,7 @@ const persistLinks = async (params: {
         batch.map((item) => item.params),
       );
 
-      for (
-        let linkIndexInBatch = 0;
-        linkIndexInBatch < createdLinks.length;
-        linkIndexInBatch++
-      ) {
+      for (let linkIndexInBatch = 0; linkIndexInBatch < createdLinks.length; linkIndexInBatch++) {
         const createdLink = createdLinks[linkIndexInBatch]!;
         persistedEntitiesMetadata.push({
           entityId: createdLink.metadata.recordId.entityId,
@@ -599,8 +554,7 @@ const persistLinks = async (params: {
       }
     } catch (error) {
       // If batch creation fails, add all links in this batch to failed proposals
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       for (const { proposedLink } of batch) {
         failedEntityProposals.push({
           proposedEntity: proposedLink,
@@ -617,21 +571,16 @@ const persistLinks = async (params: {
       BATCH_SIZE,
       async ({ proposedLink, existingLink, propertyPatches }) => {
         try {
-          const updatedLink = await existingLink.patch(
-            graphApiClient,
-            authentication,
-            {
-              propertyPatches,
-              provenance: {
-                ...provenance,
-                sources: proposedLink.provenance.sources,
-              },
+          const updatedLink = await existingLink.patch(graphApiClient, authentication, {
+            propertyPatches,
+            provenance: {
+              ...provenance,
+              sources: proposedLink.provenance.sources,
             },
-          );
+          });
           return { success: true as const, updatedLink };
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           return {
             success: false as const,
             proposedLink,
@@ -669,20 +618,13 @@ export const createPersistIntegrationEntitiesAction = ({
 }): IntegrationFlowActionActivity<"persistIntegrationEntities"> => {
   return async ({ inputs }) => {
     try {
-      const {
-        flowEntityId,
-        runId,
-        stepId,
-        userAuthentication,
-        webId,
-        workflowId,
-      } = await getFlowContext({ graphApiClient });
+      const { flowEntityId, runId, stepId, userAuthentication, webId, workflowId } =
+        await getFlowContext({ graphApiClient });
 
-      const { proposedEntities: proposedEntitiesInput } =
-        getSimplifiedIntegrationFlowActionInputs({
-          inputs,
-          actionType: "persistIntegrationEntities",
-        });
+      const { proposedEntities: proposedEntitiesInput } = getSimplifiedIntegrationFlowActionInputs({
+        inputs,
+        actionType: "persistIntegrationEntities",
+      });
 
       const proposedEntities = await resolvePayloadValue(
         getStorageProvider(),
@@ -722,14 +664,8 @@ export const createPersistIntegrationEntitiesAction = ({
         webId,
       });
 
-      const allPersistedEntities = [
-        ...persistedNonLinkEntities,
-        ...persistedLinkEntitiesMetadata,
-      ];
-      const allFailedProposals = [
-        ...failedNonLinkProposals,
-        ...failedLinkProposals,
-      ];
+      const allPersistedEntities = [...persistedNonLinkEntities, ...persistedLinkEntitiesMetadata];
+      const allFailedProposals = [...failedNonLinkProposals, ...failedLinkProposals];
 
       const result: PersistedEntitiesMetadata = {
         persistedEntities: allPersistedEntities,
@@ -779,8 +715,7 @@ export const createPersistIntegrationEntitiesAction = ({
         ],
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
       return {
         code: StatusCode.Internal,

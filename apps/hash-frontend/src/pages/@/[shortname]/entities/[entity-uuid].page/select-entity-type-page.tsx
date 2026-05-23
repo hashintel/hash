@@ -49,10 +49,7 @@ export const SelectEntityTypePage = () => {
             gap: 6.5,
           }}
         >
-          <SectionWrapper
-            title="Types"
-            titleStartContent={<Chip label="No type" size="xs" />}
-          >
+          <SectionWrapper title="Types" titleStartContent={<Chip label="No type" size="xs" />}>
             <WhiteCard>
               <Box
                 pt={3.75}
@@ -70,15 +67,12 @@ export const SelectEntityTypePage = () => {
                   fontWeight={600}
                   gap={1}
                 >
-                  <FontAwesomeIcon
-                    icon={faWarning}
-                    sx={{ color: "yellow.80" }}
-                  />
+                  <FontAwesomeIcon icon={faWarning} sx={{ color: "yellow.80" }} />
                   This entity requires a type
                 </Typography>
                 <Typography color="gray.60">
-                  Types describe an entity, and determine the properties and
-                  links that can be associated with it.
+                  Types describe an entity, and determine the properties and links that can be
+                  associated with it.
                 </Typography>
               </Box>
 
@@ -104,9 +98,7 @@ export const SelectEntityTypePage = () => {
                         setLoading(true);
 
                         await router.push(
-                          `/new/entity?entity-type-id=${encodeURIComponent(
-                            entityType.schema.$id,
-                          )}`,
+                          `/new/entity?entity-type-id=${encodeURIComponent(entityType.schema.$id)}`,
                         );
                       } catch (error) {
                         triggerSnackbar.error((error as Error).message);

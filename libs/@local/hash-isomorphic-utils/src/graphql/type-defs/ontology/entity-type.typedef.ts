@@ -15,9 +15,7 @@ export const entityTypeTypedef = gql`
   scalar UserPermissionsOnEntityType
 
   extend type Query {
-    queryEntityTypes(
-      request: QueryEntityTypesParams!
-    ): QueryEntityTypesResponse!
+    queryEntityTypes(request: QueryEntityTypesParams!): QueryEntityTypesResponse!
 
     queryEntityTypeSubgraph(
       request: QueryEntityTypeSubgraphParams!
@@ -30,9 +28,7 @@ export const entityTypeTypedef = gql`
     """
     Check the requesting user's permissions on an entity type
     """
-    checkUserPermissionsOnEntityType(
-      entityTypeId: VersionedUrl!
-    ): UserPermissionsOnEntityType!
+    checkUserPermissionsOnEntityType(entityTypeId: VersionedUrl!): UserPermissionsOnEntityType!
   }
 
   input EntityTypeUpdate {

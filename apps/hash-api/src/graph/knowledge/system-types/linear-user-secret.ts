@@ -1,13 +1,7 @@
 import * as Sentry from "@sentry/node";
 
-import {
-  extractWebIdFromEntityId,
-  splitEntityId,
-} from "@blockprotocol/type-system";
-import {
-  EntityTypeMismatchError,
-  NotFoundError,
-} from "@local/hash-backend-utils/error";
+import { extractWebIdFromEntityId, splitEntityId } from "@blockprotocol/type-system";
+import { EntityTypeMismatchError, NotFoundError } from "@local/hash-backend-utils/error";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -20,16 +14,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
-import type {
-  ActorEntityUuid,
-  Entity,
-  EntityId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
+import type { ActorEntityUuid, Entity, EntityId, WebId } from "@blockprotocol/type-system";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { LinearIntegration } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -40,14 +26,8 @@ export type LinearUserSecret = {
   entity: Entity<UserSecret>;
 };
 
-function assertLinearUserSecret(
-  entity: Entity,
-): asserts entity is Entity<UserSecret> {
-  if (
-    !entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.userSecret.entityTypeId,
-    )
-  ) {
+function assertLinearUserSecret(entity: Entity): asserts entity is Entity<UserSecret> {
+  if (!entity.metadata.entityTypeIds.includes(systemEntityTypes.userSecret.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.userSecret.entityTypeId,
@@ -56,14 +36,8 @@ function assertLinearUserSecret(
   }
 }
 
-function assertLinearIntegration(
-  entity: Entity,
-): asserts entity is Entity<LinearIntegration> {
-  if (
-    !entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.linearIntegration.entityTypeId,
-    )
-  ) {
+function assertLinearIntegration(entity: Entity): asserts entity is Entity<LinearIntegration> {
+  if (!entity.metadata.entityTypeIds.includes(systemEntityTypes.linearIntegration.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.linearIntegration.entityTypeId,
@@ -78,9 +52,7 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
 > = ({ entity }) => {
   assertLinearUserSecret(entity);
 
-  const { connectionSourceName, vaultPath } = simplifyProperties(
-    entity.properties,
-  );
+  const { connectionSourceName, vaultPath } = simplifyProperties(entity.properties);
 
   return {
     connectionSourceName,
@@ -109,21 +81,17 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
           equal: [{ path: ["webId"] }, { parameter: userAccountId as WebId }],
         },
         { equal: [{ path: ["archived"] }, { parameter: false }] },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.userSecret.entityTypeId,
-          { ignoreParents: true },
-        ),
-        generateVersionedUrlMatchingFilter(
-          systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
-          { ignoreParents: true, pathPrefix: ["incomingLinks"] },
-        ),
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.linearIntegration.entityTypeId,
-          {
-            ignoreParents: true,
-            pathPrefix: ["incomingLinks", "leftEntity"],
-          },
-        ),
+        generateVersionedUrlMatchingFilter(systemEntityTypes.userSecret.entityTypeId, {
+          ignoreParents: true,
+        }),
+        generateVersionedUrlMatchingFilter(systemLinkEntityTypes.usesUserSecret.linkEntityTypeId, {
+          ignoreParents: true,
+          pathPrefix: ["incomingLinks"],
+        }),
+        generateVersionedUrlMatchingFilter(systemEntityTypes.linearIntegration.entityTypeId, {
+          ignoreParents: true,
+          pathPrefix: ["incomingLinks", "leftEntity"],
+        }),
         {
           equal: [
             {
@@ -181,55 +149,47 @@ export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
   const { hashWebEntityId, vaultClient, includeDrafts = false } = params;
   const [webId, webUuid] = splitEntityId(hashWebEntityId);
 
-  const { entities: linearIntegrationEntities } = await queryEntities(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+  const { entities: linearIntegrationEntities } = await queryEntities(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(
+          systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+          {
+            ignoreParents: true,
+            pathPrefix: ["outgoingLinks"],
+          },
+        ),
+        {
+          equal: [
+            { path: ["outgoingLinks", "rightEntity", "uuid"] },
             {
-              ignoreParents: true,
-              pathPrefix: ["outgoingLinks"],
+              parameter: webUuid,
             },
-          ),
-          {
-            equal: [
-              { path: ["outgoingLinks", "rightEntity", "uuid"] },
-              {
-                parameter: webUuid,
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["outgoingLinks", "rightEntity", "webId"] },
-              {
-                parameter: webId,
-              },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-      includePermissions: false,
+          ],
+        },
+        {
+          equal: [
+            { path: ["outgoingLinks", "rightEntity", "webId"] },
+            {
+              parameter: webId,
+            },
+          ],
+        },
+      ],
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+    includePermissions: false,
+  });
 
   const integrationEntity = linearIntegrationEntities[0];
 
   if (!integrationEntity) {
-    throw new NotFoundError(
-      `No Linear integration found for web ${hashWebEntityId}`,
-    );
+    throw new NotFoundError(`No Linear integration found for web ${hashWebEntityId}`);
   }
 
   if (linearIntegrationEntities.length > 1) {
-    throw new Error(
-      `Multiple Linear integrations found for web ${hashWebEntityId}`,
-    );
+    throw new Error(`Multiple Linear integrations found for web ${hashWebEntityId}`);
   }
 
   assertLinearIntegration(integrationEntity);
@@ -239,14 +199,10 @@ export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
     integrationEntity.metadata.recordId.entityId,
   ) as ActorEntityUuid;
 
-  const secretEntity = await getLinearUserSecretByLinearOrgId(
-    context,
-    authentication,
-    {
-      linearOrgId,
-      userAccountId,
-    },
-  );
+  const secretEntity = await getLinearUserSecretByLinearOrgId(context, authentication, {
+    linearOrgId,
+    userAccountId,
+  });
 
   const secret = await vaultClient.read<{ value: string }>({
     path: secretEntity.vaultPath,

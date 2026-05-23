@@ -280,18 +280,16 @@ describe("Entity CRU", () => {
       );
       expect(entityTypeFromResponse).toBeDefined();
 
-      const {
-        entityTypes: closedTypeMapFromGraph,
-        definitions: definitionsFromGraph,
-      } = await getClosedMultiEntityTypes(
-        graphContext.graphApi,
-        { actorId: testUser.accountId },
-        {
-          entityTypeIds: [entity.metadata.entityTypeIds],
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeResolved: "resolved",
-        },
-      );
+      const { entityTypes: closedTypeMapFromGraph, definitions: definitionsFromGraph } =
+        await getClosedMultiEntityTypes(
+          graphContext.graphApi,
+          { actorId: testUser.accountId },
+          {
+            entityTypeIds: [entity.metadata.entityTypeIds],
+            temporalAxes: currentTimeInstantTemporalAxes,
+            includeResolved: "resolved",
+          },
+        );
 
       const entityTypeFromGraph = getClosedMultiEntityTypeFromMap(
         closedTypeMapFromGraph,
@@ -300,24 +298,17 @@ describe("Entity CRU", () => {
 
       if (entityTypeFromResponse.required && entityTypeFromGraph.required) {
         // The `required` field is not sorted, so we need to sort it before comparing
-        entityTypeFromResponse.required =
-          entityTypeFromResponse.required.sort();
+        entityTypeFromResponse.required = entityTypeFromResponse.required.sort();
         entityTypeFromGraph.required = entityTypeFromGraph.required.sort();
       }
 
-      for (const [id, schema] of typedEntries(
-        definitionsFromGraph!.dataTypes,
-      )) {
+      for (const [id, schema] of typedEntries(definitionsFromGraph!.dataTypes)) {
         expect(response.definitions?.dataTypes[id]).toEqual(schema);
       }
-      for (const [id, schema] of typedEntries(
-        definitionsFromGraph!.propertyTypes,
-      )) {
+      for (const [id, schema] of typedEntries(definitionsFromGraph!.propertyTypes)) {
         expect(response.definitions?.propertyTypes[id]).toEqual(schema);
       }
-      for (const [id, schema] of typedEntries(
-        definitionsFromGraph!.entityTypes,
-      )) {
+      for (const [id, schema] of typedEntries(definitionsFromGraph!.entityTypes)) {
         expect(response.definitions?.entityTypes[id]).toEqual(schema);
       }
     }
@@ -325,9 +316,7 @@ describe("Entity CRU", () => {
 
   let updatedEntity: HashEntity;
   it("can update an entity", async () => {
-    expect(createdEntity.metadata.provenance.edition.createdById).toBe(
-      testUser.accountId,
-    );
+    expect(createdEntity.metadata.provenance.edition.createdById).toBe(testUser.accountId);
 
     updatedEntity = await updateEntity(
       graphContext,
@@ -360,9 +349,7 @@ describe("Entity CRU", () => {
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err));
 
-    expect(updatedEntity.metadata.provenance.edition.createdById).toBe(
-      testUser2.accountId,
-    );
+    expect(updatedEntity.metadata.provenance.edition.createdById).toBe(testUser2.accountId);
   });
 
   it("can read all latest person entities", async () => {
@@ -392,9 +379,7 @@ describe("Entity CRU", () => {
     );
 
     const newlyUpdated = entities.find(
-      (ent) =>
-        ent.metadata.recordId.entityId ===
-        updatedEntity.metadata.recordId.entityId,
+      (ent) => ent.metadata.recordId.entityId === updatedEntity.metadata.recordId.entityId,
     );
 
     // Even though we've inserted two entities, they're the different versions of the same entity.
@@ -404,9 +389,7 @@ describe("Entity CRU", () => {
     expect(newlyUpdated?.metadata.recordId.editionId).toEqual(
       updatedEntity.metadata.recordId.editionId,
     );
-    expect(
-      newlyUpdated?.properties[namePropertyType.metadata.recordId.baseUrl],
-    ).toEqual(
+    expect(newlyUpdated?.properties[namePropertyType.metadata.recordId.baseUrl]).toEqual(
       updatedEntity.properties[namePropertyType.metadata.recordId.baseUrl],
     );
   });
@@ -460,15 +443,9 @@ describe("Entity CRU", () => {
     )[0]!;
 
     expect(
-      await getLinkEntityRightEntity(
-        graphContext,
-        { actorId: testUser.accountId },
-        { linkEntity },
-      ),
+      await getLinkEntityRightEntity(graphContext, { actorId: testUser.accountId }, { linkEntity }),
     ).toEqual(updatedEntity);
-    expect(linkEntity.metadata.entityTypeIds).toContain(
-      linkEntityTypeFriend.schema.$id,
-    );
+    expect(linkEntity.metadata.entityTypeIds).toContain(linkEntityTypeFriend.schema.$id);
   });
 
   it("Cannot instantiate actor entity type", async () => {
@@ -489,13 +466,12 @@ describe("Entity CRU", () => {
         webId: testUser.accountId as WebId,
         properties: {
           value: {
-            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-              {
-                value: "Test-Actor",
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+              value: "Test-Actor",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
               },
+            },
           },
         },
         entityTypeIds: [systemEntityTypes.actor.entityTypeId],
@@ -521,13 +497,12 @@ describe("Entity CRU", () => {
         webId: testUser.accountId as WebId,
         properties: {
           value: {
-            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-              {
-                value: "Test-User",
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+              value: "Test-User",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
               },
+            },
             "https://hash.ai/@h/types/property-type/email/": {
               value: [],
             },
@@ -562,13 +537,12 @@ describe("Entity CRU", () => {
         webId: testUser.accountId as WebId,
         properties: {
           value: {
-            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-              {
-                value: "Test-Machine",
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+              value: "Test-Machine",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
               },
+            },
             "https://hash.ai/@h/types/property-type/machine-identifier/": {
               value: "Test-Machine",
               metadata: {
@@ -637,33 +611,30 @@ describe("Entity CRU", () => {
         webId: testUser.accountId as WebId,
         properties: {
           value: {
-            "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/":
-              {
-                value: false,
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
-                },
+            "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/": {
+              value: false,
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
               },
+            },
             "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
               value: false,
               metadata: {
                 dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
               },
             },
-            "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/":
-              {
-                value: false,
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
-                },
+            "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/": {
+              value: false,
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
               },
-            "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/":
-              {
-                value: false,
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
-                },
+            },
+            "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/": {
+              value: false,
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
               },
+            },
           },
         },
         entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],

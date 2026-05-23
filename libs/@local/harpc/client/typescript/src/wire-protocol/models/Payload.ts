@@ -13,31 +13,23 @@ import {
 
 import { MutableBuffer } from "../../binary/index.js";
 import { U16_MAX, U16_MIN } from "../../constants.js";
-import {
-  createProto,
-  hashUint8Array,
-  implDecode,
-  implEncode,
-} from "../../utils.js";
+import { createProto, hashUint8Array, implDecode, implEncode } from "../../utils.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/Payload",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/Payload");
 
 export type TypeId = typeof TypeId;
 
 export const MAX_SIZE = U16_MAX - 32;
 
-export class PayloadTooLargeError extends Data.TaggedError(
-  "PayloadTooLargeError",
-)<{ received: number }> {
+export class PayloadTooLargeError extends Data.TaggedError("PayloadTooLargeError")<{
+  received: number;
+}> {
   get message(): string {
     return `Payload too large received: ${this.received}, expected a maximum of ${MAX_SIZE}`;
   }
 }
 
-export interface Payload
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface Payload extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly buffer: Uint8Array<ArrayBuffer>;
@@ -156,8 +148,7 @@ export const decode = implDecode((buffer) =>
   }),
 );
 
-export const isPayload = (value: unknown): value is Payload =>
-  Predicate.hasProperty(value, TypeId);
+export const isPayload = (value: unknown): value is Payload => Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc

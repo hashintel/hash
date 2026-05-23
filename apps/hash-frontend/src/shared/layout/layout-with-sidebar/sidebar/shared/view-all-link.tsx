@@ -39,8 +39,7 @@ export const ViewAllLink: FunctionComponent<{
             marginLeft: 0.75,
             fontSize: 10,
             color: ({ palette }) => palette.gray[80],
-            transition: ({ transitions }) =>
-              transitions.create(["color", "margin-left"]),
+            transition: ({ transitions }) => transitions.create(["color", "margin-left"]),
           }}
         />
       </Typography>

@@ -13,18 +13,14 @@ import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import type {
-  DraftLinksToArchive,
-  DraftLinksToCreate,
-} from "./use-draft-link-state";
+import type { DraftLinksToArchive, DraftLinksToCreate } from "./use-draft-link-state";
 
 export const useApplyDraftLinkEntityChanges = () => {
   const { archiveEntity } = useBlockProtocolArchiveEntity();
 
-  const [createEntity] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation);
+  const [createEntity] = useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
+    createEntityMutation,
+  );
 
   const applyDraftLinkEntityChanges = async (
     leftEntity: Entity,
@@ -37,23 +33,20 @@ export const useApplyDraftLinkEntityChanges = () => {
 
     const leftEntityId = leftEntity.metadata.recordId.entityId;
 
-    const createPromises = draftLinksToCreate.map(
-      ({ linkEntity, rightEntity }) =>
-        createEntity({
-          variables: {
-            entityTypeIds: linkEntity.metadata.entityTypeIds,
-            // The link should be in the same web as the source entity.
-            webId: extractWebIdFromEntityId(leftEntityId),
-            properties: { value: {} },
-            linkData: {
-              leftEntityId,
-              rightEntityId: rightEntity.metadata.recordId.entityId,
-            },
-            draft: !!extractDraftIdFromEntityId(
-              leftEntity.metadata.recordId.entityId,
-            ),
+    const createPromises = draftLinksToCreate.map(({ linkEntity, rightEntity }) =>
+      createEntity({
+        variables: {
+          entityTypeIds: linkEntity.metadata.entityTypeIds,
+          // The link should be in the same web as the source entity.
+          webId: extractWebIdFromEntityId(leftEntityId),
+          properties: { value: {} },
+          linkData: {
+            leftEntityId,
+            rightEntityId: rightEntity.metadata.recordId.entityId,
           },
-        }),
+          draft: !!extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId),
+        },
+      }),
     );
 
     await Promise.all([...archivePromises, ...createPromises]);

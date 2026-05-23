@@ -9,9 +9,7 @@ type DraftRule = {
 export type CommonRowsProps = {
   domainOptions: string[];
   inferenceConfig: LocalStorage["automaticInferenceConfig"];
-  setInferenceConfig: (
-    config: LocalStorage["automaticInferenceConfig"],
-  ) => void;
+  setInferenceConfig: (config: LocalStorage["automaticInferenceConfig"]) => void;
   draftRule?: DraftRule | null;
   setDraftRule: (rule: DraftRule | null) => void;
 };

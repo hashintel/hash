@@ -1,8 +1,4 @@
-import {
-  defineConfig,
-  createBase,
-  disableRules,
-} from "@local/eslint/deprecated";
+import { defineConfig, createBase, disableRules } from "@local/eslint/deprecated";
 
 export default [
   ...createBase(import.meta.dirname),
@@ -52,8 +48,7 @@ export default [
               {
                 name: "notistack",
                 importNames: ["useSnackbar"],
-                message:
-                  "Please use the custom src/components/hooks/useSnackbar hook instead.",
+                message: "Please use the custom src/components/hooks/useSnackbar hook instead.",
               },
               {
                 name: "@hashintel/design-system",

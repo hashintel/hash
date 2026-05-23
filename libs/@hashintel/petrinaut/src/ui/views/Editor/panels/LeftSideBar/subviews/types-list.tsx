@@ -9,10 +9,7 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { Button } from "../../../../../components/button";
 import { TokenTypeIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
-import {
-  RowMenu,
-  createFilterableListSubView,
-} from "./filterable-list-sub-view";
+import { RowMenu, createFilterableListSubView } from "./filterable-list-sub-view";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 
@@ -35,9 +32,7 @@ const TYPE_COLOR_POOL = [
  * If all colors are in use, cycle back to the beginning.
  */
 function getNextAvailableColor(existingColors: string[]): string {
-  const unusedColor = TYPE_COLOR_POOL.find(
-    (color) => !existingColors.includes(color),
-  );
+  const unusedColor = TYPE_COLOR_POOL.find((color) => !existingColors.includes(color));
   return unusedColor ?? TYPE_COLOR_POOL[0]!;
 }
 

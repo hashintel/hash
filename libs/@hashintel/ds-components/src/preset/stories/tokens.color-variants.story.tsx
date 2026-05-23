@@ -88,9 +88,7 @@ const BgSwatch = ({
   tokenPath: string;
   useDarkText: boolean;
 }) => {
-  const textColor = useDarkText
-    ? "colorPalette.fg.heading"
-    : "colorPalette.fg.onSolid";
+  const textColor = useDarkText ? "colorPalette.fg.heading" : "colorPalette.fg.onSolid";
   return (
     <Box
       px="3"
@@ -121,9 +119,7 @@ const BgColumn = () => (
         <HStack gap="1" flexWrap="wrap">
           {states.map((state) => {
             const tokenPath =
-              state === "DEFAULT"
-                ? `colorPalette.bg.${key}`
-                : `colorPalette.bg.${key}.${state}`;
+              state === "DEFAULT" ? `colorPalette.bg.${key}` : `colorPalette.bg.${key}.${state}`;
             return (
               <BgSwatch
                 key={state}
@@ -211,9 +207,7 @@ const FgColumn = () => (
               borderRadius="sm"
               flex="1"
               bg={isSolid ? "colorPalette.bg.solid" : undefined}
-              boxShadow={
-                isSolid ? undefined : "[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
-              }
+              boxShadow={isSolid ? undefined : "[inset_0_0_0_1px_rgba(0,0,0,0.06)]"}
             >
               <span
                 className={css({ textStyle: "xs" })}
@@ -231,13 +225,7 @@ const FgColumn = () => (
   </VStack>
 );
 
-const BorderSwatch = ({
-  label,
-  tokenPath,
-}: {
-  label: string;
-  tokenPath: string;
-}) => (
+const BorderSwatch = ({ label, tokenPath }: { label: string; tokenPath: string }) => (
   <VStack gap="0.5" alignItems="center">
     <Box
       width="[56px]"
@@ -311,9 +299,7 @@ const BdColumn = () => (
         <HStack gap="1" flexWrap="wrap">
           {states.map((state) => {
             const tokenPath =
-              state === "DEFAULT"
-                ? `colorPalette.bd.${key}`
-                : `colorPalette.bd.${key}.${state}`;
+              state === "DEFAULT" ? `colorPalette.bd.${key}` : `colorPalette.bd.${key}.${state}`;
             return (
               <BorderSwatch
                 key={state}
@@ -355,9 +341,7 @@ const PaletteSection = ({ palette }: { palette: string }) => (
 export const ColorVariants: Story = () => (
   <VStack gap="6" alignItems="flex-start" p="6">
     <VStack gap="1" alignItems="flex-start">
-      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
-        Color Variants
-      </h1>
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>Color Variants</h1>
       <p
         className={css({
           textStyle: "sm",
@@ -365,27 +349,11 @@ export const ColorVariants: Story = () => (
           maxWidth: "[700px]",
         })}
       >
-        Semantic{" "}
-        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
-          bg.*
-        </code>
-        ,{" "}
-        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
-          bgSolid.*
-        </code>
-        ,{" "}
-        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
-          fg.*
-        </code>
-        , and{" "}
-        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
-          bd.*
-        </code>{" "}
-        tokens under each{" "}
-        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
-          colorPalette
-        </code>
-        .
+        Semantic <code className={css({ fontFamily: "mono", textStyle: "xs" })}>bg.*</code>,{" "}
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>bgSolid.*</code>,{" "}
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>fg.*</code>, and{" "}
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>bd.*</code> tokens under each{" "}
+        <code className={css({ fontFamily: "mono", textStyle: "xs" })}>colorPalette</code>.
       </p>
     </VStack>
 

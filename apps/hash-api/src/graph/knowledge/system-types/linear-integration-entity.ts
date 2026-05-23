@@ -1,17 +1,10 @@
-import {
-  getRightEntityForLinkEntity,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getRightEntityForLinkEntity, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import {
-  type HashEntity,
-  queryEntities,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
+import { type HashEntity, queryEntities, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -27,10 +20,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -52,11 +42,7 @@ export type LinearIntegration = {
 function assertLinearIntegrationEntity(
   entity: Entity,
 ): asserts entity is Entity<LinearIntegrationEntity> {
-  if (
-    !entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.linearIntegration.entityTypeId,
-    )
-  ) {
+  if (!entity.metadata.entityTypeIds.includes(systemEntityTypes.linearIntegration.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.linearIntegration.entityTypeId,
@@ -85,34 +71,26 @@ export const getAllLinearIntegrationsWithLinearOrgId: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { linearOrgId, includeDrafts = false } = params;
 
-  const { entities } = await queryEntities<LinearIntegrationEntity>(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.linearIntegration.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: linearOrgId },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-      includePermissions: false,
+  const { entities } = await queryEntities<LinearIntegrationEntity>(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(systemEntityTypes.linearIntegration.entityTypeId, {
+          ignoreParents: true,
+        }),
+        {
+          equal: [
+            {
+              path: ["properties", systemPropertyTypes.linearOrgId.propertyTypeBaseUrl],
+            },
+            { parameter: linearOrgId },
+          ],
+        },
+      ],
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts,
+    includePermissions: false,
+  });
 
   return entities.map((entity) => getLinearIntegrationFromEntity({ entity }));
 };
@@ -135,17 +113,13 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
         {
           equal: [{ path: ["webId"] }, { parameter: userAccountId }],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.linearIntegration.entityTypeId,
-          { ignoreParents: true },
-        ),
+        generateVersionedUrlMatchingFilter(systemEntityTypes.linearIntegration.entityTypeId, {
+          ignoreParents: true,
+        }),
         {
           equal: [
             {
-              path: [
-                "properties",
-                systemPropertyTypes.linearOrgId.propertyTypeBaseUrl,
-              ],
+              path: ["properties", systemPropertyTypes.linearOrgId.propertyTypeBaseUrl],
             },
             { parameter: linearOrgId },
           ],
@@ -192,11 +166,7 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
       webEntity: HashEntity;
     }[]
   >
-> = async (
-  context,
-  authentication,
-  { linearIntegrationEntityId, includeDrafts = false },
-) =>
+> = async (context, authentication, { linearIntegrationEntityId, includeDrafts = false }) =>
   queryEntitySubgraph(context, authentication, {
     filter: {
       all: [
@@ -211,9 +181,7 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
           equal: [
             { path: ["leftEntity", "uuid"] },
             {
-              parameter: extractEntityUuidFromEntityId(
-                linearIntegrationEntityId,
-              ),
+              parameter: extractEntityUuidFromEntityId(linearIntegrationEntityId),
             },
           ],
         },
@@ -235,16 +203,14 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
   }).then(({ subgraph }) => {
     const syncLinearDataWithLinkEntities = getRoots(subgraph);
 
-    return syncLinearDataWithLinkEntities.map(
-      (syncLinearDataWithLinkEntity) => {
-        const webEntity = getRightEntityForLinkEntity(
-          subgraph,
-          syncLinearDataWithLinkEntity.metadata.recordId.entityId,
-        )![0]! as HashEntity;
+    return syncLinearDataWithLinkEntities.map((syncLinearDataWithLinkEntity) => {
+      const webEntity = getRightEntityForLinkEntity(
+        subgraph,
+        syncLinearDataWithLinkEntity.metadata.recordId.entityId,
+      )![0]! as HashEntity;
 
-        return { syncLinearDataWithLinkEntity, webEntity };
-      },
-    );
+      return { syncLinearDataWithLinkEntity, webEntity };
+    });
   });
 
 export const linkIntegrationToWeb: ImpureGraphFunction<
@@ -258,15 +224,12 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
   false,
   true
 > = async (context, authentication, params) => {
-  const {
-    linearIntegrationEntityId,
-    webEntityId,
-    linearTeamIds,
-    includeDrafts = false,
-  } = params;
+  const { linearIntegrationEntityId, webEntityId, linearTeamIds, includeDrafts = false } = params;
 
-  const { entities: existingLinkEntities } =
-    await queryEntities<SyncLinearDataWith>(context, authentication, {
+  const { entities: existingLinkEntities } = await queryEntities<SyncLinearDataWith>(
+    context,
+    authentication,
+    {
       filter: {
         all: [
           {
@@ -280,9 +243,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
             equal: [
               { path: ["leftEntity", "uuid"] },
               {
-                parameter: extractEntityUuidFromEntityId(
-                  linearIntegrationEntityId,
-                ),
+                parameter: extractEntityUuidFromEntityId(linearIntegrationEntityId),
               },
             ],
           },
@@ -299,7 +260,8 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts,
       includePermissions: false,
-    });
+    },
+  );
 
   const properties: SyncLinearDataWith["propertiesWithMetadata"] = {
     value: {
@@ -307,8 +269,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
         value: linearTeamIds.map((linearTeamId) => ({
           value: linearTeamId,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         })),
       },
@@ -331,17 +292,12 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
         {
           op: "add",
           path: [teamIdPath],
-          property:
-            properties.value[
-              "https://hash.ai/@h/types/property-type/linear-team-id/"
-            ]!,
+          property: properties.value["https://hash.ai/@h/types/property-type/linear-team-id/"]!,
         },
       ],
     });
   } else {
-    const linearIntegrationWebId = extractWebIdFromEntityId(
-      linearIntegrationEntityId,
-    );
+    const linearIntegrationWebId = extractWebIdFromEntityId(linearIntegrationEntityId);
 
     const linkEntityUuid = generateUuid() as EntityUuid;
     await createLinkEntity<SyncLinearDataWith>(context, authentication, {
@@ -352,9 +308,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
         leftEntityId: linearIntegrationEntityId,
         rightEntityId: webEntityId,
       },
-      entityTypeIds: [
-        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-      ],
+      entityTypeIds: [systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId],
     });
   }
 };

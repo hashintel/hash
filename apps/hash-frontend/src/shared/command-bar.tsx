@@ -1,10 +1,4 @@
-import {
-  Autocomplete,
-  autocompleteClasses,
-  Box,
-  Modal,
-  Paper,
-} from "@mui/material";
+import { Autocomplete, autocompleteClasses, Box, Modal, Paper } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import {
@@ -33,10 +27,7 @@ import {
   menu,
 } from "./command-bar/command-bar-options";
 import { HotKey } from "./command-bar/hot-key";
-import {
-  useSetKeyboardShortcuts,
-  useUnsetKeyboardShortcuts,
-} from "./keyboard-shortcuts-context";
+import { useSetKeyboardShortcuts, useUnsetKeyboardShortcuts } from "./keyboard-shortcuts-context";
 
 // import { CheatSheet } from "./command-bar/cheat-sheet";
 import type {
@@ -50,12 +41,7 @@ import type {
   AutocompleteChangeReason,
   AutocompleteRenderInputParams,
 } from "@mui/material";
-import type {
-  FunctionComponent,
-  HTMLAttributes,
-  PropsWithChildren,
-  ReactNode,
-} from "react";
+import type { FunctionComponent, HTMLAttributes, PropsWithChildren, ReactNode } from "react";
 
 // childMenu.addOption("Child", "General", ["Meta", "c"]).activate({
 //   command: () => {
@@ -99,14 +85,7 @@ const RESET_BAR_TIMEOUT = 5_000;
 
 // Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
 const CenterContainer = forwardRef(({ children }: PropsWithChildren, ref) => (
-  <Box
-    width="100vw"
-    height="100vh"
-    display="flex"
-    alignItems="center"
-    margin="0 auto"
-    ref={ref}
-  >
+  <Box width="100vw" height="100vh" display="flex" alignItems="center" margin="0 auto" ref={ref}>
     <Box
       height={518}
       maxWidth={560}
@@ -127,10 +106,7 @@ const CustomScreenContext = createContext<ReactNode | null>(null);
 
 // Used to render a custom screen inside the popup when the option is selected,
 // and to set the max height of the popup
-const CustomPaperComponent = ({
-  children,
-  ...props
-}: HTMLAttributes<HTMLElement>) => {
+const CustomPaperComponent = ({ children, ...props }: HTMLAttributes<HTMLElement>) => {
   const customScreen = useContext(CustomScreenContext);
 
   return (
@@ -224,9 +200,7 @@ export const CommandBar: FunctionComponent = () => {
   });
 
   const [inputValue, setInputValue] = useState("");
-  const [selectedOptionPath, setSelectedOptionPath] = useState<
-    CommandBarOption[]
-  >([]);
+  const [selectedOptionPath, setSelectedOptionPath] = useState<CommandBarOption[]>([]);
 
   const [resetBar, cancelReset] = useDelayedCallback(() => {
     setSelectedOptionPath([]);
@@ -258,11 +232,7 @@ export const CommandBar: FunctionComponent = () => {
       const command = option.getCommand();
 
       if (command) {
-        if (
-          command.options ??
-          command.renderCustomScreen ??
-          command.asyncCommand
-        ) {
+        if (command.options ?? command.renderCustomScreen ?? command.asyncCommand) {
           cancelReset();
           popupState.open();
 
@@ -303,8 +273,7 @@ export const CommandBar: FunctionComponent = () => {
   const selectedOption = selectedOptionPath[selectedOptionPath.length - 1];
   const selectedCommand = selectedOption?.getCommand();
 
-  const activeMenu =
-    selectedOptionPath.length > 0 ? selectedCommand?.options : menu;
+  const activeMenu = selectedOptionPath.length > 0 ? selectedCommand?.options : menu;
 
   const customScreen = selectedOption
     ? selectedCommand?.renderCustomScreen?.(selectedOption)
@@ -317,9 +286,7 @@ export const CommandBar: FunctionComponent = () => {
         <Chip
           key={label}
           label={label}
-          onDelete={() =>
-            setSelectedOptionPath(selectedOptionPath.slice(0, index))
-          }
+          onDelete={() => setSelectedOptionPath(selectedOptionPath.slice(0, index))}
         />
       ))}
       <TextField
@@ -342,17 +309,15 @@ export const CommandBar: FunctionComponent = () => {
               if (selectedCommand?.asyncCommand) {
                 setInputValue("");
 
-                void selectedCommand
-                  .asyncCommand(inputValue)
-                  .then((nextOption) => {
-                    if (nextOption) {
-                      setSelectedOptionPath((current) =>
-                        current[current.length - 1] === selectedOption
-                          ? [...current, nextOption]
-                          : current,
-                      );
-                    }
-                  });
+                void selectedCommand.asyncCommand(inputValue).then((nextOption) => {
+                  if (nextOption) {
+                    setSelectedOptionPath((current) =>
+                      current[current.length - 1] === selectedOption
+                        ? [...current, nextOption]
+                        : current,
+                    );
+                  }
+                });
               }
           }
         }}
@@ -448,10 +413,7 @@ export const CommandBar: FunctionComponent = () => {
         <CenterContainer>
           <CustomScreenContext.Provider value={customScreen}>
             <Autocomplete
-              options={
-                activeMenu?.subOptions.filter((option) => option.isActive()) ??
-                []
-              }
+              options={activeMenu?.subOptions.filter((option) => option.isActive()) ?? []}
               sx={{ width: "100%" }}
               renderInput={renderInput}
               PaperComponent={CustomPaperComponent}

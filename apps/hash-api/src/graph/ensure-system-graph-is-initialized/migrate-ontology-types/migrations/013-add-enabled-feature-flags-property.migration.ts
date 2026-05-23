@@ -15,26 +15,24 @@ import {
 import type { MigrationFunction } from "../types";
 import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /**
    * Step 1. Create the `enabledFeatureFlags` property type
    */
 
-  const enabledFeatureFlagsPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const enabledFeatureFlagsPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Enabled Feature Flags",
-        description:
-          "A list of identifiers for a feature flags that are enabled.",
+        description: "A list of identifiers for a feature flags that are enabled.",
         possibleValues: [{ primitiveDataType: "text", array: true }],
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   /**
    * Step 2: Add the `enabledFeatureFlags` property type to the `User` entity type
@@ -45,19 +43,13 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const userEntityType = await getEntityTypeById(
-    context.graphApi,
-    authentication,
-    {
-      entityTypeId: currentUserEntityTypeId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  );
+  const userEntityType = await getEntityTypeById(context.graphApi, authentication, {
+    entityTypeId: currentUserEntityTypeId,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!userEntityType) {
-    throw new NotFoundError(
-      `Could not find entity type with ID ${currentUserEntityTypeId}`,
-    );
+    throw new NotFoundError(`Could not find entity type with ID ${currentUserEntityTypeId}`);
   }
 
   const newUserEntityTypeSchema: EntityType = {
@@ -70,12 +62,15 @@ const migrate: MigrationFunction = async ({
     },
   };
 
-  const { updatedEntityTypeId: updatedUserEntityTypeId } =
-    await updateSystemEntityType(context, authentication, {
+  const { updatedEntityTypeId: updatedUserEntityTypeId } = await updateSystemEntityType(
+    context,
+    authentication,
+    {
       currentEntityTypeId: currentUserEntityTypeId,
       migrationState,
       newSchema: newUserEntityTypeSchema,
-    });
+    },
+  );
 
   /**
    * Step 4: Update the dependencies of the `User` entity type

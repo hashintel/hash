@@ -33,25 +33,19 @@ const script = async () => {
     .map((location) => location.slice(7));
 
   const filteredBlockDirNames = blockDirNames.filter((blockDirName) =>
-    blockDirNameFilterRegex
-      ? blockDirName.match(blockDirNameFilterRegex)
-      : true,
+    blockDirNameFilterRegex ? blockDirName.match(blockDirNameFilterRegex) : true,
   );
 
   if (outputFormat === "raw") {
     for (const blockDirName of blockDirNames) {
       console.log(
-        filteredBlockDirNames.includes(blockDirName)
-          ? `✅ ${blockDirName}`
-          : `❌ ${blockDirName}`,
+        filteredBlockDirNames.includes(blockDirName) ? `✅ ${blockDirName}` : `❌ ${blockDirName}`,
       );
     }
 
     console.log(
       `Total number of blocks: ${blockDirNames.length}${
-        blockDirNameFilterRegex
-          ? `, filtered: ${filteredBlockDirNames.length}`
-          : ""
+        blockDirNameFilterRegex ? `, filtered: ${filteredBlockDirNames.length}` : ""
       }`,
     );
   }

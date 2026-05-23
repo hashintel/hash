@@ -4,10 +4,7 @@ import { useCallback } from "react";
 import { updatePage } from "../../graphql/queries/page.queries";
 import { useGetPageRefetchQueries } from "./shared/get-page-refetch-queries";
 
-import type {
-  UpdatePageMutation,
-  UpdatePageMutationVariables,
-} from "../../graphql/api-types.gen";
+import type { UpdatePageMutation, UpdatePageMutationVariables } from "../../graphql/api-types.gen";
 import type { EntityId } from "@blockprotocol/type-system";
 
 export const useUpdatePageTitle = () => {

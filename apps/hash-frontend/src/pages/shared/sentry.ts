@@ -14,9 +14,7 @@ export const setSentryUser = (params: { authenticatedUser?: User }) => {
     authenticatedUser &&
     sentryUser?.id !== authenticatedUser.entity.metadata.recordId.entityId
   ) {
-    const primaryEmail = authenticatedUser.emails.find(
-      (email) => email.primary,
-    );
+    const primaryEmail = authenticatedUser.emails.find((email) => email.primary);
     setUser({
       id: authenticatedUser.entity.metadata.recordId.entityId,
       email: primaryEmail?.address,

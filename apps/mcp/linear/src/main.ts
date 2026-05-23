@@ -3,10 +3,7 @@
 import { LinearClient } from "@linear/sdk";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { config } from "dotenv-flow";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
@@ -28,9 +25,7 @@ const GetIssueRequestSchema = z.object({
 });
 
 const AddCommentToIssueRequestSchema = z.object({
-  issueId: z
-    .string()
-    .meta({ description: "The id of the issue to add a comment to" }),
+  issueId: z.string().meta({ description: "The id of the issue to add a comment to" }),
   parentId: z
     .string()
     .meta({
@@ -70,8 +65,7 @@ const CreateIssueRequestSchema = z.object({
   parentIssueUuid: z
     .string()
     .meta({
-      description:
-        "The uuid of the parent issue this is a sub-issue of (not the H-XXXX format).",
+      description: "The uuid of the parent issue this is a sub-issue of (not the H-XXXX format).",
     })
     .optional(),
 });
@@ -137,9 +131,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       });
 
       const hydratedIssues = await Promise.all(
-        issues.nodes.map(async (issue) =>
-          hydrateLinearIssue({ issue, includeComments: false }),
-        ),
+        issues.nodes.map(async (issue) => hydrateLinearIssue({ issue, includeComments: false })),
       );
 
       return {
@@ -173,9 +165,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "add_comment_to_issue": {
-      const args = AddCommentToIssueRequestSchema.parse(
-        request.params.arguments,
-      );
+      const args = AddCommentToIssueRequestSchema.parse(request.params.arguments);
 
       await linear.createComment({
         bodyData: {

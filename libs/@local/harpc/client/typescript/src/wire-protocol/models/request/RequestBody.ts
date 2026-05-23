@@ -24,14 +24,10 @@ export type TypeId = typeof TypeId;
 
 export type RequestBodyVariant = "RequestBegin" | "RequestFrame";
 
-export interface RequestBody
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface RequestBody extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
-  readonly body: Either.Either<
-    RequestBegin.RequestBegin,
-    RequestFrame.RequestFrame
-  >;
+  readonly body: Either.Either<RequestBegin.RequestBegin, RequestFrame.RequestFrame>;
 }
 
 const RequestBodyProto: Omit<RequestBody, "body"> = {
@@ -45,11 +41,7 @@ const RequestBodyProto: Omit<RequestBody, "body"> = {
   },
 
   [Hash.symbol](this: RequestBody) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.body)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.body)), Hash.cached(this));
   },
 
   toString(this: RequestBody) {
@@ -115,23 +107,17 @@ export const match: {
 // eslint-disable-next-line fsecond/no-inline-interfaces
 export const mapBoth: {
   <A>(
-    fn: (
-      beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame,
-    ) => A,
+    fn: (beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame) => A,
   ): (self: RequestBody) => A;
   <A>(
     self: RequestBody,
-    fn: (
-      beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame,
-    ) => A,
+    fn: (beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame) => A,
   ): A;
 } = Function.dual(
   2,
   <A>(
     self: RequestBody,
-    fn: (
-      beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame,
-    ) => A,
+    fn: (beginOrFrame: RequestBegin.RequestBegin | RequestFrame.RequestFrame) => A,
   ) =>
     match(self, {
       onBegin: (begin) => fn(begin),
@@ -148,9 +134,7 @@ export const encode = implEncode((buffer, body: RequestBody) =>
   }),
 );
 
-export type DecodeError = Effect.Effect.Error<
-  ReturnType<ReturnType<typeof decode>>
->;
+export type DecodeError = Effect.Effect.Error<ReturnType<ReturnType<typeof decode>>>;
 
 export const decode = (variantHint: RequestBodyVariant) =>
   implDecode((buffer) => {
@@ -185,13 +169,11 @@ export const isBegin = (value: RequestBody) => Either.isRight(value.body);
 
 export const isFrame = (value: RequestBody) => Either.isLeft(value.body);
 
-export const getBegin = (
-  body: RequestBody,
-): Option.Option<RequestBegin.RequestBegin> => Either.getRight(body.body);
+export const getBegin = (body: RequestBody): Option.Option<RequestBegin.RequestBegin> =>
+  Either.getRight(body.body);
 
-export const getFrame = (
-  body: RequestBody,
-): Option.Option<RequestFrame.RequestFrame> => Either.getLeft(body.body);
+export const getFrame = (body: RequestBody): Option.Option<RequestFrame.RequestFrame> =>
+  Either.getLeft(body.body);
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc

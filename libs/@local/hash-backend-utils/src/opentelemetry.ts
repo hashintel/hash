@@ -19,18 +19,9 @@ import {
   type HttpInstrumentationConfig,
 } from "@opentelemetry/instrumentation-http";
 import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
-import {
-  defaultResource,
-  resourceFromAttributes,
-} from "@opentelemetry/resources";
-import {
-  BatchLogRecordProcessor,
-  LoggerProvider,
-} from "@opentelemetry/sdk-logs";
-import {
-  MeterProvider,
-  PeriodicExportingMetricReader,
-} from "@opentelemetry/sdk-metrics";
+import { defaultResource, resourceFromAttributes } from "@opentelemetry/resources";
+import { BatchLogRecordProcessor, LoggerProvider } from "@opentelemetry/sdk-logs";
+import { MeterProvider, PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 
@@ -145,9 +136,10 @@ export const createUndiciInstrumentation = (): UndiciInstrumentation =>
  * for the case where Express has already wrapped the request before
  * the hook reads it.
  */
-export const httpRequestSpanNameHook: NonNullable<
-  HttpInstrumentationConfig["requestHook"]
-> = (span, request) => {
+export const httpRequestSpanNameHook: NonNullable<HttpInstrumentationConfig["requestHook"]> = (
+  span,
+  request,
+) => {
   if (!("method" in request) || !request.method) {
     return;
   }
@@ -156,9 +148,7 @@ export const httpRequestSpanNameHook: NonNullable<
     "url" in request ? request.url : undefined,
     "path" in request ? request.path : undefined,
   ];
-  const rawPath = candidates.find(
-    (value): value is string => typeof value === "string",
-  );
+  const rawPath = candidates.find((value): value is string => typeof value === "string");
   // Strip query string to keep cardinality bounded.
   const path = rawPath?.split("?")[0];
   if (path) {
@@ -201,10 +191,7 @@ const otlpPortFromEndpoint = (otlpEndpoint: string): number => {
  */
 export const createHttpInstrumentation = (
   otlpEndpoint: string,
-  extra: Omit<
-    HttpInstrumentationConfig,
-    "ignoreOutgoingRequestHook" | "requestHook"
-  > = {},
+  extra: Omit<HttpInstrumentationConfig, "ignoreOutgoingRequestHook" | "requestHook"> = {},
 ): HttpInstrumentation => {
   const otlpPort = otlpPortFromEndpoint(otlpEndpoint);
   return new HttpInstrumentation({
@@ -219,10 +206,7 @@ export const createHttpInstrumentation = (
   });
 };
 
-const shutdownWithTimeout = async (
-  label: string,
-  shutdown: () => Promise<void>,
-): Promise<void> => {
+const shutdownWithTimeout = async (label: string, shutdown: () => Promise<void>): Promise<void> => {
   let timer: NodeJS.Timeout | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
@@ -255,9 +239,7 @@ export const registerOpenTelemetry = ({
     // Runs before any logger is wired up, so direct stderr is the
     // right channel.
     // eslint-disable-next-line no-console
-    console.warn(
-      "No OpenTelemetry Protocol endpoint given. Not sending telemetry anywhere.",
-    );
+    console.warn("No OpenTelemetry Protocol endpoint given. Not sending telemetry anywhere.");
     return undefined;
   }
 
@@ -266,9 +248,7 @@ export const registerOpenTelemetry = ({
     url: endpoint,
   };
 
-  const resource = defaultResource().merge(
-    resourceFromAttributes({ "service.name": serviceName }),
-  );
+  const resource = defaultResource().merge(resourceFromAttributes({ "service.name": serviceName }));
 
   // Batch processors keep span / log export off the request path. The
   // Simple variants export each record synchronously, which under load

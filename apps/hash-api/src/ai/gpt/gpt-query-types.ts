@@ -61,84 +61,80 @@ export const gptQueryTypes: RequestHandler<
 
   const semanticSearchString = query
     ? await req.context.temporalClient.workflow
-        .execute<
-          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
-        >("createEmbeddings", {
-          taskQueue: "ai",
-          args: [
-            {
-              input: [query],
-            },
-          ],
-          workflowId: generateUuid(),
-        })
+        .execute<(params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>>(
+          "createEmbeddings",
+          {
+            taskQueue: "ai",
+            args: [
+              {
+                input: [query],
+              },
+            ],
+            workflowId: generateUuid(),
+          },
+        )
         .then(({ embeddings }) => embeddings[0])
     : null;
 
-  const queryResponse: GptQueryTypesResponseBody =
-    await queryEntityTypeSubgraph(
-      req.context.graphApi,
-      { actorId: user.accountId },
-      {
-        filter: {
-          all: [
-            ...(webUuids?.length
-              ? [
-                  {
-                    any: webUuids.map((webUuid) => ({
-                      equal: [{ path: ["webId"] }, { parameter: webUuid }],
-                    })),
-                  },
-                ]
-              : []),
-            ...(semanticSearchString
-              ? [
-                  {
-                    cosineDistance: [
-                      { path: ["embedding"] },
-                      { parameter: semanticSearchString },
-                      { parameter: 0.9 },
-                    ],
-                  },
-                ]
-              : []),
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        graphResolveDepths: {
-          ...almostFullOntologyResolveDepths,
-          constrainsLinkDestinationsOn: 4,
-          constrainsLinksOn: 4,
-        },
-        traversalPaths: [],
+  const queryResponse: GptQueryTypesResponseBody = await queryEntityTypeSubgraph(
+    req.context.graphApi,
+    { actorId: user.accountId },
+    {
+      filter: {
+        all: [
+          ...(webUuids?.length
+            ? [
+                {
+                  any: webUuids.map((webUuid) => ({
+                    equal: [{ path: ["webId"] }, { parameter: webUuid }],
+                  })),
+                },
+              ]
+            : []),
+          ...(semanticSearchString
+            ? [
+                {
+                  cosineDistance: [
+                    { path: ["embedding"] },
+                    { parameter: semanticSearchString },
+                    { parameter: 0.9 },
+                  ],
+                },
+              ]
+            : []),
+        ],
       },
-    ).then(async ({ subgraph }) => {
-      const entityTypes: SimpleEntityType[] = [];
+      temporalAxes: currentTimeInstantTemporalAxes,
+      graphResolveDepths: {
+        ...almostFullOntologyResolveDepths,
+        constrainsLinkDestinationsOn: 4,
+        constrainsLinksOn: 4,
+      },
+      traversalPaths: [],
+    },
+  ).then(async ({ subgraph }) => {
+    const entityTypes: SimpleEntityType[] = [];
 
-      const vertices = typedValues(subgraph.vertices).flatMap((vertex) =>
-        typedValues(vertex),
-      );
+    const vertices = typedValues(subgraph.vertices).flatMap((vertex) => typedValues(vertex));
 
-      for (const vertex of vertices) {
-        if (vertex.kind === "entityType") {
-          const entityType = entityTypes.find(
-            (type) => type.entityTypeId === vertex.inner.schema.$id,
-          );
+    for (const vertex of vertices) {
+      if (vertex.kind === "entityType") {
+        const entityType = entityTypes.find(
+          (type) => type.entityTypeId === vertex.inner.schema.$id,
+        );
 
-          if (!entityType) {
-            entityTypes.push(
-              getSimpleEntityType(subgraph, vertex.inner.schema.$id),
-            );
-          }
+        if (!entityType) {
+          entityTypes.push(getSimpleEntityType(subgraph, vertex.inner.schema.$id));
         }
       }
+    }
 
-      return {
-        entityTypes: `
+    return {
+      entityTypes: `
           ---- Entity Types ----
         ${stringifyResults(entityTypes)}`,
-      };
-    });
+    };
+  });
 
   res.status(200).json(queryResponse);
 };

@@ -3,10 +3,7 @@ import { type ReactNode, useRef, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientProvider } from "../../react/lsp/provider";
-import {
-  SDCPNContext,
-  type SDCPNContextValue,
-} from "../../react/state/sdcpn-context";
+import { SDCPNContext, type SDCPNContextValue } from "../../react/state/sdcpn-context";
 import { CodeEditor } from "./code-editor";
 import { MonacoProvider } from "./provider";
 
@@ -68,10 +65,8 @@ const LAMBDA_SDCPN: SDCPN = {
       ],
       outputArcs: [{ placeId: "place-2", weight: 2 }],
       lambdaType: "stochastic",
-      lambdaCode:
-        "export default Lambda((tokens, parameters) => parameters.rate)",
-      transitionKernelCode:
-        "export default TransitionKernel(() => ({ Infected: [{}, {}] }))",
+      lambdaCode: "export default Lambda((tokens, parameters) => parameters.rate)",
+      transitionKernelCode: "export default TransitionKernel(() => ({ Infected: [{}, {}] }))",
       x: 0,
       y: 0,
     },
@@ -264,11 +259,7 @@ const SingleLineWithValueExample = () => {
   return (
     <Frame>
       <span className={labelStyle}>Infection rate override</span>
-      <CodeEditor
-        singleLine
-        value={value}
-        onChange={(v) => setValue(v ?? "")}
-      />
+      <CodeEditor singleLine value={value} onChange={(v) => setValue(v ?? "")} />
     </Frame>
   );
 };
@@ -344,9 +335,7 @@ const WithLspExample = () => {
 
   return (
     <LspFrame>
-      <span className={labelStyle}>
-        Lambda code (with completions and diagnostics)
-      </span>
+      <span className={labelStyle}>Lambda code (with completions and diagnostics)</span>
       <CodeEditor
         path="inmemory://sdcpn/transitions/transition-1/lambda.ts"
         language="typescript"

@@ -51,10 +51,7 @@ const deepEqual = (a: unknown, b: unknown): boolean => {
 
     // Every property in `a` must exist in `b` with the same value
     for (const prop of propsA) {
-      if (
-        !Object.prototype.hasOwnProperty.call(objB, prop) ||
-        !deepEqual(objA[prop], objB[prop])
-      ) {
+      if (!Object.prototype.hasOwnProperty.call(objB, prop) || !deepEqual(objA[prop], objB[prop])) {
         return false;
       }
     }

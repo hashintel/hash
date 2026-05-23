@@ -30,12 +30,7 @@ export const createGraphChangeNotification = async (
 ) => {
   const { graphApi } = context;
 
-  const {
-    changedEntityId,
-    changedEntityEditionId,
-    operation,
-    notifiedUserAccountId,
-  } = params;
+  const { changedEntityId, changedEntityEditionId, operation, notifiedUserAccountId } = params;
 
   const userAuthentication = { actorId: notifiedUserAccountId };
 
@@ -43,9 +38,7 @@ export const createGraphChangeNotification = async (
     webId: notifiedUserAccountId,
   }).then((maybeMachineId) => {
     if (!maybeMachineId) {
-      throw new Error(
-        `Failed to get web machine for user account ID: ${notifiedUserAccountId}`,
-      );
+      throw new Error(`Failed to get web machine for user account ID: ${notifiedUserAccountId}`);
     }
     return maybeMachineId;
   });
@@ -72,8 +65,7 @@ export const createGraphChangeNotification = async (
           "https://hash.ai/@h/types/property-type/graph-change-type/": {
             value: operation,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         },
@@ -105,8 +97,7 @@ export const createGraphChangeNotification = async (
           "https://hash.ai/@h/types/property-type/entity-edition-id/": {
             value: changedEntityEditionId,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         },

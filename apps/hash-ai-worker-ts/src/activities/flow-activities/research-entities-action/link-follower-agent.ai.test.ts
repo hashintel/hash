@@ -22,15 +22,12 @@ test.skip(
     const status = await linkFollowerAgent({
       input: {
         goal: "Obtain the full list of current members of Church Lab",
-        entityTypes: Object.values(dereferencedEntityTypes).map(
-          ({ schema }) => schema,
-        ),
+        entityTypes: Object.values(dereferencedEntityTypes).map(({ schema }) => schema),
         existingEntitiesOfInterest: [],
         initialResource: {
           url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current" as Url,
           exampleOfExpectedContent: "Current Members: ...",
-          descriptionOfExpectedContent:
-            "The current members of the lab are listed on the page.",
+          descriptionOfExpectedContent: "The current members of the lab are listed on the page.",
           reason: "The page should include the current members of the lab.",
           goal: "Obtain the full list of current members of Church Lab",
         },
@@ -67,9 +64,7 @@ test.skip(
     const status = await linkFollowerAgent({
       input: {
         goal: 'Obtain the full list of authors of the Sora article titled "Video Generation Models as World Simulators"',
-        entityTypes: Object.values(dereferencedEntityTypes).map(
-          ({ schema }) => schema,
-        ),
+        entityTypes: Object.values(dereferencedEntityTypes).map(({ schema }) => schema),
         existingEntitiesOfInterest: [],
         initialResource: {
           url: "https://openai.com/index/video-generation-models-as-world-simulators/" as Url,
@@ -104,9 +99,7 @@ test.skip(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: [
-        "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
-      ],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });
@@ -114,16 +107,13 @@ test.skip(
     const status = await linkFollowerAgent({
       input: {
         goal: "Get all the stock market constituents of the FTSE350.",
-        entityTypes: Object.values(dereferencedEntityTypes).map(
-          ({ schema }) => schema,
-        ),
+        entityTypes: Object.values(dereferencedEntityTypes).map(({ schema }) => schema),
         existingEntitiesOfInterest: [],
         initialResource: {
           url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url,
           goal: "Get all the stock market constituents of the FTSE350.",
           exampleOfExpectedContent: "Constituents: ...",
-          descriptionOfExpectedContent:
-            "The constituents of the FTSE350 are listed on the page.",
+          descriptionOfExpectedContent: "The constituents of the FTSE350 are listed on the page.",
           reason: "The page should include the constituents of the FTSE350.",
         },
       },
@@ -159,9 +149,7 @@ test.skip(
     const status = await linkFollowerAgent({
       input: {
         goal: "Identify the top 3 graphics cards suitable for AI model processing, including their specifications and features.",
-        entityTypes: Object.values(dereferencedEntityTypes).map(
-          ({ schema }) => schema,
-        ),
+        entityTypes: Object.values(dereferencedEntityTypes).map(({ schema }) => schema),
         existingEntitiesOfInterest: [],
         initialResource: {
           goal: "Identify the top 3 graphics cards suitable for AI model processing, including their specifications and features.",
@@ -169,8 +157,7 @@ test.skip(
           exampleOfExpectedContent: "Graphics Cards: ...",
           descriptionOfExpectedContent:
             "The top 3 graphics cards for AI model processing are listed on the page.",
-          reason:
-            "The page should include the top 3 graphics cards for AI model processing.",
+          reason: "The page should include the top 3 graphics cards for AI model processing.",
         },
       },
       workerIdentifiers: {
@@ -197,9 +184,7 @@ test.skip(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: [
-        "https://hash.ai/@h/types/entity-type/investment-fund/v/1",
-      ],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/investment-fund/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });
@@ -207,9 +192,7 @@ test.skip(
     const status = await linkFollowerAgent({
       input: {
         goal: "Get the list of investors of Marks and Spencer's, based on the 2023 annual investors report PDF file.",
-        entityTypes: Object.values(dereferencedEntityTypes).map(
-          ({ schema }) => schema,
-        ),
+        entityTypes: Object.values(dereferencedEntityTypes).map(({ schema }) => schema),
         existingEntitiesOfInterest: [],
         initialResource: {
           url: "https://corporate.marksandspencer.com/investors" as Url,
@@ -217,8 +200,7 @@ test.skip(
           exampleOfExpectedContent: "Investors: ...",
           descriptionOfExpectedContent:
             "The investors of Marks and Spencer's are listed on the page.",
-          reason:
-            "The page should include the investors of Marks and Spencer's.",
+          reason: "The page should include the investors of Marks and Spencer's.",
         },
       },
       workerIdentifiers: {

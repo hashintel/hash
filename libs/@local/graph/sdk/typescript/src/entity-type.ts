@@ -50,10 +50,7 @@ export const hasPermissionForEntityTypes = (
       entityTypeIds: VersionedUrl[];
       action: Subtype<
         ActionName,
-        | "viewEntityType"
-        | "updateEntityType"
-        | "archiveEntityType"
-        | "instantiate"
+        "viewEntityType" | "updateEntityType" | "archiveEntityType" | "instantiate"
       >;
     }
   >,
@@ -62,21 +59,13 @@ export const hasPermissionForEntityTypes = (
     .hasPermissionForEntityTypes(authentication.actorId, params)
     .then(({ data: permitted }) => permitted as VersionedUrl[]);
 
-export type QueryEntityTypesParams = Omit<
-  QueryEntityTypesParamsGraphApi,
-  "after"
-> & {
+export type QueryEntityTypesParams = Omit<QueryEntityTypesParamsGraphApi, "after"> & {
   after?: VersionedUrl;
 };
 
 export type QueryEntityTypesResponse = Omit<
   QueryEntityTypesResponseGraphApi,
-  | "closedEntityTypes"
-  | "entityTypes"
-  | "cursor"
-  | "definitions"
-  | "webIds"
-  | "editionCreatedByIds"
+  "closedEntityTypes" | "entityTypes" | "cursor" | "definitions" | "webIds" | "editionCreatedByIds"
 > & {
   closedEntityTypes?: ClosedEntityType[];
   entityTypes: EntityTypeWithMetadata[];
@@ -86,9 +75,8 @@ export type QueryEntityTypesResponse = Omit<
   editionCreatedByIds?: Record<ActorEntityUuid, number>;
 };
 
-const mapGraphApiEntityTypesToEntityTypes = (
-  entityTypes: EntityTypeWithMetadataGraphApi[],
-) => entityTypes as unknown as EntityTypeWithMetadata[];
+const mapGraphApiEntityTypesToEntityTypes = (entityTypes: EntityTypeWithMetadataGraphApi[]) =>
+  entityTypes as unknown as EntityTypeWithMetadata[];
 
 export const mapGraphApiClosedEntityTypesToClosedEntityTypes = (
   closedEntityTypes: ClosedEntityTypeGraphApi[],
@@ -99,25 +87,19 @@ export const queryEntityTypes = (
   authentication: AuthenticationContext,
   params: QueryEntityTypesParams,
 ): Promise<QueryEntityTypesResponse> =>
-  graphApi
-    .queryEntityTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      ...response,
-      closedEntityTypes: response.closedEntityTypes
-        ? mapGraphApiClosedEntityTypesToClosedEntityTypes(
-            response.closedEntityTypes,
-          )
-        : undefined,
-      definitions: response.definitions as
-        | EntityTypeResolveDefinitions
-        | undefined,
-      entityTypes: mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
-      cursor: response.cursor as VersionedUrl | undefined,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-    }));
+  graphApi.queryEntityTypes(authentication.actorId, params).then(({ data: response }) => ({
+    ...response,
+    closedEntityTypes: response.closedEntityTypes
+      ? mapGraphApiClosedEntityTypesToClosedEntityTypes(response.closedEntityTypes)
+      : undefined,
+    definitions: response.definitions as EntityTypeResolveDefinitions | undefined,
+    entityTypes: mapGraphApiEntityTypesToEntityTypes(response.entityTypes),
+    cursor: response.cursor as VersionedUrl | undefined,
+    webIds: response.webIds as Record<WebId, number> | undefined,
+    editionCreatedByIds: response.editionCreatedByIds as
+      | Record<ActorEntityUuid, number>
+      | undefined,
+  }));
 
 export type QueryEntityTypeSubgraphParams = ExclusiveUnion<
   DistributiveReplaceProperties<
@@ -150,17 +132,15 @@ export const queryEntityTypeSubgraph = (
   authentication: AuthenticationContext,
   params: QueryEntityTypeSubgraphParams,
 ): Promise<QueryEntityTypeSubgraphResponse> =>
-  graphApi
-    .queryEntityTypeSubgraph(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      ...response,
-      subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
-      cursor: response.cursor as VersionedUrl | undefined,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-    }));
+  graphApi.queryEntityTypeSubgraph(authentication.actorId, params).then(({ data: response }) => ({
+    ...response,
+    subgraph: mapGraphApiSubgraphToSubgraph(response.subgraph),
+    cursor: response.cursor as VersionedUrl | undefined,
+    webIds: response.webIds as Record<WebId, number> | undefined,
+    editionCreatedByIds: response.editionCreatedByIds as
+      | Record<ActorEntityUuid, number>
+      | undefined,
+  }));
 
 export const serializeQueryEntityTypeSubgraphResponse = (
   response: QueryEntityTypeSubgraphResponse,
@@ -189,10 +169,9 @@ export const deserializeQueryEntityTypeSubgraphResponse = (
 export const getEntityTypeById = async (
   graphApi: GraphApi,
   authentication: AuthenticationContext,
-  params: Omit<
-    QueryEntityTypesParams,
-    "filter" | "includeCount" | "after" | "limit"
-  > & { entityTypeId: VersionedUrl },
+  params: Omit<QueryEntityTypesParams, "filter" | "includeCount" | "after" | "limit"> & {
+    entityTypeId: VersionedUrl;
+  },
 ): Promise<EntityTypeWithMetadata | null> => {
   const { entityTypeId, ...rest } = params;
 
@@ -246,10 +225,7 @@ export type ClosedMultiEntityTypeMap = Omit<
 };
 
 export const mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap = (
-  closedMultiEntityTypeMap: Record<
-    VersionedUrl,
-    ClosedMultiEntityTypeMapGraphApi
-  >,
+  closedMultiEntityTypeMap: Record<VersionedUrl, ClosedMultiEntityTypeMapGraphApi>,
 ) => closedMultiEntityTypeMap as Record<VersionedUrl, ClosedMultiEntityTypeMap>;
 
 export type GetClosedMultiEntityTypesResponse = Omit<
@@ -260,25 +236,20 @@ export type GetClosedMultiEntityTypesResponse = Omit<
   definitions?: ClosedMultiEntityTypesDefinitions;
 };
 
-export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions =
-  (entityTypeResolveDefinitions: EntityTypeResolveDefinitionsGraphApi) =>
-    entityTypeResolveDefinitions as EntityTypeResolveDefinitions;
+export const mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions = (
+  entityTypeResolveDefinitions: EntityTypeResolveDefinitionsGraphApi,
+) => entityTypeResolveDefinitions as EntityTypeResolveDefinitions;
 
 export const getClosedMultiEntityTypes = (
   graphApi: GraphApi,
   authentication: AuthenticationContext,
   params: GetClosedMultiEntityTypesParams,
 ): Promise<GetClosedMultiEntityTypesResponse> =>
-  graphApi
-    .getClosedMultiEntityTypes(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      entityTypes:
-        mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
-          response.entityTypes,
-        ),
-      definitions: response.definitions
-        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
-            response.definitions,
-          )
-        : undefined,
-    }));
+  graphApi.getClosedMultiEntityTypes(authentication.actorId, params).then(({ data: response }) => ({
+    entityTypes: mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+      response.entityTypes,
+    ),
+    definitions: response.definitions
+      ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(response.definitions)
+      : undefined,
+  }));

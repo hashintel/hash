@@ -5,11 +5,7 @@ import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { createPortal } from "react-dom";
 import { useFieldArray, useForm } from "react-hook-form";
 
-import {
-  AsteriskRegularIcon,
-  IconButton,
-  XMarkRegularIcon,
-} from "@hashintel/design-system";
+import { AsteriskRegularIcon, IconButton, XMarkRegularIcon } from "@hashintel/design-system";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
@@ -68,9 +64,7 @@ const useDraggableInPortal = () => {
     (provided: DraggableProvided) => {
       const result = render(provided);
 
-      const style = provided.draggableProps.style as
-        | DraggingStyle
-        | NotDraggingStyle;
+      const style = provided.draggableProps.style as DraggingStyle | NotDraggingStyle;
 
       if ("position" in style) {
         return createPortal(result, element);
@@ -91,11 +85,9 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
   }
 > = ({ profile, onClose, refetchProfile, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const { latestEntityTypes, isSpecialEntityTypeLookup } =
-    useLatestEntityTypesOptional();
+  const { latestEntityTypes, isSpecialEntityTypeLookup } = useLatestEntityTypesOptional();
 
-  const [displayEntityTypesSearch, setDisplayEntityTypesSearch] =
-    useState(false);
+  const [displayEntityTypesSearch, setDisplayEntityTypesSearch] = useState(false);
 
   const [updateEntity, { loading }] = useMutation<
     UpdateEntityMutation,
@@ -106,20 +98,18 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
     authenticatedUser.accountId as WebId,
   );
 
-  const { control, reset, handleSubmit, formState } =
-    useForm<PinnedEntityTypesFormData>({
-      defaultValues: {
-        pinnedEntityTypes: [],
-      },
-    });
+  const { control, reset, handleSubmit, formState } = useForm<PinnedEntityTypesFormData>({
+    defaultValues: {
+      pinnedEntityTypes: [],
+    },
+  });
 
   const initializedFields = useRef(false);
 
   useEffect(() => {
     if (latestEntityTypes && !initializedFields.current) {
-      const initialPinnedEntityTypes = latestEntityTypes.filter(
-        ({ metadata }) =>
-          profile.pinnedEntityTypeBaseUrls?.includes(metadata.recordId.baseUrl),
+      const initialPinnedEntityTypes = latestEntityTypes.filter(({ metadata }) =>
+        profile.pinnedEntityTypeBaseUrls?.includes(metadata.recordId.baseUrl),
       );
 
       initializedFields.current = true;
@@ -149,13 +139,8 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
           propertyPatches: [
             {
               op: "add",
-              path: [
-                systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeBaseUrl,
-              ],
-              property: mergePropertiesAndMetadata(
-                updatedPinnedEntityTypeBaseUrls,
-                undefined,
-              ),
+              path: [systemPropertyTypes.pinnedEntityTypeBaseUrl.propertyTypeBaseUrl],
+              property: mergePropertiesAndMetadata(updatedPinnedEntityTypeBaseUrls, undefined),
             },
           ],
         },
@@ -241,8 +226,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
       }}
       header={{
         title: "Pinned types",
-        subtitle:
-          "Choose up to 5 types to appear in the top-bar of your profile",
+        subtitle: "Choose up to 5 types to appear in the top-bar of your profile",
       }}
       onClose={onClose}
     >
@@ -292,8 +276,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                 color: ({ palette }) => palette.gray[50],
                                 fontSize: 16,
                                 opacity: isDragDisabled ? 0 : 1,
-                                transition: ({ transitions }) =>
-                                  transitions.create("opacity"),
+                                transition: ({ transitions }) => transitions.create("opacity"),
                               }}
                             />
                           </Box>
@@ -329,8 +312,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                 }}
                               >
                                 {field.schema.icon ??
-                                  (isSpecialEntityTypeLookup?.[field.schema.$id]
-                                    ?.isLink ? (
+                                  (isSpecialEntityTypeLookup?.[field.schema.$id]?.isLink ? (
                                     <CustomLinkIcon
                                       sx={{
                                         fontSize: 22,
@@ -340,17 +322,14 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                     />
                                   ) : (
                                     (entityTypeIcons[field.schema.$id] ?? (
-                                      <AsteriskRegularIcon
-                                        sx={{ fontSize: 12 }}
-                                      />
+                                      <AsteriskRegularIcon sx={{ fontSize: 12 }} />
                                     ))
                                   ))}
                               </Box>
                               <Typography
                                 sx={{
                                   fontSize: 14,
-                                  transition: ({ transitions }) =>
-                                    transitions.create("color"),
+                                  transition: ({ transitions }) => transitions.create("color"),
                                   fontWeight: 500,
                                 }}
                               >
@@ -404,9 +383,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
               Save changes
             </Button>
             <Button variant="tertiary" onClick={handleDiscard}>
-              {Object.keys(formState.dirtyFields).length === 0
-                ? "Cancel"
-                : "Discard"}
+              {Object.keys(formState.dirtyFields).length === 0 ? "Cancel" : "Discard"}
             </Button>
           </Box>
         </Box>

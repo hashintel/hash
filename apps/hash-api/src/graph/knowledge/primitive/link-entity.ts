@@ -9,47 +9,34 @@ import type {
   PropertyPatchOperation,
   TypeIdsAndPropertiesForEntity,
 } from "@blockprotocol/type-system";
-import type {
-  CreateEntityParameters,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import type { CreateEntityParameters, HashEntity } from "@local/hash-graph-sdk/entity";
 
-export const isEntityLinkEntity = (
-  entity: HashEntity,
-): entity is HashLinkEntity => !!entity.linkData;
+export const isEntityLinkEntity = (entity: HashEntity): entity is HashLinkEntity =>
+  !!entity.linkData;
 
-type CreateLinkEntityFunction<
-  Properties extends TypeIdsAndPropertiesForEntity,
-> = ImpureGraphFunction<
-  Omit<CreateEntityParameters<Properties>, "provenance"> & {
-    linkData: LinkData;
-  },
-  Promise<HashLinkEntity<Properties>>
->;
+type CreateLinkEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> =
+  ImpureGraphFunction<
+    Omit<CreateEntityParameters<Properties>, "provenance"> & {
+      linkData: LinkData;
+    },
+    Promise<HashLinkEntity<Properties>>
+  >;
 
 /**
  * Create an entity.
  */
-export const createLinkEntity = async <
-  Properties extends TypeIdsAndPropertiesForEntity,
->(
+export const createLinkEntity = async <Properties extends TypeIdsAndPropertiesForEntity>(
   ...args: Parameters<CreateLinkEntityFunction<Properties>>
 ): ReturnType<CreateLinkEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
 
-  const linkEntity = await HashLinkEntity.create<Properties>(
-    context.graphApi,
-    authentication,
-    {
-      ...params,
-      provenance: context.provenance,
-    },
-  );
+  const linkEntity = await HashLinkEntity.create<Properties>(context.graphApi, authentication, {
+    ...params,
+    provenance: context.provenance,
+  });
 
   for (const afterCreateHook of afterCreateEntityHooks) {
-    if (
-      linkEntity.metadata.entityTypeIds.includes(afterCreateHook.entityTypeId)
-    ) {
+    if (linkEntity.metadata.entityTypeIds.includes(afterCreateHook.entityTypeId)) {
       void afterCreateHook.callback({
         context,
         entity: linkEntity,

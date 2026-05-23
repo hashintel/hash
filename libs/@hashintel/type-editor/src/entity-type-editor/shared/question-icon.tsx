@@ -7,11 +7,9 @@ import { fluidFontClassName } from "@hashintel/design-system/theme";
 import type { BoxProps } from "@mui/material";
 import type { ComponentProps, ReactNode } from "react";
 
-const StyledQuestionIcon = styled(
-  (props: Omit<ComponentProps<typeof FontAwesomeIcon>, "icon">) => (
-    <FontAwesomeIcon {...props} icon={faQuestionCircle} />
-  ),
-)(({ theme }) =>
+const StyledQuestionIcon = styled((props: Omit<ComponentProps<typeof FontAwesomeIcon>, "icon">) => (
+  <FontAwesomeIcon {...props} icon={faQuestionCircle} />
+))(({ theme }) =>
   theme.unstable_sx({
     color: theme.palette.gray[40],
   }),
@@ -22,11 +20,7 @@ export const QuestionIcon = ({
   ...props
 }: { tooltip: NonNullable<ReactNode> } & BoxProps) => {
   return (
-    <Tooltip
-      title={tooltip}
-      placement="top"
-      classes={{ popper: fluidFontClassName }}
-    >
+    <Tooltip title={tooltip} placement="top" classes={{ popper: fluidFontClassName }}>
       <Box display="inline" {...props}>
         <StyledQuestionIcon />
       </Box>

@@ -79,9 +79,7 @@ const DensityColumn = ({ density }: { density: Density }) => (
 export const Spacing: Story = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
     <VStack gap="2" alignItems="flex-start">
-      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
-        Spacing Tokens
-      </h1>
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>Spacing Tokens</h1>
       <p
         className={css({
           textStyle: "sm",
@@ -89,8 +87,7 @@ export const Spacing: Story = () => (
           maxWidth: "[640px]",
         })}
       >
-        Spacing values from the Panda/Tailwind scale (1 = 0.25rem = 4px),
-        multiplied by{" "}
+        Spacing values from the Panda/Tailwind scale (1 = 0.25rem = 4px), multiplied by{" "}
         <code
           className={css({
             fontFamily: "mono",
@@ -103,8 +100,7 @@ export const Spacing: Story = () => (
         >
           --density-factor
         </code>
-        . Compact (×0.75 = 3px/unit), Normal (×1 = 4px/unit), Comfortable (×1.25
-        = 5px/unit).
+        . Compact (×0.75 = 3px/unit), Normal (×1 = 4px/unit), Comfortable (×1.25 = 5px/unit).
       </p>
     </VStack>
 

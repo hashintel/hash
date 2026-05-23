@@ -1,9 +1,4 @@
-import type {
-  FilterValue,
-  FilterValueType,
-  FormValues,
-  PropertyFilter,
-} from "./types";
+import type { FilterValue, FilterValueType, FormValues, PropertyFilter } from "./types";
 import type { MultiFilter } from "@blockprotocol/graph";
 import type { BaseUrl } from "@blockprotocol/type-system";
 
@@ -79,9 +74,7 @@ export const mapFormValuesToMultiFilter = (data: FormValues): MultiFilter => {
   return { operator: filters.length > 0 ? data.operator : "AND", filters };
 };
 
-export const mapMultiFilterToFormValues = (
-  multiFilter: MultiFilter,
-): FormValues => {
+export const mapMultiFilterToFormValues = (multiFilter: MultiFilter): FormValues => {
   const filters: FormValues["filters"] = [];
 
   for (const filter of multiFilter.filters) {
@@ -103,15 +96,11 @@ export const mapMultiFilterToFormValues = (
       const propertyTypeBaseUrl = filter.field[1] as BaseUrl;
 
       const isEmpty = filter.operator === "EQUALS" && filter.value === null;
-      const isNotEmpty =
-        filter.operator === "DOES_NOT_EQUAL" && filter.value === null;
+      const isNotEmpty = filter.operator === "DOES_NOT_EQUAL" && filter.value === null;
       const isEquals = filter.operator === "EQUALS" && filter.value !== null;
-      const isNotEquals =
-        filter.operator === "DOES_NOT_EQUAL" && filter.value !== null;
-      const isContains =
-        filter.operator === "CONTAINS_SEGMENT" && filter.value !== null;
-      const isNotContains =
-        filter.operator === "DOES_NOT_CONTAIN_SEGMENT" && filter.value !== null;
+      const isNotEquals = filter.operator === "DOES_NOT_EQUAL" && filter.value !== null;
+      const isContains = filter.operator === "CONTAINS_SEGMENT" && filter.value !== null;
+      const isNotContains = filter.operator === "DOES_NOT_CONTAIN_SEGMENT" && filter.value !== null;
 
       const repeating: Pick<PropertyFilter, "type" | "propertyTypeBaseUrl"> = {
         type: "Property",

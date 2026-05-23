@@ -7,11 +7,7 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
 import { Avatar } from "@hashintel/design-system";
@@ -27,9 +23,7 @@ type AccountDropdownProps = {
   logout: () => void;
 };
 
-export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
-  logout,
-}) => {
+export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({ logout }) => {
   const { authenticatedUser, isInstanceAdmin } = useAuthenticatedUser();
 
   const popupState = usePopupState({
@@ -38,9 +32,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
   });
 
   const userPrimaryEmail = useMemo(() => {
-    const primaryEmail = authenticatedUser.emails.find(
-      (email) => email.primary,
-    );
+    const primaryEmail = authenticatedUser.emails.find((email) => email.primary);
 
     return primaryEmail?.address;
   }, [authenticatedUser]);
@@ -85,9 +77,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
         >
           <Avatar
             size={32}
-            title={
-              authenticatedUser.displayName ?? userPrimaryEmail?.[0] ?? "?"
-            }
+            title={authenticatedUser.displayName ?? userPrimaryEmail?.[0] ?? "?"}
             src={
               authenticatedUser.hasAvatar
                 ? getImageUrlFromEntityProperties(
@@ -141,10 +131,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               {authenticatedUser.displayName}
             </Typography>
             {userPrimaryEmail && (
-              <Typography
-                variant="microText"
-                sx={({ palette }) => ({ color: palette.gray[70] })}
-              >
+              <Typography variant="microText" sx={({ palette }) => ({ color: palette.gray[70] })}>
                 {userPrimaryEmail}
               </Typography>
             )}
@@ -152,11 +139,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
         </Link>
         <Divider />
         {authenticatedUser.accountSignupComplete && [
-          <MenuItem
-            href="/settings"
-            key="settings"
-            onClick={() => popupState.close()}
-          >
+          <MenuItem href="/settings" key="settings" onClick={() => popupState.close()}>
             <ListItemText primary="Settings" />
           </MenuItem>,
           <MenuItem
@@ -176,11 +159,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           isInstanceAdmin
             ? [
                 <Divider key="divider-admin" />,
-                <MenuItem
-                  href="/admin"
-                  key="admin"
-                  onClick={() => popupState.close()}
-                >
+                <MenuItem href="/admin" key="admin" onClick={() => popupState.close()}>
                   <ListItemText primary="Instance Admin" />
                 </MenuItem>,
               ]

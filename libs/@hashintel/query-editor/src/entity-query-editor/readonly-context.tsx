@@ -9,11 +9,7 @@ export const ReadonlyContextProvider = ({
   children: React.ReactNode;
   readonly: boolean;
 }) => {
-  return (
-    <ReadonlyContext.Provider value={readonly}>
-      {children}
-    </ReadonlyContext.Provider>
-  );
+  return <ReadonlyContext.Provider value={readonly}>{children}</ReadonlyContext.Provider>;
 };
 
 export const useReadonlyContext = () => {

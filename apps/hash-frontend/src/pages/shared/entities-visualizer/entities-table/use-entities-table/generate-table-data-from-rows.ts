@@ -155,9 +155,7 @@ export const generateTableDataFromRows = (
         firstSeenEntityTypeByBaseUrl[baseUrl]
       ) {
         entityTypesWithMultipleVersions.add(entityTypeId);
-        entityTypesWithMultipleVersions.add(
-          firstSeenEntityTypeByBaseUrl[baseUrl],
-        );
+        entityTypesWithMultipleVersions.add(firstSeenEntityTypeByBaseUrl[baseUrl]);
       } else {
         firstSeenEntityTypeByBaseUrl[baseUrl] = entityTypeId;
       }
@@ -216,20 +214,15 @@ export const generateTableDataFromRows = (
 
     const createdById = entity.metadata.provenance.createdById;
 
-    const propertyCellsForRow: Record<BaseUrl, EntitiesTableRowPropertyCell> =
-      {};
+    const propertyCellsForRow: Record<BaseUrl, EntitiesTableRowPropertyCell> = {};
 
-    for (const [baseUrl, schema] of typedEntries(
-      closedMultiEntityType.properties,
-    )) {
+    for (const [baseUrl, schema] of typedEntries(closedMultiEntityType.properties)) {
       const propertyTypeId = "$ref" in schema ? schema.$ref : schema.items.$ref;
 
       const propertyType = definitions.propertyTypes[propertyTypeId];
 
       if (!propertyType) {
-        throw new Error(
-          `Property type not found for ${propertyTypeId} in ${entityId}`,
-        );
+        throw new Error(`Property type not found for ${propertyTypeId} in ${entityId}`);
       }
 
       const isArray = "items" in schema || "items" in propertyType.oneOf[0];
@@ -238,9 +231,7 @@ export const generateTableDataFromRows = (
         const propertyMetadata = entity.propertyMetadata([baseUrl]);
 
         if (!propertyMetadata) {
-          throw new Error(
-            `Property metadata not found for ${baseUrl} in ${entityId}`,
-          );
+          throw new Error(`Property metadata not found for ${baseUrl} in ${entityId}`);
         }
 
         propertyCellsForRow[baseUrl] = {
@@ -341,18 +332,14 @@ export const generateTableDataFromRows = (
       noTarget += 1;
     }
 
-    for (const [baseUrl, { metadata }] of typedEntries(
-      entity.propertiesMetadata.value,
-    )) {
+    for (const [baseUrl, { metadata }] of typedEntries(entity.propertiesMetadata.value)) {
       if (metadata && "dataTypeId" in metadata && metadata.dataTypeId) {
         dataTypesByProperty[baseUrl] ??= new Set();
 
         const dataType = definitions.dataTypes[metadata.dataTypeId];
 
         if (!dataType) {
-          throw new Error(
-            `Could not find dataType with id ${metadata.dataTypeId} in subgraph`,
-          );
+          throw new Error(`Could not find dataType with id ${metadata.dataTypeId} in subgraph`);
         }
 
         /**
@@ -377,10 +364,7 @@ export const generateTableDataFromRows = (
             icon = typeOrAncestor.icon;
           }
 
-          if (
-            !isLink &&
-            typeOrAncestor.$id === blockProtocolEntityTypes.link.entityTypeId
-          ) {
+          if (!isLink && typeOrAncestor.$id === blockProtocolEntityTypes.link.entityTypeId) {
             isLink = true;
           }
         }
@@ -435,17 +419,13 @@ export const generateTableDataFromRows = (
     columnsToHide.push("targetEntity");
   }
 
-  for (const [columnKey, definition] of typedEntries(
-    staticColumnDefinitionsByKey,
-  )) {
+  for (const [columnKey, definition] of typedEntries(staticColumnDefinitionsByKey)) {
     if (!columnsToHide.includes(columnKey)) {
       columns.push(definition);
     }
   }
 
-  columns.push(
-    ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
-  );
+  columns.push(...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)));
 
   return {
     columns,

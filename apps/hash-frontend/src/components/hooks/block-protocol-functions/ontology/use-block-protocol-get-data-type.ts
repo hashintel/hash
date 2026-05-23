@@ -18,13 +18,13 @@ import type { GetDataTypeMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolGetDataType = (): {
   getDataType: GetDataTypeMessageCallback;
 } => {
-  const [getFn] = useLazyQuery<
-    QueryDataTypeSubgraphQuery,
-    QueryDataTypeSubgraphQueryVariables
-  >(queryDataTypeSubgraphQuery, {
-    // Data types are immutable, any request for an dataTypeId should always return the same value.
-    fetchPolicy: "cache-first",
-  });
+  const [getFn] = useLazyQuery<QueryDataTypeSubgraphQuery, QueryDataTypeSubgraphQueryVariables>(
+    queryDataTypeSubgraphQuery,
+    {
+      // Data types are immutable, any request for an dataTypeId should always return the same value.
+      fetchPolicy: "cache-first",
+    },
+  );
 
   const getDataType = useCallback<GetDataTypeMessageCallback>(
     async ({ data: dataTypeId }) => {
@@ -64,9 +64,8 @@ export const useBlockProtocolGetDataType = (): {
       }
 
       return {
-        data: deserializeQueryDataTypeSubgraphResponse(
-          response.data.queryDataTypeSubgraph,
-        ).subgraph,
+        data: deserializeQueryDataTypeSubgraphResponse(response.data.queryDataTypeSubgraph)
+          .subgraph,
       };
     },
     [getFn],

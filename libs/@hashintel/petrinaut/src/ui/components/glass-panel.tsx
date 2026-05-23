@@ -194,10 +194,7 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
       )}
 
       {/* Content container */}
-      <div
-        className={cx(contentContainerStyle, contentClassName)}
-        style={contentStyle}
-      >
+      <div className={cx(contentContainerStyle, contentClassName)} style={contentStyle}>
         {children}
       </div>
     </div>

@@ -59,9 +59,7 @@ export function formatTokensForOutput(tokens: Record<string, unknown>): string {
     const entries = Object.entries(value);
     const formatted = entries
       .map(([key, val]) => {
-        const keyStr = VALID_IDENTIFIER_RE.test(key)
-          ? key
-          : JSON.stringify(key);
+        const keyStr = VALID_IDENTIFIER_RE.test(key) ? key : JSON.stringify(key);
         return `${keyStr}: ${formatValue(val)}`;
       })
       .join(", ");

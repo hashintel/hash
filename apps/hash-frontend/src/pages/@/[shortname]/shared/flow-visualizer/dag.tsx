@@ -6,10 +6,7 @@ import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { flowSectionBorderRadius, transitionOptions } from "./shared/styles";
 import { Swimlane } from "./swimlane";
 
-import type {
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "./shared/types";
+import type { GroupWithEdgesAndNodes, UngroupedEdgesAndNodes } from "./shared/types";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
@@ -58,22 +55,12 @@ export const DAG = ({
             variant="smallTextParagraphs"
             sx={{ color: ({ palette }) => palette.gray[60] }}
           >
-            Started{" "}
-            <strong>
-              {selectedFlowRun.flowScheduleId ? "by a schedule" : "manually"}
-            </strong>{" "}
-            at{" "}
-            {format(
-              new Date(selectedFlowRun.startedAt),
-              "yyyy-MM-dd 'at' h:mm a",
-            )}
+            Started <strong>{selectedFlowRun.flowScheduleId ? "by a schedule" : "manually"}</strong>{" "}
+            at {format(new Date(selectedFlowRun.startedAt), "yyyy-MM-dd 'at' h:mm a")}
           </Typography>
         ) : (
           <>
-            <Typography
-              component="span"
-              sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}
-            >
+            <Typography component="span" sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}>
               {selectedFlowDefinition.name}
             </Typography>
             <Typography component="span" sx={{ fontSize: 14, fontWeight: 400 }}>

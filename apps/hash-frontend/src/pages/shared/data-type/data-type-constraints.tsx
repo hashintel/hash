@@ -17,29 +17,16 @@ const Constraint = ({
 }: {
   inheritedConstraints: InheritedConstraints;
   isReadOnly: boolean;
-  type:
-    | "string"
-    | "number"
-    | "boolean"
-    | "null"
-    | "array"
-    | "object"
-    | "anything";
+  type: "string" | "number" | "boolean" | "null" | "array" | "object" | "anything";
 }) => {
   switch (type) {
     case "string":
       return (
-        <StringConstraints
-          inheritedConstraints={inheritedConstraints}
-          isReadOnly={isReadOnly}
-        />
+        <StringConstraints inheritedConstraints={inheritedConstraints} isReadOnly={isReadOnly} />
       );
     case "number":
       return (
-        <NumberConstraints
-          inheritedConstraints={inheritedConstraints}
-          isReadOnly={isReadOnly}
-        />
+        <NumberConstraints inheritedConstraints={inheritedConstraints} isReadOnly={isReadOnly} />
       );
     case "anything": {
       return (
@@ -67,11 +54,7 @@ const Constraint = ({
   }
 };
 
-export const DataTypeConstraints = ({
-  isReadOnly,
-}: {
-  isReadOnly: boolean;
-}) => {
+export const DataTypeConstraints = ({ isReadOnly }: { isReadOnly: boolean }) => {
   const { control } = useFormContext<DataTypeFormData>();
 
   const inheritedConstraints = useInheritedConstraints();

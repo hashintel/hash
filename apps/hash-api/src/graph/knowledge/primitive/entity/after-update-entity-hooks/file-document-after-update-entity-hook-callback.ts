@@ -1,13 +1,7 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import {
-  isStorageType,
-  storageProviderLookup,
-} from "@local/hash-backend-utils/file-storage";
+import { isStorageType, storageProviderLookup } from "@local/hash-backend-utils/file-storage";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import {
-  getDefinedPropertyFromPatchesGetter,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { getDefinedPropertyFromPatchesGetter, type HashEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
@@ -28,22 +22,13 @@ export const entityTypesToParseTextFrom: VersionedUrl[] = [
 type FileEntityToParse = DOCXDocument | PDFDocument | PPTXPresentation;
 
 export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
-  async ({
-    previousEntity,
-    propertyPatches,
-    context,
-    authentication,
-    updatedEntity,
-  }) => {
+  async ({ previousEntity, propertyPatches, context, authentication, updatedEntity }) => {
     const { temporalClient } = context;
 
-    const previousEntityProperties =
-      previousEntity as HashEntity<FileEntityToParse>;
+    const previousEntityProperties = previousEntity as HashEntity<FileEntityToParse>;
 
     const getNewValueForPath =
-      getDefinedPropertyFromPatchesGetter<FileEntityToParse["properties"]>(
-        propertyPatches,
-      );
+      getDefinedPropertyFromPatchesGetter<FileEntityToParse["properties"]>(propertyPatches);
 
     const newFileStorageKey = getNewValueForPath(
       "https://hash.ai/@h/types/property-type/file-storage-key/",
@@ -54,10 +39,9 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
         "https://hash.ai/@h/types/property-type/file-storage-key/"
       ];
 
-    const { textualContent, fileStorageProvider, uploadCompletedAt } =
-      simplifyProperties(
-        updatedEntity.properties as FileEntityToParse["properties"],
-      );
+    const { textualContent, fileStorageProvider, uploadCompletedAt } = simplifyProperties(
+      updatedEntity.properties as FileEntityToParse["properties"],
+    );
 
     if (textualContent && newFileStorageKey === oldFileStorageKey) {
       /**
@@ -89,38 +73,35 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
 
       const workflowId = `${updatedEntity.metadata.recordId.editionId}-parse-text-from-file-workflow-id`;
 
-      const fileEntityWebId = extractWebIdFromEntityId(
-        updatedEntity.metadata.recordId.entityId,
-      );
+      const fileEntityWebId = extractWebIdFromEntityId(updatedEntity.metadata.recordId.entityId);
 
       const webMachineActorId = await getWebMachineId(context, authentication, {
         webId: fileEntityWebId,
       }).then((maybeMachineId) => {
         if (!maybeMachineId) {
-          throw new Error(
-            `Failed to get web bot account ID for web ID: ${fileEntityWebId}`,
-          );
+          throw new Error(`Failed to get web bot account ID for web ID: ${fileEntityWebId}`);
         }
         return maybeMachineId;
       });
 
       try {
-        await temporalClient.workflow.execute<
-          (params: ParseTextFromFileParams) => Promise<void>
-        >("parseTextFromFile", {
-          taskQueue: "ai",
-          args: [
-            {
-              presignedFileDownloadUrl,
-              fileEntity: updatedEntity.toJSON(),
-              webMachineActorId,
+        await temporalClient.workflow.execute<(params: ParseTextFromFileParams) => Promise<void>>(
+          "parseTextFromFile",
+          {
+            taskQueue: "ai",
+            args: [
+              {
+                presignedFileDownloadUrl,
+                fileEntity: updatedEntity.toJSON(),
+                webMachineActorId,
+              },
+            ],
+            workflowId,
+            retry: {
+              maximumAttempts: 1,
             },
-          ],
-          workflowId,
-          retry: {
-            maximumAttempts: 1,
           },
-        });
+        );
       } catch {
         /** @todo: figure out whether this should be logged */
         return undefined;

@@ -4,10 +4,5 @@
   "type",
   "Box<T>",
   { "#struct": { "value": "T" } },
-  [
-    "let",
-    "number",
-    { "#struct": { "value": { "#literal": 42 } }, "#type": "Box<Number>" },
-    "_"
-  ]
+  ["let", "number", { "#struct": { "value": { "#literal": 42 } }, "#type": "Box<Number>" }, "_"]
 ]

@@ -42,22 +42,15 @@ export const LockedCanvas = ({ blocks, contents }: CanvasProps) => {
               "https://hash.ai/@h/types/property-type/x-position/": x,
               "https://hash.ai/@h/types/property-type/y-position/": y,
               "https://hash.ai/@h/types/property-type/width-in-pixels/": width,
-              "https://hash.ai/@h/types/property-type/height-in-pixels/":
-                height,
-              "https://hash.ai/@h/types/property-type/rotation-in-rads/":
-                rotation,
+              "https://hash.ai/@h/types/property-type/height-in-pixels/": height,
+              "https://hash.ai/@h/types/property-type/rotation-in-rads/": rotation,
             } = linkEntity.properties as HasSpatiallyPositionedContentProperties;
 
-            const matrix = Matrix2d.Compose(
-              Matrix2d.Translate(x, y),
-              Matrix2d.Rotate(rotation),
-            );
+            const matrix = Matrix2d.Compose(Matrix2d.Translate(x, y), Matrix2d.Rotate(rotation));
 
             const blockLoaderProps = {
-              blockEntityId:
-                blockEntity.blockChildEntity.metadata.recordId.entityId,
-              blockEntityTypeIds:
-                blockEntity.blockChildEntity.metadata.entityTypeIds,
+              blockEntityId: blockEntity.blockChildEntity.metadata.recordId.entityId,
+              blockEntityTypeIds: blockEntity.blockChildEntity.metadata.entityTypeIds,
               wrappingEntityId: blockEntity.metadata.recordId.entityId,
               blockMetadata: blocks[blockEntity.componentId]!.meta,
               readonly: false,

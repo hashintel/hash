@@ -15,10 +15,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { getOrgByShortname } from "./graph/knowledge/system-types/org";
 import { isEntityTypeLinkEntityType } from "./graph/ontology/primitive/entity-type";
 
-import type {
-  ImpureGraphContext,
-  ImpureGraphFunction,
-} from "./graph/context-types";
+import type { ImpureGraphContext, ImpureGraphFunction } from "./graph/context-types";
 import type { Org } from "./graph/knowledge/system-types/org";
 import type {
   DataType,
@@ -40,9 +37,7 @@ const convertTitleToCamelCase = (title: string) =>
     .map((word, index) =>
       // If it's the first word, convert it to lowercase
       // Otherwise, capitalize the first letter and then add the rest of the word in lowercase
-      index === 0
-        ? word.toLowerCase()
-        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+      index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
     )
     // Join all the processed words to get the camelCase result
     .join("");
@@ -52,10 +47,7 @@ type OntologyTypeWithMetadata =
   | PropertyTypeWithMetadata
   | DataTypeWithMetadata;
 
-const serializeTypeIds = (
-  types: OntologyTypeWithMetadata[],
-  isLinkEntityType?: boolean,
-) =>
+const serializeTypeIds = (types: OntologyTypeWithMetadata[], isLinkEntityType?: boolean) =>
   JSON.stringify(
     types
       .sort((a, b) => a.schema.title.localeCompare(b.schema.title))
@@ -63,10 +55,10 @@ const serializeTypeIds = (
         (prev, { schema }) => ({
           ...prev,
           [convertTitleToCamelCase(schema.title)]: {
-            [`${isLinkEntityType ? "linkEntityType" : schema.kind}Id`]:
+            [`${isLinkEntityType ? "linkEntityType" : schema.kind}Id`]: schema.$id,
+            [`${isLinkEntityType ? "linkEntityType" : schema.kind}BaseUrl`]: extractBaseUrl(
               schema.$id,
-            [`${isLinkEntityType ? "linkEntityType" : schema.kind}BaseUrl`]:
-              extractBaseUrl(schema.$id),
+            ),
             ...(schema.kind === "dataType"
               ? {
                   title: schema.title,
@@ -105,10 +97,7 @@ const getLatestBlockprotocolTypesQuery = {
         equal: [{ path: ["version"] }, { parameter: "latest" }],
       },
       {
-        startsWith: [
-          { path: ["versionedUrl"] },
-          { parameter: "https://blockprotocol.org" },
-        ],
+        startsWith: [{ path: ["versionedUrl"] }, { parameter: "https://blockprotocol.org" }],
       },
     ],
   },
@@ -138,13 +127,7 @@ const serializeTypes: ImpureGraphFunction<
 
   await Promise.all(
     allEntityTypes.map(async (entityType) => {
-      if (
-        await isEntityTypeLinkEntityType(
-          context,
-          authentication,
-          entityType.schema,
-        )
-      ) {
+      if (await isEntityTypeLinkEntityType(context, authentication, entityType.schema)) {
         linkEntityTypes.push(entityType);
       } else {
         entityTypes.push(entityType);
@@ -181,10 +164,7 @@ const generateOntologyIds = async () => {
   });
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
-  const graphApiPort = Number.parseInt(
-    getRequiredEnv("HASH_GRAPH_HTTP_PORT"),
-    10,
-  );
+  const graphApiPort = Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10);
 
   const graphApi = createGraphClient(logger, {
     host: graphApiHost,
@@ -202,21 +182,9 @@ const generateOntologyIds = async () => {
   };
 
   const [hashOrg, googleOrg, linearOrg] = await Promise.all([
-    getOrgByShortname(
-      graphContext,
-      { actorId: publicUserAccountId },
-      { shortname: "h" },
-    ),
-    getOrgByShortname(
-      graphContext,
-      { actorId: publicUserAccountId },
-      { shortname: "google" },
-    ),
-    getOrgByShortname(
-      graphContext,
-      { actorId: publicUserAccountId },
-      { shortname: "linear" },
-    ),
+    getOrgByShortname(graphContext, { actorId: publicUserAccountId }, { shortname: "h" }),
+    getOrgByShortname(graphContext, { actorId: publicUserAccountId }, { shortname: "google" }),
+    getOrgByShortname(graphContext, { actorId: publicUserAccountId }, { shortname: "linear" }),
   ]);
 
   if (!hashOrg) {
@@ -284,21 +252,9 @@ const generateOntologyIds = async () => {
       getLatestTypesInOrganizationQuery({ organization: linearOrg }),
     ),
     // BlockProtocol types
-    queryEntityTypes(
-      graphContext.graphApi,
-      authentication,
-      getLatestBlockprotocolTypesQuery,
-    ),
-    queryPropertyTypes(
-      graphContext.graphApi,
-      authentication,
-      getLatestBlockprotocolTypesQuery,
-    ),
-    queryDataTypes(
-      graphContext.graphApi,
-      authentication,
-      getLatestBlockprotocolTypesQuery,
-    ),
+    queryEntityTypes(graphContext.graphApi, authentication, getLatestBlockprotocolTypesQuery),
+    queryPropertyTypes(graphContext.graphApi, authentication, getLatestBlockprotocolTypesQuery),
+    queryDataTypes(graphContext.graphApi, authentication, getLatestBlockprotocolTypesQuery),
   ]);
 
   const outputPath = path.join(

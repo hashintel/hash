@@ -59,12 +59,8 @@ const glassPanelContentStyle = css({
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
-  const {
-    setPropertiesPanelWidth,
-    isBottomPanelOpen,
-    bottomPanelHeight,
-    isPanelAnimating,
-  } = use(EditorContext);
+  const { setPropertiesPanelWidth, isBottomPanelOpen, bottomPanelHeight, isPanelAnimating } =
+    use(EditorContext);
 
   const { petriNetDefinition } = use(SDCPNContext);
   const {
@@ -86,9 +82,7 @@ export const PropertiesPanel: React.FC = () => {
 
   const panelTarget = usePanelTarget();
 
-  const [panelWidth, setPanelWidthLocal] = useState(
-    DEFAULT_PROPERTIES_PANEL_WIDTH,
-  );
+  const [panelWidth, setPanelWidthLocal] = useState(DEFAULT_PROPERTIES_PANEL_WIDTH);
 
   // Sync panel width with global store
   const handleResize = useCallback(
@@ -113,9 +107,7 @@ export const PropertiesPanel: React.FC = () => {
 
     switch (item.type) {
       case "place": {
-        const placeData = petriNetDefinition.places.find(
-          (place) => place.id === item.id,
-        );
+        const placeData = petriNetDefinition.places.find((place) => place.id === item.id);
         if (placeData) {
           content = (
             <PlaceProperties
@@ -162,9 +154,7 @@ export const PropertiesPanel: React.FC = () => {
       }
 
       case "type": {
-        const typeData = petriNetDefinition.types.find(
-          (type) => type.id === item.id,
-        );
+        const typeData = petriNetDefinition.types.find((type) => type.id === item.id);
         if (typeData) {
           content = (
             <TypeProperties
@@ -203,22 +193,14 @@ export const PropertiesPanel: React.FC = () => {
         );
         if (parameterData) {
           content = (
-            <ParameterProperties
-              parameter={parameterData}
-              updateParameter={updateParameter}
-            />
+            <ParameterProperties parameter={parameterData} updateParameter={updateParameter} />
           );
         }
         break;
       }
     }
   } else if (panelTarget.kind === "multi") {
-    content = (
-      <MultiSelectionPanel
-        items={panelTarget.items}
-        deleteItemsByIds={deleteItemsByIds}
-      />
-    );
+    content = <MultiSelectionPanel items={panelTarget.items} deleteItemsByIds={deleteItemsByIds} />;
   }
 
   // Calculate bottom offset based on bottom panel visibility
@@ -233,10 +215,7 @@ export const PropertiesPanel: React.FC = () => {
 
   return (
     <GlassPanel
-      className={cx(
-        glassPanelStyle,
-        panelStyle({ open: isOpen, animating: isPanelAnimating }),
-      )}
+      className={cx(glassPanelStyle, panelStyle({ open: isOpen, animating: isPanelAnimating }))}
       style={{
         bottom: bottomOffset,
         padding: PANEL_MARGIN,

@@ -95,10 +95,7 @@ export const PetrinautStoryProvider = ({
     lastUpdated: new Date().toISOString(),
   }));
 
-  const createNewNet = (params: {
-    petriNetDefinition: SDCPN;
-    title: string;
-  }) => {
+  const createNewNet = (params: { petriNetDefinition: SDCPN; title: string }) => {
     const id = `net-${Date.now()}`;
     const handle = createJsonDocHandle({
       id,

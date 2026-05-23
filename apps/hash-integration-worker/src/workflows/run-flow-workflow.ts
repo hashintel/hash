@@ -1,7 +1,4 @@
-import {
-  ActivityCancellationType,
-  proxyActivities,
-} from "@temporalio/workflow";
+import { ActivityCancellationType, proxyActivities } from "@temporalio/workflow";
 
 import { type ProxyFlowActivity } from "@local/hash-backend-utils/flows";
 import { processFlowWorkflow } from "@local/hash-backend-utils/flows/process-flow-workflow";
@@ -21,9 +18,7 @@ type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
  * Activities which send a frequent heartbeat to ensure they are known to be still running,
  * allowing for startToCloseTimeout to be longer in favour of a short heartbeatTimeout.
  */
-const activitiesHeartbeating: FlowActivityId[] = [
-  "persistIntegrationEntitiesAction",
-];
+const activitiesHeartbeating: FlowActivityId[] = ["persistIntegrationEntitiesAction"];
 
 const proxyFlowActivity: ProxyFlowActivity<
   IntegrationFlowActionDefinitionId,
@@ -31,9 +26,7 @@ const proxyFlowActivity: ProxyFlowActivity<
 > = (params) => {
   const { actionName, maximumAttempts, activityId } = params;
 
-  const { [actionName]: action } = proxyActivities<
-    ReturnType<typeof createFlowActivities>
-  >({
+  const { [actionName]: action } = proxyActivities<ReturnType<typeof createFlowActivities>>({
     cancellationType: ActivityCancellationType.ABANDON,
 
     startToCloseTimeout: activitiesHeartbeating.includes(actionName)

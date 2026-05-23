@@ -9,15 +9,8 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
-import type {
-  LlmParams,
-  LlmToolDefinition,
-} from "../../../shared/get-llm-response/types.js";
-import type {
-  EntityId,
-  EntityUuid,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { LlmParams, LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
+import type { EntityId, EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 
 export type LocalEntitySummary = {
   localId: EntityId;
@@ -31,10 +24,7 @@ const toolNames = ["registerEntitySummaries"] as const;
 type ToolName = (typeof toolNames)[number];
 
 const generateToolDefinitions = (params: {
-  dereferencedEntityTypes: Pick<
-    DereferencedEntityType,
-    "$id" | "title" | "description"
-  >[];
+  dereferencedEntityTypes: Pick<DereferencedEntityType, "$id" | "title" | "description">[];
 }): Record<ToolName, LlmToolDefinition<ToolName>> => ({
   registerEntitySummaries: {
     name: "registerEntitySummaries",
@@ -133,10 +123,7 @@ export const getEntitySummariesFromText = async (params: {
    * All entity types which have been given as inputs to the research task,
    * i.e. the type of entities we are looking for.
    */
-  dereferencedEntityTypes: Pick<
-    DereferencedEntityType,
-    "$id" | "title" | "description"
-  >[];
+  dereferencedEntityTypes: Pick<DereferencedEntityType, "$id" | "title" | "description">[];
   /**
    * Any existing entities we already know about and don't need to create new summaries for.
    */
@@ -163,8 +150,7 @@ export const getEntitySummariesFromText = async (params: {
     testingParams,
   } = params;
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const toolDefinitions = generateToolDefinitions({
     dereferencedEntityTypes,
@@ -225,8 +211,7 @@ export const getEntitySummariesFromText = async (params: {
           ],
         },
       ],
-      systemPrompt:
-        testingParams?.systemPrompt ?? entitySummariesFromTextSystemPrompt,
+      systemPrompt: testingParams?.systemPrompt ?? entitySummariesFromTextSystemPrompt,
       tools: Object.values(toolDefinitions),
     },
     {

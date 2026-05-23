@@ -10,10 +10,7 @@ import { ExperimentsProvider } from "./experiments/provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
 import { MutationProvider } from "./mutation-provider";
-import {
-  NetManagementContext,
-  type NetManagement,
-} from "./net-management-context";
+import { NetManagementContext, type NetManagement } from "./net-management-context";
 import { NotificationsProvider } from "./notifications/provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
@@ -60,22 +57,14 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   lspWorkerFactory,
   children,
 }) => {
-  const handleHistoryUndoRedo = useHandleHistoryAsUndoRedo(
-    instance.handle.history,
-  );
+  const handleHistoryUndoRedo = useHandleHistoryAsUndoRedo(instance.handle.history);
 
   // Keyed by handle id so a net switch fully resets net-scoped worker state.
   const inner = (
     <SDCPNProvider>
-      <LanguageClientProvider
-        key={instance.handle.id}
-        workerFactory={lspWorkerFactory}
-      >
+      <LanguageClientProvider key={instance.handle.id} workerFactory={lspWorkerFactory}>
         <NotificationsProvider>
-          <SimulationProvider
-            key={instance.handle.id}
-            workerFactory={simulationWorkerFactory}
-          >
+          <SimulationProvider key={instance.handle.id} workerFactory={simulationWorkerFactory}>
             <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
               <PlaybackProvider>
                 <UserSettingsProvider>
@@ -98,9 +87,7 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
           // Only override UndoRedoContext when the handle actually provides
           // history — otherwise leave any outer UndoRedoContext (e.g. one
           // injected by the legacy `<Petrinaut>` adapter) untouched.
-          <UndoRedoContext value={handleHistoryUndoRedo}>
-            {inner}
-          </UndoRedoContext>
+          <UndoRedoContext value={handleHistoryUndoRedo}>{inner}</UndoRedoContext>
         ) : (
           inner
         )}

@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
@@ -48,14 +41,11 @@ export const EntityEditorContextProvider = ({
   slideContainerRef,
   validationReport,
 }: PropsWithChildren<EntityEditorProps>) => {
-  const [propertyExpandStatus, setPropertyExpandStatus] =
-    useState<TableExpandStatus>({});
+  const [propertyExpandStatus, setPropertyExpandStatus] = useState<TableExpandStatus>({});
 
   useEffect(() => {
     const propertyObjectsWithErrorsInChildren = validationReport?.errors
-      .map(({ propertyPath, type }) =>
-        type === "child-has-errors" ? propertyPath : undefined,
-      )
+      .map(({ propertyPath, type }) => (type === "child-has-errors" ? propertyPath : undefined))
       .filter((path) => !!path);
 
     if (propertyObjectsWithErrorsInChildren?.length) {
@@ -121,8 +111,7 @@ export const EntityEditorContextProvider = ({
       handleTypesChange,
       isDirty,
       isLocalDraftOnly:
-        extractEntityUuidFromEntityId(entity.metadata.recordId.entityId) ===
-        "draft",
+        extractEntityUuidFromEntityId(entity.metadata.recordId.entityId) === "draft",
       linkAndDestinationEntitiesClosedMultiEntityTypesMap,
       onEntityClick,
       onEntityUpdated,
@@ -163,11 +152,7 @@ export const EntityEditorContextProvider = ({
     ],
   );
 
-  return (
-    <EntityEditorContext.Provider value={state}>
-      {children}
-    </EntityEditorContext.Provider>
-  );
+  return <EntityEditorContext.Provider value={state}>{children}</EntityEditorContext.Provider>;
 };
 
 export const useEntityEditor = () => {

@@ -32,10 +32,7 @@ import {
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { judgeAiOutputs } from "../../shared/judge-ai-outputs.js";
 
-import type {
-  LlmParams,
-  LlmToolDefinition,
-} from "../../shared/get-llm-response/types.js";
+import type { LlmParams, LlmToolDefinition } from "../../shared/get-llm-response/types.js";
 import type {
   EntityId,
   PropertyObjectWithMetadata,
@@ -48,23 +45,14 @@ import type {
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
-const generateOutputSchema = (
-  dereferencedDocEntityTypes: DereferencedEntityType[],
-) => {
+const generateOutputSchema = (dereferencedDocEntityTypes: DereferencedEntityType[]) => {
   return {
     type: "object",
     additionalProperties: false as const,
     properties: {
       documentMetadata: {
         anyOf: dereferencedDocEntityTypes.map(
-          ({
-            labelProperty: _,
-            links: __,
-            title,
-            $id,
-            properties,
-            required,
-          }) => {
+          ({ labelProperty: _, links: __, title, $id, properties, required }) => {
             return {
               type: "object",
               title,
@@ -138,8 +126,7 @@ const assertIsLlmResponseDocumentData: (
     throw new Error("input.documentMetadata is not an object");
   }
 
-  const { entityTypeId } =
-    input.documentMetadata as DocumentData["documentMetadata"];
+  const { entityTypeId } = input.documentMetadata as DocumentData["documentMetadata"];
 
   if (typeof entityTypeId !== "string") {
     throw new Error("input.documentMetadata.entityTypeId is not a string");
@@ -158,9 +145,7 @@ const addMetadataToPropertyValue = (
   const propertyTypeBaseUrl = propertyMappings[key];
 
   if (!propertyTypeBaseUrl) {
-    throw new Error(
-      `Simplified property type mapping for key ${key} not found`,
-    );
+    throw new Error(`Simplified property type mapping for key ${key} not found`);
   }
 
   const propertyType = (
@@ -168,16 +153,12 @@ const addMetadataToPropertyValue = (
   )[key];
 
   if (!propertyType) {
-    throw new Error(
-      `Property type for key ${key} not found in dereferenced entity type`,
-    );
+    throw new Error(`Property type for key ${key} not found in dereferenced entity type`);
   }
 
   const isArray = "items" in propertyType;
 
-  const propertyTypeOneOf = isArray
-    ? propertyType.items.oneOf
-    : propertyType.oneOf;
+  const propertyTypeOneOf = isArray ? propertyType.items.oneOf : propertyType.oneOf;
 
   if (propertyTypeOneOf.length !== 1) {
     throw new Error(
@@ -273,9 +254,7 @@ const addMetadataToPropertyValue = (
           const nestedBaseUrl = propertyMappings[nestedKey];
 
           if (!nestedBaseUrl) {
-            throw new Error(
-              `Simplified property type mapping for key ${nestedKey} not found`,
-            );
+            throw new Error(`Simplified property type mapping for key ${nestedKey} not found`);
           }
 
           return [
@@ -336,14 +315,10 @@ const unsimplifyDocumentMetadata = (
 
   const { entityTypeId, ...properties } = documentMetadata;
 
-  const docEntityType = docEntityTypes.find(
-    (type) => type.schema.$id === entityTypeId,
-  );
+  const docEntityType = docEntityTypes.find((type) => type.schema.$id === entityTypeId);
 
   if (!docEntityType) {
-    throw new Error(
-      `Dereferenced entity type for entityTypeId ${entityTypeId} not found`,
-    );
+    throw new Error(`Dereferenced entity type for entityTypeId ${entityTypeId} not found`);
   }
 
   const title = properties.title as string | undefined;
@@ -364,23 +339,19 @@ const unsimplifyDocumentMetadata = (
   };
 
   for (const [key, value] of Object.entries(properties)) {
-    const propertyTypeBaseUrl =
-      docEntityType.simplifiedPropertyTypeMappings[key];
+    const propertyTypeBaseUrl = docEntityType.simplifiedPropertyTypeMappings[key];
 
     if (!propertyTypeBaseUrl) {
-      throw new Error(
-        `Simplified property type mapping for key ${key} not found`,
-      );
+      throw new Error(`Simplified property type mapping for key ${key} not found`);
     }
 
-    fullPropertiesWithDataTypeIds.value[propertyTypeBaseUrl] =
-      addMetadataToPropertyValue(
-        key,
-        value,
-        docEntityType.simplifiedPropertyTypeMappings,
-        docEntityType.schema.properties,
-        propertyProvenance,
-      );
+    fullPropertiesWithDataTypeIds.value[propertyTypeBaseUrl] = addMetadataToPropertyValue(
+      key,
+      value,
+      docEntityType.simplifiedPropertyTypeMappings,
+      docEntityType.schema.properties,
+      propertyProvenance,
+    );
   }
 
   return {
@@ -397,37 +368,32 @@ export const getLlmAnalysisOfDoc = async ({
 }: {
   fileEntity: HashEntity<File>;
 }): Promise<DocumentData> => {
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
-  const docsEntityType = await queryEntityTypeSubgraph(
-    graphApiClient,
-    userAuthentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [
-              {
-                path: ["inheritsFrom", "*", "versionedUrl"],
-              },
-              {
-                parameter: systemEntityTypes.doc.entityTypeId,
-              },
-            ],
-          },
-        ],
-      },
-
-      temporalAxes: currentTimeInstantTemporalAxes,
-      graphResolveDepths: {
-        ...almostFullOntologyResolveDepths,
-        constrainsLinkDestinationsOn: 4,
-        constrainsLinksOn: 4,
-      },
-      traversalPaths: [],
+  const docsEntityType = await queryEntityTypeSubgraph(graphApiClient, userAuthentication, {
+    filter: {
+      all: [
+        {
+          equal: [
+            {
+              path: ["inheritsFrom", "*", "versionedUrl"],
+            },
+            {
+              parameter: systemEntityTypes.doc.entityTypeId,
+            },
+          ],
+        },
+      ],
     },
-  );
+
+    temporalAxes: currentTimeInstantTemporalAxes,
+    graphResolveDepths: {
+      ...almostFullOntologyResolveDepths,
+      constrainsLinkDestinationsOn: 4,
+      constrainsLinksOn: 4,
+    },
+    traversalPaths: [],
+  });
 
   // const docEntityTypes
   const dereferencedDocEntityTypes = getEntityTypes(docsEntityType.subgraph)
@@ -445,9 +411,7 @@ export const getLlmAnalysisOfDoc = async ({
       );
     });
 
-  const schema = generateOutputSchema(
-    dereferencedDocEntityTypes.map((type) => type.schema),
-  );
+  const schema = generateOutputSchema(dereferencedDocEntityTypes.map((type) => type.schema));
 
   const textContent: LlmMessageTextContent = {
     type: "text",
@@ -557,20 +521,12 @@ export const getLlmAnalysisOfDoc = async ({
     judgeModel: "gemini-1.5-pro-002",
   });
 
-  for (const {
-    correctionType,
-    jsonPath,
-    correctValue,
-  } of judgeVerdict.corrections) {
+  for (const { correctionType, jsonPath, correctValue } of judgeVerdict.corrections) {
     if (correctionType === "delete-unfounded") {
       unset(response.message, jsonPath);
-      logger.info(
-        `Judge correction: remove property ${jsonPath.slice(3).join(".")} from output`,
-      );
+      logger.info(`Judge correction: remove property ${jsonPath.slice(3).join(".")} from output`);
     } else {
-      const previousValue = get(response.message, jsonPath) as
-        | PropertyValue
-        | undefined;
+      const previousValue = get(response.message, jsonPath) as PropertyValue | undefined;
 
       set(response.message, jsonPath, correctValue);
 
@@ -580,15 +536,11 @@ export const getLlmAnalysisOfDoc = async ({
     }
   }
 
-  return unsimplifyDocumentMetadata(
-    toolCall.input,
-    dereferencedDocEntityTypes,
-    {
-      entityId: fileEntity.entityId,
-      fileUrl:
-        fileEntity.properties[
-          "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-        ],
-    },
-  );
+  return unsimplifyDocumentMetadata(toolCall.input, dereferencedDocEntityTypes, {
+    entityId: fileEntity.entityId,
+    fileUrl:
+      fileEntity.properties[
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+      ],
+  });
 };

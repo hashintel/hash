@@ -1,9 +1,5 @@
 import { Portal } from "@ark-ui/react/portal";
-import {
-  Toast,
-  Toaster as ArkToaster,
-  createToaster,
-} from "@ark-ui/react/toast";
+import { Toast, Toaster as ArkToaster, createToaster } from "@ark-ui/react/toast";
 
 import { css } from "@hashintel/ds-helpers/css";
 

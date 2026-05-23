@@ -78,9 +78,7 @@ export const ensureUsersAreSeeded = async ({
     } = usersToSeed[index]!;
 
     if (!(email && shortname && displayName)) {
-      logger.error(
-        `User entry at index ${index} is missing email, shortname or displayName!`,
-      );
+      logger.error(`User entry at index ${index} is missing email, shortname or displayName!`);
       continue;
     }
     const maybeNewIdentity = await createKratosIdentity({
@@ -98,9 +96,7 @@ export const ensureUsersAreSeeded = async ({
         // The user already exists on 409 CONFLICT, which is fine
         return null;
       } else {
-        logger.warn(
-          `Could not create seeded user identity, email = "${email}".`,
-        );
+        logger.warn(`Could not create seeded user identity, email = "${email}".`);
         return Promise.reject(error);
       }
     });

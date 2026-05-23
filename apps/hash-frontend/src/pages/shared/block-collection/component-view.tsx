@@ -1,10 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { TextSelection } from "prosemirror-state";
 
-import {
-  getBlockChildEntity,
-  isRichTextProperties,
-} from "@local/hash-isomorphic-utils/entity";
+import { getBlockChildEntity, isRichTextProperties } from "@local/hash-isomorphic-utils/entity";
 import { isDraftBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 import {
   addEntityStoreAction,
@@ -29,10 +26,7 @@ import type { SuggesterAction } from "./create-suggester/create-suggester";
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import type {
-  DraftEntity,
-  EntityStore,
-} from "@local/hash-isomorphic-utils/entity-store";
+import type { DraftEntity, EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import type { Node } from "prosemirror-model";
 import type { Transaction } from "prosemirror-state";
@@ -46,9 +40,7 @@ const getChildEntity = (
       throw new Error("Cannot prepare non-block entity for ProseMirror");
     }
 
-    return entity.blockChildEntity as DraftEntity<
-      BlockEntity["blockChildEntity"]
-    >;
+    return entity.blockChildEntity as DraftEntity<BlockEntity["blockChildEntity"]>;
   }
 
   return null;
@@ -126,8 +118,7 @@ export class ComponentView implements NodeView {
      *       time
      */
     this.wasSuggested =
-      suggesterPluginKey.getState(this.editorView.state)
-        ?.suggestedBlockPosition === this.getPos();
+      suggesterPluginKey.getState(this.editorView.state)?.suggestedBlockPosition === this.getPos();
 
     if (this.wasSuggested) {
       this.editorView.dispatch(
@@ -154,10 +145,7 @@ export class ComponentView implements NodeView {
      *
      * @see https://prosemirror.net/docs/ref/#view.NodeView.update
      */
-    if (
-      isComponentNode(node) &&
-      componentNodeToId(node) === this.block.meta.componentId
-    ) {
+    if (isComponentNode(node) && componentNodeToId(node) === this.block.meta.componentId) {
       const entity = this.getDraftBlockEntity();
 
       const blockDraftId = entity.draftId;
@@ -201,17 +189,9 @@ export class ComponentView implements NodeView {
               <BlockCollectionContext.Consumer>
                 {(collectionContext) => (
                   <BlockLoader
-                    blockCollectionSubgraph={
-                      collectionContext?.blockCollectionSubgraph
-                    }
-                    blockEntityId={
-                      childEntity?.metadata.recordId.entityId as
-                        | EntityId
-                        | undefined
-                    } // @todo make this always defined
-                    blockEntityTypeIds={[
-                      this.block.meta.schema as VersionedUrl,
-                    ]}
+                    blockCollectionSubgraph={collectionContext?.blockCollectionSubgraph}
+                    blockEntityId={childEntity?.metadata.recordId.entityId as EntityId | undefined} // @todo make this always defined
+                    blockEntityTypeIds={[this.block.meta.schema as VersionedUrl]}
                     blockMetadata={this.block.meta}
                     entityStore={this.store}
                     // @todo uncomment this when sandbox is fixed
@@ -221,9 +201,7 @@ export class ComponentView implements NodeView {
                     wrappingEntityId={entityId}
                     onBlockLoaded={this.onBlockLoaded}
                     readonly={this.readonly}
-                    userPermissionsOnEntities={
-                      collectionContext?.userPermissionsOnEntities
-                    }
+                    userPermissionsOnEntities={collectionContext?.userPermissionsOnEntities}
                   />
                 )}
               </BlockCollectionContext.Consumer>
@@ -264,8 +242,7 @@ export class ComponentView implements NodeView {
   }
 
   private getBlockDraftId() {
-    return this.editorView.state.doc.resolve(this.mustGetPos()).node(2).attrs
-      .draftId;
+    return this.editorView.state.doc.resolve(this.mustGetPos()).node(2).attrs.draftId;
   }
 
   private onBlockLoaded = () => {
@@ -291,8 +268,7 @@ export class ComponentView implements NodeView {
     const isTheOnlyChild = this.editorView.state.doc.childCount === 1;
     const isEmpty = this.node.content.size === 0;
 
-    const shouldFocusOnLoad =
-      isParagraph && isTheOnlyChild && isEmpty && this.autoFocus;
+    const shouldFocusOnLoad = isParagraph && isTheOnlyChild && isEmpty && this.autoFocus;
 
     if (shouldFocusOnLoad) {
       this.editorView.focus();
@@ -304,10 +280,7 @@ export class ComponentView implements NodeView {
     let tr: Transaction | null = null;
 
     if (editableNode && this.isNodeInDoc()) {
-      const childEntity = getBlockChildEntity(
-        this.getBlockDraftId(),
-        this.store,
-      );
+      const childEntity = getBlockChildEntity(this.getBlockDraftId(), this.store);
 
       if (!childEntity || !isComponentNode(this.node)) {
         throw new Error("Block not ready to become editable");
@@ -383,8 +356,7 @@ export class ComponentView implements NodeView {
     }
 
     const targetIsOutsideContentDOM =
-      !this.contentDOM.contains(event.target) &&
-      event.target !== this.contentDOM;
+      !this.contentDOM.contains(event.target) && event.target !== this.contentDOM;
 
     const targetIsContentDom = event.target === this.contentDOM;
 

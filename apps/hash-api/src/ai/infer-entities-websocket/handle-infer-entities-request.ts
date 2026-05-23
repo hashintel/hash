@@ -23,10 +23,7 @@ import type {
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import type {
-  FlowTrigger,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowTrigger, StepOutput } from "@local/hash-isomorphic-utils/flows/types";
 import type { Client } from "@temporalio/client";
 
 export const handleInferEntitiesRequest = async ({
@@ -40,8 +37,7 @@ export const handleInferEntitiesRequest = async ({
   storageProvider: FileStorageProvider;
   temporalClient: Client;
   message: DistributiveOmit<
-    | ManualInferenceWebsocketRequestMessage
-    | AutomaticInferenceWebsocketRequestMessage,
+    ManualInferenceWebsocketRequestMessage | AutomaticInferenceWebsocketRequestMessage,
     "cookie"
   >;
   user: User;
@@ -89,8 +85,7 @@ export const handleInferEntitiesRequest = async ({
         (triggerOutput) =>
           triggerOutput.outputName ===
             ("visitedWebPage" satisfies AutomaticInferenceTriggerInputName) &&
-          triggerOutput.payload.value.url ===
-            triggerOutputs.visitedWebPage.value.url,
+          triggerOutput.payload.value.url === triggerOutputs.visitedWebPage.value.url,
       );
 
       if (flowIsAlreadyRunningOnPage) {

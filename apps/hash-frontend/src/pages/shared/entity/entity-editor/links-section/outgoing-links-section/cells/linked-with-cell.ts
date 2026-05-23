@@ -2,10 +2,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 
 import { customColors } from "@hashintel/design-system/theme";
 
-import {
-  getCellHorizontalPadding,
-  getYCenter,
-} from "../../../../../../../components/grid/utils";
+import { getCellHorizontalPadding, getYCenter } from "../../../../../../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../../../../../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../../../../../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../../../../../../components/grid/utils/interactable-manager";
@@ -129,9 +126,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     let accumulatedLeft = rect.x + cellPadding;
     const chipGap = 8;
 
-    const sortedLinkedEntities = sortLinkAndTargetEntities(
-      linkAndTargetEntities,
-    );
+    const sortedLinkedEntities = sortLinkAndTargetEntities(linkAndTargetEntities);
 
     const entityChipInteractables: Interactable[] = [];
 
@@ -196,8 +191,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       },
       onClick: () => {
         markLinkAsArchived(
-          linkAndTargetEntities[0]?.linkEntity.metadata.recordId
-            .entityId as EntityId,
+          linkAndTargetEntities[0]?.linkEntity.metadata.recordId.entityId as EntityId,
         );
       },
     });
@@ -211,17 +205,12 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       iconSize,
       {
         ...theme,
-        fgIconHeader: deleteButton.hovered
-          ? customColors.red[70]
-          : theme.fgIconHeader,
+        fgIconHeader: deleteButton.hovered ? customColors.red[70] : theme.fgIconHeader,
       },
       hoverAmount > 0 ? hoverAmount : highlighted ? 1 : 0,
     );
 
-    InteractableManager.setInteractablesForCell(args, [
-      deleteButton,
-      ...entityChipInteractables,
-    ]);
+    InteractableManager.setInteractablesForCell(args, [deleteButton, ...entityChipInteractables]);
   },
   provideEditor: () => {
     return {

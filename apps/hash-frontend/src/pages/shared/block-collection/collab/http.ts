@@ -45,10 +45,7 @@ export const req = (
           resolve(request.responseText);
         } else {
           let text = request.responseText;
-          if (
-            text &&
-            /html/.test(request.getResponseHeader("content-type") ?? "")
-          ) {
+          if (text && /html/.test(request.getResponseHeader("content-type") ?? "")) {
             text = makePlain(text);
           }
           const err = new StatusError(
@@ -87,13 +84,5 @@ export const req = (
 export const GET = (url: string) => req({ url, method: "GET" });
 
 // @todo type body
-export const POST = (
-  url: string,
-  body: string,
-  type: string,
-  onAbort?: VoidFunction,
-) =>
-  req(
-    { url, method: "POST", body, headers: { "Content-Type": type } },
-    onAbort,
-  );
+export const POST = (url: string, body: string, type: string, onAbort?: VoidFunction) =>
+  req({ url, method: "POST", body, headers: { "Content-Type": type } }, onAbort);

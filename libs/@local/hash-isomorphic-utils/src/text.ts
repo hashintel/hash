@@ -5,10 +5,7 @@ import type { ComponentNode } from "./prosemirror.js";
 import type { TextToken } from "./types.js";
 import type { Node, Schema } from "prosemirror-model";
 
-export const textBlockNodesFromTokens = (
-  tokens: TextToken[],
-  schema: Schema,
-): Node[] =>
+export const textBlockNodesFromTokens = (tokens: TextToken[], schema: Schema): Node[] =>
   // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
   tokens.map((token) => {
     switch (token.tokenType) {
@@ -30,11 +27,7 @@ export const textBlockNodesFromTokens = (
             ["em", token.italics] as const,
             ["strikethrough", token.strikethrough] as const,
             ["highlighted", token.highlighted] as const,
-            [
-              "link",
-              Boolean(token.link),
-              token.link ? { href: token.link } : undefined,
-            ] as const,
+            ["link", Boolean(token.link), token.link ? { href: token.link } : undefined] as const,
           ]
             .filter(([, include]) => include)
             .map(([mark, _, attrs]) => schema.mark(mark, attrs)),
@@ -47,10 +40,7 @@ export const childrenForTextEntity = (
   entity: { properties: TextProperties },
   schema: Schema,
 ): Node[] =>
-  textBlockNodesFromTokens(
-    entity.properties[textualContentPropertyTypeBaseUrl] ?? [],
-    schema,
-  );
+  textBlockNodesFromTokens(entity.properties[textualContentPropertyTypeBaseUrl] ?? [], schema);
 
 export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
   const tokens: TextToken[] = [];
@@ -76,9 +66,7 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
         break;
       }
       case "text": {
-        const marks = new Set<string>(
-          child.marks.map((mark) => mark.type.name),
-        );
+        const marks = new Set<string>(child.marks.map((mark) => mark.type.name));
 
         tokens.push({
           tokenType: "text",
@@ -90,8 +78,7 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
           ...(marks.has("highlighted") ? { highlighted: true } : {}),
           ...(marks.has("link")
             ? {
-                link: child.marks.find((mark) => mark.type.name === "link")
-                  ?.attrs.href,
+                link: child.marks.find((mark) => mark.type.name === "link")?.attrs.href,
               }
             : {}),
         });
@@ -103,8 +90,6 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
   return tokens;
 };
 
-export const textBlockNodeToEntityProperties = (
-  node: ComponentNode,
-): TextProperties => ({
+export const textBlockNodeToEntityProperties = (node: ComponentNode): TextProperties => ({
   [textualContentPropertyTypeBaseUrl]: textBlockNodeToTextTokens(node),
 });

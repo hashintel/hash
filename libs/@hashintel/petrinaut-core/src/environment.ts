@@ -15,26 +15,14 @@ export type WorkerMessageHandler<TMessage = unknown> = (
   event: WorkerMessageEnvelope<TMessage>,
 ) => void;
 
-export interface WorkerLike<
-  TOutboundMessage = unknown,
-  TInboundMessage = unknown,
-> {
+export interface WorkerLike<TOutboundMessage = unknown, TInboundMessage = unknown> {
   postMessage(message: TOutboundMessage): void;
-  addEventListener(
-    type: "message",
-    listener: WorkerMessageHandler<TInboundMessage>,
-  ): void;
-  removeEventListener?(
-    type: "message",
-    listener: WorkerMessageHandler<TInboundMessage>,
-  ): void;
+  addEventListener(type: "message", listener: WorkerMessageHandler<TInboundMessage>): void;
+  removeEventListener?(type: "message", listener: WorkerMessageHandler<TInboundMessage>): void;
   terminate(): void;
 }
 
-export type WorkerFactoryLike<
-  TOutboundMessage = unknown,
-  TInboundMessage = unknown,
-> = () =>
+export type WorkerFactoryLike<TOutboundMessage = unknown, TInboundMessage = unknown> = () =>
   | WorkerLike<TOutboundMessage, TInboundMessage>
   | Promise<WorkerLike<TOutboundMessage, TInboundMessage>>;
 
@@ -48,15 +36,9 @@ export interface AbortSignalLike {
   removeEventListener(type: "abort", listener: () => void): void;
 }
 
-type WorkerScriptGlobal<
-  TInboundMessage = unknown,
-  TOutboundMessage = unknown,
-> = {
+type WorkerScriptGlobal<TInboundMessage = unknown, TOutboundMessage = unknown> = {
   postMessage(message: TOutboundMessage): void;
-  addEventListener(
-    type: "message",
-    listener: WorkerMessageHandler<TInboundMessage>,
-  ): void;
+  addEventListener(type: "message", listener: WorkerMessageHandler<TInboundMessage>): void;
 };
 
 // Worker entrypoints still run inside real worker globals, but core's public
@@ -72,10 +54,10 @@ export interface WorkerThreadRuntime<TInboundMessage, TOutboundMessage> {
   delay(timeout?: number): Promise<void>;
 }
 
-export function createWorkerThreadRuntime<
+export function createWorkerThreadRuntime<TInboundMessage, TOutboundMessage>(): WorkerThreadRuntime<
   TInboundMessage,
-  TOutboundMessage,
->(): WorkerThreadRuntime<TInboundMessage, TOutboundMessage> {
+  TOutboundMessage
+> {
   const scope = self as WorkerScriptGlobal<TInboundMessage, TOutboundMessage>;
 
   return {

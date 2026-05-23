@@ -20,14 +20,7 @@ export const TimestampColumn: FunctionComponent<{
   navigateDown?: () => void;
   isCollapsed: boolean;
   toggleIsCollapsed: () => void;
-}> = ({
-  heading,
-  subheading,
-  navigateUp,
-  navigateDown,
-  isCollapsed,
-  toggleIsCollapsed,
-}) => (
+}> = ({ heading, subheading, navigateUp, navigateDown, isCollapsed, toggleIsCollapsed }) => (
   <Box
     sx={{
       width: timestampColumnWidth,
@@ -37,9 +30,7 @@ export const TimestampColumn: FunctionComponent<{
       alignItems: "flex-end",
     }}
   >
-    {heading ? (
-      <TimestampCollectionHeading>{heading}</TimestampCollectionHeading>
-    ) : null}
+    {heading ? <TimestampCollectionHeading>{heading}</TimestampCollectionHeading> : null}
     <TimestampCollectionSubheading>{subheading}</TimestampCollectionSubheading>
     <Box display="flex" marginRight={-1}>
       <IconButton disabled={!navigateUp} onClick={navigateUp}>
@@ -49,11 +40,7 @@ export const TimestampColumn: FunctionComponent<{
         <ChevronDownRegularIcon />
       </IconButton>
       <IconButton onClick={toggleIsCollapsed}>
-        {isCollapsed ? (
-          <ArrowsFromLineRegularIcon />
-        ) : (
-          <ArrowsToLineRegularIcon />
-        )}
+        {isCollapsed ? <ArrowsFromLineRegularIcon /> : <ArrowsToLineRegularIcon />}
       </IconButton>
     </Box>
   </Box>

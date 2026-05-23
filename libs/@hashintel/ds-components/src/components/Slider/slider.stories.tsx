@@ -34,8 +34,7 @@ export default {
       control: {
         type: "text",
       },
-      description:
-        "Label text to display above the slider. If not provided, no label is shown.",
+      description: "Label text to display above the slider. If not provided, no label is shown.",
     },
     showValueText: {
       name: "Show Value Text",

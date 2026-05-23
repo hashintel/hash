@@ -120,8 +120,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
 
   // Configuration state (not managed by the simulation handle)
-  const [stateValues, setStateValues] =
-    useState<SimulationStateValues>(INITIAL_STATE_VALUES);
+  const [stateValues, setStateValues] = useState<SimulationStateValues>(INITIAL_STATE_VALUES);
   const stateValuesRef = useLatest(stateValues);
 
   // Active simulation handle. Lifecycle is owned by this provider.
@@ -183,54 +182,48 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setErrorItemId(null);
   };
 
-  const setSelectedScenarioId: SimulationContextValue["setSelectedScenarioId"] =
-    (scenarioId) => {
-      if (stateValuesRef.current.selectedScenarioId !== scenarioId) {
-        invalidateSimulationForConfigurationChange();
-      }
+  const setSelectedScenarioId: SimulationContextValue["setSelectedScenarioId"] = (scenarioId) => {
+    if (stateValuesRef.current.selectedScenarioId !== scenarioId) {
+      invalidateSimulationForConfigurationChange();
+    }
 
-      setStateValues((prev) => {
-        // Initialize scenario parameter values from the scenario's defaults
-        const scenarioParameterValues: Record<string, string> = {};
-        if (scenarioId) {
-          const sc = petriNetDefinition.scenarios?.find(
-            (s) => s.id === scenarioId,
-          );
-          if (sc) {
-            for (const sp of sc.scenarioParameters) {
-              scenarioParameterValues[sp.identifier] = String(sp.default);
-            }
+    setStateValues((prev) => {
+      // Initialize scenario parameter values from the scenario's defaults
+      const scenarioParameterValues: Record<string, string> = {};
+      if (scenarioId) {
+        const sc = petriNetDefinition.scenarios?.find((s) => s.id === scenarioId);
+        if (sc) {
+          for (const sp of sc.scenarioParameters) {
+            scenarioParameterValues[sp.identifier] = String(sp.default);
           }
         }
-        return {
-          ...prev,
-          selectedScenarioId: scenarioId,
-          scenarioParameterValues,
-        };
-      });
-    };
-
-  const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] =
-    (identifier, value) => {
-      if (
-        stateValuesRef.current.scenarioParameterValues[identifier] !== value
-      ) {
-        invalidateSimulationForConfigurationChange();
       }
-
-      setStateValues((prev) => ({
+      return {
         ...prev,
-        scenarioParameterValues: {
-          ...prev.scenarioParameterValues,
-          [identifier]: value,
-        },
-      }));
-    };
+        selectedScenarioId: scenarioId,
+        scenarioParameterValues,
+      };
+    });
+  };
 
-  const setInitialMarking: SimulationContextValue["setInitialMarking"] = (
-    placeId,
-    marking,
+  const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] = (
+    identifier,
+    value,
   ) => {
+    if (stateValuesRef.current.scenarioParameterValues[identifier] !== value) {
+      invalidateSimulationForConfigurationChange();
+    }
+
+    setStateValues((prev) => ({
+      ...prev,
+      scenarioParameterValues: {
+        ...prev.scenarioParameterValues,
+        [identifier]: value,
+      },
+    }));
+  };
+
+  const setInitialMarking: SimulationContextValue["setInitialMarking"] = (placeId, marking) => {
     invalidateSimulationForConfigurationChange();
 
     setStateValues((prev) => {
@@ -244,10 +237,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     });
   };
 
-  const setParameterValue: SimulationContextValue["setParameterValue"] = (
-    parameterId,
-    value,
-  ) => {
+  const setParameterValue: SimulationContextValue["setParameterValue"] = (parameterId, value) => {
     if (stateValuesRef.current.parameterValues[parameterId] !== value) {
       invalidateSimulationForConfigurationChange();
     }
@@ -319,10 +309,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         createWorker: workerFactoryRef.current,
       });
     } catch (caught) {
-      const message =
-        caught instanceof Error
-          ? caught.message
-          : "Failed to initialize simulation";
+      const message = caught instanceof Error ? caught.message : "Failed to initialize simulation";
       setError(message);
       setErrorItemId(null);
       throw caught;
@@ -367,9 +354,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }));
   };
 
-  const setBackpressure: SimulationContextValue["setBackpressure"] = (
-    params,
-  ) => {
+  const setBackpressure: SimulationContextValue["setBackpressure"] = (params) => {
     simulationRef.current?.setBackpressure(params);
   };
 
@@ -441,9 +426,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         ...selectedScenario,
         scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
           ...sp,
-          default: Number(
-            stateValues.scenarioParameterValues[sp.identifier] ?? sp.default,
-          ),
+          default: Number(stateValues.scenarioParameterValues[sp.identifier] ?? sp.default),
         })),
       };
       const outcome = compileScenario(
@@ -507,9 +490,5 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     ack: useStableCallback(ack),
   };
 
-  return (
-    <SimulationContext.Provider value={contextValue}>
-      {children}
-    </SimulationContext.Provider>
-  );
+  return <SimulationContext.Provider value={contextValue}>{children}</SimulationContext.Provider>;
 };

@@ -17,8 +17,8 @@ export const App = () => {
             <Dialog.Header>
               <Dialog.Title>Are you sure?</Dialog.Title>
               <Dialog.Description>
-                This action cannot be undone. This will permanently delete your
-                account and remove your data from our systems.
+                This action cannot be undone. This will permanently delete your account and remove
+                your data from our systems.
               </Dialog.Description>
             </Dialog.Header>
             <Dialog.Footer>

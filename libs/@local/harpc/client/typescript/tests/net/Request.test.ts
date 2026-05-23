@@ -24,10 +24,7 @@ const makeRequest = Effect.fn("makeRequest")(function* <E, R>(
   stream: Stream.Stream<ArrayBuffer, E, R>,
 ) {
   return yield* Request.make(
-    SubsystemDescriptor.make(
-      yield* SubsystemId.make(0x00),
-      Version.make(0x00, 0x00),
-    ),
+    SubsystemDescriptor.make(yield* SubsystemId.make(0x00), Version.make(0x00, 0x00)),
     ProcedureDescriptor.make(yield* ProcedureId.make(0x00)),
     stream,
   );
@@ -41,10 +38,7 @@ const assertBody = (
 ) => {
   cx.expect(bodyIs(request.body)).toBeTruthy();
 
-  const buffer = RequestBody.mapBoth(
-    request.body,
-    (beginOrFrame) => beginOrFrame.payload.buffer,
-  );
+  const buffer = RequestBody.mapBoth(request.body, (beginOrFrame) => beginOrFrame.payload.buffer);
 
   if (Predicate.isString(body)) {
     const text = new TextDecoder().decode(buffer);
@@ -82,9 +76,7 @@ describe.concurrent("Request", () => {
       const encoder = new TextEncoder();
 
       const request = yield* makeRequest(
-        Stream.fromIterable([
-          expectArrayBuffer(cx, encoder.encode("hello").buffer),
-        ]),
+        Stream.fromIterable([expectArrayBuffer(cx, encoder.encode("hello").buffer)]),
       );
 
       const items = yield* pipe(
@@ -202,9 +194,7 @@ describe.concurrent("Request - noDelay", () => {
       const encoder = new TextEncoder();
 
       const request = yield* makeRequest(
-        Stream.fromIterable([
-          expectArrayBuffer(cx, encoder.encode("hello").buffer),
-        ]),
+        Stream.fromIterable([expectArrayBuffer(cx, encoder.encode("hello").buffer)]),
       );
 
       const items = yield* pipe(

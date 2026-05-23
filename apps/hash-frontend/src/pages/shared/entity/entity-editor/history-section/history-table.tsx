@@ -120,12 +120,8 @@ const TableRow = memo(
         <Box
           sx={({ palette, transitions }) => ({
             borderRadius: 2,
-            background: showProvenance
-              ? palette.blue[15]
-              : palette.common.white,
-            border: `1px solid ${
-              showProvenance ? palette.blue[20] : "transparent"
-            }`,
+            background: showProvenance ? palette.blue[15] : palette.common.white,
+            border: `1px solid ${showProvenance ? palette.blue[20] : "transparent"}`,
             mb: isLastRow || showProvenance ? 1 : 0,
             mt: isFirstRow ? 1 : 0,
             transition: transitions.create(["background", "border"]),
@@ -194,19 +190,16 @@ const TableRow = memo(
 
                   if (!showProvenance) {
                     setTimeout(() => {
-                      const contentRect =
-                        provenanceRef.current?.getBoundingClientRect();
+                      const contentRect = provenanceRef.current?.getBoundingClientRect();
 
-                      const containerRect =
-                        scrollContainerRef.current?.getBoundingClientRect();
+                      const containerRect = scrollContainerRef.current?.getBoundingClientRect();
 
                       if (!contentRect || !containerRect) {
                         return;
                       }
 
                       const isAlreadyFullyVisible =
-                        contentRect.top >= 0 &&
-                        contentRect.bottom <= containerRect.bottom;
+                        contentRect.top >= 0 && contentRect.bottom <= containerRect.bottom;
 
                       if (!isAlreadyFullyVisible) {
                         provenanceRef.current?.scrollIntoView({
@@ -224,18 +217,15 @@ const TableRow = memo(
               >
                 <CircleInfoIcon
                   sx={{
-                    color: ({ palette }) =>
-                      showProvenance ? palette.blue[70] : palette.gray[70],
+                    color: ({ palette }) => (showProvenance ? palette.blue[70] : palette.gray[70]),
                   }}
                 />
                 <AngleRightRegularIcon
                   sx={{
-                    color: ({ palette }) =>
-                      showProvenance ? palette.blue[70] : palette.gray[70],
+                    color: ({ palette }) => (showProvenance ? palette.blue[70] : palette.gray[70]),
                     marginLeft: showProvenance ? 0.5 : 1,
                     marginTop: showProvenance ? 1 : 0,
-                    transition: ({ transitions }) =>
-                      transitions.create(["transform", "margin"]),
+                    transition: ({ transitions }) => transitions.create(["transform", "margin"]),
                     transform: `rotate(${showProvenance ? 90 : 0}deg)`,
                   }}
                 />
@@ -243,11 +233,7 @@ const TableRow = memo(
             </Stack>
           </Stack>
           <Collapse in={showProvenance} ref={provenanceRef} timeout={200}>
-            <Provenance
-              event={event}
-              shortname={shortname}
-              subgraph={subgraph}
-            />
+            <Provenance event={event} shortname={shortname} subgraph={subgraph} />
           </Collapse>
         </Box>
       </TableCell>
@@ -265,10 +251,7 @@ type HistoryRowData = {
   subgraph: Subgraph;
 };
 
-const createRowContent: CreateVirtualizedRowContentFn<HistoryRowData> = (
-  _index,
-  row,
-) => (
+const createRowContent: CreateVirtualizedRowContentFn<HistoryRowData> = (_index, row) => (
   <TableRow
     event={row.data.event}
     numberColumnWidth={row.data.numberColumnWidth}
@@ -335,10 +318,7 @@ export const HistoryTable = ({
 
   const tableHeight = Math.min(
     600,
-    Math.max(
-      virtualizedTableHeaderHeight + historyTableRowHeight * events.length + 2,
-      400,
-    ),
+    Math.max(virtualizedTableHeaderHeight + historyTableRowHeight * events.length + 2, 400),
   );
 
   return (

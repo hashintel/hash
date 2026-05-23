@@ -2,35 +2,20 @@ import mime from "mime-types";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import {
-  formatFileUrl,
-  getEntityTypeIdForMimeType,
-} from "@local/hash-backend-utils/file-storage";
+import { formatFileUrl, getEntityTypeIdForMimeType } from "@local/hash-backend-utils/file-storage";
 import { validateExternalUrl } from "@local/hash-backend-utils/url-validation";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import {
-  createEntity,
-  getLatestEntityById,
-  updateEntity,
-} from "../primitive/entity";
+import { createEntity, getLatestEntityById, updateEntity } from "../primitive/entity";
 
 import type {
   MutationCreateFileFromUrlArgs,
   MutationRequestFileUploadArgs,
 } from "../../../graphql/api-types.gen";
-import type {
-  ImpureGraphContext,
-  ImpureGraphFunction,
-} from "../../context-types";
-import type {
-  BaseUrl,
-  Entity,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ImpureGraphContext, ImpureGraphFunction } from "../../context-types";
+import type { BaseUrl, Entity, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -63,13 +48,9 @@ const generateCommonParameters = async (
   }
 
   if (fileEntityUpdateInput) {
-    const existingEntity = await getLatestEntityById<File>(
-      ctx,
-      authentication,
-      {
-        entityId: fileEntityUpdateInput.existingFileEntityId,
-      },
-    );
+    const existingEntity = await getLatestEntityById<File>(ctx, authentication, {
+      entityId: fileEntityUpdateInput.existingFileEntityId,
+    });
 
     return {
       existingEntity,
@@ -77,9 +58,7 @@ const generateCommonParameters = async (
         ? [fileEntityUpdateInput.entityTypeId]
         : existingEntity.metadata.entityTypeIds,
       mimeType,
-      webId: extractWebIdFromEntityId(
-        existingEntity.metadata.recordId.entityId,
-      ),
+      webId: extractWebIdFromEntityId(existingEntity.metadata.recordId.entityId),
     };
   } else if (fileEntityCreationInput) {
     const { entityTypeId: specifiedEntityTypeId } = fileEntityCreationInput;
@@ -89,9 +68,7 @@ const generateCommonParameters = async (
     let entityTypeId: VersionedUrl;
 
     if (specifiedEntityTypeId) {
-      const isHashEntityType = specifiedEntityTypeId.startsWith(
-        "https://hash.ai/@h/",
-      );
+      const isHashEntityType = specifiedEntityTypeId.startsWith("https://hash.ai/@h/");
 
       if (isHashEntityType) {
         /**
@@ -105,8 +82,7 @@ const generateCommonParameters = async (
          * the specified type ID
          */
         entityTypeId =
-          entityTypeIdByMimeType &&
-          specifiedEntityTypeId !== entityTypeIdByMimeType
+          entityTypeIdByMimeType && specifiedEntityTypeId !== entityTypeIdByMimeType
             ? entityTypeIdByMimeType
             : specifiedEntityTypeId;
       } else {
@@ -121,8 +97,7 @@ const generateCommonParameters = async (
        * If no entity type ID was specified, we use the mime entity type ID
        * directly if it exists, otherwise we use the default `File` entity.
        */
-      entityTypeId =
-        entityTypeIdByMimeType ?? systemEntityTypes.file.entityTypeId;
+      entityTypeId = entityTypeIdByMimeType ?? systemEntityTypes.file.entityTypeId;
     }
 
     return {
@@ -133,9 +108,7 @@ const generateCommonParameters = async (
     };
   }
 
-  throw new Error(
-    "One of fileEntityCreationInput or fileEntityUpdateInput must be provided",
-  );
+  throw new Error("One of fileEntityCreationInput or fileEntityUpdateInput must be provided");
 };
 
 export const createFileFromUploadRequest: ImpureGraphFunction<
@@ -157,8 +130,12 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
   const name = normalizeWhitespace(unnormalizedFilename);
 
-  const { entityTypeIds, existingEntity, mimeType, webId } =
-    await generateCommonParameters(ctx, authentication, params, name);
+  const { entityTypeIds, existingEntity, mimeType, webId } = await generateCommonParameters(
+    ctx,
+    authentication,
+    params,
+    name,
+  );
 
   const displayName = providedDisplayName ?? name;
 
@@ -166,70 +143,56 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     value: {
       ...(description !== undefined && description !== null
         ? {
-            "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-              {
-                value: description,
-                metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+              value: description,
+              metadata: {
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
+            },
           }
         : {}),
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-        {
-          value: "https://placehold.co/600x400?text=PLACEHOLDER",
-          metadata: {
-            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
-          },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": {
+        value: "https://placehold.co/600x400?text=PLACEHOLDER",
+        metadata: {
+          dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
         },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-        {
-          value: name,
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": {
+        value: name,
+        metadata: {
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-        {
-          value: displayName,
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+        value: displayName,
+        metadata: {
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-        {
-          value: mimeType,
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": {
+        value: mimeType,
+        metadata: {
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
-        {
-          value: name,
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/": {
+        value: name,
+        metadata: {
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
-        {
-          value: "Upload",
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-          },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/": {
+        value: "Upload",
+        metadata: {
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
-      "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/":
-        {
-          value: size,
-          metadata: {
-            dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1",
-          },
+      },
+      "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/": {
+        value: size,
+        metadata: {
+          dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1",
         },
+      },
     },
   };
 
@@ -251,40 +214,36 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
   });
 
   try {
-    const { fileStorageProperties, presignedPut } =
-      await uploadProvider.presignUpload({
-        key,
-        headers: {
-          "content-length": size,
-          "content-type": mimeType,
-        },
-        expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
-      });
+    const { fileStorageProperties, presignedPut } = await uploadProvider.presignUpload({
+      key,
+      headers: {
+        "content-length": size,
+        "content-type": mimeType,
+      },
+      expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
+    });
 
     const updatedProperties: File["propertiesWithMetadata"] = {
       ...fileStorageProperties,
       value: {
         ...fileStorageProperties.value,
-        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-          {
-            value: formatFileUrl(key),
-            metadata: {
-              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
-            },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": {
+          value: formatFileUrl(key),
+          metadata: {
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
+        },
       },
     };
 
     const entity = await updateEntity<File>(ctx, authentication, {
       entity: fileEntity,
       entityTypeIds,
-      propertyPatches: typedEntries(updatedProperties.value).map(
-        ([baseUrl, property]) => ({
-          op: "add",
-          path: [baseUrl as BaseUrl],
-          property,
-        }),
-      ),
+      propertyPatches: typedEntries(updatedProperties.value).map(([baseUrl, property]) => ({
+        op: "add",
+        path: [baseUrl as BaseUrl],
+        property,
+      })),
     });
 
     return {
@@ -306,15 +265,17 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
 
   const urlValidation = validateExternalUrl(url);
   if (!urlValidation.valid) {
-    throw new Error(
-      `The provided URL is not permitted: ${urlValidation.reason}`,
-    );
+    throw new Error(`The provided URL is not permitted: ${urlValidation.reason}`);
   }
 
   const filename = normalizeWhitespace(url.split("/").pop()!);
 
-  const { entityTypeIds, existingEntity, mimeType, webId } =
-    await generateCommonParameters(ctx, authentication, params, filename);
+  const { entityTypeIds, existingEntity, mimeType, webId } = await generateCommonParameters(
+    ctx,
+    authentication,
+    params,
+    filename,
+  );
 
   const displayName = providedDisplayName ?? filename;
 
@@ -323,70 +284,56 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
       value: {
         ...(description !== undefined && description !== null
           ? {
-              "https://blockprotocol.org/@blockprotocol/types/property-type/description/":
-                {
-                  value: description,
-                  metadata: {
-                    dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                  },
+              "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                value: description,
+                metadata: {
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
+              },
             }
           : {}),
-        "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
-          {
-            value: filename,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": {
+          value: filename,
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-          {
-            value: displayName,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
+        },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+          value: displayName,
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-          {
-            value: url,
-            metadata: {
-              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
-            },
+        },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": {
+          value: url,
+          metadata: {
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
-          {
-            value: mimeType,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
+        },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": {
+          value: mimeType,
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
-          {
-            value: filename,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
+        },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/": {
+          value: filename,
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/":
-          {
-            value: "URL",
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
+        },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/": {
+          value: "URL",
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
-        "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/":
-          {
-            value: url,
-            metadata: {
-              dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
-            },
+        },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/": {
+          value: url,
+          metadata: {
+            dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
           },
+        },
       },
     };
 
@@ -395,10 +342,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           entity: existingEntity,
           entityTypeIds,
           propertyPatches: typedEntries(properties.value)
-            .filter(
-              ([baseUrl, property]) =>
-                existingEntity.properties[baseUrl] !== property.value,
-            )
+            .filter(([baseUrl, property]) => existingEntity.properties[baseUrl] !== property.value)
             .map(([baseUrl, property]) => ({
               op: existingEntity.properties[baseUrl] ? "replace" : "add",
               path: [baseUrl as BaseUrl],
@@ -411,8 +355,6 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           entityTypeIds: entityTypeIds as File["entityTypeIds"],
         });
   } catch (error) {
-    throw new Error(
-      `There was an error creating the file entity from a link: ${error}`,
-    );
+    throw new Error(`There was an error creating the file entity from a link: ${error}`);
   }
 };

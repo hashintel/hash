@@ -23,12 +23,7 @@ export const App = () => {
     <Stack gap="6">
       <Group gap="0" spaceX="-3">
         {users.map((user) => (
-          <Avatar.Root
-            key={user.name}
-            size="lg"
-            borderWidth="2px"
-            borderColor="gray.surface.bg"
-          >
+          <Avatar.Root key={user.name} size="lg" borderWidth="2px" borderColor="gray.surface.bg">
             <Avatar.Fallback name={user.name} />
             <Avatar.Image src={user.src} />
           </Avatar.Root>

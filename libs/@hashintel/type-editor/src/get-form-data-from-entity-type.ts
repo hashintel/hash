@@ -5,9 +5,7 @@ type Entries<T> = {
   [K in keyof T]: [K, T[K]];
 }[keyof T][];
 
-export const getFormDataFromEntityType = (
-  schema: EntityType,
-): EntityTypeEditorFormData => ({
+export const getFormDataFromEntityType = (schema: EntityType): EntityTypeEditorFormData => ({
   allOf: schema.allOf?.map((ref) => ref.$ref) ?? [],
   description: schema.description,
   labelProperty: schema.labelProperty,
@@ -32,10 +30,7 @@ export const getFormDataFromEntityType = (
           maxValue: link.maxItems ?? 1,
           minValue: link.minItems ?? 0,
           infinity: typeof link.maxItems !== "number",
-          entityTypes:
-            "oneOf" in link.items
-              ? link.items.oneOf.map((ref) => ref.$ref)
-              : [],
+          entityTypes: "oneOf" in link.items ? link.items.oneOf.map((ref) => ref.$ref) : [],
         }),
       )
     : [],

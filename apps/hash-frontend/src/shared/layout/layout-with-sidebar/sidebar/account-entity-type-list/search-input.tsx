@@ -1,11 +1,7 @@
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { Fade, outlinedInputClasses, Tooltip } from "@mui/material";
 
-import {
-  FontAwesomeIcon,
-  IconButton,
-  TextField,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton, TextField } from "@hashintel/design-system";
 
 import { MagnifyingGlassLightIcon } from "../../../../icons/magnifying-glass-light";
 
@@ -54,10 +50,9 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
           [`.${outlinedInputClasses.notchedOutline}`]: {
             borderRadius: "4px",
           },
-          [`.${outlinedInputClasses.focused} .${outlinedInputClasses.notchedOutline}`]:
-            {
-              borderColor: palette.blue[60],
-            },
+          [`.${outlinedInputClasses.focused} .${outlinedInputClasses.notchedOutline}`]: {
+            borderColor: palette.blue[60],
+          },
         })}
         InputProps={{
           sx: ({ typography, palette }) => ({

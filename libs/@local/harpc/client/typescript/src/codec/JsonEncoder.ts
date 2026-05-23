@@ -19,9 +19,7 @@ const encoder = (options: Options) =>
       input,
       Stream.mapEffect((item) =>
         Effect.gen(function* () {
-          const json = useSchema
-            ? yield* encodeJson(item)
-            : JSON.stringify(item);
+          const json = useSchema ? yield* encodeJson(item) : JSON.stringify(item);
 
           const text = `${json}\x1e`;
 
@@ -41,7 +39,4 @@ export const layer = Layer.succeed(Encoder.Encoder, encoder({ schema: true }));
  *
  * This means that the resulting stream won't have any transformation applied to it.
  */
-export const layerUnchecked = Layer.succeed(
-  Encoder.Encoder,
-  encoder({ schema: false }),
-);
+export const layerUnchecked = Layer.succeed(Encoder.Encoder, encoder({ schema: false }));

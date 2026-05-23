@@ -23,8 +23,7 @@ export type ComponentIdHashBlockMap = Record<string, HashBlock>;
  */
 const blockCache = new Map<string, Promise<HashBlock>>();
 
-export const componentIdToUrl = (componentId: string) =>
-  componentId.replace(/\/$/, "");
+export const componentIdToUrl = (componentId: string) => componentId.replace(/\/$/, "");
 
 const devReloadEndpointSet = new Set<string>();
 const configureAppReloadWhenBlockChanges = (
@@ -60,9 +59,7 @@ const configureAppReloadWhenBlockChanges = (
     return;
   }
 
-  reportProblem(
-    `URLs like "${devReloadEndpoint}" are not supported (expected a websocket)`,
-  );
+  reportProblem(`URLs like "${devReloadEndpoint}" are not supported (expected a websocket)`);
 };
 
 /**
@@ -131,10 +128,7 @@ const transformBlockConfig = ({
   };
 };
 
-export const prepareBlockCache = (
-  componentId: string,
-  block: HashBlock | Promise<HashBlock>,
-) => {
+export const prepareBlockCache = (componentId: string, block: HashBlock | Promise<HashBlock>) => {
   if (typeof window !== "undefined") {
     const key = componentIdToUrl(componentId);
     if (!blockCache.has(key)) {
@@ -184,15 +178,10 @@ export const fetchBlock = async (
     // block metadata to be available there. Current implementation reloads
     // the EA even if a locally developed block is not mounted (which should be rare).
     if (metadata.devReloadEndpoint) {
-      configureAppReloadWhenBlockChanges(
-        metadata.devReloadEndpoint,
-        (problem) => {
-          // eslint-disable-next-line no-console -- @todo consider using logger
-          console.error(
-            `${baseUrl} → block-metadata.json → devReloadEndpoint: ${problem}`,
-          );
-        },
-      );
+      configureAppReloadWhenBlockChanges(metadata.devReloadEndpoint, (problem) => {
+        // eslint-disable-next-line no-console -- @todo consider using logger
+        console.error(`${baseUrl} → block-metadata.json → devReloadEndpoint: ${problem}`);
+      });
     }
 
     const result: HashBlock = {

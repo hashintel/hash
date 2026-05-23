@@ -1,7 +1,4 @@
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -16,15 +13,9 @@ import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type {
-  Block,
-  HasIndexedContent,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { Block, HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityTraversalPath,
-  GraphResolveDepths,
-} from "@rust/hash-graph-store/types";
+import type { EntityTraversalPath, GraphResolveDepths } from "@rust/hash-graph-store/types";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection
@@ -141,26 +132,18 @@ export const getBlockCollectionContents = (params: {
         linkEntityRevisions[0] &&
         linkEntityRevisions[0].metadata.entityTypeIds.includes(
           isCanvas
-            ? systemLinkEntityTypes.hasSpatiallyPositionedContent
-                .linkEntityTypeId
+            ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
             : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
         ),
     )
-    .sort((a, b) =>
-      sortBlockCollectionLinks(a.linkEntity[0]!, b.linkEntity[0]!),
-    );
+    .sort((a, b) => sortBlockCollectionLinks(a.linkEntity[0]!, b.linkEntity[0]!));
 
   return outgoingContentLinks.map<BlockCollectionContentItem>(
-    ({
-      linkEntity: containsLinkEntityRevisions,
-      rightEntity: rightEntityRevisions,
-    }) => {
+    ({ linkEntity: containsLinkEntityRevisions, rightEntity: rightEntityRevisions }) => {
       const rightEntity = rightEntityRevisions[0]!;
 
       const componentId =
-        rightEntity.properties[
-          "https://hash.ai/@h/types/property-type/component-id/"
-        ];
+        rightEntity.properties["https://hash.ai/@h/types/property-type/component-id/"];
 
       const blockChildEntity = getOutgoingLinkAndTargetEntities(
         blockCollectionSubgraph,

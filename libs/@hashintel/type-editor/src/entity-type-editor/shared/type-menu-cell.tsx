@@ -18,11 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import clsx from "clsx";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { Fragment, useCallback, useId, useState } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
@@ -48,10 +44,7 @@ import type { MouseEventHandler } from "react";
 export const TYPE_MENU_CELL_WIDTH = 70;
 
 const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
-  <Tooltip
-    {...props}
-    classes={{ popper: clsx(className, fluidFontClassName) }}
-  />
+  <Tooltip {...props} classes={{ popper: clsx(className, fluidFontClassName) }} />
 ))({
   [`& .${tooltipClasses.tooltip}`]: {
     maxWidth: "none",
@@ -92,8 +85,7 @@ export const TypeMenuCell = ({
     name: "labelProperty",
   });
   const isLabelProperty =
-    variant === "property" &&
-    extractBaseUrl(typeId) === labelPropertyController.field.value;
+    variant === "property" && extractBaseUrl(typeId) === labelPropertyController.field.value;
 
   const EditButton = useCallback(
     () => (
@@ -185,11 +177,7 @@ export const TypeMenuCell = ({
       >
         {canEdit
           ? [
-              <Typography
-                key="actions"
-                component={ListItem}
-                variant="smallCaps"
-              >
+              <Typography key="actions" component={ListItem} variant="smallCaps">
                 Actions
               </Typography>,
 
@@ -227,11 +215,7 @@ export const TypeMenuCell = ({
                       }}
                     >
                       <ListItemText
-                        primary={
-                          <>
-                            {isLabelProperty ? "Unset" : "Set"} as entity label
-                          </>
-                        }
+                        primary={<>{isLabelProperty ? "Unset" : "Set"} as entity label</>}
                       />
                     </MenuItem>,
                   ]

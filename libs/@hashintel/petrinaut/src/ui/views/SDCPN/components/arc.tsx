@@ -52,8 +52,7 @@ function useFiringAnimation(
 
     // Calculate remaining transitions from previous animation (if any)
     if (animationStateRef.current) {
-      const { animation, startTime, transitionsAnimating } =
-        animationStateRef.current;
+      const { animation, startTime, transitionsAnimating } = animationStateRef.current;
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / ANIMATION_DURATION_MS, 1);
 
@@ -70,15 +69,11 @@ function useFiringAnimation(
     // Stroke width based on total transitions
     const peakStrokeWidth = Math.min(
       65,
-      BASE_STROKE_WIDTH +
-        Math.log(1 + transitionsToAnimate) * Math.min(6 * weight, 25),
+      BASE_STROKE_WIDTH + Math.log(1 + transitionsToAnimate) * Math.min(6 * weight, 25),
     );
 
     const animation = path.animate(
-      [
-        { strokeWidth: `${peakStrokeWidth}px` },
-        { strokeWidth: `${BASE_STROKE_WIDTH}px` },
-      ],
+      [{ strokeWidth: `${peakStrokeWidth}px` }, { strokeWidth: `${BASE_STROKE_WIDTH}px` }],
       {
         duration: ANIMATION_DURATION_MS,
         easing: "ease-out",
@@ -266,11 +261,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
 
       {/* Selection indicator: thick orange background stroke */}
       {selected && (
-        <BaseEdge
-          id={`${id}-selection`}
-          path={arcPath}
-          style={selectionIndicatorStyle}
-        />
+        <BaseEdge id={`${id}-selection`} path={arcPath} style={selectionIndicatorStyle} />
       )}
 
       {/* Animated overlay path for firing visualization (no marker). */}
@@ -280,9 +271,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         fill="none"
         stroke={strokeColor}
         strokeWidth={BASE_STROKE_WIDTH}
-        strokeDasharray={
-          data?.arcType === "inhibitor" ? INHIBITOR_DASH_PATTERN : undefined
-        }
+        strokeDasharray={data?.arcType === "inhibitor" ? INHIBITOR_DASH_PATTERN : undefined}
         style={{ pointerEvents: "none" }}
       />
 
@@ -290,11 +279,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
       <BaseEdge
         id={id}
         path={arcPath}
-        markerEnd={
-          data?.arcType === "inhibitor"
-            ? `url(#${inhibitorMarkerId})`
-            : markerEnd
-        }
+        markerEnd={data?.arcType === "inhibitor" ? `url(#${inhibitorMarkerId})` : markerEnd}
         style={
           data?.arcType === "inhibitor"
             ? {

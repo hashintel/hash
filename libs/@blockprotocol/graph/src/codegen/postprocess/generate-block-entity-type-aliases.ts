@@ -4,21 +4,15 @@ import { entityDefinitionNameForEntityType } from "../shared.js";
 
 import type { PostprocessContext } from "../context/postprocess.js";
 
-export const generateBlockEntityTypeAliases = (
-  context: PostprocessContext,
-): void => {
+export const generateBlockEntityTypeAliases = (context: PostprocessContext): void => {
   context.logDebug("Generating block entity types to generated files");
 
-  for (const [fileName, { blockEntity }] of typedEntries(
-    context.parameters.targets,
-  )) {
+  for (const [fileName, { blockEntity }] of typedEntries(context.parameters.targets)) {
     if (blockEntity) {
       const type = mustBeDefined(context.allTypes[blockEntity]);
       const typeName = entityDefinitionNameForEntityType(type.title);
 
-      context.logDebug(
-        `Generating block entity type alias ${typeName} for file ${fileName}`,
-      );
+      context.logDebug(`Generating block entity type alias ${typeName} for file ${fileName}`);
 
       const identifier = "BlockEntity";
       const blockEntityTypesFragment = `\nexport type ${identifier} = ${typeName}\n`;

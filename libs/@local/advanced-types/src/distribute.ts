@@ -4,13 +4,9 @@
  * We must use a conditional mapped type to apply the Omit to each member of the union instead.
  * @see https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#distributive-conditional-types
  */
-export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown
-  ? Omit<T, K>
-  : never;
+export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
-export type DistributivePick<T, K extends keyof T> = T extends unknown
-  ? Pick<T, K>
-  : never;
+export type DistributivePick<T, K extends keyof T> = T extends unknown ? Pick<T, K> : never;
 
 export type DistributiveField<T, K> = T extends unknown
   ? K extends keyof T
@@ -31,9 +27,7 @@ export type DistributiveField<T, K> = T extends unknown
  * // Result: { a: string; new: boolean; b?: never } | { b: string; new: boolean; a?: never }
  * ```
  */
-export type DistributiveReplaceProperties<T, R> = T extends unknown
-  ? Omit<T, keyof R> & R
-  : never;
+export type DistributiveReplaceProperties<T, R> = T extends unknown ? Omit<T, keyof R> & R : never;
 
 /**
  * Enforces mutual exclusion on a union type by adding `?: never` properties for discriminating keys

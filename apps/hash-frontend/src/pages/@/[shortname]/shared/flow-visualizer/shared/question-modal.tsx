@@ -58,15 +58,9 @@ const Question = ({
   );
 };
 
-export const QuestionModal = ({
-  inputRequest,
-  open,
-  onClose,
-}: QuestionModalProps) => {
+export const QuestionModal = ({ inputRequest, open, onClose }: QuestionModalProps) => {
   if (inputRequest.type !== "human-input") {
-    throw new Error(
-      `Expected human input request, got '${inputRequest.type}' instead`,
-    );
+    throw new Error(`Expected human input request, got '${inputRequest.type}' instead`);
   }
 
   const { selectedFlowRunId } = useFlowRunsContext();
@@ -82,9 +76,7 @@ export const QuestionModal = ({
 
   const multipleQuestions = inputRequest.data.questions.length > 1;
 
-  const allQuestionsAnswered = answers.every(
-    (answer) => answer.trim().length > 0,
-  );
+  const allQuestionsAnswered = answers.every((answer) => answer.trim().length > 0);
 
   const submitAnswers = async () => {
     if (!allQuestionsAnswered || !selectedFlowRunId) {

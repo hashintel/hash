@@ -86,9 +86,7 @@ const TableCell = styled(MuiTableCell)(({ theme }) => ({
   },
 }));
 
-const InviteRow: FunctionComponent<{ invite: PendingOrgInvitation }> = ({
-  invite,
-}) => {
+const InviteRow: FunctionComponent<{ invite: PendingOrgInvitation }> = ({ invite }) => {
   const { refetch } = useInvites();
   const { refetch: refetchAuthenticatedUser } = useAuthenticatedUser();
 
@@ -154,11 +152,7 @@ export const InvitesTable = () => {
   const { loading, pendingInvites } = useInvites();
 
   if (pendingInvites.length === 0 && !loading) {
-    return (
-      <Typography>
-        You don't have any pending invitations to join an organization.
-      </Typography>
-    );
+    return <Typography>You don't have any pending invitations to join an organization.</Typography>;
   }
 
   return (
@@ -173,10 +167,9 @@ export const InvitesTable = () => {
       </TableHead>
       <TableBody
         sx={{
-          [`> .${tableRowClasses.root}:last-of-type > .${tableCellClasses.root}`]:
-            {
-              borderBottomWidth: 0,
-            },
+          [`> .${tableRowClasses.root}:last-of-type > .${tableCellClasses.root}`]: {
+            borderBottomWidth: 0,
+          },
         }}
       >
         {!loading ? (

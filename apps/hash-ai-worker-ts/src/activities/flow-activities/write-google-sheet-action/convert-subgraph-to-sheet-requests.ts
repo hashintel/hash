@@ -10,19 +10,12 @@ import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import {
-  typedEntries,
-  typedKeys,
-  typedValues,
-} from "@local/advanced-types/typed-entries";
+import { typedEntries, typedKeys, typedValues } from "@local/advanced-types/typed-entries";
 import { isDraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import {
-  createCellFromValue,
-  createHyperlinkCell,
-} from "./shared/create-sheet-data.js";
+import { createCellFromValue, createHyperlinkCell } from "./shared/create-sheet-data.js";
 import { cellHeaderFormat } from "./shared/format.js";
 
 import type { SheetOutputFormat } from "./shared/config.js";
@@ -96,10 +89,7 @@ const createColumnsForEntity = (
 
   let nextColumnIndex = baseColumnCount;
 
-  const entityTypeAndParents = getEntityTypeAndParentsById(
-    subgraph,
-    entityType.$id,
-  );
+  const entityTypeAndParents = getEntityTypeAndParentsById(subgraph, entityType.$id);
 
   const properties = new Set<BaseUrl>();
   const links = new Set<VersionedUrl>();
@@ -114,8 +104,7 @@ const createColumnsForEntity = (
   }
 
   const isLinkType = entityTypeAndParents.some(
-    (ancestor) =>
-      ancestor.schema.$id === blockProtocolEntityTypes.link.entityTypeId,
+    (ancestor) => ancestor.schema.$id === blockProtocolEntityTypes.link.entityTypeId,
   );
 
   if (isLinkType) {
@@ -134,11 +123,7 @@ const createColumnsForEntity = (
   const baseAndLinkDataColumnCount = nextColumnIndex;
 
   for (const baseUrl of [...properties]) {
-    const { propertyType } = getPropertyTypeForEntity(
-      subgraph,
-      [entityType.$id],
-      baseUrl,
-    );
+    const { propertyType } = getPropertyTypeForEntity(subgraph, [entityType.$id], baseUrl);
     columns[`properties.${baseUrl}`] = {
       baseOrVersionedUrl: baseUrl,
       columnLetter: columnIndexToColumnLetters(nextColumnIndex),
@@ -158,15 +143,12 @@ const createColumnsForEntity = (
     columns[`links.${linkTypeId}`] = {
       baseOrVersionedUrl: linkTypeId,
       columnLetter: columnIndexToColumnLetters(nextColumnIndex),
-      label: humanReadable
-        ? linkEntityType.schema.title
-        : `links.${linkTypeId}`,
+      label: humanReadable ? linkEntityType.schema.title : `links.${linkTypeId}`,
     };
     nextColumnIndex++;
   }
 
-  const linkColumnCount =
-    nextColumnIndex - propertyColumnCount - baseAndLinkDataColumnCount;
+  const linkColumnCount = nextColumnIndex - propertyColumnCount - baseAndLinkDataColumnCount;
 
   return {
     baseColumnCount,
@@ -225,9 +207,7 @@ export const convertSubgraphToSheetRequests = ({
 
       /** Within link entities, sort them by the source (left) entityId, so we can link to a range of rows from the source */
       if (aEntity.linkData && bEntity.linkData) {
-        return aEntity.linkData.leftEntityId.localeCompare(
-          bEntity.linkData.leftEntityId,
-        );
+        return aEntity.linkData.leftEntityId.localeCompare(bEntity.linkData.leftEntityId);
       }
 
       /**
@@ -235,15 +215,9 @@ export const convertSubgraphToSheetRequests = ({
        * of multiple editions)
        */
       return (
-        aEntity.metadata.recordId.entityId.localeCompare(
-          bEntity.metadata.recordId.entityId,
-        ) ||
-        new Date(
-          aEntity.metadata.temporalVersioning.decisionTime.start.limit,
-        ).valueOf() -
-          new Date(
-            bEntity.metadata.temporalVersioning.decisionTime.start.limit,
-          ).valueOf()
+        aEntity.metadata.recordId.entityId.localeCompare(bEntity.metadata.recordId.entityId) ||
+        new Date(aEntity.metadata.temporalVersioning.decisionTime.start.limit).valueOf() -
+          new Date(bEntity.metadata.temporalVersioning.decisionTime.start.limit).valueOf()
       );
     });
 
@@ -295,13 +269,8 @@ export const convertSubgraphToSheetRequests = ({
     const typeId = entityType.schema.$id;
     const typeVersion = entityType.metadata.recordId.version;
 
-    const {
-      columns,
-      baseColumnCount,
-      isLinkType,
-      linkColumnCount,
-      propertyColumnCount,
-    } = createColumnsForEntity(entityType.schema, subgraph, format);
+    const { columns, baseColumnCount, isLinkType, linkColumnCount, propertyColumnCount } =
+      createColumnsForEntity(entityType.schema, subgraph, format);
 
     /**
      * If we haven't yet created a sheet for this entity type, add it to the map and add its header row(s)
@@ -326,11 +295,9 @@ export const convertSubgraphToSheetRequests = ({
           (isLinkType
             ? index === baseColumnCount + 1 ||
               index === baseColumnCount + propertyColumnCount + 1 ||
-              index ===
-                baseColumnCount + propertyColumnCount + linkColumnCount + 1
+              index === baseColumnCount + propertyColumnCount + linkColumnCount + 1
             : index === baseColumnCount + propertyColumnCount - 1 ||
-              index ===
-                baseColumnCount + propertyColumnCount + linkColumnCount - 1);
+              index === baseColumnCount + propertyColumnCount + linkColumnCount - 1);
 
         return {
           userEnteredValue: {
@@ -481,9 +448,7 @@ export const convertSubgraphToSheetRequests = ({
 
     const thisRowIndex = entitySheetRequests[typeId].rows.length;
 
-    const lastColumnLetter = columnIndexToColumnLetters(
-      Object.keys(columns).length - 1,
-    );
+    const lastColumnLetter = columnIndexToColumnLetters(Object.keys(columns).length - 1);
 
     /**
      * Store this entity's position in the sheet, so we can link to it from sheets for link types.
@@ -504,9 +469,7 @@ export const convertSubgraphToSheetRequests = ({
 
     for (const key of Object.keys(columns)) {
       if (key === "entityId") {
-        entityCells.push(
-          createCellFromValue({ value: entity.metadata.recordId.entityId }),
-        );
+        entityCells.push(createCellFromValue({ value: entity.metadata.recordId.entityId }));
       } else if (key === "label") {
         entityCells.push(
           createCellFromValue({
@@ -559,9 +522,7 @@ export const convertSubgraphToSheetRequests = ({
                 label: generateEntityLabel(subgraph, linkedEntity),
                 sheetId,
                 startCellInclusive: `A${rowIndex + 1}`,
-                endCellInclusive: `${entityPosition.lastColumnLetter}${
-                  rowIndex + 1
-                }`,
+                endCellInclusive: `${entityPosition.lastColumnLetter}${rowIndex + 1}`,
               }),
             );
 
@@ -581,8 +542,7 @@ export const convertSubgraphToSheetRequests = ({
                * This is the first time we've seen this entity as a source in this sheet, set the sheetId and start
                * index
                */
-              outgoingLinkMapForLeftEntity.sheetId =
-                entitySheetRequests[typeId].sheetId;
+              outgoingLinkMapForLeftEntity.sheetId = entitySheetRequests[typeId].sheetId;
               outgoingLinkMapForLeftEntity.startRowIndex = thisRowIndex;
               outgoingLinkMapForLeftEntity.lastColumnLetter = lastColumnLetter;
             }
@@ -621,9 +581,7 @@ export const convertSubgraphToSheetRequests = ({
                 label: generateEntityLabel(subgraph, linkedEntity),
                 sheetId,
                 startCellInclusive: `A${rowIndex + 1}`,
-                endCellInclusive: `${entityPosition.lastColumnLetter}${
-                  rowIndex + 1
-                }`,
+                endCellInclusive: `${entityPosition.lastColumnLetter}${rowIndex + 1}`,
               }),
             );
           } else {
@@ -656,10 +614,9 @@ export const convertSubgraphToSheetRequests = ({
 
   const requests: sheets_v4.Schema$Request[] = [];
 
-  for (const [
-    typeId,
-    { additionalRequests, sheetId, rows, typeTitle },
-  ] of Object.entries(entitySheetRequests)) {
+  for (const [typeId, { additionalRequests, sheetId, rows, typeTitle }] of Object.entries(
+    entitySheetRequests,
+  )) {
     // @todo add discriminator to sheet titles to differentiate between types with identical titles, for human readers
     // const typesWithIdenticalTitles = Object.entries(entitySheetRequests).filter(
     //   ([_typeId, entitySheetRequest]) =>
@@ -745,9 +702,7 @@ export const convertSubgraphToSheetRequests = ({
         continue;
       }
 
-      for (const [_linkTypeId, outgoingLinkRange] of Object.entries(
-        outgoingLinkRanges,
-      )) {
+      for (const [_linkTypeId, outgoingLinkRange] of Object.entries(outgoingLinkRanges)) {
         if (
           outgoingLinkRange.sheetId !== undefined &&
           outgoingLinkRange.startRowIndex !== undefined &&
@@ -770,9 +725,7 @@ export const convertSubgraphToSheetRequests = ({
                     createHyperlinkCell({
                       label: `View links`,
                       sheetId: outgoingLinkRange.sheetId,
-                      startCellInclusive: `A${
-                        outgoingLinkRange.startRowIndex + 1
-                      }`,
+                      startCellInclusive: `A${outgoingLinkRange.startRowIndex + 1}`,
                       endCellInclusive: `${outgoingLinkRange.lastColumnLetter}${
                         outgoingLinkRange.endRowIndex + 1
                       }`,

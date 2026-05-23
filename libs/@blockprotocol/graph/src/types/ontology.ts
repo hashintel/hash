@@ -6,9 +6,7 @@ export * from "./ontology/data-type.js";
 export * from "./ontology/entity-type.js";
 export * from "./ontology/property-type.js";
 
-export const isOntologyTypeRecordId = (
-  recordId: unknown,
-): recordId is OntologyTypeRecordId => {
+export const isOntologyTypeRecordId = (recordId: unknown): recordId is OntologyTypeRecordId => {
   return (
     recordId != null &&
     typeof recordId === "object" &&

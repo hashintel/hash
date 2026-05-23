@@ -9,12 +9,7 @@
     { "#tuple": [] },
     { "#struct": { "x": "Integer" } },
     "_",
-    [
-      "if",
-      { "#literal": true },
-      ["<=", "x", { "#literal": 100 }],
-      [">=", "x", { "#literal": 0 }]
-    ]
+    ["if", { "#literal": true }, ["<=", "x", { "#literal": 100 }], [">=", "x", { "#literal": 0 }]]
   ],
   ["f", { "#literal": 10 }]
 ]

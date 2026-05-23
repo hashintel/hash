@@ -16,9 +16,7 @@ export interface DisplayValueProps<T> {
 export const DisplayValue = <T,>(props: DisplayValueProps<T>) => {
   const { value, formatValue } = props;
 
-  const formattedValue = isNotEmpty(value)
-    ? (formatValue?.(value) ?? String(value))
-    : null;
+  const formattedValue = isNotEmpty(value) ? (formatValue?.(value) ?? String(value)) : null;
 
   if (formattedValue) {
     return formattedValue;
@@ -36,9 +34,7 @@ export const DisplayValue = <T,>(props: DisplayValueProps<T>) => {
 
 const isString = (value: unknown): value is string => typeof value === "string";
 
-const isNotEmpty = <T,>(
-  value: T | null | undefined,
-): value is NonNullable<T> => {
+const isNotEmpty = <T,>(value: T | null | undefined): value is NonNullable<T> => {
   if (value == null) {
     return false;
   }

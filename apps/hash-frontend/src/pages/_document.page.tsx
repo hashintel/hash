@@ -72,9 +72,7 @@ Document.getInitialProps = async (ctx) => {
   const initialProps = await NextDocument.getInitialProps(ctx);
   // This is important. It prevents emotion to render invalid HTML.
   // See https://github.com/mui-org/material-ui/issues/26561#issuecomment-855286153
-  const emotionStyles = emotionServer.extractCriticalToChunks(
-    initialProps.html,
-  );
+  const emotionStyles = emotionServer.extractCriticalToChunks(initialProps.html);
   const emotionStyleTags = emotionStyles.styles.map((style) => (
     <style
       data-emotion={`${style.key} ${style.ids.join(" ")}`}

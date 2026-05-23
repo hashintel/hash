@@ -67,6 +67,4 @@ const inputGroupSlotRecipeDefinition = {
 
 export const inputGroupSlotRecipe = sva(inputGroupSlotRecipeDefinition);
 
-export type InputGroupSlotRecipeProps = RecipeVariantProps<
-  typeof inputGroupSlotRecipe
->;
+export type InputGroupSlotRecipeProps = RecipeVariantProps<typeof inputGroupSlotRecipe>;

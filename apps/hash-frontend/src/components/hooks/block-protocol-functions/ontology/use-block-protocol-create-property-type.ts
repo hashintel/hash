@@ -16,10 +16,9 @@ export const useBlockProtocolCreatePropertyType = (
 ): {
   createPropertyType: CreatePropertyTypeMessageCallback;
 } => {
-  const [createFn] = useMutation<
-    CreatePropertyTypeMutation,
-    CreatePropertyTypeMutationVariables
-  >(createPropertyTypeMutation);
+  const [createFn] = useMutation<CreatePropertyTypeMutation, CreatePropertyTypeMutationVariables>(
+    createPropertyTypeMutation,
+  );
 
   const createPropertyType: CreatePropertyTypeMessageCallback = useCallback(
     async ({ data }) => {

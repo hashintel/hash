@@ -178,16 +178,12 @@ const bpMultiFilterFieldPathToPathExpression = (
         return field;
       }
 
-      throw new InvalidEntityQueryError(
-        `Invalid filter field path, unknown field \`${pathRoot}\``,
-      );
+      throw new InvalidEntityQueryError(`Invalid filter field path, unknown field \`${pathRoot}\``);
     })(),
   };
 };
 
-const bpFilterToGraphFilter = (
-  filter: MultiFilter["filters"][number],
-): Filter => {
+const bpFilterToGraphFilter = (filter: MultiFilter["filters"][number]): Filter => {
   const pathExpression = bpMultiFilterFieldPathToPathExpression(filter.field);
   switch (filter.operator) {
     case "IS_DEFINED":
@@ -238,13 +234,9 @@ const bpFilterToGraphFilter = (
         },
       };
     case "STARTS_WITH":
-      throw new Error(
-        "UNIMPLEMENTED: `STARTS_WITH` is currently unsupported by the Graph API",
-      );
+      throw new Error("UNIMPLEMENTED: `STARTS_WITH` is currently unsupported by the Graph API");
     case "ENDS_WITH":
-      throw new Error(
-        "UNIMPLEMENTED: `ENDS_WITH` is currently unsupported by the Graph API",
-      );
+      throw new Error("UNIMPLEMENTED: `ENDS_WITH` is currently unsupported by the Graph API");
   }
 
   throw new Error(

@@ -1,9 +1,4 @@
-import {
-  applyPatches,
-  enablePatches,
-  type Patch as ImmerPatch,
-  produceWithPatches,
-} from "immer";
+import { applyPatches, enablePatches, type Patch as ImmerPatch, produceWithPatches } from "immer";
 
 import type { SDCPN } from "./types/sdcpn";
 
@@ -127,9 +122,7 @@ export type CreateJsonDocHandleOptions = {
   historyLimit?: number;
 };
 
-export function createJsonDocHandle(
-  opts: CreateJsonDocHandleOptions,
-): PetrinautDocHandle {
+export function createJsonDocHandle(opts: CreateJsonDocHandleOptions): PetrinautDocHandle {
   const id = opts.id ?? generateId();
   const historyLimit = opts.historyLimit ?? DEFAULT_HISTORY_LIMIT;
   const stateStore = createReadableStore<DocHandleState>("ready");
@@ -146,9 +139,7 @@ export function createJsonDocHandle(
   let cursor = -1;
 
   const initialEntry: HistoryEntry = { timestamp: new Date().toISOString() };
-  const entriesStore = createReadableStore<readonly HistoryEntry[]>([
-    initialEntry,
-  ]);
+  const entriesStore = createReadableStore<readonly HistoryEntry[]>([initialEntry]);
   const currentIndexStore = createReadableStore<number>(0);
   const canUndoStore = createReadableStore<boolean>(false);
   const canRedoStore = createReadableStore<boolean>(false);
@@ -269,12 +260,9 @@ export function createJsonDocHandle(
     whenReady: () => Promise.resolve(),
     doc: () => current,
     change(fn) {
-      const [next, patches, inversePatches] = produceWithPatches(
-        current,
-        (draft) => {
-          fn(draft as SDCPN);
-        },
-      );
+      const [next, patches, inversePatches] = produceWithPatches(current, (draft) => {
+        fn(draft as SDCPN);
+      });
       if (patches.length === 0) {
         return;
       }

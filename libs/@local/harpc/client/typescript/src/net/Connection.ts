@@ -17,10 +17,7 @@ import { isUint8ArrayList, Uint8ArrayList } from "uint8arraylist";
 
 import { MutableBuffer } from "../binary/index.js";
 import { createProto } from "../utils.js";
-import {
-  type RequestId,
-  Request as WireRequest,
-} from "../wire-protocol/models/request/index.js";
+import { type RequestId, Request as WireRequest } from "../wire-protocol/models/request/index.js";
 import {
   type Response as WireResponse,
   ResponseFlags,
@@ -40,9 +37,7 @@ export type TypeId = typeof TypeId;
 interface ConnectionDuplex {
   readonly read: Stream.Stream<
     WireResponse.Response,
-    | Transport.TransportError
-    | WireResponse.DecodeError
-    | IncompleteResponseError
+    Transport.TransportError | WireResponse.DecodeError | IncompleteResponseError
   >;
 
   readonly write: Sink.Sink<
@@ -101,20 +96,14 @@ interface TransactionContext {
 }
 
 interface ConnectionImpl extends Connection {
-  readonly transactions: MutableHashMap.MutableHashMap<
-    RequestId.RequestId,
-    TransactionContext
-  >;
+  readonly transactions: MutableHashMap.MutableHashMap<RequestId.RequestId, TransactionContext>;
 
   readonly duplex: ConnectionDuplex;
 
   readonly config: ConnectionConfig;
 }
 
-const ConnectionProto: Omit<
-  ConnectionImpl,
-  "transactions" | "duplex" | "config"
-> = {
+const ConnectionProto: Omit<ConnectionImpl, "transactions" | "duplex" | "config"> = {
   [TypeId]: TypeId,
 };
 
@@ -141,9 +130,9 @@ const makeSink = (connection: ConnectionImpl) =>
         Effect.timeout(lagTimeout),
         Effect.catchTag("TimeoutException", (timeout) =>
           Effect.gen(function* () {
-            yield* Effect.logWarning(
-              "transaction has lagged behind too far, dropping it",
-            ).pipe(Effect.annotateLogs({ timeout }));
+            yield* Effect.logWarning("transaction has lagged behind too far, dropping it").pipe(
+              Effect.annotateLogs({ timeout }),
+            );
 
             yield* transaction.value.drop;
           }),
@@ -219,18 +208,12 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
   );
 
   const readStream = pipe(
-    Stream.fromAsyncIterable(
-      stream,
-      (cause) => new Transport.TransportError({ cause }),
-    ),
+    Stream.fromAsyncIterable(stream, (cause) => new Transport.TransportError({ cause })),
     Stream.mapConcat((list) => (isUint8ArrayList(list) ? list : [list])),
     // cast needed as uint8arraylist doesn't support Uint8Array<ArrayBuffer> yet
     Stream.map((array) =>
       // take the underlying buffer and slice it to the correct view
-      (array.buffer as ArrayBuffer).slice(
-        array.byteOffset,
-        array.byteOffset + array.byteLength,
-      ),
+      (array.buffer as ArrayBuffer).slice(array.byteOffset, array.byteOffset + array.byteLength),
     ),
     ResponseFromBytesStream.make,
   );
@@ -239,8 +222,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
     Sink.forEachChunk((chunk: Chunk.Chunk<Uint8Array>) =>
       Effect.gen(function* () {
         const shouldContinue = yield* Effect.try({
-          try: () =>
-            stream.send(Uint8ArrayList.fromUint8Arrays(Chunk.toArray(chunk))),
+          try: () => stream.send(Uint8ArrayList.fromUint8Arrays(Chunk.toArray(chunk))),
           catch: (cause) => new Transport.TransportError({ cause }),
         });
 
@@ -266,10 +248,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
   const duplex = { read: readStream, write: writeSink } as ConnectionDuplex;
 
   const self: ConnectionImpl = createProto(ConnectionProto, {
-    transactions: MutableHashMap.empty<
-      RequestId.RequestId,
-      TransactionContext
-    >(),
+    transactions: MutableHashMap.empty<RequestId.RequestId, TransactionContext>(),
     duplex,
     config,
   });
@@ -285,9 +264,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
 export const send = Function.dual<
   <R>(
     request: Request.Request<never, R>,
-  ) => (
-    self: Connection,
-  ) => Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>,
+  ) => (self: Connection) => Effect.Effect<Transaction.Transaction, never, Exclude<R, Scope.Scope>>,
   <R>(
     self: Connection,
     request: Request.Request<never, R>,
@@ -301,9 +278,7 @@ export const send = Function.dual<
     const deferredDrop = yield* Deferred.make<void>();
     const drop = wrapDrop(impl, request.id, deferredDrop);
 
-    const queue = yield* Queue.bounded<WireResponse.Response>(
-      impl.config.responseBufferSize ?? 16,
-    );
+    const queue = yield* Queue.bounded<WireResponse.Response>(impl.config.responseBufferSize ?? 16);
 
     const transactionContext: TransactionContext = {
       queue,

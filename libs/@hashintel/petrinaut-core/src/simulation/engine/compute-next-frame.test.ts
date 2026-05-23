@@ -49,8 +49,7 @@ describe("computeNextFrame", () => {
           inputArcs: [{ placeId: "p1", weight: 1, type: "standard" }],
           outputArcs: [{ placeId: "p1", weight: 1 }],
           lambdaType: "stochastic",
-          lambdaCode:
-            "export default Lambda((tokens, parameters) => { return 0.0001; });", // Very low probability
+          lambdaCode: "export default Lambda((tokens, parameters) => { return 0.0001; });", // Very low probability
           transitionKernelCode:
             "export default TransitionKernel((tokens, parameters) => { return { 'Place1': [{ x: 100.0, y: 200.0 }] }; });",
           x: 100,

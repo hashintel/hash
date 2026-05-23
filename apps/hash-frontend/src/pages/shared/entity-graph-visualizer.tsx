@@ -109,8 +109,7 @@ export const EntityGraphVisualizer = memo(
         linkData: NonNullable<T["linkData"]>;
       })[] = [];
 
-      const closedMultiEntityTypesById: Record<string, ClosedMultiEntityType> =
-        {};
+      const closedMultiEntityTypesById: Record<string, ClosedMultiEntityType> = {};
 
       const entityTypeIdToColor = new Map<string, number>();
 
@@ -134,9 +133,7 @@ export const EntityGraphVisualizer = memo(
 
         const specialHighlight = isPrimaryEntity?.(entity) ?? false;
 
-        const sortedEntityTypeIds = mustHaveAtLeastOne(
-          entity.metadata.entityTypeIds.toSorted(),
-        );
+        const sortedEntityTypeIds = mustHaveAtLeastOne(entity.metadata.entityTypeIds.toSorted());
 
         const firstEntityTypeId = sortedEntityTypeIds[0];
 
@@ -144,10 +141,7 @@ export const EntityGraphVisualizer = memo(
          * @todo H-3539: take account of additional types an entity might have
          */
         if (!entityTypeIdToColor.has(firstEntityTypeId)) {
-          entityTypeIdToColor.set(
-            firstEntityTypeId,
-            entityTypeIdToColor.size % nodeColors.length,
-          );
+          entityTypeIdToColor.set(firstEntityTypeId, entityTypeIdToColor.size % nodeColors.length);
         }
 
         const { color, borderColor } = specialHighlight
@@ -253,11 +247,7 @@ export const EntityGraphVisualizer = memo(
     return (
       <Box sx={{ height: "100%" }}>
         {loading && (
-          <Stack
-            alignItems="center"
-            justifyContent="center"
-            sx={{ height: "100%", width: "100%" }}
-          >
+          <Stack alignItems="center" justifyContent="center" sx={{ height: "100%", width: "100%" }}>
             <Box>{loadingComponent}</Box>
           </Stack>
         )}

@@ -20,8 +20,7 @@ export const PropertiesSection: FunctionComponent<{
 
   const [rows] = useRows();
 
-  const { emptyCount, notEmptyCount, totalCount } =
-    getPropertyCountSummary(rows);
+  const { emptyCount, notEmptyCount, totalCount } = getPropertyCountSummary(rows);
 
   if (!totalCount) {
     return <PropertiesSectionEmptyState />;
@@ -29,10 +28,7 @@ export const PropertiesSection: FunctionComponent<{
 
   return hideSectionHeading ? (
     <Paper sx={{ overflow: "hidden" }}>
-      <PropertyTable
-        onSearchClose={() => setShowSearch(false)}
-        showSearch={showSearch}
-      />
+      <PropertyTable onSearchClose={() => setShowSearch(false)} showSearch={showSearch} />
     </Paper>
   ) : (
     <SectionWrapper
@@ -40,12 +36,8 @@ export const PropertiesSection: FunctionComponent<{
       titleTooltip="The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
-          {notEmptyCount > 0 && (
-            <Chip size="xs" label={`${notEmptyCount} values`} />
-          )}
-          {emptyCount > 0 && (
-            <WhiteChip size="xs" label={`${emptyCount} empty`} />
-          )}
+          {notEmptyCount > 0 && <Chip size="xs" label={`${notEmptyCount} values`} />}
+          {emptyCount > 0 && <WhiteChip size="xs" label={`${emptyCount} empty`} />}
           <Stack direction="row" spacing={0.5}>
             <IconButton
               rounded
@@ -59,10 +51,7 @@ export const PropertiesSection: FunctionComponent<{
       }
     >
       <Paper sx={{ overflow: "hidden" }}>
-        <PropertyTable
-          onSearchClose={() => setShowSearch(false)}
-          showSearch={showSearch}
-        />
+        <PropertyTable onSearchClose={() => setShowSearch(false)} showSearch={showSearch} />
       </Paper>
     </SectionWrapper>
   );

@@ -56,13 +56,7 @@ export const validateCodegenParameters = (
     errors.push("`outputFolder` must be a string pointing to a directory");
   }
 
-  if (
-    !(
-      typeof targets === "object" &&
-      targets !== null &&
-      !Array.isArray(targets)
-    )
-  ) {
+  if (!(typeof targets === "object" && targets !== null && !Array.isArray(targets))) {
     errors.push("`targets` must be an object");
   } else {
     for (const [fileName, targetsForFile] of Object.entries(targets)) {
@@ -71,9 +65,7 @@ export const validateCodegenParameters = (
       } else {
         for (const target of targetsForFile as unknown[]) {
           if (typeof target !== "object" || target === null) {
-            errors.push(
-              `each entry under file '${fileName}' in 'targets' must be an object`,
-            );
+            errors.push(`each entry under file '${fileName}' in 'targets' must be an object`);
             continue;
           }
           if (!("sourceTypeId" in target)) {
@@ -83,12 +75,7 @@ export const validateCodegenParameters = (
             continue;
           }
 
-          if (
-            !(
-              "sourceTypeId" in target &&
-              typeof target.sourceTypeId === "string"
-            )
-          ) {
+          if (!("sourceTypeId" in target && typeof target.sourceTypeId === "string")) {
             errors.push(
               `each entry under file '${fileName}' in 'targets' must have a 'sourceTypeId' string`,
             );
@@ -113,18 +100,12 @@ export const validateCodegenParameters = (
   }
 
   if (typeNameOverrides !== undefined) {
-    if (
-      !(typeof typeNameOverrides === "object" && typeNameOverrides !== null)
-    ) {
+    if (!(typeof typeNameOverrides === "object" && typeNameOverrides !== null)) {
       errors.push("`typeNameOverrides` must be an object");
     } else {
-      for (const [typeId, typeNameOverride] of Object.entries(
-        typeNameOverrides,
-      )) {
+      for (const [typeId, typeNameOverride] of Object.entries(typeNameOverrides)) {
         if (validateVersionedUrl(typeId).type !== "Ok") {
-          errors.push(
-            `each key in 'typeNameOverrides' must be a valid Versioned URL`,
-          );
+          errors.push(`each key in 'typeNameOverrides' must be a valid Versioned URL`);
         }
         if (typeof typeNameOverride !== "string") {
           errors.push(
@@ -138,33 +119,18 @@ export const validateCodegenParameters = (
   if (typeIdAliases !== undefined) {
     if (!(typeof typeIdAliases === "object" && typeIdAliases !== null)) {
       errors.push("`typeIdAliases` must be an object");
-    } else if (
-      !("enabled" in typeIdAliases) ||
-      typeIdAliases.enabled === undefined
-    ) {
+    } else if (!("enabled" in typeIdAliases) || typeIdAliases.enabled === undefined) {
       errors.push("`typeIdAliases.enabled` must be set");
     } else if (typeof typeIdAliases.enabled !== "boolean") {
       errors.push("`typeIdAliases.enabled` must be a boolean");
     } else if (typeIdAliases.enabled) {
-      if (
-        "overrides" in typeIdAliases &&
-        typeIdAliases.overrides !== undefined
-      ) {
-        if (
-          !(
-            typeof typeIdAliases.overrides === "object" &&
-            typeIdAliases.overrides !== null
-          )
-        ) {
+      if ("overrides" in typeIdAliases && typeIdAliases.overrides !== undefined) {
+        if (!(typeof typeIdAliases.overrides === "object" && typeIdAliases.overrides !== null)) {
           errors.push("`typeIdAliases.overrides` must be an object");
         } else {
-          for (const [versionedUrl, alias] of Object.entries(
-            typeIdAliases.overrides,
-          )) {
+          for (const [versionedUrl, alias] of Object.entries(typeIdAliases.overrides)) {
             if (validateVersionedUrl(versionedUrl).type !== "Ok") {
-              errors.push(
-                `each key in 'typeIdAliases.overrides' must be a valid Versioned URL`,
-              );
+              errors.push(`each key in 'typeIdAliases.overrides' must be a valid Versioned URL`);
             }
             if (typeof alias !== "string") {
               errors.push(
@@ -218,9 +184,7 @@ export const processCodegenParameters = (
       }
 
       if (blockEntityTargets.length > 1) {
-        blockEntityTypeClashes[fileName] = blockEntityTargets.map(
-          (target) => target.sourceTypeId,
-        );
+        blockEntityTypeClashes[fileName] = blockEntityTargets.map((target) => target.sourceTypeId);
       }
 
       const blockEntity = blockEntityTargets[0]?.sourceTypeId;

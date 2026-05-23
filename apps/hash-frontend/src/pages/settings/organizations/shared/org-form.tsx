@@ -33,10 +33,7 @@ const Label = ({
   return (
     <Stack component="label" htmlFor={htmlFor} spacing={0.5} mb={1.2}>
       <Stack direction="row">
-        <Typography
-          variant="smallTextLabels"
-          sx={{ color: "gray.70", fontWeight: 500 }}
-        >
+        <Typography variant="smallTextLabels" sx={{ color: "gray.70", fontWeight: 500 }}>
           {label}
         </Typography>
         {required ? (
@@ -52,16 +49,11 @@ const Label = ({
             *
           </Typography>
         ) : (
-          <Typography sx={{ color: "gray.70", fontSize: 12, ml: 1 }}>
-            Optional
-          </Typography>
+          <Typography sx={{ color: "gray.70", fontSize: 12, ml: 1 }}>Optional</Typography>
         )}
       </Stack>
       {hint && (
-        <Typography
-          variant="smallTextLabels"
-          sx={{ color: "gray.70", fontWeight: 400 }}
-        >
+        <Typography variant="smallTextLabels" sx={{ color: "gray.70", fontWeight: 400 }}>
           {hint}
         </Typography>
       )}
@@ -121,15 +113,11 @@ export const OrgForm = ({
     },
   });
 
-  const { validateShortname, parseShortnameInput, getShortnameError } =
-    useShortnameInput();
+  const { validateShortname, parseShortnameInput, getShortnameError } = useShortnameInput();
 
   const shortnameWatcher = useWatch({ control, name: "shortname" });
 
-  const shortnameError = getShortnameError(
-    errors.shortname?.message,
-    !!touchedFields.shortname,
-  );
+  const shortnameError = getShortnameError(errors.shortname?.message, !!touchedFields.shortname);
 
   const nameWatcher = useWatch({ control, name: "name" });
 
@@ -157,8 +145,7 @@ export const OrgForm = ({
         ...(existingImageEntity !== undefined
           ? {
               fileEntityUpdateInput: {
-                existingFileEntityId:
-                  existingImageEntity.metadata.recordId.entityId,
+                existingFileEntityId: existingImageEntity.metadata.recordId.entityId,
               },
             }
           : {
@@ -172,8 +159,7 @@ export const OrgForm = ({
         : {
             linkedEntityData: {
               linkedEntityId: initialOrg.entity.metadata.recordId.entityId,
-              linkEntityTypeId:
-                systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
+              linkEntityTypeId: systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
             },
           }),
     });
@@ -189,9 +175,7 @@ export const OrgForm = ({
       setLoading(true);
       await onSubmit(data);
     } catch (err) {
-      setSubmissionError(
-        typeof err === "string" ? err : (err as Error).message,
-      );
+      setSubmissionError(typeof err === "string" ? err : (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -256,9 +240,7 @@ export const OrgForm = ({
                 onBlur={field.onBlur}
                 onChange={(evt) => {
                   const newEvt = { ...evt };
-                  newEvt.target.value = parseShortnameInput(
-                    newEvt.target.value,
-                  );
+                  newEvt.target.value = parseShortnameInput(newEvt.target.value);
                   field.onChange(newEvt);
                 }}
                 InputProps={{
@@ -303,11 +285,7 @@ export const OrgForm = ({
           <InputGroup>
             <Label label="Avatar" htmlFor="" />
             <Box width={210} height={210}>
-              <ImageField
-                readonly={readonly}
-                imageUrl={avatarUrl}
-                onFileProvided={setAvatar}
-              />
+              <ImageField readonly={readonly} imageUrl={avatarUrl} onFileProvided={setAvatar} />
             </Box>
           </InputGroup>
           <InputGroup>
@@ -344,11 +322,7 @@ export const OrgForm = ({
       </InputGroup>
       {initialOrg && (
         <InputGroup>
-          <Label
-            label="Location"
-            hint="Where is your organization based?"
-            htmlFor="location"
-          />
+          <Label label="Location" hint="Where is your organization based?" htmlFor="location" />
           <TextField
             id="location"
             disabled={readonly}

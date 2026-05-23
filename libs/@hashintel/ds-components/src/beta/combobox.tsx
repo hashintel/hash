@@ -7,15 +7,9 @@ import { ark } from "@ark-ui/react/factory";
 import { CheckIcon, ChevronsUpDownIcon, XIcon } from "lucide-react";
 import { forwardRef } from "react";
 
-import {
-  createStyleContext,
-  type HTMLStyledProps,
-} from "@hashintel/ds-helpers/jsx";
+import { createStyleContext, type HTMLStyledProps } from "@hashintel/ds-helpers/jsx";
 
-import {
-  comboboxSlotRecipe,
-  type ComboboxSlotRecipeProps,
-} from "./combobox.recipe";
+import { comboboxSlotRecipe, type ComboboxSlotRecipeProps } from "./combobox.recipe";
 
 const { withProvider, withContext } = createStyleContext(comboboxSlotRecipe);
 
@@ -40,10 +34,7 @@ export const IndicatorGroup = withContext(ark.div, "indicatorGroup");
 export const Input = withContext(Combobox.Input, "input");
 export const Item = withContext(Combobox.Item, "item");
 export const ItemGroup = withContext(Combobox.ItemGroup, "itemGroup");
-export const ItemGroupLabel = withContext(
-  Combobox.ItemGroupLabel,
-  "itemGroupLabel",
-);
+export const ItemGroupLabel = withContext(Combobox.ItemGroupLabel, "itemGroupLabel");
 export const ItemText = withContext(Combobox.ItemText, "itemText");
 export const Label = withContext(Combobox.Label, "label");
 export const List = withContext(Combobox.List, "list");
@@ -54,21 +45,16 @@ export const Trigger = withContext(Combobox.Trigger, "trigger", {
 
 export { ComboboxContext as Context } from "@ark-ui/react/combobox";
 
-const StyledItemIndicator = withContext(
-  Combobox.ItemIndicator,
-  "itemIndicator",
-);
+const StyledItemIndicator = withContext(Combobox.ItemIndicator, "itemIndicator");
 
-export const ItemIndicator = forwardRef<HTMLDivElement, HTMLStyledProps<"div">>(
-  (props, ref) => {
-    const item = useComboboxItemContext();
+export const ItemIndicator = forwardRef<HTMLDivElement, HTMLStyledProps<"div">>((props, ref) => {
+  const item = useComboboxItemContext();
 
-    return item.selected ? (
-      <StyledItemIndicator ref={ref} {...props}>
-        <CheckIcon />
-      </StyledItemIndicator>
-    ) : (
-      <svg aria-hidden="true" focusable="false" />
-    );
-  },
-);
+  return item.selected ? (
+    <StyledItemIndicator ref={ref} {...props}>
+      <CheckIcon />
+    </StyledItemIndicator>
+  ) : (
+    <svg aria-hidden="true" focusable="false" />
+  );
+});

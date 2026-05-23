@@ -185,8 +185,7 @@ export type AcademicPaperPropertiesWithMetadata = DocPropertiesWithMetadata & {
  */
 export type ExperimentalSubjectPropertyValue = TextDataType;
 
-export type ExperimentalSubjectPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type ExperimentalSubjectPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The results or conclusion of an experiment, research project, investigation, etc.

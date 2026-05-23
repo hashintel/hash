@@ -1,7 +1,4 @@
-import {
-  createEngineFrame,
-  materializeEngineFrame,
-} from "../frames/internal-frame";
+import { createEngineFrame, materializeEngineFrame } from "../frames/internal-frame";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
 
@@ -45,9 +42,7 @@ function addTokensToSimulationFrame(
   for (const [placeId, tokens] of tokensToAdd) {
     const placeState = snapshot.places[placeId];
     if (!placeState) {
-      throw new Error(
-        `Place with ID ${placeId} not found in simulation frame.`,
-      );
+      throw new Error(`Place with ID ${placeId} not found in simulation frame.`);
     }
 
     // Validate that all tokens have the correct dimensions
@@ -70,14 +65,10 @@ function addTokensToSimulationFrame(
   }
 
   // Create a new buffer with increased size
-  const newBuffer = new Float64Array(
-    snapshot.buffer.length + totalSizeIncrease,
-  );
+  const newBuffer = new Float64Array(snapshot.buffer.length + totalSizeIncrease);
 
   // Process places in order of their offsets to build the new buffer
-  const placesByOffset = Object.entries(snapshot.places).sort(
-    (a, b) => a[1].offset - b[1].offset,
-  );
+  const placesByOffset = Object.entries(snapshot.places).sort((a, b) => a[1].offset - b[1].offset);
 
   const newPlaces: EngineFrameSnapshot["places"] = { ...snapshot.places };
   let sourceIndex = 0;
@@ -197,9 +188,7 @@ export function executeTransitions(
 
       // Immediately remove tokens from the current frame
       // Convert the result.remove Record to a Map
-      const tokensToRemove = new Map<PlaceID, Set<number> | number>(
-        Object.entries(result.remove),
-      );
+      const tokensToRemove = new Map<PlaceID, Set<number> | number>(Object.entries(result.remove));
       currentFrame = removeTokensFromSimulationFrame(
         currentFrame,
         tokensToRemove,
@@ -223,23 +212,14 @@ export function executeTransitions(
   }
 
   // Add all new tokens at once
-  const newFrame = addTokensToSimulationFrame(
-    currentFrame,
-    tokensToAdd,
-    simulation.frameLayout,
-  );
-  const newFrameSnapshot = materializeEngineFrame(
-    simulation.frameLayout,
-    newFrame,
-  );
+  const newFrame = addTokensToSimulationFrame(currentFrame, tokensToAdd, simulation.frameLayout);
+  const newFrameSnapshot = materializeEngineFrame(simulation.frameLayout, newFrame);
 
   // Update transition timeSinceLastFiringMs, firedInThisFrame, and firingCount
   const newTransitions: EngineFrameSnapshot["transitions"] = {
     ...newFrameSnapshot.transitions,
   };
-  for (const [transitionId, transitionState] of Object.entries(
-    newFrameSnapshot.transitions,
-  )) {
+  for (const [transitionId, transitionState] of Object.entries(newFrameSnapshot.transitions)) {
     if (transitionsFired.has(transitionId)) {
       // Reset time since last firing and increment firing count for transitions that fired
       newTransitions[transitionId] = {

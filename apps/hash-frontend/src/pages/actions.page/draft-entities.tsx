@@ -10,10 +10,7 @@ import {
 } from "react";
 
 import { Skeleton } from "@hashintel/design-system";
-import {
-  getClosedMultiEntityTypeFromMap,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { getClosedMultiEntityTypeFromMap, type HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 
 import { Button } from "../../shared/ui";
@@ -61,10 +58,7 @@ export const DraftEntities: FunctionComponent<{
   const { draftEntities } = useDraftEntities();
 
   const creatorAccountIds = useMemo(
-    () =>
-      draftEntities?.map(
-        (entity) => entity.metadata.provenance.edition.createdById,
-      ),
+    () => draftEntities?.map((entity) => entity.metadata.provenance.edition.createdById),
     [draftEntities],
   );
 
@@ -85,8 +79,7 @@ export const DraftEntities: FunctionComponent<{
 
     const derived = draftEntities.map((entity) => {
       const creator = actors.find(
-        (actor) =>
-          actor.accountId === entity.metadata.provenance.edition.createdById,
+        (actor) => actor.accountId === entity.metadata.provenance.edition.createdById,
       );
 
       if (!creator) {
@@ -108,19 +101,13 @@ export const DraftEntities: FunctionComponent<{
     setPreviouslyEvaluatedDraftEntityTypeBaseUrls,
   ] = useState<BaseUrl[]>();
 
-  if (
-    !filterState &&
-    draftEntitiesWithCreators &&
-    draftEntitiesWithLinkedDataSubgraph
-  ) {
+  if (!filterState && draftEntitiesWithCreators && draftEntitiesWithLinkedDataSubgraph) {
     const newDraftFilterState = generateDefaultFilterState({
       draftEntitiesWithCreators,
     });
 
     // Note that the initial filter state includes all draft entity type Base URLs
-    setPreviouslyEvaluatedDraftEntityTypeBaseUrls(
-      newDraftFilterState.entityTypeBaseUrls,
-    );
+    setPreviouslyEvaluatedDraftEntityTypeBaseUrls(newDraftFilterState.entityTypeBaseUrls);
 
     setFilterState(newDraftFilterState);
   }
@@ -129,9 +116,7 @@ export const DraftEntities: FunctionComponent<{
     () =>
       draftEntitiesWithCreators && draftEntitiesWithLinkedDataSubgraph
         ? getDraftEntityTypeBaseUrls({
-            draftEntities: draftEntitiesWithCreators.map(
-              ({ entity }) => entity,
-            ),
+            draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
           })
         : undefined,
     [draftEntitiesWithCreators, draftEntitiesWithLinkedDataSubgraph],
@@ -143,9 +128,7 @@ export const DraftEntities: FunctionComponent<{
       previouslyEvaluatedDraftEntityTypeBaseUrls &&
       rootEntityTypeBaseUrls.filter(
         (entityTypeBaseUrl) =>
-          !previouslyEvaluatedDraftEntityTypeBaseUrls.includes(
-            entityTypeBaseUrl,
-          ),
+          !previouslyEvaluatedDraftEntityTypeBaseUrls.includes(entityTypeBaseUrl),
       ),
     [rootEntityTypeBaseUrls, previouslyEvaluatedDraftEntityTypeBaseUrls],
   );
@@ -165,10 +148,7 @@ export const DraftEntities: FunctionComponent<{
       prev
         ? {
             ...prev,
-            entityTypeBaseUrls: [
-              ...prev.entityTypeBaseUrls,
-              ...newDraftEntityTypeBaseUrls,
-            ],
+            entityTypeBaseUrls: [...prev.entityTypeBaseUrls, ...newDraftEntityTypeBaseUrls],
           }
         : prev,
     );
@@ -182,11 +162,7 @@ export const DraftEntities: FunctionComponent<{
       isFilerStateDefaultFilterState({
         draftEntitiesWithCreators,
       })(filterState),
-    [
-      filterState,
-      draftEntitiesWithCreators,
-      draftEntitiesWithLinkedDataSubgraph,
-    ],
+    [filterState, draftEntitiesWithCreators, draftEntitiesWithLinkedDataSubgraph],
   );
 
   const filteredAndSortedDraftEntitiesWithCreatedAt = useMemo(
@@ -222,12 +198,7 @@ export const DraftEntities: FunctionComponent<{
                 : bCreatedAt.getTime() - aCreatedAt.getTime();
           })
         : undefined,
-    [
-      draftEntitiesWithCreators,
-      sortOrder,
-      filterState,
-      closedMultiEntityTypesRootMap,
-    ],
+    [draftEntitiesWithCreators, sortOrder, filterState, closedMultiEntityTypesRootMap],
   );
 
   useEffect(() => {
@@ -239,8 +210,7 @@ export const DraftEntities: FunctionComponent<{
       const nonMatchingSelectedDraftEntityIds = selectedDraftEntityIds.filter(
         (selectedDraftEntityId) =>
           !filteredAndSortedDraftEntitiesWithCreatedAt.some(
-            ({ entity }) =>
-              entity.metadata.recordId.entityId === selectedDraftEntityId,
+            ({ entity }) => entity.metadata.recordId.entityId === selectedDraftEntityId,
           ),
       );
 
@@ -248,9 +218,7 @@ export const DraftEntities: FunctionComponent<{
         setSelectedDraftEntityIds((prev) =>
           prev.filter(
             (selectedDraftEntityId) =>
-              !nonMatchingSelectedDraftEntityIds.includes(
-                selectedDraftEntityId,
-              ),
+              !nonMatchingSelectedDraftEntityIds.includes(selectedDraftEntityId),
           ),
         );
       }
@@ -274,8 +242,7 @@ export const DraftEntities: FunctionComponent<{
     setNumberOfIncrements(1);
   }, []);
 
-  const numberOfEntitiesToDisplay =
-    incrementNumberOfEntitiesToDisplay * numberOfIncrements;
+  const numberOfEntitiesToDisplay = incrementNumberOfEntitiesToDisplay * numberOfIncrements;
 
   const displayedDraftEntitiesWithCreatedAt = useMemo(
     () =>
@@ -283,10 +250,7 @@ export const DraftEntities: FunctionComponent<{
         ? /**
            * @todo: use pagination instead
            */
-          filteredAndSortedDraftEntitiesWithCreatedAt.slice(
-            0,
-            numberOfEntitiesToDisplay,
-          )
+          filteredAndSortedDraftEntitiesWithCreatedAt.slice(0, numberOfEntitiesToDisplay)
         : undefined,
     [filteredAndSortedDraftEntitiesWithCreatedAt, numberOfEntitiesToDisplay],
   );
@@ -341,57 +305,42 @@ export const DraftEntities: FunctionComponent<{
               draftEntitiesWithLinkedDataSubgraph &&
               entityTypeDisplayInfoByBaseUrl ? (
                 <>
-                  {displayedDraftEntitiesWithCreatedAt.map(
-                    ({ entity }, i, all) => {
-                      const isSelected = selectedDraftEntityIds.includes(
-                        entity.metadata.recordId.entityId,
-                      );
-                      return (
-                        <Fragment key={entity.metadata.recordId.entityId}>
-                          <DraftEntity
-                            closedMultiEntityTypesRootMap={
-                              closedMultiEntityTypesRootMap
-                            }
-                            entity={entity}
-                            entityTypeDisplayInfoByBaseUrl={
-                              entityTypeDisplayInfoByBaseUrl
-                            }
-                            subgraph={draftEntitiesWithLinkedDataSubgraph}
-                            selected={isSelected}
-                            toggleSelected={() =>
-                              setSelectedDraftEntityIds((prev) =>
-                                isSelected
-                                  ? prev.filter(
-                                      (entityId) =>
-                                        entityId !==
-                                        entity.metadata.recordId.entityId,
-                                    )
-                                  : [
-                                      ...prev,
-                                      entity.metadata.recordId.entityId,
-                                    ],
-                              )
-                            }
+                  {displayedDraftEntitiesWithCreatedAt.map(({ entity }, i, all) => {
+                    const isSelected = selectedDraftEntityIds.includes(
+                      entity.metadata.recordId.entityId,
+                    );
+                    return (
+                      <Fragment key={entity.metadata.recordId.entityId}>
+                        <DraftEntity
+                          closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap}
+                          entity={entity}
+                          entityTypeDisplayInfoByBaseUrl={entityTypeDisplayInfoByBaseUrl}
+                          subgraph={draftEntitiesWithLinkedDataSubgraph}
+                          selected={isSelected}
+                          toggleSelected={() =>
+                            setSelectedDraftEntityIds((prev) =>
+                              isSelected
+                                ? prev.filter(
+                                    (entityId) => entityId !== entity.metadata.recordId.entityId,
+                                  )
+                                : [...prev, entity.metadata.recordId.entityId],
+                            )
+                          }
+                        />
+                        {i < all.length - 1 ? (
+                          <Divider
+                            sx={{
+                              borderColor: ({ palette }) => palette.gray[30],
+                            }}
                           />
-                          {i < all.length - 1 ? (
-                            <Divider
-                              sx={{
-                                borderColor: ({ palette }) => palette.gray[30],
-                              }}
-                            />
-                          ) : null}
-                        </Fragment>
-                      );
-                    },
-                  )}
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
                 </>
               ) : (
                 <Box paddingY={4.5} paddingX={3.25}>
-                  <Box
-                    display="flex"
-                    justifyContent="space-between"
-                    marginBottom={1.5}
-                  >
+                  <Box display="flex" justifyContent="space-between" marginBottom={1.5}>
                     <Skeleton height={30} width={150} />
                     <Box display="flex" columnGap={1}>
                       <Skeleton height={40} width={100} />
@@ -406,8 +355,7 @@ export const DraftEntities: FunctionComponent<{
               )}
             </Box>
             {filteredAndSortedDraftEntitiesWithCreatedAt &&
-            filteredAndSortedDraftEntitiesWithCreatedAt.length >
-              numberOfEntitiesToDisplay ? (
+            filteredAndSortedDraftEntitiesWithCreatedAt.length > numberOfEntitiesToDisplay ? (
               <Box display="flex" width="100%" justifyContent="center">
                 <Button
                   size="medium"
@@ -416,8 +364,7 @@ export const DraftEntities: FunctionComponent<{
                 >
                   Display{" "}
                   {Math.min(
-                    filteredAndSortedDraftEntitiesWithCreatedAt.length -
-                      numberOfEntitiesToDisplay,
+                    filteredAndSortedDraftEntitiesWithCreatedAt.length - numberOfEntitiesToDisplay,
                     incrementNumberOfEntitiesToDisplay,
                   )}{" "}
                   more drafts
@@ -427,8 +374,7 @@ export const DraftEntities: FunctionComponent<{
           </>
         )}
       </Box>
-      {draftEntitiesWithCreators &&
-      draftEntitiesWithCreators.length === 0 ? null : (
+      {draftEntitiesWithCreators && draftEntitiesWithCreators.length === 0 ? null : (
         <DraftEntitiesFilters
           entityTypeDisplayInfoByBaseUrl={entityTypeDisplayInfoByBaseUrl}
           draftEntitiesWithCreators={draftEntitiesWithCreators}

@@ -3,22 +3,16 @@ import { validate } from "jsonschema";
 import type { JsonArray, JsonObject, JsonValue } from "@blockprotocol/core";
 import type { Schema } from "jsonschema";
 
-export const validateDataAgainstSchema = (data: unknown, schema: Schema) =>
-  validate(data, schema);
+export const validateDataAgainstSchema = (data: unknown, schema: Schema) => validate(data, schema);
 
-export const isParsedJsonObject = (
-  val: JsonValue | undefined,
-): val is JsonObject =>
+export const isParsedJsonObject = (val: JsonValue | undefined): val is JsonObject =>
   typeof val === "object" && val !== null && !Array.isArray(val);
 
-export const isParsedJsonObjectOrArray = (
-  val: JsonValue,
-): val is JsonObject | JsonArray =>
+export const isParsedJsonObjectOrArray = (val: JsonValue): val is JsonObject | JsonArray =>
   Array.isArray(val) || isParsedJsonObject(val);
 
-export const parseJson = <T extends JsonObject | JsonArray>(
-  jsonString: string,
-): T => JSON.parse(jsonString);
+export const parseJson = <T extends JsonObject | JsonArray>(jsonString: string): T =>
+  JSON.parse(jsonString);
 
 export type JsonSchema = Schema & {
   configProperties?: string[];
@@ -26,11 +20,5 @@ export type JsonSchema = Schema & {
   default?: JsonValue;
 };
 
-export const primitiveJsonTypes = [
-  "boolean",
-  "integer",
-  "number",
-  "null",
-  "string",
-] as const;
+export const primitiveJsonTypes = ["boolean", "integer", "number", "null", "string"] as const;
 export type PrimitiveJsonType = (typeof primitiveJsonTypes)[number];

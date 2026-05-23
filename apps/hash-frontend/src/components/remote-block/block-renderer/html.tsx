@@ -9,9 +9,7 @@ type HtmlElementLoaderProps = {
   html: HtmlBlockDefinition;
 };
 
-export const HtmlLoader: FunctionComponent<HtmlElementLoaderProps> = ({
-  html,
-}) => {
+export const HtmlLoader: FunctionComponent<HtmlElementLoaderProps> = ({ html }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [, setError] = useState<never>();
 

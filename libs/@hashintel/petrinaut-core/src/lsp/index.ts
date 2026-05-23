@@ -4,11 +4,7 @@ export {
   type DiagnosticsSnapshot,
   type LanguageClient,
 } from "./language-client";
-export {
-  createWorkerLspTransport,
-  type LspTransport,
-  type LspWorkerFactory,
-} from "./transport";
+export { createWorkerLspTransport, type LspTransport, type LspWorkerFactory } from "./transport";
 
 export {
   CompletionItemKind,

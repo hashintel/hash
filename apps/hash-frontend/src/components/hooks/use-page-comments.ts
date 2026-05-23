@@ -8,11 +8,7 @@ import type {
   GetPageCommentsQuery,
   GetPageCommentsQueryVariables,
 } from "../../graphql/api-types.gen";
-import type {
-  EntityId,
-  EntityMetadata,
-  EntityTemporalMetadata,
-} from "@blockprotocol/type-system";
+import type { EntityId, EntityMetadata, EntityTemporalMetadata } from "@blockprotocol/type-system";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 export type PageThread = PageComment & {
@@ -35,14 +31,14 @@ export type PageCommentsInfo = {
 const emptyComments: PageThread[] = [];
 
 export const usePageComments = (pageEntityId?: EntityId): PageCommentsInfo => {
-  const { data, loading } = useQuery<
-    GetPageCommentsQuery,
-    GetPageCommentsQueryVariables
-  >(getPageComments, {
-    variables: { entityId: pageEntityId! },
-    pollInterval: 10_000,
-    skip: !pageEntityId,
-  });
+  const { data, loading } = useQuery<GetPageCommentsQuery, GetPageCommentsQueryVariables>(
+    getPageComments,
+    {
+      variables: { entityId: pageEntityId! },
+      pollInterval: 10_000,
+      skip: !pageEntityId,
+    },
+  );
 
   const pageComments = data?.pageComments;
   return {

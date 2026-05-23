@@ -8,10 +8,7 @@ import {
   useState,
 } from "react";
 
-import {
-  extractWebIdFromEntityId,
-  isEntityId,
-} from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId, isEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -98,9 +95,7 @@ const rewrittenPropertiesForTextualContent = (properties: PropertyObject) => {
   return {
     ...properties,
     [textualContentPropertyTypeBaseUrl]: textTokens
-      .map((token) =>
-        "text" in token ? token.text : "hardBreak" in token ? "\n" : "",
-      )
+      .map((token) => ("text" in token ? token.text : "hardBreak" in token ? "\n" : ""))
       .join(""),
   };
 };
@@ -128,17 +123,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   const { activeWorkspaceWebId } = useContext(WorkspaceContext);
 
   const { queryEntities } = useBlockProtocolQueryEntities();
-  const { createEntity } = useBlockProtocolCreateEntity(
-    activeWorkspaceWebId ?? null,
-    readonly,
-  );
+  const { createEntity } = useBlockProtocolCreateEntity(activeWorkspaceWebId ?? null, readonly);
   const { archiveEntity: deleteEntity } = useBlockProtocolArchiveEntity();
   const { getEntity } = useBlockProtocolGetEntity();
   const { updateEntity } = useBlockProtocolUpdateEntity();
-  const { uploadFile } = useBlockProtocolFileUpload(
-    activeWorkspaceWebId,
-    readonly,
-  );
+  const { uploadFile } = useBlockProtocolFileUpload(activeWorkspaceWebId, readonly);
 
   const {
     setBlockSubgraph,
@@ -181,9 +170,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
          * The traversal depths will not be accurate, because the actual traversal was rooted at the block collection.
          * This data is only used briefly – we fetch the block's subgraph from the API further on this effect.
          */
-        const latestEditionId = Object.keys(entityEditionMap)
-          .toSorted()
-          .at(-1)!;
+        const latestEditionId = Object.keys(entityEditionMap).toSorted().at(-1)!;
         subgraphToRewrite = {
           ...blockCollectionSubgraph,
           roots: [
@@ -205,8 +192,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * The block subgraph should have a single root: the block entity. We'll default to the API-provided one,
      * but might need to replace it if there's a later version in the entity store, since the version is part of the root identifier
      */
-    let roots: Subgraph<EntityRootType<HashEntity>>["roots"] =
-      subgraphToRewrite.roots;
+    let roots: Subgraph<EntityRootType<HashEntity>>["roots"] = subgraphToRewrite.roots;
 
     const newVertices: Subgraph<EntityRootType<HashEntity>>["vertices"] = {};
 
@@ -251,14 +237,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         entityInStore?.metadata.temporalVersioning.decisionTime.start.limit;
 
       const draftEntityIsNewer =
-        draftEntityEditionTimestamp &&
-        latestSubgraphEditionTimestamp < draftEntityEditionTimestamp;
+        draftEntityEditionTimestamp && latestSubgraphEditionTimestamp < draftEntityEditionTimestamp;
 
       if (!entityInStore || !draftEntityIsNewer) {
         if (isBlockEntity) {
-          const entityVertex = (
-            entityOrTypeEditionMap as KnowledgeGraphEditionMap<HashEntity>
-          )[latestSubgraphEditionTimestamp];
+          const entityVertex = (entityOrTypeEditionMap as KnowledgeGraphEditionMap<HashEntity>)[
+            latestSubgraphEditionTimestamp
+          ];
 
           if (!entityVertex) {
             throw new Error(
@@ -274,12 +259,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               inner: new HashEntity({
                 ...entityVertex.inner.toJSON(),
                 properties: rewrittenPropertiesForTextualContent(
-                  (
-                    entityOrTypeEditionMap as Record<
-                      EntityRevisionId,
-                      EntityVertex
-                    >
-                  )[latestSubgraphEditionTimestamp]!.inner.properties,
+                  (entityOrTypeEditionMap as Record<EntityRevisionId, EntityVertex>)[
+                    latestSubgraphEditionTimestamp
+                  ]!.inner.properties,
                 ),
               }),
             },
@@ -299,18 +281,14 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
             inner: new HashEntity({
               metadata: {
                 recordId: entityInStore.metadata.recordId as EntityRecordId,
-                entityTypeIds: [
-                  entityInStore.metadata.entityTypeId,
-                ] as VersionedUrl[],
+                entityTypeIds: [entityInStore.metadata.entityTypeId] as VersionedUrl[],
                 temporalVersioning: entityInStore.metadata.temporalVersioning,
                 archived: false,
                 provenance: {
                   createdAtDecisionTime:
-                    entityInStore.metadata.temporalVersioning.decisionTime.start
-                      .limit,
+                    entityInStore.metadata.temporalVersioning.decisionTime.start.limit,
                   createdAtTransactionTime:
-                    entityInStore.metadata.temporalVersioning.transactionTime
-                      .start.limit,
+                    entityInStore.metadata.temporalVersioning.transactionTime.start.limit,
                   createdById: extractWebIdFromEntityId(
                     entityInStore.metadata.recordId.entityId as EntityId,
                   ),
@@ -327,9 +305,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               },
               properties: isBlockEntity
                 ? entityInStore.properties
-                : rewrittenPropertiesForTextualContent(
-                    entityInStore.properties,
-                  ),
+                : rewrittenPropertiesForTextualContent(entityInStore.properties),
               linkData: entityInStore.linkData,
             }),
           } satisfies EntityVertex,
@@ -354,12 +330,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       roots,
       vertices: newVertices,
     };
-  }, [
-    blockCollectionSubgraph,
-    blockEntityId,
-    entityStore,
-    possiblyStaleSubgraph,
-  ]);
+  }, [blockCollectionSubgraph, blockEntityId, entityStore, possiblyStaleSubgraph]);
 
   /**
    * If we are able to derive the `blockSubgraph` without the value from the context,
@@ -371,8 +342,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
   const lastFetchedBlockEntityId = useRef<EntityId | null>(null);
 
-  const [fetchingBlockSubgraph, setFetchingBlockSubgraph] =
-    useState<boolean>(false);
+  const [fetchingBlockSubgraph, setFetchingBlockSubgraph] = useState<boolean>(false);
 
   /**
    * Fetch the block's subgraph and permissions on load and when the block's entityId changes
@@ -394,15 +364,13 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
      * When blocks are created mid-session, we cannot rely on their entity or permissions being in the block collection subgraph.
      * If we don't yet have a blockEntityId, fetchBlockSubgraph will provide a default.
      */
-    void fetchBlockSubgraph(
-      blockEntityTypeIds,
-      blockEntityId,
-      fallbackBlockProperties,
-    ).then((newBlockSubgraph) => {
-      setBlockSubgraph(newBlockSubgraph.subgraph);
-      setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
-      setFetchingBlockSubgraph(false);
-    });
+    void fetchBlockSubgraph(blockEntityTypeIds, blockEntityId, fallbackBlockProperties).then(
+      (newBlockSubgraph) => {
+        setBlockSubgraph(newBlockSubgraph.subgraph);
+        setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
+        setFetchingBlockSubgraph(false);
+      },
+    );
   }, [
     fetchingBlockSubgraph,
     blockEntityId,
@@ -415,20 +383,11 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   ]);
 
   const refetchSubgraph = useCallback(async () => {
-    const newBlockSubgraph = await fetchBlockSubgraph(
-      blockEntityTypeIds,
-      blockEntityId,
-    );
+    const newBlockSubgraph = await fetchBlockSubgraph(blockEntityTypeIds, blockEntityId);
 
     setBlockSubgraph(newBlockSubgraph.subgraph);
     setUserPermissions(newBlockSubgraph.userPermissionsOnEntities);
-  }, [
-    blockEntityId,
-    blockEntityTypeIds,
-    fetchBlockSubgraph,
-    setBlockSubgraph,
-    setUserPermissions,
-  ]);
+  }, [blockEntityId, blockEntityTypeIds, fetchBlockSubgraph, setBlockSubgraph, setUserPermissions]);
 
   const functions = useMemo<RemoteBlockProps["graphCallbacks"]>(
     () => ({
@@ -438,35 +397,23 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
        * @see https://linear.app/hash/issue/H-2996
        */
       getEmbedBlock: fetchEmbedCode,
-      createEntity: async (
-        ...args: Parameters<GraphEmbedderMessageCallbacks["createEntity"]>
-      ) => {
-        const res = await createEntity(
-          args[0] as Parameters<CreateEntityMessageCallback>[0],
-        );
+      createEntity: async (...args: Parameters<GraphEmbedderMessageCallbacks["createEntity"]>) => {
+        const res = await createEntity(args[0] as Parameters<CreateEntityMessageCallback>[0]);
 
         await refetchSubgraph();
 
         return res;
       },
-      deleteEntity: async (
-        ...args: Parameters<GraphEmbedderMessageCallbacks["deleteEntity"]>
-      ) => {
-        const res = await deleteEntity(
-          args[0] as Parameters<ArchiveEntityMessageCallback>[0],
-        );
+      deleteEntity: async (...args: Parameters<GraphEmbedderMessageCallbacks["deleteEntity"]>) => {
+        const res = await deleteEntity(args[0] as Parameters<ArchiveEntityMessageCallback>[0]);
 
         await refetchSubgraph();
 
         return res;
       },
       getEntity,
-      uploadFile: async (
-        ...args: Parameters<GraphEmbedderMessageCallbacks["uploadFile"]>
-      ) => {
-        const res = await uploadFile(
-          args[0] as Parameters<UploadFileRequestCallback>[0],
-        );
+      uploadFile: async (...args: Parameters<GraphEmbedderMessageCallbacks["uploadFile"]>) => {
+        const res = await uploadFile(args[0] as Parameters<UploadFileRequestCallback>[0]);
 
         await refetchSubgraph();
 
@@ -479,9 +426,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
         return { data: null };
       },
       updateEntity: async (...args) => {
-        const res = await updateEntity(
-          args[0] as Parameters<UpdateEntityMessageCallback>[0],
-        );
+        const res = await updateEntity(args[0] as Parameters<UpdateEntityMessageCallback>[0]);
 
         await refetchSubgraph();
 
@@ -528,9 +473,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   //   );
   // }
 
-  const graphProperties = useMemo<Required<
-    BlockGraphProperties["graph"]
-  > | null>(
+  const graphProperties = useMemo<Required<BlockGraphProperties["graph"]> | null>(
     () =>
       blockSubgraph
         ? {
@@ -545,8 +488,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
                 userPermissions?.[blockEntityId] &&
                 !userPermissions[blockEntityId].update
               ),
-            blockEntitySubgraph:
-              blockSubgraph as unknown as Subgraph<EntityRootType>,
+            blockEntitySubgraph: blockSubgraph as unknown as Subgraph<EntityRootType>,
           }
         : null,
     [blockEntityId, blockSubgraph, readonly, userPermissions],

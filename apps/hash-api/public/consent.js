@@ -1,7 +1,5 @@
 function submitConsentForm(submitValue) {
-  var grantScope = document.querySelectorAll(
-    'input[name="grant_scope"]:checked',
-  );
+  var grantScope = document.querySelectorAll('input[name="grant_scope"]:checked');
   var grantScopeValues = [];
   for (var i = 0; i < grantScope.length; i++) {
     grantScopeValues.push(grantScope[i].value);

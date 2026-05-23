@@ -11,10 +11,7 @@ import type {
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const isTypeArchived = (
-  type:
-    | EntityTypeWithMetadata
-    | PropertyTypeWithMetadata
-    | DataTypeWithMetadata,
+  type: EntityTypeWithMetadata | PropertyTypeWithMetadata | DataTypeWithMetadata,
 ) => type.metadata.temporalVersioning.transactionTime.end.kind === "exclusive";
 
 export const isPageArchived = (pageEntity: Entity) => {
@@ -22,19 +19,13 @@ export const isPageArchived = (pageEntity: Entity) => {
     throw new Error("Not a page entity");
   }
 
-  const { archived } = simplifyProperties(
-    pageEntity.properties as PageProperties,
-  );
+  const { archived } = simplifyProperties(pageEntity.properties as PageProperties);
 
   return archived ?? false;
 };
 
 export const isItemArchived = (
-  item:
-    | Entity
-    | EntityTypeWithMetadata
-    | PropertyTypeWithMetadata
-    | DataTypeWithMetadata,
+  item: Entity | EntityTypeWithMetadata | PropertyTypeWithMetadata | DataTypeWithMetadata,
 ) => {
   if (isType(item)) {
     return isTypeArchived(item);

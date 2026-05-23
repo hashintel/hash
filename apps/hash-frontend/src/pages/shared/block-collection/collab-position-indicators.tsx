@@ -22,16 +22,13 @@ interface CollabPositionIndicatorsProps {
   blockEntityId: string | null;
 }
 
-export const CollabPositionIndicators: FunctionComponent<
-  CollabPositionIndicatorsProps
-> = ({ blockEntityId }) => {
+export const CollabPositionIndicators: FunctionComponent<CollabPositionIndicatorsProps> = ({
+  blockEntityId,
+}) => {
   const collabPositions = useCollabPositionContext();
 
   const relevantPresenceIndicators: CollabPosition[] = useMemo(
-    () =>
-      collabPositions.filter(
-        (collabPosition) => collabPosition.entityId === blockEntityId,
-      ),
+    () => collabPositions.filter((collabPosition) => collabPosition.entityId === blockEntityId),
     [blockEntityId, collabPositions],
   );
 
@@ -63,9 +60,7 @@ export const CollabPositionIndicators: FunctionComponent<
 
         {relevantPresenceIndicators.length > 3 && (
           <CollabPositionIndicator
-            backgroundColor={pickColor(
-              `+${relevantPresenceIndicators.length - 2}`,
-            )}
+            backgroundColor={pickColor(`+${relevantPresenceIndicators.length - 2}`)}
             title={`${relevantPresenceIndicators
               .slice(2)
               .map((presenceIndicator) => presenceIndicator.userDisplayName)
@@ -74,9 +69,7 @@ export const CollabPositionIndicators: FunctionComponent<
             <span
               style={{
                 fontSize: `${
-                  1 -
-                  0.2 *
-                    (relevantPresenceIndicators.length - 2).toString().length
+                  1 - 0.2 * (relevantPresenceIndicators.length - 2).toString().length
                 }em`,
               }}
             >{`+${relevantPresenceIndicators.length - 2}`}</span>

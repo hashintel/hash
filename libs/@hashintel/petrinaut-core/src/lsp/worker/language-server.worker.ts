@@ -27,10 +27,7 @@ import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 
 import type { SDCPN } from "../../types/sdcpn";
-import type {
-  MetricSessionData,
-  ScenarioSessionData,
-} from "../lib/generate-virtual-files";
+import type { MetricSessionData, ScenarioSessionData } from "../lib/generate-virtual-files";
 import type {
   ClientMessage,
   MetricSessionParams,
@@ -76,20 +73,16 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
   }
 
   const result = checkSDCPN(sdcpn, server);
-  const params: PublishDiagnosticsParams[] = result.itemDiagnostics.map(
-    (item) => {
-      const uri = filePathToUri(item.filePath);
-      // Use user content (without prefix) because diagnostic offsets have
-      // already been adjusted to be relative to user content by adjustDiagnostics.
-      const userContent = server!.getUserContent(item.filePath) ?? "";
-      return {
-        uri: uri ?? item.filePath,
-        diagnostics: item.diagnostics.map((diag) =>
-          serializeDiagnostic(diag, userContent),
-        ),
-      };
-    },
-  );
+  const params: PublishDiagnosticsParams[] = result.itemDiagnostics.map((item) => {
+    const uri = filePathToUri(item.filePath);
+    // Use user content (without prefix) because diagnostic offsets have
+    // already been adjusted to be relative to user content by adjustDiagnostics.
+    const userContent = server!.getUserContent(item.filePath) ?? "";
+    return {
+      uri: uri ?? item.filePath,
+      diagnostics: item.diagnostics.map((diag) => serializeDiagnostic(diag, userContent)),
+    };
+  });
 
   // Include diagnostics for all active scenario sessions
   for (const [, session] of scenarioSessions) {
@@ -109,9 +102,7 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
       const allDiags = [...syntacticDiags, ...semanticDiags];
       params.push({
         uri,
-        diagnostics: allDiags.map((diag) =>
-          serializeDiagnostic(diag, userContent),
-        ),
+        diagnostics: allDiags.map((diag) => serializeDiagnostic(diag, userContent)),
       });
     }
   }
@@ -134,9 +125,7 @@ function publishAllDiagnostics(sdcpn: SDCPN): void {
       const allDiags = [...syntacticDiags, ...semanticDiags];
       params.push({
         uri,
-        diagnostics: allDiags.map((diag) =>
-          serializeDiagnostic(diag, userContent),
-        ),
+        diagnostics: allDiags.map((diag) => serializeDiagnostic(diag, userContent)),
       });
     }
   }
@@ -161,10 +150,7 @@ function toSessionData(params: ScenarioSessionParams): ScenarioSessionData {
 }
 
 /** Sync scenario session files and publish diagnostics. */
-function syncScenarioSession(
-  sessionData: ScenarioSessionData,
-  sdcpn: SDCPN,
-): void {
+function syncScenarioSession(sessionData: ScenarioSessionData, sdcpn: SDCPN): void {
   if (!server) {
     return;
   }
@@ -281,9 +267,7 @@ workerRuntime.onMessage((data) => {
         const sessionData = toSessionData(data.params);
         if (!lastSDCPN) {
           // Update queued session data or add new entry
-          const idx = pendingScenarioInits.findIndex(
-            (s) => s.sessionId === sessionData.sessionId,
-          );
+          const idx = pendingScenarioInits.findIndex((s) => s.sessionId === sessionData.sessionId);
           if (idx >= 0) {
             pendingScenarioInits[idx] = sessionData;
           } else {
@@ -298,9 +282,7 @@ workerRuntime.onMessage((data) => {
       case "temp/scenario/kill": {
         const { sessionId } = data.params;
         scenarioSessions.delete(sessionId);
-        pendingScenarioInits = pendingScenarioInits.filter(
-          (s) => s.sessionId !== sessionId,
-        );
+        pendingScenarioInits = pendingScenarioInits.filter((s) => s.sessionId !== sessionId);
         server?.removeScenarioSession(sessionId);
         if (lastSDCPN) {
           publishAllDiagnostics(lastSDCPN);
@@ -321,9 +303,7 @@ workerRuntime.onMessage((data) => {
       case "temp/metric/didChange": {
         const sessionData = toMetricSessionData(data.params);
         if (!lastSDCPN) {
-          const idx = pendingMetricInits.findIndex(
-            (s) => s.sessionId === sessionData.sessionId,
-          );
+          const idx = pendingMetricInits.findIndex((s) => s.sessionId === sessionData.sessionId);
           if (idx >= 0) {
             pendingMetricInits[idx] = sessionData;
           } else {
@@ -338,9 +318,7 @@ workerRuntime.onMessage((data) => {
       case "temp/metric/kill": {
         const { sessionId } = data.params;
         metricSessions.delete(sessionId);
-        pendingMetricInits = pendingMetricInits.filter(
-          (s) => s.sessionId !== sessionId,
-        );
+        pendingMetricInits = pendingMetricInits.filter((s) => s.sessionId !== sessionId);
         server?.removeMetricSession(sessionId);
         if (lastSDCPN) {
           publishAllDiagnostics(lastSDCPN);
@@ -375,20 +353,14 @@ workerRuntime.onMessage((data) => {
         const userContent = server.getUserContent(filePath) ?? "";
         const offset = positionToOffset(userContent, data.params.position);
 
-        const completions = server.getCompletionsAtPosition(
-          filePath,
-          offset,
-          undefined,
-        );
+        const completions = server.getCompletionsAtPosition(filePath, offset, undefined);
 
-        const items: CompletionItem[] = (completions?.entries ?? []).map(
-          (entry) => ({
-            label: entry.name,
-            kind: toCompletionItemKind(entry.kind),
-            sortText: entry.sortText,
-            insertText: entry.insertText,
-          }),
-        );
+        const items: CompletionItem[] = (completions?.entries ?? []).map((entry) => ({
+          label: entry.name,
+          kind: toCompletionItemKind(entry.kind),
+          sortText: entry.sortText,
+          insertText: entry.insertText,
+        }));
 
         respond(id, { isIncomplete: false, items } satisfies CompletionList);
         break;
@@ -429,10 +401,7 @@ workerRuntime.onMessage((data) => {
               },
               range: Range.create(
                 offsetToPosition(userContent, info.textSpan.start),
-                offsetToPosition(
-                  userContent,
-                  info.textSpan.start + info.textSpan.length,
-                ),
+                offsetToPosition(userContent, info.textSpan.start + info.textSpan.length),
               ),
             }
           : null;

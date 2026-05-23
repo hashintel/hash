@@ -1,10 +1,7 @@
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import { IconButton } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -14,10 +11,7 @@ import { CircleInfoIcon } from "../../shared/icons/circle-info-icon";
 import { SourcesPopover } from "./sources-popover";
 import { ValueChip } from "./value-chip";
 import { defaultCellSx, VirtualizedTable } from "./virtualized-table";
-import {
-  isValueIncludedInFilter,
-  missingValueString,
-} from "./virtualized-table/header/filter";
+import { isValueIncludedInFilter, missingValueString } from "./virtualized-table/header/filter";
 import { useVirtualizedTableFilterState } from "./virtualized-table/use-filter-state";
 
 import type {
@@ -41,9 +35,7 @@ import type { SxProps, Theme } from "@mui/material";
 
 type FieldId = "status" | "claim" | "subject" | "object" | "createdAt";
 
-const generateColumns = (
-  includeStatusColumn: boolean,
-): VirtualizedTableColumn<FieldId>[] => [
+const generateColumns = (includeStatusColumn: boolean): VirtualizedTableColumn<FieldId>[] => [
   ...(includeStatusColumn
     ? [
         {
@@ -111,13 +103,7 @@ const cellSx = {
   },
 } as const satisfies SxProps<Theme>;
 
-const ClaimTextCell = ({
-  sources,
-  text,
-}: {
-  sources: SourceProvenance[];
-  text: string;
-}) => {
+const ClaimTextCell = ({ sources, text }: { sources: SourceProvenance[]; text: string }) => {
   const [showMetadataTooltip, setShowMetadataTooltip] = useState(false);
 
   const cellRef = useRef<HTMLDivElement>(null);
@@ -173,10 +159,8 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
         <TableCell
           sx={({ palette }) => ({
             ...cellSx,
-            background:
-              status === "Processing" ? palette.blue[15] : palette.gray[20],
-            color:
-              status === "Processing" ? palette.blue[70] : palette.common.black,
+            background: status === "Processing" ? palette.blue[15] : palette.gray[20],
+            color: status === "Processing" ? palette.blue[70] : palette.common.black,
           })}
         >
           <Stack direction="row" alignItems="center">
@@ -186,9 +170,7 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
               sx={{
                 borderRadius: "50%",
                 background: ({ palette }) =>
-                  status === "Processing"
-                    ? palette.blue[70]
-                    : palette.green[80],
+                  status === "Processing" ? palette.blue[70] : palette.green[80],
                 display: "inline-block",
                 minHeight: 6,
                 minWidth: 6,
@@ -225,8 +207,7 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
           <ValueChip
             sx={{
               ...typographySx,
-              color: ({ palette }) =>
-                subject.entityId ? palette.blue[70] : palette.common.black,
+              color: ({ palette }) => (subject.entityId ? palette.blue[70] : palette.common.black),
             }}
           >
             {row.subject.name}
@@ -259,17 +240,14 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
             <ValueChip
               sx={{
                 ...typographySx,
-                color: ({ palette }) =>
-                  object.entityId ? palette.blue[70] : palette.common.black,
+                color: ({ palette }) => (object.entityId ? palette.blue[70] : palette.common.black),
               }}
             >
               {object.name}
             </ValueChip>
           </Box>
         ) : (
-          <Typography sx={{ ...typographySx, fontStyle: "italic" }}>
-            None
-          </Typography>
+          <Typography sx={{ ...typographySx, fontStyle: "italic" }}>None</Typography>
         )}
       </TableCell>
       <TableCell sx={cellSx}>
@@ -289,10 +267,9 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
   );
 });
 
-const createRowContent: CreateVirtualizedRowContentFn<
-  ClaimResultRow,
-  FieldId
-> = (_index, row) => <TableRow row={row.data} />;
+const createRowContent: CreateVirtualizedRowContentFn<ClaimResultRow, FieldId> = (_index, row) => (
+  <TableRow row={row.data} />
+);
 
 type ClaimsTableProps = {
   claimsSubgraph: Subgraph<EntityRootType<HashEntity<Claim>>>;
@@ -306,12 +283,7 @@ type ClaimsTableProps = {
 };
 
 export const ClaimsTable = memo(
-  ({
-    claimsSubgraph,
-    includeStatusColumn,
-    onEntityClick,
-    proposedEntities,
-  }: ClaimsTableProps) => {
+  ({ claimsSubgraph, includeStatusColumn, onEntityClick, proposedEntities }: ClaimsTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
       fieldId: "createdAt",
       direction: "asc",
@@ -323,14 +295,10 @@ export const ClaimsTable = memo(
       unsortedRows,
     }: {
       filterDefinitions?:
-        | VirtualizedTableFilterDefinitionsByFieldId<
-            Exclude<FieldId, "claim" | "createdAt">
-          >
+        | VirtualizedTableFilterDefinitionsByFieldId<Exclude<FieldId, "claim" | "createdAt">>
         | undefined;
       initialFilterValues?:
-        | VirtualizedTableFilterValuesByFieldId<
-            Exclude<FieldId, "claim" | "createdAt">
-          >
+        | VirtualizedTableFilterValuesByFieldId<Exclude<FieldId, "claim" | "createdAt">>
         | undefined;
       unsortedRows: VirtualizedTableRow<ClaimResultRow>[];
     } = useMemo(() => {
@@ -365,8 +333,7 @@ export const ClaimsTable = memo(
         object: new Set<string>(),
       };
 
-      const claims =
-        getRoots<EntityRootType<HashEntity<Claim>>>(claimsSubgraph);
+      const claims = getRoots<EntityRootType<HashEntity<Claim>>>(claimsSubgraph);
 
       /**
        * We want a record of claimIds -> proposed entities to check when looping over claims,
@@ -377,13 +344,11 @@ export const ClaimsTable = memo(
       const claimToObjectRecord: Record<EntityId, EntityId> = {};
       for (const proposedEntity of proposedEntities ?? []) {
         for (const subjectClaimEntityId of proposedEntity.claims.isSubjectOf) {
-          claimToSubjectRecord[subjectClaimEntityId] =
-            proposedEntity.localEntityId;
+          claimToSubjectRecord[subjectClaimEntityId] = proposedEntity.localEntityId;
         }
 
         for (const objectClaimEntityId of proposedEntity.claims.isObjectOf) {
-          claimToObjectRecord[objectClaimEntityId] =
-            proposedEntity.localEntityId;
+          claimToObjectRecord[objectClaimEntityId] = proposedEntity.localEntityId;
         }
       }
 
@@ -398,16 +363,12 @@ export const ClaimsTable = memo(
          * We know we are only setting it as a string, so we can throw an error if it is not.
          */
         if (typeof claimText === "object") {
-          throw new Error(
-            `Claim text is not a string: ${JSON.stringify(claimText)}`,
-          );
+          throw new Error(`Claim text is not a string: ${JSON.stringify(claimText)}`);
         }
 
-        const objectText =
-          claim.properties["https://hash.ai/@h/types/property-type/object/"];
+        const objectText = claim.properties["https://hash.ai/@h/types/property-type/object/"];
 
-        const subjectText =
-          claim.properties["https://hash.ai/@h/types/property-type/subject/"];
+        const subjectText = claim.properties["https://hash.ai/@h/types/property-type/subject/"];
 
         const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
           claimsSubgraph,
@@ -420,10 +381,7 @@ export const ClaimsTable = memo(
         /**
          * The links will be created once there is an entity persisted in the graph to link the claim to
          */
-        for (const {
-          linkEntity,
-          rightEntity,
-        } of outgoingLinkAndTargetEntities) {
+        for (const { linkEntity, rightEntity } of outgoingLinkAndTargetEntities) {
           if (
             linkEntity[0]?.metadata.entityTypeIds.includes(
               systemLinkEntityTypes.hasObject.linkEntityTypeId,
@@ -453,11 +411,7 @@ export const ClaimsTable = memo(
           objectEntityId ??= claimToObjectRecord[claim.entityId];
         }
 
-        const status = includeStatusColumn
-          ? subjectEntityId
-            ? "Processed"
-            : "Processing"
-          : null;
+        const status = includeStatusColumn ? (subjectEntityId ? "Processed" : "Processing") : null;
 
         if (status) {
           /**
@@ -497,9 +451,7 @@ export const ClaimsTable = memo(
         rowData.push({
           id: claim.metadata.recordId.entityId,
           data: {
-            createdAt: new Date(
-              claim.metadata.provenance.createdAtDecisionTime,
-            ),
+            createdAt: new Date(claim.metadata.provenance.createdAtDecisionTime),
             claim: claimText,
             onEntityClick,
             sources: claim.metadata.provenance.edition.sources ?? [],
@@ -508,9 +460,7 @@ export const ClaimsTable = memo(
               entityId: subjectEntityId ?? null,
               name: subjectText,
             },
-            object: objectText
-              ? { entityId: objectEntityId ?? null, name: objectText }
-              : null,
+            object: objectText ? { entityId: objectEntityId ?? null, name: objectText } : null,
           },
         });
       }
@@ -531,9 +481,7 @@ export const ClaimsTable = memo(
       () =>
         unsortedRows
           .filter((row) => {
-            for (const [fieldId, currentFilterValue] of typedEntries(
-              filterValues,
-            )) {
+            for (const [fieldId, currentFilterValue] of typedEntries(filterValues)) {
               if (!currentFilterValue) {
                 return true;
               }
@@ -568,9 +516,8 @@ export const ClaimsTable = memo(
 
             if (fieldId === "subject" || fieldId === "object") {
               return (
-                base.data[fieldId]?.name.localeCompare(
-                  target.data[fieldId]?.name ?? "ZZZZZZ",
-                ) ?? (target.data[fieldId] ? 1 : 0)
+                base.data[fieldId]?.name.localeCompare(target.data[fieldId]?.name ?? "ZZZZZZ") ??
+                (target.data[fieldId] ? 1 : 0)
               );
             }
 
@@ -594,9 +541,7 @@ export const ClaimsTable = memo(
             }
 
             if (fieldId === "createdAt") {
-              return (
-                base.data[fieldId].getTime() - target.data[fieldId].getTime()
-              );
+              return base.data[fieldId].getTime() - target.data[fieldId].getTime();
             }
 
             return base.data[fieldId].localeCompare(target.data[fieldId]);
@@ -615,10 +560,7 @@ export const ClaimsTable = memo(
       }
     }, [outputContainerHeight]);
 
-    const columns = useMemo(
-      () => generateColumns(includeStatusColumn),
-      [includeStatusColumn],
-    );
+    const columns = useMemo(() => generateColumns(includeStatusColumn), [includeStatusColumn]);
 
     return (
       <VirtualizedTable

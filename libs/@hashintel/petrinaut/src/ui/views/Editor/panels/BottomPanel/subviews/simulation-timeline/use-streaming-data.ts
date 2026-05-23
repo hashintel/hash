@@ -1,10 +1,6 @@
 import { use, useEffect, useRef, useSyncExternalStore } from "react";
 
-import {
-  compileMetric,
-  type CompiledMetric,
-  type Metric,
-} from "@hashintel/petrinaut-core";
+import { compileMetric, type CompiledMetric, type Metric } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
@@ -47,15 +43,10 @@ interface StreamingStoreController {
   getLength: () => number;
   reset: (series: TimelineSeriesMeta[]) => void;
   resetCurrentSeries: () => void;
-  appendFrames: (
-    frames: TimelineFrame[],
-    extract: TimelineSeriesExtractor,
-  ) => void;
+  appendFrames: (frames: TimelineFrame[], extract: TimelineSeriesExtractor) => void;
 }
 
-function createStreamingStoreController(
-  series: TimelineSeriesMeta[],
-): StreamingStoreController {
+function createStreamingStoreController(series: TimelineSeriesMeta[]): StreamingStoreController {
   const listeners = new Set<() => void>();
   const store = createEmptyStore(series);
   let snapshot: StreamingStoreSnapshot = {

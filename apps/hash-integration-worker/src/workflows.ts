@@ -20,9 +20,7 @@ const commonConfig: ActivityOptions = {
 };
 
 const linearActivities =
-  proxyActivities<ReturnType<typeof createLinearIntegrationActivities>>(
-    commonConfig,
-  );
+  proxyActivities<ReturnType<typeof createLinearIntegrationActivities>>(commonConfig);
 
 export const syncLinearToWeb: SyncWebWorkflow = async (params) => {
   const { apiKey, webId, authentication, teamIds } = params;
@@ -37,15 +35,13 @@ export const syncLinearToWeb: SyncWebWorkflow = async (params) => {
       }),
     );
 
-  const users = linearActivities
-    .readLinearUsers({ apiKey })
-    .then((userEntities) =>
-      linearActivities.createPartialEntities({
-        authentication,
-        webId,
-        entities: userEntities,
-      }),
-    );
+  const users = linearActivities.readLinearUsers({ apiKey }).then((userEntities) =>
+    linearActivities.createPartialEntities({
+      authentication,
+      webId,
+      entities: userEntities,
+    }),
+  );
 
   const issues = teamIds.map((teamId) =>
     linearActivities.readAndCreateLinearIssues({
@@ -59,15 +55,13 @@ export const syncLinearToWeb: SyncWebWorkflow = async (params) => {
   await Promise.all([organization, users, ...issues]);
 };
 
-export const createHashEntityFromLinearData: CreateHashEntityFromLinearData =
-  async (params) => {
-    await linearActivities.createHashEntityFromLinearData(params);
-  };
+export const createHashEntityFromLinearData: CreateHashEntityFromLinearData = async (params) => {
+  await linearActivities.createHashEntityFromLinearData(params);
+};
 
-export const updateHashEntityFromLinearData: UpdateHashEntityFromLinearData =
-  async (params) => {
-    await linearActivities.updateHashEntityFromLinearData(params);
-  };
+export const updateHashEntityFromLinearData: UpdateHashEntityFromLinearData = async (params) => {
+  await linearActivities.updateHashEntityFromLinearData(params);
+};
 
 export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
   linearActivities.readLinearTeams({ apiKey });

@@ -7,9 +7,7 @@ import type { Organization, Team } from "@linear/sdk";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { SyncWebWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 
-export const listTeams = async (params: {
-  apiKey: string;
-}): Promise<Team[]> => {
+export const listTeams = async (params: { apiKey: string }): Promise<Team[]> => {
   const { apiKey } = params;
 
   const linearClient = new LinearClient({ apiKey });
@@ -23,9 +21,7 @@ export const listTeams = async (params: {
   return teams;
 };
 
-export const getOrganization = async (params: {
-  apiKey: string;
-}): Promise<Organization> => {
+export const getOrganization = async (params: { apiKey: string }): Promise<Organization> => {
   const { apiKey } = params;
 
   const linearClient = new LinearClient({ apiKey });
@@ -50,18 +46,15 @@ export class Linear {
     teamIds: string[];
   }): Promise<void> {
     // TODO: Implement error handling
-    await this.temporalClient.workflow.start<SyncWebWorkflow>(
-      "syncLinearToWeb",
-      {
-        taskQueue: "integration",
-        args: [
-          {
-            apiKey: this.apiKey,
-            ...params,
-          },
-        ],
-        workflowId: `syncLinearToWeb-${generateUuid()}`,
-      },
-    );
+    await this.temporalClient.workflow.start<SyncWebWorkflow>("syncLinearToWeb", {
+      taskQueue: "integration",
+      args: [
+        {
+          apiKey: this.apiKey,
+          ...params,
+        },
+      ],
+      workflowId: `syncLinearToWeb-${generateUuid()}`,
+    });
   }
 }

@@ -38,13 +38,7 @@ export const drawChipWithText = ({
 
   const textColorInner = textColor ?? theme.textBubble;
 
-  drawChip(
-    args,
-    left,
-    chipWidth,
-    bgColor ?? theme.bgBubble,
-    borderColor ?? "white",
-  );
+  drawChip(args, left, chipWidth, bgColor ?? theme.bgBubble, borderColor ?? "white");
 
   ctx.fillStyle = textColorInner;
   ctx.fillText(text, textLeft, yCenter);

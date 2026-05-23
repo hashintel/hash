@@ -39,11 +39,7 @@ describe("Org", () => {
   let createdOrg: Org;
   let shortname: string;
   it("can create an org", async () => {
-    createdOrg = await createTestOrg(
-      graphContext,
-      { actorId: systemAccountId },
-      "orgTest",
-    );
+    createdOrg = await createTestOrg(graphContext, { actorId: systemAccountId }, "orgTest");
 
     shortname = createdOrg.shortname;
   });
@@ -105,11 +101,7 @@ describe("Org", () => {
   it("can read the org roles", async () => {
     const authentication = { actorId: systemAccountId };
 
-    const orgRoleMap = await getWebRoles(
-      graphContext.graphApi,
-      authentication,
-      createdOrg.webId,
-    );
+    const orgRoleMap = await getWebRoles(graphContext.graphApi, authentication, createdOrg.webId);
 
     expect(Object.keys(orgRoleMap).length).toStrictEqual(2);
 

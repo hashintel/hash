@@ -1,10 +1,5 @@
 import type { AuthenticationContext } from "../authentication-context.js";
-import type {
-  Web,
-  WebId,
-  WebRole,
-  WebRoleId,
-} from "@blockprotocol/type-system";
+import type { Web, WebId, WebRole, WebRoleId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 
 /**
@@ -35,15 +30,13 @@ export const getWebByShortname = (
   authentication: AuthenticationContext,
   shortname: string,
 ): Promise<Web | null> =>
-  graphAPI
-    .getWebByShortname(authentication.actorId, shortname)
-    .then(({ data }) => {
-      const web = data as Web | null;
-      if (!web) {
-        return null;
-      }
-      return web;
-    });
+  graphAPI.getWebByShortname(authentication.actorId, shortname).then(({ data }) => {
+    const web = data as Web | null;
+    if (!web) {
+      return null;
+    }
+    return web;
+  });
 
 /**
  * Returns all roles assigned to the given web.

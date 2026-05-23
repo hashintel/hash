@@ -29,37 +29,37 @@ import type { ButtonProps } from "../../../../shared/ui";
 import type { WebId } from "@blockprotocol/type-system";
 import type { ChangeEventHandler, FunctionComponent } from "react";
 
-const AvatarButton = styled((props: ButtonProps) => (
-  <Button variant="tertiary" {...props} />
-))(({ theme }) => ({
-  background: "transparent",
-  borderWidth: 0,
-  padding: 0,
-  minHeight: "unset",
-  fontSize: 12,
-  [`.${buttonClasses.startIcon}`]: {
-    marginLeft: 0,
-    transition: theme.transitions.create("color"),
-    color: "#FFFFFF80",
-    padding: theme.spacing(0.75),
-    background: "#0E1114CC",
-    borderRadius: 4,
-  },
-  [`&.${buttonClasses.disabled}`]: {
+const AvatarButton = styled((props: ButtonProps) => <Button variant="tertiary" {...props} />)(
+  ({ theme }) => ({
     background: "transparent",
-    color: theme.palette.common.white,
-    opacity: 0.5,
-  },
-  color: theme.palette.common.white,
-  "&:hover": {
-    background: "transparent",
-    color: theme.palette.common.white,
+    borderWidth: 0,
+    padding: 0,
+    minHeight: "unset",
+    fontSize: 12,
     [`.${buttonClasses.startIcon}`]: {
-      color: theme.palette.common.white,
+      marginLeft: 0,
+      transition: theme.transitions.create("color"),
+      color: "#FFFFFF80",
+      padding: theme.spacing(0.75),
       background: "#0E1114CC",
+      borderRadius: 4,
     },
-  },
-}));
+    [`&.${buttonClasses.disabled}`]: {
+      background: "transparent",
+      color: theme.palette.common.white,
+      opacity: 0.5,
+    },
+    color: theme.palette.common.white,
+    "&:hover": {
+      background: "transparent",
+      color: theme.palette.common.white,
+      [`.${buttonClasses.startIcon}`]: {
+        color: theme.palette.common.white,
+        background: "#0E1114CC",
+      },
+    },
+  }),
+);
 
 const CloseIconButton = styled(IconButton)(({ theme }) => ({
   background: theme.palette.common.black,
@@ -81,8 +81,9 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   const coverImageInputRef = useRef<HTMLInputElement>(null);
   const avatarImageInputRef = useRef<HTMLInputElement>(null);
 
-  const { updateProfileAvatar, newAvatarImageUploading } =
-    useUpdateProfileAvatar({ profile: userProfile });
+  const { updateProfileAvatar, newAvatarImageUploading } = useUpdateProfileAvatar({
+    profile: userProfile,
+  });
 
   const [newCoverImageUploading, setNewCoverImageUploading] = useState(false);
 
@@ -93,30 +94,18 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
   const coverImageSrc = userProfile.hasCoverImage
-    ? getImageUrlFromEntityProperties(
-        userProfile.hasCoverImage.imageEntity.properties,
-      )
+    ? getImageUrlFromEntityProperties(userProfile.hasCoverImage.imageEntity.properties)
     : undefined;
 
   const avatarSrc = userProfile.hasAvatar
-    ? getImageUrlFromEntityProperties(
-        userProfile.hasAvatar.imageEntity.properties,
-      )
+    ? getImageUrlFromEntityProperties(userProfile.hasAvatar.imageEntity.properties)
     : undefined;
 
-  const handleChangeAvatarImage = useCallback(
-    () => avatarImageInputRef.current?.click(),
-    [],
-  );
+  const handleChangeAvatarImage = useCallback(() => avatarImageInputRef.current?.click(), []);
 
-  const handleChangeCoverImage = useCallback(
-    () => coverImageInputRef.current?.click(),
-    [],
-  );
+  const handleChangeCoverImage = useCallback(() => coverImageInputRef.current?.click(), []);
 
-  const handleAvatarImageFileUpload = useCallback<
-    ChangeEventHandler<HTMLInputElement>
-  >(
+  const handleAvatarImageFileUpload = useCallback<ChangeEventHandler<HTMLInputElement>>(
     // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (event) => {
@@ -133,9 +122,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
     [updateProfileAvatar, refetchUserProfile],
   );
 
-  const handleCoverImageFileUpload = useCallback<
-    ChangeEventHandler<HTMLInputElement>
-  >(
+  const handleCoverImageFileUpload = useCallback<ChangeEventHandler<HTMLInputElement>>(
     // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async (event) => {
@@ -157,8 +144,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           ...(existingCoverImageEntity
             ? {
                 fileEntityUpdateInput: {
-                  existingFileEntityId:
-                    existingCoverImageEntity.metadata.recordId.entityId,
+                  existingFileEntityId: existingCoverImageEntity.metadata.recordId.entityId,
                 },
               }
             : {
@@ -172,8 +158,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
           : {
               linkedEntityData: {
                 linkedEntityId: userProfile.entity.metadata.recordId.entityId,
-                linkEntityTypeId:
-                  systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
+                linkEntityTypeId: systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
               },
             }),
       });
@@ -185,21 +170,14 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
 
       setNewCoverImageUploading(false);
     },
-    [
-      existingCoverImageEntity,
-      refetchUserAndOrgs,
-      uploadFile,
-      userProfile,
-      refetchUserProfile,
-    ],
+    [existingCoverImageEntity, refetchUserAndOrgs, uploadFile, userProfile, refetchUserProfile],
   );
 
   const handleRemoveCoverImage = useCallback(async () => {
     if (userProfile.hasCoverImage) {
       await archiveEntity({
         data: {
-          entityId:
-            userProfile.hasCoverImage.linkEntity.metadata.recordId.entityId,
+          entityId: userProfile.hasCoverImage.linkEntity.metadata.recordId.entityId,
         },
       });
 
@@ -245,18 +223,12 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         sx={{
           border: "none",
           flexShrink: 0,
-          marginBottom: ({ spacing }) =>
-            `calc(-1 * (${avatarTopOffset}px + ${spacing(3)}))`,
+          marginBottom: ({ spacing }) => `calc(-1 * (${avatarTopOffset}px + ${spacing(3)}))`,
         }}
         onEditEmojiIconButtonDisabled={newAvatarImageUploading}
         onEditEmojiIconButtonClick={handleChangeAvatarImage}
       />
-      <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="flex-start"
-      >
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="flex-start">
         <Box
           component="input"
           type="file"
@@ -294,10 +266,7 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         )}
       </Box>
       <Box>
-        <CloseIconButton
-          onClick={onClose}
-          sx={{ marginTop: -2, marginRight: -2 }}
-        >
+        <CloseIconButton onClick={onClose} sx={{ marginTop: -2, marginRight: -2 }}>
           <XMarkRegularIcon />
         </CloseIconButton>
       </Box>

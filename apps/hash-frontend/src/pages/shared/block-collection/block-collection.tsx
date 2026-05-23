@@ -48,9 +48,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   const client = useApolloClient();
 
   const [portals, renderPortal, clearPortals] = usePortals();
-  const [debugging] = useLocalStorage<
-    { restartCollabButton?: boolean } | boolean
-  >({
+  const [debugging] = useLocalStorage<{ restartCollabButton?: boolean } | boolean>({
     key: "hash.internal.debugging",
     defaultValue: false,
     getInitialValueInEffect: false,
@@ -198,11 +196,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
       {/**
        * @todo position this better
        */}
-      {(
-        typeof debugging === "boolean"
-          ? debugging
-          : debugging.restartCollabButton
-      ) ? (
+      {(typeof debugging === "boolean" ? debugging : debugging.restartCollabButton) ? (
         <Button
           sx={{
             position: "fixed",

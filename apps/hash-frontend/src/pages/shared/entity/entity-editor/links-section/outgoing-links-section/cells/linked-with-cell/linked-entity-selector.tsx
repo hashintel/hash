@@ -1,12 +1,5 @@
 import { Stack, Typography } from "@mui/material";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
@@ -21,11 +14,7 @@ import { EntitySelector } from "../../../../../../entity-selector";
 import { WorkspaceContext } from "../../../../../../workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
 
-import type {
-  EntityId,
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityId, EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { PaperProps } from "@mui/material";
 
@@ -53,11 +42,7 @@ const FileCreationPane = (props: PaperProps) => {
   return (
     <AutocompleteDropdown {...props} className={GRID_CLICK_IGNORE_CLASS}>
       <Stack spacing={2}>
-        <FileUploadDropzone
-          image={isImage}
-          multiple={false}
-          onFilesProvided={onFilesProvided}
-        />
+        <FileUploadDropzone image={isImage} multiple={false} onFilesProvided={onFilesProvided} />
         <Button onClick={close} sx={{ width: "100%" }} variant="tertiary">
           <ArrowLeftIcon sx={{ fontSize: 14, color: "gray.50", mr: 0.6 }} />
           <Typography variant="smallTextLabels" color="gray.50">
@@ -106,9 +91,7 @@ export const LinkedEntitySelector = ({
 
     /** @todo this should be replaced with a "new entity modal" or something else */
     void window.open(
-      `/new/entity?entity-type-id=${encodeURIComponent(
-        expectedEntityTypes[0].$id,
-      )}`,
+      `/new/entity?entity-type-id=${encodeURIComponent(expectedEntityTypes[0].$id)}`,
       "_blank",
     );
   };

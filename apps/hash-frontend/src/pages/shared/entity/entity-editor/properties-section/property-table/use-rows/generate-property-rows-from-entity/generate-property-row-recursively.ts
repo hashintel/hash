@@ -76,12 +76,9 @@ export const generatePropertyRowRecursively = ({
   validationReport: MinimalEntityValidationReport | null;
 }): PropertyRow => {
   const propertyTypeId =
-    "$ref" in propertyRefSchema
-      ? propertyRefSchema.$ref
-      : propertyRefSchema.items.$ref;
+    "$ref" in propertyRefSchema ? propertyRefSchema.$ref : propertyRefSchema.items.$ref;
 
-  const propertyType =
-    closedMultiEntityTypesDefinitions.propertyTypes[propertyTypeId];
+  const propertyType = closedMultiEntityTypesDefinitions.propertyTypes[propertyTypeId];
 
   if (!propertyType) {
     throw new Error(`Property type ${propertyTypeId} not found in definitions`);
@@ -93,10 +90,7 @@ export const generatePropertyRowRecursively = ({
      */
     isArray: isPropertyTypeArray,
     expectedTypes,
-  } = getExpectedTypesOfPropertyType(
-    propertyType,
-    closedMultiEntityTypesDefinitions,
-  );
+  } = getExpectedTypesOfPropertyType(propertyType, closedMultiEntityTypesDefinitions);
 
   /**
    * Whether the entity type has specified that it expects multiple instances of whatever value this property expects.
@@ -140,8 +134,7 @@ export const generatePropertyRowRecursively = ({
             subPropertyTypeBaseUrl,
           ] as BaseUrl[],
           entity,
-          requiredPropertyTypes:
-            (firstOneOf.required as BaseUrl[] | undefined) ?? [],
+          requiredPropertyTypes: (firstOneOf.required as BaseUrl[] | undefined) ?? [],
           depth: depth + 1,
           propertyRefSchema: subPropertyRefSchema,
           validationReport,
@@ -184,8 +177,7 @@ export const generatePropertyRowRecursively = ({
   }
 
   const validationError = validationReport?.errors.find(
-    (report) =>
-      JSON.stringify(report.propertyPath) === JSON.stringify(propertyKeyChain),
+    (report) => JSON.stringify(report.propertyPath) === JSON.stringify(propertyKeyChain),
   );
 
   return {

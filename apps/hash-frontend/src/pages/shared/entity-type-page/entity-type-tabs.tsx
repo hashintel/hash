@@ -24,21 +24,16 @@ interface EntityTypeTabContextValue {
   setTab: (tab: EntityTypeTab) => void;
 }
 
-const EntityTypeTabContext = createContext<EntityTypeTabContextValue | null>(
-  null,
-);
+const EntityTypeTabContext = createContext<EntityTypeTabContextValue | null>(null);
 
 export const EntityTypeTabProvider = ({
   children,
   isInSlide,
 }: PropsWithChildren<{ isInSlide: boolean }>) => {
   const router = useRouter();
-  const routerTab =
-    (router.query.tab as EntityTypeTab | undefined) ?? defaultTab;
+  const routerTab = (router.query.tab as EntityTypeTab | undefined) ?? defaultTab;
 
-  const [tab, setTab] = useState<EntityTypeTab>(
-    isInSlide ? defaultTab : routerTab,
-  );
+  const [tab, setTab] = useState<EntityTypeTab>(isInSlide ? defaultTab : routerTab);
 
   useEffect(() => {
     if (isInSlide) {
@@ -53,18 +48,14 @@ export const EntityTypeTabProvider = ({
   const contextValue = useMemo(() => ({ tab, setTab }), [tab, setTab]);
 
   return (
-    <EntityTypeTabContext.Provider value={contextValue}>
-      {children}
-    </EntityTypeTabContext.Provider>
+    <EntityTypeTabContext.Provider value={contextValue}>{children}</EntityTypeTabContext.Provider>
   );
 };
 
 export const useEntityTypeTab = () => {
   const context = useContext(EntityTypeTabContext);
   if (!context) {
-    throw new Error(
-      "useEntityTypeTab must be used within an EntityTypeTabProvider",
-    );
+    throw new Error("useEntityTypeTab must be used within an EntityTypeTabProvider");
   }
   return context;
 };
@@ -103,9 +94,7 @@ export const EntityTypeTabs = ({
       <Tabs value={tab}>
         <TabLink
           value="definition"
-          href={
-            isDraft ? router.asPath : getTabUrl("definition", entityType.$id)
-          }
+          href={isDraft ? router.asPath : getTabUrl("definition", entityType.$id)}
           onClick={
             isInSlide
               ? (event) => {
@@ -150,18 +139,12 @@ export const EntityTypeTabs = ({
                   href={
                     isFile
                       ? getTabUrl("upload", entityType.$id)
-                      : `/new/entity?entity-type-id=${encodeURIComponent(
-                          entityType.$id,
-                        )}`
+                      : `/new/entity?entity-type-id=${encodeURIComponent(entityType.$id)}`
                   }
                   onClick={() => {
                     closeSlideStack();
                   }}
-                  label={
-                    isFile
-                      ? `Add new ${isImage ? "image" : "file"}`
-                      : "Create new entity"
-                  }
+                  label={isFile ? `Add new ${isImage ? "image" : "file"}` : "Create new entity"}
                   sx={(theme) => ({
                     ml: "auto",
                     color: "inherit",

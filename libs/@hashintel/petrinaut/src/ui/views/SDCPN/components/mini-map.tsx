@@ -32,9 +32,7 @@ const SELECTED_STROKE_WIDTH = 12;
  */
 const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // MiniMapNodeProps doesn't include node data, so we look it up from the store
-  const node = useStore(
-    (state) => state.nodeLookup.get(id) as NodeType | undefined,
-  );
+  const node = useStore((state) => state.nodeLookup.get(id) as NodeType | undefined);
 
   if (!node) {
     return null;
@@ -84,14 +82,11 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
  * Positions at top-right, offset by properties panel width when visible.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const { hasSelection, propertiesPanelWidth, isPanelAnimating } =
-    use(EditorContext);
+  const { hasSelection, propertiesPanelWidth, isPanelAnimating } = use(EditorContext);
 
   const isPropertiesPanelVisible = hasSelection;
   const minimapOffset = 12;
-  const panelOffset = isPropertiesPanelVisible
-    ? propertiesPanelWidth + PANEL_MARGIN
-    : 0;
+  const panelOffset = isPropertiesPanelVisible ? propertiesPanelWidth + PANEL_MARGIN : 0;
 
   return (
     <ReactFlowMiniMap

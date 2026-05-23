@@ -2,10 +2,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 
 import { customColors } from "@hashintel/design-system/theme";
 
-import {
-  getCellHorizontalPadding,
-  getYCenter,
-} from "../../../../components/grid/utils";
+import { getCellHorizontalPadding, getYCenter } from "../../../../components/grid/utils";
 import { drawChipWithText } from "../../../../components/grid/utils/draw-chip-with-text";
 import { drawTextWithIcon } from "../../../../components/grid/utils/draw-text-with-icon";
 import { formatValue } from "../../format-value";
@@ -29,8 +26,7 @@ export interface EntitiesTableValueCellProps {
 
 export type EntitiesTableValueCell = CustomCell<EntitiesTableValueCellProps>;
 
-export type EntitiesTableValueCellEditorComponent =
-  ProvideEditorComponent<EntitiesTableValueCell>;
+export type EntitiesTableValueCellEditorComponent = ProvideEditorComponent<EntitiesTableValueCell>;
 
 export const createRenderEntitiesTableValueCell = ({
   firstColumnLeftPadding,
@@ -75,11 +71,7 @@ export const createRenderEntitiesTableValueCell = ({
         iconSize: 16,
       });
     } else {
-      const valueParts = formatValue(
-        value,
-        propertyMetadata,
-        dataTypeDefinitions,
-      );
+      const valueParts = formatValue(value, propertyMetadata, dataTypeDefinitions);
 
       let textOffset = left;
       for (const [index, part] of valueParts.entries()) {
@@ -89,8 +81,7 @@ export const createRenderEntitiesTableValueCell = ({
         const additionalRightPadding =
           part.type === "leftLabel"
             ? 0.5
-            : part.type === "value" &&
-                valueParts[index + 1]?.type === "rightLabel"
+            : part.type === "value" && valueParts[index + 1]?.type === "rightLabel"
               ? 0.5
               : 0;
 

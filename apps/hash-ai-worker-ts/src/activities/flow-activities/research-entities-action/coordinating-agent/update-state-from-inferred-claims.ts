@@ -2,17 +2,11 @@ import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 
 import { proposeEntitiesFromClaims } from "../../shared/propose-entities-from-claims.js";
 import { deduplicateClaims } from "../shared/deduplicate-claims.js";
-import {
-  deduplicateEntities,
-  type DuplicateReport,
-} from "../shared/deduplicate-entities.js";
+import { deduplicateEntities, type DuplicateReport } from "../shared/deduplicate-entities.js";
 
 import type { Claim } from "../../shared/claims.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
+import type { CoordinatingAgentInput, CoordinatingAgentState } from "../shared/coordinators.js";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -22,35 +16,31 @@ const adjustDuplicates = (params: {
 }) => {
   const { duplicates, entityIdsWhichCannotBeDeduplicated } = params;
 
-  const adjustedDuplicates = duplicates.map<DuplicateReport>(
-    ({ canonicalId, duplicateIds }) => {
-      if (entityIdsWhichCannotBeDeduplicated.includes(canonicalId)) {
-        return { canonicalId, duplicateIds };
-      }
-
-      const existingEntityIdMarkedAsDuplicate = duplicateIds.find((id) =>
-        entityIdsWhichCannotBeDeduplicated.includes(id),
-      );
-
-      /**
-       * @todo: this doesn't account for when there are duplicates
-       * detected in the existing entities.
-       */
-      if (existingEntityIdMarkedAsDuplicate) {
-        return {
-          canonicalId: existingEntityIdMarkedAsDuplicate,
-          duplicateIds: [
-            ...duplicateIds.filter(
-              (id) => id !== existingEntityIdMarkedAsDuplicate,
-            ),
-            canonicalId,
-          ],
-        };
-      }
-
+  const adjustedDuplicates = duplicates.map<DuplicateReport>(({ canonicalId, duplicateIds }) => {
+    if (entityIdsWhichCannotBeDeduplicated.includes(canonicalId)) {
       return { canonicalId, duplicateIds };
-    },
-  );
+    }
+
+    const existingEntityIdMarkedAsDuplicate = duplicateIds.find((id) =>
+      entityIdsWhichCannotBeDeduplicated.includes(id),
+    );
+
+    /**
+     * @todo: this doesn't account for when there are duplicates
+     * detected in the existing entities.
+     */
+    if (existingEntityIdMarkedAsDuplicate) {
+      return {
+        canonicalId: existingEntityIdMarkedAsDuplicate,
+        duplicateIds: [
+          ...duplicateIds.filter((id) => id !== existingEntityIdMarkedAsDuplicate),
+          canonicalId,
+        ],
+      };
+    }
+
+    return { canonicalId, duplicateIds };
+  });
 
   return adjustedDuplicates;
 };
@@ -69,8 +59,7 @@ export const updateStateFromInferredClaims = async (params: {
   newEntitySummaries: LocalEntitySummary[];
   workerIdentifiers: WorkerIdentifiers;
 }) => {
-  const { input, state, newEntitySummaries, newClaims, workerIdentifiers } =
-    params;
+  const { input, state, newEntitySummaries, newClaims, workerIdentifiers } = params;
 
   /**
    * Step 1: Deduplicate entities (if necessary)
@@ -112,35 +101,25 @@ export const updateStateFromInferredClaims = async (params: {
       ...adjustedDuplicates.map(({ canonicalId }) => canonicalId),
     );
 
-    state.inferredClaims = [...state.inferredClaims, ...newClaims].map(
-      (claim) => {
-        const { subjectEntityLocalId, objectEntityLocalId } = claim;
-        const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
-          duplicateIds.includes(subjectEntityLocalId),
-        );
+    state.inferredClaims = [...state.inferredClaims, ...newClaims].map((claim) => {
+      const { subjectEntityLocalId, objectEntityLocalId } = claim;
+      const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
+        duplicateIds.includes(subjectEntityLocalId),
+      );
 
-        const objectDuplicate = objectEntityLocalId
-          ? duplicates.find(({ duplicateIds }) =>
-              duplicateIds.includes(objectEntityLocalId),
-            )
-          : undefined;
+      const objectDuplicate = objectEntityLocalId
+        ? duplicates.find(({ duplicateIds }) => duplicateIds.includes(objectEntityLocalId))
+        : undefined;
 
-        return {
-          ...claim,
-          subjectEntityLocalId:
-            subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
-          objectEntityLocalId:
-            objectDuplicate?.canonicalId ?? objectEntityLocalId,
-        };
-      },
-    );
+      return {
+        ...claim,
+        subjectEntityLocalId: subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
+        objectEntityLocalId: objectDuplicate?.canonicalId ?? objectEntityLocalId,
+      };
+    });
 
-    state.entitySummaries = [
-      ...state.entitySummaries,
-      ...newEntitySummaries,
-    ].filter(
-      ({ localId }) =>
-        !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
+    state.entitySummaries = [...state.entitySummaries, ...newEntitySummaries].filter(
+      ({ localId }) => !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
     );
 
     /**
@@ -208,24 +187,20 @@ export const updateStateFromInferredClaims = async (params: {
   /**
    * Given the affected entities, we also need the summaries of entities they may link to.
    */
-  const potentialLinkTargetEntitySummaries = state.entitySummaries.filter(
-    ({ localId }) =>
-      relevantClaims.some(
-        ({ objectEntityLocalId }) => localId === objectEntityLocalId,
-      ),
+  const potentialLinkTargetEntitySummaries = state.entitySummaries.filter(({ localId }) =>
+    relevantClaims.some(({ objectEntityLocalId }) => localId === objectEntityLocalId),
   );
 
   if (relevantClaims.length) {
-    const { proposedEntities: newProposedEntities } =
-      await proposeEntitiesFromClaims({
-        dereferencedEntityTypes: input.allDereferencedEntityTypesById,
-        entitySummaries,
-        existingEntitySummaries: input.existingEntitySummaries,
-        existingProposals: state.proposedEntities,
-        claims: relevantClaims,
-        potentialLinkTargetEntitySummaries,
-        workerIdentifiers,
-      });
+    const { proposedEntities: newProposedEntities } = await proposeEntitiesFromClaims({
+      dereferencedEntityTypes: input.allDereferencedEntityTypesById,
+      entitySummaries,
+      existingEntitySummaries: input.existingEntitySummaries,
+      existingProposals: state.proposedEntities,
+      claims: relevantClaims,
+      potentialLinkTargetEntitySummaries,
+      workerIdentifiers,
+    });
 
     /**
      * Step 4. Update the state with the new and updated proposals

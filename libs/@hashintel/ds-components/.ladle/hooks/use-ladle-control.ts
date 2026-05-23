@@ -9,10 +9,7 @@ const isUpdater = <T>(
   value: T | ((prev: T | undefined) => T) | undefined,
 ): value is (prev: T | undefined) => T => typeof value === "function";
 
-export function useLadleControl<T>(
-  paramName: string,
-  initialValue?: T | (() => T),
-) {
+export function useLadleControl<T>(paramName: string, initialValue?: T | (() => T)) {
   const {
     globalState: { control: state },
     dispatch,
@@ -29,9 +26,7 @@ export function useLadleControl<T>(
           ...state,
           [paramName]: {
             ...state[paramName],
-            value: isLazyInitializer(initialValue)
-              ? initialValue()
-              : initialValue,
+            value: isLazyInitializer(initialValue) ? initialValue() : initialValue,
           },
         },
       });

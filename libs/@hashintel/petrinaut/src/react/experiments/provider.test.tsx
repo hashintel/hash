@@ -11,10 +11,7 @@ import {
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
 
-import {
-  NotificationsContext,
-  type AddNotificationInput,
-} from "../notifications/context";
+import { NotificationsContext, type AddNotificationInput } from "../notifications/context";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { ExperimentsContext, type ExperimentsContextValue } from "./context";
 import { ExperimentsProvider } from "./provider";
@@ -33,9 +30,7 @@ const EMPTY_SDCPN: SDCPN = {
   differentialEquations: [],
 };
 
-function makeProgress(
-  overrides: Partial<MonteCarloWorkerProgress> = {},
-): MonteCarloWorkerProgress {
+function makeProgress(overrides: Partial<MonteCarloWorkerProgress> = {}): MonteCarloWorkerProgress {
   return {
     activeRuns: 1,
     advancedRuns: 1,
@@ -79,18 +74,13 @@ class FakeMonteCarloWorker {
   });
 
   terminated = false;
-  #listeners = new Set<
-    (event: MessageEvent<MonteCarloToMainMessage>) => void
-  >();
+  #listeners = new Set<(event: MessageEvent<MonteCarloToMainMessage>) => void>();
 
   private get listeners() {
     return this.#listeners;
   }
 
-  addEventListener(
-    type: string,
-    listener: (event: MessageEvent<MonteCarloToMainMessage>) => void,
-  ) {
+  addEventListener(type: string, listener: (event: MessageEvent<MonteCarloToMainMessage>) => void) {
     if (type === "message") {
       this.#listeners.add(listener);
     }
@@ -161,10 +151,7 @@ const TestWrapper = ({
     <SDCPNContext.Provider value={sdcpnContextValue}>
       <ExperimentsProvider
         workerFactory={() =>
-          worker as WorkerLike<
-            MonteCarloToWorkerMessage,
-            MonteCarloToMainMessage
-          >
+          worker as WorkerLike<MonteCarloToWorkerMessage, MonteCarloToMainMessage>
         }
       >
         <ExperimentsContextConsumer onContextValue={onContextValue} />
@@ -231,10 +218,7 @@ describe("ExperimentsProvider", () => {
       experimentId = await createPromise;
     });
 
-    expect(worker.sent.map((message) => message.type)).toEqual([
-      "init",
-      "start",
-    ]);
+    expect(worker.sent.map((message) => message.type)).toEqual(["init", "start"]);
     expect(getValue().experiments).toHaveLength(1);
     expect(getValue().selectedExperimentId).toBe(experimentId);
     expect(getValue().selectedExperiment?.status).toBe("running");
@@ -308,9 +292,7 @@ describe("ExperimentsProvider", () => {
       );
       expect(beforeUnloadCall).toBeDefined();
 
-      const beforeUnloadHandler = beforeUnloadCall![1] as (
-        event: BeforeUnloadEvent,
-      ) => void;
+      const beforeUnloadHandler = beforeUnloadCall![1] as (event: BeforeUnloadEvent) => void;
       const beforeUnloadEvent = new Event("beforeunload", {
         cancelable: true,
       }) as BeforeUnloadEvent;
@@ -333,10 +315,7 @@ describe("ExperimentsProvider", () => {
         message: "Blocking experiment complete",
         tone: "success",
       });
-      expect(removeEventListenerSpy).toHaveBeenCalledWith(
-        "beforeunload",
-        beforeUnloadHandler,
-      );
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("beforeunload", beforeUnloadHandler);
     } finally {
       renderResult.unmount();
       addEventListenerSpy.mockRestore();

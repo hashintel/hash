@@ -49,8 +49,7 @@ export type TwitterAccountOutgoingLinksByLinkEntityTypeId = {};
  */
 export type TwitterAccountProperties = ServiceAccountProperties & {};
 
-export type TwitterAccountPropertiesWithMetadata =
-  ServiceAccountPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type TwitterAccountPropertiesWithMetadata = ServiceAccountPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

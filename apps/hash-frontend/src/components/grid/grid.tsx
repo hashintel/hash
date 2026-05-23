@@ -1,9 +1,5 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-import {
-  CompactSelection,
-  DataEditor,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
+import { CompactSelection, DataEditor, GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, useTheme } from "@mui/material";
 import { uniqueId } from "lodash";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -12,10 +8,7 @@ import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 
 import { getCellHorizontalPadding } from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
-import {
-  ConversionMenu,
-  type ConversionTargetsByColumnKey,
-} from "./utils/conversion-menu";
+import { ConversionMenu, type ConversionTargetsByColumnKey } from "./utils/conversion-menu";
 import { customGridIcons } from "./utils/custom-grid-icons";
 import { InteractableManager } from "./utils/interactable-manager";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
@@ -40,10 +33,7 @@ import type {
   Theme,
 } from "@glideapps/glide-data-grid";
 import type { PopperProps } from "@mui/material";
-import type {
-  Instance as PopperInstance,
-  VirtualElement,
-} from "@popperjs/core";
+import type { Instance as PopperInstance, VirtualElement } from "@popperjs/core";
 import type { MutableRefObject, Ref } from "react";
 
 export type { ConversionTargetsByColumnKey };
@@ -191,37 +181,28 @@ export const Grid = <
     return () => InteractableManager.deleteInteractables(tableId);
   }, []);
 
-  const [localSort, setLocalSort] = useState<GridSort<Sortable> | undefined>(
-    () => {
-      const firstSortableColumn = columns.find((column) =>
-        sortableColumns?.includes(column.id as Sortable),
-      );
+  const [localSort, setLocalSort] = useState<GridSort<Sortable> | undefined>(() => {
+    const firstSortableColumn = columns.find((column) =>
+      sortableColumns?.includes(column.id as Sortable),
+    );
 
-      if (firstSortableColumn) {
-        return {
-          columnKey: firstSortableColumn.id as Sortable,
-          direction: "asc",
-        };
-      }
-    },
-  );
+    if (firstSortableColumn) {
+      return {
+        columnKey: firstSortableColumn.id as Sortable,
+        direction: "asc",
+      };
+    }
+  });
 
   const sort = externalSort ?? localSort;
   const setSort = externalSetSort ?? setLocalSort;
 
   if (initialSort && externalSort) {
-    throw new Error(
-      "initialSort should not be provided when sort is externally managed",
-    );
+    throw new Error("initialSort should not be provided when sort is externally managed");
   }
 
-  if (
-    (externalSort && !externalSetSort) ||
-    (!externalSort && externalSetSort)
-  ) {
-    throw new Error(
-      "Either both or neither of sort and setSort should be provided",
-    );
+  if ((externalSort && !externalSetSort) || (!externalSort && externalSetSort)) {
+    throw new Error("Either both or neither of sort and setSort should be provided");
   }
 
   useEffect(() => {
@@ -289,21 +270,18 @@ export const Grid = <
     tableId: tableIdRef.current,
   });
 
-  const handleHeaderClicked = useCallback(
-    (colIndex: number, event: HeaderClickedEventArgs) => {
-      const columnHeaderPath: ColumnHeaderPath = `${tableIdRef.current}-${colIndex}`;
+  const handleHeaderClicked = useCallback((colIndex: number, event: HeaderClickedEventArgs) => {
+    const columnHeaderPath: ColumnHeaderPath = `${tableIdRef.current}-${colIndex}`;
 
-      /**
-       * When the header is clicked, we need to notify the interactable manager
-       * so that the relevant interactables can be notified of the click.
-       */
-      InteractableManager.handleClick(columnHeaderPath, {
-        posX: event.localEventX,
-        posY: event.localEventY,
-      });
-    },
-    [],
-  );
+    /**
+     * When the header is clicked, we need to notify the interactable manager
+     * so that the relevant interactables can be notified of the click.
+     */
+    InteractableManager.handleClick(columnHeaderPath, {
+      posX: event.localEventX,
+      posY: event.localEventY,
+    });
+  }, []);
 
   const filteredRows = useMemo<Row[] | undefined>(() => {
     if (externallyManagedFiltering) {
@@ -386,9 +364,7 @@ export const Grid = <
     [palette],
   );
 
-  const getRowThemeOverride = useCallback<
-    NonNullable<DataEditorProps["getRowThemeOverride"]>
-  >(
+  const getRowThemeOverride = useCallback<NonNullable<DataEditorProps["getRowThemeOverride"]>>(
     (row) => {
       if (row === hoveredRow) {
         return {
@@ -422,21 +398,16 @@ export const Grid = <
     [onVisibleRegionChanged],
   );
 
-  const handleColumnResize = useCallback(
-    (column: LibraryGridColumn, newSize: number) => {
-      setColumnSizes((prevColumnSizes) => {
-        return {
-          ...prevColumnSizes,
-          [column.id]: newSize,
-        };
-      });
-    },
-    [],
-  );
+  const handleColumnResize = useCallback((column: LibraryGridColumn, newSize: number) => {
+    setColumnSizes((prevColumnSizes) => {
+      return {
+        ...prevColumnSizes,
+        [column.id]: newSize,
+      };
+    });
+  }, []);
 
-  const resizedColumns = useMemo<
-    (SizedGridColumn & { width: number })[]
-  >(() => {
+  const resizedColumns = useMemo<(SizedGridColumn & { width: number })[]>(() => {
     return columns.map((col) => {
       return { ...col, width: columnSizes[col.id] ?? col.width };
     });
@@ -465,8 +436,7 @@ export const Grid = <
     if (!scrollWrapperRef.current) {
       const setScrollWrapperState = () => {
         if (wrapperRef.current) {
-          const mountedScrollWrapper =
-            wrapperRef.current.querySelector(".dvn-scroller");
+          const mountedScrollWrapper = wrapperRef.current.querySelector(".dvn-scroller");
 
           if (mountedScrollWrapper) {
             scrollWrapperRef.current = mountedScrollWrapper as HTMLDivElement;
@@ -487,9 +457,7 @@ export const Grid = <
   const openFilterColumn = useMemo(
     () =>
       openFilterColumnKey
-        ? columnFilters?.find(
-            ({ columnKey }) => columnKey === openFilterColumnKey,
-          )
+        ? columnFilters?.find(({ columnKey }) => columnKey === openFilterColumnKey)
         : undefined,
     [openFilterColumnKey, columnFilters],
   );
@@ -501,9 +469,7 @@ export const Grid = <
           return emptyRect;
         }
 
-        const columnIndex = columns.findIndex(
-          ({ id }) => id === openFilterColumnKey,
-        );
+        const columnIndex = columns.findIndex(({ id }) => id === openFilterColumnKey);
 
         /**
          * We need to obtain the most recent version of the interactable,
@@ -522,11 +488,9 @@ export const Grid = <
         const { y: wrapperYPosition, x: wrapperXPosition } =
           wrapperRef.current!.getBoundingClientRect();
 
-        const left =
-          wrapperXPosition + interactable.posRelativeToVisibleGridArea.left;
+        const left = wrapperXPosition + interactable.posRelativeToVisibleGridArea.left;
 
-        const top =
-          interactable.posRelativeToVisibleGridArea.top + wrapperYPosition;
+        const top = interactable.posRelativeToVisibleGridArea.top + wrapperYPosition;
 
         return {
           width: 0,
@@ -550,9 +514,7 @@ export const Grid = <
           return emptyRect;
         }
 
-        const columnIndex = columns.findIndex(
-          ({ id }) => id === openConvertColumnKey,
-        );
+        const columnIndex = columns.findIndex(({ id }) => id === openConvertColumnKey);
 
         /**
          * We need to obtain the most recent version of the interactable,
@@ -571,11 +533,9 @@ export const Grid = <
         const { y: wrapperYPosition, x: wrapperXPosition } =
           wrapperRef.current!.getBoundingClientRect();
 
-        const left =
-          wrapperXPosition + interactable.posRelativeToVisibleGridArea.left;
+        const left = wrapperXPosition + interactable.posRelativeToVisibleGridArea.left;
 
-        const top =
-          interactable.posRelativeToVisibleGridArea.top + wrapperYPosition;
+        const top = interactable.posRelativeToVisibleGridArea.top + wrapperYPosition;
 
         return {
           width: 0,
@@ -627,9 +587,7 @@ export const Grid = <
       />
       {conversionTargetsByColumnKey && onConversionTargetSelected && (
         <ConversionMenu
-          activeConversion={
-            activeConversions?.[openConvertColumnKey as BaseUrl] ?? null
-          }
+          activeConversion={activeConversions?.[openConvertColumnKey as BaseUrl] ?? null}
           anchorEl={conversionMenuVirtualElement}
           columnKey={openConvertColumnKey}
           conversionTargetsByColumnKey={conversionTargetsByColumnKey}
@@ -671,9 +629,7 @@ export const Grid = <
         headerIcons={customGridIcons}
         maxColumnWidth={1000}
         onCellEdited={
-          sortedAndFilteredRows
-            ? createOnCellEdited?.(sortedAndFilteredRows)
-            : undefined
+          sortedAndFilteredRows ? createOnCellEdited?.(sortedAndFilteredRows) : undefined
         }
         onColumnResize={resizable ? handleColumnResize : undefined}
         onGridSelectionChange={(newSelection) => {
@@ -681,8 +637,8 @@ export const Grid = <
 
           if (onSelectedRowsChange && sortedAndFilteredRows) {
             newSelection.rows.toArray();
-            const updatedSelectedRows = sortedAndFilteredRows.filter(
-              (_, rowIndex) => newSelection.rows.hasIndex(rowIndex),
+            const updatedSelectedRows = sortedAndFilteredRows.filter((_, rowIndex) =>
+              newSelection.rows.hasIndex(rowIndex),
             );
 
             onSelectedRowsChange(updatedSelectedRows);
@@ -702,17 +658,14 @@ export const Grid = <
         theme={gridTheme}
         verticalBorder={
           typeof rest.verticalBorder === "undefined"
-            ? (columnNumber) =>
-                enableCheckboxSelection ? columnNumber !== 0 : true
+            ? (columnNumber) => (enableCheckboxSelection ? columnNumber !== 0 : true)
             : (columnNumber) => {
                 const defaultValue =
                   typeof rest.verticalBorder === "function"
                     ? rest.verticalBorder(columnNumber)
                     : rest.verticalBorder!;
 
-                return enableCheckboxSelection
-                  ? columnNumber !== 0 || defaultValue
-                  : defaultValue;
+                return enableCheckboxSelection ? columnNumber !== 0 || defaultValue : defaultValue;
               }
         }
         {...(enableCheckboxSelection

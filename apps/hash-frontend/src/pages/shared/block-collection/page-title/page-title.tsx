@@ -48,11 +48,7 @@ type PageTitleProps = {
 
 export const PAGE_TITLE_PLACEHOLDER = "Untitled";
 
-export const PageTitle: FunctionComponent<PageTitleProps> = ({
-  pageEntityId,
-  value,
-  readonly,
-}) => {
+export const PageTitle: FunctionComponent<PageTitleProps> = ({ pageEntityId, value, readonly }) => {
   // TODO: Display update error once expected UX is discussed
 
   const [updatePageTitle, { updatePageTitleLoading }] = useUpdatePageTitle();
@@ -62,15 +58,11 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
   const { editorContext, pageTitleRef } = usePageContext();
 
-  const handleInputChange: ChangeEventHandler<HTMLTextAreaElement> = (
-    event,
-  ) => {
+  const handleInputChange: ChangeEventHandler<HTMLTextAreaElement> = (event) => {
     setInputValue(event.currentTarget.value);
   };
 
-  const handleInputKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (
-    event,
-  ) => {
+  const handleInputKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (event) => {
     const { currentTarget, key, shiftKey } = event;
     if (key === "Escape") {
       currentTarget.blur();
@@ -78,16 +70,11 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
     if (key === "Enter" && !shiftKey) {
       event.preventDefault();
-      void focusEditorBeginning(
-        editorContext?.view,
-        editorContext?.manager,
-        true,
-      );
+      void focusEditorBeginning(editorContext?.view, editorContext?.manager, true);
     }
 
     if (key === "ArrowDown") {
-      const isCaret =
-        currentTarget.selectionStart === currentTarget.selectionEnd;
+      const isCaret = currentTarget.selectionStart === currentTarget.selectionEnd;
       const isAtEnd = currentTarget.selectionEnd === inputValue.length;
 
       if (isCaret && isAtEnd) {

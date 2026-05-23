@@ -89,10 +89,7 @@ const inputStyle = cva({
   },
 });
 
-type InputProps = Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  "type" | "size"
-> & {
+type InputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "size"> & {
   /** Size variant */
   size?: "xs" | "sm" | "md" | "lg";
   /** Whether to use monospace font */

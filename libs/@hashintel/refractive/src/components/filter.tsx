@@ -1,7 +1,4 @@
-import {
-  calculateDisplacementMap,
-  calculateDisplacementMapRadius,
-} from "../maps/displacement-map";
+import { calculateDisplacementMap, calculateDisplacementMapRadius } from "../maps/displacement-map";
 import { calculateSpecularImage } from "../maps/specular";
 import { CompositeParts } from "./composite-parts";
 
@@ -100,11 +97,7 @@ export const Filter: React.FC<FilterProps> = ({
 
   const content = (
     <filter id={id}>
-      <feGaussianBlur
-        in="SourceGraphic"
-        stdDeviation={blur}
-        result="blurred_source"
-      />
+      <feGaussianBlur in="SourceGraphic" stdDeviation={blur} result="blurred_source" />
 
       <CompositeParts
         imageData={displacementMap}
@@ -141,11 +134,7 @@ export const Filter: React.FC<FilterProps> = ({
         result="displaced_source"
       />
 
-      <feColorMatrix
-        in="specular_map"
-        type="luminanceToAlpha"
-        result="specular_alpha"
-      />
+      <feColorMatrix in="specular_map" type="luminanceToAlpha" result="specular_alpha" />
 
       <feComponentTransfer in="specular_alpha" result="specular_with_opacity">
         <feFuncA type="linear" slope={specularOpacity} />
@@ -160,11 +149,7 @@ export const Filter: React.FC<FilterProps> = ({
         result="masked_specular"
       />
 
-      <feComposite
-        in="masked_specular"
-        in2="displaced_source"
-        operator="over"
-      />
+      <feComposite in="masked_specular" in2="displaced_source" operator="over" />
     </filter>
   );
 

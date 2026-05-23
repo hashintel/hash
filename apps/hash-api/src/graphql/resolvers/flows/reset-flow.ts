@@ -54,8 +54,7 @@ export const resetFlow: ResolverFn<
      * If we don't set this, Temporal will replay signals sent after the cancellation point to the new workflow execution.
      * Instead, we just want the events for any signals sent _prior_ to the cancellation point in the history.
      */
-    resetReapplyType:
-      proto.temporal.api.enums.v1.ResetReapplyType.RESET_REAPPLY_TYPE_NONE,
+    resetReapplyType: proto.temporal.api.enums.v1.ResetReapplyType.RESET_REAPPLY_TYPE_NONE,
     reason: checkpointId,
     requestId: generateUuid(),
     workflowTaskFinishEventId: Long.fromInt(eventId),

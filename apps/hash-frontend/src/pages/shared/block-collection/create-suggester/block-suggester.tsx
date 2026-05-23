@@ -31,10 +31,7 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
 }) => {
   const { value: blocksMap, blockFetchFailed } = useUserBlocks();
 
-  const blocksArray = useMemo(
-    () => Array.from(Object.values(blocksMap)),
-    [blocksMap],
-  );
+  const blocksArray = useMemo(() => Array.from(Object.values(blocksMap)), [blocksMap]);
   const filteredBlocks = useFilteredBlocks(search, blocksArray);
 
   return (
@@ -132,8 +129,7 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
                   wordBreak: "normal",
                 })}
               >
-                Unable to load all blocks due to a network error. Please try
-                again later.
+                Unable to load all blocks due to a network error. Please try again later.
               </Typography>
             </Box>
           </Box>

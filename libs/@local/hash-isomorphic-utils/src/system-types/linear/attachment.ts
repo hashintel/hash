@@ -215,11 +215,7 @@ import type {
   WorkflowStateProperties,
   WorkflowStatePropertiesWithMetadata,
 } from "./shared.js";
-import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
+import type { Confidence, ObjectMetadata, PropertyProvenance } from "@blockprotocol/type-system";
 
 export type {
   ActivePropertyValue,
@@ -508,9 +504,7 @@ export type AttachmentURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  * The issue this attachment belongs to.
  */
 export type BelongsToIssue = {
-  entityTypeIds: [
-    "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1"];
   properties: BelongsToIssueProperties;
   propertiesWithMetadata: BelongsToIssuePropertiesWithMetadata;
 };
@@ -524,19 +518,17 @@ export type BelongsToIssueOutgoingLinksByLinkEntityTypeId = {};
  */
 export type BelongsToIssueProperties = LinkProperties & {};
 
-export type BelongsToIssuePropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type BelongsToIssuePropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * Indicates if attachments for the same source application should be grouped in the Linear UI.
  */
 export type GroupBySourcePropertyValue = BooleanDataType;
 
-export type GroupBySourcePropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type GroupBySourcePropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
 /**
  * Custom metadata related to the attachment.

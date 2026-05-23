@@ -136,24 +136,24 @@ export const gptQueryEntities: RequestHandler<
     return;
   }
 
-  const { types, query, entityIds, webUuids, traversalDepth, includeDrafts } =
-    req.body;
+  const { types, query, entityIds, webUuids, traversalDepth, includeDrafts } = req.body;
 
   const depth = traversalDepth ?? 2;
 
   const semanticSearchString = query
     ? await req.context.temporalClient.workflow
-        .execute<
-          (params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>
-        >("createEmbeddings", {
-          taskQueue: "ai",
-          args: [
-            {
-              input: [query],
-            },
-          ],
-          workflowId: generateUuid(),
-        })
+        .execute<(params: CreateEmbeddingsParams) => Promise<CreateEmbeddingsReturn>>(
+          "createEmbeddings",
+          {
+            taskQueue: "ai",
+            args: [
+              {
+                input: [query],
+              },
+            ],
+            workflowId: generateUuid(),
+          },
+        )
         .then(({ embeddings }) => embeddings[0])
     : null;
 
@@ -172,8 +172,7 @@ export const gptQueryEntities: RequestHandler<
                         path: [
                           "type",
                           // Sometimes the GPT sends the type's id instead of a title
-                          type.startsWith("http://") ||
-                          type.startsWith("https://")
+                          type.startsWith("http://") || type.startsWith("https://")
                             ? "versionedUrl"
                             : "title",
                         ],
@@ -191,9 +190,7 @@ export const gptQueryEntities: RequestHandler<
                     equal: [
                       { path: ["uuid"] },
                       {
-                        parameter: extractEntityUuidFromEntityId(
-                          entityId as EntityId,
-                        ),
+                        parameter: extractEntityUuidFromEntityId(entityId as EntityId),
                       },
                     ],
                   })),
@@ -259,12 +256,9 @@ export const gptQueryEntities: RequestHandler<
       { user },
     );
 
-    const { entities: entitiesWithoutHrefs, entityTypes } =
-      getSimpleGraph(subgraph);
+    const { entities: entitiesWithoutHrefs, entityTypes } = getSimpleGraph(subgraph);
 
-    const resolveEntityWeb = async (simpleEntity: {
-      entityId: EntityId;
-    }): Promise<SimpleWeb> => {
+    const resolveEntityWeb = async (simpleEntity: { entityId: EntityId }): Promise<SimpleWeb> => {
       /**
        * Resolve details of the web that the entity belongs to
        */
@@ -277,21 +271,17 @@ export const gptQueryEntities: RequestHandler<
           req.context,
           { actorId: user.accountId },
           {
-            entityId: entityIdFromComponents(
-              webWebId,
-              webWebId as string as EntityUuid,
-            ),
+            entityId: entityIdFromComponents(webWebId, webWebId as string as EntityUuid),
           },
         );
 
-        const isUser =
-          owningEntity.metadata.entityTypeIds[0].includes("/user/");
+        const isUser = owningEntity.metadata.entityTypeIds[0].includes("/user/");
 
         web = {
           type: isUser ? "User" : "Organization",
-          name: (
-            owningEntity.properties as UserProperties | OrganizationProperties
-          )["https://hash.ai/@h/types/property-type/shortname/"]!,
+          name: (owningEntity.properties as UserProperties | OrganizationProperties)[
+            "https://hash.ai/@h/types/property-type/shortname/"
+          ]!,
           uuid: webWebId,
         };
 

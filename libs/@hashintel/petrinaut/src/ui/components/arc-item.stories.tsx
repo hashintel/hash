@@ -57,9 +57,7 @@ const InteractiveArcItem = ({
 
 export const Default: Story = {
   name: "Default",
-  render: () => (
-    <InteractiveArcItem placeName="PlantASupply" initialWeight={1} deletable />
-  ),
+  render: () => <InteractiveArcItem placeName="PlantASupply" initialWeight={1} deletable />,
 };
 
 export const WithSelect: Story = {
@@ -79,24 +77,14 @@ export const WithSelect: Story = {
 export const WithColor: Story = {
   name: "With color dot",
   render: () => (
-    <InteractiveArcItem
-      placeName="PlantASupply"
-      color="#FF6B35"
-      initialWeight={2}
-      deletable
-    />
+    <InteractiveArcItem placeName="PlantASupply" color="#FF6B35" initialWeight={2} deletable />
   ),
 };
 
 export const Disabled: Story = {
   name: "Disabled",
   render: () => (
-    <InteractiveArcItem
-      placeName="Warehouse"
-      color="#7B68EE"
-      initialWeight={3}
-      disabled
-    />
+    <InteractiveArcItem placeName="Warehouse" color="#7B68EE" initialWeight={3} disabled />
   ),
 };
 

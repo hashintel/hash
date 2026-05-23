@@ -1,11 +1,7 @@
 import { useStore } from "./use-store";
 
 import type { UndoRedoContextValue } from "./state/undo-redo-context";
-import type {
-  HistoryEntry,
-  PetrinautHistory,
-  ReadableStore,
-} from "@hashintel/petrinaut-core";
+import type { HistoryEntry, PetrinautHistory, ReadableStore } from "@hashintel/petrinaut-core";
 
 function constStore<T>(value: T): ReadableStore<T> {
   return {

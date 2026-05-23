@@ -13,10 +13,7 @@ import ReactFlow, {
 
 import { customColors } from "@hashintel/design-system/theme";
 
-import {
-  useFlowRunsContext,
-  useStatusForSteps,
-} from "../../../../shared/flow-runs-context";
+import { useFlowRunsContext, useStatusForSteps } from "../../../../shared/flow-runs-context";
 import { flowRunStatusToStatusText } from "../../../../shared/flow-tables";
 import { MarkerEnd } from "./marker-end";
 import { nodeTabHeight, parentGroupPadding } from "./shared/dimensions";
@@ -74,10 +71,7 @@ const flattedNodesToElkNodes = (
 ): NodeWithChildren[] => {
   return parents.map((parentNode) => ({
     ...parentNode,
-    layoutOptions:
-      parentNode.data.kind === "parallel-group"
-        ? parentGroupLayoutOptions
-        : undefined,
+    layoutOptions: parentNode.data.kind === "parallel-group" ? parentGroupLayoutOptions : undefined,
     children: flattedNodesToElkNodes(
       allNodes,
       allNodes.filter((node) => node.parentNode === parentNode.id),
@@ -144,18 +138,11 @@ export const Swimlane = ({
       });
   }, [fitView, group, initialEdges, initialNodes, setNodes, setEdges]);
 
-  const bounds = useMemo(
-    () => getNodesBounds(nodes.filter((node) => !node.parentNode)),
-    [nodes],
-  );
+  const bounds = useMemo(() => getNodesBounds(nodes.filter((node) => !node.parentNode)), [nodes]);
 
-  const stepsWithIds = useMemo(
-    () => nodes.map((node) => ({ stepId: node.id })),
-    [nodes],
-  );
+  const stepsWithIds = useMemo(() => nodes.map((node) => ({ stepId: node.id })), [nodes]);
 
-  const { overallStatus: groupStatus, statusByStep } =
-    useStatusForSteps(stepsWithIds) ?? {};
+  const { overallStatus: groupStatus, statusByStep } = useStatusForSteps(stepsWithIds) ?? {};
 
   const statusToDisplay = useMemo(() => {
     if (selectedFlowRun && isOnlySwimlane) {
@@ -198,16 +185,14 @@ export const Swimlane = ({
               ? "rgba(239, 254, 250, 1)"
               : statusToDisplay === "In Progress"
                 ? palette.blue[10]
-                : statusToDisplay === "Errored" ||
-                    statusToDisplay === "Cancelled"
+                : statusToDisplay === "Errored" || statusToDisplay === "Cancelled"
                   ? palette.red[10]
                   : palette.common.white,
         "&:not(:last-of-type)": {
           borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
         },
         flex: 1,
-        transition: ({ transitions }) =>
-          transitions.create("background", transitionOptions),
+        transition: ({ transitions }) => transitions.create("background", transitionOptions),
       }}
     >
       <Stack
@@ -220,8 +205,7 @@ export const Swimlane = ({
           pr: 4,
           py: 2.5,
           borderRight: `1px solid ${palette.gray[30]}`,
-          transition: ({ transitions }) =>
-            transitions.create("background", { duration: 100 }),
+          transition: ({ transitions }) => transitions.create("background", { duration: 100 }),
         })}
       >
         <Typography

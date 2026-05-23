@@ -23,17 +23,10 @@ import { getFlowRunEntityById } from "./flows/shared/get-flow-run-entity-by-id.j
 
 import type { FileStorageProvider } from "./file-storage.js";
 import type { TemporalClient } from "./temporal.js";
-import type {
-  ActorEntityUuid,
-  EntityUuid,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
-import type {
-  FlowRun,
-  FlowRunStatus,
-} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { FlowRun, FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export { getFlowRunEntityById };
@@ -57,9 +50,7 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   userAuthentication: { actorId: ActorEntityUuid };
 };
 
-export async function getFlowRunById(
-  args: GetFlowRunByIdFnArgs<true>,
-): Promise<FlowRun | null>;
+export async function getFlowRunById(args: GetFlowRunByIdFnArgs<true>): Promise<FlowRun | null>;
 
 export async function getFlowRunById(
   args: GetFlowRunByIdFnArgs<false>,
@@ -87,18 +78,12 @@ export async function getFlowRunById({
     return null;
   }
 
-  const webId = extractWebIdFromEntityId(
-    existingFlowEntity.metadata.recordId.entityId,
-  );
+  const webId = extractWebIdFromEntityId(existingFlowEntity.metadata.recordId.entityId);
 
-  const entityUuid = extractEntityUuidFromEntityId(
-    existingFlowEntity.metadata.recordId.entityId,
-  );
+  const entityUuid = extractEntityUuidFromEntityId(existingFlowEntity.metadata.recordId.entityId);
 
   const temporalWorkflowId =
-    existingFlowEntity.properties[
-      "https://hash.ai/@h/types/property-type/workflow-id/"
-    ];
+    existingFlowEntity.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
 
   const name =
     existingFlowEntity.properties[
@@ -128,9 +113,7 @@ export async function getFlowRunById({
 const convertScreamingSnakeToPascalCase = (str: string) =>
   str
     .split("_")
-    .map((word) =>
-      word[0] ? word[0].toUpperCase() + word.slice(1).toLowerCase() : "",
-    )
+    .map((word) => (word[0] ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ""))
     .join("");
 
 type GetFlowRunsFilters = {
@@ -172,9 +155,7 @@ export async function getFlowRuns(
 
 export async function getFlowRuns<IncludeDetails extends boolean>(
   args: GetFlowRunsFnArgs<IncludeDetails>,
-): Promise<
-  PaginatedFlowRuns<IncludeDetails extends true ? FlowRun : SparseFlowRun>
->;
+): Promise<PaginatedFlowRuns<IncludeDetails extends true ? FlowRun : SparseFlowRun>>;
 
 export async function getFlowRuns({
   authentication,
@@ -183,9 +164,7 @@ export async function getFlowRuns({
   includeDetails,
   storageProvider,
   temporalClient,
-}: GetFlowRunsFnArgs<boolean>): Promise<
-  PaginatedFlowRuns<SparseFlowRun | FlowRun>
-> {
+}: GetFlowRunsFnArgs<boolean>): Promise<PaginatedFlowRuns<SparseFlowRun | FlowRun>> {
   const effectiveLimit = Math.min(
     Math.max(filters.limit ?? flowRunsQueryMaxLimit, 0),
     flowRunsQueryMaxLimit,
@@ -197,10 +176,9 @@ export async function getFlowRuns({
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
+          generateVersionedUrlMatchingFilter(systemEntityTypes.flowRun.entityTypeId, {
+            ignoreParents: true,
+          }),
           ...(filters.flowDefinitionIds
             ? [
                 {
@@ -209,8 +187,7 @@ export async function getFlowRuns({
                       {
                         path: [
                           "properties",
-                          systemPropertyTypes.flowDefinitionId
-                            .propertyTypeBaseUrl,
+                          systemPropertyTypes.flowDefinitionId.propertyTypeBaseUrl,
                         ],
                       },
                       { parameter: flowDefinitionId },
@@ -225,25 +202,18 @@ export async function getFlowRuns({
       includeDrafts: false,
       includePermissions: false,
       limit: effectiveLimit,
-      ...(filters.cursor
-        ? { cursor: JSON.parse(filters.cursor) as object[] }
-        : {}),
+      ...(filters.cursor ? { cursor: JSON.parse(filters.cursor) as object[] } : {}),
       includeCount: true,
     },
   );
 
-  const temporalWorkflowIdToFlowDetails: Record<string, MinimalFlowMetadata> =
-    {};
+  const temporalWorkflowIdToFlowDetails: Record<string, MinimalFlowMetadata> = {};
 
   for (const entity of queryResult.entities) {
-    const [webId, entityUuid] = splitEntityId(
-      entity.metadata.recordId.entityId,
-    );
+    const [webId, entityUuid] = splitEntityId(entity.metadata.recordId.entityId);
 
     const name =
-      entity.properties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-      ];
+      entity.properties["https://blockprotocol.org/@blockprotocol/types/property-type/name/"];
 
     const temporalWorkflowId =
       entity.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
@@ -258,9 +228,7 @@ export async function getFlowRuns({
 
   const temporalWorkflowIds = typedKeys(temporalWorkflowIdToFlowDetails);
 
-  const nextCursor = queryResult.cursor
-    ? JSON.stringify(queryResult.cursor)
-    : null;
+  const nextCursor = queryResult.cursor ? JSON.stringify(queryResult.cursor) : null;
   const totalCount = queryResult.count ?? 0;
 
   if (!temporalWorkflowIds.length) {
@@ -303,9 +271,7 @@ export async function getFlowRuns({
     }
 
     if (!temporalWorkflowIdToFlowDetails[temporalWorkflowId]) {
-      throw new Error(
-        `Could not find details for workflowId ${workflow.workflowId}`,
-      );
+      throw new Error(`Could not find details for workflowId ${workflow.workflowId}`);
     }
 
     deduplicatedWorkflowIds.push(temporalWorkflowId);

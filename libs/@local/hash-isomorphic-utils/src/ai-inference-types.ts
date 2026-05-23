@@ -2,10 +2,7 @@ import type {
   AutomaticInferenceArguments,
   ManualInferenceArguments,
 } from "./flows/browser-plugin-flow-types.js";
-import type {
-  ExternalInputRequestSignal,
-  ExternalInputResponseSignal,
-} from "./flows/types.js";
+import type { ExternalInputRequestSignal, ExternalInputResponseSignal } from "./flows/types.js";
 import type { PropertyObject, VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
@@ -142,17 +139,15 @@ export type ManualInferenceWebsocketRequestMessage = WebSocketMessageAuth & {
   requestUuid: string;
 };
 
-export type CancelInferEntitiesWebsocketRequestMessage =
-  WebSocketMessageAuth & {
-    flowRunId: string;
-    type: "cancel-inference-request";
-    requestUuid: string;
-  };
+export type CancelInferEntitiesWebsocketRequestMessage = WebSocketMessageAuth & {
+  flowRunId: string;
+  type: "cancel-inference-request";
+  requestUuid: string;
+};
 
-export type CheckForExternalInputRequestsWebsocketRequestMessage =
-  WebSocketMessageAuth & {
-    type: "check-for-external-input-requests";
-  };
+export type CheckForExternalInputRequestsWebsocketRequestMessage = WebSocketMessageAuth & {
+  type: "check-for-external-input-requests";
+};
 
 export type ExternalInputWebsocketResponseMessage = WebSocketMessageAuth & {
   workflowId: string;
@@ -173,8 +168,7 @@ export type ExternalInputWebsocketRequestMessage = {
   type: "external-input-request";
 };
 
-export type InferenceWebsocketServerMessage =
-  ExternalInputWebsocketRequestMessage;
+export type InferenceWebsocketServerMessage = ExternalInputWebsocketRequestMessage;
 
 export type GetResultsFromCancelledInferenceRequestQuery = QueryDefinition<
   InferEntitiesReturn,

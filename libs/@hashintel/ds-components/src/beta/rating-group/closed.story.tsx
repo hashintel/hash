@@ -8,17 +8,15 @@ export interface RatingProps extends StyledRatingGroup.RootProps {
   label?: ReactNode;
 }
 
-export const RatingGroup = forwardRef<HTMLDivElement, RatingProps>(
-  (props, ref) => {
-    const { icon, count = 5, label, ...rest } = props;
-    return (
-      <StyledRatingGroup.Root ref={ref} count={count} {...rest}>
-        {label && <StyledRatingGroup.Label>{label}</StyledRatingGroup.Label>}
-        <StyledRatingGroup.HiddenInput />
-        <StyledRatingGroup.Control>
-          <StyledRatingGroup.Items icon={icon} />
-        </StyledRatingGroup.Control>
-      </StyledRatingGroup.Root>
-    );
-  },
-);
+export const RatingGroup = forwardRef<HTMLDivElement, RatingProps>((props, ref) => {
+  const { icon, count = 5, label, ...rest } = props;
+  return (
+    <StyledRatingGroup.Root ref={ref} count={count} {...rest}>
+      {label && <StyledRatingGroup.Label>{label}</StyledRatingGroup.Label>}
+      <StyledRatingGroup.HiddenInput />
+      <StyledRatingGroup.Control>
+        <StyledRatingGroup.Items icon={icon} />
+      </StyledRatingGroup.Control>
+    </StyledRatingGroup.Root>
+  );
+});

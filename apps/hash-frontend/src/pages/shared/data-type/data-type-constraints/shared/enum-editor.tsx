@@ -22,11 +22,7 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
 import { PenToSquareIcon } from "@hashintel/block-design-system";
-import {
-  CheckRegularIcon,
-  CloseIcon,
-  IconButton,
-} from "@hashintel/design-system";
+import { CheckRegularIcon, CloseIcon, IconButton } from "@hashintel/design-system";
 import {
   createFormattedValueParts,
   type MergedValueSchema,
@@ -122,17 +118,10 @@ const EnumItem = ({
   isOnlyItem: boolean;
   setEditing: () => void;
 }) => {
-  const {
-    attributes,
-    isDragging,
-    isSorting,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({
-    id: item,
-  });
+  const { attributes, isDragging, isSorting, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: item,
+    });
 
   const { control } = useFormContext<DataTypeFormData>();
 
@@ -221,9 +210,7 @@ const EnumItem = ({
             </IconButton>
           </Tooltip>
         )}
-        {!isLastUnremovableItem && (
-          <DeleteOrCancelButton onClick={onDelete} type="Delete" />
-        )}
+        {!isLastUnremovableItem && <DeleteOrCancelButton onClick={onDelete} type="Delete" />}
       </Stack>
       {error && (
         <Tooltip title={error} placement="top">
@@ -287,10 +274,7 @@ const EditingRow = ({
       />
       <Stack direction="row" gap={0.2}>
         <SaveButton onClick={submit} />
-        <DeleteOrCancelButton
-          onClick={() => setEditingIndex(null)}
-          type="Cancel"
-        />
+        <DeleteOrCancelButton onClick={() => setEditingIndex(null)} type="Cancel" />
       </Stack>
     </Stack>
   );
@@ -326,8 +310,7 @@ export const EnumEditor = ({
   inheritedConstraints: InheritedConstraints;
   type: "string" | "number";
 }) => {
-  const { clearErrors, setError, setValue, formState } =
-    useFormContext<DataTypeFormData>();
+  const { clearErrors, setError, setValue, formState } = useFormContext<DataTypeFormData>();
 
   const errors = formState.errors;
 
@@ -360,11 +343,7 @@ export const EnumEditor = ({
       const oldIndex = items.findIndex((value) => value === active.id);
       const newIndex = items.findIndex((value) => value === over?.id);
 
-      const newItems = arrayMove(
-        items as string[],
-        oldIndex,
-        newIndex,
-      ) as typeof items;
+      const newItems = arrayMove(items as string[], oldIndex, newIndex) as typeof items;
 
       if (newItems.length > 0) {
         setValue("constraints.enum", newItems, { shouldDirty: true });
@@ -404,9 +383,7 @@ export const EnumEditor = ({
     }
 
     if (!items?.length || editingIndex === items.length) {
-      const newItems = [...(items ?? []), draftValue] as NonNullable<
-        typeof items
-      >;
+      const newItems = [...(items ?? []), draftValue] as NonNullable<typeof items>;
       setValue("constraints.enum", newItems, { shouldDirty: true });
 
       setDraftValue("");
@@ -511,10 +488,7 @@ export const EnumEditor = ({
           });
           continue;
         }
-        if (
-          mergedSchema.format === "date-time" &&
-          !dateTimeRegExp.test(value)
-        ) {
+        if (mergedSchema.format === "date-time" && !dateTimeRegExp.test(value)) {
           setError(`constraints.enum.${index}`, {
             message: "Value must be a valid date & time in ISO 8601 format",
           });
@@ -640,10 +614,7 @@ export const EnumEditor = ({
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext
-              items={items ?? []}
-              strategy={verticalListSortingStrategy}
-            >
+            <SortableContext items={items ?? []} strategy={verticalListSortingStrategy}>
               <Stack gap={1} sx={{ display: "inline-flex" }}>
                 {(items ?? []).map((item, index) =>
                   editingIndex === index ? (

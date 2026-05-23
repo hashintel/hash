@@ -19,11 +19,7 @@ import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import type {
-  ActorEntityUuid,
-  ActorGroupEntityUuid,
-  Entity,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, ActorGroupEntityUuid, Entity } from "@blockprotocol/type-system";
 import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TraversalPath } from "@rust/hash-graph-store/types";
@@ -52,10 +48,7 @@ export const useUserOrOrg = (
                   {
                     equal: [
                       {
-                        path: [
-                          "properties",
-                          systemPropertyTypes.shortname.propertyTypeBaseUrl,
-                        ],
+                        path: ["properties", systemPropertyTypes.shortname.propertyTypeBaseUrl],
                       },
                       { parameter: params.shortname },
                     ],
@@ -64,23 +57,18 @@ export const useUserOrOrg = (
               : "accountOrAccountGroupId" in params
                 ? [
                     {
-                      equal: [
-                        { path: ["uuid"] },
-                        { parameter: params.accountOrAccountGroupId },
-                      ],
+                      equal: [{ path: ["uuid"] }, { parameter: params.accountOrAccountGroupId }],
                     },
                   ]
                 : []),
             {
               any: [
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.user.entityTypeId,
-                  { ignoreParents: true },
-                ),
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.organization.entityTypeId,
-                  { ignoreParents: true },
-                ),
+                generateVersionedUrlMatchingFilter(systemEntityTypes.user.entityTypeId, {
+                  ignoreParents: true,
+                }),
+                generateVersionedUrlMatchingFilter(systemEntityTypes.organization.entityTypeId, {
+                  ignoreParents: true,
+                }),
               ],
             },
           ],
@@ -125,9 +113,8 @@ export const useUserOrOrg = (
       },
     },
     skip:
-      !(
-        "accountOrAccountGroupId" in params && params.accountOrAccountGroupId
-      ) && !("shortname" in params && params.shortname),
+      !("accountOrAccountGroupId" in params && params.accountOrAccountGroupId) &&
+      !("shortname" in params && params.shortname),
     fetchPolicy: "cache-and-network",
   });
 
@@ -137,42 +124,37 @@ export const useUserOrOrg = (
       : undefined;
 
     const rootEntity = response
-      ? getRoots(response.subgraph).reduce<
-          Entity<Organization> | Entity<User> | undefined
-        >((prev, currentEntity) => {
-          if (
-            !isEntityUserEntity(currentEntity) &&
-            !isEntityOrgEntity(currentEntity)
-          ) {
-            throw new Error(
-              `Entity with type(s) ${currentEntity.metadata.entityTypeIds.join(", ")} is not a user or an org entity`,
-            );
-          }
+      ? getRoots(response.subgraph).reduce<Entity<Organization> | Entity<User> | undefined>(
+          (prev, currentEntity) => {
+            if (!isEntityUserEntity(currentEntity) && !isEntityOrgEntity(currentEntity)) {
+              throw new Error(
+                `Entity with type(s) ${currentEntity.metadata.entityTypeIds.join(", ")} is not a user or an org entity`,
+              );
+            }
 
-          if (!prev) {
-            return currentEntity;
-          }
+            if (!prev) {
+              return currentEntity;
+            }
 
-          if (
-            prev.metadata.temporalVersioning.decisionTime.start.limit <
-            currentEntity.metadata.temporalVersioning.decisionTime.start.limit
-          ) {
-            return currentEntity;
-          }
-          return prev;
-        }, undefined)
+            if (
+              prev.metadata.temporalVersioning.decisionTime.start.limit <
+              currentEntity.metadata.temporalVersioning.decisionTime.start.limit
+            ) {
+              return currentEntity;
+            }
+            return prev;
+          },
+          undefined,
+        )
       : undefined;
 
     const userOrOrgSubgraph = data
-      ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
-          .subgraph
+      ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph
       : undefined;
 
     return {
       canUserEdit: !!(
-        rootEntity &&
-        response?.entityPermissions?.[rootEntity.metadata.recordId.entityId]
-          ?.update
+        rootEntity && response?.entityPermissions?.[rootEntity.metadata.recordId.entityId]?.update
       ),
       userOrOrgSubgraph,
       userOrOrg: rootEntity,

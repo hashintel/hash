@@ -66,18 +66,14 @@ export const isEntity = (value: unknown): value is EntityStoreType =>
 
 // @todo does this need to be more robust?
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
-  isEntity(entity) &&
-  "blockChildEntity" in entity &&
-  isEntity(entity.blockChildEntity);
+  isEntity(entity) && "blockChildEntity" in entity && isEntity(entity.blockChildEntity);
 
 // @todo does this need to be more robust?
 export const isDraftEntity = <T extends EntityStoreType>(
   entity: T | DraftEntity<T>,
 ): entity is DraftEntity<T> => "draftId" in entity;
 
-export const isDraftBlockEntity = (
-  entity: unknown,
-): entity is DraftEntity<BlockEntity> =>
+export const isDraftBlockEntity = (entity: unknown): entity is DraftEntity<BlockEntity> =>
   isBlockEntity(entity) && isDraftEntity(entity);
 
 /**
@@ -89,9 +85,7 @@ export const getDraftEntityByEntityId = (
   draft: EntityStore["draft"],
   entityId: EntityId,
 ): DraftEntity | undefined =>
-  Object.values(draft).find(
-    (entity) => entity.metadata.recordId.entityId === entityId,
-  );
+  Object.values(draft).find((entity) => entity.metadata.recordId.entityId === entityId);
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
@@ -141,10 +135,7 @@ export const createEntityStore = (
   const draft: EntityStore["draft"] = {};
 
   const entityToDraft = Object.fromEntries(
-    Object.entries(presetDraftIds).map(([draftId, entityId]) => [
-      entityId,
-      draftId,
-    ]),
+    Object.entries(presetDraftIds).map(([draftId, entityId]) => [entityId, draftId]),
   );
 
   for (const row of Object.values(draftData)) {
@@ -181,8 +172,7 @@ export const createEntityStore = (
     draft[draftId] = produce<DraftEntity>(
       {
         componentId: "componentId" in entity ? entity.componentId : undefined,
-        blockChildEntity:
-          "blockChildEntity" in entity ? entity.blockChildEntity : undefined,
+        blockChildEntity: "blockChildEntity" in entity ? entity.blockChildEntity : undefined,
         metadata: entity.metadata,
         properties: entity.properties,
         draftId,
@@ -196,12 +186,9 @@ export const createEntityStore = (
            */
           if (
             new Date(
-              draftData[draftId].metadata.temporalVersioning.decisionTime.start
-                .limit,
+              draftData[draftId].metadata.temporalVersioning.decisionTime.start.limit,
             ).getTime() >
-            new Date(
-              draftEntity.metadata.temporalVersioning.decisionTime.start.limit,
-            ).getTime()
+            new Date(draftEntity.metadata.temporalVersioning.decisionTime.start.limit).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
           }
@@ -209,42 +196,38 @@ export const createEntityStore = (
       },
     );
 
-    draft[draftId] = produce<DraftEntity>(
-      draft[draftId],
-      (draftEntity: Draft<DraftEntity>) => {
-        if (isDraftBlockEntity(draftEntity)) {
-          const restoredDraftId = restoreDraftId(
+    draft[draftId] = produce<DraftEntity>(draft[draftId], (draftEntity: Draft<DraftEntity>) => {
+      if (isDraftBlockEntity(draftEntity)) {
+        const restoredDraftId = restoreDraftId(
+          {
+            // This type is very deep now, so traversal causes TS to complain.
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            entityId: draftEntity.metadata.recordId.entityId,
+            draftId: draftEntity.draftId,
+          },
+          entityToDraft,
+        );
+
+        draftEntity.draftId = restoredDraftId;
+
+        // Set the blockChildEntity's draft ID on a block draft.
+        if (
+          !draftEntity.blockChildEntity?.draftId &&
+          draftEntity.blockChildEntity?.metadata.recordId.entityId
+        ) {
+          const restoredBlockDraftId = restoreDraftId(
             {
-              // This type is very deep now, so traversal causes TS to complain.
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              entityId: draftEntity.metadata.recordId.entityId,
-              draftId: draftEntity.draftId,
+              entityId: draftEntity.blockChildEntity.metadata.recordId.entityId,
+              draftId: draftEntity.blockChildEntity.draftId,
             },
             entityToDraft,
           );
 
-          draftEntity.draftId = restoredDraftId;
-
-          // Set the blockChildEntity's draft ID on a block draft.
-          if (
-            !draftEntity.blockChildEntity?.draftId &&
-            draftEntity.blockChildEntity?.metadata.recordId.entityId
-          ) {
-            const restoredBlockDraftId = restoreDraftId(
-              {
-                entityId:
-                  draftEntity.blockChildEntity.metadata.recordId.entityId,
-                draftId: draftEntity.blockChildEntity.draftId,
-              },
-              entityToDraft,
-            );
-
-            draftEntity.blockChildEntity.draftId = restoredBlockDraftId;
-          }
+          draftEntity.blockChildEntity.draftId = restoredBlockDraftId;
         }
-      },
-    );
+      }
+    });
   }
 
   for (const [draftId, draftEntity] of Object.entries(draftData)) {

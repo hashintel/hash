@@ -12,18 +12,12 @@ import { createWorkerThreadRuntime } from "../../environment";
 import { SDCPNItemError } from "../../errors";
 import { buildSimulation } from "../engine/build-simulation";
 import { computeNextFrame } from "../engine/compute-next-frame";
-import {
-  framePayloadFromEngineFrame,
-  type SimulationFramePayload,
-} from "./frame-payload";
+import { framePayloadFromEngineFrame, type SimulationFramePayload } from "./frame-payload";
 
 import type { SimulationInstance } from "../engine/types";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
-const workerRuntime = createWorkerThreadRuntime<
-  ToWorkerMessage,
-  ToMainMessage
->();
+const workerRuntime = createWorkerThreadRuntime<ToWorkerMessage, ToMainMessage>();
 
 //
 // Default Configuration
@@ -80,10 +74,7 @@ async function computeLoop(): Promise<void> {
   while (isRunning && simulation) {
     // Backpressure: wait if no ack received yet or too far ahead
     const currentFrameNumber = simulation.currentFrameNumber;
-    if (
-      lastAckedFrame < 0 ||
-      currentFrameNumber - lastAckedFrame >= maxFramesAhead
-    ) {
+    if (lastAckedFrame < 0 || currentFrameNumber - lastAckedFrame >= maxFramesAhead) {
       // Yield and wait for ack
       await workerRuntime.delay(10);
       continue;
@@ -94,14 +85,11 @@ async function computeLoop(): Promise<void> {
 
     for (let i = 0; i < batchSize; i++) {
       try {
-        const { simulation: updatedSimulation, completionReason } =
-          computeNextFrame(simulation);
+        const { simulation: updatedSimulation, completionReason } = computeNextFrame(simulation);
 
         simulation = updatedSimulation;
         const newFrame = simulation.frames[simulation.currentFrameNumber]!;
-        framesToSend.push(
-          framePayloadFromEngineFrame(newFrame, simulation.currentTime),
-        );
+        framesToSend.push(framePayloadFromEngineFrame(newFrame, simulation.currentTime));
 
         // Check if simulation completed
         if (completionReason !== null) {
@@ -119,10 +107,7 @@ async function computeLoop(): Promise<void> {
         simulationStatus = "error";
         postTypedMessage({
           type: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Unknown error during computation",
+          message: error instanceof Error ? error.message : "Unknown error during computation",
           itemId: error instanceof SDCPNItemError ? error.itemId : null,
         });
         break;
@@ -180,10 +165,7 @@ workerRuntime.onMessage((message) => {
         if (initialFrame) {
           postTypedMessage({
             type: "frame",
-            frame: framePayloadFromEngineFrame(
-              initialFrame,
-              simulation.currentTime,
-            ),
+            frame: framePayloadFromEngineFrame(initialFrame, simulation.currentTime),
           });
         }
 
@@ -195,10 +177,7 @@ workerRuntime.onMessage((message) => {
         simulationStatus = "error";
         postTypedMessage({
           type: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to initialize simulation",
+          message: error instanceof Error ? error.message : "Failed to initialize simulation",
           itemId: error instanceof SDCPNItemError ? error.itemId : null,
         });
       }

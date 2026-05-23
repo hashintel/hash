@@ -6,11 +6,7 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState } from "prosemirror-state";
 import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 
-import {
-  FontAwesomeIcon,
-  IconButton,
-  LoadingSpinner,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, IconButton, LoadingSpinner } from "@hashintel/design-system";
 import {
   createSchema,
   formatKeymap,
@@ -24,10 +20,7 @@ import {
 import { WorkspaceContext } from "../../workspace-context";
 import { usePortals } from "../block-portals";
 import { createFormatPlugins } from "../create-format-plugins";
-import {
-  createSuggester,
-  suggesterPluginKey,
-} from "../create-suggester/create-suggester";
+import { createSuggester, suggesterPluginKey } from "../create-suggester/create-suggester";
 import { createTextEditorView } from "../create-text-editor-view";
 import {
   commentPlaceholderPlugin,
@@ -88,9 +81,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       const tr = state.tr.replaceWith(
         0,
         state.doc.content.size,
-        textualContent.length
-          ? textBlockNodesFromTokens(textualContent, state.schema)
-          : [],
+        textualContent.length ? textBlockNodesFromTokens(textualContent, state.schema) : [],
       );
       view.dispatch(tr);
     }
@@ -200,9 +191,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 
   useEffect(() => {
     if (value && viewRef.current) {
-      const textualContent = textBlockNodeToTextTokens(
-        viewRef.current.state.doc,
-      );
+      const textualContent = textBlockNodeToTextTokens(viewRef.current.state.doc);
 
       if (!isEqual(value, textualContent)) {
         setDocument(value);

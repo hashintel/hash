@@ -22,10 +22,7 @@ import { getCommentById } from "./comment";
 import { getPageFromEntity } from "./page";
 import { getUser } from "./user";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type { Block } from "./block";
 import type { Comment } from "./comment";
 import type { Page } from "./page";
@@ -39,12 +36,8 @@ export type Text = {
   entity: HashEntity<TextEntity>;
 };
 
-function assertTextEntity(
-  entity: HashEntity,
-): asserts entity is HashEntity<TextEntity> {
-  if (
-    !entity.metadata.entityTypeIds.includes(systemEntityTypes.text.entityTypeId)
-  ) {
+function assertTextEntity(entity: HashEntity): asserts entity is HashEntity<TextEntity> {
+  if (!entity.metadata.entityTypeIds.includes(systemEntityTypes.text.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.text.entityTypeId,
@@ -53,10 +46,7 @@ function assertTextEntity(
   }
 }
 
-export const getTextFromEntity: PureGraphFunction<
-  { entity: HashEntity },
-  Text
-> = ({ entity }) => {
+export const getTextFromEntity: PureGraphFunction<{ entity: HashEntity }, Text> = ({ entity }) => {
   assertTextEntity(entity);
 
   const { textualContent } = simplifyProperties(entity.properties);
@@ -74,10 +64,11 @@ export const getTextFromEntity: PureGraphFunction<
  *
  * @param params.entityId - the entity id of the text
  */
-export const getTextById: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<Text>
-> = async (ctx, authentication, { entityId }) => {
+export const getTextById: ImpureGraphFunction<{ entityId: EntityId }, Promise<Text>> = async (
+  ctx,
+  authentication,
+  { entityId },
+) => {
   const entity = await getLatestEntityById(ctx, authentication, {
     entityId,
   });
@@ -96,55 +87,46 @@ export const getPageAndBlockByText: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { text, includeDrafts = false } = params;
 
-  const textEntityUuid = extractEntityUuidFromEntityId(
-    text.entity.metadata.recordId.entityId,
-  );
+  const textEntityUuid = extractEntityUuidFromEntityId(text.entity.metadata.recordId.entityId);
 
-  const [
-    matchingBlockDataLinksWithTextAtDepthOne,
-    matchingBlockDataLinksWithTextAtDepthTwo,
-  ] = await Promise.all([
-    queryEntities(context, authentication, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.hasData.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              { path: ["rightEntity", "uuid"] },
-              { parameter: textEntityUuid },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-      includePermissions: false,
-    }).then(({ entities }) => entities.filter(isEntityLinkEntity)),
-    queryEntities(context, authentication, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemLinkEntityTypes.hasData.linkEntityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: ["rightEntity", "outgoingLinks", "rightEntity", "uuid"],
-              },
-              { parameter: textEntityUuid },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts,
-      includePermissions: false,
-    }).then(({ entities }) => entities.filter(isEntityLinkEntity)),
-  ]);
+  const [matchingBlockDataLinksWithTextAtDepthOne, matchingBlockDataLinksWithTextAtDepthTwo] =
+    await Promise.all([
+      queryEntities(context, authentication, {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(systemLinkEntityTypes.hasData.linkEntityTypeId, {
+              ignoreParents: true,
+            }),
+            {
+              equal: [{ path: ["rightEntity", "uuid"] }, { parameter: textEntityUuid }],
+            },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
+        includePermissions: false,
+      }).then(({ entities }) => entities.filter(isEntityLinkEntity)),
+      queryEntities(context, authentication, {
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(systemLinkEntityTypes.hasData.linkEntityTypeId, {
+              ignoreParents: true,
+            }),
+            {
+              equal: [
+                {
+                  path: ["rightEntity", "outgoingLinks", "rightEntity", "uuid"],
+                },
+                { parameter: textEntityUuid },
+              ],
+            },
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts,
+        includePermissions: false,
+      }).then(({ entities }) => entities.filter(isEntityLinkEntity)),
+    ]);
 
   /** @todo: unify these in a single structural query when it becomes possible */
   const matchingBlockDataLinks = [
@@ -182,9 +164,7 @@ export const getPageAndBlockByText: ImpureGraphFunction<
             equal: [
               { path: ["outgoingLinks", "uuid"] },
               {
-                parameter: extractEntityUuidFromEntityId(
-                  metadata.recordId.entityId,
-                ),
+                parameter: extractEntityUuidFromEntityId(metadata.recordId.entityId),
               },
             ],
           })),
@@ -194,16 +174,13 @@ export const getPageAndBlockByText: ImpureGraphFunction<
     temporalAxes: currentTimeInstantTemporalAxes,
     includeDrafts,
     includePermissions: false,
-  }).then(({ entities }) =>
-    entities.map((entity) => getPageFromEntity({ entity })),
-  );
+  }).then(({ entities }) => entities.map((entity) => getPageFromEntity({ entity })));
 
   const page = pageEntities[0];
 
   if (page) {
     const blockEntityId = matchingContainsLinks.find(
-      ({ linkData }) =>
-        linkData.leftEntityId === page.entity.metadata.recordId.entityId,
+      ({ linkData }) => linkData.leftEntityId === page.entity.metadata.recordId.entityId,
     )!.linkData.rightEntityId;
 
     const block = await getBlockById(context, authentication, {
@@ -225,27 +202,21 @@ export const getCommentByText: ImpureGraphFunction<
   Promise<Comment | null>
 > = async (context, authentication, params) => {
   const { text, includeDrafts = false } = params;
-  const textEntityUuid = extractEntityUuidFromEntityId(
-    text.entity.metadata.recordId.entityId,
-  );
+  const textEntityUuid = extractEntityUuidFromEntityId(text.entity.metadata.recordId.entityId);
 
   const matchingHasTextLinks = await queryEntities(context, authentication, {
     filter: {
       all: [
-        generateVersionedUrlMatchingFilter(
-          systemLinkEntityTypes.hasText.linkEntityTypeId,
-          { ignoreParents: true },
-        ),
+        generateVersionedUrlMatchingFilter(systemLinkEntityTypes.hasText.linkEntityTypeId, {
+          ignoreParents: true,
+        }),
         {
-          equal: [
-            { path: ["rightEntity", "uuid"] },
-            { parameter: textEntityUuid },
-          ],
+          equal: [{ path: ["rightEntity", "uuid"] }, { parameter: textEntityUuid }],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.comment.entityTypeId,
-          { ignoreParents: true, pathPrefix: ["leftEntity"] },
-        ),
+        generateVersionedUrlMatchingFilter(systemEntityTypes.comment.entityTypeId, {
+          ignoreParents: true,
+          pathPrefix: ["leftEntity"],
+        }),
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
@@ -280,8 +251,7 @@ export const getMentionedUsersInTextualContent: ImpureGraphFunction<
   Promise<User[]>
 > = async (context, authentication, { textualContent }) => {
   const mentionTextualContent = textualContent.filter(
-    (token): token is Extract<TextToken, { tokenType: "mention" }> =>
-      token.tokenType === "mention",
+    (token): token is Extract<TextToken, { tokenType: "mention" }> => token.tokenType === "mention",
   );
 
   const mentionedUsers = await Promise.all(
@@ -289,8 +259,7 @@ export const getMentionedUsersInTextualContent: ImpureGraphFunction<
       .filter(({ mentionType }) => mentionType === "user")
       // Filter duplicate user mentions (users that were mentioned more than once)
       .filter(
-        (mention, i, all) =>
-          all.findIndex(({ entityId }) => entityId === mention.entityId) === i,
+        (mention, i, all) => all.findIndex(({ entityId }) => entityId === mention.entityId) === i,
       )
       .map(async ({ entityId }) => {
         const user = await getUser(context, authentication, { entityId });

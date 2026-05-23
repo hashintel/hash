@@ -19,10 +19,7 @@ type DefinitionTabProps = {
     entityType: EntityTypeWithMetadata;
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
-  onNavigateToType: (
-    kind: "entityType" | "dataType",
-    url: VersionedUrl,
-  ) => void;
+  onNavigateToType: (kind: "entityType" | "dataType", url: VersionedUrl) => void;
   readonly: boolean;
 };
 
@@ -33,8 +30,9 @@ export const DefinitionTab = ({
 }: DefinitionTabProps) => {
   const entityTypesContext = useEntityTypesContextRequired();
 
-  const { propertyTypes: possiblyIncompletePropertyTypeOptions } =
-    usePropertyTypes({ latestOnly: true });
+  const { propertyTypes: possiblyIncompletePropertyTypeOptions } = usePropertyTypes({
+    latestOnly: true,
+  });
 
   const propertyTypeOptions = useMemo(() => {
     return {
@@ -49,10 +47,7 @@ export const DefinitionTab = ({
     }
 
     return Object.fromEntries(
-      entityTypesContext.entityTypes.map((entityType) => [
-        entityType.schema.$id,
-        entityType,
-      ]),
+      entityTypesContext.entityTypes.map((entityType) => [entityType.schema.$id, entityType]),
     );
   }, [entityTypesContext.entityTypes]);
 
@@ -64,23 +59,16 @@ export const DefinitionTab = ({
     [entityTypeOptions, propertyTypeOptions],
   );
 
-  const newTypeWebId = useNewTypeOwner(
-    entityTypeAndPropertyTypes.entityType.schema.$id,
-  );
+  const newTypeWebId = useNewTypeOwner(entityTypeAndPropertyTypes.entityType.schema.$id);
 
-  const ontologyFunctions = useEditorOntologyFunctions(
-    newTypeWebId ?? null,
-    typesWithMetadata,
-  );
+  const ontologyFunctions = useEditorOntologyFunctions(newTypeWebId ?? null, typesWithMetadata);
 
   const { dataTypes } = useDataTypesContext();
   const dataTypeOptions = useMemo(() => {
     if (!dataTypes) {
       return null;
     }
-    return Object.fromEntries(
-      Object.entries(dataTypes).map(([key, value]) => [key, value.schema]),
-    );
+    return Object.fromEntries(Object.entries(dataTypes).map(([key, value]) => [key, value.schema]));
   }, [dataTypes]);
 
   if (!entityTypeOptions || !dataTypeOptions) {

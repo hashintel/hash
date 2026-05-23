@@ -4,10 +4,7 @@ import type {
   IntegrationActionStepOutput,
   IntegrationFlowActionDefinitionId,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  StepInput,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { StepInput, StepOutput } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
 
 export type FlowActionActivity<AdditionalParams extends object = object> = (
@@ -54,8 +51,7 @@ export type IntegrationFlowActionActivity<
   }>
 >;
 
-export type ActionName<ActionDefinitionId extends string> =
-  `${ActionDefinitionId}Action`;
+export type ActionName<ActionDefinitionId extends string> = `${ActionDefinitionId}Action`;
 
 export type CreateFlowActivities<ActionDefinitionId extends string> = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

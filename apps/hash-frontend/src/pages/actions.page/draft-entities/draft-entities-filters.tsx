@@ -2,10 +2,7 @@ import { Box, Fade, Typography } from "@mui/material";
 import { subDays, subHours } from "date-fns";
 import { useCallback, useMemo } from "react";
 
-import {
-  extractBaseUrl,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
@@ -29,18 +26,9 @@ import type { MinimalActor } from "../../../shared/use-actors";
 import type { FilterSectionDefinition } from "./draft-entities-filters/types";
 import type { EntityTypeDisplayInfoByBaseUrl } from "./types";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, BaseUrl, WebId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  Dispatch,
-  FunctionComponent,
-  ReactNode,
-  SetStateAction,
-} from "react";
+import type { Dispatch, FunctionComponent, ReactNode, SetStateAction } from "react";
 
 const draftEntitiesFiltersColumnWidth = 200;
 
@@ -51,10 +39,7 @@ export type LastEditedTimeRanges =
   | "last-30-days"
   | "last-365-days";
 
-const lastEditedTimeRangesToHumanReadable: Record<
-  LastEditedTimeRanges,
-  string
-> = {
+const lastEditedTimeRangesToHumanReadable: Record<LastEditedTimeRanges, string> = {
   anytime: "Anytime",
   "last-24-hours": "Last 24 hours",
   "last-7-days": "Last 7 days",
@@ -83,9 +68,7 @@ export const getDraftEntityTypeBaseUrls = ({
   draftEntities: HashEntity[];
 }): BaseUrl[] => {
   const baseUrls = draftEntities.flatMap((draftEntity) =>
-    draftEntity.metadata.entityTypeIds.map((entityTypeId) =>
-      extractBaseUrl(entityTypeId),
-    ),
+    draftEntity.metadata.entityTypeIds.map((entityTypeId) => extractBaseUrl(entityTypeId)),
   );
 
   return Array.from(new Set(baseUrls));
@@ -101,13 +84,10 @@ const getDraftEntitySources = (params: {
     .map(({ creator }) => creator)
     .filter(
       (creator, index, all) =>
-        all.findIndex(({ accountId }) => accountId === creator.accountId) ===
-        index,
+        all.findIndex(({ accountId }) => accountId === creator.accountId) === index,
     );
 
-const getDraftEntityWebIds = (params: {
-  draftEntities: HashEntity[];
-}): WebId[] =>
+const getDraftEntityWebIds = (params: { draftEntities: HashEntity[] }): WebId[] =>
   params.draftEntities
     .map(({ metadata }) => extractWebIdFromEntityId(metadata.recordId.entityId))
     .filter((webWebId, index, all) => all.indexOf(webWebId) === index);
@@ -195,12 +175,7 @@ const isDateWithinLastEditedTimeRange = (params: {
   }
 };
 
-const draftEntityFilterKinds = [
-  "type",
-  "source",
-  "web",
-  "lastEditedBy",
-] as const;
+const draftEntityFilterKinds = ["type", "source", "web", "lastEditedBy"] as const;
 
 type DraftEntityFilterKind = (typeof draftEntityFilterKinds)[number];
 
@@ -230,9 +205,7 @@ export const filterDraftEntities = (params: {
         )) &&
       (omitFilters?.includes("lastEditedBy") ||
         isDateWithinLastEditedTimeRange({
-          date: new Date(
-            entity.metadata.temporalVersioning.decisionTime.start.limit,
-          ),
+          date: new Date(entity.metadata.temporalVersioning.decisionTime.start.limit),
           lastEditedTimeRange: filterState.lastEditedTimeRange,
         })),
   );
@@ -268,9 +241,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
 
   const sources = useMemo(
     () =>
-      draftEntitiesWithCreators
-        ? getDraftEntitySources({ draftEntitiesWithCreators })
-        : undefined,
+      draftEntitiesWithCreators ? getDraftEntitySources({ draftEntitiesWithCreators }) : undefined,
     [draftEntitiesWithCreators],
   );
 
@@ -278,9 +249,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
     () =>
       draftEntitiesWithCreators
         ? getDraftEntityWebIds({
-            draftEntities: draftEntitiesWithCreators.map(
-              ({ entity }) => entity,
-            ),
+            draftEntities: draftEntitiesWithCreators.map(({ entity }) => entity),
           })
         : undefined,
     [draftEntitiesWithCreators],
@@ -348,32 +317,27 @@ export const DraftEntitiesFilters: FunctionComponent<{
       {
         kind: "multiple-choice",
         heading: "Type",
-        options: Object.values(entityTypeDisplayInfoByBaseUrl ?? {}).map(
-          (entityType) => {
-            const { baseUrl, icon, isLink, title } = entityType;
+        options: Object.values(entityTypeDisplayInfoByBaseUrl ?? {}).map((entityType) => {
+          const { baseUrl, icon, isLink, title } = entityType;
 
-            return {
-              icon: icon ? (
-                <Box marginRight={1.25} maxWidth={14} component="span">
-                  {icon}
-                </Box>
-              ) : isLink ? (
-                <LinkRegularIcon />
-              ) : (
-                <AsteriskLightIcon />
-              ),
-              label: title,
-              value: baseUrl,
-              checked: !!filterState?.entityTypeBaseUrls.includes(baseUrl),
-              count: filteredDraftEntitiesExceptForFilter?.type.filter(
-                ({ entity }) =>
-                  entity.metadata.entityTypeIds.some(
-                    (typeId) => extractBaseUrl(typeId) === baseUrl,
-                  ),
-              ).length,
-            };
-          },
-        ),
+          return {
+            icon: icon ? (
+              <Box marginRight={1.25} maxWidth={14} component="span">
+                {icon}
+              </Box>
+            ) : isLink ? (
+              <LinkRegularIcon />
+            ) : (
+              <AsteriskLightIcon />
+            ),
+            label: title,
+            value: baseUrl,
+            checked: !!filterState?.entityTypeBaseUrls.includes(baseUrl),
+            count: filteredDraftEntitiesExceptForFilter?.type.filter(({ entity }) =>
+              entity.metadata.entityTypeIds.some((typeId) => extractBaseUrl(typeId) === baseUrl),
+            ).length,
+          };
+        }),
         onChange: (updatedBaseUrls: BaseUrl[]) =>
           setFilterState((prev) =>
             prev
@@ -396,19 +360,14 @@ export const DraftEntitiesFilters: FunctionComponent<{
                   : (source.displayName ?? "Unknown");
               return { label, source };
             })
-            .sort(
-              (
-                { label: labelA, source: sourceA },
-                { label: labelB, source: sourceB },
-              ) => {
-                if (authenticatedUser.accountId === sourceA.accountId) {
-                  return -1;
-                } else if (authenticatedUser.accountId === sourceB.accountId) {
-                  return 1;
-                }
-                return labelA.localeCompare(labelB);
-              },
-            )
+            .sort(({ label: labelA, source: sourceA }, { label: labelB, source: sourceB }) => {
+              if (authenticatedUser.accountId === sourceA.accountId) {
+                return -1;
+              } else if (authenticatedUser.accountId === sourceB.accountId) {
+                return 1;
+              }
+              return labelA.localeCompare(labelB);
+            })
             .map(({ source, label }) => ({
               icon:
                 source.kind === "machine" ? (
@@ -422,9 +381,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 ),
               label,
               value: source.accountId,
-              checked: !!filterState?.sourceAccountIds.includes(
-                source.accountId,
-              ),
+              checked: !!filterState?.sourceAccountIds.includes(source.accountId),
               count: filteredDraftEntitiesExceptForFilter?.source.filter(
                 ({ creator }) => creator.accountId === source.accountId,
               ).length,
@@ -454,26 +411,16 @@ export const DraftEntitiesFilters: FunctionComponent<{
 
               return { label, web };
             })
-            .sort(
-              ({ label: labelA, web: webA }, { label: labelB, web: webB }) => {
-                if (
-                  webA.kind === "user" &&
-                  authenticatedUser.accountId === webA.accountId
-                ) {
-                  return -1;
-                } else if (
-                  webB.kind === "user" &&
-                  authenticatedUser.accountId === webB.accountId
-                ) {
-                  return 1;
-                }
-                return labelA.localeCompare(labelB);
-              },
-            )
+            .sort(({ label: labelA, web: webA }, { label: labelB, web: webB }) => {
+              if (webA.kind === "user" && authenticatedUser.accountId === webA.accountId) {
+                return -1;
+              } else if (webB.kind === "user" && authenticatedUser.accountId === webB.accountId) {
+                return 1;
+              }
+              return labelA.localeCompare(labelB);
+            })
             .map(({ web, label }) => {
-              const webWebId = (
-                web.kind === "user" ? web.accountId : web.webId
-              ) as WebId;
+              const webWebId = (web.kind === "user" ? web.accountId : web.webId) as WebId;
               return {
                 icon: web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />,
                 label,
@@ -481,9 +428,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 checked: !!filterState?.webWebIds.includes(webWebId),
                 count: filteredDraftEntitiesExceptForFilter?.web.filter(
                   ({ entity }) =>
-                    extractWebIdFromEntityId(
-                      entity.metadata.recordId.entityId,
-                    ) === webWebId,
+                    extractWebIdFromEntityId(entity.metadata.recordId.entityId) === webWebId,
                 ).length,
               };
             }) ?? [],
@@ -500,22 +445,17 @@ export const DraftEntitiesFilters: FunctionComponent<{
       {
         kind: "single-choice",
         heading: "Last Edited",
-        options: Object.entries(lastEditedTimeRangesToHumanReadable).map(
-          ([value, label]) => ({
-            icon: lastEditedTimeRangesToIcon[value as LastEditedTimeRanges],
-            label,
-            value,
-            count: filteredDraftEntitiesExceptForFilter?.lastEditedBy.filter(
-              ({ entity }) =>
-                isDateWithinLastEditedTimeRange({
-                  date: new Date(
-                    entity.metadata.temporalVersioning.decisionTime.start.limit,
-                  ),
-                  lastEditedTimeRange: value as LastEditedTimeRanges,
-                }),
-            ).length,
-          }),
-        ),
+        options: Object.entries(lastEditedTimeRangesToHumanReadable).map(([value, label]) => ({
+          icon: lastEditedTimeRangesToIcon[value as LastEditedTimeRanges],
+          label,
+          value,
+          count: filteredDraftEntitiesExceptForFilter?.lastEditedBy.filter(({ entity }) =>
+            isDateWithinLastEditedTimeRange({
+              date: new Date(entity.metadata.temporalVersioning.decisionTime.start.limit),
+              lastEditedTimeRange: value as LastEditedTimeRanges,
+            }),
+          ).length,
+        })),
         onChange: (updatedLastEditedTimeRange) =>
           setFilterState((prev) =>
             prev
@@ -548,16 +488,12 @@ export const DraftEntitiesFilters: FunctionComponent<{
   );
 
   const allSourcesSelected = useMemo(
-    () =>
-      filterState &&
-      sources &&
-      filterState.sourceAccountIds.length === sources.length,
+    () => filterState && sources && filterState.sourceAccountIds.length === sources.length,
     [filterState, sources],
   );
 
   const allWebsSelected = useMemo(
-    () =>
-      filterState && webIds && filterState.webWebIds.length === webIds.length,
+    () => filterState && webIds && filterState.webWebIds.length === webIds.length,
     [filterState, webIds],
   );
 
@@ -613,10 +549,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
         </Fade>
       </Box>
       {filterSections.map((filterSection) => (
-        <FilterSection
-          key={filterSection.heading}
-          filterSection={filterSection}
-        />
+        <FilterSection key={filterSection.heading} filterSection={filterSection} />
       ))}
     </Box>
   );

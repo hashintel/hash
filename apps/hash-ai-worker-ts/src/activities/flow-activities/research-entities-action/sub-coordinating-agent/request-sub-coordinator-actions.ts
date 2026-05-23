@@ -36,11 +36,10 @@ export const requestSubCoordinatorActions = async (params: {
       Make as many tool calls as are required to progress towards completing the task.
     `);
 
-  const llmMessagesFromPreviousToolCalls =
-    mapPreviousCoordinatorCallsToLlmMessages({
-      includeErrorsOnly: true,
-      previousCalls: state.lastCompletedToolCalls,
-    });
+  const llmMessagesFromPreviousToolCalls = mapPreviousCoordinatorCallsToLlmMessages({
+    includeErrorsOnly: true,
+    previousCalls: state.lastCompletedToolCalls,
+  });
 
   const progressReport = generateProgressReport({ input, state });
 
@@ -55,15 +54,12 @@ export const requestSubCoordinatorActions = async (params: {
     content: [progressReport],
   });
 
-  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
       dataSources,
-      omitTools: [
-        ...(state.inferredClaims.length > 0 ? [] : ["complete" as const]),
-      ],
+      omitTools: [...(state.inferredClaims.length > 0 ? [] : ["complete" as const])],
       state,
     }),
   );

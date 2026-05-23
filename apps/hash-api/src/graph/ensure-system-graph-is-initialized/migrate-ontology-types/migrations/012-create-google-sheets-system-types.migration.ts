@@ -16,11 +16,7 @@ import {
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   if (!enabledIntegrations.googleSheets) {
     return migrationState;
   }
@@ -42,62 +38,56 @@ const migrate: MigrationFunction = async ({
     entityTypeKey: "userSecret",
   });
 
-  const accountIdPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Account Id",
-        description: "A unique identifier for a Google account.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "google",
-      migrationState,
+  const accountIdPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Account Id",
+      description: "A unique identifier for a Google account.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "google",
+    migrationState,
+  });
 
-  const googleAccountEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Account",
-        titlePlural: "Accounts",
-        icon: "/icons/types/google.svg",
-        description: "A Google user account.",
-        properties: [
-          {
-            propertyType: accountIdPropertyType,
-            required: true,
-          },
-          {
-            propertyType: emailPropertyType,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.displayName.propertyTypeId,
-            required: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: usesUserSecretLinkEntityType,
-            destinationEntityTypes: [userSecretEntityType],
-            minItems: 0,
-            maxItems: 1,
-          },
-        ],
-      },
-      webShortname: "google",
-      migrationState,
+  const googleAccountEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Account",
+      titlePlural: "Accounts",
+      icon: "/icons/types/google.svg",
+      description: "A Google user account.",
+      properties: [
+        {
+          propertyType: accountIdPropertyType,
+          required: true,
+        },
+        {
+          propertyType: emailPropertyType,
+          required: true,
+        },
+        {
+          propertyType: blockProtocolPropertyTypes.displayName.propertyTypeId,
+          required: true,
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: usesUserSecretLinkEntityType,
+          destinationEntityTypes: [userSecretEntityType],
+          minItems: 0,
+          maxItems: 1,
+        },
+      ],
     },
-  );
+    webShortname: "google",
+    migrationState,
+  });
 
   /**
    * Create a Google Sheets File entity type.
    */
-  const associatedWithAccountLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const associatedWithAccountLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Associated With Account",
@@ -109,39 +99,31 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
-
-  const fileIdPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "File Id",
-        description: "A system identifier for a file.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
     },
   );
 
-  const actorTypeDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
-        title: "Actor Type",
-        description:
-          "The type of thing that can, should or will act on something.",
-        enum: ["user", "machine"],
-        type: "string",
-      },
-      conversions: {},
-      webShortname: "h",
-      migrationState,
+  const fileIdPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "File Id",
+      description: "A system identifier for a file.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
+
+  const actorTypeDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+      title: "Actor Type",
+      description: "The type of thing that can, should or will act on something.",
+      enum: ["user", "machine"],
+      type: "string",
+    },
+    conversions: {},
+    webShortname: "h",
+    migrationState,
+  });
 
   const dataAudiencePropertyType = await createSystemPropertyTypeIfNotExists(
     context,

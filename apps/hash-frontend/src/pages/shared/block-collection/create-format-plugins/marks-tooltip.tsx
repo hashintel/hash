@@ -119,10 +119,7 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
         </FormatButton>
       </Stack>
 
-      <Divider
-        color={theme.palette.gray[30]}
-        sx={{ width: "1px", color: "red" }}
-      />
+      <Divider color={theme.palette.gray[30]} sx={{ width: "1px", color: "red" }} />
 
       <Stack
         direction="row"

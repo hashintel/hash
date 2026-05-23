@@ -88,10 +88,7 @@ export const DraftRow = ({
         isLastRow
       />
       {arrayConstraints && (
-        <ItemLimitInfo
-          min={arrayConstraints.minItems}
-          max={arrayConstraints.maxItems}
-        />
+        <ItemLimitInfo min={arrayConstraints.minItems} max={arrayConstraints.maxItems} />
       )}
     </>
   );

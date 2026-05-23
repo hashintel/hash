@@ -29,8 +29,7 @@ export const googleSheetStep = {
   description: "Save discovered entities to Google Sheet",
   inputSources: [
     {
-      inputName:
-        "audience" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+      inputName: "audience" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
       kind: "hardcoded",
       payload: {
         kind: "ActorType",
@@ -38,22 +37,19 @@ export const googleSheetStep = {
       },
     },
     {
-      inputName:
-        "googleAccountId" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+      inputName: "googleAccountId" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Google Account" satisfies GoogleSheetTriggerInput,
     },
     {
-      inputName:
-        "googleSheet" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+      inputName: "googleSheet" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Google Sheet" satisfies GoogleSheetTriggerInput,
     },
     {
-      inputName:
-        "dataToWrite" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
+      inputName: "dataToWrite" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "2",
       sourceStepOutputName:
@@ -66,13 +62,9 @@ export const googleSheetStep = {
 >;
 
 export const googleSheetDeliverable = {
-  stepOutputName:
-    "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
+  stepOutputName: "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
   payloadKind: "PersistedEntityMetadata",
   name: "googleSheetEntity" as const,
   array: false,
   required: true,
-} satisfies Omit<
-  FlowDefinition<AiFlowActionDefinitionId>["outputs"][number],
-  "stepId"
->;
+} satisfies Omit<FlowDefinition<AiFlowActionDefinitionId>["outputs"][number], "stepId">;

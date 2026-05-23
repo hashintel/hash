@@ -10,11 +10,7 @@ import {
   menuItemClasses,
   Typography,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useMemo } from "react";
 
 import { Avatar } from "@hashintel/design-system";
@@ -82,9 +78,7 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
   const primaryRelationship = useMemo(
     () =>
       relationships.reduce<AuthorizationRelationship>((prev, current) => {
-        if (
-          relationHierarchy[current.relation] > relationHierarchy[prev.relation]
-        ) {
+        if (relationHierarchy[current.relation] > relationHierarchy[prev.relation]) {
           return current;
         }
 
@@ -93,11 +87,7 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
     [relationships],
   );
 
-  const {
-    objectEntityId,
-    relation: currentRelation,
-    subject,
-  } = primaryRelationship;
+  const { objectEntityId, relation: currentRelation, subject } = primaryRelationship;
 
   const subjectId =
     subject.__typename === "AccountAuthorizationSubject"
@@ -141,8 +131,7 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
       const relationshipSubjectId =
         relationship.subject.__typename === "AccountAuthorizationSubject"
           ? relationship.subject.accountId
-          : relationship.subject.__typename ===
-              "AccountGroupAuthorizationSubject"
+          : relationship.subject.__typename === "AccountGroupAuthorizationSubject"
             ? relationship.subject.accountGroupId
             : undefined;
 
@@ -153,11 +142,9 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
             viewer: {
               viewer: relationshipSubjectId,
               kind:
-                relationship.subject.__typename ===
-                "AccountAuthorizationSubject"
+                relationship.subject.__typename === "AccountAuthorizationSubject"
                   ? AuthorizationSubjectKind.Account
-                  : relationship.subject.__typename ===
-                      "AccountGroupAuthorizationSubject"
+                  : relationship.subject.__typename === "AccountGroupAuthorizationSubject"
                     ? AuthorizationSubjectKind.AccountGroup
                     : AuthorizationSubjectKind.Public,
             },
@@ -173,9 +160,7 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
               owner: relationshipSubjectId,
             },
           });
-        } else if (
-          relationship.relation === EntityAuthorizationRelation.Editor
-        ) {
+        } else if (relationship.relation === EntityAuthorizationRelation.Editor) {
           await removeEntityEditor({
             variables: {
               entityId: relationship.objectEntityId,
@@ -192,20 +177,20 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
     await Promise.all(relationships.map(removeRelationship));
   }, [relationships, removeRelationship]);
 
-  const [addEntityOwner] = useMutation<
-    AddEntityOwnerMutation,
-    AddEntityOwnerMutationVariables
-  >(addEntityOwnerMutation, { refetchQueries });
+  const [addEntityOwner] = useMutation<AddEntityOwnerMutation, AddEntityOwnerMutationVariables>(
+    addEntityOwnerMutation,
+    { refetchQueries },
+  );
 
-  const [addEntityEditor] = useMutation<
-    AddEntityEditorMutation,
-    AddEntityEditorMutationVariables
-  >(addEntityEditorMutation, { refetchQueries });
+  const [addEntityEditor] = useMutation<AddEntityEditorMutation, AddEntityEditorMutationVariables>(
+    addEntityEditorMutation,
+    { refetchQueries },
+  );
 
-  const [addEntityViewer] = useMutation<
-    AddEntityViewerMutation,
-    AddEntityViewerMutationVariables
-  >(addEntityViewerMutation, { refetchQueries });
+  const [addEntityViewer] = useMutation<AddEntityViewerMutation, AddEntityViewerMutationVariables>(
+    addEntityViewerMutation,
+    { refetchQueries },
+  );
 
   const updateAuthorizationRelation = useCallback(
     async (updatedRelation: EntityAuthorizationRelation) => {
@@ -260,11 +245,7 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
     ? getImageUrlFromEntityProperties(account.hasAvatar.imageEntity.properties)
     : undefined;
 
-  const name = account
-    ? account.kind === "user"
-      ? account.displayName
-      : account.name
-    : "Public";
+  const name = account ? (account.kind === "user" ? account.displayName : account.name) : "Public";
 
   const dropdownItems = useMemo(() => {
     if (subjectId === "public") {
@@ -282,22 +263,14 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
       {
         relation: EntityAuthorizationRelation.Editor,
         label: relationLabels[EntityAuthorizationRelation.Editor],
-        description: `Can view, comment and edit this ${
-          isObjectPageEntity ? "page" : "entity"
-        }`,
+        description: `Can view, comment and edit this ${isObjectPageEntity ? "page" : "entity"}`,
       },
     ];
   }, [objectEntity, subjectId]);
 
   return (
     <Box display="flex" alignItems="center" paddingY={0.25}>
-      <Box
-        minWidth={28}
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        marginRight={1}
-      >
+      <Box minWidth={28} display="flex" alignItems="center" justifyContent="center" marginRight={1}>
         {account ? (
           <Avatar
             src={avatarSrc}
@@ -306,18 +279,14 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
             borderRadius={account.kind === "org" ? "4px" : undefined}
           />
         ) : (
-          <GlobeLightIcon
-            sx={{ fontSize: 18, color: ({ palette }) => palette.gray[50] }}
-          />
+          <GlobeLightIcon sx={{ fontSize: 18, color: ({ palette }) => palette.gray[50] }} />
         )}
       </Box>
       <Box flexGrow={1} display="flex" columnGap={1}>
         <Typography variant="microText" sx={{ fontWeight: 500, fontSize: 14 }}>
           {name}
         </Typography>
-        {account &&
-        account.kind === "user" &&
-        account.accountId === authenticatedUser.accountId ? (
+        {account && account.kind === "user" && account.accountId === authenticatedUser.accountId ? (
           <Typography variant="microText" sx={{ fontSize: 13 }}>
             (You)
           </Typography>
@@ -328,9 +297,7 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
           size="xs"
           variant="tertiary_quiet"
           endIcon={<ChevronDownRegularIcon sx={{ fontSize: 10 }} />}
-          disabled={
-            primaryRelationship.relation === EntityAuthorizationRelation.Owner
-          }
+          disabled={primaryRelationship.relation === EntityAuthorizationRelation.Owner}
           sx={{
             color: ({ palette }) => palette.gray[80],
             [`&.${buttonClasses.disabled}`]: {

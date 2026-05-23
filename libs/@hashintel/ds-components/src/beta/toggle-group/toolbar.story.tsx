@@ -1,9 +1,4 @@
-import {
-  AlignCenterIcon,
-  AlignJustifyIcon,
-  AlignLeftIcon,
-  AlignRightIcon,
-} from "lucide-react";
+import { AlignCenterIcon, AlignJustifyIcon, AlignLeftIcon, AlignRightIcon } from "lucide-react";
 
 import { ButtonGroup } from "../button";
 import { IconButton } from "../icon-button";

@@ -10,9 +10,7 @@ import type {
   CheckUserPermissionsOnEntityQueryVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-export const useUserPermissionsOnEntity = (
-  entity?: Pick<HashEntity, "metadata">,
-) => {
+export const useUserPermissionsOnEntity = (entity?: Pick<HashEntity, "metadata">) => {
   const { data, ...rest } = useQuery<
     CheckUserPermissionsOnEntityQuery,
     CheckUserPermissionsOnEntityQueryVariables

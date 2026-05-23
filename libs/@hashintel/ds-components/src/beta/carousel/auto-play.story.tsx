@@ -15,11 +15,7 @@ export const App = () => {
         {Array.from({ length: slides }, (_, index) => (
           <Carousel.Item key={index} index={index}>
             <Center bg="colorPalette.subtle.bg" height="40" borderRadius="l2">
-              <Text
-                textStyle="3xl"
-                fontWeight="semibold"
-                color="colorPalette.subtle.fg"
-              >
+              <Text textStyle="3xl" fontWeight="semibold" color="colorPalette.subtle.fg">
                 {index + 1}
               </Text>
             </Center>

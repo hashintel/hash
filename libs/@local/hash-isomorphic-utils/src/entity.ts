@@ -1,19 +1,9 @@
 import { getEntityRevisionsByEntityId } from "@blockprotocol/graph/stdlib";
 
-import {
-  isDraftBlockEntity,
-  textualContentPropertyTypeBaseUrl,
-} from "./entity-store.js";
+import { isDraftBlockEntity, textualContentPropertyTypeBaseUrl } from "./entity-store.js";
 
-import type {
-  DraftEntity,
-  EntityStore,
-  EntityStoreType,
-} from "./entity-store.js";
-import type {
-  Block,
-  BlockCollection as BlockCollectionGql,
-} from "./graphql/api-types.gen.js";
+import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store.js";
+import type { Block, BlockCollection as BlockCollectionGql } from "./graphql/api-types.gen.js";
 import type { HasSpatiallyPositionedContent } from "./system-types/canvas.js";
 import type { HasIndexedContent, Text } from "./system-types/shared.js";
 import type { TextToken } from "./types.js";
@@ -25,9 +15,7 @@ export type BlockEntity = Omit<Block, "blockChildEntity"> & {
 };
 
 export type BlockCollectionContentItem = {
-  linkEntity:
-    | LinkEntity<HasIndexedContent>
-    | LinkEntity<HasSpatiallyPositionedContent>;
+  linkEntity: LinkEntity<HasIndexedContent> | LinkEntity<HasSpatiallyPositionedContent>;
   rightEntity: BlockEntity;
 };
 
@@ -51,14 +39,9 @@ export const isRichTextProperties = (
   properties: Record<string, unknown>,
 ): properties is TextEntityStoreEntity["properties"] =>
   textualContentPropertyTypeBaseUrl in properties &&
-  Array.isArray(
-    properties[textualContentPropertyTypeBaseUrl as keyof typeof properties],
-  );
+  Array.isArray(properties[textualContentPropertyTypeBaseUrl as keyof typeof properties]);
 
-export const getEntityChildEntity = (
-  draftId: string,
-  draftEntityStore: EntityStore["draft"],
-) => {
+export const getEntityChildEntity = (draftId: string, draftEntityStore: EntityStore["draft"]) => {
   const entity = draftEntityStore[draftId];
   if (!entity) {
     throw new Error("invariant: missing entity");
@@ -81,10 +64,7 @@ export const getBlockChildEntity = (
     throw new Error("Can only get child entity from block entity");
   }
 
-  const childEntity = getEntityChildEntity(
-    blockEntity.draftId,
-    entityStore.draft,
-  );
+  const childEntity = getEntityChildEntity(blockEntity.draftId, entityStore.draft);
 
   if (!childEntity) {
     throw new Error("Missing entity from draft store");
@@ -93,31 +73,24 @@ export const getBlockChildEntity = (
   return childEntity;
 };
 
-export const getFirstEntityRevision = (
-  subgraph: Subgraph,
-  entityId: EntityId,
-) => {
+export const getFirstEntityRevision = (subgraph: Subgraph, entityId: EntityId) => {
   const entityRevisions = getEntityRevisionsByEntityId(subgraph, entityId);
 
   if (!entityRevisions[0]) {
     throw new Error("Could not find entity revisions in subgraph");
   }
 
-  return entityRevisions.reduce<Entity>(
-    (previousEarliestRevision, currentRevision) => {
-      const currentCreatedAt = new Date(
-        currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
-      );
+  return entityRevisions.reduce<Entity>((previousEarliestRevision, currentRevision) => {
+    const currentCreatedAt = new Date(
+      currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    );
 
-      const previousEarliestRevisionCreatedAt = new Date(
-        previousEarliestRevision.metadata.temporalVersioning.decisionTime.start
-          .limit,
-      );
+    const previousEarliestRevisionCreatedAt = new Date(
+      previousEarliestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    );
 
-      return previousEarliestRevisionCreatedAt < currentCreatedAt
-        ? previousEarliestRevision
-        : currentRevision;
-    },
-    entityRevisions[0],
-  );
+    return previousEarliestRevisionCreatedAt < currentCreatedAt
+      ? previousEarliestRevision
+      : currentRevision;
+  }, entityRevisions[0]);
 };

@@ -27,11 +27,7 @@ const kratosAfterRegistrationHookHandler =
   (
     context: ImpureGraphContext,
     logger: Logger,
-  ): RequestHandler<
-    Record<string, never>,
-    string,
-    { identity: KratosUserIdentity }
-  > =>
+  ): RequestHandler<Record<string, never>, string, { identity: KratosUserIdentity }> =>
   (req, res) => {
     const {
       body: {
@@ -43,15 +39,11 @@ const kratosAfterRegistrationHookHandler =
     // Authenticate the request originates from the kratos server
     if (!requestHeaderContainsValidKratosApiKey(req)) {
       logger.error("Kratos webhook called with invalid API key");
-      Sentry.captureException(
-        new Error("Kratos webhook called with invalid API key"),
-      );
+      Sentry.captureException(new Error("Kratos webhook called with invalid API key"));
 
       res
         .status(401)
-        .send(
-          'Please provide the kratos API key using a "KRATOS_API_KEY" request header',
-        )
+        .send('Please provide the kratos API key using a "KRATOS_API_KEY" request header')
         .end();
 
       return;
@@ -105,10 +97,7 @@ export const addKratosAfterRegistrationHandler = ({
   context: ImpureGraphContext;
   logger: Logger;
 }) => {
-  app.post(
-    "/kratos-after-registration",
-    kratosAfterRegistrationHookHandler(context, logger),
-  );
+  app.post("/kratos-after-registration", kratosAfterRegistrationHookHandler(context, logger));
 };
 
 export const getUserAndSession = async ({
@@ -136,9 +125,7 @@ export const getUserAndSession = async ({
     .then(({ data }) => data)
     .catch((err: AxiosError) => {
       if (err.response && err.response.status === 403) {
-        logger.debug(
-          "Session requires AAL2 but only has AAL1. Treating as unauthenticated.",
-        );
+        logger.debug("Session requires AAL2 but only has AAL1. Treating as unauthenticated.");
         return undefined;
       }
       logger.debug(
@@ -161,9 +148,8 @@ export const getUserAndSession = async ({
     const primaryEmailAddress = traits.emails[0];
 
     const primaryEmailVerified =
-      identity.verifiable_addresses?.find(
-        ({ value }) => value === primaryEmailAddress,
-      )?.verified === true;
+      identity.verifiable_addresses?.find(({ value }) => value === primaryEmailAddress)
+        ?.verified === true;
 
     let user = await getUser(context, authentication, {
       kratosIdentityId,
@@ -226,9 +212,7 @@ export const createAuthMiddleware = (params: {
           },
         );
         if (user) {
-          req.primaryEmailVerified = await isUserEmailVerified(
-            user.kratosIdentityId,
-          );
+          req.primaryEmailVerified = await isUserEmailVerified(user.kratosIdentityId);
           req.user = user;
           next();
           return;

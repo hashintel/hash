@@ -88,6 +88,4 @@ const fileUploadSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const fileUploadSlotRecipe = sva(fileUploadSlotRecipeDefinition);
 
-export type FileUploadSlotRecipeProps = RecipeVariantProps<
-  typeof fileUploadSlotRecipe
->;
+export type FileUploadSlotRecipeProps = RecipeVariantProps<typeof fileUploadSlotRecipe>;

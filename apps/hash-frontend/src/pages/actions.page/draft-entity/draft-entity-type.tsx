@@ -16,9 +16,7 @@ export const DraftEntityType: FunctionComponent<{
   entityTypeDisplayInfoByBaseUrl: EntityTypeDisplayInfoByBaseUrl;
 }> = ({ entity, entityTypeDisplayInfoByBaseUrl }) => {
   const entityType =
-    entityTypeDisplayInfoByBaseUrl[
-      extractBaseUrl(entity.metadata.entityTypeIds[0])
-    ];
+    entityTypeDisplayInfoByBaseUrl[extractBaseUrl(entity.metadata.entityTypeIds[0])];
 
   if (!entityType) {
     throw new Error(
@@ -26,8 +24,7 @@ export const DraftEntityType: FunctionComponent<{
     );
   }
 
-  const isUpdate =
-    !!entity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+  const isUpdate = !!entity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
 
   return (
     <Box display="flex" alignItems="stretch" flexShrink={0}>
@@ -44,11 +41,7 @@ export const DraftEntityType: FunctionComponent<{
           paddingX: 1.25,
         }}
       >
-        {isUpdate ? (
-          <ArrowUpRegularIcon sx={iconSx} />
-        ) : (
-          <PlusRegularIcon sx={iconSx} />
-        )}
+        {isUpdate ? <ArrowUpRegularIcon sx={iconSx} /> : <PlusRegularIcon sx={iconSx} />}
         <Typography
           sx={{
             color: ({ palette }) => palette.common.white,

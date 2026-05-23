@@ -314,10 +314,7 @@ const generateMatchExistingEntityTool = (
         description:
           "The properties where you are merging the old and new value together. Do not include any properties which are not being merged – don't include any which don't appear in both the new and old entity, or which you are not changing from their new value.",
         properties: Object.fromEntries(
-          propertyNames.map((propertyName) => [
-            propertyName,
-            { type: "string" },
-          ]),
+          propertyNames.map((propertyName) => [propertyName, { type: "string" }]),
         ),
       },
     },
@@ -472,12 +469,9 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
 }): Promise<MatchedEntityUpdate<T>> => {
   const { newEntity, potentialMatches } = entities;
 
-  const { flowEntityId, userAuthentication, stepId, webId } =
-    await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } = await getFlowContext();
 
-  const tool = generateMatchExistingEntityTool(
-    Object.keys(newEntity.properties),
-  );
+  const tool = generateMatchExistingEntityTool(Object.keys(newEntity.properties));
 
   const userMessage = generateMatchExistingEntityUserMessage({
     isLink,
@@ -488,8 +482,7 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
 
   const llmResponse = await getLlmResponse(
     {
-      systemPrompt:
-        testingParams?.systemPrompt ?? matchExistingEntitySystemPrompt,
+      systemPrompt: testingParams?.systemPrompt ?? matchExistingEntitySystemPrompt,
       tools: [tool],
       toolChoice: toolName,
       messages: [
@@ -551,8 +544,7 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
     });
   }
 
-  const { matchedEntityId, mergedProperties } =
-    firstToolCall.input as ExistingEntityReport;
+  const { matchedEntityId, mergedProperties } = firstToolCall.input as ExistingEntityReport;
 
   if (!matchedEntityId) {
     return null;
@@ -579,9 +571,7 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
     JSON.stringify(newEntity.propertiesMetadata),
   ) as typeof newEntity.propertiesMetadata;
 
-  for (const [baseUrl, valueFromNewEntity] of typedEntries(
-    newEntity.properties,
-  )) {
+  for (const [baseUrl, valueFromNewEntity] of typedEntries(newEntity.properties)) {
     const mergedValue = mergedProperties?.[baseUrl];
 
     const newValue = mergedValue ?? valueFromNewEntity;
@@ -603,15 +593,12 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
     const newMetadataForProperty = newEntity.propertiesMetadata.value[baseUrl];
 
     if (!newMetadataForProperty) {
-      throw new Error(
-        `No metadata provided for property changed at ${baseUrl}`,
-      );
+      throw new Error(`No metadata provided for property changed at ${baseUrl}`);
     }
 
     if (mergedValue || newValue === match.properties[baseUrl]) {
       const existingSources =
-        existingMetadataForProperty &&
-        isValueMetadata(existingMetadataForProperty)
+        existingMetadataForProperty && isValueMetadata(existingMetadataForProperty)
           ? (existingMetadataForProperty.metadata.provenance?.sources ?? [])
           : [];
 
@@ -619,10 +606,7 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
         ? (newMetadataForProperty.metadata.provenance?.sources ?? [])
         : [];
 
-      const mergedSources = deduplicateSources([
-        ...existingSources,
-        ...newSources,
-      ]);
+      const mergedSources = deduplicateSources([...existingSources, ...newSources]);
 
       if (!isValueMetadata(newMetadataForProperty)) {
         throw new Error(
@@ -651,9 +635,7 @@ export const matchExistingEntity = async <T extends ExistingEntityForMatching>({
   ]);
 
   const matchWithMergedValues = {
-    entityTypeIds: [
-      ...new Set([...newEntity.entityTypeIds, ...match.metadata.entityTypeIds]),
-    ],
+    entityTypeIds: [...new Set([...newEntity.entityTypeIds, ...match.metadata.entityTypeIds])],
     editionSources: mergedEditionSources,
     properties: changedPropertiesWithMergedValues,
     propertyMetadata: metadataForChangedProperties,

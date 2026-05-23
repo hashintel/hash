@@ -47,9 +47,7 @@ type FilePathParams = {
  */
 export const getItemFilePath = <T extends SDCPNFileType>(
   fileType: T,
-  ...args: FilePathParams[T] extends Record<string, never>
-    ? []
-    : [FilePathParams[T]]
+  ...args: FilePathParams[T] extends Record<string, never> ? [] : [FilePathParams[T]]
 ): string => {
   const params = args[0];
 
@@ -76,26 +74,22 @@ export const getItemFilePath = <T extends SDCPNFileType>(
     }
 
     case "transition-lambda-defs": {
-      const { transitionId } =
-        params as FilePathParams["transition-lambda-defs"];
+      const { transitionId } = params as FilePathParams["transition-lambda-defs"];
       return `/transitions/${transitionId}/lambda/defs.d.ts`;
     }
 
     case "transition-lambda-code": {
-      const { transitionId } =
-        params as FilePathParams["transition-lambda-code"];
+      const { transitionId } = params as FilePathParams["transition-lambda-code"];
       return `/transitions/${transitionId}/lambda/code.ts`;
     }
 
     case "transition-kernel-defs": {
-      const { transitionId } =
-        params as FilePathParams["transition-kernel-defs"];
+      const { transitionId } = params as FilePathParams["transition-kernel-defs"];
       return `/transitions/${transitionId}/kernel/defs.d.ts`;
     }
 
     case "transition-kernel-code": {
-      const { transitionId } =
-        params as FilePathParams["transition-kernel-code"];
+      const { transitionId } = params as FilePathParams["transition-kernel-code"];
       return `/transitions/${transitionId}/kernel/code.ts`;
     }
 
@@ -105,20 +99,17 @@ export const getItemFilePath = <T extends SDCPNFileType>(
     }
 
     case "scenario-param-override-code": {
-      const { sessionId, paramId } =
-        params as FilePathParams["scenario-param-override-code"];
+      const { sessionId, paramId } = params as FilePathParams["scenario-param-override-code"];
       return `/_temp/scenarios/${sessionId}/param_overrides/${paramId}/code.ts`;
     }
 
     case "scenario-initial-state-code": {
-      const { sessionId, placeId } =
-        params as FilePathParams["scenario-initial-state-code"];
+      const { sessionId, placeId } = params as FilePathParams["scenario-initial-state-code"];
       return `/_temp/scenarios/${sessionId}/initial_state/${placeId}/code.ts`;
     }
 
     case "scenario-initial-state-full-code": {
-      const { sessionId } =
-        params as FilePathParams["scenario-initial-state-full-code"];
+      const { sessionId } = params as FilePathParams["scenario-initial-state-full-code"];
       return `/_temp/scenarios/${sessionId}/initial_state_code/code.ts`;
     }
 

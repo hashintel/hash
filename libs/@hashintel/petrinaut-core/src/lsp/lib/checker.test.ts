@@ -148,9 +148,7 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.itemId).toBe(de.id);
       expect(result.itemDiagnostics[0]?.itemType).toBe("differential-equation");
       expect(result.itemDiagnostics[0]?.diagnostics.length).toBeGreaterThan(0);
-      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "undefinedProperty",
-      );
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain("undefinedProperty");
     });
 
     it("returns invalid when accessing undefined parameter", () => {
@@ -182,9 +180,7 @@ describe("checkSDCPN", () => {
       expect(result.isValid).toBe(false);
       expect(result.itemDiagnostics).toHaveLength(1);
       expect(result.itemDiagnostics[0]?.itemId).toBe(de.id);
-      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "undefinedParam",
-      );
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain("undefinedParam");
     });
 
     it("returns invalid for syntax errors in TypeScript code", () => {
@@ -270,9 +266,7 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics).toHaveLength(1);
       expect(result.itemDiagnostics[0]?.itemId).toBe(transition.id);
       expect(result.itemDiagnostics[0]?.itemType).toBe("transition-lambda");
-      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "UndefinedPlace",
-      );
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain("UndefinedPlace");
     });
 
     it("returns invalid when Lambda returns wrong type for predicate", () => {
@@ -419,9 +413,7 @@ describe("checkSDCPN", () => {
       expect(result.isValid).toBe(false);
       expect(result.itemDiagnostics).toHaveLength(1);
       expect(result.itemDiagnostics[0]?.itemId).toBe(transition.id);
-      expect(
-        result.itemDiagnostics[0]?.diagnostics.map((diag) => diag.code),
-      ).toContain(2345);
+      expect(result.itemDiagnostics[0]?.diagnostics.map((diag) => diag.code)).toContain(2345);
     });
 
     it("returns valid when accessing parameters in TransitionKernel", () => {
@@ -488,9 +480,7 @@ describe("checkSDCPN", () => {
       expect(result.isValid).toBe(false);
       expect(result.itemDiagnostics).toHaveLength(1);
       expect(result.itemDiagnostics[0]?.itemId).toBe(transition.id);
-      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "Untyped",
-      );
+      expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain("Untyped");
     });
 
     it("returns invalid when returning untyped output place instead of typed one", () => {

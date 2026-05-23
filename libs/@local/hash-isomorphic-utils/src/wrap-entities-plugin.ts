@@ -1,11 +1,6 @@
 import { mapValues } from "lodash-es";
 import { keymap } from "prosemirror-keymap";
-import {
-  EditorState,
-  NodeSelection,
-  Plugin,
-  TextSelection,
-} from "prosemirror-state";
+import { EditorState, NodeSelection, Plugin, TextSelection } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
 
 import { entityStorePluginState } from "./entity-store-plugin.js";
@@ -18,11 +13,7 @@ import type { Command, Transaction } from "prosemirror-state";
 type WrapperNodes = [number, Node[]];
 type WrapperNodesList = WrapperNodes[];
 
-const getRangeForNodeAtMappedPosition = (
-  pos: number,
-  node: Node,
-  tr: Transaction,
-) => {
+const getRangeForNodeAtMappedPosition = (pos: number, node: Node, tr: Transaction) => {
   const $start = tr.doc.resolve(tr.mapping.map(pos));
   const $end = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize));
 
@@ -37,10 +28,7 @@ const getRangeForNodeAtMappedPosition = (
  *
  * @todo make this take a transaction and not state
  */
-const ensureEntitiesAreWrapped = (
-  state: EditorState,
-  wrappers?: WrapperNodesList,
-) => {
+const ensureEntitiesAreWrapped = (state: EditorState, wrappers?: WrapperNodesList) => {
   const { tr, schema, doc } = state;
 
   doc.descendants((node, position, parent) => {
@@ -73,10 +61,7 @@ const ensureEntitiesAreWrapped = (
        */
       const defaultWrappers = [{ type: schema.nodes.block! }];
       if (node.type !== schema.nodes.entity) {
-        defaultWrappers.push(
-          { type: schema.nodes.entity! },
-          { type: schema.nodes.entity! },
-        );
+        defaultWrappers.push({ type: schema.nodes.entity! }, { type: schema.nodes.entity! });
       }
 
       tr.wrap(
@@ -111,10 +96,7 @@ const stateWithTransaction = (state: EditorState, tr: Transaction) =>
  * @todo this isn't sufficient to combine transactions – need to copy meta and
  *       other things across
  */
-const combineTransactions = (
-  targetTransaction: Transaction,
-  sourceTransaction: Transaction,
-) => {
+const combineTransactions = (targetTransaction: Transaction, sourceTransaction: Transaction) => {
   for (const step of sourceTransaction.steps) {
     targetTransaction.step(step);
   }
@@ -165,24 +147,16 @@ const prepareCommandForWrappedEntities =
         }
 
         if (blockEntityNode.attrs.draftId) {
-          const childEntity = getBlockChildEntity(
-            blockEntityNode.attrs.draftId,
-            store,
-          );
+          const childEntity = getBlockChildEntity(blockEntityNode.attrs.draftId, store);
 
           const selection: TextSelection | null =
             state.selection instanceof TextSelection ? state.selection : null;
           const cursorPos = selection?.$cursor?.pos;
 
           const inNode =
-            typeof cursorPos === "number" &&
-            cursorPos >= pos &&
-            cursorPos < pos + node.nodeSize;
+            typeof cursorPos === "number" && cursorPos >= pos && cursorPos < pos + node.nodeSize;
 
-          if (
-            inNode ||
-            (childEntity && isRichTextProperties(childEntity.properties))
-          ) {
+          if (inNode || (childEntity && isRichTextProperties(childEntity.properties))) {
             const range = getRangeForNodeAtMappedPosition(pos, node, tr);
 
             if (!range) {

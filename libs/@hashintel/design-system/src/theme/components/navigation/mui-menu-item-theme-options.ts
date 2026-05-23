@@ -89,37 +89,36 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
         backgroundColor: theme.palette.blue[20],
       },
 
-      [`&.${menuItemClasses.selected}, &.${menuItemClasses.selected}:hover, &:active`]:
-        {
-          backgroundColor: theme.palette.blue[70],
-          color: theme.palette.common.white,
-          boxShadow: "unset",
+      [`&.${menuItemClasses.selected}, &.${menuItemClasses.selected}:hover, &:active`]: {
+        backgroundColor: theme.palette.blue[70],
+        color: theme.palette.common.white,
+        boxShadow: "unset",
 
-          [`& .${listItemIconClasses.root}`]: {
-            color: theme.palette.blue[30],
-          },
-
-          [`& .${listItemTextClasses.primary}`]: {
-            color: theme.palette.white,
-          },
-
-          [`& .${listItemTextClasses.secondary}`]: {
-            color: theme.palette.blue[30],
-          },
-
-          [`& .${listItemAvatarClasses.root}`]: {
-            borderColor: theme.palette.white,
-          },
-
-          [`& .${listItemSecondaryActionClasses.root}`]: {
-            color: theme.palette.blue[30],
-          },
-
-          /**
-           * @todo add styles for when ownerState.dense = true
-           * This will handle scenarios where the menu item is smaller
-           */
+        [`& .${listItemIconClasses.root}`]: {
+          color: theme.palette.blue[30],
         },
+
+        [`& .${listItemTextClasses.primary}`]: {
+          color: theme.palette.white,
+        },
+
+        [`& .${listItemTextClasses.secondary}`]: {
+          color: theme.palette.blue[30],
+        },
+
+        [`& .${listItemAvatarClasses.root}`]: {
+          borderColor: theme.palette.white,
+        },
+
+        [`& .${listItemSecondaryActionClasses.root}`]: {
+          color: theme.palette.blue[30],
+        },
+
+        /**
+         * @todo add styles for when ownerState.dense = true
+         * This will handle scenarios where the menu item is smaller
+         */
+      },
     }),
   },
 };

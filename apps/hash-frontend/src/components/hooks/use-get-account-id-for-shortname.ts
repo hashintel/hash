@@ -15,22 +15,18 @@ export const useGetWebIdForShortname = (
 
   const webId = useMemo(() => {
     /** @todo - don't do extract anymore */
-    const userEntityId = users?.find((user) => user.shortname === shortname)
-      ?.entity.metadata.recordId.entityId;
+    const userEntityId = users?.find((user) => user.shortname === shortname)?.entity.metadata
+      .recordId.entityId;
 
-    const userWebId = userEntityId
-      ? extractWebIdFromEntityId(userEntityId)
-      : undefined;
+    const userWebId = userEntityId ? extractWebIdFromEntityId(userEntityId) : undefined;
 
     if (userWebId !== undefined) {
       return userWebId;
     }
 
-    const orgEntityId = orgs?.find((org) => org.shortname === shortname)?.entity
-      .metadata.recordId.entityId;
-    const orgWebId = orgEntityId
-      ? extractWebIdFromEntityId(orgEntityId)
-      : undefined;
+    const orgEntityId = orgs?.find((org) => org.shortname === shortname)?.entity.metadata.recordId
+      .entityId;
+    const orgWebId = orgEntityId ? extractWebIdFromEntityId(orgEntityId) : undefined;
 
     if (orgWebId !== undefined) {
       return orgWebId;

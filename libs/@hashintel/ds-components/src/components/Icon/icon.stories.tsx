@@ -33,9 +33,7 @@ export default {
   },
 } satisfies StoryDefault<React.ComponentProps<typeof Icon>>;
 
-export const Default: Story<React.ComponentProps<typeof Icon>> = (args) => (
-  <Icon {...args} />
-);
+export const Default: Story<React.ComponentProps<typeof Icon>> = (args) => <Icon {...args} />;
 
 export const Sizes: Story<React.ComponentProps<typeof Icon>> = (args) => (
   <div
@@ -56,9 +54,7 @@ export const Sizes: Story<React.ComponentProps<typeof Icon>> = (args) => (
         })}
       >
         <Icon {...args} size={size} />
-        <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-          {size}
-        </span>
+        <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>{size}</span>
       </div>
     ))}
   </div>
@@ -108,8 +104,7 @@ const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
   </div>
 );
 
-export const AllIcons: Story<React.ComponentProps<typeof Icon>> = (args) =>
-  iconGrid(args);
+export const AllIcons: Story<React.ComponentProps<typeof Icon>> = (args) => iconGrid(args);
 AllIcons.parameters = {
   controls: { exclude: ["name"], disabled: true },
 };

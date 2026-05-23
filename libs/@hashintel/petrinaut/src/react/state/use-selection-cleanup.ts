@@ -10,8 +10,7 @@ import { SDCPNContext } from "./sdcpn-context";
  */
 export function useSelectionCleanup() {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { selection, setSelection, hoveredItem, clearHoveredItem } =
-    use(EditorContext);
+  const { selection, setSelection, hoveredItem, clearHoveredItem } = use(EditorContext);
 
   useEffect(() => {
     if (selection.size === 0 && !hoveredItem) {
@@ -27,9 +26,7 @@ export function useSelectionCleanup() {
     for (const transition of petriNetDefinition.transitions) {
       validIds.add(transition.id);
       for (const inputArc of transition.inputArcs) {
-        validIds.add(
-          generateArcId({ inputId: inputArc.placeId, outputId: transition.id }),
-        );
+        validIds.add(generateArcId({ inputId: inputArc.placeId, outputId: transition.id }));
       }
       for (const outputArc of transition.outputArcs) {
         validIds.add(
@@ -75,11 +72,5 @@ export function useSelectionCleanup() {
     if (hoveredItem && !validIds.has(hoveredItem.id)) {
       clearHoveredItem();
     }
-  }, [
-    petriNetDefinition,
-    selection,
-    setSelection,
-    hoveredItem,
-    clearHoveredItem,
-  ]);
+  }, [petriNetDefinition, selection, setSelection, hoveredItem, clearHoveredItem]);
 }

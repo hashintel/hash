@@ -1,11 +1,5 @@
 import Script from "next/script";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
@@ -21,12 +15,8 @@ type GoogleAuthContextReturn =
   | {
       accounts: HashEntity<GoogleAccount>[];
       addGoogleAccount: () => void;
-      checkAccessToken: (args: {
-        googleAccountId: string;
-      }) => Promise<{ accessToken: true }>;
-      getAccessToken: (args: {
-        googleAccountId: string;
-      }) => Promise<{ accessToken: string }>;
+      checkAccessToken: (args: { googleAccountId: string }) => Promise<{ accessToken: true }>;
+      getAccessToken: (args: { googleAccountId: string }) => Promise<{ accessToken: string }>;
       loading: false;
     }
   | {
@@ -37,21 +27,12 @@ type GoogleAuthContextReturn =
 const GoogleAuthContext = createContext<GoogleAuthContextReturn>(null);
 
 export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
-  const [oauthClient, setOAuthClient] =
-    useState<google.accounts.oauth2.CodeClient | null>(null);
+  const [oauthClient, setOAuthClient] = useState<google.accounts.oauth2.CodeClient | null>(null);
 
-  const {
-    accounts,
-    loading: accountsLoading,
-    refetch: refetchAccounts,
-  } = useGoogleAccounts();
+  const { accounts, loading: accountsLoading, refetch: refetchAccounts } = useGoogleAccounts();
 
   const getAccessToken = useCallback(
-    async ({
-      googleAccountId,
-    }: {
-      googleAccountId: string;
-    }): Promise<{ accessToken: string }> => {
+    async ({ googleAccountId }: { googleAccountId: string }): Promise<{ accessToken: string }> => {
       return await fetch(`${apiOrigin}/oauth/google/token`, {
         method: "POST",
         credentials: "include",
@@ -71,11 +52,7 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
   );
 
   const checkAccessToken = useCallback(
-    async ({
-      googleAccountId,
-    }: {
-      googleAccountId: string;
-    }): Promise<{ accessToken: true }> => {
+    async ({ googleAccountId }: { googleAccountId: string }): Promise<{ accessToken: true }> => {
       return fetch(`${apiOrigin}/oauth/google/check-token`, {
         method: "POST",
         credentials: "include",
@@ -145,20 +122,11 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
         loading: true,
       };
     }
-  }, [
-    accounts,
-    accountsLoading,
-    checkAccessToken,
-    getAccessToken,
-    oauthClient,
-  ]);
+  }, [accounts, accountsLoading, checkAccessToken, getAccessToken, oauthClient]);
 
   return (
     <GoogleAuthContext.Provider value={value}>
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        onReady={loadOAuthClient}
-      />
+      <Script src="https://accounts.google.com/gsi/client" onReady={loadOAuthClient} />
       {children}
     </GoogleAuthContext.Provider>
   );

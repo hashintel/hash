@@ -32,46 +32,40 @@ export const setQueryAndSignalHandlers = () => {
     }
   >();
 
-  setHandler(
-    externalInputRequestSignal,
-    (request: ExternalInputRequestSignal) => {
-      if (!externalInputRequestsById.has(request.requestId)) {
-        externalInputRequestsById.set(request.requestId, { request });
-      }
-    },
-  );
+  setHandler(externalInputRequestSignal, (request: ExternalInputRequestSignal) => {
+    if (!externalInputRequestsById.has(request.requestId)) {
+      externalInputRequestsById.set(request.requestId, { request });
+    }
+  });
 
-  setHandler(
-    externalInputResponseSignal,
-    (response: ExternalInputResponseSignal) => {
-      const { requestId } = response;
-      const inputRequestRecord = externalInputRequestsById.get(requestId);
+  setHandler(externalInputResponseSignal, (response: ExternalInputResponseSignal) => {
+    const { requestId } = response;
+    const inputRequestRecord = externalInputRequestsById.get(requestId);
 
-      if (!inputRequestRecord) {
-        /**
-         * It's not clear in what circumstances this will happen, and we can't do much about it,
-         * but we should log it to be aware if it is happening.
-         */
-        sinks.sentry.captureException(
-          new Error(
-            `Received response for external input request ${requestId}, but no record of request was found`,
-          ),
-        );
-        return;
-      }
+    if (!inputRequestRecord) {
+      /**
+       * It's not clear in what circumstances this will happen, and we can't do much about it,
+       * but we should log it to be aware if it is happening.
+       */
+      sinks.sentry.captureException(
+        new Error(
+          `Received response for external input request ${requestId}, but no record of request was found`,
+        ),
+      );
+      return;
+    }
 
-      if (response.type !== inputRequestRecord.request.type) {
-        sinks.sentry.captureException(
-          new Error(
-            `Response for external input request ${requestId} has type ${response.type}, but expected ${inputRequestRecord.request.type}`,
-          ),
-        );
-        return;
-      }
+    if (response.type !== inputRequestRecord.request.type) {
+      sinks.sentry.captureException(
+        new Error(
+          `Response for external input request ${requestId} has type ${response.type}, but expected ${inputRequestRecord.request.type}`,
+        ),
+      );
+      return;
+    }
 
-      inputRequestRecord.response = response;
-    },
-  );
+    inputRequestRecord.response = response;
+  });
 
   setHandler(getExternalInputResponseQuery, ({ requestId }) => {
     const inputRequestRecord = externalInputRequestsById.get(requestId);

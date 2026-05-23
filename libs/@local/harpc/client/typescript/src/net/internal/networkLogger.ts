@@ -98,11 +98,7 @@ const tokenize = (spec: string) => {
   return tokens;
 };
 
-const enrichContext = (
-  context: Record<string, unknown>,
-  index: number,
-  value: unknown,
-) => {
+const enrichContext = (context: Record<string, unknown>, index: number, value: unknown) => {
   const name = pipe(
     value?.constructor.name,
     Option.fromNullable,
@@ -184,11 +180,7 @@ export const format = (
 };
 
 const nonEmptyString = (value?: string) =>
-  pipe(
-    Option.fromNullable(value),
-    Option.map(String.trim),
-    Option.filter(String.isNonEmpty),
-  );
+  pipe(Option.fromNullable(value), Option.map(String.trim), Option.filter(String.isNonEmpty));
 
 // Taken from weald/debugjs
 const debugJsFormatters: FormatterCollection = {
@@ -203,8 +195,7 @@ const debugJsFormatters: FormatterCollection = {
   j: (value: unknown) => Option.some(JSON.stringify(value)),
   // eslint-disable-next-line @typescript-eslint/naming-convention
   O: (value: unknown) => Option.some(Inspectable.toStringUnknown(value)),
-  o: (value: unknown) =>
-    Option.some(Inspectable.toStringUnknown(value, "").replaceAll("\n", " ")),
+  o: (value: unknown) => Option.some(Inspectable.toStringUnknown(value, "").replaceAll("\n", " ")),
 };
 
 // Taken from libp2p/logger
@@ -226,8 +217,7 @@ const libp2pFormatters: FormatterCollection = {
           Option.getOrElse(() =>
             // see: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toHex
             array.reduce(
-              (accumulator, byte) =>
-                accumulator + byte.toString(16).padStart(2, "0"),
+              (accumulator, byte) => accumulator + byte.toString(16).padStart(2, "0"),
               "",
             ),
           ),
@@ -238,26 +228,17 @@ const libp2pFormatters: FormatterCollection = {
    * Uint8Array as Base58.
    */
   b: (value: unknown) =>
-    pipe(
-      Option.liftPredicate(value, Predicate.isUint8Array),
-      Option.map(base58btc.baseEncode),
-    ),
+    pipe(Option.liftPredicate(value, Predicate.isUint8Array), Option.map(base58btc.baseEncode)),
   /**
    * Uint8Array as Base32.
    */
   t: (value: unknown) =>
-    pipe(
-      Option.liftPredicate(value, Predicate.isUint8Array),
-      Option.map(base32.baseEncode),
-    ),
+    pipe(Option.liftPredicate(value, Predicate.isUint8Array), Option.map(base32.baseEncode)),
   /**
    * Uint8Array as Base64.
    */
   m: (value: unknown) =>
-    pipe(
-      Option.liftPredicate(value, Predicate.isUint8Array),
-      Option.map(base64.baseEncode),
-    ),
+    pipe(Option.liftPredicate(value, Predicate.isUint8Array), Option.map(base64.baseEncode)),
   /**
    * PeerId.
    */

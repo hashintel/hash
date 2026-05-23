@@ -147,17 +147,8 @@ export { parseArcId } from "./types/selection";
 export type * from "./types/selection";
 
 // --- Pure utilities ---
-export type {
-  AbortSignalLike,
-  WorkerFactoryLike,
-  WorkerLike,
-} from "./environment";
-export {
-  ARC_ID_PREFIX,
-  ARC_ID_SEPARATOR,
-  generateArcId,
-  type ArcIdPrefix,
-} from "./arc-id";
+export type { AbortSignalLike, WorkerFactoryLike, WorkerLike } from "./environment";
+export { ARC_ID_PREFIX, ARC_ID_SEPARATOR, generateArcId, type ArcIdPrefix } from "./arc-id";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,
@@ -195,25 +186,16 @@ export {
   type ScenarioParameterValues,
 } from "./simulation/authoring/scenario/compile-scenario";
 export { buildMetricState } from "./simulation/frames/metric-state";
-export {
-  displayNameSchema,
-  validateDisplayName,
-} from "./validation/display-name";
+export { displayNameSchema, validateDisplayName } from "./validation/display-name";
 export { entityNameSchema, validateEntityName } from "./validation/entity-name";
 export { validateVariableName } from "./validation/variable-name";
 
 // --- File, clipboard, and editor protocol helpers ---
-export {
-  parseSDCPNFile,
-  type ImportResult,
-} from "./file-format/parse-sdcpn-file";
+export { parseSDCPNFile, type ImportResult } from "./file-format/parse-sdcpn-file";
 export { serializeSDCPN } from "./file-format/serialize-sdcpn";
 export { sdcpnToTikZ } from "./file-format/sdcpn-to-tikz";
 export { pastePayloadIntoSDCPN } from "./clipboard/paste";
-export {
-  parseClipboardPayload,
-  serializeSelection,
-} from "./clipboard/serialize";
+export { parseClipboardPayload, serializeSelection } from "./clipboard/serialize";
 export {
   CLIPBOARD_FORMAT_VERSION,
   clipboardPayloadSchema,

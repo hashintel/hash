@@ -12,9 +12,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
     <StyledRadioGroup.Item {...rest}>
       <StyledRadioGroup.ItemHiddenInput ref={ref} {...inputProps} />
       <StyledRadioGroup.ItemControl />
-      {children && (
-        <StyledRadioGroup.ItemText>{children}</StyledRadioGroup.ItemText>
-      )}
+      {children && <StyledRadioGroup.ItemText>{children}</StyledRadioGroup.ItemText>}
     </StyledRadioGroup.Item>
   );
 });

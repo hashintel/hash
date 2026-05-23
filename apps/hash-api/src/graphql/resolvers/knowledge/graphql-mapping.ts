@@ -7,10 +7,7 @@ import type {
   Page as GQLPage,
 } from "../../api-types.gen";
 
-export type ExternalPageResolversGQL =
-  | "contents"
-  | "canUserEdit"
-  | "userPermissions";
+export type ExternalPageResolversGQL = "contents" | "canUserEdit" | "userPermissions";
 export type UnresolvedPageGQL = Omit<GQLPage, ExternalPageResolversGQL>;
 
 export const mapPageToGQL = (page: Page): UnresolvedPageGQL => ({
@@ -30,10 +27,7 @@ export type ExternalCommentResolversGQL =
   | "parent"
   | "author"
   | "replies";
-export type UnresolvedCommentGQL = Omit<
-  GQLComment,
-  ExternalCommentResolversGQL
->;
+export type UnresolvedCommentGQL = Omit<GQLComment, ExternalCommentResolversGQL>;
 
 export const mapCommentToGQL = (comment: Comment): UnresolvedCommentGQL => ({
   properties: comment.entity.properties,

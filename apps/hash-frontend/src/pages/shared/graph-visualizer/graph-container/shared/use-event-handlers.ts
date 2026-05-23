@@ -3,11 +3,7 @@ import { useCallback, useEffect } from "react";
 
 import { useFullScreen } from "./full-screen-context";
 
-import type {
-  DynamicNodeSizing,
-  GraphVizConfig,
-  StaticNodeSizing,
-} from "./config-control";
+import type { DynamicNodeSizing, GraphVizConfig, StaticNodeSizing } from "./config-control";
 import type { GraphState } from "./state";
 import type { GraphVizEdge } from "./types";
 import type { RefObject } from "react";
@@ -23,10 +19,7 @@ export type RegisterEventsArgs = {
   setFilterPanelOpen: (open: boolean) => void;
   setPathFinderPanelOpen: (open: boolean) => void;
   setSearchPanelOpen: (open: boolean) => void;
-  setGraphState: <K extends keyof GraphState>(
-    key: K,
-    value: GraphState[K],
-  ) => void;
+  setGraphState: <K extends keyof GraphState>(key: K, value: GraphState[K]) => void;
 };
 
 /**
@@ -55,8 +48,7 @@ export const useEventHandlers = ({
    * Highlight the hovered or selected node and its neighbors up to the configured depth.
    */
   const refreshGraphHighlights = useCallback(() => {
-    const highlightedNode =
-      graphState.selectedNodeId ?? graphState.hoveredNodeId;
+    const highlightedNode = graphState.selectedNodeId ?? graphState.hoveredNodeId;
 
     if (!highlightedNode) {
       return;
@@ -83,9 +75,7 @@ export const useEventHandlers = ({
           directNeighbors = sigma.getGraph().outNeighbors(nodeId);
           break;
         default:
-          throw new Error(
-            `Unhandled direction: ${config.nodeHighlighting.direction}`,
-          );
+          throw new Error(`Unhandled direction: ${config.nodeHighlighting.direction}`);
       }
 
       for (const neighbor of directNeighbors) {
@@ -130,9 +120,7 @@ export const useEventHandlers = ({
       },
       clickEdge: (event) => {
         if (onEdgeClick) {
-          const edgeData = sigma
-            .getGraph()
-            .getEdgeAttributes(event.edge) as GraphVizEdge;
+          const edgeData = sigma.getGraph().getEdgeAttributes(event.edge) as GraphVizEdge;
 
           onEdgeClick({
             edgeData,

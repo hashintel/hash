@@ -26,9 +26,7 @@ type UnsupportedPayloadKind = (typeof unsupportedPayloadKinds)[number];
 
 export type LocalPayloadKind = Exclude<PayloadKind, UnsupportedPayloadKind>;
 
-export const isSupportedPayloadKind = (
-  kind: PayloadKind,
-): kind is LocalPayloadKind =>
+export const isSupportedPayloadKind = (kind: PayloadKind): kind is LocalPayloadKind =>
   !unsupportedPayloadKinds.includes(kind as UnsupportedPayloadKind);
 
 export type LocalInputValue =

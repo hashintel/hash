@@ -28,9 +28,7 @@ export interface MetricState {
 
 export type CompiledMetric = (state: MetricState) => number;
 
-export type CompileMetricOutcome =
-  | { ok: true; fn: CompiledMetric }
-  | { ok: false; error: string };
+export type CompileMetricOutcome = { ok: true; fn: CompiledMetric } | { ok: false; error: string };
 
 // -- Hardened evaluator -------------------------------------------------------
 
@@ -42,9 +40,7 @@ export type CompileMetricOutcome =
 function createSafeState(state: MetricState): MetricState {
   const places = Object.create(null) as Record<string, MetricPlaceState>;
   for (const [name, value] of Object.entries(state.places)) {
-    places[name] = Object.freeze(
-      Object.assign(Object.create(null), value),
-    ) as MetricPlaceState;
+    places[name] = Object.freeze(Object.assign(Object.create(null), value)) as MetricPlaceState;
   }
   return Object.freeze(
     Object.assign(Object.create(null), { places: Object.freeze(places) }),
@@ -73,10 +69,9 @@ export function compileMetric(metric: Metric): CompileMetricOutcome {
   let rawFn: (state: MetricState) => unknown;
   try {
     // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval -- intentional: user-authored metric code
-    rawFn = new Function(
-      "state",
-      `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`,
-    ) as (state: MetricState) => unknown;
+    rawFn = new Function("state", `"use strict"; var ${SHADOWED_GLOBALS}; ${code}`) as (
+      state: MetricState,
+    ) => unknown;
   } catch (err) {
     return {
       ok: false,

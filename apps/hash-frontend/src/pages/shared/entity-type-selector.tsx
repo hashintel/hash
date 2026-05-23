@@ -7,10 +7,7 @@ import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useEnabledFeatureFlags } from "./use-enabled-feature-flags";
 
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type { BoxProps } from "@mui/material";
 
 export const EntityTypeSelector = <Multiple extends boolean = false>({
@@ -32,9 +29,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   inputHeight?: number;
   multiple?: Multiple;
   onSelect: (
-    value: Multiple extends true
-      ? EntityTypeWithMetadata[]
-      : EntityTypeWithMetadata,
+    value: Multiple extends true ? EntityTypeWithMetadata[] : EntityTypeWithMetadata,
   ) => void;
   onCancel?: () => void;
   onCreateNew?: (searchValue: string) => void;
@@ -42,9 +37,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   disableCreate?: boolean;
   disableCreateNewEmpty?: boolean;
   sx?: BoxProps["sx"];
-  value?: Multiple extends true
-    ? EntityTypeWithMetadata[]
-    : EntityTypeWithMetadata;
+  value?: Multiple extends true ? EntityTypeWithMetadata[] : EntityTypeWithMetadata;
 }) => {
   const [search, setSearch] = useState("");
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
@@ -58,10 +51,8 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
       latestEntityTypes?.filter(
         ({ schema }) =>
           !excludeEntityTypeIds?.includes(schema.$id) &&
-          (!excludeLinkTypes ||
-            !isSpecialEntityTypeLookup?.[schema.$id]?.isLink) &&
-          (enabledFeatureFlags.pages ||
-            !pageEntityTypeIds.includes(schema.$id)),
+          (!excludeLinkTypes || !isSpecialEntityTypeLookup?.[schema.$id]?.isLink) &&
+          (enabledFeatureFlags.pages || !pageEntityTypeIds.includes(schema.$id)),
       ),
     [
       enabledFeatureFlags.pages,

@@ -1,10 +1,6 @@
 import { isEntityRecordId } from "../../entity.js";
 import { isOntologyTypeRecordId } from "../../ontology.js";
-import {
-  isKnowledgeGraphEdgeKind,
-  isOntologyEdgeKind,
-  isSharedEdgeKind,
-} from "./kind.js";
+import { isKnowledgeGraphEdgeKind, isOntologyEdgeKind, isSharedEdgeKind } from "./kind.js";
 
 import type { KnowledgeGraphOutwardEdge } from "./variants/knowledge.js";
 import type { OntologyOutwardEdge } from "./variants/ontology.js";
@@ -42,9 +38,7 @@ export type OutwardEdge = OntologyOutwardEdge | KnowledgeGraphOutwardEdge;
 
 // -------------------------------- Type Guards --------------------------------
 
-export const isOntologyOutwardEdge = (
-  edge: OutwardEdge,
-): edge is OntologyOutwardEdge => {
+export const isOntologyOutwardEdge = (edge: OutwardEdge): edge is OntologyOutwardEdge => {
   return (
     isOntologyEdgeKind(edge.kind) ||
     (isSharedEdgeKind(edge.kind) && isEntityRecordId(edge.rightEndpoint))

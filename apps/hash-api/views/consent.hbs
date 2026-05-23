@@ -12,35 +12,17 @@
       <div class="consent-scopes-heading">Scopes requested</div>
       {{#each requested_scope as |scope|}}
         <div class="consent-scope-item">
-          <input
-            checked
-            type="checkbox"
-            id="{{scope}}"
-            value="{{scope}}"
-            name="grant_scope"
-          />
+          <input checked type="checkbox" id="{{scope}}" value="{{scope}}" name="grant_scope" />
           <label for="{{scope}}">{{scope}}</label>
         </div>
       {{/each}}
       <div class="consent-remember">
-        <input
-          checked
-          type="checkbox"
-          id="remember"
-          value="1"
-          name="remember"
-        />
+        <input checked type="checkbox" id="remember" value="1" name="remember" />
         <label for="remember">Remember my choice</label>
       </div>
 
       <button type="submit" id="accept" name="submit" value="allow">Allow access</button>
-      <button
-        type="submit"
-        id="deny"
-        name="submit"
-        value="deny"
-        class="deny"
-      >Deny access</button>
+      <button type="submit" id="deny" name="submit" value="deny" class="deny">Deny access</button>
     </form>
   </div>
   <script src="/consent.js"></script>

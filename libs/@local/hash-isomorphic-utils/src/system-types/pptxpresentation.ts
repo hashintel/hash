@@ -151,8 +151,7 @@ export type PPTXPresentationOutgoingLinksByLinkEntityTypeId = {};
  */
 export type PPTXPresentationProperties = PresentationFileProperties & {};
 
-export type PPTXPresentationPropertiesWithMetadata =
-  PresentationFilePropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type PPTXPresentationPropertiesWithMetadata = PresentationFilePropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

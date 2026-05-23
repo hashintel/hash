@@ -1,21 +1,10 @@
-import {
-  use,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { use, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import uPlot from "uplot";
 
 import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
-import {
-  compileMetric,
-  buildMetricState,
-  type CompiledMetric,
-} from "@hashintel/petrinaut-core";
+import { compileMetric, buildMetricState, type CompiledMetric } from "@hashintel/petrinaut-core";
 
 import { createValueStore } from "../../../../../../react/create-value-store";
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
@@ -197,8 +186,7 @@ function selectValueToView(value: string): TimelineView {
 }
 
 const TimelineChartTypeSelector: React.FC = () => {
-  const { timelineChartType: chartType, setTimelineChartType: setChartType } =
-    use(EditorContext);
+  const { timelineChartType: chartType, setTimelineChartType: setChartType } = use(EditorContext);
 
   return (
     <SegmentGroup
@@ -211,8 +199,7 @@ const TimelineChartTypeSelector: React.FC = () => {
 };
 
 const TimelineViewPicker: React.FC = () => {
-  const { timelineView, setTimelineView, setGlobalMode, setSimulateViewMode } =
-    use(EditorContext);
+  const { timelineView, setTimelineView, setGlobalMode, setSimulateViewMode } = use(EditorContext);
   const {
     petriNetDefinition: { metrics = [] },
   } = use(SDCPNContext);
@@ -277,10 +264,7 @@ const TimelineViewPicker: React.FC = () => {
           }}
         />
       </div>
-      <CreateMetricDrawer
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
+      <CreateMetricDrawer open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
       <ViewMetricDrawer
         // Gate on the metric existing — the picker can swap to a non-metric
         // view while the drawer is open, and we don't want an empty overlay.
@@ -329,10 +313,7 @@ function createEmptyStore(places: PlaceMeta[]): StreamingStore {
  * A single extractor returns the value for series `seriesIdx` at the given
  * frame. Returning NaN leaves a gap on the chart.
  */
-type SeriesExtractor = (
-  frame: SimulationFrameReader,
-  seriesIdx: number,
-) => number;
+type SeriesExtractor = (frame: SimulationFrameReader, seriesIdx: number) => number;
 
 const UNTYPED_COLOR = "#94a3b8"; // slate-400
 
@@ -529,8 +510,7 @@ function useStreamingData(): {
         // Exponential low-pass on the output to tame the residual
         // stochastic noise in firing intervals. Single MAC per frame.
         const smoothed =
-          OUTPUT_EWMA_ALPHA * rawDelta +
-          (1 - OUTPUT_EWMA_ALPHA) * smoothedOutputs[seriesIdx]!;
+          OUTPUT_EWMA_ALPHA * rawDelta + (1 - OUTPUT_EWMA_ALPHA) * smoothedOutputs[seriesIdx]!;
         smoothedOutputs[seriesIdx] = smoothed;
         return smoothed;
       };
@@ -541,9 +521,7 @@ function useStreamingData(): {
       // Group places by color type; places with no colorId become "Untyped".
       const groups: { series: PlaceMeta; placeIds: string[] }[] = [];
       for (const type of types) {
-        const placeIds = places
-          .filter((p) => p.colorId === type.id)
-          .map((p) => p.id);
+        const placeIds = places.filter((p) => p.colorId === type.id).map((p) => p.id);
         if (placeIds.length === 0) {
           continue;
         }
@@ -556,9 +534,7 @@ function useStreamingData(): {
           placeIds,
         });
       }
-      const untypedIds = places
-        .filter((p) => p.colorId === null)
-        .map((p) => p.id);
+      const untypedIds = places.filter((p) => p.colorId === null).map((p) => p.id);
       if (untypedIds.length > 0) {
         groups.push({
           series: {
@@ -590,9 +566,7 @@ function useStreamingData(): {
       return {
         placeId: place.id,
         placeName: place.name,
-        color:
-          tokenType?.displayColor ??
-          DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
+        color: tokenType?.displayColor ?? DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
       };
     });
     const placeIds = places.map((p) => p.id);
@@ -601,14 +575,7 @@ function useStreamingData(): {
       return id ? frame.getPlaceTokenCount(id) : 0;
     };
     return { series, extract };
-  }, [
-    timelineView,
-    places,
-    types,
-    transitions,
-    selectedMetric,
-    compiledMetric.fn,
-  ]);
+  }, [timelineView, places, types, transitions, selectedMetric, compiledMetric.fn]);
 
   const [streamingStore] = useState(() =>
     createValueStore<StreamingStore>(createEmptyStore(seriesConfig.series)),
@@ -845,12 +812,7 @@ function resolveHoverTarget(
     if (top == null || top < 0) {
       return null;
     }
-    const hit = hitTestStackedBand(
-      store,
-      hiddenPlaces,
-      idx,
-      u.posToVal(top, "y"),
-    );
+    const hit = hitTestStackedBand(store, hiddenPlaces, idx, u.posToVal(top, "y"));
     if (!hit) {
       return null;
     }
@@ -1003,13 +965,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
     // Read from ref so tooltip always sees the latest store, even after
     // simulation restart where the store object is replaced.
     const currentStore = storeRef.current;
-    const hit = resolveHoverTarget(
-      u,
-      currentStore,
-      chartType,
-      hiddenPlaces,
-      focused,
-    );
+    const hit = resolveHoverTarget(u, currentStore, chartType, hiddenPlaces, focused);
     if (!hit) {
       t.root.style.display = "none";
       return;
@@ -1022,9 +978,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
   let bands: uPlot.Band[] | undefined;
 
   if (chartType === "stacked") {
-    const visible = store.places
-      .filter((p) => !hiddenPlaces.has(p.placeId))
-      .reverse();
+    const visible = store.places.filter((p) => !hiddenPlaces.has(p.placeId)).reverse();
     for (const p of visible) {
       series.push({
         label: p.placeName,
@@ -1144,10 +1098,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
  * Attaches pointer listeners on `u.root` to allow click/drag scrubbing on the
  * top axis (ruler) area. Returns a cleanup function.
  */
-function attachRulerScrubbing(
-  u: uPlot,
-  onScrub: (frameIndex: number) => void,
-): () => void {
+function attachRulerScrubbing(u: uPlot, onScrub: (frameIndex: number) => void): () => void {
   let dragging = false;
   let overRect: DOMRect | null = null;
 
@@ -1167,10 +1118,7 @@ function attachRulerScrubbing(
 
   const onMove = (e: PointerEvent) => {
     if (dragging && overRect) {
-      const x = Math.max(
-        0,
-        Math.min(e.clientX - overRect.left, overRect.width),
-      );
+      const x = Math.max(0, Math.min(e.clientX - overRect.left, overRect.width));
       onScrub(u.posToIdx(x));
     }
   };
@@ -1204,14 +1152,7 @@ const UPlotChart: React.FC<{
   totalFrames: number;
   currentFrameIndex: number;
   className?: string;
-}> = ({
-  store,
-  chartType,
-  hiddenPlaces,
-  totalFrames,
-  currentFrameIndex,
-  className,
-}) => {
+}> = ({ store, chartType, hiddenPlaces, totalFrames, currentFrameIndex, className }) => {
   "use no memo"; // imperative uPlot lifecycle
   const { setCurrentViewedFrame } = use(PlaybackContext);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -1301,15 +1242,7 @@ const UPlotChart: React.FC<{
     // Recreate only when chart type, store, visible series, or size availability changes.
     // onScrub is stable (useStableCallback). Subsequent size changes trigger
     // setSize (Effect 2), not recreation.
-  }, [
-    chartType,
-    hiddenPlaces,
-    store,
-    store.places.length,
-    storeRef,
-    hasSize,
-    onScrub,
-  ]);
+  }, [chartType, hiddenPlaces, store, store.places.length, storeRef, hasSize, onScrub]);
 
   // -- Effect 2: sync container size to existing chart ------------------------
 
@@ -1411,9 +1344,7 @@ const SimulationTimelineContent: React.FC = () => {
   if (store.length === 0 || totalFrames === 0) {
     return (
       <div className={containerStyle}>
-        <span style={{ fontSize: 12, color: "#999" }}>
-          No simulation data available
-        </span>
+        <span style={{ fontSize: 12, color: "#999" }}>No simulation data available</span>
       </div>
     );
   }

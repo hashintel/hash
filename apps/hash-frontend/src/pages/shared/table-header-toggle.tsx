@@ -1,10 +1,4 @@
-import {
-  Box,
-  ToggleButton,
-  toggleButtonClasses,
-  ToggleButtonGroup,
-  Tooltip,
-} from "@mui/material";
+import { Box, ToggleButton, toggleButtonClasses, ToggleButtonGroup, Tooltip } from "@mui/material";
 
 import type { ReactElement } from "react";
 
@@ -62,12 +56,7 @@ export const TableHeaderToggle = <Option extends string>({
       }}
     >
       {options.map(({ icon, label, value: optionValue }) => (
-        <ToggleButton
-          key={optionValue}
-          disableRipple
-          value={optionValue}
-          aria-label={label}
-        >
+        <ToggleButton key={optionValue} disableRipple value={optionValue} aria-label={label}>
           <Tooltip title={label} placement="top">
             <Box sx={{ lineHeight: 0 }}>{icon}</Box>
           </Tooltip>

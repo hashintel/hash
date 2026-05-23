@@ -97,27 +97,19 @@ describe("Property type CRU", () => {
   it("can create a property type", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    createdPropertyType = await createPropertyType(
-      graphContext,
-      authentication,
-      {
-        webId: testOrg.webId,
-        schema: propertyTypeSchema,
-      },
-    );
+    createdPropertyType = await createPropertyType(graphContext, authentication, {
+      webId: testOrg.webId,
+      schema: propertyTypeSchema,
+    });
   });
 
   it("can read a property type", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const fetchedPropertyType = await getPropertyTypeById(
-      graphContext.graphApi,
-      authentication,
-      {
-        propertyTypeId: createdPropertyType.schema.$id,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    );
+    const fetchedPropertyType = await getPropertyTypeById(graphContext.graphApi, authentication, {
+      propertyTypeId: createdPropertyType.schema.$id,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    });
 
     expect(fetchedPropertyType?.schema).toEqual(createdPropertyType.schema);
   });
@@ -165,43 +157,32 @@ describe("Property type CRU", () => {
       }),
     ).toBeNull();
 
-    const archivedPropertyType = await getPropertyTypeById(
-      graphContext.graphApi,
-      authentication,
-      {
-        propertyTypeId: createdPropertyType.schema.$id,
-        temporalAxes: fullTransactionTimeAxis,
-      },
+    const archivedPropertyType = await getPropertyTypeById(graphContext.graphApi, authentication, {
+      propertyTypeId: createdPropertyType.schema.$id,
+      temporalAxes: fullTransactionTimeAxis,
+    });
+    expect(archivedPropertyType?.metadata.temporalVersioning.transactionTime.end.kind).toBe(
+      "exclusive",
     );
-    expect(
-      archivedPropertyType?.metadata.temporalVersioning.transactionTime.end
-        .kind,
-    ).toBe("exclusive");
 
     await unarchivePropertyType(graphContext, authentication, {
       propertyTypeId: createdPropertyType.schema.$id,
     });
 
-    const unarchivedEntityType = await getPropertyTypeById(
-      graphContext.graphApi,
-      authentication,
-      {
-        propertyTypeId: createdPropertyType.schema.$id,
-        temporalAxes: fullTransactionTimeAxis,
-      },
-    );
+    const unarchivedEntityType = await getPropertyTypeById(graphContext.graphApi, authentication, {
+      propertyTypeId: createdPropertyType.schema.$id,
+      temporalAxes: fullTransactionTimeAxis,
+    });
 
-    expect(
-      unarchivedEntityType?.metadata.temporalVersioning.transactionTime.end
-        .kind,
-    ).toBe("unbounded");
+    expect(unarchivedEntityType?.metadata.temporalVersioning.transactionTime.end.kind).toBe(
+      "unbounded",
+    );
   });
 
   it.skip("can load an external type on demand", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const propertyTypeId =
-      "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1";
+    const propertyTypeId = "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1";
 
     expect(
       await getPropertyTypeById(

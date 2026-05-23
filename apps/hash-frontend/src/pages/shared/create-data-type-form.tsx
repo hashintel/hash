@@ -5,10 +5,7 @@ import { useRouter } from "next/router";
 import { useContext } from "react";
 import { useForm } from "react-hook-form";
 
-import {
-  DATA_TYPE_META_SCHEMA,
-  makeOntologyTypeVersion,
-} from "@blockprotocol/type-system";
+import { DATA_TYPE_META_SCHEMA, makeOntologyTypeVersion } from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
@@ -53,10 +50,9 @@ export const CreateDataTypeForm = ({
 }: CreateDataTypeFormProps) => {
   const router = useRouter();
 
-  const [queryDataTypes] = useLazyQuery<
-    QueryDataTypesQuery,
-    QueryDataTypesQueryVariables
-  >(queryDataTypesQuery);
+  const [queryDataTypes] = useLazyQuery<QueryDataTypesQuery, QueryDataTypesQueryVariables>(
+    queryDataTypesQuery,
+  );
 
   const {
     handleSubmit,
@@ -90,15 +86,8 @@ export const CreateDataTypeForm = ({
     return null;
   }
 
-  if (
-    extendsDataTypeId &&
-    dataTypes &&
-    Object.keys(dataTypes).length &&
-    !parentType
-  ) {
-    throw new Error(
-      `Could not find parent data type ${extendsDataTypeId} in data type options`,
-    );
+  if (extendsDataTypeId && dataTypes && Object.keys(dataTypes).length && !parentType) {
+    throw new Error(`Could not find parent data type ${extendsDataTypeId} in data type options`);
   }
 
   const handleFormSubmit = handleSubmit(async (data) => {
@@ -143,15 +132,12 @@ export const CreateDataTypeForm = ({
     ? extractNamespaceFromVersionedUrl(parentType.schema.$id)
     : undefined;
 
-  const crossWebAction =
-    parentType && parentWebName !== activeWorkspace.shortname;
+  const crossWebAction = parentType && parentWebName !== activeWorkspace.shortname;
 
   const potentiallyUndesiredCrossWebAction =
     crossWebAction &&
     authenticatedUser.memberOf.find(
-      ({ org }) =>
-        org.shortname === parentWebName ||
-        org.shortname === activeWorkspace.shortname,
+      ({ org }) => org.shortname === parentWebName || org.shortname === activeWorkspace.shortname,
     );
 
   return (
@@ -183,15 +169,10 @@ export const CreateDataTypeForm = ({
             type={potentiallyUndesiredCrossWebAction ? "warning" : "info"}
             sx={{ width: { md: inModal ? "100%" : formItemWidth } }}
           >
-            You are extending the <strong>{parentType.schema.title}</strong>{" "}
-            data type from <strong>@{parentWebName}</strong>
+            You are extending the <strong>{parentType.schema.title}</strong> data type from{" "}
+            <strong>@{parentWebName}</strong>
             {" to create a new data type within "}
-            {crossWebAction ? (
-              <strong>@{activeWorkspace.shortname}</strong>
-            ) : (
-              "the same web"
-            )}
-            .
+            {crossWebAction ? <strong>@{activeWorkspace.shortname}</strong> : "the same web"}.
           </Callout>
         )}
         <Stack

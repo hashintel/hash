@@ -15,11 +15,7 @@ import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { getTypeBaseUrl } from "../shared/get-type-base-url";
 
 import type { NextPageWithLayout } from "../../../../../shared/layout";
-import type {
-  ActorEntityUuid,
-  EntityTypeWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -36,23 +32,16 @@ const Page: NextPageWithLayout = () => {
    * @example /@hash/types/entity-type/user/v/1
    * @example /@hash/types/entity-type/user
    */
-  const [
-    _,
-    shortnameWithAt,
-    _types,
-    _entityType,
-    slug,
-    _v,
-    requestedVersionString,
-  ] = router.asPath.split("/") as [
-    "",
-    `@${string}`,
-    "types",
-    "entity-type",
-    string,
-    "v" | undefined,
-    string | undefined,
-  ];
+  const [_, shortnameWithAt, _types, _entityType, slug, _v, requestedVersionString] =
+    router.asPath.split("/") as [
+      "",
+      `@${string}`,
+      "types",
+      "entity-type",
+      string,
+      "v" | undefined,
+      string | undefined,
+    ];
 
   const entityTypeBaseUrl = !isDraft
     ? getTypeBaseUrl({
@@ -65,15 +54,10 @@ const Page: NextPageWithLayout = () => {
   const draftEntityType = useMemo(() => {
     if (router.query.draft) {
       const entityTypeSchema = JSON.parse(
-        Buffer.from(
-          decodeURIComponent(router.query.draft.toString()),
-          "base64",
-        ).toString("utf8"),
+        Buffer.from(decodeURIComponent(router.query.draft.toString()), "base64").toString("utf8"),
       );
 
-      const { baseUrl, version } = componentsFromVersionedUrl(
-        entityTypeSchema.$id,
-      );
+      const { baseUrl, version } = componentsFromVersionedUrl(entityTypeSchema.$id);
       return {
         metadata: {
           recordId: {

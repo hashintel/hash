@@ -43,11 +43,7 @@ import type {
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
 } from "./shared.js";
-import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
+import type { Confidence, ObjectMetadata, PropertyProvenance } from "@blockprotocol/type-system";
 
 export type {
   Account,
@@ -110,9 +106,7 @@ export type ActorTypeDataTypeMetadata = {
  * The account that something is associated with.
  */
 export type AssociatedWithAccount = {
-  entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/associated-with-account/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/associated-with-account/v/1"];
   properties: AssociatedWithAccountProperties;
   propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
 };
@@ -126,11 +120,10 @@ export type AssociatedWithAccountOutgoingLinksByLinkEntityTypeId = {};
  */
 export type AssociatedWithAccountProperties = LinkProperties & {};
 
-export type AssociatedWithAccountPropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type AssociatedWithAccountPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * A True or False value
@@ -167,8 +160,7 @@ export type BytesDataTypeMetadata = {
  */
 export type DataAudiencePropertyValue = ActorTypeDataType;
 
-export type DataAudiencePropertyValueWithMetadata =
-  ActorTypeDataTypeWithMetadata;
+export type DataAudiencePropertyValueWithMetadata = ActorTypeDataTypeWithMetadata;
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -269,24 +261,21 @@ export type FileSizePropertyValueWithMetadata = BytesDataTypeWithMetadata;
  */
 export type FileStorageBucketPropertyValue = TextDataType;
 
-export type FileStorageBucketPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type FileStorageBucketPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The endpoint for making requests to a file storage provider.
  */
 export type FileStorageEndpointPropertyValue = TextDataType;
 
-export type FileStorageEndpointPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type FileStorageEndpointPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * Whether to force path style for requests to a file storage provider (vs virtual host style).
  */
 export type FileStorageForcePathStylePropertyValue = BooleanDataType;
 
-export type FileStorageForcePathStylePropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type FileStorageForcePathStylePropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
 /**
  * The key identifying a file in storage.
@@ -300,16 +289,14 @@ export type FileStorageKeyPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type FileStorageProviderPropertyValue = TextDataType;
 
-export type FileStorageProviderPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type FileStorageProviderPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The region in which a file is stored.
  */
 export type FileStorageRegionPropertyValue = TextDataType;
 
-export type FileStorageRegionPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type FileStorageRegionPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A URL that serves a file.
@@ -322,9 +309,7 @@ export type FileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  * A Google Sheets file.
  */
 export type GoogleSheetsFile = {
-  entityTypeIds: [
-    "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@google/types/entity-type/google-sheets-file/v/1"];
   properties: GoogleSheetsFileProperties;
   propertiesWithMetadata: GoogleSheetsFilePropertiesWithMetadata;
 };
@@ -334,8 +319,7 @@ export type GoogleSheetsFileAssociatedWithAccountLink = {
   rightEntity: Account;
 };
 
-export type GoogleSheetsFileOutgoingLinkAndTarget =
-  GoogleSheetsFileAssociatedWithAccountLink;
+export type GoogleSheetsFileOutgoingLinkAndTarget = GoogleSheetsFileAssociatedWithAccountLink;
 
 export type GoogleSheetsFileOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/associated-with-account/v/1": GoogleSheetsFileAssociatedWithAccountLink;
@@ -349,14 +333,13 @@ export type GoogleSheetsFileProperties = SpreadsheetFileProperties & {
   "https://hash.ai/@h/types/property-type/file-id/": FileIdPropertyValue;
 };
 
-export type GoogleSheetsFilePropertiesWithMetadata =
-  SpreadsheetFilePropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {
-      "https://hash.ai/@h/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
-    };
+export type GoogleSheetsFilePropertiesWithMetadata = SpreadsheetFilePropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
   };
+};
 
 /**
  * A measure of information content.
@@ -402,8 +385,7 @@ export type NumberDataTypeMetadata = {
  */
 export type OriginalFileNamePropertyValue = TextDataType;
 
-export type OriginalFileNamePropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type OriginalFileNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The original source of something
@@ -437,11 +419,10 @@ export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
  */
 export type SpreadsheetFileProperties = FileProperties & {};
 
-export type SpreadsheetFilePropertiesWithMetadata =
-  FilePropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type SpreadsheetFilePropertiesWithMetadata = FilePropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * A unique identifier for a resource (e.g. a URL, or URN).
@@ -463,5 +444,4 @@ export type URIDataTypeMetadata = {
  */
 export type UploadCompletedAtPropertyValue = DateTimeDataType;
 
-export type UploadCompletedAtPropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type UploadCompletedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;

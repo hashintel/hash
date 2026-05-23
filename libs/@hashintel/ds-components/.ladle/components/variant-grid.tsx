@@ -40,11 +40,7 @@ export const VariantGrid = <C extends Record<string, any>>({
           return (
             <div
               key={`row-${i}-col-${j}`}
-              className={cx(
-                gridCellClassName,
-                rowCellClassName,
-                colCellClassName,
-              )}
+              className={cx(gridCellClassName, rowCellClassName, colCellClassName)}
             >
               {children({ ...c, ...r } as C)}
             </div>

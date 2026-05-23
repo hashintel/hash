@@ -3,10 +3,7 @@ import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-enti
 import { getBlockCollectionByBlock } from "../../../system-types/block";
 import { getCommentAncestorBlock } from "../../../system-types/comment";
 import { getPageFromEntity } from "../../../system-types/page";
-import {
-  getCommentByText,
-  getPageAndBlockByText,
-} from "../../../system-types/text";
+import { getCommentByText, getPageAndBlockByText } from "../../../system-types/text";
 
 import type { ImpureGraphFunction } from "../../../../context-types";
 import type { Block } from "../../../system-types/block";
@@ -22,37 +19,23 @@ export const getTextUpdateOccurredIn: ImpureGraphFunction<
     occurredInComment?: Comment;
   }>
 > = async (context, authentication, params) => {
-  const pageAndBlock = await getPageAndBlockByText(
-    context,
-    authentication,
-    params,
-  );
+  const pageAndBlock = await getPageAndBlockByText(context, authentication, params);
 
   if (pageAndBlock) {
     const { page, block } = pageAndBlock;
     return { occurredInEntity: page, occurredInBlock: block };
   }
 
-  const commentWithText = await getCommentByText(
-    context,
-    authentication,
-    params,
-  );
+  const commentWithText = await getCommentByText(context, authentication, params);
 
   if (commentWithText) {
-    const commentAncestorBlock = await getCommentAncestorBlock(
-      context,
-      authentication,
-      { commentEntityId: commentWithText.entity.metadata.recordId.entityId },
-    );
+    const commentAncestorBlock = await getCommentAncestorBlock(context, authentication, {
+      commentEntityId: commentWithText.entity.metadata.recordId.entityId,
+    });
 
-    const blockCollectionEntity = await getBlockCollectionByBlock(
-      context,
-      authentication,
-      {
-        block: commentAncestorBlock,
-      },
-    );
+    const blockCollectionEntity = await getBlockCollectionByBlock(context, authentication, {
+      block: commentAncestorBlock,
+    });
 
     if (
       blockCollectionEntity &&

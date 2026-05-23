@@ -93,8 +93,7 @@ export const testData: {
       },
       {
         name: "Tesla",
-        description:
-          "Company founded by Elon Musk, which Musk wanted to integrate with OpenAI.",
+        description: "Company founded by Elon Musk, which Musk wanted to integrate with OpenAI.",
       },
       {
         name: "Microsoft",
@@ -103,8 +102,7 @@ export const testData: {
       },
       {
         name: "Apple",
-        description:
-          "Company partnered with OpenAI to integrate ChatGPT with Siri.",
+        description: "Company partnered with OpenAI to integrate ChatGPT with Siri.",
       },
     ],
     irrelevantEntities: [
@@ -136,23 +134,19 @@ export const testData: {
     wrongTypeEntities: [
       {
         name: "Elon Musk",
-        description:
-          "CEO and entrepreneur involved in the lawsuit against OpenAI.",
+        description: "CEO and entrepreneur involved in the lawsuit against OpenAI.",
       },
       {
         name: "Sam Altman",
-        description:
-          "CEO of OpenAI, involved in the legal dispute with Elon Musk.",
+        description: "CEO of OpenAI, involved in the legal dispute with Elon Musk.",
       },
       {
         name: "Greg Brockman",
-        description:
-          "Co-founder and president of OpenAI, mentioned in Elon Musk's lawsuit.",
+        description: "Co-founder and president of OpenAI, mentioned in Elon Musk's lawsuit.",
       },
       {
         name: "Sam Altman",
-        description:
-          "CEO of OpenAI, involved in the temporary leadership crisis.",
+        description: "CEO of OpenAI, involved in the temporary leadership crisis.",
       },
       {
         name: "Clare Duffy",
@@ -475,8 +469,7 @@ export const testData: {
       },
       {
         name: "Xavier Portillo",
-        description:
-          "Kavli-Laukien Postdoctoral Fellow at the Origins of Life Initiative",
+        description: "Kavli-Laukien Postdoctoral Fellow at the Origins of Life Initiative",
       },
       {
         name: "Jacob (Jake) Potts",
@@ -686,8 +679,7 @@ export const testData: {
       description:
         "A written or printed work consisting of pages glued or sewn together along one side and bound in covers.",
     },
-    relevantEntitiesPrompt:
-      "Books authored by Jane Doe (excluding anthologies).",
+    relevantEntitiesPrompt: "Books authored by Jane Doe (excluding anthologies).",
     context:
       "<div><header><nav><a href='/home'>Home</a><a href='/reviews'>Reviews</a><a href='/authors'>Authors</a><a href='/genres'>Genres</a><a href='/contact'>Contact</a></nav></header><main><article><h1>Jane Doe: A Literary Journey</h1><section><h2>Exploring Her Masterpieces</h2><p>Jane Doe has captivated readers with her unique storytelling and compelling characters. Some of her most celebrated works include 'The Lost Paradise' and 'Echoes of the Past'.</p></section><section><h2>Recent Releases</h2><p>In 2023, she released 'Whispers in the Wind', a novel that quickly became a bestseller. Her latest book, 'Shadows of Time', was published in January 2024 and has received rave reviews.</p></section><section><h2>Other Notable Works</h2><p>Aside from her own novels, Jane Doe has also contributed to anthologies such as 'Tales of the Unseen' and 'Mystery Writers Unite'.</p><p>Similar books include 'The Silent Forest' by John Smith and 'Ocean's Call' by Mary Johnson.</p></section><section><h2>About Jane Doe</h2><p>Jane Doe's influence in the literary world extends beyond her novels. She has also written several academic papers on literature and teaches creative writing at a prestigious university.</p></section></article></main><footer><p>&copy; 2024 Book Lovers</p></footer></div>",
     goldEntities: [
@@ -802,8 +794,7 @@ export const testData: {
       },
       {
         name: "Ada Lovelace",
-        description:
-          "Architecture for NVIDIA's GeForce RTX 4090 graphics card.",
+        description: "Architecture for NVIDIA's GeForce RTX 4090 graphics card.",
       },
       {
         name: "NVIDIA Studio",
@@ -811,13 +802,11 @@ export const testData: {
       },
       {
         name: "NVIDIA Encoder",
-        description:
-          "Technology for high-quality broadcasting in NVIDIA graphics cards.",
+        description: "Technology for high-quality broadcasting in NVIDIA graphics cards.",
       },
       {
         name: "Ray Tracing Cores",
-        description:
-          "Dedicated cores for realistic graphics rendering in NVIDIA GPUs.",
+        description: "Dedicated cores for realistic graphics rendering in NVIDIA GPUs.",
       },
     ],
   },

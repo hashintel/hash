@@ -13,9 +13,7 @@ import {
 import { createProto, implDecode, implEncode } from "../utils.js";
 import * as ProcedureId from "./ProcedureId.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/types/ProcedureDescriptor",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/types/ProcedureDescriptor");
 
 export type TypeId = typeof TypeId;
 
@@ -37,11 +35,7 @@ const ProcedureDescriptorProto: Omit<ProcedureDescriptor, "id"> = {
   },
 
   [Hash.symbol](this: ProcedureDescriptor) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.id)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.id)), Hash.cached(this));
   },
 
   toString(this: ProcedureDescriptor) {
@@ -76,13 +70,9 @@ export const encode = implEncode((buffer, descriptor: ProcedureDescriptor) =>
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
 
-export const decode = implDecode((buffer) =>
-  ProcedureId.decode(buffer).pipe(Either.map(make)),
-);
+export const decode = implDecode((buffer) => ProcedureId.decode(buffer).pipe(Either.map(make)));
 
-export const isProcedureDescriptor = (
-  value: unknown,
-): value is ProcedureDescriptor => Predicate.hasProperty(value, TypeId);
+export const isProcedureDescriptor = (value: unknown): value is ProcedureDescriptor =>
+  Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  ProcedureId.arbitrary(fc).map(make);
+export const arbitrary = (fc: typeof FastCheck) => ProcedureId.arbitrary(fc).map(make);

@@ -106,9 +106,7 @@ export const RunFlowModal = ({
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const [webId, setWebId] = useState<WebId>(
-    authenticatedUser.accountId as WebId,
-  );
+  const [webId, setWebId] = useState<WebId>(authenticatedUser.accountId as WebId);
 
   const [formState, setFormState] = useState<FormState>(() =>
     generateInitialFormState(outputs ?? []),
@@ -131,9 +129,7 @@ export const RunFlowModal = ({
     const stateValue = formState[output.name]?.payload.value;
     return (
       !output.required ||
-      (output.payloadKind === "Text"
-        ? stateValue !== ""
-        : stateValue !== undefined)
+      (output.payloadKind === "Text" ? stateValue !== "" : stateValue !== undefined)
     );
   });
 
@@ -229,8 +225,7 @@ export const RunFlowModal = ({
     }
   };
 
-  const scheduleValid =
-    !isScheduleMode || (intervalValue > 0 && scheduleName.trim().length > 0);
+  const scheduleValid = !isScheduleMode || (intervalValue > 0 && scheduleName.trim().length > 0);
 
   return (
     <Modal
@@ -269,8 +264,7 @@ export const RunFlowModal = ({
                 sx={{
                   fontWeight: 500,
                   ml: 1.5,
-                  color: ({ palette }) =>
-                    isScheduleMode ? palette.gray[70] : palette.gray[50],
+                  color: ({ palette }) => (isScheduleMode ? palette.gray[70] : palette.gray[50]),
                 }}
               >
                 Recurring
@@ -299,9 +293,7 @@ export const RunFlowModal = ({
                     size="small"
                     value={intervalValue}
                     onChange={(event) =>
-                      setIntervalValue(
-                        Math.max(1, parseInt(event.target.value, 10) || 1),
-                      )
+                      setIntervalValue(Math.max(1, parseInt(event.target.value, 10) || 1))
                     }
                     inputProps={{ min: 1 }}
                     sx={{ width: 100 }}
@@ -309,9 +301,7 @@ export const RunFlowModal = ({
                   <Select
                     size="small"
                     value={intervalUnit}
-                    onChange={(event) =>
-                      setIntervalUnit(event.target.value as IntervalUnit)
-                    }
+                    onChange={(event) => setIntervalUnit(event.target.value as IntervalUnit)}
                     sx={{ minWidth: 120 }}
                   >
                     <MenuItem value="minutes">minutes</MenuItem>
@@ -325,9 +315,7 @@ export const RunFlowModal = ({
                 control={
                   <Switch
                     checked={triggerImmediately}
-                    onChange={(event) =>
-                      setTriggerImmediately(event.target.checked)
-                    }
+                    onChange={(event) => setTriggerImmediately(event.target.checked)}
                     size="small"
                   />
                 }
@@ -338,9 +326,7 @@ export const RunFlowModal = ({
                       fontWeight: 500,
                       ml: 1.5,
                       color: ({ palette }) =>
-                        triggerImmediately
-                          ? palette.gray[70]
-                          : palette.gray[50],
+                        triggerImmediately ? palette.gray[70] : palette.gray[50],
                     }}
                   >
                     Trigger first run immediately

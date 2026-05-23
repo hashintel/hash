@@ -1,10 +1,6 @@
 import { isPropertyValueArray } from "../../../../../../../../lib/typeguards";
 
-import type {
-  DataTypeReference,
-  PropertyType,
-  PropertyValues,
-} from "@blockprotocol/type-system";
+import type { DataTypeReference, PropertyType, PropertyValues } from "@blockprotocol/type-system";
 import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,

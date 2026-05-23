@@ -53,9 +53,7 @@ const sortOrderHumanReadable: Record<SortOrder, string> = {
 };
 
 const ActionsPage = () => {
-  const [selectedDraftEntityIds, setSelectedDraftEntityIds] = useState<
-    EntityId[]
-  >([]);
+  const [selectedDraftEntityIds, setSelectedDraftEntityIds] = useState<EntityId[]>([]);
 
   const [sortOrder, setSortOrder] = useState<SortOrder>("created-at-desc");
 
@@ -68,9 +66,7 @@ const ActionsPage = () => {
           equal: [
             { path: ["uuid"] },
             {
-              parameter: extractEntityUuidFromEntityId(
-                draftEntity.metadata.recordId.entityId,
-              ),
+              parameter: extractEntityUuidFromEntityId(draftEntity.metadata.recordId.entityId),
             },
           ],
         })) ?? [],
@@ -117,48 +113,40 @@ const ActionsPage = () => {
       },
     },
     skip: !draftEntities,
-    onCompleted: (data) =>
-      setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data),
+    onCompleted: (data) => setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data),
     fetchPolicy: "network-only",
   });
 
-  const {
-    draftEntitiesWithLinkedDataSubgraph,
-    entities,
-    closedMultiEntityTypesRootMap,
-  } = useMemo(() => {
-    if (
-      !draftEntitiesWithLinkedDataResponse &&
-      !previouslyFetchedDraftEntitiesWithLinkedDataResponse
-    ) {
+  const { draftEntitiesWithLinkedDataSubgraph, entities, closedMultiEntityTypesRootMap } =
+    useMemo(() => {
+      if (
+        !draftEntitiesWithLinkedDataResponse &&
+        !previouslyFetchedDraftEntitiesWithLinkedDataResponse
+      ) {
+        return {
+          draftEntitiesWithLinkedDataSubgraph: undefined,
+          entities: undefined,
+          closedMultiEntityTypesRootMap: undefined,
+        };
+      }
+
+      const subgraph = deserializeQueryEntitySubgraphResponse(
+        (draftEntitiesWithLinkedDataResponse ??
+          previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.queryEntitySubgraph,
+      ).subgraph;
+
+      const roots = getRoots(subgraph);
+
+      const closedTypeMap = (draftEntitiesWithLinkedDataResponse ??
+        previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.queryEntitySubgraph
+        .closedMultiEntityTypes;
+
       return {
-        draftEntitiesWithLinkedDataSubgraph: undefined,
-        entities: undefined,
-        closedMultiEntityTypesRootMap: undefined,
+        draftEntitiesWithLinkedDataSubgraph: subgraph,
+        entities: roots,
+        closedMultiEntityTypesRootMap: closedTypeMap,
       };
-    }
-
-    const subgraph = deserializeQueryEntitySubgraphResponse(
-      (draftEntitiesWithLinkedDataResponse ??
-        previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
-        .queryEntitySubgraph,
-    ).subgraph;
-
-    const roots = getRoots(subgraph);
-
-    const closedTypeMap = (draftEntitiesWithLinkedDataResponse ??
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse)!.queryEntitySubgraph
-      .closedMultiEntityTypes;
-
-    return {
-      draftEntitiesWithLinkedDataSubgraph: subgraph,
-      entities: roots,
-      closedMultiEntityTypesRootMap: closedTypeMap,
-    };
-  }, [
-    draftEntitiesWithLinkedDataResponse,
-    previouslyFetchedDraftEntitiesWithLinkedDataResponse,
-  ]);
+    }, [draftEntitiesWithLinkedDataResponse, previouslyFetchedDraftEntitiesWithLinkedDataResponse]);
 
   const entityTypeDisplayInfoByBaseUrl = useMemo(() => {
     if (!entities || !closedMultiEntityTypesRootMap) {
@@ -174,16 +162,11 @@ const ActionsPage = () => {
       );
 
       for (const displayMetadata of closedMultiEntityType.allOf) {
-        const { baseUrl, version } = componentsFromVersionedUrl(
-          displayMetadata.$id,
-        );
+        const { baseUrl, version } = componentsFromVersionedUrl(displayMetadata.$id);
 
         const existingEntry = displayInfoByBaseUrl[baseUrl];
 
-        if (
-          existingEntry &&
-          compareOntologyTypeVersions(existingEntry.version, version) >= 0
-        ) {
+        if (existingEntry && compareOntologyTypeVersions(existingEntry.version, version) >= 0) {
           continue;
         }
 
@@ -272,40 +255,30 @@ const ActionsPage = () => {
               </Typography>
               <InlineSelect
                 value={sortOrder}
-                onChange={({ target }) =>
-                  setSortOrder(target.value as SortOrder)
-                }
+                onChange={({ target }) => setSortOrder(target.value as SortOrder)}
               >
-                {Object.entries(sortOrderHumanReadable).map(
-                  ([value, label]) => (
-                    <MenuItem key={value} value={value}>
-                      {label}
-                    </MenuItem>
-                  ),
-                )}
+                {Object.entries(sortOrderHumanReadable).map(([value, label]) => (
+                  <MenuItem key={value} value={value}>
+                    {label}
+                  </MenuItem>
+                ))}
               </InlineSelect>
             </Box>
             <DraftEntitiesBulkActionsDropdown
               deselectAllDraftEntities={() => setSelectedDraftEntityIds([])}
-              draftEntitiesWithLinkedDataSubgraph={
-                draftEntitiesWithLinkedDataSubgraph
-              }
+              draftEntitiesWithLinkedDataSubgraph={draftEntitiesWithLinkedDataSubgraph}
               selectedDraftEntityIds={selectedDraftEntityIds}
             />
           </Box>
         }
       />
       <DraftEntities
-        closedMultiEntityTypesRootMap={
-          closedMultiEntityTypesRootMap ?? undefined
-        }
+        closedMultiEntityTypesRootMap={closedMultiEntityTypesRootMap ?? undefined}
         entityTypeDisplayInfoByBaseUrl={entityTypeDisplayInfoByBaseUrl}
         sortOrder={sortOrder}
         selectedDraftEntityIds={selectedDraftEntityIds}
         setSelectedDraftEntityIds={setSelectedDraftEntityIds}
-        draftEntitiesWithLinkedDataSubgraph={
-          draftEntitiesWithLinkedDataSubgraph
-        }
+        draftEntitiesWithLinkedDataSubgraph={draftEntitiesWithLinkedDataSubgraph}
       />
     </>
   );

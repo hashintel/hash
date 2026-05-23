@@ -1,7 +1,4 @@
-import {
-  componentsFromVersionedUrl,
-  type VersionedUrl,
-} from "@blockprotocol/type-system";
+import { componentsFromVersionedUrl, type VersionedUrl } from "@blockprotocol/type-system";
 
 import { EntityType } from "../entity-type";
 

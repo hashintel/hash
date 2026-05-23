@@ -112,10 +112,7 @@ export const getPropertyTypeSchema = (
 
   const oneOf = data.expectedValues.map((value) => {
     if (typeof value === "object") {
-      return getExpectedValueSchemaById(
-        value.id,
-        data.flattenedCustomExpectedValueList,
-      );
+      return getExpectedValueSchemaById(value.id, data.flattenedCustomExpectedValueList);
     }
 
     return getPrimitiveSchema(value);

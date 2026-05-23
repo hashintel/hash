@@ -78,13 +78,7 @@ const DecoderProto: Omit<DecoderImpl, "decode"> = {
 export const Decoder = GenericTag<Decoder>(TypeId.description!);
 
 export const make = <E = DecodingError, R = never>(
-  decode: <
-    SchemaType,
-    SchemaEncoded,
-    SchemaContext,
-    StreamError,
-    StreamContext,
-  >(
+  decode: <SchemaType, SchemaEncoded, SchemaContext, StreamError, StreamContext>(
     input: Stream.Stream<ArrayBuffer, StreamError, StreamContext>,
     schema: Schema.Schema<SchemaType, SchemaEncoded, SchemaContext>,
   ) => Stream.Stream<

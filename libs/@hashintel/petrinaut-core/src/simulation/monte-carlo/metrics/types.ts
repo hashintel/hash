@@ -17,19 +17,14 @@ export type MonteCarloFrameMetricContext = {
   erroredRunCount: number;
   placeIds: readonly string[];
   placeNames: readonly string[];
-  forEachActiveRunPlaceCounts: (
-    visitor: MonteCarloActiveRunPlaceCountsVisitor,
-  ) => void;
+  forEachActiveRunPlaceCounts: (visitor: MonteCarloActiveRunPlaceCountsVisitor) => void;
 };
 
 export type MonteCarloFrameMetric = {
   observeFrame: (context: MonteCarloFrameMetricContext) => void;
 };
 
-export type PlaceTokenCountDistributionBin = readonly [
-  tokenCount: number,
-  frequency: number,
-];
+export type PlaceTokenCountDistributionBin = readonly [tokenCount: number, frequency: number];
 
 export type PlaceTokenCountDistributionPlace = {
   placeId: string;

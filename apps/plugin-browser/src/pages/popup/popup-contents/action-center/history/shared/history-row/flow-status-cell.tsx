@@ -1,12 +1,7 @@
 import { CircularProgress, TableCell, Tooltip } from "@mui/material";
 import { useState } from "react";
 
-import {
-  CheckIcon,
-  CloseIcon,
-  DashIcon,
-  IconButton,
-} from "@hashintel/design-system";
+import { CheckIcon, CloseIcon, DashIcon, IconButton } from "@hashintel/design-system";
 
 import { FlowRunStatus } from "../../../../../../../graphql/api-types.gen";
 import { sendMessageToBackground } from "../../../../../../shared/messages";
@@ -39,11 +34,7 @@ const iconSx = {
   mr: 0.8,
 };
 
-const CancelButton = ({
-  onClick,
-}: {
-  onClick: (event: MouseEvent) => void;
-}) => (
+const CancelButton = ({ onClick }: { onClick: (event: MouseEvent) => void }) => (
   <Tooltip title="Cancel flow">
     <IconButton
       onClick={onClick}
@@ -73,12 +64,10 @@ export const FlowStatusCell = ({ flowRun }: { flowRun: MinimalFlowRun }) => {
   const statusText = flowStatusToStatusText(flowRun.status);
 
   const isUnproductiveSuccessfulRequest =
-    (flowRun.status === FlowRunStatus.Completed ||
-      flowRun.status === FlowRunStatus.Cancelled) &&
+    (flowRun.status === FlowRunStatus.Completed || flowRun.status === FlowRunStatus.Cancelled) &&
     (flowRun.persistedEntities.length === 0 ||
       flowRun.persistedEntities.every(
-        (persistedEntity) =>
-          persistedEntity.operation === "already-exists-as-proposed",
+        (persistedEntity) => persistedEntity.operation === "already-exists-as-proposed",
       ));
 
   const cancelRequest = (event: MouseEvent) => {
@@ -121,9 +110,7 @@ export const FlowStatusCell = ({ flowRun }: { flowRun: MinimalFlowRun }) => {
         isUnproductiveSuccessfulRequest ? (
           <Tooltip title="No entities created or updated" placement="top">
             <Chip>
-              <DashIcon
-                sx={{ fill: ({ palette }) => palette.gray[40], ...iconSx }}
-              />
+              <DashIcon sx={{ fill: ({ palette }) => palette.gray[40], ...iconSx }} />
               No changes
             </Chip>
           </Tooltip>

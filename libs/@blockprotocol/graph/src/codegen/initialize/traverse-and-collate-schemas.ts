@@ -13,11 +13,7 @@ import {
   generatePropertyTypeWithMetadataSchema,
 } from "./metadata/generate-metadata-schema.js";
 import { fetchTypeAsJson } from "./traverse/fetch.js";
-import {
-  isDataType,
-  isEntityType,
-  isPropertyType,
-} from "./traverse/type-validation.js";
+import { isDataType, isEntityType, isPropertyType } from "./traverse/type-validation.js";
 
 import type { InitializeContext } from "../context.js";
 import type { VersionedUrl } from "@blockprotocol/type-system";
@@ -46,9 +42,7 @@ class TraversalContext {
     this.explored = new Set();
     this.exploreQueue = new Set();
 
-    for (const { sourceTypeIds } of typedValues(
-      initialContext.parameters.targets,
-    )) {
+    for (const { sourceTypeIds } of typedValues(initialContext.parameters.targets)) {
       for (const typeId of sourceTypeIds) {
         initialContext.logTrace(`Adding ${typeId} to explore queue.`);
         this.exploreQueue.add(typeId);
@@ -66,10 +60,7 @@ class TraversalContext {
    * @param dependencyTypeId
    */
   encounter(sourceTypeId: VersionedUrl, dependencyTypeId: VersionedUrl) {
-    if (
-      !this.explored.has(dependencyTypeId) &&
-      !this.exploreQueue.has(dependencyTypeId)
-    ) {
+    if (!this.explored.has(dependencyTypeId) && !this.exploreQueue.has(dependencyTypeId)) {
       this.initialContext.logTrace(
         `Adding ${dependencyTypeId} to explore queue, as it was encountered as a dependency of ${sourceTypeId}.`,
       );
@@ -80,10 +71,7 @@ class TraversalContext {
       );
     }
 
-    this.initialContext.typeDependencyMap.addDependencyForType(
-      sourceTypeId,
-      dependencyTypeId,
-    );
+    this.initialContext.typeDependencyMap.addDependencyForType(sourceTypeId, dependencyTypeId);
   }
 
   /**
@@ -158,20 +146,14 @@ export const traverseAndCollateSchemas = async (
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
-          initialContext.typeDependencyMap.addDependencyForType(
-            typeId,
-            withMetadata.$id,
-          );
+          initialContext.typeDependencyMap.addDependencyForType(typeId, withMetadata.$id);
         } else if (isPropertyType(type)) {
-          const {
-            constrainsValuesOnDataTypes,
-            constrainsPropertiesOnPropertyTypes,
-          } = getReferencedIdsFromPropertyType(type);
+          const { constrainsValuesOnDataTypes, constrainsPropertiesOnPropertyTypes } =
+            getReferencedIdsFromPropertyType(type);
 
           nestedForEach(
             [constrainsValuesOnDataTypes, constrainsPropertiesOnPropertyTypes],
-            (dependencyTypeId) =>
-              traversalContext.encounter(typeId, dependencyTypeId),
+            (dependencyTypeId) => traversalContext.encounter(typeId, dependencyTypeId),
           );
 
           initialContext.addPropertyType(type);
@@ -180,10 +162,7 @@ export const traverseAndCollateSchemas = async (
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
-          initialContext.typeDependencyMap.addDependencyForType(
-            typeId,
-            withMetadata.$id,
-          );
+          initialContext.typeDependencyMap.addDependencyForType(typeId, withMetadata.$id);
         } else if (isEntityType(type)) {
           const {
             constrainsPropertiesOnPropertyTypes,
@@ -199,8 +178,7 @@ export const traverseAndCollateSchemas = async (
               constrainsLinksOnEntityTypes,
               inheritsFromEntityTypes,
             ],
-            (dependencyTypeId) =>
-              traversalContext.encounter(typeId, dependencyTypeId),
+            (dependencyTypeId) => traversalContext.encounter(typeId, dependencyTypeId),
           );
 
           initialContext.addEntityType(type);
@@ -230,10 +208,7 @@ export const traverseAndCollateSchemas = async (
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
-          initialContext.typeDependencyMap.addDependencyForType(
-            typeId,
-            withMetadata.$id,
-          );
+          initialContext.typeDependencyMap.addDependencyForType(typeId, withMetadata.$id);
         } else {
           throw new Error(`Unexpected type, was it malformed? URL: ${typeId}`);
         }

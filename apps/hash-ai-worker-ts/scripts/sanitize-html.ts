@@ -19,9 +19,7 @@ const __dirname = path.dirname(__filename);
 const url = process.argv[2] as Url;
 
 if (!url) {
-  console.error(
-    "No URL provided – usage: `yarn sanitize https://example.com'`",
-  );
+  console.error("No URL provided – usage: `yarn sanitize https://example.com'`");
   process.exit(1);
 }
 

@@ -32,12 +32,9 @@ const generateSimplePaths = async ({
   const graph = new MultiDirectedGraph();
   graph.import(serializedGraph);
 
-  const unfilteredSimplePaths = allSimplePaths(
-    graph,
-    startNode.nodeId,
-    endNode.nodeId,
-    { maxDepth: maxSimplePathDepth },
-  );
+  const unfilteredSimplePaths = allSimplePaths(graph, startNode.nodeId, endNode.nodeId, {
+    maxDepth: maxSimplePathDepth,
+  });
 
   const pathOptions: Path[] = [];
 
@@ -82,8 +79,7 @@ const generateSimplePaths = async ({
         for (const [index, edge] of edges.entries()) {
           const edgeData = graph.getEdgeAttributes(edge);
           totalSignificance += edgeData.significance ?? 0;
-          labelParts[index] =
-            `${labelParts[index]} [${edgeData.significance ?? 0}]—> `;
+          labelParts[index] = `${labelParts[index]} [${edgeData.significance ?? 0}]—> `;
         }
         label = `[${totalSignificance}] ${labelParts.join("")}`;
       } else if (simplePathSort === "Length") {
@@ -118,8 +114,7 @@ const generateSimplePaths = async ({
 self.onmessage = async ({ data }) => {
   if (
     "type" in data &&
-    data.type ===
-      ("generateSimplePaths" satisfies GenerateSimplePathsRequestMessage["type"])
+    data.type === ("generateSimplePaths" satisfies GenerateSimplePathsRequestMessage["type"])
   ) {
     const { params } = data as GenerateSimplePathsRequestMessage;
 

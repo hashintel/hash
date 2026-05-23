@@ -30,37 +30,24 @@ export const requestFileUpload: ResolverFn<
   MutationRequestFileUploadArgs
 > = async (
   _,
-  {
-    description,
-    displayName,
-    fileEntityCreationInput,
-    fileEntityUpdateInput,
-    name,
-    size,
-  },
+  { description, displayName, fileEntityCreationInput, fileEntityUpdateInput, name, size },
   graphQLContext,
 ) => {
   const { authentication, temporal, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   if (size > maximumFileSizeInBytes) {
-    throw Error.badUserInput(
-      `The file size must be less than ${maximumFileSizeInMegaBytes} MB`,
-    );
+    throw Error.badUserInput(`The file size must be less than ${maximumFileSizeInMegaBytes} MB`);
   }
 
-  const { presignedPut, entity } = await createFileFromUploadRequest(
-    context,
-    authentication,
-    {
-      description,
-      displayName,
-      fileEntityCreationInput,
-      fileEntityUpdateInput,
-      name,
-      size,
-    },
-  );
+  const { presignedPut, entity } = await createFileFromUploadRequest(context, authentication, {
+    description,
+    displayName,
+    fileEntityCreationInput,
+    fileEntityUpdateInput,
+    name,
+    size,
+  });
 
   if (user.enabledFeatureFlags.includes("ai")) {
     await triggerPdfAnalysisWorkflow({

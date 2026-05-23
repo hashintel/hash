@@ -28,16 +28,14 @@ export type AdminPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
  */
 export type AllowMembersToInvitePropertyValue = BooleanDataType;
 
-export type AllowMembersToInvitePropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type AllowMembersToInvitePropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
 /**
  * Allowed authentication provider, empty array means all are allowed.
  */
 export type AllowedAuthServicePropertyValue = TextDataType;
 
-export type AllowedAuthServicePropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type AllowedAuthServicePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The time at which the entity was archived. Null if the entity has not been archived.
@@ -51,16 +49,14 @@ export type ArchivedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  */
 export type AutoArchivedAtPropertyValue = DateTimeDataType;
 
-export type AutoArchivedAtPropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type AutoArchivedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The time at which the issue was automatically closed by the auto pruning process.
  */
 export type AutoClosedAtPropertyValue = DateTimeDataType;
 
-export type AutoClosedAtPropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type AutoClosedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * An URL to the user's avatar image.
@@ -73,9 +69,7 @@ export type AvatarURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  * The organization the user belongs to.
  */
 export type BelongsToOrganization = {
-  entityTypeIds: [
-    "https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1"];
   properties: BelongsToOrganizationProperties;
   propertiesWithMetadata: BelongsToOrganizationPropertiesWithMetadata;
 };
@@ -89,11 +83,10 @@ export type BelongsToOrganizationOutgoingLinksByLinkEntityTypeId = {};
  */
 export type BelongsToOrganizationProperties = LinkProperties & {};
 
-export type BelongsToOrganizationPropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type BelongsToOrganizationPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * A True or False value
@@ -143,16 +136,14 @@ export type CreatedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  */
 export type CreatedIssueCountPropertyValue = NumberDataType;
 
-export type CreatedIssueCountPropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+export type CreatedIssueCountPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * Returns the number of Attachment resources which are created by customer support ticketing systems (e.g. Zendesk).
  */
 export type CustomerTicketCountPropertyValue = NumberDataType;
 
-export type CustomerTicketCountPropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+export type CustomerTicketCountPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * A reference to a particular day represented within a calendar system, formatted according to RFC 3339.
@@ -189,8 +180,7 @@ export type DateTimeDataTypeMetadata = {
  */
 export type DeletionRequestedAtPropertyValue = DateTimeDataType;
 
-export type DeletionRequestedAtPropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type DeletionRequestedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.
@@ -268,16 +258,14 @@ export type GitBranchFormatPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type GitLinkbackMessagesEnabledPropertyValue = BooleanDataType;
 
-export type GitLinkbackMessagesEnabledPropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type GitLinkbackMessagesEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
 /**
  * Whether the Git integration linkback messages should be sent to public repositories.
  */
 export type GitPublicLinkbackMessagesEnabledPropertyValue = BooleanDataType;
 
-export type GitPublicLinkbackMessagesEnabledPropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type GitPublicLinkbackMessagesEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
 /**
  * Whether the user is a guest in the workspace and limited to accessing a subset of teams.
@@ -336,9 +324,7 @@ export type HasCreatorPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * A user who is subscribed to the issue.
  */
 export type HasSubscriber = {
-  entityTypeIds: [
-    "https://hash.ai/@linear/types/entity-type/has-subscriber/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/has-subscriber/v/1"];
   properties: HasSubscriberProperties;
   propertiesWithMetadata: HasSubscriberPropertiesWithMetadata;
 };
@@ -391,8 +377,7 @@ export type InformationDataTypeMetadata = {
  */
 export type IntegrationSourceTypePropertyValue = TextDataType;
 
-export type IntegrationSourceTypePropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type IntegrationSourceTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * Unique hash for the user to be used in invite URLs.
@@ -548,9 +533,7 @@ export type LastSeenPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  * undefined
  */
 export type Link = {
-  entityTypeIds: [
-    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
-  ];
+  entityTypeIds: ["https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"];
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
 };
@@ -578,8 +561,7 @@ export type LogoURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  */
 export type MarkdownDescriptionPropertyValue = TextDataType;
 
-export type MarkdownDescriptionPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type MarkdownDescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A unit of information equal to one million bytes.
@@ -721,16 +703,14 @@ export type ParentPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  */
 export type PeriodUploadVolumePropertyValue = MegabytesDataType;
 
-export type PeriodUploadVolumePropertyValueWithMetadata =
-  MegabytesDataTypeWithMetadata;
+export type PeriodUploadVolumePropertyValueWithMetadata = MegabytesDataTypeWithMetadata;
 
 /**
  * Previous identifier of the issue if it has been moved between teams.
  */
 export type PreviousIdentifierPropertyValue = TextDataType;
 
-export type PreviousIdentifierPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type PreviousIdentifierPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * Previously used URL keys for the organization (last 3 are kept and redirected).
@@ -765,16 +745,14 @@ export type ProfileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
  */
 export type ProjectUpdateRemindersHourPropertyValue = NumberDataType;
 
-export type ProjectUpdateRemindersHourPropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+export type ProjectUpdateRemindersHourPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * Whether the organization is using a roadmap.
  */
 export type RoadmapEnabledPropertyValue = BooleanDataType;
 
-export type RoadmapEnabledPropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type RoadmapEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
 /**
  * Whether SAML authentication is enabled for organization.
@@ -818,8 +796,7 @@ export type SnoozedByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  */
 export type SnoozedUntilAtPropertyValue = DateTimeDataType;
 
-export type SnoozedUntilAtPropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type SnoozedUntilAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The order of the item in relation to other items in the organization.
@@ -840,8 +817,7 @@ export type StartedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  */
 export type StartedTriageAtPropertyValue = DateTimeDataType;
 
-export type StartedTriageAtPropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type StartedTriageAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The workflow state that the issue is associated with.
@@ -885,16 +861,14 @@ export type StatusLabelPropertyValueWithMetadata = TextDataTypeWithMetadata;
  */
 export type StatusUntilAtPropertyValue = DateTimeDataType;
 
-export type StatusUntilAtPropertyValueWithMetadata =
-  DateTimeDataTypeWithMetadata;
+export type StatusUntilAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * The order of the item in the sub-issue list. Only set if the issue has a parent.
  */
 export type SubIssueSortOrderPropertyValue = NumberDataType;
 
-export type SubIssueSortOrderPropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+export type SubIssueSortOrderPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * An ordered sequence of characters
@@ -1062,9 +1036,7 @@ export type UserPropertiesWithMetadata = {
  * A state in a team workflow.
  */
 export type WorkflowState = {
-  entityTypeIds: [
-    "https://hash.ai/@linear/types/entity-type/workflow-state/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@linear/types/entity-type/workflow-state/v/1"];
   properties: WorkflowStateProperties;
   propertiesWithMetadata: WorkflowStatePropertiesWithMetadata;
 };

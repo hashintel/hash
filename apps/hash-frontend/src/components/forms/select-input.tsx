@@ -42,10 +42,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
     );
 
     return (
-      <div
-        className={className}
-        style={{ display: "flex", flexDirection: "column" }}
-      >
+      <div className={className} style={{ display: "flex", flexDirection: "column" }}>
         {label && (
           <label
             htmlFor={inputId}
@@ -95,13 +92,11 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
               {placeholder}
             </option>
           )}
-          {options.map(
-            ({ disabled, label: optionLabel, value: optionValue }) => (
-              <option disabled={disabled} key={optionValue} value={optionValue}>
-                {optionLabel}
-              </option>
-            ),
-          )}
+          {options.map(({ disabled, label: optionLabel, value: optionValue }) => (
+            <option disabled={disabled} key={optionValue} value={optionValue}>
+              {optionLabel}
+            </option>
+          ))}
         </Box>
       </div>
     );

@@ -36,8 +36,7 @@ export const deduplicateClaims = async (
   inputClaims: Claim[],
   proposedEntities: ProposedEntity[],
 ): Promise<Claim[]> => {
-  const { flowEntityId, stepId, userAuthentication, webId } =
-    await getFlowContext();
+  const { flowEntityId, stepId, userAuthentication, webId } = await getFlowContext();
 
   /**
    * Simplify identification of duplicate claims.
@@ -64,8 +63,7 @@ export const deduplicateClaims = async (
 
   for (const currentClaimInLoop of inputClaims) {
     const entityId = currentClaimInLoop.subjectEntityLocalId;
-    const objectEntityId =
-      currentClaimInLoop.objectEntityLocalId ?? noObjectEntityIdKey;
+    const objectEntityId = currentClaimInLoop.objectEntityLocalId ?? noObjectEntityIdKey;
 
     claimsByEntityIdObjectAndText[entityId] ??= {};
     claimsByEntityIdObjectAndText[entityId][objectEntityId] ??= {};
@@ -102,8 +100,7 @@ export const deduplicateClaims = async (
       ...(currentClaimInLoop.sources ?? []).filter(
         (source) =>
           !originalIdentifiedClaim.sources?.some(
-            (existingSource) =>
-              existingSource.location?.uri === source.location?.uri,
+            (existingSource) => existingSource.location?.uri === source.location?.uri,
           ),
       ),
     ];
@@ -151,8 +148,7 @@ export const deduplicateClaims = async (
       provenance,
     });
 
-    canonicalClaimIdByDuplicateId[currentClaimInLoop.claimId] =
-      newClaimObject.claimId;
+    canonicalClaimIdByDuplicateId[currentClaimInLoop.claimId] = newClaimObject.claimId;
 
     logger.debug(
       `Merged claim ${JSON.stringify(currentClaimInLoop)} into ${JSON.stringify(originalIdentifiedClaim)}`,
@@ -163,9 +159,7 @@ export const deduplicateClaims = async (
     const subjectOfSet = new Set(proposedEntity.claims.isSubjectOf);
     const objectOfSet = new Set(proposedEntity.claims.isObjectOf);
 
-    for (const [duplicateId, canonicalId] of typedEntries(
-      canonicalClaimIdByDuplicateId,
-    )) {
+    for (const [duplicateId, canonicalId] of typedEntries(canonicalClaimIdByDuplicateId)) {
       if (subjectOfSet.has(duplicateId)) {
         subjectOfSet.delete(duplicateId);
         subjectOfSet.add(canonicalId);
@@ -181,11 +175,8 @@ export const deduplicateClaims = async (
     proposedEntity.claims.isObjectOf = [...objectOfSet];
   }
 
-  const newClaimsArray = Object.values(claimsByEntityIdObjectAndText).flatMap(
-    (objectAndText) =>
-      Object.values(objectAndText).flatMap((textToClaim) =>
-        Object.values(textToClaim),
-      ),
+  const newClaimsArray = Object.values(claimsByEntityIdObjectAndText).flatMap((objectAndText) =>
+    Object.values(objectAndText).flatMap((textToClaim) => Object.values(textToClaim)),
   );
 
   return newClaimsArray;

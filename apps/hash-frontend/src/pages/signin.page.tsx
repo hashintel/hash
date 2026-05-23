@@ -75,9 +75,7 @@ const SigninPage: NextPageWithLayout = () => {
     }
 
     const possiblyMaliciousRedirect =
-      typeof router.query.return_to === "string"
-        ? router.query.return_to
-        : undefined;
+      typeof router.query.return_to === "string" ? router.query.return_to : undefined;
 
     const redirectUrl = possiblyMaliciousRedirect
       ? new URL(possiblyMaliciousRedirect, frontendUrl)
@@ -95,10 +93,7 @@ const SigninPage: NextPageWithLayout = () => {
       );
     }
 
-    if (
-      redirectPath &&
-      (redirectPath.includes("\\") || redirectPath.includes("//"))
-    ) {
+    if (redirectPath && (redirectPath.includes("\\") || redirectPath.includes("//"))) {
       /**
        * next/router will error if these are included in the URL, but this makes
        * the error more useful
@@ -155,40 +150,25 @@ const SigninPage: NextPageWithLayout = () => {
       .createBrowserLoginFlow({
         refresh: Boolean(refresh),
         aal: aal ? String(aal) : undefined,
-        loginChallenge:
-          typeof loginChallenge === "string" ? loginChallenge : undefined,
+        loginChallenge: typeof loginChallenge === "string" ? loginChallenge : undefined,
       })
       .then(({ data }) => setFlow(data))
       .catch(handleFlowError);
-  }, [
-    flowId,
-    loginChallenge,
-    router,
-    router.isReady,
-    aal,
-    refresh,
-    flow,
-    handleFlowError,
-  ]);
+  }, [flowId, loginChallenge, router, router.isReady, aal, refresh, flow, handleFlowError]);
 
   const isAal2Flow = useMemo(
     () =>
       flow?.requested_aal === "aal2" ||
-      flow?.ui.nodes.some(({ group }) =>
-        ["totp", "lookup_secret"].includes(group),
-      ) === true,
+      flow?.ui.nodes.some(({ group }) => ["totp", "lookup_secret"].includes(group)) === true,
     [flow],
   );
 
   const emailInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) &&
-      attributes.name === "traits.emails",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "traits.emails",
   );
 
   const identifierNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "identifier",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "identifier",
   );
 
   // Pre-fill email from Kratos flow (e.g., during account linking).
@@ -207,19 +187,15 @@ const SigninPage: NextPageWithLayout = () => {
   }, [flow?.id]);
 
   const passwordInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "password",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "password",
   );
 
   const totpInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "totp_code",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "totp_code",
   );
 
   const lookupSecretInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) &&
-      attributes.name === "lookup_secret",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "lookup_secret",
   );
 
   const handleValidationError = (err: AxiosError<LoginFlow>) => {
@@ -256,9 +232,7 @@ const SigninPage: NextPageWithLayout = () => {
     event.preventDefault();
 
     if (!flow) {
-      throw new Error(
-        "No sign in flow available – please try clearing your cookies.",
-      );
+      throw new Error("No sign in flow available – please try clearing your cookies.");
     }
 
     if (!isAal2Flow && (!email || !password)) {
@@ -328,9 +302,8 @@ const SigninPage: NextPageWithLayout = () => {
                 // serves. Rewrite to the matching UI route when possible,
                 // otherwise fall through to whatever Kratos asked for.
                 const redirectTo =
-                  uiPathForKratosBrowserRedirect(
-                    redirectAction.redirect_browser_to,
-                  ) ?? redirectAction.redirect_browser_to;
+                  uiPathForKratosBrowserRedirect(redirectAction.redirect_browser_to) ??
+                  redirectAction.redirect_browser_to;
                 void router.push(redirectTo);
                 return;
               }
@@ -343,11 +316,9 @@ const SigninPage: NextPageWithLayout = () => {
                 }>;
 
                 if (maybeAal2Error.response?.status === 403) {
-                  const kratosRedirect =
-                    maybeAal2Error.response.data.redirect_browser_to;
+                  const kratosRedirect = maybeAal2Error.response.data.redirect_browser_to;
                   const redirectTo = kratosRedirect
-                    ? (uiPathForKratosBrowserRedirect(kratosRedirect) ??
-                      kratosRedirect)
+                    ? (uiPathForKratosBrowserRedirect(kratosRedirect) ?? kratosRedirect)
                     : "/signin?aal=aal2";
 
                   void router.push(redirectTo);
@@ -399,9 +370,7 @@ const SigninPage: NextPageWithLayout = () => {
           }}
         >
           <AuthHeading>
-            {isAal2Flow
-              ? "Enter your authentication code"
-              : "Sign in to your account"}
+            {isAal2Flow ? "Enter your authentication code" : "Sign in to your account"}
           </AuthHeading>
           <Box
             component="form"
@@ -432,9 +401,7 @@ const SigninPage: NextPageWithLayout = () => {
                     variant="smallTextParagraphs"
                     sx={{
                       color: ({ palette }) =>
-                        message.type === "error"
-                          ? palette.red[80]
-                          : palette.blue[80],
+                        message.type === "error" ? palette.red[80] : palette.blue[80],
                     }}
                   >
                     {formatKratosMessage(message)}
@@ -448,9 +415,7 @@ const SigninPage: NextPageWithLayout = () => {
                   Open your authenticator app and enter the code to continue.
                 </Typography>
                 <TextField
-                  label={
-                    useLookupSecretInput ? "Backup code" : "Authenticator code"
-                  }
+                  label={useLookupSecretInput ? "Backup code" : "Authenticator code"}
                   type="text"
                   autoComplete="one-time-code"
                   autoFocus
@@ -473,20 +438,14 @@ const SigninPage: NextPageWithLayout = () => {
                   }}
                   error={
                     !!(useLookupSecretInput
-                      ? lookupSecretInputUiNode?.messages.find(
-                          ({ type }) => type === "error",
-                        )
-                      : totpInputUiNode?.messages.find(
-                          ({ type }) => type === "error",
-                        ))
+                      ? lookupSecretInputUiNode?.messages.find(({ type }) => type === "error")
+                      : totpInputUiNode?.messages.find(({ type }) => type === "error"))
                   }
                   helperText={
                     useLookupSecretInput
-                      ? lookupSecretInputUiNode?.messages.map(
-                          ({ id, text }) => (
-                            <Typography key={id}>{text}</Typography>
-                          ),
-                        )
+                      ? lookupSecretInputUiNode?.messages.map(({ id, text }) => (
+                          <Typography key={id}>{text}</Typography>
+                        ))
                       : totpInputUiNode?.messages.map(({ id, text }) => (
                           <Typography key={id}>{text}</Typography>
                         ))
@@ -522,11 +481,7 @@ const SigninPage: NextPageWithLayout = () => {
                   placeholder="Enter your email address"
                   value={email}
                   onChange={({ target }) => setEmail(target.value)}
-                  error={
-                    !!emailInputUiNode?.messages.find(
-                      ({ type }) => type === "error",
-                    )
-                  }
+                  error={!!emailInputUiNode?.messages.find(({ type }) => type === "error")}
                   helperText={emailInputUiNode?.messages.map(({ id, text }) => (
                     <Typography key={id}>{text}</Typography>
                   ))}
@@ -541,16 +496,10 @@ const SigninPage: NextPageWithLayout = () => {
                   placeholder="Enter your password"
                   value={password}
                   onChange={({ target }) => setPassword(target.value)}
-                  error={
-                    !!passwordInputUiNode?.messages.find(
-                      ({ type }) => type === "error",
-                    )
-                  }
-                  helperText={passwordInputUiNode?.messages.map(
-                    ({ id, text }) => (
-                      <Typography key={id}>{text}</Typography>
-                    ),
-                  )}
+                  error={!!passwordInputUiNode?.messages.find(({ type }) => type === "error")}
+                  helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
+                    <Typography key={id}>{text}</Typography>
+                  ))}
                   required
                   inputProps={{ "data-1p-ignore": false }}
                   // eslint-disable-next-line react/jsx-no-duplicate-props
@@ -609,11 +558,7 @@ const SigninPage: NextPageWithLayout = () => {
             Create a free account
           </Button>
           {flow ? (
-            <SsoProviderButtons
-              kind="login"
-              flow={flow}
-              onFlowError={handleFlowError}
-            />
+            <SsoProviderButtons kind="login" flow={flow} onFlowError={handleFlowError} />
           ) : null}
         </Box>
       </Box>

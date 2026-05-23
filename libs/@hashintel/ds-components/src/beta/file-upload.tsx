@@ -6,11 +6,7 @@ import { FileUpload, useFileUploadContext } from "@ark-ui/react/file-upload";
 import { FileIcon, XIcon } from "lucide-react";
 import { type ComponentProps, forwardRef, useMemo } from "react";
 
-import {
-  createStyleContext,
-  type HTMLStyledProps,
-  Stack,
-} from "@hashintel/ds-helpers/jsx";
+import { createStyleContext, type HTMLStyledProps, Stack } from "@hashintel/ds-helpers/jsx";
 
 import { fileUploadSlotRecipe } from "./file-upload.recipe";
 import { Span } from "./span";
@@ -22,20 +18,13 @@ export type ItemProps = ComponentProps<typeof Item>;
 
 export const Root = withProvider(FileUpload.Root, "root");
 export const RootProvider = withProvider(FileUpload.RootProvider, "root");
-export const ClearTrigger = withContext(
-  FileUpload.ClearTrigger,
-  "clearTrigger",
-);
+export const ClearTrigger = withContext(FileUpload.ClearTrigger, "clearTrigger");
 export const Dropzone = withContext(FileUpload.Dropzone, "dropzone");
 export const HiddenInput = FileUpload.HiddenInput;
 export const Item = withContext(FileUpload.Item, "item");
-export const ItemDeleteTrigger = withContext(
-  FileUpload.ItemDeleteTrigger,
-  "itemDeleteTrigger",
-  {
-    defaultProps: { children: <XIcon /> },
-  },
-);
+export const ItemDeleteTrigger = withContext(FileUpload.ItemDeleteTrigger, "itemDeleteTrigger", {
+  defaultProps: { children: <XIcon /> },
+});
 export const ItemGroup = withContext(FileUpload.ItemGroup, "itemGroup");
 export const ItemName = withContext(FileUpload.ItemName, "itemName");
 export const ItemPreview = withContext(FileUpload.ItemPreview, "itemPreview", {
@@ -43,14 +32,8 @@ export const ItemPreview = withContext(FileUpload.ItemPreview, "itemPreview", {
     children: <FileIcon />,
   },
 });
-export const ItemPreviewImage = withContext(
-  FileUpload.ItemPreviewImage,
-  "itemPreviewImage",
-);
-export const ItemSizeText = withContext(
-  FileUpload.ItemSizeText,
-  "itemSizeText",
-);
+export const ItemPreviewImage = withContext(FileUpload.ItemPreviewImage, "itemPreviewImage");
+export const ItemSizeText = withContext(FileUpload.ItemSizeText, "itemSizeText");
 export const Label = withContext(FileUpload.Label, "label");
 export const Trigger = withContext(FileUpload.Trigger, "trigger");
 
@@ -84,50 +67,46 @@ export const Items = (props: ItemsProps) => {
 
 interface FileUploadListProps extends ItemsBaseProps {}
 
-export const List = forwardRef<HTMLUListElement, FileUploadListProps>(
-  (props, ref) => {
-    const { showSize, clearable, files, ...rest } = props;
+export const List = forwardRef<HTMLUListElement, FileUploadListProps>((props, ref) => {
+  const { showSize, clearable, files, ...rest } = props;
 
-    return (
-      <ItemGroup ref={ref} {...rest}>
-        <Items showSize={showSize} clearable={clearable} files={files} />
-      </ItemGroup>
-    );
-  },
-);
+  return (
+    <ItemGroup ref={ref} {...rest}>
+      <Items showSize={showSize} clearable={clearable} files={files} />
+    </ItemGroup>
+  );
+});
 
 export interface FileTextProps extends HTMLStyledProps<"span"> {
   fallback?: string | undefined;
 }
 
-export const FileText = forwardRef<HTMLSpanElement, FileTextProps>(
-  (props, ref) => {
-    const { fallback = "Select file(s)", ...rest } = props;
+export const FileText = forwardRef<HTMLSpanElement, FileTextProps>((props, ref) => {
+  const { fallback = "Select file(s)", ...rest } = props;
 
-    const fileUpload = useFileUploadContext();
+  const fileUpload = useFileUploadContext();
 
-    const acceptedFiles = fileUpload.acceptedFiles;
+  const acceptedFiles = fileUpload.acceptedFiles;
 
-    const fileText = useMemo(() => {
-      if (acceptedFiles.length === 1) {
-        return acceptedFiles[0]?.name;
-      }
-      if (acceptedFiles.length > 1) {
-        return `${acceptedFiles.length} files`;
-      }
-      return fallback;
-    }, [acceptedFiles, fallback]);
+  const fileText = useMemo(() => {
+    if (acceptedFiles.length === 1) {
+      return acceptedFiles[0]?.name;
+    }
+    if (acceptedFiles.length > 1) {
+      return `${acceptedFiles.length} files`;
+    }
+    return fallback;
+  }, [acceptedFiles, fallback]);
 
-    return (
-      <Span
-        ref={ref}
-        data-placeholder={fileText === fallback ? "" : undefined}
-        data-scope="file-upload"
-        data-part="file-text"
-        {...rest}
-      >
-        {fileText}
-      </Span>
-    );
-  },
-);
+  return (
+    <Span
+      ref={ref}
+      data-placeholder={fileText === fallback ? "" : undefined}
+      data-scope="file-upload"
+      data-part="file-text"
+      {...rest}
+    >
+      {fileText}
+    </Span>
+  );
+});

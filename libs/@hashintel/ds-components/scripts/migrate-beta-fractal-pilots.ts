@@ -62,10 +62,7 @@ const pilotConfigs = new Map<string, PilotConfig>([
   ["popover", { name: "popover", suppressRecipeTypeErrors: true }],
   ["pin-input", { name: "pin-input", suppressRecipeTypeErrors: true }],
   ["progress", { name: "progress", suppressRecipeTypeErrors: true }],
-  [
-    "radio-card-group",
-    { name: "radio-card-group", suppressRecipeTypeErrors: true },
-  ],
+  ["radio-card-group", { name: "radio-card-group", suppressRecipeTypeErrors: true }],
   ["radio-group", { name: "radio-group", suppressRecipeTypeErrors: true }],
   ["rating-group", { name: "rating-group", suppressRecipeTypeErrors: true }],
   ["scroll-area", { name: "scroll-area", suppressRecipeTypeErrors: true }],
@@ -88,24 +85,15 @@ const pilotConfigs = new Map<string, PilotConfig>([
 ]);
 
 function stripExtension(filePath: string): string {
-  return filePath.replace(
-    /\.(?:stories\.ts|recipe\.ts|story\.tsx|tsx|ts|stories|recipe)$/,
-    "",
-  );
+  return filePath.replace(/\.(?:stories\.ts|recipe\.ts|story\.tsx|tsx|ts|stories|recipe)$/, "");
 }
 
 function toPosixPath(filePath: string): string {
   return filePath.split(path.sep).join(path.posix.sep);
 }
 
-function toRelativeModuleSpecifier(
-  fromFilePath: string,
-  toPathWithoutExtension: string,
-) {
-  const relativePath = path.relative(
-    path.dirname(fromFilePath),
-    toPathWithoutExtension,
-  );
+function toRelativeModuleSpecifier(fromFilePath: string, toPathWithoutExtension: string) {
+  const relativePath = path.relative(path.dirname(fromFilePath), toPathWithoutExtension);
 
   if (!relativePath) {
     const targetBasename = path.basename(toPathWithoutExtension);
@@ -133,8 +121,7 @@ function applyEdits(sourceText: string, edits: ReplaceEdit[]): string {
   return edits
     .sort((left, right) => right.start - left.start)
     .reduce(
-      (text, edit) =>
-        `${text.slice(0, edit.start)}${edit.text}${text.slice(edit.end)}`,
+      (text, edit) => `${text.slice(0, edit.start)}${edit.text}${text.slice(edit.end)}`,
       sourceText,
     );
 }
@@ -232,10 +219,7 @@ function migrateRecipeModule(
   const preservedImports: string[] = [];
 
   for (const statement of sourceFile.statements) {
-    if (
-      ts.isImportDeclaration(statement) &&
-      ts.isStringLiteral(statement.moduleSpecifier)
-    ) {
+    if (ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier)) {
       if (
         statement.moduleSpecifier.text === "@pandacss/dev" ||
         statement.moduleSpecifier.text === "@hashintel/ds-helpers/css"
@@ -243,9 +227,7 @@ function migrateRecipeModule(
         continue;
       }
 
-      preservedImports.push(
-        sourceText.slice(statement.pos, statement.end).trim(),
-      );
+      preservedImports.push(sourceText.slice(statement.pos, statement.end).trim());
       continue;
     }
 
@@ -254,16 +236,11 @@ function migrateRecipeModule(
     }
 
     const declaration = statement.declarationList.declarations[0];
-    if (
-      !declaration ||
-      !declaration.initializer ||
-      !ts.isCallExpression(declaration.initializer)
-    ) {
+    if (!declaration || !declaration.initializer || !ts.isCallExpression(declaration.initializer)) {
       continue;
     }
 
-    const expressionText =
-      declaration.initializer.expression.getText(sourceFile);
+    const expressionText = declaration.initializer.expression.getText(sourceFile);
     if (
       expressionText !== "defineRecipe" &&
       expressionText !== "defineSlotRecipe" &&
@@ -273,29 +250,20 @@ function migrateRecipeModule(
       continue;
     }
 
-    helper =
-      expressionText === "defineRecipe" || expressionText === "cva"
-        ? "cva"
-        : "sva";
+    helper = expressionText === "defineRecipe" || expressionText === "cva" ? "cva" : "sva";
     const firstArgument = declaration.initializer.arguments[0];
     if (!firstArgument) {
       throw new Error(`Missing recipe config in ${componentName}.recipe.ts`);
     }
 
-    recipeConfigText = sourceText.slice(
-      firstArgument.getStart(sourceFile),
-      firstArgument.getEnd(),
-    );
+    recipeConfigText = sourceText.slice(firstArgument.getStart(sourceFile), firstArgument.getEnd());
   }
 
   if (!helper || !recipeConfigText) {
     throw new Error(`Could not parse recipe module for ${componentName}`);
   }
 
-  const { definitionName, exportName, typeName } = getRecipeSymbols(
-    componentName,
-    helper,
-  );
+  const { definitionName, exportName, typeName } = getRecipeSymbols(componentName, helper);
   const nextImports = [...preservedImports];
   nextImports.push(
     `import { ${helper}, type RecipeVariantProps } from "@hashintel/ds-helpers/css";`,
@@ -313,9 +281,7 @@ function migrateRecipeModule(
     sections.push(`export const ${exportName} = ${helper}(${definitionName});`);
   }
 
-  sections.push(
-    `export type ${typeName} = RecipeVariantProps<typeof ${exportName}>;`,
-  );
+  sections.push(`export type ${typeName} = RecipeVariantProps<typeof ${exportName}>;`);
 
   return `${sections.join("\n\n")}\n`;
 }
@@ -350,16 +316,10 @@ function renameIdentifierReferences(
   return applyEdits(sourceText, edits);
 }
 
-function migrateComponentModule(
-  sourceText: string,
-  componentName: string,
-): string {
+function migrateComponentModule(sourceText: string, componentName: string): string {
   const legacyRecipeImportName = camelCase(componentName);
 
-  const { exportName: nextRecipeImportName } = getRecipeSymbols(
-    componentName,
-    "cva",
-  );
+  const { exportName: nextRecipeImportName } = getRecipeSymbols(componentName, "cva");
   const slotRecipeName = getRecipeSymbols(componentName, "sva").exportName;
   const recipeImportName = sourceText.includes(
     `{ ${legacyRecipeImportName} } from "@hashintel/ds-helpers/recipes"`,
@@ -371,9 +331,7 @@ function migrateComponentModule(
     return sourceText;
   }
 
-  const usesSlotRecipe = sourceText.includes(
-    `createStyleContext(${legacyRecipeImportName})`,
-  );
+  const usesSlotRecipe = sourceText.includes(`createStyleContext(${legacyRecipeImportName})`);
   const nextImportName = usesSlotRecipe ? slotRecipeName : nextRecipeImportName;
 
   const legacyImport = `import { ${legacyRecipeImportName} } from "@hashintel/ds-helpers/recipes";`;
@@ -388,9 +346,7 @@ function migrateComponentModule(
   );
 }
 
-async function collectBetaSourceFiles(
-  rootDirectory: string,
-): Promise<string[]> {
+async function collectBetaSourceFiles(rootDirectory: string): Promise<string[]> {
   const entries = await fs.readdir(rootDirectory, { withFileTypes: true });
   const nestedResults = await Promise.all(
     entries.map(async (entry) => {
@@ -421,11 +377,7 @@ function getRootFileMoves(componentName: string): FileMove[] {
       newPath: path.join(BETA_DIR, `${componentName}.recipe.ts`),
     },
     {
-      oldPath: path.join(
-        BETA_DIR,
-        componentName,
-        `${componentName}.stories.ts`,
-      ),
+      oldPath: path.join(BETA_DIR, componentName, `${componentName}.stories.ts`),
       newPath: path.join(BETA_DIR, `${componentName}.stories.ts`),
     },
   ];
@@ -453,30 +405,20 @@ async function migratePilots(componentNames: string[]): Promise<void> {
   await Promise.all(fileMoves.map(({ oldPath }) => ensureFileExists(oldPath)));
 
   const moveMap = new Map(
-    fileMoves.map(({ oldPath, newPath }) => [
-      stripExtension(oldPath),
-      stripExtension(newPath),
-    ]),
+    fileMoves.map(({ oldPath, newPath }) => [stripExtension(oldPath), stripExtension(newPath)]),
   );
   const betaFiles = await collectBetaSourceFiles(BETA_DIR);
   const transformedFiles = new Map<string, string>();
 
   for (const oldFilePath of betaFiles) {
     const newFilePath =
-      fileMoves.find(({ oldPath }) => oldPath === oldFilePath)?.newPath ??
-      oldFilePath;
+      fileMoves.find(({ oldPath }) => oldPath === oldFilePath)?.newPath ?? oldFilePath;
     let nextSource = await fs.readFile(oldFilePath, "utf8");
 
-    nextSource = rewriteRelativeSpecifiers(
-      nextSource,
-      oldFilePath,
-      newFilePath,
-      moveMap,
-    );
+    nextSource = rewriteRelativeSpecifiers(nextSource, oldFilePath, newFilePath, moveMap);
 
     const recipeConfig = configs.find(
-      ({ name }) =>
-        oldFilePath === path.join(BETA_DIR, name, `${name}.recipe.ts`),
+      ({ name }) => oldFilePath === path.join(BETA_DIR, name, `${name}.recipe.ts`),
     );
     if (recipeConfig) {
       nextSource = migrateRecipeModule(
@@ -521,20 +463,13 @@ export {
 };
 
 async function main() {
-  const explicitComponents = process.argv
-    .slice(2)
-    .filter((arg) => !arg.startsWith("--"));
+  const explicitComponents = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
   const components =
-    explicitComponents.length > 0
-      ? explicitComponents
-      : [...DEFAULT_PILOT_COMPONENTS];
+    explicitComponents.length > 0 ? explicitComponents : [...DEFAULT_PILOT_COMPONENTS];
 
   await migratePilots(components);
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   await main();
 }

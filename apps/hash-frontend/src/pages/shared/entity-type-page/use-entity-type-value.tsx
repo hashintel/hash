@@ -1,22 +1,12 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   getEntityTypesByBaseUrl,
   getPropertyTypesForEntityType,
 } from "@blockprotocol/graph/stdlib";
-import {
-  compareOntologyTypeVersions,
-  extractBaseUrl,
-} from "@blockprotocol/type-system";
+import { compareOntologyTypeVersions, extractBaseUrl } from "@blockprotocol/type-system";
 
 import {
   createEntityTypeMutation,
@@ -78,10 +68,7 @@ export const useEntityTypeValue = (
       return { contextEntityType: null, latestVersion: null };
     }
 
-    const relevantEntityTypes = getEntityTypesByBaseUrl(
-      entityTypesSubgraph,
-      entityTypeBaseUrl,
-    );
+    const relevantEntityTypes = getEntityTypesByBaseUrl(entityTypesSubgraph, entityTypeBaseUrl);
 
     if (relevantEntityTypes.length > 0) {
       const availableVersions = relevantEntityTypes.map(
@@ -93,15 +80,13 @@ export const useEntityTypeValue = (
       );
 
       const maxVersion = availableVersions.reduce(
-        (max, current) =>
-          compareOntologyTypeVersions(current, max) > 0 ? current : max,
+        (max, current) => (compareOntologyTypeVersions(current, max) > 0 ? current : max),
         availableVersions[0]!,
       );
 
       // Return the requested version if one has been specified and it exists
       if (requestedVersion) {
-        const indexOfRequestedVersion =
-          availableVersions.indexOf(requestedVersion);
+        const indexOfRequestedVersion = availableVersions.indexOf(requestedVersion);
 
         if (indexOfRequestedVersion >= 0) {
           return {
@@ -152,10 +137,7 @@ export const useEntityTypeValue = (
     setStateEntityType(contextEntityType);
   }
 
-  const propertyTypes = useMemo<Record<
-    VersionedUrl,
-    PropertyTypeWithMetadata
-  > | null>(() => {
+  const propertyTypes = useMemo<Record<VersionedUrl, PropertyTypeWithMetadata> | null>(() => {
     if (!stateEntityType || !entityTypesSubgraph) {
       return null;
     }

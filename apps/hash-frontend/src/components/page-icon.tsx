@@ -16,12 +16,7 @@ interface PageIconProps {
   sx?: BoxProps["sx"];
 }
 
-export const PageIcon = ({
-  isCanvas,
-  icon,
-  size = "medium",
-  sx = [],
-}: PageIconProps) => {
+export const PageIcon = ({ isCanvas, icon, size = "medium", sx = [] }: PageIconProps) => {
   const sizes = iconVariantSizes[size];
 
   return (

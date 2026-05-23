@@ -8,8 +8,7 @@ import { hoverCardSlotRecipe } from "./hover-card.recipe";
 
 import type { ComponentProps } from "react";
 
-const { withRootProvider, withContext } =
-  createStyleContext(hoverCardSlotRecipe);
+const { withRootProvider, withContext } = createStyleContext(hoverCardSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withRootProvider(HoverCard.Root);

@@ -44,9 +44,7 @@ function makeTransition({
   };
 }
 
-function makeTransitionMap(
-  transitions: Transition[],
-): ReadonlyMap<string, Transition> {
+function makeTransitionMap(transitions: Transition[]): ReadonlyMap<string, Transition> {
   return new Map(transitions.map((transition) => [transition.id, transition]));
 }
 
@@ -98,12 +96,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(true);
   });
 
@@ -117,12 +110,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(false);
   });
 
@@ -136,12 +124,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(false);
   });
 
@@ -161,12 +144,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(false);
   });
 
@@ -180,12 +158,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(true);
   });
 
@@ -199,12 +172,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(false);
   });
 
@@ -218,12 +186,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(false);
   });
 
@@ -237,12 +200,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(true);
   });
 
@@ -262,12 +220,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(true);
   });
 
@@ -287,12 +240,7 @@ describe("isTransitionStructurallyEnabled", () => {
     });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(false);
   });
 
@@ -304,12 +252,7 @@ describe("isTransitionStructurallyEnabled", () => {
     const frame = makeFrame({ places: {}, transitions: [transition] });
 
     expect(
-      isTransitionStructurallyEnabled(
-        frame,
-        makeTransitionMap([transition]),
-        frame.layout,
-        "t1",
-      ),
+      isTransitionStructurallyEnabled(frame, makeTransitionMap([transition]), frame.layout, "t1"),
     ).toBe(true);
   });
 });
@@ -334,11 +277,7 @@ describe("checkTransitionEnablement", () => {
       transitions,
     });
 
-    const result = checkTransitionEnablement(
-      frame,
-      makeTransitionMap(transitions),
-      frame.layout,
-    );
+    const result = checkTransitionEnablement(frame, makeTransitionMap(transitions), frame.layout);
 
     expect(result.hasEnabledTransition).toBe(true);
     expect(result.transitionStatus.get("t1")).toBe(true);
@@ -364,11 +303,7 @@ describe("checkTransitionEnablement", () => {
       transitions,
     });
 
-    const result = checkTransitionEnablement(
-      frame,
-      makeTransitionMap(transitions),
-      frame.layout,
-    );
+    const result = checkTransitionEnablement(frame, makeTransitionMap(transitions), frame.layout);
 
     expect(result.hasEnabledTransition).toBe(false);
     expect(result.transitionStatus.get("t1")).toBe(false);
@@ -378,11 +313,7 @@ describe("checkTransitionEnablement", () => {
   it("returns hasEnabledTransition=false when there are no transitions", () => {
     const frame = makeFrame({ places: {}, transitions: [] });
 
-    const result = checkTransitionEnablement(
-      frame,
-      makeTransitionMap([]),
-      frame.layout,
-    );
+    const result = checkTransitionEnablement(frame, makeTransitionMap([]), frame.layout);
 
     expect(result.hasEnabledTransition).toBe(false);
     expect(result.transitionStatus.size).toBe(0);
@@ -408,11 +339,7 @@ describe("checkTransitionEnablement", () => {
       transitions,
     });
 
-    const result = checkTransitionEnablement(
-      frame,
-      makeTransitionMap(transitions),
-      frame.layout,
-    );
+    const result = checkTransitionEnablement(frame, makeTransitionMap(transitions), frame.layout);
 
     expect(result.hasEnabledTransition).toBe(true);
     expect(result.transitionStatus.get("t1")).toBe(true);

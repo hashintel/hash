@@ -30,10 +30,7 @@ export type DifferentialEquationFn = (
 ) => Float64Array;
 
 export type TransitionTokenValues = Record<string, Record<string, number>[]>;
-export type TransitionKernelOutput = Record<
-  string,
-  Record<string, number | RuntimeDistribution>[]
->;
+export type TransitionKernelOutput = Record<string, Record<string, number | RuntimeDistribution>[]>;
 
 /**
  * Engine-facing lambda function for transition firing probability.
@@ -51,9 +48,7 @@ export type LambdaFn = (tokenValues: TransitionTokenValues) => number | boolean;
  *
  * Computes the output tokens to create when a transition fires.
  */
-export type TransitionKernelFn = (
-  tokenValues: TransitionTokenValues,
-) => TransitionKernelOutput;
+export type TransitionKernelFn = (tokenValues: TransitionTokenValues) => TransitionKernelOutput;
 
 export type CompiledTransitionPlace = {
   placeId: string;

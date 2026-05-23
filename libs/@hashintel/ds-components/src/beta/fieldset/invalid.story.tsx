@@ -7,9 +7,7 @@ export const App = () => {
     <Fieldset.Root invalid>
       <Fieldset.Control>
         <Fieldset.Legend>Shipping details</Fieldset.Legend>
-        <Fieldset.ErrorText>
-          Some fields are invalid. Please check them.
-        </Fieldset.ErrorText>
+        <Fieldset.ErrorText>Some fields are invalid. Please check them.</Fieldset.ErrorText>
       </Fieldset.Control>
       <Fieldset.Content>
         <Field.Root>
@@ -18,11 +16,7 @@ export const App = () => {
         </Field.Root>
         <Field.Root invalid>
           <Field.Label>Email address</Field.Label>
-          <Input
-            name="email"
-            type="email"
-            defaultValue="christian@park-ui.com"
-          />
+          <Input name="email" type="email" defaultValue="christian@park-ui.com" />
           <Field.ErrorText>The email has already been taken.</Field.ErrorText>
         </Field.Root>
       </Fieldset.Content>

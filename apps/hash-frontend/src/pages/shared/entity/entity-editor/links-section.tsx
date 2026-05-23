@@ -19,27 +19,19 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
   const outgoingLinks = getOutgoingLinksForEntity(
     entitySubgraph,
     entity.metadata.recordId.entityId,
-    entity.metadata.temporalVersioning[
-      entitySubgraph.temporalAxes.resolved.variable.axis
-    ],
-  ).filter(
-    (incomingLink) => !draftLinksToArchive.includes(incomingLink.entityId),
-  );
+    entity.metadata.temporalVersioning[entitySubgraph.temporalAxes.resolved.variable.axis],
+  ).filter((incomingLink) => !draftLinksToArchive.includes(incomingLink.entityId));
 
   const incomingLinksAndSources = getIncomingLinkAndSourceEntities(
     entitySubgraph,
     entity.metadata.recordId.entityId,
-    entity.metadata.temporalVersioning[
-      entitySubgraph.temporalAxes.resolved.variable.axis
-    ],
+    entity.metadata.temporalVersioning[entitySubgraph.temporalAxes.resolved.variable.axis],
   ).filter((incomingLinkAndSource) => {
     return (
       incomingLinkAndSource.linkEntity[0] &&
-      !draftLinksToArchive.includes(
-        incomingLinkAndSource.linkEntity[0].entityId,
-      ) &&
-      !incomingLinkAndSource.linkEntity[0].metadata.entityTypeIds.some(
-        (typeId) => noisySystemTypeIds.includes(typeId as NoisySystemTypeId),
+      !draftLinksToArchive.includes(incomingLinkAndSource.linkEntity[0].entityId) &&
+      !incomingLinkAndSource.linkEntity[0].metadata.entityTypeIds.some((typeId) =>
+        noisySystemTypeIds.includes(typeId as NoisySystemTypeId),
       ) &&
       incomingLinkAndSource.leftEntity[0] &&
       !incomingLinkAndSource.leftEntity[0].metadata.entityTypeIds.includes(

@@ -9,10 +9,7 @@ import { clearError } from "../../shared/badge";
 import { useStorageSync } from "../shared/use-storage-sync";
 import { ActionCenter } from "./popup-contents/action-center";
 import { NotEnabled } from "./popup-contents/not-enabled";
-import {
-  PopupUserContextProvider,
-  useUserContext,
-} from "./popup-contents/shared/user-context";
+import { PopupUserContextProvider, useUserContext } from "./popup-contents/shared/user-context";
 import { SignIn } from "./popup-contents/sign-in";
 
 import type { Tabs } from "webextension-polyfill";
@@ -32,14 +29,9 @@ const getCurrentTab = async () => {
  * In Firefox this can be done via enabling and running the Browser Toolbox.
  */
 const Popup = () => {
-  const [activeBrowserTab, setActiveBrowserTab] = useState<Tabs.Tab | null>(
-    null,
-  );
+  const [activeBrowserTab, setActiveBrowserTab] = useState<Tabs.Tab | null>(null);
 
-  const [popupTab, setPopupTab, popupTabLoaded] = useStorageSync(
-    "popupTab",
-    "one-off",
-  );
+  const [popupTab, setPopupTab, popupTabLoaded] = useStorageSync("popupTab", "one-off");
 
   const { user, loading: userLoading } = useUserContext();
 
@@ -52,9 +44,7 @@ const Popup = () => {
   const loading = userLoading || !popupTabLoaded;
 
   const userButNotEnabled =
-    user &&
-    !user.enabledFeatureFlags.includes("ai") &&
-    !user.enabledFeatureFlags.includes("notes");
+    user && !user.enabledFeatureFlags.includes("ai") && !user.enabledFeatureFlags.includes("notes");
 
   return (
     <ThemeProvider theme={theme}>
@@ -72,11 +62,7 @@ const Popup = () => {
       >
         {userLoading && (
           <Box sx={{ width: 500, paddingX: 2.5, pt: 1, pb: 2 }}>
-            <Skeleton
-              height={32}
-              sx={{ borderRadius: 1, mb: 2 }}
-              variant="rectangular"
-            />
+            <Skeleton height={32} sx={{ borderRadius: 1, mb: 2 }} variant="rectangular" />
           </Box>
         )}
         {loading ? (

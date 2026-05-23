@@ -2,11 +2,7 @@ import { getFlowRuns } from "@local/hash-backend-utils/flows";
 
 import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
-import type {
-  FlowRun,
-  QueryGetFlowRunsArgs,
-  ResolverFn,
-} from "../../api-types.gen";
+import type { FlowRun, QueryGetFlowRunsArgs, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 

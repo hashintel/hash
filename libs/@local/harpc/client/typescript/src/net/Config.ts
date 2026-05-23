@@ -16,10 +16,7 @@ export interface KeyPair {
 export interface CryptoInterface {
   hashSHA256: (data: Uint8Array | Uint8ArrayList) => Uint8Array;
 
-  getHKDF: (
-    ck: Uint8Array,
-    ikm: Uint8Array,
-  ) => [Uint8Array, Uint8Array, Uint8Array];
+  getHKDF: (ck: Uint8Array, ikm: Uint8Array) => [Uint8Array, Uint8Array, Uint8Array];
 
   generateX25519KeyPair: () => KeyPair;
   generateX25519KeyPairFromSeed: (seed: Uint8Array) => KeyPair;

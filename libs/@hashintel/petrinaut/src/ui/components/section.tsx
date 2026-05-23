@@ -68,8 +68,7 @@ const headerStyle = css({
     left: "[0]",
     right: "[0]",
     height: "[12px]",
-    background:
-      "[linear-gradient(to bottom, var(--colors-neutral-s00), transparent)]",
+    background: "[linear-gradient(to bottom, var(--colors-neutral-s00), transparent)]",
     pointerEvents: "none",
   },
 });
@@ -180,10 +179,7 @@ export const Section = ({
 
   if (collapsible) {
     return (
-      <Collapsible.Root
-        defaultOpen={defaultOpen}
-        className={cx(sectionStyle, className)}
-      >
+      <Collapsible.Root defaultOpen={defaultOpen} className={cx(sectionStyle, className)}>
         <div className={headerStyle}>
           {headerLeft}
           {renderHeaderAction && <div>{renderHeaderAction()}</div>}
@@ -199,10 +195,7 @@ export const Section = ({
           </Collapsible.Trigger>
         </div>
         <Collapsible.Content
-          className={cx(
-            showAnimations ? collapsibleContentStyle : undefined,
-            contentPaddingStyle,
-          )}
+          className={cx(showAnimations ? collapsibleContentStyle : undefined, contentPaddingStyle)}
         >
           <div className={collapsibleContentInnerStyle}>{children}</div>
         </Collapsible.Content>
@@ -212,24 +205,13 @@ export const Section = ({
 
   return (
     <div
-      className={cx(
-        sectionStyle,
-        sectionGapStyle,
-        fillHeight && fillHeightSectionStyle,
-        className,
-      )}
+      className={cx(sectionStyle, sectionGapStyle, fillHeight && fillHeightSectionStyle, className)}
     >
       <div className={headerStyle}>
         {headerLeft}
         {renderHeaderAction && <div>{renderHeaderAction()}</div>}
       </div>
-      <div
-        className={cx(
-          contentStyle,
-          contentPaddingStyle,
-          fillHeight && fillHeightContentStyle,
-        )}
-      >
+      <div className={cx(contentStyle, contentPaddingStyle, fillHeight && fillHeightContentStyle)}>
         {children}
       </div>
     </div>

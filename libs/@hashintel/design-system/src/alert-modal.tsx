@@ -19,9 +19,7 @@ type AlertModalProps = {
   contentStyle?: SxProps<Theme>;
 };
 
-export const AlertModal: FunctionComponent<
-  AlertModalProps & PropsWithChildren
-> = ({
+export const AlertModal: FunctionComponent<AlertModalProps & PropsWithChildren> = ({
   callback,
   calloutMessage,
   close,
@@ -43,10 +41,7 @@ export const AlertModal: FunctionComponent<
       ]}
     >
       <Stack>
-        <Typography
-          component="div"
-          sx={{ p: { xs: 2, md: 2.5 }, py: { xs: 1.5, md: 2 } }}
-        >
+        <Typography component="div" sx={{ p: { xs: 2, md: 2.5 }, py: { xs: 1.5, md: 2 } }}>
           {header}
         </Typography>
         <Callout type={type}>{calloutMessage}</Callout>

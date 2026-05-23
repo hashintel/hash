@@ -41,16 +41,13 @@ const scenarioInfoStyle = css({
  */
 const ClearStateHeaderAction: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
-  const { state, initialMarking, setInitialMarking, selectedScenarioId } =
-    use(SimulationContext);
+  const { state, initialMarking, setInitialMarking, selectedScenarioId } = use(SimulationContext);
   const isSimulationNotRun = state === "NotRun";
 
   // Check if there's data to clear
   const currentMarking = initialMarking[place.id];
   const hasData =
-    typeof currentMarking === "number"
-      ? currentMarking > 0
-      : (currentMarking?.length ?? 0) > 0;
+    typeof currentMarking === "number" ? currentMarking > 0 : (currentMarking?.length ?? 0) > 0;
 
   // When a scenario is selected, show a label instead of the clear button.
   if (selectedScenarioId) {
@@ -68,20 +65,11 @@ const ClearStateHeaderAction: React.FC = () => {
   }
 
   const handleClear = () => {
-    setInitialMarking(
-      place.id,
-      placeType && placeType.elements.length > 0 ? [] : 0,
-    );
+    setInitialMarking(place.id, placeType && placeType.elements.length > 0 ? [] : 0);
   };
 
   return (
-    <Button
-      onClick={handleClear}
-      variant="subtle"
-      tone="error"
-      size="xxs"
-      iconName="trash"
-    >
+    <Button onClick={handleClear} variant="subtle" tone="error" size="xxs" iconName="trash">
       Clear state
     </Button>
   );
@@ -94,8 +82,7 @@ const ClearStateHeaderAction: React.FC = () => {
 const PlaceInitialStateContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const { initialMarking, setInitialMarking, selectedScenarioId } =
-    use(SimulationContext);
+  const { initialMarking, setInitialMarking, selectedScenarioId } = use(SimulationContext);
   const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   // Determine if simulation is running (has frames)
@@ -107,12 +94,7 @@ const PlaceInitialStateContent: React.FC = () => {
     // Colored places: show the spreadsheet (read-only)
     if (placeType && placeType.elements.length > 0) {
       return (
-        <InitialStateEditor
-          key={place.id}
-          placeId={place.id}
-          placeType={placeType}
-          readOnly
-        />
+        <InitialStateEditor key={place.id} placeId={place.id} placeType={placeType} readOnly />
       );
     }
 
@@ -148,8 +130,7 @@ const PlaceInitialStateContent: React.FC = () => {
       currentTokenCount = currentFrameReader.getPlaceTokenCount(place.id);
     } else {
       const currentMarking = initialMarking[place.id];
-      currentTokenCount =
-        typeof currentMarking === "number" ? currentMarking : 0;
+      currentTokenCount = typeof currentMarking === "number" ? currentMarking : 0;
     }
 
     return (
@@ -160,10 +141,7 @@ const PlaceInitialStateContent: React.FC = () => {
           step={1}
           value={currentTokenCount}
           onChange={(event) => {
-            const count = Math.max(
-              0,
-              Number.parseInt(event.target.value, 10) || 0,
-            );
+            const count = Math.max(0, Number.parseInt(event.target.value, 10) || 0);
             setInitialMarking(place.id, count);
           }}
           disabled={hasSimulationFrames}
@@ -173,13 +151,7 @@ const PlaceInitialStateContent: React.FC = () => {
     );
   }
 
-  return (
-    <InitialStateEditor
-      key={place.id}
-      placeId={place.id}
-      placeType={placeType}
-    />
-  );
+  return <InitialStateEditor key={place.id} placeId={place.id} placeType={placeType} />;
 };
 
 /**
@@ -190,8 +162,7 @@ const PlaceInitialStateContent: React.FC = () => {
 export const placeInitialStateSubView: SubView = {
   id: "place-initial-state",
   title: "State",
-  tooltip:
-    "Define the initial tokens in this place. During simulation, shows current state.",
+  tooltip: "Define the initial tokens in this place. During simulation, shows current state.",
   component: PlaceInitialStateContent,
   renderHeaderAction: () => <ClearStateHeaderAction />,
   defaultCollapsed: true,

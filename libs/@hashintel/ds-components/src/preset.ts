@@ -50,13 +50,10 @@ export function createPreset(options?: PresetOptions) {
           "@media (hover: hover) and (pointer: fine)",
           "&:is(:hover, [data-support-hover])",
         ],
-        focusVisibleWithin:
-          "&:is(:has(:focus-visible), [data-focus-visible-within])",
+        focusVisibleWithin: "&:is(:has(:focus-visible), [data-focus-visible-within])",
         inert: "&:is([inert], [inert] *, [data-inert])",
-        groupFocusVisibleWithin:
-          ".group:is(:has(:focus-visible), [data-focus-visible-within]) &",
-        peerFocusVisibleWithin:
-          ".peer:is(:has(:focus-visible), [data-focus-visible-within]) ~ &",
+        groupFocusVisibleWithin: ".group:is(:has(:focus-visible), [data-focus-visible-within]) &",
+        peerFocusVisibleWithin: ".peer:is(:has(:focus-visible), [data-focus-visible-within]) ~ &",
         userValid: "&:is(:user-valid, [data-user-valid])",
         userInvalid: "&:is(:user-invalid, [data-user-invalid])",
         pointerFine: "@media (pointer: fine)",
@@ -66,13 +63,11 @@ export function createPreset(options?: PresetOptions) {
         anyPointerCoarse: "@media (any-pointer: coarse)",
         inHover: ":where(:is(*:hover, [data-in-hover])) &",
         inFocus: ":where(:is(*:focus, [data-in-focus])) &",
-        inFocusVisible:
-          ":where(:is(*:focus-visible, [data-in-focus-visible])) &",
+        inFocusVisible: ":where(:is(*:focus-visible, [data-in-focus-visible])) &",
         inFocusWithin: ":where(:is(*:focus-within, [data-in-focus-within])) &",
         hasHover: "&:is(:has(*:hover), [data-has-hover])",
         hasFocus: "&:is(:has(*:focus), [data-has-focus])",
-        hasFocusVisible:
-          "&:is(:has(*:focus-visible), [data-has-focus-visible])",
+        hasFocusVisible: "&:is(:has(*:focus-visible), [data-has-focus-visible])",
         hasFocusWithin: "&:is(:has(*:focus-within), [data-has-focus-within])",
         hasChecked: "&:is(:has(*:checked), [data-has-checked])",
       },

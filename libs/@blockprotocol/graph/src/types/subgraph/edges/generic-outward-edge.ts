@@ -1,9 +1,5 @@
 import type { GraphElementIdentifiers } from "../element-mappings.js";
-import type {
-  KnowledgeGraphEdgeKind,
-  OntologyEdgeKind,
-  SharedEdgeKind,
-} from "./kind.js";
+import type { KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind } from "./kind.js";
 
 /**
  * A "partial" definition of an edge which is complete when joined with the missing left-endpoint (usually the source
@@ -15,8 +11,7 @@ export type GenericOutwardEdge<
     | OntologyEdgeKind
     | SharedEdgeKind,
   Reversed extends boolean = boolean,
-  Endpoint extends GraphElementIdentifiers["identifier"] =
-    GraphElementIdentifiers["identifier"],
+  Endpoint extends GraphElementIdentifiers["identifier"] = GraphElementIdentifiers["identifier"],
 > = {
   kind: EdgeKind;
   reversed: Reversed;

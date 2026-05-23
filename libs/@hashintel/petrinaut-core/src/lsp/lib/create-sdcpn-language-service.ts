@@ -25,8 +25,7 @@ function adjustDiagnostics<T extends ts.Diagnostic>(
   contentLength?: number,
 ): T[] {
   return diagnostics.map((diag) => {
-    let start =
-      diag.start !== undefined ? diag.start - prefixLength : undefined;
+    let start = diag.start !== undefined ? diag.start - prefixLength : undefined;
     let { length } = diag;
 
     if (start !== undefined && contentLength !== undefined) {
@@ -82,10 +81,7 @@ export class SDCPNLanguageServer {
         this.controller.addFile(name, newFile);
       } else {
         const existing = this.controller.getFile(name)!;
-        if (
-          existing.content !== newFile.content ||
-          existing.prefix !== newFile.prefix
-        ) {
+        if (existing.content !== newFile.content || existing.prefix !== newFile.prefix) {
           this.controller.updateFile(name, newFile);
         }
       }
@@ -102,10 +98,7 @@ export class SDCPNLanguageServer {
 
     // Remove scenario files that no longer exist for this session
     for (const existingName of this.controller.getFileNames()) {
-      if (
-        existingName.startsWith(sessionPrefix) &&
-        !newFiles.has(existingName)
-      ) {
+      if (existingName.startsWith(sessionPrefix) && !newFiles.has(existingName)) {
         this.controller.removeFile(existingName);
       }
     }
@@ -140,9 +133,7 @@ export class SDCPNLanguageServer {
   /** Get all file paths that belong to a scenario session. */
   getScenarioFileNames(sessionId: string): string[] {
     const sessionPrefix = `/_temp/scenarios/${sessionId}/`;
-    return this.controller
-      .getFileNames()
-      .filter((name) => name.startsWith(sessionPrefix));
+    return this.controller.getFileNames().filter((name) => name.startsWith(sessionPrefix));
   }
 
   /**
@@ -155,10 +146,7 @@ export class SDCPNLanguageServer {
 
     // Remove metric files that no longer exist for this session
     for (const existingName of this.controller.getFileNames()) {
-      if (
-        existingName.startsWith(sessionPrefix) &&
-        !newFiles.has(existingName)
-      ) {
+      if (existingName.startsWith(sessionPrefix) && !newFiles.has(existingName)) {
         this.controller.removeFile(existingName);
       }
     }
@@ -193,9 +181,7 @@ export class SDCPNLanguageServer {
   /** Get all file paths that belong to a metric session. */
   getMetricFileNames(sessionId: string): string[] {
     const sessionPrefix = `/_temp/metrics/${sessionId}/`;
-    return this.controller
-      .getFileNames()
-      .filter((name) => name.startsWith(sessionPrefix));
+    return this.controller.getFileNames().filter((name) => name.startsWith(sessionPrefix));
   }
 
   /** Update only the user content of a single file (e.g., when the user types in an editor). */
@@ -240,23 +226,13 @@ export class SDCPNLanguageServer {
   ): ts.CompletionInfo | undefined {
     const entry = this.controller.getFile(fileName);
     const prefixLength = entry?.prefix?.length ?? 0;
-    return this.service.getCompletionsAtPosition(
-      fileName,
-      position + prefixLength,
-      options,
-    );
+    return this.service.getCompletionsAtPosition(fileName, position + prefixLength, options);
   }
 
-  getQuickInfoAtPosition(
-    fileName: string,
-    position: number,
-  ): ts.QuickInfo | undefined {
+  getQuickInfoAtPosition(fileName: string, position: number): ts.QuickInfo | undefined {
     const entry = this.controller.getFile(fileName);
     const prefixLength = entry?.prefix?.length ?? 0;
-    const info = this.service.getQuickInfoAtPosition(
-      fileName,
-      position + prefixLength,
-    );
+    const info = this.service.getQuickInfoAtPosition(fileName, position + prefixLength);
     if (!info) {
       return undefined;
     }
@@ -276,11 +252,7 @@ export class SDCPNLanguageServer {
   ): ts.SignatureHelpItems | undefined {
     const entry = this.controller.getFile(fileName);
     const prefixLength = entry?.prefix?.length ?? 0;
-    return this.service.getSignatureHelpItems(
-      fileName,
-      position + prefixLength,
-      options,
-    );
+    return this.service.getSignatureHelpItems(fileName, position + prefixLength, options);
   }
 
   dispose(): void {

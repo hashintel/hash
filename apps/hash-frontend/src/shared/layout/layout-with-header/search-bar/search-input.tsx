@@ -181,11 +181,7 @@ export const SearchInput: FunctionComponent<{
       endAdornment={
         !isMobile ? (
           <InputAdornment position="end">
-            {displayedQuery ? (
-              <ClearSearchIcon clearSearch={clearSearch} />
-            ) : (
-              <ShortcutIcon />
-            )}
+            {displayedQuery ? <ClearSearchIcon clearSearch={clearSearch} /> : <ShortcutIcon />}
           </InputAdornment>
         ) : null
       }

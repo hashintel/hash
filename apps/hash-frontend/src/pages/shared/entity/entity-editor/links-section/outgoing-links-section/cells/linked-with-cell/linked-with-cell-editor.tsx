@@ -2,41 +2,27 @@ import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
-import {
-  createDraftLinkEntity,
-  LinkedEntityListEditor,
-} from "./linked-entity-list-editor";
+import { createDraftLinkEntity, LinkedEntityListEditor } from "./linked-entity-list-editor";
 import { LinkedEntitySelector } from "./linked-entity-selector";
 
 import type { LinkedWithCell } from "../linked-with-cell";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
-export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
-  props,
-) => {
+export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (props) => {
   const { entity, setDraftLinksToCreate } = useEntityEditor();
   const markLinkEntityToArchive = useMarkLinkEntityToArchive();
 
   const { value: cell, onFinishedEditing } = props;
-  const {
-    expectedEntityTypes,
-    linkAndTargetEntities,
-    linkEntityTypeId,
-    linkTitle,
-    maxItems,
-  } = cell.data.linkRow;
+  const { expectedEntityTypes, linkAndTargetEntities, linkEntityTypeId, linkTitle, maxItems } =
+    cell.data.linkRow;
 
-  const onSelectForSingleLink = (
-    selectedEntity: HashEntity,
-    selectedEntityLabel: string,
-  ) => {
+  const onSelectForSingleLink = (selectedEntity: HashEntity, selectedEntityLabel: string) => {
     const { linkEntity: currentLink, rightEntity: currentLinkedEntity } =
       linkAndTargetEntities[0] ?? {};
 
     const sameEntity =
-      currentLinkedEntity?.metadata.recordId.entityId ===
-      selectedEntity.metadata.recordId.entityId;
+      currentLinkedEntity?.metadata.recordId.entityId === selectedEntity.metadata.recordId.entityId;
 
     // if clicked on the same entity, do nothing
     if (sameEntity) {
@@ -73,14 +59,11 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
   // if there could be one linked entity, just render the entity selector
   if (maxItems === 1) {
-    const linkedEntityId =
-      linkAndTargetEntities[0]?.rightEntity.metadata.recordId.entityId;
+    const linkedEntityId = linkAndTargetEntities[0]?.rightEntity.metadata.recordId.entityId;
 
     return (
       <LinkedEntitySelector
-        includeDrafts={
-          !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
-        }
+        includeDrafts={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
         onSelect={onSelectForSingleLink}
         onFinishedEditing={onCancel}
         expectedEntityTypes={expectedEntityTypes}

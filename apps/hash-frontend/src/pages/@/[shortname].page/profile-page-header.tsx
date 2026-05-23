@@ -33,10 +33,7 @@ export const ProfilePageHeader: FunctionComponent<{
   refetchProfile,
   typesCount,
 }) => {
-  const [
-    displayEditPinnedEntityTypesModal,
-    setDisplayEditPinnedEntityTypesModal,
-  ] = useState(false);
+  const [displayEditPinnedEntityTypesModal, setDisplayEditPinnedEntityTypesModal] = useState(false);
 
   const avatarSrc = profile?.hasAvatar
     ? getImageUrlFromEntityProperties(profile.hasAvatar.imageEntity.properties)
@@ -57,17 +54,14 @@ export const ProfilePageHeader: FunctionComponent<{
           sx={{
             display: "flex",
             columnGap: 4,
-            marginTop: ({ spacing }) =>
-              `calc(${spacing(6)} - ${avatarTopOffset * 2}px)`,
+            marginTop: ({ spacing }) => `calc(${spacing(6)} - ${avatarTopOffset * 2}px)`,
           }}
         >
           {profile ? (
             <Box position="relative">
               <Avatar
                 src={avatarSrc}
-                title={
-                  profile.kind === "user" ? profile.displayName : profile.name
-                }
+                title={profile.kind === "user" ? profile.displayName : profile.name}
                 size={leftColumnWidth}
                 sx={{
                   position: "relative",
@@ -170,11 +164,7 @@ export const ProfilePageHeader: FunctionComponent<{
                     onClick={() => setDisplayEditPinnedEntityTypesModal(true)}
                     variant="secondary_quiet"
                     size="xs"
-                    endIcon={
-                      <CogRegularIcon
-                        sx={{ color: ({ palette }) => palette.blue[70] }}
-                      />
-                    }
+                    endIcon={<CogRegularIcon sx={{ color: ({ palette }) => palette.blue[70] }} />}
                   >
                     Modify
                   </Button>
@@ -182,9 +172,7 @@ export const ProfilePageHeader: FunctionComponent<{
                     <EditPinnedEntityTypesModal
                       open={displayEditPinnedEntityTypesModal}
                       profile={profile}
-                      onClose={() =>
-                        setDisplayEditPinnedEntityTypesModal(false)
-                      }
+                      onClose={() => setDisplayEditPinnedEntityTypesModal(false)}
                       refetchProfile={refetchProfile}
                     />
                   ) : null}

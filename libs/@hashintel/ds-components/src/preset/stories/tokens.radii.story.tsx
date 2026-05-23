@@ -6,17 +6,7 @@ import type { Roundness } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
 import type { Story } from "@ladle/react";
 
-const steps = [
-  "xs",
-  "sm",
-  "md",
-  "lg",
-  "xl",
-  "2xl",
-  "3xl",
-  "4xl",
-  "full",
-] as const;
+const steps = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl", "4xl", "full"] as const;
 
 const roundnessLevels = ["none", "sm", "md", "lg", "xl"] as const;
 
@@ -115,9 +105,7 @@ export const Radii: Story<{ roundness: Roundness }> = ({ roundness }) => (
   <div className={css({ roundness })}>
     <VStack gap="8" alignItems="flex-start" p="6">
       <VStack gap="2" alignItems="flex-start">
-        <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
-          Border Radius Tokens
-        </h1>
+        <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>Border Radius Tokens</h1>
         <p
           className={css({
             textStyle: "sm",
@@ -125,8 +113,7 @@ export const Radii: Story<{ roundness: Roundness }> = ({ roundness }) => (
             maxWidth: "[640px]",
           })}
         >
-          Radii use the standard Panda preset scale (xs–4xl, full) with each
-          value multiplied by{" "}
+          Radii use the standard Panda preset scale (xs–4xl, full) with each value multiplied by{" "}
           <code
             className={css({
               fontFamily: "mono",
@@ -144,9 +131,7 @@ export const Radii: Story<{ roundness: Roundness }> = ({ roundness }) => (
       </VStack>
 
       <VStack gap="4" alignItems="flex-start" width="[100%]">
-        <h2 className={sectionTitleStyles}>
-          Current Scale (roundness: {roundness})
-        </h2>
+        <h2 className={sectionTitleStyles}>Current Scale (roundness: {roundness})</h2>
         <SwatchGrid />
       </VStack>
 

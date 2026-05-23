@@ -19,10 +19,7 @@ import type {
 } from "./coordinator-tools.js";
 import type { WebResourceSummary } from "./handle-web-search-tool-call.js";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  ProposedEntity,
-  WorkerIdentifiers,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { ProposedEntity, WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 export const coordinatingAgentModel: LlmParams["model"] = "gpt-4o-2024-08-06";
 
@@ -215,9 +212,7 @@ export const processCommonStateMutationsFromToolResults = ({
       ...resourceUrlsVisited,
       ...state.resourceUrlsVisited,
       ...state.outstandingTasks
-        .map((task) =>
-          "url" in task.toolCall.input ? task.toolCall.input.url : null,
-        )
+        .map((task) => ("url" in task.toolCall.input ? task.toolCall.input.url : null))
         .filter((string) => string !== null),
     ]),
   ];
@@ -234,10 +229,7 @@ export const processCommonStateMutationsFromToolResults = ({
 
   // eslint-disable-next-line no-param-reassign
   state.resourcesNotVisited = state.resourcesNotVisited.filter(
-    ({ url }) =>
-      !state.resourceUrlsVisited.some((visitedUrl) =>
-        areUrlsEqual(visitedUrl, url),
-      ),
+    ({ url }) => !state.resourceUrlsVisited.some((visitedUrl) => areUrlsEqual(visitedUrl, url)),
   );
 
   state.webQueriesMade.push(

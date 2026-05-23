@@ -1,10 +1,6 @@
 import { useMutation } from "@apollo/client";
 import { Box, ListItemText, Menu } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 
 import { archiveEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { MenuItem } from "../../../../../shared/ui";
@@ -28,10 +24,9 @@ export const OrgIntegrationContextMenu = ({
     popupId: "actions-dropdown-menu",
   });
 
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const [archiveEntity] = useMutation<ArchiveEntityMutation, ArchiveEntityMutationVariables>(
+    archiveEntityMutation,
+  );
 
   const unlinkIntegration = async () => {
     await archiveEntity({

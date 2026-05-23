@@ -16,14 +16,7 @@ export type SDCPNProviderProps = {
 export type SDCPNContextValue = SDCPNProviderProps & {
   getItemType: (
     id: string,
-  ) =>
-    | "place"
-    | "transition"
-    | "arc"
-    | "type"
-    | "differentialEquation"
-    | "parameter"
-    | null;
+  ) => "place" | "transition" | "arc" | "type" | "differentialEquation" | "parameter" | null;
 };
 
 const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
@@ -44,6 +37,4 @@ const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
   getItemType: () => null,
 };
 
-export const SDCPNContext = createContext<SDCPNContextValue>(
-  DEFAULT_CONTEXT_VALUE,
-);
+export const SDCPNContext = createContext<SDCPNContextValue>(DEFAULT_CONTEXT_VALUE);

@@ -77,8 +77,7 @@ export const GoalsList = () => {
       let openInputRequests = 0;
       if (status === "Running") {
         for (const inputRequest of run.inputRequests) {
-          const lastInputEvent =
-            inputRequest.resolvedAt ?? inputRequest.raisedAt;
+          const lastInputEvent = inputRequest.resolvedAt ?? inputRequest.raisedAt;
           if (lastInputEvent > lastEventTimestamp) {
             lastEventTimestamp = lastInputEvent;
           }

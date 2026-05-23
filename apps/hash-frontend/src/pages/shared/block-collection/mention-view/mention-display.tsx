@@ -42,9 +42,7 @@ interface MentionDisplayProps {
 
 const inaccessibleTargetEntityLabel = "inaccessible-target-entity-label";
 
-export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
-  mention,
-}) => {
+export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({ mention }) => {
   const { entityId } = mention;
   const { entitySubgraph, loading } = useEntityById({
     entityId,
@@ -81,18 +79,12 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   );
 
   const entityLabel = useMemo(
-    () =>
-      entitySubgraph && entity
-        ? generateEntityLabel(entitySubgraph, entity)
-        : undefined,
+    () => (entitySubgraph && entity ? generateEntityLabel(entitySubgraph, entity) : undefined),
     [entity, entitySubgraph],
   );
 
   const entityWebId = useMemo(
-    () =>
-      entity
-        ? extractWebIdFromEntityId(entity.metadata.recordId.entityId)
-        : undefined,
+    () => (entity ? extractWebIdFromEntityId(entity.metadata.recordId.entityId) : undefined),
     [entity],
   );
 
@@ -120,11 +112,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       return undefined;
     }
 
-    if (
-      mention.kind === "entity" ||
-      mention.kind === "page" ||
-      mention.kind === "user"
-    ) {
+    if (mention.kind === "entity" || mention.kind === "page" || mention.kind === "user") {
       return entityLabel;
     } else if (mention.kind === "outgoing-link") {
       const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
@@ -134,8 +122,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         ({ linkEntity: linkEntityRevisions }) =>
           linkEntityRevisions[0] &&
           linkEntityRevisions[0].metadata.entityTypeIds.some(
-            (entityTypeId) =>
-              extractBaseUrl(entityTypeId) === mention.linkEntityTypeBaseUrl,
+            (entityTypeId) => extractBaseUrl(entityTypeId) === mention.linkEntityTypeBaseUrl,
           ),
       );
 
@@ -155,23 +142,16 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     }
   }, [mention, entityId, entitySubgraph, entity, entityLabel]);
 
-  const title =
-    rawTitle === inaccessibleTargetEntityLabel ? "Unknown" : rawTitle;
+  const title = rawTitle === inaccessibleTargetEntityLabel ? "Unknown" : rawTitle;
 
   const href = useMemo(() => {
     if (entity) {
       if (mention.kind === "user" || mention.kind === "entity") {
         if (
-          entity.metadata.entityTypeIds.includes(
-            systemEntityTypes.user.entityTypeId,
-          ) ||
-          entity.metadata.entityTypeIds.includes(
-            systemEntityTypes.organization.entityTypeId,
-          )
+          entity.metadata.entityTypeIds.includes(systemEntityTypes.user.entityTypeId) ||
+          entity.metadata.entityTypeIds.includes(systemEntityTypes.organization.entityTypeId)
         ) {
-          const { shortname } = simplifyProperties(
-            entity.properties as UserProperties,
-          );
+          const { shortname } = simplifyProperties(entity.properties as UserProperties);
           return `/@${shortname}`;
         }
         return entityHref;
@@ -192,9 +172,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         ? entity.metadata.entityTypeIds.map((entityTypeId) => {
             const entityType = getEntityTypeById(entitySubgraph, entityTypeId);
             if (!entityType) {
-              throw new Error(
-                `Could not find entity type with ID ${entityTypeId}`,
-              );
+              throw new Error(`Could not find entity type with ID ${entityTypeId}`);
             }
             return entityType;
           })
@@ -234,11 +212,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     }
   }, [mention, allEntityTypes]);
 
-  const hasPopover =
-    mention.kind === "property-value" || mention.kind === "outgoing-link";
+  const hasPopover = mention.kind === "property-value" || mention.kind === "outgoing-link";
 
-  const hasTooltip =
-    mention.kind === "property-value" || mention.kind === "outgoing-link";
+  const hasTooltip = mention.kind === "property-value" || mention.kind === "outgoing-link";
 
   const chip = (
     <Box
@@ -290,8 +266,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       </>
     ) : (
       <>
-        The target of a <strong>{outgoingLinkType?.schema.title}</strong> link
-        from <strong>{entityLabel}</strong>
+        The target of a <strong>{outgoingLinkType?.schema.title}</strong> link from{" "}
+        <strong>{entityLabel}</strong>
         {rawTitle === inaccessibleTargetEntityLabel
           ? ", which is in draft, archived, or you do not have permission to view."
           : ""}
@@ -382,9 +358,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
                 fontSize: 16,
               }}
             >
-              {title === inaccessibleTargetEntityLabel
-                ? "Unknown"
-                : entityLabel}
+              {title === inaccessibleTargetEntityLabel ? "Unknown" : entityLabel}
               <LinkIcon />
             </Typography>
           </Link>

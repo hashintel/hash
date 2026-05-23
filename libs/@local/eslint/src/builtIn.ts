@@ -15,9 +15,7 @@ const normalizeRestrictedImports = (
 ): NormalizedNoRestrictedImportsRule => ({
   paths: rule.paths ?? [],
   // This mimics the behaviour of eslint: https://github.com/eslint/eslint/blob/4168a18b7efd8facbbd71cd44a62942a9f656a30/lib/rules/no-restricted-imports.js#L288-L294
-  patterns: (rule.patterns &&
-  rule.patterns.length > 0 &&
-  typeof rule.patterns[0] === "string"
+  patterns: (rule.patterns && rule.patterns.length > 0 && typeof rule.patterns[0] === "string"
     ? [{ group: rule.patterns }]
     : rule.patterns) as ValidNoRestrictedImportPatternOptions[],
 });
@@ -45,9 +43,7 @@ const noRestrictedImports = (
     ReadonlyArray.map((entry) => entry.rules?.["no-restricted-imports"]),
     ReadonlyArray.filter(Predicate.isNotUndefined),
     ReadonlyArray.filterMap((entry) =>
-      Array.isArray(entry) && entry.length === 2
-        ? Option.some(entry[1])
-        : Option.none(),
+      Array.isArray(entry) && entry.length === 2 ? Option.some(entry[1]) : Option.none(),
     ),
   );
 
@@ -72,10 +68,7 @@ const noRestrictedImports = (
   return defineConfig([
     {
       rules: {
-        "no-restricted-imports": [
-          "error",
-          overrides().reduce(mergeRestrictedImports, currentRule),
-        ],
+        "no-restricted-imports": ["error", overrides().reduce(mergeRestrictedImports, currentRule)],
       },
     } satisfies ESConfig,
   ]);
@@ -101,8 +94,7 @@ export const builtIn =
             "error",
             {
               props: true,
-              ignorePropertyModificationsForRegex:
-                options.mutableParametersRegex?.() ?? [],
+              ignorePropertyModificationsForRegex: options.mutableParametersRegex?.() ?? [],
             },
           ],
           // Clashes with `@typescript-eslint/no-floating-promises`

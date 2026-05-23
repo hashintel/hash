@@ -19,10 +19,7 @@ const copyTemplate = async (
   const actualName = templateName.replace(".template", "");
 
   try {
-    const content = await loadTemplate(
-      path.join(sourceDir, templateName),
-      variables,
-    );
+    const content = await loadTemplate(path.join(sourceDir, templateName), variables);
 
     await mkdir(targetDir, { recursive: true });
     await writeFile(path.join(targetDir, actualName), content);
@@ -75,19 +72,10 @@ const run = async (unverifiedName: string) => {
 
   let success = true;
   for (const { file, target } of templates) {
-    const result = await copyTemplate(
-      file,
-      templateDir,
-      target,
-      templateVariables,
-    );
+    const result = await copyTemplate(file, templateDir, target, templateVariables);
     if (result) {
       const actualName = file.replace(".template", "");
-      console.log(
-        chalk.dim(
-          `  Created ${path.relative(skillDir, path.join(target, actualName))}`,
-        ),
-      );
+      console.log(chalk.dim(`  Created ${path.relative(skillDir, path.join(target, actualName))}`));
     }
     success = result && success;
   }
@@ -96,11 +84,7 @@ const run = async (unverifiedName: string) => {
     console.log(chalk.green(`\nSkill '${name}' created at ${skillDir}`));
     console.log(chalk.dim("\nNext steps:"));
     console.log(chalk.dim("  1. Edit SKILL.md to complete TODO items"));
-    console.log(
-      chalk.dim(
-        "  2. Customize or remove example files in references/ and assets/",
-      ),
-    );
+    console.log(chalk.dim("  2. Customize or remove example files in references/ and assets/"));
     console.log(chalk.dim("  3. Run validate to check skill structure"));
   }
 

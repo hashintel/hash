@@ -6,11 +6,7 @@ import {
   ListItemText,
   Menu,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
@@ -67,11 +63,7 @@ export type BreadcrumbsProps = {
   scrollToTop: () => void;
 };
 
-export const Breadcrumbs = ({
-  crumbs,
-  defaultIcon,
-  scrollToTop,
-}: BreadcrumbsProps) => {
+export const Breadcrumbs = ({ crumbs, defaultIcon, scrollToTop }: BreadcrumbsProps) => {
   const router = useRouter();
   let items: (Breadcrumb | { submenu: Breadcrumb[] })[] = crumbs;
 
@@ -121,17 +113,14 @@ export const Breadcrumbs = ({
               disabled={!item.href}
               variant="tertiary_quiet"
               // don't attach href if it's the current page
-              {...(item.href &&
-                !item.href.includes(router.asPath) && { href: item.href })}
+              {...(item.href && !item.href.includes(router.asPath) && { href: item.href })}
               onClick={() => {
                 if (item.href?.includes(router.asPath)) {
                   scrollToTop();
                 }
               }}
               size="xs"
-              startIcon={
-                item.icon === null ? undefined : (item.icon ?? defaultIcon)
-              }
+              startIcon={item.icon === null ? undefined : (item.icon ?? defaultIcon)}
               sx={{
                 background: "transparent",
                 "&:disabled": {

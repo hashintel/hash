@@ -1,10 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  getIncomingLinksForEntity,
-  getOutgoingLinksForEntity,
-} from "@blockprotocol/graph/stdlib";
+import { getIncomingLinksForEntity, getOutgoingLinksForEntity } from "@blockprotocol/graph/stdlib";
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { type HashEntity } from "@local/hash-graph-sdk/entity";
@@ -39,10 +36,9 @@ export const DiscardDraftEntityButton: FunctionComponent<
 }) => {
   const { archiveNotificationsForEntity } = useNotificationCount();
 
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const [archiveEntity] = useMutation<ArchiveEntityMutation, ArchiveEntityMutationVariables>(
+    archiveEntityMutation,
+  );
 
   const discardDraftEntity = useCallback(
     async (params: { draftEntity: Entity }) => {
@@ -58,10 +54,8 @@ export const DiscardDraftEntityButton: FunctionComponent<
     [archiveEntity, archiveNotificationsForEntity],
   );
 
-  const [
-    showDraftEntityWithDraftLinksWarning,
-    setShowDraftEntityWithDraftLinksWarning,
-  ] = useState(false);
+  const [showDraftEntityWithDraftLinksWarning, setShowDraftEntityWithDraftLinksWarning] =
+    useState(false);
 
   const isLinkEntity = !!draftEntity.linkData;
 
@@ -73,10 +67,7 @@ export const DiscardDraftEntityButton: FunctionComponent<
             draftEntitySubgraph,
             draftEntity.metadata.recordId.entityId,
           ).filter(
-            (linkEntity) =>
-              !!extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              ),
+            (linkEntity) => !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
           ),
     [draftEntitySubgraph, draftEntity, isLinkEntity],
   );
@@ -89,10 +80,7 @@ export const DiscardDraftEntityButton: FunctionComponent<
             draftEntitySubgraph,
             draftEntity.metadata.recordId.entityId,
           ).filter(
-            (linkEntity) =>
-              !!extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              ),
+            (linkEntity) => !!extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
           ),
     [draftEntitySubgraph, draftEntity, isLinkEntity],
   );
@@ -111,33 +99,21 @@ export const DiscardDraftEntityButton: FunctionComponent<
       await discardDraftEntity({ draftEntity });
       onDiscardedEntity?.();
     }
-  }, [
-    hasIncomingOrOutgoingDraftLinks,
-    draftEntity,
-    discardDraftEntity,
-    onDiscardedEntity,
-  ]);
+  }, [hasIncomingOrOutgoingDraftLinks, draftEntity, discardDraftEntity, onDiscardedEntity]);
 
   const handleIgnoreDraftEntityWithDraftLinks = useCallback(async () => {
     await Promise.all(
-      [...(incomingDraftLinks ?? []), ...(outgoingDraftLinks ?? [])].map(
-        (linkEntity) =>
-          discardDraftEntity({
-            draftEntity: linkEntity,
-          }),
+      [...(incomingDraftLinks ?? []), ...(outgoingDraftLinks ?? [])].map((linkEntity) =>
+        discardDraftEntity({
+          draftEntity: linkEntity,
+        }),
       ),
     );
 
     await discardDraftEntity({ draftEntity });
 
     onDiscardedEntity?.();
-  }, [
-    incomingDraftLinks,
-    outgoingDraftLinks,
-    draftEntity,
-    discardDraftEntity,
-    onDiscardedEntity,
-  ]);
+  }, [incomingDraftLinks, outgoingDraftLinks, draftEntity, discardDraftEntity, onDiscardedEntity]);
 
   const label = useMemo(() => {
     return generateEntityLabel(closedMultiEntityType, draftEntity);
@@ -159,9 +135,7 @@ export const DiscardDraftEntityButton: FunctionComponent<
               ) : null}{" "}
               {outgoingDraftLinks && outgoingDraftLinks.length > 0 ? (
                 <>
-                  {incomingDraftLinks && incomingDraftLinks.length > 0
-                    ? " and "
-                    : null}
+                  {incomingDraftLinks && incomingDraftLinks.length > 0 ? " and " : null}
                   <strong>
                     {outgoingDraftLinks.length} draft outgoing link
                     {outgoingDraftLinks.length > 1 ? "s" : ""}

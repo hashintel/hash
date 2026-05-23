@@ -1,10 +1,5 @@
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  Entity,
-  EntityId,
-  PartialEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { Entity, EntityId, PartialEntityType, VersionedUrl } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 
 export type LinkAndTargetEntity = {

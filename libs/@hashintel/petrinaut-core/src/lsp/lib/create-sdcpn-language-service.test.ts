@@ -19,15 +19,12 @@ function parseCursor(codeWithCursor: string): {
   if (offset === -1) {
     throw new Error(`No cursor marker \`${CURSOR}\` found in code`);
   }
-  const code =
-    codeWithCursor.slice(0, offset) + codeWithCursor.slice(offset + 1);
+  const code = codeWithCursor.slice(0, offset) + codeWithCursor.slice(offset + 1);
   return { offset, code };
 }
 
 /** Create a server initialized with the given SDCPN and return it. */
-function createServer(
-  sdcpnOptions: Parameters<typeof createSDCPN>[0],
-): SDCPNLanguageServer {
+function createServer(sdcpnOptions: Parameters<typeof createSDCPN>[0]): SDCPNLanguageServer {
   const sdcpn = createSDCPN(sdcpnOptions);
   const server = new SDCPNLanguageServer();
   server.syncFiles(sdcpn);
@@ -47,10 +44,7 @@ function getCompletionNames(
 
   // Patch the SDCPN to inject the clean code at the right item
   const patched = { ...sdcpnOptions };
-  if (
-    target.type === "transition-lambda" ||
-    target.type === "transition-kernel"
-  ) {
+  if (target.type === "transition-lambda" || target.type === "transition-kernel") {
     const transitionId = target.transitionId ?? "t1";
     patched.transitions = (patched.transitions ?? []).map((tr) =>
       (tr.id ?? "t1") === transitionId
@@ -64,9 +58,8 @@ function getCompletionNames(
     );
   } else {
     const deId = target.deId ?? "de_1";
-    patched.differentialEquations = (patched.differentialEquations ?? []).map(
-      (de, index) =>
-        (de.id ?? `de_${index + 1}`) === deId ? { ...de, code } : de,
+    patched.differentialEquations = (patched.differentialEquations ?? []).map((de, index) =>
+      (de.id ?? `de_${index + 1}`) === deId ? { ...de, code } : de,
     );
   }
 
@@ -87,11 +80,7 @@ function getCompletionNames(
     });
   }
 
-  const completions = server.getCompletionsAtPosition(
-    filePath,
-    offset,
-    undefined,
-  );
+  const completions = server.getCompletionsAtPosition(filePath, offset, undefined);
   return (completions?.entries ?? []).map((entry) => entry.name);
 }
 
@@ -110,9 +99,7 @@ describe("SDCPNLanguageServer completions", () => {
       {
         id: "t1",
         lambdaType: "predicate" as const,
-        inputArcs: [
-          { placeId: "place1", weight: 1, type: "standard" as const },
-        ],
+        inputArcs: [{ placeId: "place1", weight: 1, type: "standard" as const }],
         outputArcs: [{ placeId: "place2", weight: 1 }],
         lambdaCode: "",
         transitionKernelCode: "",
@@ -122,13 +109,9 @@ describe("SDCPNLanguageServer completions", () => {
 
   describe("member access completions (dot completions)", () => {
     it("returns Number methods after `a.` where a is a number", () => {
-      const names = getCompletionNames(
-        baseSdcpn,
-        `const a = 42;\na.${CURSOR}`,
-        {
-          type: "transition-lambda",
-        },
-      );
+      const names = getCompletionNames(baseSdcpn, `const a = 42;\na.${CURSOR}`, {
+        type: "transition-lambda",
+      });
 
       expect(names).toContain("toFixed");
       expect(names).toContain("toString");
@@ -174,13 +157,9 @@ describe("SDCPNLanguageServer completions", () => {
     });
 
     it("returns String methods after string expression", () => {
-      const names = getCompletionNames(
-        baseSdcpn,
-        `const s = "hello";\ns.${CURSOR}`,
-        {
-          type: "transition-lambda",
-        },
-      );
+      const names = getCompletionNames(baseSdcpn, `const s = "hello";\ns.${CURSOR}`, {
+        type: "transition-lambda",
+      });
 
       expect(names).toContain("charAt");
       expect(names).toContain("indexOf");
@@ -222,11 +201,7 @@ describe("SDCPNLanguageServer completions", () => {
       const { offset, code } = parseCursor(`const s = "hello";\ns.${CURSOR}`);
       server.updateDocumentContent(filePath, code);
 
-      const completions = server.getCompletionsAtPosition(
-        filePath,
-        offset,
-        undefined,
-      );
+      const completions = server.getCompletionsAtPosition(filePath, offset, undefined);
       const names = (completions?.entries ?? []).map((entry) => entry.name);
 
       // Should have String methods
@@ -253,27 +228,15 @@ describe("SDCPNLanguageServer completions", () => {
       // First update: number
       const first = parseCursor(`const a = 42;\na.${CURSOR}`);
       server.updateDocumentContent(filePath, first.code);
-      const firstCompletions = server.getCompletionsAtPosition(
-        filePath,
-        first.offset,
-        undefined,
-      );
-      const firstNames = (firstCompletions?.entries ?? []).map(
-        (entry) => entry.name,
-      );
+      const firstCompletions = server.getCompletionsAtPosition(filePath, first.offset, undefined);
+      const firstNames = (firstCompletions?.entries ?? []).map((entry) => entry.name);
       expect(firstNames).toContain("toFixed");
 
       // Second update: string
       const second = parseCursor(`const s = "hello";\ns.${CURSOR}`);
       server.updateDocumentContent(filePath, second.code);
-      const secondCompletions = server.getCompletionsAtPosition(
-        filePath,
-        second.offset,
-        undefined,
-      );
-      const secondNames = (secondCompletions?.entries ?? []).map(
-        (entry) => entry.name,
-      );
+      const secondCompletions = server.getCompletionsAtPosition(filePath, second.offset, undefined);
+      const secondNames = (secondCompletions?.entries ?? []).map((entry) => entry.name);
       expect(secondNames).toContain("charAt");
       expect(secondNames).not.toContain("toFixed");
     });
@@ -284,17 +247,13 @@ describe("SDCPNLanguageServer completions", () => {
       // Start with one color element
       const server = new SDCPNLanguageServer();
       const sdcpn1 = createSDCPN({
-        types: [
-          { id: "color1", elements: [{ name: "x", type: "real" as const }] },
-        ],
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" as const }] }],
         places: [{ id: "place1", name: "Source", colorId: "color1" }],
         transitions: [
           {
             id: "t1",
             lambdaType: "predicate" as const,
-            inputArcs: [
-              { placeId: "place1", weight: 1, type: "standard" as const },
-            ],
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" as const }],
             outputArcs: [],
             lambdaCode: "",
           },
@@ -318,9 +277,7 @@ describe("SDCPNLanguageServer completions", () => {
           {
             id: "t1",
             lambdaType: "predicate" as const,
-            inputArcs: [
-              { placeId: "place1", weight: 1, type: "standard" as const },
-            ],
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" as const }],
             outputArcs: [],
             lambdaCode: `export default Lambda((input) => {\n  const t = input.Source[0];\n  return t.`,
           },
@@ -336,11 +293,7 @@ describe("SDCPNLanguageServer completions", () => {
       );
       server.updateDocumentContent(filePath, code);
 
-      const completions = server.getCompletionsAtPosition(
-        filePath,
-        offset,
-        undefined,
-      );
+      const completions = server.getCompletionsAtPosition(filePath, offset, undefined);
       const names = (completions?.entries ?? []).map((entry) => entry.name);
 
       // Should now include both x and y
@@ -357,9 +310,7 @@ describe("SDCPNLanguageServer completions", () => {
           elements: [{ name: "velocity", type: "real" as const }],
         },
       ],
-      parameters: [
-        { id: "p1", variableName: "gravity", type: "real" as const },
-      ],
+      parameters: [{ id: "p1", variableName: "gravity", type: "real" as const }],
       differentialEquations: [
         {
           id: "de1",

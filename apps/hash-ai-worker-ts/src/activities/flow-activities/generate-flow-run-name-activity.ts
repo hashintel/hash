@@ -77,23 +77,15 @@ const getModelSuggestedFlowRunName = async (
   const text = getTextContentFromLlmMessage({ message: llmResponse.message });
 
   if (!text) {
-    throw new Error(
-      `Failed to generate flow run name: no text content found in LLM message`,
-    );
+    throw new Error(`Failed to generate flow run name: no text content found in LLM message`);
   }
 
   return text;
 };
 
-const outputKindsToIgnore: PayloadKind[] = [
-  "GoogleSheet",
-  "GoogleAccountId",
-  "EntityId",
-];
+const outputKindsToIgnore: PayloadKind[] = ["GoogleSheet", "GoogleAccountId", "EntityId"];
 
-export const generateFlowRunName = async (
-  params: GenerateFlowRunNameActivityParams,
-) => {
+export const generateFlowRunName = async (params: GenerateFlowRunNameActivityParams) => {
   const { flowDefinition, flowTrigger } = params;
 
   if (
@@ -114,15 +106,13 @@ export const generateFlowRunName = async (
     }
 
     return `${
-      flowDefinition.flowDefinitionId ===
-      automaticBrowserInferenceFlowDefinition.flowDefinitionId
+      flowDefinition.flowDefinitionId === automaticBrowserInferenceFlowDefinition.flowDefinitionId
         ? "Auto-analyze"
         : "Analyze"
     } webpage: ${webPage.url}`;
   }
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const usageTrackingParams: UsageTrackingParams = {
     customMetadata: { taskName: "name-flow", stepId },
@@ -134,8 +124,7 @@ export const generateFlowRunName = async (
 
   if (goalFlowDefinitionIds.includes(flowDefinition.flowDefinitionId)) {
     const researchBrief = flowTrigger.outputs?.find(
-      ({ outputName }) =>
-        outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
+      ({ outputName }) => outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
     )?.payload.value as PayloadKindValues["Text"] | undefined;
 
     if (!researchBrief) {
@@ -166,8 +155,5 @@ export const generateFlowRunName = async (
     workflowDescriptionString += ` The workflow run to be named has no inputs.`;
   }
 
-  return getModelSuggestedFlowRunName(
-    workflowDescriptionString,
-    usageTrackingParams,
-  );
+  return getModelSuggestedFlowRunName(workflowDescriptionString, usageTrackingParams);
 };

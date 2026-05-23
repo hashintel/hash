@@ -25,6 +25,4 @@ const toggleGroupSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const toggleGroupSlotRecipe = sva(toggleGroupSlotRecipeDefinition);
 
-export type ToggleGroupSlotRecipeProps = RecipeVariantProps<
-  typeof toggleGroupSlotRecipe
->;
+export type ToggleGroupSlotRecipeProps = RecipeVariantProps<typeof toggleGroupSlotRecipe>;

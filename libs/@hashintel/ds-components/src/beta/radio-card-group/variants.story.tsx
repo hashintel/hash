@@ -13,11 +13,7 @@ export const App = () => {
   return (
     <Stack gap="4">
       {variants.map((variant) => (
-        <RadioCardGroup.Root
-          key={variant}
-          variant={variant}
-          defaultValue="react"
-        >
+        <RadioCardGroup.Root key={variant} variant={variant} defaultValue="react">
           <HStack>
             {items.map((item) => (
               <RadioCardGroup.Item key={item.value} value={item.value}>

@@ -2,11 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
+import type { Confidence, ObjectMetadata, PropertyProvenance } from "@blockprotocol/type-system";
 
 /**
  * A Google user account.
@@ -58,8 +54,7 @@ export type AccountUsesUserSecretLink = {
  */
 export type ConnectionSourceNamePropertyValue = TextDataType;
 
-export type ConnectionSourceNamePropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type ConnectionSourceNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
@@ -116,9 +111,7 @@ export type ExpiredAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
  * undefined
  */
 export type Link = {
-  entityTypeIds: [
-    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1",
-  ];
+  entityTypeIds: ["https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"];
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
 };
@@ -198,11 +191,10 @@ export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
  */
 export type UsesUserSecretProperties = LinkProperties & {};
 
-export type UsesUserSecretPropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type UsesUserSecretPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * The path to a secret in Hashicorp Vault.

@@ -21,17 +21,11 @@ export interface LanguageClientContextValue {
   /** Notify the server that a document's content changed. */
   notifyDocumentChanged: (uri: DocumentUri, text: string) => void;
   /** Request completions at a position within a document. */
-  requestCompletion: (
-    uri: DocumentUri,
-    position: Position,
-  ) => Promise<CompletionList>;
+  requestCompletion: (uri: DocumentUri, position: Position) => Promise<CompletionList>;
   /** Request hover info at a position within a document. */
   requestHover: (uri: DocumentUri, position: Position) => Promise<Hover | null>;
   /** Request signature help at a position within a document. */
-  requestSignatureHelp: (
-    uri: DocumentUri,
-    position: Position,
-  ) => Promise<SignatureHelp | null>;
+  requestSignatureHelp: (uri: DocumentUri, position: Position) => Promise<SignatureHelp | null>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -61,6 +55,5 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
   killMetricSession: () => {},
 };
 
-export const LanguageClientContext = createContext<LanguageClientContextValue>(
-  DEFAULT_CONTEXT_VALUE,
-);
+export const LanguageClientContext =
+  createContext<LanguageClientContextValue>(DEFAULT_CONTEXT_VALUE);

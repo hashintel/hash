@@ -7,10 +7,7 @@ import {
   makeOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
-import {
-  ArrowUpRightFromSquareRegularIcon,
-  ArrowUpRightIcon,
-} from "@hashintel/design-system";
+import { ArrowUpRightFromSquareRegularIcon, ArrowUpRightIcon } from "@hashintel/design-system";
 
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { Button, Link, Modal } from "../../../shared/ui";
@@ -41,8 +38,7 @@ export const DataTypeHeader = ({
 }: DataTypeHeaderProps) => {
   const [showExtendTypeModal, setShowExtendTypeModal] = useState(false);
 
-  const isLatest =
-    !latestVersion || extractVersion(dataTypeSchema.$id) === latestVersion;
+  const isLatest = !latestVersion || extractVersion(dataTypeSchema.$id) === latestVersion;
 
   const latestVersionUrl = versionedUrlFromComponents(
     extractBaseUrl(dataTypeSchema.$id),
@@ -75,20 +71,13 @@ export const DataTypeHeader = ({
                 textDecoration: "none",
               }}
             >
-              <Typography
-                color="inherit"
-                sx={{ fontSize: 11, fontWeight: 600 }}
-              >
+              <Typography color="inherit" sx={{ fontSize: 11, fontWeight: 600 }}>
                 {`v${currentVersion.toString()}–> v${latestVersion.toString()} available`}
               </Typography>
             </Link>
           )}
         </Stack>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-        >
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Stack direction="row" alignItems="center" gap={5}>
             <Stack direction="row" mt={1} mb={3}>
               <Box position="relative">
@@ -137,10 +126,7 @@ export const DataTypeHeader = ({
                       /**
                        * The vertical center of the text plus offset half the icon size
                        */
-                      top:
-                        dataTypeTitleSize.lastLineTop +
-                        dataTypeTitleSize.lineHeight / 2 -
-                        12,
+                      top: dataTypeTitleSize.lastLineTop + dataTypeTitleSize.lineHeight / 2 - 12,
                     }}
                     target="_blank"
                   >
@@ -159,11 +145,7 @@ export const DataTypeHeader = ({
             </Stack>
           </Stack>
           {!isDraft ? (
-            <Button
-              onClick={() => setShowExtendTypeModal(true)}
-              variant="secondary"
-              size="small"
-            >
+            <Button onClick={() => setShowExtendTypeModal(true)} variant="secondary" size="small">
               Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
           ) : null}
@@ -173,10 +155,7 @@ export const DataTypeHeader = ({
           <DataTypeDescription isReadOnly={isReadOnly} />
         </Box>
       </Box>
-      <Modal
-        open={showExtendTypeModal}
-        contentStyle={{ p: { xs: 0, md: 0 }, maxWidth: 500 }}
-      >
+      <Modal open={showExtendTypeModal} contentStyle={{ p: { xs: 0, md: 0 }, maxWidth: 500 }}>
         <>
           <Typography
             sx={({ palette }) => ({

@@ -13,10 +13,7 @@ export const queryPropertyTypeSubgraphQuery = gql`
 `;
 
 export const createPropertyTypeMutation = gql`
-  mutation createPropertyType(
-    $webId: WebId!
-    $propertyType: ConstructPropertyTypeParams!
-  ) {
+  mutation createPropertyType($webId: WebId!, $propertyType: ConstructPropertyTypeParams!) {
     # This is a scalar, which has no selection.
     createPropertyType(webId: $webId, propertyType: $propertyType)
   }
@@ -28,10 +25,7 @@ export const updatePropertyTypeMutation = gql`
     $updatedPropertyType: ConstructPropertyTypeParams!
   ) {
     # This is a scalar, which has no selection.
-    updatePropertyType(
-      propertyTypeId: $propertyTypeId
-      updatedPropertyType: $updatedPropertyType
-    )
+    updatePropertyType(propertyTypeId: $propertyTypeId, updatedPropertyType: $updatedPropertyType)
   }
 `;
 

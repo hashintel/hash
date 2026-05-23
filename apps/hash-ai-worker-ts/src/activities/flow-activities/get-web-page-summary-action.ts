@@ -14,9 +14,7 @@ import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-al
 import type { Url } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 
-const generateSummarizeWebPageSystemPrompt = (params: {
-  numberOfSentences: number;
-}): string =>
+const generateSummarizeWebPageSystemPrompt = (params: { numberOfSentences: number }): string =>
   dedent(`
     You are a Web Page Summarizer.
     The user provides you with the URL, the title, and the HTML content of a web page,
@@ -30,9 +28,9 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     - 'The page mentions products relating to Y'
   `);
 
-export const getWebPageSummaryAction: AiFlowActionActivity<
-  "getWebPageSummary"
-> = async ({ inputs }) => {
+export const getWebPageSummaryAction: AiFlowActionActivity<"getWebPageSummary"> = async ({
+  inputs,
+}) => {
   const { url, model, numberOfSentences } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "getWebPageSummary",
@@ -62,8 +60,7 @@ export const getWebPageSummaryAction: AiFlowActionActivity<
     numberOfSentences: numberOfSentences!,
   });
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {

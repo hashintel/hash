@@ -59,10 +59,7 @@ const HoverSyncInner = () => {
         // TODO(FE-497): Sync current content to ensure the worker has the latest text.
         notifyDocumentChanged(uri, model.getValue());
         // Convert Monaco 1-based position to LSP 0-based Position
-        const position = Position.create(
-          monacoPosition.lineNumber - 1,
-          monacoPosition.column - 1,
-        );
+        const position = Position.create(monacoPosition.lineNumber - 1, monacoPosition.column - 1);
         const info = await requestHover(uri, position);
 
         if (!info) {

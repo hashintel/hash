@@ -25,9 +25,7 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 });
 
-const removeImportPlugin = (
-  configs: readonly ESConfig[],
-): readonly ESConfig[] =>
+const removeImportPlugin = (configs: readonly ESConfig[]): readonly ESConfig[] =>
   pipe(
     configs,
     Array.map(
@@ -99,8 +97,7 @@ export const create = (projectDirectory: string) =>
         "no-restricted-syntax": [
           "error",
           {
-            selector:
-              "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/]:not([typeParameters])",
+            selector: "TSTypeReference[typeName.name=/^(Plugin|PluginKey)$/]:not([typeParameters])",
             message: "Please provide a generic to avoid implicit `any`",
           },
           {
@@ -109,8 +106,7 @@ export const create = (projectDirectory: string) =>
             message: "Please replace `any` with a specific type",
           },
           {
-            selector:
-              "NewExpression[callee.name=/^(Plugin|PluginKey)$/]:not([typeParameters])",
+            selector: "NewExpression[callee.name=/^(Plugin|PluginKey)$/]:not([typeParameters])",
             message: "Please provide a generic to avoid implicit `any`",
           },
           {
@@ -246,14 +242,12 @@ export const create = (projectDirectory: string) =>
               {
                 name: "@mui/material",
                 importNames: ["Button"],
-                message:
-                  "Please use the custom wrapper component in src/component instead.",
+                message: "Please use the custom wrapper component in src/component instead.",
               },
               {
                 name: "@mui/material/Button",
                 importNames: ["default"],
-                message:
-                  "Please use the custom src/components/Button component instead.",
+                message: "Please use the custom src/components/Button component instead.",
               },
             ],
 
@@ -380,12 +374,7 @@ export const create = (projectDirectory: string) =>
       },
     },
     {
-      files: [
-        "**/tests/**",
-        "**/__mocks__/**",
-        "**/testUtils/**",
-        "**/*.test.{j,t}s{x,}",
-      ],
+      files: ["**/tests/**", "**/__mocks__/**", "**/testUtils/**", "**/*.test.{j,t}s{x,}"],
 
       languageOptions: {
         globals: {

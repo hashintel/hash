@@ -10,9 +10,7 @@ export type FullScreenContextType = {
   toggleFullScreen: () => void;
 };
 
-export const FullScreenContext = createContext<FullScreenContextType | null>(
-  null,
-);
+export const FullScreenContext = createContext<FullScreenContextType | null>(null);
 
 export const FullScreenContextProvider = ({
   children,
@@ -47,10 +45,7 @@ export const FullScreenContextProvider = ({
 
   const value = useMemo<FullScreenContextType>(
     () => ({
-      isFullScreen:
-        fullScreenMode === "document"
-          ? !!document.fullscreenElement
-          : handle.active,
+      isFullScreen: fullScreenMode === "document" ? !!document.fullscreenElement : handle.active,
       toggleFullScreen,
     }),
     [handle.active, fullScreenMode, toggleFullScreen],

@@ -27,10 +27,7 @@ import { EntityTypeDescription } from "../entity-type-description";
 import { EntityTypeInverse } from "../entity-type-inverse";
 import { EntityTypePlural } from "../entity-type-plural";
 
-import type {
-  EntityType,
-  OntologyTypeVersion,
-} from "@blockprotocol/type-system";
+import type { EntityType, OntologyTypeVersion } from "@blockprotocol/type-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
 interface EntityTypeHeaderProps {
@@ -56,8 +53,7 @@ export const EntityTypeHeader = ({
 }: EntityTypeHeaderProps) => {
   const [showExtendTypeModal, setShowExtendTypeModal] = useState(false);
 
-  const isLatest =
-    !latestVersion || extractVersion(entityTypeSchema.$id) === latestVersion;
+  const isLatest = !latestVersion || extractVersion(entityTypeSchema.$id) === latestVersion;
 
   const latestVersionUrl = versionedUrlFromComponents(
     extractBaseUrl(entityTypeSchema.$id),
@@ -92,20 +88,13 @@ export const EntityTypeHeader = ({
                 textDecoration: "none",
               }}
             >
-              <Typography
-                color="inherit"
-                sx={{ fontSize: 11, fontWeight: 600 }}
-              >
+              <Typography color="inherit" sx={{ fontSize: 11, fontWeight: 600 }}>
                 {`v${currentVersion.toString()} –> v${latestVersion.toString()} available`}
               </Typography>
             </Link>
           )}
         </Stack>
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-        >
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Stack direction="row" alignItems="center" gap={5}>
             <Stack direction="row" alignItems="flex-start" mt={1} mb={3}>
               {entityTypeNameSize !== null && (
@@ -212,8 +201,7 @@ export const EntityTypeHeader = ({
                        * The vertical center of the text plus offset half the icon size
                        */
                       top:
-                        entityTypeNameSize.lastLineTop +
-                        (entityTypeNameSize.lineHeight / 2 - 12),
+                        entityTypeNameSize.lastLineTop + (entityTypeNameSize.lineHeight / 2 - 12),
                     }}
                     target="_blank"
                   >
@@ -241,11 +229,7 @@ export const EntityTypeHeader = ({
             </Stack>
           </Stack>
           {!isDraft && !isArchived ? (
-            <Button
-              onClick={() => setShowExtendTypeModal(true)}
-              variant="secondary"
-              size="small"
-            >
+            <Button onClick={() => setShowExtendTypeModal(true)} variant="secondary" size="small">
               Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
           ) : null}
@@ -255,10 +239,7 @@ export const EntityTypeHeader = ({
           <EntityTypeDescription readonly={isReadonly} />
         </Box>
       </Box>
-      <Modal
-        open={showExtendTypeModal}
-        contentStyle={{ p: { xs: 0, md: 0 }, maxWidth: 500 }}
-      >
+      <Modal open={showExtendTypeModal} contentStyle={{ p: { xs: 0, md: 0 }, maxWidth: 500 }}>
         <>
           <Typography
             sx={({ palette }) => ({

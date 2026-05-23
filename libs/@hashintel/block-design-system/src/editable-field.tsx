@@ -1,11 +1,4 @@
-import {
-  Box,
-  Fade,
-  IconButton,
-  InputBase,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, Fade, IconButton, InputBase, Typography, useTheme } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
 import { PenIcon, PenToSquareIcon } from "./icons/icons";
@@ -81,8 +74,7 @@ export const EditableField = ({
         sx={{
           ...(editing ? { flex: 1 } : {}),
           position: "relative",
-          transition: ({ transitions }) =>
-            inputHeight ? transitions.create("height") : "none",
+          transition: ({ transitions }) => (inputHeight ? transitions.create("height") : "none"),
           ...(inputHeight ? { height: inputHeight } : {}),
         }}
       >
@@ -122,10 +114,7 @@ export const EditableField = ({
                 <Box component="span" sx={{ mr: 1 }}>
                   {placeholder}
                 </Box>
-                <Box
-                  component="span"
-                  sx={{ display: "inline-flex", verticalAlign: "middle" }}
-                >
+                <Box component="span" sx={{ display: "inline-flex", verticalAlign: "middle" }}>
                   <PenIcon sx={{ fontSize: 16, mb: 0.6 }} />
                 </Box>
               </>
@@ -194,11 +183,7 @@ export const EditableField = ({
             }}
           >
             <PenToSquareIcon
-              sx={
-                editIconFontSize
-                  ? { fontSize: `${editIconFontSize}px !important` }
-                  : {}
-              }
+              sx={editIconFontSize ? { fontSize: `${editIconFontSize}px !important` } : {}}
             />
           </IconButton>
         </Fade>

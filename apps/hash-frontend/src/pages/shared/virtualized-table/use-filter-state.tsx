@@ -92,9 +92,7 @@ export const useVirtualizedTableFilterState = <
           return newFilterValues;
         }
 
-        for (const [columnId, defaultValue] of typedEntries(
-          defaultFilterValues,
-        )) {
+        for (const [columnId, defaultValue] of typedEntries(defaultFilterValues)) {
           const currentValue = currentFilterValues[columnId];
           const filterOptions = filterDefinitions[columnId]?.options;
           const previousFilterOptions = previousDefaultFilterValues.current;

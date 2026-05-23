@@ -4,10 +4,7 @@ import { logger } from "../../../shared/activity-logger.js";
 
 import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types.js";
 import type { ParsedCoordinatorToolCallMap } from "../shared/coordinator-tools.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
+import type { CoordinatingAgentInput, CoordinatingAgentState } from "../shared/coordinators.js";
 
 /**
  * Processes a 'complete' call from the coordinating agent.
@@ -49,10 +46,7 @@ export const processCompleteToolCall = ({
   const { entityIds } = toolCall.input;
 
   const invalidEntityIds = entityIds.filter(
-    (entityId) =>
-      !state.proposedEntities.some(
-        ({ localEntityId }) => localEntityId === entityId,
-      ),
+    (entityId) => !state.proposedEntities.some(({ localEntityId }) => localEntityId === entityId),
   );
 
   if (invalidEntityIds.length > 0) {
@@ -66,9 +60,7 @@ export const processCompleteToolCall = ({
         ${
           state.proposedEntities.length > 0
             ? `Valid entity IDs are: ${JSON.stringify(
-                state.proposedEntities.map(
-                  ({ localEntityId }) => localEntityId,
-                ),
+                state.proposedEntities.map(({ localEntityId }) => localEntityId),
               )}`
             : `You haven't discovered any entities yet.`
         }
@@ -85,10 +77,7 @@ export const processCompleteToolCall = ({
   );
 
   const missingEntityTypes = input.entityTypes.filter(
-    ({ $id }) =>
-      !submittedEntities.some(({ entityTypeIds }) =>
-        entityTypeIds.includes($id),
-      ),
+    ({ $id }) => !submittedEntities.some(({ entityTypeIds }) => entityTypeIds.includes($id)),
   );
 
   if (missingEntityTypes.length > 0) {
@@ -100,10 +89,7 @@ export const processCompleteToolCall = ({
   }
 
   const missingLinkEntityTypes = input.linkEntityTypes?.filter(
-    ({ $id }) =>
-      !submittedEntities.some(({ entityTypeIds }) =>
-        entityTypeIds.includes($id),
-      ),
+    ({ $id }) => !submittedEntities.some(({ entityTypeIds }) => entityTypeIds.includes($id)),
   );
 
   if (missingLinkEntityTypes && missingLinkEntityTypes.length > 0) {

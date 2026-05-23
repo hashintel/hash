@@ -8,11 +8,7 @@ import { SettingsPageContainer } from "./shared/settings-page-container";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 
-const SidebarItemDisplaySwitch = ({
-  section,
-}: {
-  section: "entities" | "entityTypes";
-}) => {
+const SidebarItemDisplaySwitch = ({ section }: { section: "entities" | "entityTypes" }) => {
   const preferences = useUserPreferences();
   const { sidebarSections } = preferences;
 
@@ -59,8 +55,7 @@ const SidebarItemDisplaySwitch = ({
       <Typography
         variant="smallTextLabels"
         sx={({ palette }) => ({
-          color:
-            currentDisplay === "link" ? palette.gray[80] : palette.gray[40],
+          color: currentDisplay === "link" ? palette.gray[80] : palette.gray[40],
           fontWeight: 500,
         })}
       >
@@ -81,8 +76,7 @@ const SidebarItemDisplaySwitch = ({
       <Typography
         variant="smallTextLabels"
         sx={({ palette }) => ({
-          color:
-            currentDisplay === "list" ? palette.gray[80] : palette.gray[40],
+          color: currentDisplay === "list" ? palette.gray[80] : palette.gray[40],
           fontWeight: 500,
         })}
       >

@@ -4,8 +4,7 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema:
-    "../../libs/@local/hash-isomorphic-utils/src/graphql/type-defs/**/*.ts",
+  schema: "../../libs/@local/hash-isomorphic-utils/src/graphql/type-defs/**/*.ts",
   generates: {
     "./src/graphql/graphql-schema.gen.json": {
       plugins: ["introspection"],
@@ -15,9 +14,7 @@ const config: CodegenConfig = {
     },
     "./src/graphql/api-types.gen.ts": {
       plugins: ["typescript", "typescript-resolvers", "typescript-operations"],
-      documents: [
-        "../../libs/@local/hash-isomorphic-utils/src/graphql/queries/**/*.ts",
-      ],
+      documents: ["../../libs/@local/hash-isomorphic-utils/src/graphql/queries/**/*.ts"],
       hooks: {
         afterOneFileWrite: ["oxfmt --write --ignore-path /dev/null"],
       },

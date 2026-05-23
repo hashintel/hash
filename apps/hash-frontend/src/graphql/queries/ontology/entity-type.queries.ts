@@ -19,10 +19,7 @@ export const getClosedMultiEntityTypesQuery = gql`
 `;
 
 export const createEntityTypeMutation = gql`
-  mutation createEntityType(
-    $webId: WebId!
-    $entityType: ConstructEntityTypeParams!
-  ) {
+  mutation createEntityType($webId: WebId!, $entityType: ConstructEntityTypeParams!) {
     # This is a scalar, which has no selection.
     createEntityType(webId: $webId, entityType: $entityType)
   }
@@ -33,10 +30,7 @@ export const updateEntityTypeMutation = gql`
     $entityTypeId: VersionedUrl!
     $updatedEntityType: ConstructEntityTypeParams!
   ) {
-    updateEntityType(
-      entityTypeId: $entityTypeId
-      updatedEntityType: $updatedEntityType
-    )
+    updateEntityType(entityTypeId: $entityTypeId, updatedEntityType: $updatedEntityType)
   }
 `;
 

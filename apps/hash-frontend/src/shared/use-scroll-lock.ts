@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-const parseIntFromPixelWidth = (pixelWidth: string) =>
-  parseInt(pixelWidth.replace("px", ""), 10);
+const parseIntFromPixelWidth = (pixelWidth: string) => parseInt(pixelWidth.replace("px", ""), 10);
 
 /**
  * @see https://github.com/mui/material-ui/blob/master/packages/mui-utils/src/getScrollbarSize.ts
@@ -52,10 +51,7 @@ const removeStylesFromElement = (element: HTMLElement) => {
  * @param active is locked
  * @param elementToLock an HTML element to lock it's scroll. Locks `document.body` if it's left empty
  */
-export const useScrollLock = (
-  active: boolean,
-  elementToLock: HTMLElement = document.body,
-) => {
+export const useScrollLock = (active: boolean, elementToLock: HTMLElement = document.body) => {
   const scrollbarSize = useLastScrollbarSize(elementToLock);
 
   const madeChangesRequiringRemoval = useRef(false);

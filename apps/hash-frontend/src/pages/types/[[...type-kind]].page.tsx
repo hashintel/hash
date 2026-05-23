@@ -14,21 +14,14 @@ import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
 import { TopContextBar } from "../shared/top-context-bar";
 import { TypesTable } from "../shared/types-table";
-import {
-  tabTitles,
-  TypesPageTabs,
-} from "./[[...type-kind]].page/types-page-tabs";
+import { tabTitles, TypesPageTabs } from "./[[...type-kind]].page/types-page-tabs";
 
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { DataTypeRootType } from "@blockprotocol/graph";
 import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import type { GetServerSideProps } from "next";
 
-type ParsedQueryKindParam =
-  | "entity-type"
-  | "link-type"
-  | "property-type"
-  | "data-type";
+type ParsedQueryKindParam = "entity-type" | "link-type" | "property-type" | "data-type";
 
 type ParsedQueryParams = {
   ["type-kind"]?: ParsedQueryKindParam[];
@@ -63,8 +56,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     () =>
       isSpecialEntityTypeLookup
         ? latestEntityTypes?.filter(
-            (entityType) =>
-              !isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
+            (entityType) => !isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
           )
         : undefined,
     [isSpecialEntityTypeLookup, latestEntityTypes],
@@ -74,8 +66,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
     () =>
       isSpecialEntityTypeLookup
         ? latestEntityTypes?.filter(
-            (entityType) =>
-              isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
+            (entityType) => isSpecialEntityTypeLookup[entityType.schema.$id]?.isLink,
           )
         : undefined,
     [isSpecialEntityTypeLookup, latestEntityTypes],
@@ -89,15 +80,11 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
   });
 
   const latestPropertyTypes = useMemo(
-    () =>
-      latestPropertyTypesObject
-        ? Object.values(latestPropertyTypesObject)
-        : undefined,
+    () => (latestPropertyTypesObject ? Object.values(latestPropertyTypesObject) : undefined),
     [latestPropertyTypesObject],
   );
 
-  const [latestDataTypes, setLatestDataTypes] =
-    useState<DataTypeWithMetadata[]>();
+  const [latestDataTypes, setLatestDataTypes] = useState<DataTypeWithMetadata[]>();
 
   const fetchDataTypes = useCallback(
     async () =>
@@ -115,10 +102,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
 
   const allTypes = useMemo(
     () =>
-      latestNonLinkEntityTypes &&
-      latestLinkEntityTypes &&
-      latestPropertyTypes &&
-      latestDataTypes
+      latestNonLinkEntityTypes && latestLinkEntityTypes && latestPropertyTypes && latestDataTypes
         ? [
             ...latestNonLinkEntityTypes,
             ...latestLinkEntityTypes,
@@ -126,12 +110,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
             ...latestDataTypes,
           ]
         : undefined,
-    [
-      latestNonLinkEntityTypes,
-      latestLinkEntityTypes,
-      latestPropertyTypes,
-      latestDataTypes,
-    ],
+    [latestNonLinkEntityTypes, latestLinkEntityTypes, latestPropertyTypes, latestDataTypes],
   );
 
   const currentTypes = useMemo(

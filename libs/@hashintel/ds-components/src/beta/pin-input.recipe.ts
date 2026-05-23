@@ -57,6 +57,4 @@ const pinInputSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const pinInputSlotRecipe = sva(pinInputSlotRecipeDefinition);
 
-export type PinInputSlotRecipeProps = RecipeVariantProps<
-  typeof pinInputSlotRecipe
->;
+export type PinInputSlotRecipeProps = RecipeVariantProps<typeof pinInputSlotRecipe>;

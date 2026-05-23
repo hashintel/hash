@@ -16,25 +16,16 @@ import {
   maxRetryCount,
   serverErrorRetryStartingDelay,
 } from "./constants.js";
-import {
-  mapAnthropicMessageToLlmMessage,
-  mapLlmMessageToAnthropicMessage,
-} from "./llm-message.js";
+import { mapAnthropicMessageToLlmMessage, mapLlmMessageToAnthropicMessage } from "./llm-message.js";
 import { logLlmRequest, logLlmServerError } from "./log-llm-request.js";
-import {
-  getInputValidationErrors,
-  sanitizeInputBeforeValidation,
-} from "./validation.js";
+import { getInputValidationErrors, sanitizeInputBeforeValidation } from "./validation.js";
 
 import type {
   AnthropicApiProvider,
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
 } from "./anthropic-client.js";
-import type {
-  LlmMessageToolUseContent,
-  LlmUserMessage,
-} from "./llm-message.js";
+import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message.js";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,
@@ -48,9 +39,7 @@ import type {
 import type { APIError, RateLimitError } from "@anthropic-ai/sdk/error";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
-const mapLlmToolDefinitionToAnthropicToolDefinition = (
-  tool: LlmToolDefinition,
-): Tool => ({
+const mapLlmToolDefinitionToAnthropicToolDefinition = (tool: LlmToolDefinition): Tool => ({
   name: tool.name,
   description: tool.description,
   input_schema: tool.inputSchema,
@@ -120,13 +109,8 @@ const getWaitPeriodFromHeaders = (headers?: Headers): number => {
   return Math.max(tokenReset ?? 0, requestReset ?? 0);
 };
 
-const isErrorAnthropicRateLimitingError = (
-  error: unknown,
-): error is RateLimitError =>
-  typeof error === "object" &&
-  !!error &&
-  "status" in error &&
-  error.status === 429;
+const isErrorAnthropicRateLimitingError = (error: unknown): error is RateLimitError =>
+  typeof error === "object" && !!error && "status" in error && error.status === 429;
 
 const isServerError = (error: unknown): error is APIError =>
   typeof error === "object" &&
@@ -146,13 +130,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
   retryCount?: number;
   priorRateLimitError?: Partial<Record<AnthropicApiProvider, RateLimitError>>;
 }): Promise<AnthropicMessagesCreateResponse> => {
-  const {
-    metadata,
-    payload,
-    retryCount = 1,
-    initialProvider,
-    priorRateLimitError,
-  } = params;
+  const { metadata, payload, retryCount = 1, initialProvider, priorRateLimitError } = params;
 
   let currentProvider: AnthropicApiProvider = initialProvider;
 
@@ -188,8 +166,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
            */
           if (isServerError(error)) {
             const otherProvider = switchProvider(currentProvider);
-            const priorRateLimitErrorForOtherProvider =
-              priorRateLimitError?.[otherProvider];
+            const priorRateLimitErrorForOtherProvider = priorRateLimitError?.[otherProvider];
 
             /**
              * We only retry the request with the other provider if we didn't previously
@@ -199,9 +176,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
              */
             logger.debug(
               `Encountered server error with provider "${currentProvider}" for request ${metadata.requestId}, retrying with exponential backoff with provider "${
-                priorRateLimitErrorForOtherProvider
-                  ? currentProvider
-                  : otherProvider
+                priorRateLimitErrorForOtherProvider ? currentProvider : otherProvider
               }".`,
             );
             if (!priorRateLimitErrorForOtherProvider) {
@@ -246,8 +221,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
         });
       }
 
-      const otherProviderPriorRateLimitError =
-        priorRateLimitError[otherProvider];
+      const otherProviderPriorRateLimitError = priorRateLimitError[otherProvider];
 
       if (otherProviderPriorRateLimitError) {
         /**
@@ -255,9 +229,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
          * we need to wait for the smaller of the two starting delays
          * before retrying the request with the corresponding provider.
          */
-        const currentProviderStartingDelay = getWaitPeriodFromHeaders(
-          currentProviderError.headers,
-        );
+        const currentProviderStartingDelay = getWaitPeriodFromHeaders(currentProviderError.headers);
 
         const otherProviderStartingDelay = getWaitPeriodFromHeaders(
           otherProviderPriorRateLimitError.headers,
@@ -317,19 +289,14 @@ export const getAnthropicResponse = async <ToolName extends string>(
     ...remainingParams
   } = params;
 
-  const anthropicTools = tools?.map(
-    mapLlmToolDefinitionToAnthropicToolDefinition,
-  );
+  const anthropicTools = tools?.map(mapLlmToolDefinitionToAnthropicToolDefinition);
 
-  const anthropicMessages = messages.map((message) =>
-    mapLlmMessageToAnthropicMessage({ message }),
-  );
+  const anthropicMessages = messages.map((message) => mapLlmMessageToAnthropicMessage({ message }));
 
   /**
    * Default to the maximum context window, if `max_tokens` is not provided.
    */
-  const maxTokens =
-    params.maxTokens ?? anthropicMessageModelToMaxOutput[params.model];
+  const maxTokens = params.maxTokens ?? anthropicMessageModelToMaxOutput[params.model];
 
   let anthropicResponse: AnthropicMessagesCreateResponse;
 
@@ -371,10 +338,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
       };
     }
 
-    const message =
-      "message" in (error as Error)
-        ? (error as Error).message
-        : "Unknown error";
+    const message = "message" in (error as Error) ? (error as Error).message : "Unknown error";
 
     return {
       llmResponse: {
@@ -389,11 +353,8 @@ export const getAnthropicResponse = async <ToolName extends string>(
   const { previousUsage, retryCount = 0 } = retryContext ?? {};
 
   const usage: LlmUsage = {
-    inputTokens:
-      (previousUsage?.inputTokens ?? 0) + anthropicResponse.usage.input_tokens,
-    outputTokens:
-      (previousUsage?.outputTokens ?? 0) +
-      anthropicResponse.usage.output_tokens,
+    inputTokens: (previousUsage?.inputTokens ?? 0) + anthropicResponse.usage.input_tokens,
+    outputTokens: (previousUsage?.outputTokens ?? 0) + anthropicResponse.usage.output_tokens,
     totalTokens:
       (previousUsage?.totalTokens ?? 0) +
       anthropicResponse.usage.input_tokens +
@@ -423,9 +384,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
     };
   }
 
-  const stopReason = mapAnthropicStopReasonToLlmStopReason(
-    anthropicResponse.stop_reason,
-  );
+  const stopReason = mapAnthropicStopReasonToLlmStopReason(anthropicResponse.stop_reason);
 
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
@@ -459,8 +418,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
             !(
               messageContent.type === "tool_use" &&
               retryParams.successfullyParsedToolCalls.some(
-                (successFullToolCall) =>
-                  successFullToolCall.id === messageContent.id,
+                (successFullToolCall) => successFullToolCall.id === messageContent.id,
               )
             ),
         ),
@@ -523,8 +481,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
 
   const parsedToolCalls: ParsedLlmToolCall<ToolName>[] = [];
 
-  const unvalidatedParsedToolCalls =
-    parseToolCallsFromAnthropicResponse(anthropicResponse);
+  const unvalidatedParsedToolCalls = parseToolCallsFromAnthropicResponse(anthropicResponse);
 
   if (stopReason === "tool_use" && unvalidatedParsedToolCalls.length > 0) {
     const retryMessageContent: LlmUserMessage["content"] = [];
@@ -597,10 +554,9 @@ export const getAnthropicResponse = async <ToolName extends string>(
    * response message, which may have been previously filtered out.
    */
   if (retryContext) {
-    const previousSuccessfulToolUses =
-      retryContext.previousSuccessfulToolCalls.map<
-        LlmMessageToolUseContent<ToolName>
-      >(({ id, input, name }) => ({ type: "tool_use", id, input, name }));
+    const previousSuccessfulToolUses = retryContext.previousSuccessfulToolCalls.map<
+      LlmMessageToolUseContent<ToolName>
+    >(({ id, input, name }) => ({ type: "tool_use", id, input, name }));
 
     message.content.push(...previousSuccessfulToolUses);
   }
