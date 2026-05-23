@@ -1,16 +1,17 @@
-import type {
-  EntityTypeReference,
-  EntityTypeWithMetadata,
-} from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import type {
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system/dist/cjs";
 import {
   blockProtocolEntityTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type {
+  EntityTypeReference,
+  EntityTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import type {
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/dist/cjs";
 
 export const getParentIds = (
   entityType: Pick<EntityType, "allOf">,

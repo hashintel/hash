@@ -1,18 +1,19 @@
-import getGitignorePatterns from "eslint-config-flat-gitignore";
 import { Array, pipe } from "effect";
+import getGitignorePatterns from "eslint-config-flat-gitignore";
 import { sheriff, type SheriffSettings } from "eslint-config-sheriff";
-import type { PartialDeep } from "type-fest";
 
 import { builtIn } from "./builtIn.js";
 import { importPlugin } from "./import.js";
+import { jsdoc } from "./jsdoc.js";
 import { react } from "./react.js";
 import { stylistic } from "./stylistic.js";
-import type { NoRestrictedImportsRule } from "./types.js";
 import { typescript } from "./typescript.js";
-import { jsdoc } from "./jsdoc.js";
 import { unicorn } from "./unicorn.js";
-import { vitest } from "./vitest.js";
 import { projectIgnoreFiles, type ESConfig } from "./utils.js";
+import { vitest } from "./vitest.js";
+
+import type { NoRestrictedImportsRule } from "./types.js";
+import type { PartialDeep } from "type-fest";
 
 export type * from "./types.js";
 

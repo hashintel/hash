@@ -1,22 +1,23 @@
-import { Checkbox } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
-import { TbArrowRight, TbTrash } from "react-icons/tb";
 
-import { Button } from "../../../../../../components/button";
-import { IconButton } from "../../../../../../components/icon-button";
-import { Input } from "../../../../../../components/input";
-import { Section, SectionList } from "../../../../../../components/section";
-import { Select, type SelectOption } from "../../../../../../components/select";
-import type { SubView } from "../../../../../../components/sub-view/types";
-import { Switch } from "../../../../../../components/switch";
-import { PlaceIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { Checkbox, Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+import { validateEntityName } from "@hashintel/petrinaut-core";
+
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { validateEntityName } from "../../../../../../../core/validation/entity-name";
+import { Button } from "../../../../../../components/button";
+import { Input } from "../../../../../../components/input";
+import { Section, SectionList } from "../../../../../../components/section";
+import { Select, type SelectOption } from "../../../../../../components/select";
+import { Switch } from "../../../../../../components/switch";
+import { PlaceIcon } from "../../../../../../constants/entity-icons";
+import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { useDraftField } from "../../../../../../hooks/use-draft-field";
 import { usePlacePropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const errorMessageStyle = css({
   fontSize: "xs",
@@ -52,18 +53,13 @@ const PlaceMainContent: React.FC = () => {
     petriNetDefinition: { differentialEquations, types: availableTypes },
   } = use(SDCPNContext);
 
-  // State for name input validation
-  const [nameInputValue, setNameInputValue] = useState(place.name);
-  const [nameError, setNameError] = useState<string | null>(null);
+  const nameField = useDraftField({
+    sourceId: place.id,
+    sourceValue: place.name,
+  });
   const [isNameInputFocused, setIsNameInputFocused] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const rootDivRef = useRef<HTMLDivElement>(null);
-
-  // Update local state when place changes
-  useEffect(() => {
-    setNameInputValue(place.name);
-    setNameError(null);
-  }, [place.id, place.name]);
 
   // Handle clicks outside when name input is focused
   useEffect(() => {
@@ -91,17 +87,18 @@ const PlaceMainContent: React.FC = () => {
   }, [isNameInputFocused]);
 
   const handleNameBlur = () => {
-    const result = validateEntityName(nameInputValue);
+    const result = validateEntityName(nameField.value);
 
     if (!result.valid) {
-      setNameError(result.error);
+      nameField.setError(result.error);
       return;
     }
 
-    setNameError(null);
+    nameField.setError(null);
     if (result.name !== place.name) {
-      updatePlace(place.id, (existingPlace) => {
-        existingPlace.name = result.name;
+      updatePlace({
+        placeId: place.id,
+        update: { name: result.name },
       });
     }
   };
@@ -117,12 +114,11 @@ const PlaceMainContent: React.FC = () => {
         <Section title="Name">
           <Input
             ref={nameInputRef}
-            value={nameInputValue}
+            value={nameField.value}
             onChange={(event) => {
-              setNameInputValue(event.target.value);
-              // Clear error when user starts typing
-              if (nameError) {
-                setNameError(null);
+              nameField.setValue(event.target.value);
+              if (nameField.error) {
+                nameField.setError(null);
               }
             }}
             onFocus={() => setIsNameInputFocused(true)}
@@ -131,10 +127,12 @@ const PlaceMainContent: React.FC = () => {
               handleNameBlur();
             }}
             disabled={isReadOnly}
-            hasError={!!nameError}
+            hasError={!!nameField.error}
             tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           />
-          {nameError && <div className={errorMessageStyle}>{nameError}</div>}
+          {nameField.error && (
+            <div className={errorMessageStyle}>{nameField.error}</div>
+          )}
         </Section>
 
         <Section
@@ -149,12 +147,15 @@ const PlaceMainContent: React.FC = () => {
             value={place.colorId ?? ""}
             onValueChange={(value) => {
               const newType = value === "" ? null : value;
-              updatePlace(place.id, (existingPlace) => {
-                existingPlace.colorId = newType;
-                // Disable dynamics if type is being set to null
-                if (newType === null && existingPlace.dynamicsEnabled) {
-                  existingPlace.dynamicsEnabled = false;
-                }
+              updatePlace({
+                placeId: place.id,
+                update: {
+                  colorId: newType,
+                  dynamicsEnabled:
+                    newType === null && place.dynamicsEnabled
+                      ? false
+                      : place.dynamicsEnabled,
+                },
               });
             }}
             options={[
@@ -214,7 +215,7 @@ const PlaceMainContent: React.FC = () => {
                     }
                   }
                 }}
-                suffix={<TbArrowRight />}
+                suffix={<Icon name="arrowRight" />}
               >
                 Jump to Type
               </Button>
@@ -243,18 +244,24 @@ const PlaceMainContent: React.FC = () => {
                       : undefined
               }
               onCheckedChange={(checked) => {
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.dynamicsEnabled = checked;
-                  if (checked) {
-                    // Auto-select first available diff eq if none selected or previous no longer exists
-                    const currentIsValid = availableDiffEqs.some(
-                      (eq) => eq.id === existingPlace.differentialEquationId,
-                    );
-                    if (!currentIsValid && availableDiffEqs.length > 0) {
-                      existingPlace.differentialEquationId =
-                        availableDiffEqs[0]!.id;
-                    }
+                const update: {
+                  dynamicsEnabled: boolean;
+                  differentialEquationId?: string | null;
+                } = { dynamicsEnabled: checked };
+
+                if (checked) {
+                  // Auto-select first available diff eq if none selected or previous no longer exists
+                  const currentIsValid = availableDiffEqs.some(
+                    (eq) => eq.id === place.differentialEquationId,
+                  );
+                  if (!currentIsValid && availableDiffEqs.length > 0) {
+                    update.differentialEquationId = availableDiffEqs[0]!.id;
                   }
+                }
+
+                updatePlace({
+                  placeId: place.id,
+                  update,
                 });
               }}
             />
@@ -277,8 +284,9 @@ const PlaceMainContent: React.FC = () => {
                 <Select
                   value={place.differentialEquationId ?? undefined}
                   onValueChange={(value) => {
-                    updatePlace(place.id, (existingPlace) => {
-                      existingPlace.differentialEquationId = value;
+                    updatePlace({
+                      placeId: place.id,
+                      update: { differentialEquationId: value },
                     });
                   }}
                   options={availableDiffEqs.map((eq) => ({
@@ -303,7 +311,7 @@ const PlaceMainContent: React.FC = () => {
                           });
                         }
                       }}
-                      suffix={<TbArrowRight />}
+                      suffix={<Icon name="arrowRight" />}
                     >
                       Jump to Differential Equation
                     </Button>
@@ -321,8 +329,9 @@ const PlaceMainContent: React.FC = () => {
               checked={!!place.showAsInitialState}
               disabled={isReadOnly}
               onCheckedChange={(checked) => {
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.showAsInitialState = checked === true;
+                updatePlace({
+                  placeId: place.id,
+                  update: { showAsInitialState: checked === true },
                 });
               }}
             />
@@ -344,16 +353,17 @@ const DeletePlaceAction: React.FC = () => {
   const { removePlace } = use(MutationContext);
 
   return (
-    <IconButton
+    <Button
       aria-label="Delete"
       size="xs"
-      colorScheme="red"
-      onClick={() => removePlace(place.id)}
+      variant="ghost"
+      tone="error"
+      iconName="trash"
+      onClick={() => removePlace({ placeId: place.id })}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-    >
-      <TbTrash />
-    </IconButton>
+      tooltipDisplay="inline"
+    />
   );
 };
 

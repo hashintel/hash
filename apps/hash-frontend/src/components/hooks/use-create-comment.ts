@@ -1,14 +1,15 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { useCallback } from "react";
+
+import { createComment } from "../../graphql/queries/comment.queries";
+import { getPageComments } from "../../graphql/queries/page.queries";
 
 import type {
   CreateCommentMutation,
   CreateCommentMutationVariables,
 } from "../../graphql/api-types.gen";
-import { createComment } from "../../graphql/queries/comment.queries";
-import { getPageComments } from "../../graphql/queries/page.queries";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 export const useCreateComment = (pageId: EntityId) => {
   const [createCommentFn, { loading }] = useMutation<

@@ -3,19 +3,24 @@ import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "@xyflow/react/dist/style.css";
 import "./index.css";
-
 import { type FunctionComponent, useEffect, useMemo } from "react";
 
-import type { PetrinautDocHandle } from "../core/handle";
-import { createPetrinaut, type Petrinaut as Instance } from "../core/instance";
-import type { LspWorkerFactory } from "../core/lsp/transport";
-import type { WorkerFactory } from "../core/simulation";
-import type { MinimalNetMetadata, SDCPN } from "../core/types/sdcpn";
-import type { NetManagement } from "../react/net-management-context";
+import {
+  createPetrinaut,
+  type PetrinautDocHandle,
+  type Petrinaut as Instance,
+  type LspWorkerFactory,
+  type WorkerFactory,
+  type MinimalNetMetadata,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
 import { PetrinautProvider } from "../react/petrinaut-provider";
-import type { ViewportAction } from "./types/viewport-action";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
+
+import type { NetManagement } from "../react/net-management-context";
+import type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
   handle: PetrinautDocHandle;
@@ -37,6 +42,11 @@ export type PetrinautProps = {
    * dist consumers.
    */
   simulationWorkerFactory?: WorkerFactory;
+  /**
+   * Optional Monte Carlo worker factory. Hosts can provide this when they need
+   * to own worker bundling for the Experiments tab.
+   */
+  monteCarloWorkerFactory?: WorkerFactory;
   /**
    * Optional language-server worker factory. Same intent as
    * `simulationWorkerFactory` — host-supplied LSP worker, typically via
@@ -66,6 +76,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   loadPetriNet = noop,
   viewportActions,
   simulationWorkerFactory,
+  monteCarloWorkerFactory,
   lspWorkerFactory,
 }) => {
   const instance = useMemo<Instance>(
@@ -88,6 +99,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
       instance={instance}
       netManagement={netManagement}
       simulationWorkerFactory={simulationWorkerFactory}
+      monteCarloWorkerFactory={monteCarloWorkerFactory}
       lspWorkerFactory={lspWorkerFactory}
     >
       <MonacoProvider>

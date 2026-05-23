@@ -1,15 +1,17 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
-import type { EditorProps, Monaco } from "@monaco-editor/react";
-import type { editor } from "monaco-editor";
 import { Suspense, use, useRef } from "react";
+
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { Tooltip } from "../components/tooltip";
 import { CODE_FONT_FAMILY } from "../constants/ui";
 import { MonacoContext } from "./context";
 
+import type { EditorProps, Monaco } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
+
 // -- Single-line constants ----------------------------------------------------
 
-const SINGLE_LINE_HEIGHT = 18;
+const SINGLE_LINE_HEIGHT = 16;
 const SINGLE_LINE_PADDING_Y = 6;
 const SINGLE_LINE_TOTAL_HEIGHT = SINGLE_LINE_HEIGHT + SINGLE_LINE_PADDING_Y * 2;
 
@@ -214,6 +216,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         contextmenu: false,
         suggest: { showStatusBar: false },
         ...options,
+        tabFocusMode: true,
       }
     : {
         minimap: { enabled: false },

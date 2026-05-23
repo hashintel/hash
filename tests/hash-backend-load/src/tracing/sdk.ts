@@ -1,6 +1,4 @@
-import type { Context as OtelContext, Span } from "@opentelemetry/api";
 import opentelemetry, { ROOT_CONTEXT, SpanKind } from "@opentelemetry/api";
-import type { SpanOptions } from "@opentelemetry/api/build/src/trace/SpanOptions";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import {
   defaultResource,
@@ -10,6 +8,8 @@ import { NodeSDK } from "@opentelemetry/sdk-node";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
 import type { ActionFn, Context } from "../types";
+import type { Context as OtelContext, Span } from "@opentelemetry/api";
+import type { SpanOptions } from "@opentelemetry/api/build/src/trace/SpanOptions";
 
 class Tracing {
   #scenario?: { context: OtelContext; span: Span };

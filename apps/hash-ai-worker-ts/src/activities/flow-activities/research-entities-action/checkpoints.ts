@@ -1,17 +1,19 @@
-import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
 import proto from "@temporalio/proto";
 
+import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
 import { heartbeatTimeoutSeconds } from "../../../shared/heartbeats.js";
-import type {
-  FlowSignal,
-  ResearchActionCheckpointState,
-} from "../../../shared/signals.js";
 import { researchActionCheckpointSignal } from "../../../shared/signals.js";
 import { logger } from "../../shared/activity-logger.js";
 import { getTemporalClient } from "../../shared/get-flow-context.js";
 import { flushLogs, logProgress } from "../../shared/log-progress.js";
+
+import type {
+  FlowSignal,
+  ResearchActionCheckpointState,
+} from "../../../shared/signals.js";
 import type { CoordinatingAgentState } from "./shared/coordinators.js";
 
 /**

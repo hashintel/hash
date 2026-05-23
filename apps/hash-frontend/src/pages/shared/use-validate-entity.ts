@@ -1,24 +1,26 @@
 import { useLazyQuery } from "@apollo/client";
+import { useCallback } from "react";
+
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+
+import { validateEntityQuery } from "../../graphql/queries/knowledge/entity.queries";
+
+import type {
+  ValidateEntityQuery,
+  ValidateEntityQueryVariables,
+} from "../../graphql/api-types.gen";
 import type {
   BaseUrl,
   PropertyObjectWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { ArrayItemNumberMismatch } from "@local/hash-graph-client/api";
 import type {
   EntityValidationReport,
   ObjectValidationReport,
   ValueValidationError,
 } from "@local/hash-graph-sdk/validation";
-import { useCallback } from "react";
-
-import type {
-  ValidateEntityQuery,
-  ValidateEntityQueryVariables,
-} from "../../graphql/api-types.gen";
-import { validateEntityQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 type MinimalPropertyValueValidationReport = {
   type: "valueValidation";

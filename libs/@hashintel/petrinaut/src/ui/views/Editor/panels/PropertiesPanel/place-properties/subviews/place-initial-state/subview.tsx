@@ -1,15 +1,17 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { LuLayers2 } from "react-icons/lu";
-import { TbTrash } from "react-icons/tb";
 
-import { NumberInput } from "../../../../../../../components/number-input";
-import type { SubView } from "../../../../../../../components/sub-view/types";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
+import { Button } from "../../../../../../../components/button";
+import { NumberInput } from "../../../../../../../components/number-input";
+import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { usePlacePropertiesContext } from "../../context";
 import { InitialStateEditor } from "./initial-state-editor";
+
+import type { SubView } from "../../../../../../../components/sub-view/types";
 
 const fieldLabelStyle = css({
   fontWeight: "medium",
@@ -21,22 +23,6 @@ const simpleStateContainerStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "[8px]",
-});
-
-const clearButtonStyle = css({
-  fontSize: "[10px]",
-  padding: "[1px 4px]",
-  border: "[1px solid rgba(0, 0, 0, 0.2)]",
-  borderRadius: "[3px]",
-  backgroundColor: "neutral.s00",
-  cursor: "pointer",
-  color: "[#666]",
-  display: "flex",
-  alignItems: "center",
-  gap: "[4px]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
-  },
 });
 
 const scenarioInfoStyle = css({
@@ -54,20 +40,23 @@ const scenarioInfoStyle = css({
  * Only shown when not in simulation mode and there's data to clear.
  */
 const ClearStateHeaderAction: React.FC = () => {
-  const { place } = usePlacePropertiesContext();
+  const { place, placeType } = usePlacePropertiesContext();
   const { state, initialMarking, setInitialMarking, selectedScenarioId } =
     use(SimulationContext);
   const isSimulationNotRun = state === "NotRun";
 
   // Check if there's data to clear
-  const currentMarking = initialMarking.get(place.id);
-  const hasData = currentMarking && currentMarking.count > 0;
+  const currentMarking = initialMarking[place.id];
+  const hasData =
+    typeof currentMarking === "number"
+      ? currentMarking > 0
+      : (currentMarking?.length ?? 0) > 0;
 
   // When a scenario is selected, show a label instead of the clear button.
   if (selectedScenarioId) {
     return (
       <div className={scenarioInfoStyle}>
-        <LuLayers2 size={12} />
+        <Icon name="layer" size="xs" />
         Defined by scenario
       </div>
     );
@@ -79,17 +68,22 @@ const ClearStateHeaderAction: React.FC = () => {
   }
 
   const handleClear = () => {
-    setInitialMarking(place.id, {
-      values: new Float64Array(0),
-      count: 0,
-    });
+    setInitialMarking(
+      place.id,
+      placeType && placeType.elements.length > 0 ? [] : 0,
+    );
   };
 
   return (
-    <button type="button" onClick={handleClear} className={clearButtonStyle}>
-      <TbTrash size={12} color="#a72b2bff" />
+    <Button
+      onClick={handleClear}
+      variant="subtle"
+      tone="error"
+      size="xxs"
+      iconName="trash"
+    >
       Clear state
-    </button>
+    </Button>
   );
 };
 
@@ -102,7 +96,7 @@ const PlaceInitialStateContent: React.FC = () => {
 
   const { initialMarking, setInitialMarking, selectedScenarioId } =
     use(SimulationContext);
-  const { currentFrame, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   // Determine if simulation is running (has frames)
   const hasSimulationFrames = totalFrames > 0;
@@ -124,12 +118,11 @@ const PlaceInitialStateContent: React.FC = () => {
 
     // Uncolored places: show token count
     let tokenCount = 0;
-    if (hasSimulationFrames && currentFrame) {
-      const placeState = currentFrame.places[place.id];
-      tokenCount = placeState?.count ?? 0;
+    if (hasSimulationFrames && currentFrameReader) {
+      tokenCount = currentFrameReader.getPlaceTokenCount(place.id);
     } else {
-      const marking = initialMarking.get(place.id);
-      tokenCount = marking?.count ?? 0;
+      const marking = initialMarking[place.id];
+      tokenCount = typeof marking === "number" ? marking : 0;
     }
 
     return (
@@ -151,12 +144,12 @@ const PlaceInitialStateContent: React.FC = () => {
   if (!placeType || placeType.elements.length === 0) {
     // Get token count from simulation frame or initial marking
     let currentTokenCount = 0;
-    if (hasSimulationFrames && currentFrame) {
-      const placeState = currentFrame.places[place.id];
-      currentTokenCount = placeState?.count ?? 0;
+    if (hasSimulationFrames && currentFrameReader) {
+      currentTokenCount = currentFrameReader.getPlaceTokenCount(place.id);
     } else {
-      const currentMarking = initialMarking.get(place.id);
-      currentTokenCount = currentMarking?.count ?? 0;
+      const currentMarking = initialMarking[place.id];
+      currentTokenCount =
+        typeof currentMarking === "number" ? currentMarking : 0;
     }
 
     return (
@@ -171,10 +164,7 @@ const PlaceInitialStateContent: React.FC = () => {
               0,
               Number.parseInt(event.target.value, 10) || 0,
             );
-            setInitialMarking(place.id, {
-              values: new Float64Array(0), // Empty array for places without type
-              count,
-            });
+            setInitialMarking(place.id, count);
           }}
           disabled={hasSimulationFrames}
           tooltip={hasSimulationFrames ? UI_MESSAGES.READ_ONLY_MODE : undefined}

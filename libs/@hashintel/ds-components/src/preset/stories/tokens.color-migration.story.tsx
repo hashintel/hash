@@ -1,12 +1,14 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { Box, VStack } from "@hashintel/ds-helpers/jsx";
-import type { Token } from "@hashintel/ds-helpers/tokens";
-import { token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 import { ThemeState, useLadleContext } from "@ladle/react";
 
-import type { SolidStep } from "./_types";
+import { css } from "@hashintel/ds-helpers/css";
+import { Box, VStack } from "@hashintel/ds-helpers/jsx";
+import { token } from "@hashintel/ds-helpers/tokens";
+
 import figmaGray from "./figma-gray-reference.json";
+
+import type { SolidStep } from "./_types";
+import type { Token } from "@hashintel/ds-helpers/tokens";
+import type { Story } from "@ladle/react";
 
 type FigmaStep = keyof typeof figmaGray.gray;
 

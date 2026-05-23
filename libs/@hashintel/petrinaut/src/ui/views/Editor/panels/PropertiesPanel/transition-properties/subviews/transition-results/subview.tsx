@@ -1,26 +1,24 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
-import { IconButton } from "../../../../../../../components/icon-button";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+import { generateDefaultTransitionKernelCode } from "@hashintel/petrinaut-core";
+
+import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { Button } from "../../../../../../../components/button";
 import { Menu } from "../../../../../../../components/menu";
-import type { SubView } from "../../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { generateDefaultTransitionKernelCode } from "../../../../../../../../core/default-codes";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
-import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { useTransitionPropertiesContext } from "../../context";
+
+import type { SubView } from "../../../../../../../components/sub-view/types";
 
 const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
-});
-
-const aiIconStyle = css({
-  fontSize: "base",
 });
 
 const contentStyle = css({
@@ -59,9 +57,14 @@ const ResultsHeaderAction: React.FC = () => {
     <Menu
       animated
       trigger={
-        <IconButton aria-label="More options" size="xs">
-          <TbDotsVertical />
-        </IconButton>
+        <Button
+          aria-label="More options"
+          tooltip="More options"
+          tooltipDisplay="inline"
+          variant="ghost"
+          size="xs"
+          iconName="ellipsisVertical"
+        />
       }
       items={[
         {
@@ -104,9 +107,14 @@ const ResultsHeaderAction: React.FC = () => {
               })
               .filter((o) => o !== null);
 
-            updateTransition(transition.id, (existingTransition) => {
-              existingTransition.transitionKernelCode =
-                generateDefaultTransitionKernelCode(inputs, outputs);
+            updateTransition({
+              transitionId: transition.id,
+              update: {
+                transitionKernelCode: generateDefaultTransitionKernelCode(
+                  inputs,
+                  outputs,
+                ),
+              },
             });
           },
         },
@@ -118,7 +126,7 @@ const ResultsHeaderAction: React.FC = () => {
               display="inline"
             >
               <div className={aiMenuItemStyle}>
-                <TbSparkles className={aiIconStyle} />
+                <Icon name="sparkles" size="sm" />
                 Generate with AI
               </div>
             </Tooltip>
@@ -160,8 +168,9 @@ const TransitionResultsContent: React.FC = () => {
         value={transition.transitionKernelCode || ""}
         height="100%"
         onChange={(value) => {
-          updateTransition(transition.id, (existingTransition) => {
-            existingTransition.transitionKernelCode = value ?? "";
+          updateTransition({
+            transitionId: transition.id,
+            update: { transitionKernelCode: value ?? "" },
           });
         }}
         options={{ readOnly: isReadOnly }}

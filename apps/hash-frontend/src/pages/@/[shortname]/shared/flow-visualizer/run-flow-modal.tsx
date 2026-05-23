@@ -1,24 +1,11 @@
 import { useMutation } from "@apollo/client";
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
-import { Select, TextField } from "@hashintel/design-system";
-import { typedValues } from "@local/advanced-types/typed-entries";
-import type { CreateFlowScheduleInput } from "@local/hash-isomorphic-utils/flows/schedule-types";
-import type {
-  FlowActionDefinitionId,
-  FlowDefinition,
-  FlowTrigger,
-  OutputDefinition,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
 import { Box, FormControlLabel, Switch, Typography } from "@mui/material";
 import { format } from "date-fns";
-import type { PropsWithChildren } from "react";
 import { useState } from "react";
 
-import type {
-  CreateFlowScheduleMutation,
-  CreateFlowScheduleMutationVariables,
-} from "../../../../../graphql/api-types.gen";
+import { Select, TextField } from "@hashintel/design-system";
+import { typedValues } from "@local/advanced-types/typed-entries";
+
 import { createFlowScheduleMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { Button } from "../../../../../shared/ui/button";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
@@ -28,8 +15,23 @@ import { GoogleAuthProvider } from "../../../../shared/integrations/google/googl
 import { WebSelector } from "../../../../shared/web-selector";
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
 import { inputHeight } from "./run-flow-modal/shared/dimensions";
-import type { FormState, LocalPayload } from "./run-flow-modal/types";
 import { isSupportedPayloadKind } from "./run-flow-modal/types";
+
+import type {
+  CreateFlowScheduleMutation,
+  CreateFlowScheduleMutationVariables,
+} from "../../../../../graphql/api-types.gen";
+import type { FormState, LocalPayload } from "./run-flow-modal/types";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { CreateFlowScheduleInput } from "@local/hash-isomorphic-utils/flows/schedule-types";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+  FlowTrigger,
+  OutputDefinition,
+  StepOutput,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { PropsWithChildren } from "react";
 
 const InputWrapper = ({
   children,

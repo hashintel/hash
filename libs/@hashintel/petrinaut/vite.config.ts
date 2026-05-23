@@ -1,6 +1,5 @@
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { replacePlugin } from "rolldown/plugins";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 
@@ -10,11 +9,10 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
 export default defineConfig(({ command }) => ({
   build: {
     lib: {
-      // Four entry points: the legacy `main` (back-compat), plus the
-      // three-way split per RFC 0001. Each emits its own JS + dts bundle.
+      // Three entry points: the legacy `main` (back-compat), plus the
+      // React/UI split per RFC 0001. Each emits its own JS + dts bundle.
       entry: {
         main: "src/main.ts",
-        core: "src/core/index.ts",
         react: "src/react/index.ts",
         ui: "src/ui/index.ts",
       },
@@ -29,15 +27,11 @@ export default defineConfig(({ command }) => ({
       external: [
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
+        /^@hashintel\/petrinaut-core(\/.*)?$/,
         "react",
         "react-dom",
         "@xyflow/react",
         "@babel/standalone",
-        // Externalising prevents the dts bundler from inlining the upstream
-        // namespace-merged types (`DocumentUri`, `Position`, …) which trigger
-        // sxzz/rolldown-plugin-dts#209 "Duplicated export" errors when
-        // reached from multiple entries.
-        "vscode-languageserver-types",
         // Pure-CJS dep pulled in transitively by @tanstack/react-form →
         // @tanstack/react-store. Rolldown can't safely transform its
         // `require("react")` when react is external, so it falls back to a
@@ -59,30 +53,6 @@ export default defineConfig(({ command }) => ({
     cssMinify: "esbuild",
   },
 
-  define: {
-    "process.versions": JSON.stringify({ pnp: undefined }),
-  },
-
-  worker: {
-    plugins: () => [
-      replacePlugin({
-        // Consumer Webpack config seem to `define` `typeof window` to `"object"` by default.
-        // This causes crashes in Web Workers, since `window` is not defined there.
-        "typeof window": '"undefined"',
-        // TypeScript's internals reference process, process.versions.pnp, etc.
-        "typeof process": "'undefined'",
-        "typeof process.versions.pnp": "'undefined'",
-      }),
-      // Separate replacePlugin for call-expression replacements:
-      // 1. Empty end delimiter because \b can't match after `)` (non-word → non-word).
-      // 2. Negative lookbehind skips the function definition (`function isNodeLikeSystem`).
-      replacePlugin(
-        { "isNodeLikeSystem()": "false" },
-        { delimiters: ["(?<!function )\\b", ""] },
-      ),
-    ],
-  },
-
   plugins: [
     esmExternalRequirePlugin({
       external: [
@@ -90,12 +60,20 @@ export default defineConfig(({ command }) => ({
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
-        "typescript",
       ],
     }),
 
     react(),
     babel({
+      // Default excludes node_modules. Also skip workspace `dist/` outputs:
+      // those are pre-bundled JSX → `jsx(tag, { ref, ... })` calls, and
+      // React Compiler flags the inlined `ref` prop as "Passing a ref to a
+      // function" (the rule fires for `jsx()` calls but not raw JSX).
+      exclude: [
+        /[\\/]node_modules[\\/]/,
+        /[\\/]libs[\\/]@hashintel[\\/][^\\/]+[\\/]dist[\\/]/,
+        /^0rolldown\/runtime\.js$/,
+      ],
       presets: [
         reactCompilerPreset({
           target: "19",

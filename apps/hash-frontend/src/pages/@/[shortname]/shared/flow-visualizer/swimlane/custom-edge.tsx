@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import type { EdgeProps } from "reactflow";
 import { BaseEdge, getSmoothStepPath } from "reactflow";
 
-import type { EdgeData } from "../shared/types";
 import { edgeColor } from "./shared/edge-styles";
+
+import type { EdgeData } from "../shared/types";
+import type { EdgeProps } from "reactflow";
 
 export const CustomEdge = ({
   id,

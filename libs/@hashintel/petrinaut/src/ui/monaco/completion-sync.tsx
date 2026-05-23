@@ -1,10 +1,15 @@
-import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 import { Suspense, use, useEffect } from "react";
-import type { CompletionItem } from "vscode-languageserver-types";
-import { CompletionItemKind, Position } from "vscode-languageserver-types";
+
+import {
+  type CompletionItem,
+  CompletionItemKind,
+  Position,
+} from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../react/lsp/context";
 import { MonacoContext } from "./context";
+
+import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
 /**
  * Map LSP `CompletionItemKind` to Monaco `CompletionItemKind`.

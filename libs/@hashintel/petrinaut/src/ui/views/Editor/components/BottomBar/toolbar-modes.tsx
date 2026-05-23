@@ -1,16 +1,15 @@
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { FaChevronDown, FaRegHand } from "react-icons/fa6";
-import { LuMousePointerClick } from "react-icons/lu";
-import { TbCirclePlus2, TbSquarePlus2 } from "react-icons/tb";
 
+import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { Menu, type MenuItem } from "../../../../components/menu";
+import { ToolbarButton } from "./toolbar-button";
+import { ToolbarDivider } from "./toolbar-divider";
+
 import type {
   CursorMode,
   EditorState,
 } from "../../../../../react/state/editor-context";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { ToolbarButton } from "./toolbar-button";
-import { ToolbarDivider } from "./toolbar-divider";
 
 type EditorEditionMode = EditorState["editionMode"];
 
@@ -74,7 +73,7 @@ const CursorModeDropdown: React.FC<{
   const items: MenuItem[] = [
     {
       id: "select",
-      icon: <LuMousePointerClick size={14} />,
+      icon: <Icon name="cursor" size="sm" />,
       label: "Select",
       suffix: "V",
       selected: cursorMode === "select",
@@ -82,7 +81,7 @@ const CursorModeDropdown: React.FC<{
     },
     {
       id: "pan",
-      icon: <FaRegHand size={14} />,
+      icon: <Icon name="hand" size="sm" />,
       label: "Pan",
       suffix: "H",
       selected: cursorMode === "pan",
@@ -98,12 +97,8 @@ const CursorModeDropdown: React.FC<{
           className={cursorTriggerStyle({ isActive: editionMode === "cursor" })}
           aria-label="Cursor mode"
         >
-          {cursorMode === "pan" ? (
-            <FaRegHand size={16} />
-          ) : (
-            <LuMousePointerClick size={16} />
-          )}
-          <FaChevronDown size={7} className={dropdownArrowStyle} />
+          {cursorMode === "pan" ? <Icon name="hand" /> : <Icon name="cursor" />}
+          <Icon name="chevronDown" size="xs" className={dropdownArrowStyle} />
         </button>
       }
       items={items}
@@ -151,7 +146,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
               event.dataTransfer.setData("application/reactflow", "place");
             }}
           >
-            <TbCirclePlus2 />
+            <Icon name="circlePlus" />
           </ToolbarButton>
           <ToolbarButton
             tooltip="Add Transition (T)"
@@ -165,7 +160,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
               event.dataTransfer.setData("application/reactflow", "transition");
             }}
           >
-            <TbSquarePlus2 />
+            <Icon name="squarePlus" />
           </ToolbarButton>
         </>
       )}

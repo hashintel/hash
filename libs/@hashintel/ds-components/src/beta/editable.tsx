@@ -1,10 +1,12 @@
 "use client";
 
 import { Editable } from "@ark-ui/react/editable";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { editableSlotRecipe } from "./editable.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(editableSlotRecipe);
 

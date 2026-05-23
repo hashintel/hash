@@ -1,11 +1,11 @@
-import type OpenAI from "openai";
+import { getOpenAiClient } from "./shared/openai-client";
 
 import type {
   IsGenerationAvailableResponse,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import { getOpenAiClient } from "./shared/openai-client";
+import type OpenAI from "openai";
 
 export const isGenerationAvailableResolver: ResolverFn<
   Promise<IsGenerationAvailableResponse>,

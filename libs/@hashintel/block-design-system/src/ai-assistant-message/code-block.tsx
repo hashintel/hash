@@ -1,5 +1,3 @@
-import { CheckIcon } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   Button,
@@ -12,12 +10,16 @@ import {
   styled,
 } from "@mui/material";
 import { lowlight } from "lowlight";
-import type { FormEvent, FunctionComponent } from "react";
 import { forwardRef, useCallback, useEffect, useMemo, useState } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
+import { CheckIcon } from "@hashintel/design-system";
+
 import { CodePenIcon, CopyIcon } from "../icons/icons";
+
+import type { SxProps, Theme } from "@mui/material";
+import type { FormEvent, FunctionComponent } from "react";
 
 const supportedLanguages = lowlight.listLanguages();
 

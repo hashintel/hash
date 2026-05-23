@@ -1,17 +1,17 @@
+import { processCodegenParameters } from "../parameters.js";
+import { TypeDependencyMap } from "./shared.js";
+
+import type {
+  CodegenParameters,
+  ProcessedCodegenParameters,
+} from "../parameters.js";
+import type { JsonSchema, LogLevel } from "../shared.js";
 import type {
   DataType,
   EntityType,
   PropertyType,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-
-import type {
-  CodegenParameters,
-  ProcessedCodegenParameters,
-} from "../parameters.js";
-import { processCodegenParameters } from "../parameters.js";
-import type { JsonSchema, LogLevel } from "../shared.js";
-import { TypeDependencyMap } from "./shared.js";
 
 export class InitializeContext {
   readonly parameters: ProcessedCodegenParameters;

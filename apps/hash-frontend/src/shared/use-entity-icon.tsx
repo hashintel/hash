@@ -1,21 +1,23 @@
-import type {
-  Entity,
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { Box } from "@mui/material";
+import { useMemo } from "react";
+
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Box } from "@mui/material";
-import type { JSX, ReactElement } from "react";
-import { useMemo } from "react";
 
 import { CanvasIcon } from "./icons/canvas-icon";
 import { PageLightIcon } from "./icons/page-light-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
+
+import type {
+  Entity,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { JSX, ReactElement } from "react";
 
 /**
  * @todo H-1978 set SVG icons on system entity types and remove these overrides

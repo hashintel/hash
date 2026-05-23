@@ -1,10 +1,12 @@
 "use client";
 
 import { DatePicker } from "@ark-ui/react/date-picker";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { datePickerSlotRecipe } from "./date-picker.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(datePickerSlotRecipe);
 

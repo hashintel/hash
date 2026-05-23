@@ -1,9 +1,11 @@
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import opentelemetry from "@opentelemetry/api";
 
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+
 import { getUserByKratosIdentityId } from "../graph/user";
-import type { SessionContext } from "./kratos";
 import { getOryKratosClient } from "./kratos";
+
+import type { SessionContext } from "./kratos";
 
 export const reauthenticate = async (
   session: SessionContext["session"],

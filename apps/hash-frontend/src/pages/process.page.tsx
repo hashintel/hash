@@ -1,7 +1,8 @@
 import dynamic from "next/dynamic";
 
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
+
+import type { NextPageWithLayout } from "../shared/layout";
 
 // Petrinaut uses Web Workers, Canvas, Monaco Editor, and the TypeScript compiler
 // which all require browser APIs — must not be server-rendered.

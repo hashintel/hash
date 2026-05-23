@@ -1,14 +1,16 @@
 import { faClose } from "@fortawesome/free-solid-svg-icons";
+import { Box, Stack, Typography } from "@mui/material";
+import { bindDialog } from "material-ui-popup-state/hooks";
+import { Fragment } from "react";
+
 import {
   Button,
   FontAwesomeIcon,
   IconButton,
   Modal,
 } from "@hashintel/design-system";
-import { Box, Stack, Typography } from "@mui/material";
+
 import type { PopupState } from "material-ui-popup-state/hooks";
-import { bindDialog } from "material-ui-popup-state/hooks";
-import { Fragment } from "react";
 
 type CountItemProps = { label: string; count: number };
 

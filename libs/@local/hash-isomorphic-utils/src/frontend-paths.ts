@@ -1,5 +1,6 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { splitEntityId } from "@blockprotocol/type-system";
+
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const generateEntityPath = (params: {
   entityId: EntityId;

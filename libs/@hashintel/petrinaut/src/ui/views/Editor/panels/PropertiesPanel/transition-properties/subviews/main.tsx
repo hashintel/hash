@@ -1,26 +1,22 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useState } from "react";
-import { TbTrash } from "react-icons/tb";
+import { use } from "react";
 
+import { css } from "@hashintel/ds-helpers/css";
+import { validateDisplayName } from "@hashintel/petrinaut-core";
+
+import { MutationContext } from "../../../../../../../react/state/mutation-context";
 import {
   ArcItem,
   ArcList,
   type PlaceOption,
 } from "../../../../../../components/arc-item";
-import { IconButton } from "../../../../../../components/icon-button";
-import { Input } from "../../../../../../components/input";
+import { Button } from "../../../../../../components/button";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
-import type { SubView } from "../../../../../../components/sub-view/types";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { MutationContext } from "../../../../../../../react/state/mutation-context";
-import { validateDisplayName } from "../../../../../../../core/validation/display-name";
 import { useTransitionPropertiesContext } from "../context";
 
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-});
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const emptyArcMessageStyle = css({
   fontSize: "xs",
@@ -35,15 +31,9 @@ const TransitionMainContent: React.FC = () => {
     isReadOnly,
     updateTransition,
     onArcWeightUpdate,
+    updateArcPlace,
+    removeArc,
   } = useTransitionPropertiesContext();
-
-  const [nameInputValue, setNameInputValue] = useState(transition.name);
-  const [nameError, setNameError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setNameInputValue(transition.name);
-    setNameError(null);
-  }, [transition.id, transition.name]);
 
   const getPlaceColor = (placeId: string): string | undefined => {
     const place = places.find((pl) => pl.id === placeId);
@@ -83,13 +73,11 @@ const TransitionMainContent: React.FC = () => {
     oldPlaceId: string,
     newPlaceId: string,
   ) => {
-    updateTransition(transition.id, (existingTransition) => {
-      const arc = existingTransition.inputArcs.find(
-        (ar) => ar.placeId === oldPlaceId,
-      );
-      if (arc) {
-        arc.placeId = newPlaceId;
-      }
+    updateArcPlace({
+      transitionId: transition.id,
+      arcDirection: "input",
+      oldPlaceId,
+      newPlaceId,
     });
   };
 
@@ -97,69 +85,46 @@ const TransitionMainContent: React.FC = () => {
     oldPlaceId: string,
     newPlaceId: string,
   ) => {
-    updateTransition(transition.id, (existingTransition) => {
-      const arc = existingTransition.outputArcs.find(
-        (ar) => ar.placeId === oldPlaceId,
-      );
-      if (arc) {
-        arc.placeId = newPlaceId;
-      }
+    updateArcPlace({
+      transitionId: transition.id,
+      arcDirection: "output",
+      oldPlaceId,
+      newPlaceId,
     });
   };
 
   const handleDeleteInputArc = (placeId: string) => {
-    updateTransition(transition.id, (existingTransition) => {
-      const index = existingTransition.inputArcs.findIndex(
-        (arc) => arc.placeId === placeId,
-      );
-      if (index !== -1) {
-        existingTransition.inputArcs.splice(index, 1);
-      }
+    removeArc({
+      transitionId: transition.id,
+      arcDirection: "input",
+      placeId,
     });
   };
 
   const handleDeleteOutputArc = (placeId: string) => {
-    updateTransition(transition.id, (existingTransition) => {
-      const index = existingTransition.outputArcs.findIndex(
-        (arc) => arc.placeId === placeId,
-      );
-      if (index !== -1) {
-        existingTransition.outputArcs.splice(index, 1);
-      }
+    removeArc({
+      transitionId: transition.id,
+      arcDirection: "output",
+      placeId,
     });
   };
 
   return (
     <SectionList>
       <Section title="Name">
-        <Input
-          value={nameInputValue}
-          onChange={(event) => {
-            setNameInputValue(event.target.value);
-            if (nameError) {
-              setNameError(null);
-            }
-          }}
-          onBlur={() => {
-            const result = validateDisplayName(nameInputValue);
-
-            if (!result.valid) {
-              setNameError(result.error);
-              return;
-            }
-
-            setNameError(null);
-            if (result.name !== transition.name) {
-              updateTransition(transition.id, (existingTransition) => {
-                existingTransition.name = result.name;
-              });
-            }
-          }}
+        <DraftFieldInput
+          sourceId={transition.id}
+          sourceValue={transition.name}
+          validate={validateDisplayName}
+          onCommit={(name) =>
+            updateTransition({
+              transitionId: transition.id,
+              update: { name },
+            })
+          }
           disabled={isReadOnly}
-          hasError={!!nameError}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
-        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
       </Section>
 
       <Section title="Input Arcs" collapsible>
@@ -186,12 +151,12 @@ const TransitionMainContent: React.FC = () => {
                     handleInputArcPlaceChange(arc.placeId, newPlaceId)
                   }
                   onWeightChange={(weight) => {
-                    onArcWeightUpdate(
-                      transition.id,
-                      "input",
-                      arc.placeId,
+                    onArcWeightUpdate({
+                      transitionId: transition.id,
+                      arcDirection: "input",
+                      placeId: arc.placeId,
                       weight,
-                    );
+                    });
                   }}
                   onDelete={() => handleDeleteInputArc(arc.placeId)}
                 />
@@ -225,12 +190,12 @@ const TransitionMainContent: React.FC = () => {
                     handleOutputArcPlaceChange(arc.placeId, newPlaceId)
                   }
                   onWeightChange={(weight) => {
-                    onArcWeightUpdate(
-                      transition.id,
-                      "output",
-                      arc.placeId,
+                    onArcWeightUpdate({
+                      transitionId: transition.id,
+                      arcDirection: "output",
+                      placeId: arc.placeId,
                       weight,
-                    );
+                    });
                   }}
                   onDelete={() => handleDeleteOutputArc(arc.placeId)}
                 />
@@ -248,16 +213,17 @@ const DeleteTransitionAction: React.FC = () => {
   const { removeTransition } = use(MutationContext);
 
   return (
-    <IconButton
+    <Button
       aria-label="Delete"
       size="xs"
-      colorScheme="red"
-      onClick={() => removeTransition(transition.id)}
+      variant="ghost"
+      tone="error"
+      iconName="trash"
+      onClick={() => removeTransition({ transitionId: transition.id })}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-    >
-      <TbTrash />
-    </IconButton>
+      tooltipDisplay="inline"
+    />
   );
 };
 

@@ -1,18 +1,20 @@
 import { use } from "react";
-import { TbPlus, TbTrash } from "react-icons/tb";
 
-import { IconButton } from "../../../../../components/icon-button";
-import type { SubView } from "../../../../../components/sub-view/types";
-import { TokenTypeIcon } from "../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { Icon } from "@hashintel/ds-components";
+
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { Button } from "../../../../../components/button";
+import { TokenTypeIcon } from "../../../../../constants/entity-icons";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import {
   RowMenu,
   createFilterableListSubView,
 } from "./filterable-list-sub-view";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
@@ -71,11 +73,14 @@ export const TypesSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <IconButton
+    <Button
       aria-label="Add token type"
       size="xs"
+      variant="ghost"
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add token type"}
+      tooltipDisplay="inline"
+      iconName="plus"
       onClick={() => {
         const existingColors = types.map((type) => type.displayColor);
         const existingNames = types.map((type) => type.name);
@@ -99,9 +104,7 @@ export const TypesSectionHeaderAction: React.FC = () => {
         addType(newType);
         selectItem({ type: "type", id });
       }}
-    >
-      <TbPlus />
-    </IconButton>
+    />
   );
 };
 
@@ -115,10 +118,10 @@ const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <TbTrash />,
+          icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
-          onClick: () => removeType(item.id),
+          onClick: () => removeType({ typeId: item.id }),
         },
       ]}
     />

@@ -1,18 +1,21 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { TbPlus, TbX } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
-import { IconButton } from "../../../../../../components/icon-button";
+import { css, cva } from "@hashintel/ds-helpers/css";
+import { validateDisplayName } from "@hashintel/petrinaut-core";
+
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { Button } from "../../../../../../components/button";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
-import type { SubView } from "../../../../../../components/sub-view/types";
 import { Tooltip } from "../../../../../../components/tooltip";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { ColorSelect } from "../color-select";
 import { useTypePropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const emptyDimensionsStyle = css({
   fontSize: "xs",
@@ -110,6 +113,11 @@ const dimensionNameInputStyle = css({
   flex: "[1]",
 });
 
+type ElementNameInputState = Record<
+  string,
+  { sourceName: string; value: string }
+>;
+
 const slugifyToIdentifier = (input: string): string => {
   let slug = input
     .toLowerCase()
@@ -130,10 +138,26 @@ const slugifyToIdentifier = (input: string): string => {
 };
 
 const TypeMainContent: React.FC = () => {
-  const { type, updateType } = useTypePropertiesContext();
+  const {
+    type,
+    updateType,
+    addTypeElement,
+    updateTypeElement,
+    removeTypeElement,
+    moveTypeElement,
+  } = useTypePropertiesContext();
   const isDisabled = useIsReadOnly();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [elementNameInputs, setElementNameInputs] =
+    useState<ElementNameInputState>({});
+
+  const getElementNameInputValue = (
+    element: (typeof type.elements)[number],
+  ): string => {
+    const input = elementNameInputs[element.elementId];
+    return input?.sourceName === element.name ? input.value : element.name;
+  };
 
   const handleAddElement = () => {
     let maxNumber = 0;
@@ -153,20 +177,32 @@ const TypeMainContent: React.FC = () => {
       name: `dimension_${nextNumber}`,
       type: "real" as const,
     };
-    updateType(type.id, (existingType) => {
-      existingType.elements.push(newElement);
+    addTypeElement({
+      typeId: type.id,
+      element: newElement,
     });
   };
 
   const handleUpdateElementName = (elementId: string, newName: string) => {
-    updateType(type.id, (existingType) => {
-      for (const element of existingType.elements) {
-        if (element.elementId === elementId) {
-          element.name = newName;
-          break;
-        }
-      }
-    });
+    const element = type.elements.find((item) => item.elementId === elementId);
+    if (!element) {
+      return;
+    }
+    setElementNameInputs((currentInputs) => ({
+      ...currentInputs,
+      [elementId]: { sourceName: element.name, value: newName },
+    }));
+  };
+
+  const setElementNameInput = (elementId: string, name: string) => {
+    const element = type.elements.find((item) => item.elementId === elementId);
+    if (!element) {
+      return;
+    }
+    setElementNameInputs((currentInputs) => ({
+      ...currentInputs,
+      [elementId]: { sourceName: element.name, value: name },
+    }));
   };
 
   const handleBlurElementName = (elementId: string, currentName: string) => {
@@ -184,26 +220,23 @@ const TypeMainContent: React.FC = () => {
       return;
     }
 
-    if (currentName !== slugifiedName) {
-      updateType(type.id, (existingType) => {
-        for (const element of existingType.elements) {
-          if (element.elementId === elementId) {
-            element.name = slugifiedName;
-            break;
-          }
-        }
+    setElementNameInput(elementId, slugifiedName);
+
+    const element = type.elements.find((item) => item.elementId === elementId);
+
+    if (element?.name !== slugifiedName) {
+      updateTypeElement({
+        typeId: type.id,
+        elementId,
+        update: { name: slugifiedName },
       });
     }
   };
 
   const handleDeleteElement = (elementId: string) => {
-    updateType(type.id, (existingType) => {
-      const index = existingType.elements.findIndex(
-        (elem) => elem.elementId === elementId,
-      );
-      if (index !== -1) {
-        existingType.elements.splice(index, 1);
-      }
+    removeTypeElement({
+      typeId: type.id,
+      elementId,
     });
   };
 
@@ -224,12 +257,14 @@ const TypeMainContent: React.FC = () => {
       return;
     }
 
-    updateType(type.id, (existingType) => {
-      const [draggedElement] = existingType.elements.splice(draggedIndex, 1);
-      if (draggedElement) {
-        existingType.elements.splice(dropIndex, 0, draggedElement);
-      }
-    });
+    const draggedElement = type.elements[draggedIndex];
+    if (draggedElement) {
+      moveTypeElement({
+        typeId: type.id,
+        elementId: draggedElement.elementId,
+        toIndex: dropIndex,
+      });
+    }
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
@@ -242,13 +277,16 @@ const TypeMainContent: React.FC = () => {
   return (
     <SectionList>
       <Section title="Name">
-        <Input
-          value={type.name}
-          onChange={(event) => {
-            updateType(type.id, (existingType) => {
-              existingType.name = event.target.value;
-            });
-          }}
+        <DraftFieldInput
+          sourceId={type.id}
+          sourceValue={type.name}
+          validate={validateDisplayName}
+          onCommit={(name) =>
+            updateType({
+              typeId: type.id,
+              update: { name },
+            })
+          }
           disabled={isDisabled}
           tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
@@ -259,8 +297,9 @@ const TypeMainContent: React.FC = () => {
           <ColorSelect
             value={type.displayColor}
             onChange={(color) => {
-              updateType(type.id, (existingType) => {
-                existingType.displayColor = color;
+              updateType({
+                typeId: type.id,
+                update: { displayColor: color },
               });
             }}
             disabled={isDisabled}
@@ -272,17 +311,17 @@ const TypeMainContent: React.FC = () => {
         title="Dimensions"
         tooltip="A type is an ordered tuple of real-valued dimensions. The index of each dimension determines its position in the token vector."
         renderHeaderAction={() => (
-          <IconButton
+          <Button
             onClick={handleAddElement}
             disabled={isDisabled}
             size="xs"
             variant="ghost"
-            colorScheme="brand"
+            tone="brand"
             aria-label="Add dimension"
-            tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          >
-            <TbPlus />
-          </IconButton>
+            tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add dimension"}
+            tooltipDisplay="inline"
+            iconName="plus"
+          />
         )}
       >
         {type.elements.length === 0 ? (
@@ -322,7 +361,7 @@ const TypeMainContent: React.FC = () => {
 
                 {/* Name input */}
                 <Input
-                  value={element.name}
+                  value={getElementNameInputValue(element)}
                   onChange={(event) => {
                     handleUpdateElementName(
                       element.elementId,
@@ -342,19 +381,23 @@ const TypeMainContent: React.FC = () => {
                 />
 
                 {/* Delete button */}
-                <IconButton
+                <Button
                   onClick={() => {
                     handleDeleteElement(element.elementId);
                   }}
                   disabled={isDisabled || type.elements.length === 1}
                   size="xxs"
                   variant="ghost"
-                  colorScheme="red"
+                  tone="error"
                   aria-label={`Delete dimension ${element.name}`}
-                  tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                >
-                  <TbX />
-                </IconButton>
+                  tooltip={
+                    isDisabled
+                      ? UI_MESSAGES.READ_ONLY_MODE
+                      : `Delete dimension ${element.name}`
+                  }
+                  tooltipDisplay="inline"
+                  iconName="close"
+                />
               </div>
             ))}
           </div>

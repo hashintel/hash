@@ -1,16 +1,16 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useMemo, useState } from "react";
-import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
-import { TbArrowRight } from "react-icons/tb";
-import type { Diagnostic } from "vscode-languageserver-types";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import { Icon, Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import type { SelectionItemType } from "../../../../../../core/types/selection";
+import { parseDocumentUri } from "../../../../../monaco/editor-paths";
+
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",
@@ -118,23 +118,8 @@ const simulationErrorTextStyle = css({
 });
 
 const editButtonStyle = css({
-  fontSize: "[11px]",
-  paddingY: "1",
-  paddingX: "2",
-  border: "[1px solid rgba(211, 47, 47, 0.3)]",
-  borderRadius: "sm",
-  backgroundColor: "neutral.s00",
-  cursor: "pointer",
-  color: "red.s60",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
   marginTop: "1",
   alignSelf: "flex-start",
-});
-
-const editButtonIconStyle = css({
-  fontSize: "xs",
 });
 
 type EntityType = "transition" | "differential-equation";
@@ -261,8 +246,7 @@ const DiagnosticsContent: React.FC = () => {
         <div className={simulationErrorStyle}>
           <pre className={simulationErrorTextStyle}>{simulationError}</pre>
           {errorItemId && (
-            <button
-              type="button"
+            <Button
               onClick={() => {
                 setGlobalMode("edit");
                 const itemType = getItemType(errorItemId);
@@ -271,10 +255,14 @@ const DiagnosticsContent: React.FC = () => {
                 }
               }}
               className={editButtonStyle}
+              iconName="arrowRight"
+              tone="error"
+              variant="subtle"
+              size="sm"
+              iconPosition="right"
             >
               Edit Item
-              <TbArrowRight className={editButtonIconStyle} />
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -296,9 +284,9 @@ const DiagnosticsContent: React.FC = () => {
               className={entityButtonStyle}
             >
               {isExpanded ? (
-                <FaChevronDown size={10} />
+                <Icon name="chevronDown" size="xs" />
               ) : (
-                <FaChevronRight size={10} />
+                <Icon name="chevronRight" size="xs" />
               )}
               <span>{entityLabel}</span>
               <span className={errorCountStyle}>

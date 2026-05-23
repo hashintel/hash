@@ -1,4 +1,3 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
 import {
@@ -8,6 +7,8 @@ import {
 } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
 import { PlaybackSettingsMenu } from "./playback-settings-menu";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "BottomBar / PlaybackSettingsMenu",
@@ -50,7 +51,7 @@ const PlaybackSettingsMenuStory = ({
         error: null,
         errorItemId: null,
         parameterValues: {},
-        initialMarking: new Map(),
+        initialMarking: {},
         selectedScenarioId: null,
         scenarioParameterValues: {},
         compiledScenarioResult: null,
@@ -76,7 +77,7 @@ const PlaybackSettingsMenuStory = ({
     >
       <PlaybackContext
         value={{
-          currentFrame: null,
+          currentFrameReader: null,
           currentViewedFrame: null,
           playbackState: "Stopped",
           currentFrameIndex: 0,

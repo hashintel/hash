@@ -3,12 +3,6 @@
  */
 
 import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
-
-import type {
   ActivePropertyValue,
   ActivePropertyValueWithMetadata,
   AdminPropertyValue,
@@ -221,6 +215,11 @@ import type {
   WorkflowStateProperties,
   WorkflowStatePropertiesWithMetadata,
 } from "./shared.js";
+import type {
+  Confidence,
+  ObjectMetadata,
+  PropertyProvenance,
+} from "@blockprotocol/type-system";
 
 export type {
   ActivePropertyValue,

@@ -1,15 +1,16 @@
-import type { DistributiveField } from "@local/advanced-types/distribute";
-import type { QueryEntitiesRequest } from "@local/hash-graph-client/api";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { getGraphApiClient, getSystemAccountId } from "./api";
+
+import type { DistributiveField } from "@local/advanced-types/distribute";
+import type { QueryEntitiesRequest } from "@local/hash-graph-client/api";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { User } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const getUser = async (params: {
   authentication: AuthenticationContext;

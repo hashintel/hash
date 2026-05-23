@@ -1,3 +1,22 @@
+import {
+  ActivityCancellationType,
+  continueAsNew,
+  executeChild,
+  proxyActivities,
+  workflowInfo,
+} from "@temporalio/workflow";
+
+import { splitEntityId } from "@blockprotocol/type-system";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
+
+import type {
+  createAiActivities,
+  createGraphActivities,
+} from "./activities.js";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -7,30 +26,13 @@ import type {
   MachineId,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { splitEntityId } from "@blockprotocol/type-system";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-graph-sdk/embeddings";
-import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
-import {
-  ActivityCancellationType,
-  continueAsNew,
-  executeChild,
-  proxyActivities,
-  workflowInfo,
-} from "@temporalio/workflow";
 import type { OpenAI } from "openai";
-
-import type {
-  createAiActivities,
-  createGraphActivities,
-} from "./activities.js";
-import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   cancellationType: ActivityCancellationType.WAIT_CANCELLATION_COMPLETED,

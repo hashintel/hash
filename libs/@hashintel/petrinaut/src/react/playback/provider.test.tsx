@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SimulationContext,
   type SimulationContextValue,
-  type SimulationFrame,
+  type SimulationFrameReader,
 } from "../simulation/context";
 import { PlaybackContext, type PlaybackContextValue } from "./context";
 import { PlaybackProvider } from "./provider";
@@ -19,25 +19,28 @@ import { PlaybackProvider } from "./provider";
 
 type MockSimulationContextOverrides = Partial<SimulationContextValue>;
 
-/**
- * Creates a minimal SimulationFrame for testing.
- */
-function createMockFrame(time: number): SimulationFrame {
+function createMockFrameReader(number: number): SimulationFrameReader {
   return {
-    time,
-    places: {},
-    transitions: {},
-    buffer: new Float64Array(),
+    number,
+    time: number * 0.01,
+    getPlaceTokenCount: () => 0,
+    getPlaceTokenValues: () => null,
+    getPlaceTokens: () => [],
+    getTransitionState: () => null,
+    toFrameState: () => ({
+      number,
+      places: {},
+    }),
   };
 }
 
 /**
- * Creates mock frames array for testing.
+ * Creates mock frame readers array for testing.
  */
-function createMockFrames(frameCount: number): SimulationFrame[] {
-  const frames: SimulationFrame[] = [];
+function createMockFrameReaders(frameCount: number): SimulationFrameReader[] {
+  const frames: SimulationFrameReader[] = [];
   for (let i = 0; i < frameCount; i++) {
-    frames.push(createMockFrame(i * 0.01));
+    frames.push(createMockFrameReader(i));
   }
   return frames;
 }
@@ -45,7 +48,7 @@ function createMockFrames(frameCount: number): SimulationFrame[] {
 /**
  * Creates mock getFrame, getAllFrames, and getFramesInRange functions for testing.
  */
-function createMockFrameAccessors(frames: SimulationFrame[]) {
+function createMockFrameAccessors(frames: SimulationFrameReader[]) {
   return {
     getFrame: vi.fn((index: number) => Promise.resolve(frames[index] ?? null)),
     getAllFrames: vi.fn(() => Promise.resolve(frames)),
@@ -64,7 +67,7 @@ function createMockSimulationContext(
   overrides: MockSimulationContextOverrides = {},
   frameCount = 0,
 ): SimulationContextValue {
-  const frames = createMockFrames(frameCount);
+  const frames = createMockFrameReaders(frameCount);
   const frameAccessors = createMockFrameAccessors(frames);
 
   return {
@@ -72,7 +75,7 @@ function createMockSimulationContext(
     error: null,
     errorItemId: null,
     parameterValues: {},
-    initialMarking: new Map(),
+    initialMarking: {},
     selectedScenarioId: null,
     scenarioParameterValues: {},
     compiledScenarioResult: null,
@@ -262,8 +265,8 @@ describe("PlaybackProvider", () => {
     });
   });
 
-  describe("auto-switch play mode", () => {
-    it("should switch to viewOnly when simulation completes", () => {
+  describe("effective play mode", () => {
+    it("should expose viewOnly when simulation completes", () => {
       const simulationContext = createMockSimulationContext(
         {
           state: "Running",
@@ -286,7 +289,8 @@ describe("PlaybackProvider", () => {
         ),
       );
 
-      // Should auto-switch to viewOnly
+      // The exposed mode is derived from simulation state. The stored
+      // requested mode remains computeMax so a later reset can run again.
       expect(getPlaybackValue().playMode).toBe("viewOnly");
     });
   });
@@ -435,7 +439,7 @@ describe("PlaybackProvider", () => {
       );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
-      // Should auto-switch to viewOnly due to Complete state
+      // Should expose viewOnly due to Complete state
       expect(getPlaybackValue().playMode).toBe("viewOnly");
 
       // Try to switch to compute mode
@@ -467,15 +471,27 @@ describe("PlaybackProvider", () => {
   });
 
   describe("play action", () => {
-    it("should do nothing when no simulation exists", () => {
-      const simulationContext = createMockSimulationContext();
+    it("should initialize and start the simulation when no run exists", async () => {
+      const initializeFn = vi.fn().mockResolvedValue(undefined);
+      const runFn = vi.fn();
+      const simulationContext = createMockSimulationContext({
+        initialize: initializeFn,
+        run: runFn,
+      });
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
-      act(() => {
-        void getPlaybackValue().play();
+      await act(async () => {
+        await getPlaybackValue().play();
       });
 
-      expect(getPlaybackValue().playbackState).toBe("Stopped");
+      expect(initializeFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxFramesAhead: 10000,
+          batchSize: 500,
+        }),
+      );
+      expect(runFn).toHaveBeenCalled();
+      expect(getPlaybackValue().playbackState).toBe("Playing");
     });
 
     it("should do nothing when simulation has no frames", () => {
@@ -578,6 +594,65 @@ describe("PlaybackProvider", () => {
 
       // run should not have been called
       expect(runFn).not.toHaveBeenCalled();
+    });
+
+    it("should use compute backpressure when playing after complete/reset", async () => {
+      const initializeFn = vi.fn().mockResolvedValue(undefined);
+      const runFn = vi.fn();
+      const { getPlaybackValue, rerender } = renderPlaybackProvider(
+        createMockSimulationContext(
+          {
+            state: "Running",
+            initialize: initializeFn,
+            run: runFn,
+          },
+          10,
+        ),
+      );
+
+      expect(getPlaybackValue().playMode).toBe("computeMax");
+
+      await act(async () => {
+        rerender(
+          createMockSimulationContext(
+            {
+              state: "Complete",
+              initialize: initializeFn,
+              run: runFn,
+            },
+            10,
+          ),
+        );
+        await Promise.resolve();
+      });
+
+      expect(getPlaybackValue().playMode).toBe("viewOnly");
+
+      await act(async () => {
+        rerender(
+          createMockSimulationContext({
+            state: "NotRun",
+            initialize: initializeFn,
+            run: runFn,
+          }),
+        );
+        await Promise.resolve();
+      });
+
+      expect(getPlaybackValue().playMode).toBe("computeMax");
+
+      await act(async () => {
+        await getPlaybackValue().play();
+      });
+
+      expect(initializeFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxFramesAhead: 10000,
+          batchSize: 500,
+        }),
+      );
+      expect(runFn).toHaveBeenCalled();
+      expect(getPlaybackValue().playMode).toBe("computeMax");
     });
   });
 
@@ -741,7 +816,6 @@ describe("PlaybackProvider", () => {
 
       expect(getPlaybackValue().currentViewedFrame).not.toBeNull();
       expect(getPlaybackValue().currentViewedFrame!.number).toBe(0);
-      expect(getPlaybackValue().currentViewedFrame!.time).toBe(0);
 
       // Move to frame 5
       await act(async () => {
@@ -750,12 +824,11 @@ describe("PlaybackProvider", () => {
       });
 
       expect(getPlaybackValue().currentViewedFrame!.number).toBe(5);
-      expect(getPlaybackValue().currentViewedFrame!.time).toBeCloseTo(0.05);
     });
   });
 
   describe("auto-start playback", () => {
-    it("should auto-start playback when simulation transitions to Running", () => {
+    it("should not auto-start playback when simulation transitions to Running", () => {
       const simulationContext = createMockSimulationContext(
         {
           state: "NotRun",
@@ -777,7 +850,7 @@ describe("PlaybackProvider", () => {
         ),
       );
 
-      expect(getPlaybackValue().playbackState).toBe("Playing");
+      expect(getPlaybackValue().playbackState).toBe("Stopped");
     });
   });
 });

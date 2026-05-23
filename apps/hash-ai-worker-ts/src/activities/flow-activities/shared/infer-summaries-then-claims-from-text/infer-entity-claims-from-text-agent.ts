@@ -1,36 +1,38 @@
+import dedent from "dedent";
+
+import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+
+import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
+import { logger } from "../../../shared/activity-logger.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../../shared/get-llm-response.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { stringify } from "../../../shared/stringify.js";
+import { checkIfWorkerShouldStop } from "../../research-entities-action/shared/check-if-worker-should-stop.js";
+
+import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
+import type {
+  LlmMessage,
+  LlmMessageToolResultContent,
+  LlmUserMessage,
+} from "../../../shared/get-llm-response/llm-message.js";
+import type {
+  LlmParams,
+  LlmToolDefinition,
+} from "../../../shared/get-llm-response/types.js";
+import type { Claim } from "../claims.js";
+import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 import type {
   EntityId,
   EntityUuid,
   ProvidedEntityEditionProvenance,
   Url,
 } from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import type { Claim as ClaimEntity } from "@local/hash-isomorphic-utils/system-types/claim";
-import dedent from "dedent";
-
-import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
-import { logger } from "../../../shared/activity-logger.js";
-import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
-import { getFlowContext } from "../../../shared/get-flow-context.js";
-import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type {
-  LlmMessage,
-  LlmMessageToolResultContent,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type {
-  LlmParams,
-  LlmToolDefinition,
-} from "../../../shared/get-llm-response/types.js";
-import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { stringify } from "../../../shared/stringify.js";
-import { checkIfWorkerShouldStop } from "../../research-entities-action/shared/check-if-worker-should-stop.js";
-import type { Claim } from "../claims.js";
-import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 
 const toolNames = ["submitClaims"] as const;
 

@@ -3,11 +3,13 @@
 /* eslint-disable import/no-extraneous-dependencies, @typescript-eslint/no-empty-object-type, react/no-array-index-key */
 
 import { TagsInput, useTagsInputContext } from "@ark-ui/react/tags-input";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { XIcon } from "lucide-react";
-import type { ComponentProps } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { tagsInputSlotRecipe } from "./tags-input.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(tagsInputSlotRecipe);
 
@@ -40,8 +42,10 @@ export const Label = withContext(TagsInput.Label, "label");
 
 export { TagsInputContext as Context } from "@ark-ui/react/tags-input";
 
-export interface TagsInputItemsProps
-  extends Omit<ItemProps, "value" | "index"> {}
+export interface TagsInputItemsProps extends Omit<
+  ItemProps,
+  "value" | "index"
+> {}
 
 export const Items = (props: TagsInputItemsProps) => {
   const context = useTagsInputContext();

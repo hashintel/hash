@@ -1,5 +1,17 @@
 # @hashintel/ds-helpers
 
+## 0.2.1
+
+### Patch Changes
+
+- [#8732](https://github.com/hashintel/hash/pull/8732) [`c0c9498`](https://github.com/hashintel/hash/commit/c0c9498dc4f648814a80fc6e8df3598ff8a108ac) Thanks [@lunelson](https://github.com/lunelson)! - Publish the generated `styled-system` files in the package tarball.
+
+## 0.2.0
+
+### Minor Changes
+
+- [#8670](https://github.com/hashintel/hash/pull/8670) [`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa) Thanks [@lunelson](https://github.com/lunelson)! - Expose preset-owned `tokens` and `semanticTokens` from `@hashintel/ds-components/tokens` in place of the old `./theme` export, and add generated `@hashintel/ds-helpers/recipes` exports for recipe consumers.
+
 ## 0.1.2
 
 ### Patch Changes

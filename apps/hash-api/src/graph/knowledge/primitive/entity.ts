@@ -4,39 +4,14 @@ import {
   type QueryTemporalAxesUnresolved,
   type Subgraph,
 } from "@blockprotocol/graph";
-import type {
-  BaseUrl,
-  Entity,
-  EntityEditionId,
-  EntityId,
-  LinkData,
-  PropertyObject,
-  PropertyPatchOperation,
-  TeamId,
-  TypeIdsAndPropertiesForEntity,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   extractDraftIdFromEntityId,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
-import type { Subtype } from "@local/advanced-types/subtype";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type {
-  AllFilter,
-  CountEntitiesParams,
-  DiffEntityResult,
-  Filter,
-  HasPermissionForEntitiesParams,
-} from "@local/hash-graph-client";
-import type {
-  UserPermissions,
-  UserPermissionsOnEntities,
-} from "@local/hash-graph-sdk/authorization";
 import {
   type CreateEntityParameters,
   type DiffEntityInput,
@@ -53,22 +28,48 @@ import {
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { ActionName } from "@rust/hash-graph-authorization/types";
-import type { TraversalPath } from "@rust/hash-graph-store/types";
 
-import type {
-  EntityDefinition,
-  LinkedEntityDefinition,
-} from "../../../graphql/api-types.gen";
 import * as GraphQlError from "../../../graphql/error";
 import { linkedTreeFlatten } from "../../../util";
-import type { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
 import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
+
+import type {
+  EntityDefinition,
+  LinkedEntityDefinition,
+} from "../../../graphql/api-types.gen";
+import type { ImpureGraphFunction } from "../../context-types";
+import type {
+  BaseUrl,
+  Entity,
+  EntityEditionId,
+  EntityId,
+  LinkData,
+  PropertyObject,
+  PropertyPatchOperation,
+  TeamId,
+  TypeIdsAndPropertiesForEntity,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { Subtype } from "@local/advanced-types/subtype";
+import type {
+  AllFilter,
+  CountEntitiesParams,
+  DiffEntityResult,
+  Filter,
+  HasPermissionForEntitiesParams,
+} from "@local/hash-graph-client";
+import type {
+  UserPermissions,
+  UserPermissionsOnEntities,
+} from "@local/hash-graph-sdk/authorization";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { ActionName } from "@rust/hash-graph-authorization/types";
+import type { TraversalPath } from "@rust/hash-graph-store/types";
 
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = PropertyObject[BaseUrl];
@@ -166,8 +167,8 @@ export const countEntities: ImpureGraphFunction<
   graphApi.countEntities(actorId, params).then(({ data }) => data);
 
 type GetLatestEntityByIdFunction<
-  Properties extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 > = ImpureGraphFunction<
   {
     entityId: EntityId;
@@ -195,8 +196,8 @@ type GetLatestEntityByIdFunction<
  *   fault
  */
 export const getLatestEntityById = async <
-  Properties extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 >(
   ...args: Parameters<GetLatestEntityByIdFunction<Properties>>
 ): ReturnType<GetLatestEntityByIdFunction<Properties>> => {

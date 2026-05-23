@@ -1,6 +1,7 @@
 import { ark } from "@ark-ui/react/factory";
-import { Stack, type StackProps, styled } from "@hashintel/ds-helpers/jsx";
 import { type ComponentProps, forwardRef } from "react";
+
+import { Stack, type StackProps, styled } from "@hashintel/ds-helpers/jsx";
 
 import { skeletonRecipe } from "./skeleton.recipe";
 

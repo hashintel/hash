@@ -1,8 +1,11 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
+import { css } from "@hashintel/ds-helpers/css";
+
+import { Button } from "./button";
 import { Dialog } from "./dialog";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components / Dialog",
@@ -16,63 +19,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // -- Shared styles -----------------------------------------------------------
-
-const triggerButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: "[32px]",
-  paddingX: "[12px]",
-  fontSize: "[14px]",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  backgroundColor: "[white]",
-  border: "[1px solid]",
-  borderColor: "neutral.s30",
-  borderRadius: "[8px]",
-  cursor: "pointer",
-  _hover: {
-    backgroundColor: "neutral.s10",
-  },
-});
-
-const cancelButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingX: "[12px]",
-  paddingY: "[8px]",
-  fontSize: "[14px]",
-  fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "[#484848]",
-  backgroundColor: "[white]",
-  border: "[1px solid rgba(0, 0, 0, 0.09)]",
-  borderRadius: "[10px]",
-  cursor: "pointer",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
-  },
-});
-
-const confirmButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingX: "[12px]",
-  paddingY: "[8px]",
-  fontSize: "[14px]",
-  fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "[white]",
-  backgroundColor: "[#484848]",
-  border: "none",
-  borderRadius: "[10px]",
-  cursor: "pointer",
-  _hover: {
-    backgroundColor: "[#3a3a3a]",
-  },
-});
 
 const bodyTextStyle = css({
   fontSize: "[14px]",
@@ -89,9 +35,7 @@ export const Default: Story = {
   render: () => (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <button type="button" className={triggerButtonStyle}>
-          Open Dialog
-        </button>
+        <Button variant="subtle">Open Dialog</Button>
       </Dialog.Trigger>
       <Dialog.Content>
         <Dialog.Card>
@@ -104,13 +48,9 @@ export const Default: Story = {
         </Dialog.Card>
         <Dialog.Footer>
           <Dialog.CloseTrigger asChild>
-            <button type="button" className={cancelButtonStyle}>
-              Cancel
-            </button>
+            <Button variant="subtle">Cancel</Button>
           </Dialog.CloseTrigger>
-          <button type="button" className={confirmButtonStyle}>
-            Confirm
-          </button>
+          <Button variant="solid">Confirm</Button>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog.Root>
@@ -122,9 +62,7 @@ export const WithDescription: Story = {
   render: () => (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <button type="button" className={triggerButtonStyle}>
-          Open Dialog
-        </button>
+        <Button variant="subtle">Open Dialog</Button>
       </Dialog.Trigger>
       <Dialog.Content>
         <Dialog.Card>
@@ -140,13 +78,11 @@ export const WithDescription: Story = {
         </Dialog.Card>
         <Dialog.Footer>
           <Dialog.CloseTrigger asChild>
-            <button type="button" className={cancelButtonStyle}>
-              Cancel
-            </button>
+            <Button variant="subtle">Cancel</Button>
           </Dialog.CloseTrigger>
-          <button type="button" className={confirmButtonStyle}>
+          <Button variant="solid" tone="error">
             Delete
-          </button>
+          </Button>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog.Root>
@@ -158,9 +94,7 @@ export const WithoutFooter: Story = {
   render: () => (
     <Dialog.Root>
       <Dialog.Trigger asChild>
-        <button type="button" className={triggerButtonStyle}>
-          Open Dialog
-        </button>
+        <Button variant="subtle">Open Dialog</Button>
       </Dialog.Trigger>
       <Dialog.Content>
         <Dialog.Card>
@@ -184,13 +118,9 @@ const ControlledDialogExample = () => {
 
   return (
     <>
-      <button
-        type="button"
-        className={triggerButtonStyle}
-        onClick={() => setOpen(true)}
-      >
+      <Button variant="subtle" onClick={() => setOpen(true)}>
         Open Controlled Dialog
-      </button>
+      </Button>
       <Dialog.Root
         open={open}
         onOpenChange={(details) => setOpen(details.open)}
@@ -207,17 +137,11 @@ const ControlledDialogExample = () => {
           </Dialog.Card>
           <Dialog.Footer>
             <Dialog.CloseTrigger asChild>
-              <button type="button" className={cancelButtonStyle}>
-                Cancel
-              </button>
+              <Button variant="subtle">Cancel</Button>
             </Dialog.CloseTrigger>
-            <button
-              type="button"
-              className={confirmButtonStyle}
-              onClick={() => setOpen(false)}
-            >
+            <Button variant="solid" onClick={() => setOpen(false)}>
               Done
-            </button>
+            </Button>
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Root>
@@ -235,9 +159,7 @@ export const OpenByDefault: Story = {
   render: () => (
     <Dialog.Root defaultOpen>
       <Dialog.Trigger asChild>
-        <button type="button" className={triggerButtonStyle}>
-          Re-open Dialog
-        </button>
+        <Button variant="subtle">Re-open Dialog</Button>
       </Dialog.Trigger>
       <Dialog.Content>
         <Dialog.Card>
@@ -252,13 +174,9 @@ export const OpenByDefault: Story = {
         </Dialog.Card>
         <Dialog.Footer>
           <Dialog.CloseTrigger asChild>
-            <button type="button" className={cancelButtonStyle}>
-              Cancel
-            </button>
+            <Button variant="subtle">Cancel</Button>
           </Dialog.CloseTrigger>
-          <button type="button" className={confirmButtonStyle}>
-            Confirm
-          </button>
+          <Button variant="solid">Confirm</Button>
         </Dialog.Footer>
       </Dialog.Content>
     </Dialog.Root>

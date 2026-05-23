@@ -51,9 +51,7 @@ import { preset } from "./src/preset";
 export default defineConfig({
   importMap: "@hashintel/ds-helpers",
   outdir: "../ds-helpers/styled-system",
-  include: [
-    "./src/components/**/*.{ts,tsx}",
-  ],
+  include: ["./src/components/**/*.{ts,tsx}"],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,
@@ -75,7 +73,7 @@ Key points:
 
 With `strictTokens: true`, you must use the exact token names:
 
-| Token Type       | ❌ Invalid             | ✅ Valid                                          |
+| Token Type       | ❌ Invalid            | ✅ Valid                                         |
 | ---------------- | --------------------- | ------------------------------------------------ |
 | Spacing          | `spacing.4`, `"4"`    | `default.4`, `compact.4`, `comfortable.4`        |
 | Radii            | `radius.2`, `md`      | `md.2`, `sm.3`, `lg.full`, `component.button.sm` |
@@ -90,14 +88,14 @@ Token types for stories and public token access should come from `@hashintel/ds-
 Component implementation continues to use the generated styling runtime from `@hashintel/ds-helpers`:
 
 ```tsx
-import { css, cva, cx } from '@hashintel/ds-helpers/css';
-import { Box, Flex, Stack } from '@hashintel/ds-helpers/jsx';
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { Box, Flex, Stack } from "@hashintel/ds-helpers/jsx";
 ```
 
 When you need token lookup helpers or token types, use:
 
 ```ts
-import { token, type Token } from '@hashintel/ds-helpers/tokens';
+import { token, type Token } from "@hashintel/ds-helpers/tokens";
 ```
 
 ## Color Token Naming
@@ -119,6 +117,7 @@ neutral.{white,black}
 Semantic tokens reference core colors:
 
 **Backgrounds (`bg.*`):**
+
 ```
 bg.accent.subtle.{default,hover,active}
 bg.accent.bold.{default,hover,pressed,active}
@@ -130,6 +129,7 @@ bg.status.critical.strong.{default,hover,active}
 ```
 
 **Text (`text.*`):**
+
 ```
 text.{primary,secondary,tertiary,disabled,inverted}
 text.{link,linkHover}
@@ -137,12 +137,14 @@ text.status.{info,success,warning,critical}
 ```
 
 **Borders (`border.*`):**
+
 ```
 border.neutral.{muted,subtle,default,emphasis,hover,active}
 border.status.{info,success,caution,warning,critical}
 ```
 
 **Surfaces (`surface.*`):**
+
 ```
 surface.{default,subtle,muted,emphasis,alt,inverted}
 ```
@@ -167,7 +169,7 @@ When updating components, use this mapping:
 Components use `cva()` for variant-based styling:
 
 ```tsx
-import { cva } from '@hashintel/ds-helpers/css';
+import { cva } from "@hashintel/ds-helpers/css";
 
 const buttonRecipe = cva({
   base: {
@@ -206,15 +208,22 @@ const buttonRecipe = cva({
 Components wrap Ark UI primitives with Panda styling:
 
 ```tsx
-import { Checkbox as ArkCheckbox } from '@ark-ui/react/checkbox';
-import { css } from '@hashintel/ds-helpers/css';
+import { Checkbox as ArkCheckbox } from "@ark-ui/react/checkbox";
+import { css } from "@hashintel/ds-helpers/css";
 
 export const Checkbox = (props) => (
-  <ArkCheckbox.Root className={css({ /* styles */ })} {...props}>
-    <ArkCheckbox.Control className={css({ /* styles */ })}>
-      <ArkCheckbox.Indicator>
-        {/* check icon */}
-      </ArkCheckbox.Indicator>
+  <ArkCheckbox.Root
+    className={css({
+      /* styles */
+    })}
+    {...props}
+  >
+    <ArkCheckbox.Control
+      className={css({
+        /* styles */
+      })}
+    >
+      <ArkCheckbox.Indicator>{/* check icon */}</ArkCheckbox.Indicator>
     </ArkCheckbox.Control>
     <ArkCheckbox.Label>{props.children}</ArkCheckbox.Label>
   </ArkCheckbox.Root>
@@ -223,17 +232,17 @@ export const Checkbox = (props) => (
 
 ## Scripts
 
-| Script | Description |
-| --- | --- |
-| `yarn dev` | Start the primary Ladle-based demo loop |
-| `yarn dev:lib` | Watch the publishable component library build |
-| `yarn codegen` | Generate token source files and `../ds-helpers/styled-system` |
-| `yarn build` | Build the component library entrypoints |
-| `yarn build:ladle` | Build the Ladle demo surface |
-| `yarn lint:eslint` | Lint the publishable package surface |
-| `yarn lint:tsc` | TypeScript type checking |
-| `yarn test:unit` | Run the Vitest unit suites without the Playwright snapshot harness |
-| `yarn test:snapshots` | Build Ladle and run the Playwright snapshot suite |
+| Script                | Description                                                        |
+| --------------------- | ------------------------------------------------------------------ |
+| `yarn dev`            | Start the primary Ladle-based demo loop                            |
+| `yarn dev:lib`        | Watch the publishable component library build                      |
+| `yarn codegen`        | Generate token source files and `../ds-helpers/styled-system`      |
+| `yarn build`          | Build the component library entrypoints                            |
+| `yarn build:ladle`    | Build the Ladle demo surface                                       |
+| `yarn lint:eslint`    | Lint the publishable package surface                               |
+| `yarn lint:tsc`       | TypeScript type checking                                           |
+| `yarn test:unit`      | Run the Vitest unit suites without the Playwright snapshot harness |
+| `yarn test:snapshots` | Build Ladle and run the Playwright snapshot suite                  |
 
 ## File Structure
 

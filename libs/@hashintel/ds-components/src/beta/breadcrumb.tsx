@@ -3,11 +3,13 @@
 /* eslint-disable import/no-extraneous-dependencies */
 
 import { ark } from "@ark-ui/react/factory";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { ChevronRightIcon } from "lucide-react";
-import type { ComponentProps } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { breadcrumbSlotRecipe } from "./breadcrumb.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(breadcrumbSlotRecipe);
 

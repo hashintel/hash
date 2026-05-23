@@ -1,10 +1,12 @@
+import { useRef, useState } from "react";
+
+import { SelectorAutocomplete } from "@hashintel/design-system";
+
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { TypeListSelectorDropdownProps } from "@hashintel/design-system";
-import { SelectorAutocomplete } from "@hashintel/design-system";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent, Ref } from "react";
-import { useRef, useState } from "react";
 
 export type TypeSelectorType = {
   $id: VersionedUrl;

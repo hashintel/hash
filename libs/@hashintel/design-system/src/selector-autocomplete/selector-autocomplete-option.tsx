@@ -1,11 +1,5 @@
-import type {
-  BaseUrl,
-  PropertyObject,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { Box, Paper, Popper, Stack, Tooltip, Typography } from "@mui/material";
 import clsx from "clsx";
-import type { HTMLAttributes, ReactElement } from "react";
 import { useRef, useState } from "react";
 
 import { Chip } from "../chip";
@@ -15,6 +9,13 @@ import { FeatherRegularIcon } from "../icon-feather-regular";
 import { ImageWithCheckedBackground } from "../image-with-checked-background";
 import { OntologyChip } from "../ontology-chip";
 import { parseUrlForOntologyChip } from "../parse-url-for-ontology-chip";
+
+import type {
+  BaseUrl,
+  PropertyObject,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { HTMLAttributes, ReactElement } from "react";
 
 const descriptionPropertyKey =
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/" as BaseUrl;

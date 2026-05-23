@@ -1,19 +1,21 @@
-import type { EntityTypeRootType } from "@blockprotocol/graph";
+import { useEffect } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import {
   deserializeQueryEntityTypeSubgraphResponse,
   type QueryEntityTypeSubgraphParams,
 } from "@local/hash-graph-sdk/entity-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
-import { useEffect } from "react";
+
+import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/entity-type.queries";
+import { queryGraphQlApi } from "../../shared/query-graphql-api";
+import { useStorageSync } from "./use-storage-sync";
 
 import type {
   QueryEntityTypeSubgraphQuery,
   QueryEntityTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntityTypeSubgraphQuery } from "../../graphql/queries/entity-type.queries";
-import { queryGraphQlApi } from "../../shared/query-graphql-api";
-import { useStorageSync } from "./use-storage-sync";
+import type { EntityTypeRootType } from "@blockprotocol/graph";
 
 const queryEntityTypeSubgraph = (request: QueryEntityTypeSubgraphParams) => {
   return queryGraphQlApi<

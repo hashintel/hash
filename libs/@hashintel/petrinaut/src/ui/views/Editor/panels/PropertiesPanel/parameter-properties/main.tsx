@@ -1,10 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import type { Parameter } from "../../../../../../core/types/sdcpn";
 import { ParameterPropertiesContext } from "./context";
 import { parameterMainContentSubView } from "./subviews/main";
+
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { Parameter } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",
@@ -17,10 +19,7 @@ const subViews: SubView[] = [parameterMainContentSubView];
 
 interface ParameterPropertiesProps {
   parameter: Parameter;
-  updateParameter: (
-    parameterId: string,
-    updateFn: (parameter: Parameter) => void,
-  ) => void;
+  updateParameter: MutationContextValue["updateParameter"];
 }
 
 export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({

@@ -1,19 +1,21 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use, useState } from "react";
-import { TbList, TbMinus, TbPencil, TbPlus } from "react-icons/tb";
 
-import { IconButton } from "../../../../../components/icon-button";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+import { SimulationContext } from "../../../../../../react/simulation/context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { Button } from "../../../../../components/button";
 import { NumberInput } from "../../../../../components/number-input";
 import { Select } from "../../../../../components/select";
 import { Slider } from "../../../../../components/slider";
 import { Switch } from "../../../../../components/switch";
-import type { SubView } from "../../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../../components/tooltip";
-import { SimulationContext } from "../../../../../../react/simulation/context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { CreateScenarioDrawer } from "../../SimulateView/create-scenario-drawer";
-import { ViewScenarioDrawer } from "../../SimulateView/view-scenario-drawer";
+import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
+import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -238,7 +240,11 @@ const SimulationSettingsContent: React.FC = () => {
           renderItem={(option) => (
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {option.value === NO_SCENARIO && (
-                <TbMinus size={12} style={{ opacity: 0.4 }} />
+                <Icon
+                  name="dash"
+                  size="xs"
+                  className={css({ opacity: "[0.4]" })}
+                />
               )}
               {option.label}
             </span>
@@ -246,34 +252,34 @@ const SimulationSettingsContent: React.FC = () => {
         />
         <div style={{ display: "flex" }}>
           {selectedScenario && (
-            <IconButton
-              size="xs"
+            <Button
+              size="sm"
               variant="ghost"
               aria-label="Edit scenario"
               tooltip="Edit Scenario"
+              tooltipDisplay="inline"
+              iconName="pencil"
               onClick={() => setIsViewScenarioOpen(true)}
-            >
-              <TbPencil size={14} />
-            </IconButton>
+            />
           )}
-          <IconButton
-            size="xs"
+          <Button
+            size="sm"
             variant="ghost"
             aria-label="Create scenario"
             tooltip="Create Scenario"
+            tooltipDisplay="inline"
+            iconName="plus"
             onClick={() => setIsCreateScenarioOpen(true)}
-          >
-            <TbPlus size={14} />
-          </IconButton>
-          <IconButton
-            size="xs"
+          />
+          <Button
+            size="sm"
             variant="ghost"
             aria-label="Manage scenarios"
             tooltip="Manage Scenarios"
+            tooltipDisplay="inline"
+            iconName="list"
             onClick={() => setGlobalMode("simulate")}
-          >
-            <TbList size={14} />
-          </IconButton>
+          />
         </div>
       </div>
       <CreateScenarioDrawer

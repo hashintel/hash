@@ -2,6 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { URL } from "node:url";
 
+import appRoot from "app-root-path";
+import express from "express";
+import mime from "mime-types";
+
+import { getSafeContentType } from "@local/hash-backend-utils/file-storage";
+
 import type { Url } from "@blockprotocol/type-system";
 import type {
   FileStorageProvider,
@@ -12,12 +18,8 @@ import type {
   PresignedStorageRequest,
   StorageType,
 } from "@local/hash-backend-utils/file-storage";
-import { getSafeContentType } from "@local/hash-backend-utils/file-storage";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import appRoot from "app-root-path";
 import type { Express } from "express";
-import express from "express";
-import mime from "mime-types";
 
 export const UPLOAD_BASE_URL = "/local-file-storage-upload";
 const DOWNLOAD_BASE_URL = "/uploads";

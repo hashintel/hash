@@ -1,4 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   atLeastOne,
   getReferencedIdsFromDataType,
@@ -7,7 +6,6 @@ import {
 } from "@blockprotocol/type-system";
 
 import { typedValues } from "../../util/typed-entries.js";
-import type { InitializeContext } from "../context.js";
 import {
   generateDataTypeWithMetadataSchema,
   generateMetadataSchemaIdentifiers,
@@ -20,6 +18,9 @@ import {
   isEntityType,
   isPropertyType,
 } from "./traverse/type-validation.js";
+
+import type { InitializeContext } from "../context.js";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /** A simple helper method which saves some duplication below, and avoids intermediary array allocations */
 const nestedForEach = <T>(arrays: T[][], callback: (ele: T) => void) => {

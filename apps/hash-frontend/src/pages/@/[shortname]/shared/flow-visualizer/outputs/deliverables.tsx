@@ -1,11 +1,12 @@
 import { Box } from "@mui/material";
 
 import { MarkdownDeliverable } from "./deliverables/markdown";
-import type { DeliverableData } from "./deliverables/shared/types";
 import { SpreadsheetDeliverable } from "./deliverables/spreadsheet";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
+
+import type { DeliverableData } from "./deliverables/shared/types";
 
 export const Deliverables = ({
   deliverables,

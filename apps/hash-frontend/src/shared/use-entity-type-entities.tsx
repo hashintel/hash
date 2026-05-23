@@ -1,12 +1,7 @@
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
-import type {
-  EntityQueryCursor,
-  EntityQuerySortingRecord,
-  Filter,
-  TraversalPath,
-} from "@local/hash-graph-client";
 import {
   type ConversionRequest,
   deserializeQueryEntitySubgraphResponse,
@@ -16,19 +11,26 @@ import {
   ignoreNoisySystemTypesFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useMemo } from "react";
+
+import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
+import { apolloClient } from "../lib/apollo-client";
 
 import type {
   QueryEntitiesQueryVariables,
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
-import { apolloClient } from "../lib/apollo-client";
 /**
  * @todo H-3828 stop relying on this for account sidebar, then can move it into entities-visualizer
  */
 import type { EntitiesVisualizerData } from "../pages/shared/entities-visualizer/use-entities-visualizer-data";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingRecord,
+  Filter,
+  TraversalPath,
+} from "@local/hash-graph-client";
 
 type UseEntityTypeEntitiesQueryParams = {
   conversions?: ConversionRequest[];

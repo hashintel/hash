@@ -1,4 +1,3 @@
-import type { UserId } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
@@ -15,6 +14,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { graphApiClient } from "../../activities/shared/graph-api-client.js";
+
+import type { UserId } from "@blockprotocol/type-system";
 
 export const getAliceUserAccountId = async () => {
   const {

@@ -1,13 +1,12 @@
-import type { Subtype } from "@local/advanced-types/subtype";
-import type {
-  FlowDataSources,
-  WorkerIdentifiers,
-} from "@local/hash-isomorphic-utils/flows/types";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import dedent from "dedent";
 
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
+
 import { logger } from "../../../shared/activity-logger.js";
+import { getToolCallResults } from "./coordinator-tools/get-tool-call-results.js";
+import { stopWorkers } from "./coordinators.js";
+
 import type {
   LlmToolDefinition,
   ParsedLlmToolCall,
@@ -20,14 +19,17 @@ import type {
   GetCoordinatorToolCallResultsParams,
   GetSubCoordinatorToolCallResultsParams,
 } from "./coordinator-tools/get-tool-call-results.js";
-import { getToolCallResults } from "./coordinator-tools/get-tool-call-results.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
   OutstandingCoordinatorTask,
 } from "./coordinators.js";
-import { stopWorkers } from "./coordinators.js";
 import type { WebResourceSummary } from "./handle-web-search-tool-call.js";
+import type { Subtype } from "@local/advanced-types/subtype";
+import type {
+  FlowDataSources,
+  WorkerIdentifiers,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 export const coordinatorToolNames = [
   "complete",

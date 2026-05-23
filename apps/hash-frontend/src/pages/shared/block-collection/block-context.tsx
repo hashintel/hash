@@ -1,7 +1,8 @@
+import { createContext, useContext, useMemo, useState } from "react";
+
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { EntityPermissionsMap } from "@local/hash-graph-sdk/entity";
 import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
 
 export type BlockContextType = {
   error: boolean;

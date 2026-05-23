@@ -13,7 +13,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-
 import * as ResponseBegin from "./ResponseBegin.js";
 import * as ResponseFrame from "./ResponseFrame.js";
 
@@ -26,9 +25,7 @@ export type TypeId = typeof TypeId;
 export type ResponseBodyVariant = "ResponseBegin" | "ResponseFrame";
 
 export interface ResponseBody
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly body: Either.Either<

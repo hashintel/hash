@@ -1,7 +1,6 @@
-import type { ClosedDataType, VersionedUrl } from "@blockprotocol/type-system";
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
-import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import { useState } from "react";
+
+import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
 import { getEditorSpecs } from "../editor-specs";
@@ -9,6 +8,9 @@ import { EditorTypePicker } from "../editor-type-picker";
 import { isBlankStringOrNullish } from "../utils";
 import { ItemLimitInfo } from "./item-limit-info";
 import { SortableRow } from "./sortable-row";
+
+import type { ClosedDataType, VersionedUrl } from "@blockprotocol/type-system";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 
 interface DraftRowProps {
   arrayConstraints?: {

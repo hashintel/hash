@@ -1,5 +1,6 @@
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { type CSSProperties, type ReactNode, useCallback, useRef } from "react";
+
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { RESIZE_HANDLE_OFFSET, RESIZE_HANDLE_SIZE } from "../constants/ui";
 import { useResizeDrag } from "../resize/use-resize-drag";

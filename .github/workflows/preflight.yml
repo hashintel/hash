@@ -21,14 +21,14 @@ jobs:
       # see: https://github.com/orgs/community/discussions/26245#discussioncomment-15601440
       id-token: write
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/preflight-stale-approvals.yml@a0df113e5602f3b721bf306bf6050ee2a0866956
+    uses: hashintel/.github/.github/workflows/preflight-stale-approvals.yml@e12e306a03b1939c357d92c55b48d539d4286bd6
 
   dependencies:
     name: Dependencies
     permissions:
       contents: read
       pull-requests: write
-    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@a0df113e5602f3b721bf306bf6050ee2a0866956
+    uses: hashintel/.github/.github/workflows/preflight-dependencies.yml@e12e306a03b1939c357d92c55b48d539d4286bd6
 
   labeler:
     name: Labeler
@@ -47,4 +47,10 @@ jobs:
     name: Todo comments
     permissions:
       contents: read
-    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@a0df113e5602f3b721bf306bf6050ee2a0866956
+    uses: hashintel/.github/.github/workflows/preflight-todo-comments.yml@e12e306a03b1939c357d92c55b48d539d4286bd6
+
+  pr-title:
+    name: PR title
+    permissions:
+      contents: read
+    uses: hashintel/.github/.github/workflows/preflight-pr-title.yml@e12e306a03b1939c357d92c55b48d539d4286bd6

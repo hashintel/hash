@@ -1,27 +1,29 @@
 import { useMutation } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { Typography } from "@mui/material";
+import { useCallback, useMemo, useState } from "react";
+
 import { getEntityRevision } from "@blockprotocol/graph/stdlib";
-import type { ClosedMultiEntityType, Entity } from "@blockprotocol/type-system";
 import { extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
 import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { BoxProps } from "@mui/material";
-import { Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
+
+import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
+import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
+import { useNotificationCount } from "../../shared/notification-count-context";
+import { Button } from "../../shared/ui";
+import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
 
 import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
-import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
-import { useNotificationCount } from "../../shared/notification-count-context";
 import type { ButtonProps } from "../../shared/ui";
-import { Button } from "../../shared/ui";
-import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { ClosedMultiEntityType, Entity } from "@blockprotocol/type-system";
+import type { BoxProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 const LeftOrRightEntityEndAdornment: FunctionComponent<{
   isDraft: boolean;
@@ -57,9 +59,7 @@ const LeftOrRightEntityEndAdornment: FunctionComponent<{
   </Typography>
 );
 
-const getRightOrLeftEntitySx = (params: {
-  isDraft: boolean;
-}): BoxProps["sx"] =>
+const getRightOrLeftEntitySx = (params: { isDraft: boolean }): BoxProps["sx"] =>
   params.isDraft
     ? {
         backgroundColor: ({ palette }) => palette.gray[15],

@@ -1,17 +1,19 @@
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import opentelemetry from "@opentelemetry/api";
 import { v4 as uuid } from "uuid";
+
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 
 import {
   completeUserRegistration,
   getUserByKratosIdentityId,
 } from "../graph/user";
-import type { TracingContext } from "../tracing/sdk";
 import { startSpan } from "../tracing/sdk";
+import { getOryKratosClient } from "./kratos";
+
+import type { TracingContext } from "../tracing/sdk";
 import type { ActionFn } from "../types";
 import type { SessionContext } from "./kratos";
-import { getOryKratosClient } from "./kratos";
 
 export const signupUser: ActionFn<SessionContext, TracingContext> = async (
   context,

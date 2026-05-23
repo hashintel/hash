@@ -1,7 +1,8 @@
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import type { PropsWithChildren, ReactElement } from "react";
 
 import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
+
+import type { PropsWithChildren, ReactElement } from "react";
 
 export const InfoIconTooltip = ({
   tooltip,

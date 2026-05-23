@@ -1,9 +1,11 @@
+import { forwardRef } from "react";
+
 import { styled } from "@hashintel/ds-helpers/jsx";
+
 import type {
   HTMLStyledProps,
   SystemStyleObject,
 } from "@hashintel/ds-helpers/types";
-import { forwardRef } from "react";
 
 interface ImageOptions {
   /**

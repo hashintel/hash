@@ -1,29 +1,27 @@
 import { createContext } from "react";
 
-import type { CompiledScenarioResult } from "../../core/simulation/compile-scenario";
-import type {
-  InitialMarking,
-  SimulationFrame,
-  SimulationFrameState,
-  SimulationFrameState_Place,
-  SimulationFrameState_Transition,
-} from "../../core/simulation/types";
+import {
+  type CompiledScenarioResult,
+  type InitialMarking,
+  type InitialPlaceMarking,
+  type SimulationFrameReader,
+  type SimulationFrameState,
+} from "@hashintel/petrinaut-core";
 
 // Re-export for back-compat with existing consumers that import these from
 // the simulation context module.
 export type {
   InitialMarking,
-  SimulationFrame,
+  InitialPlaceMarking,
+  SimulationFrameReader,
   SimulationFrameState,
-  SimulationFrameState_Place,
-  SimulationFrameState_Transition,
 };
 
 /**
  * Current state of the simulation lifecycle, as the editor UI consumes it.
  *
  * Note: this is the legacy 5-state shape; the canonical core state lives in
- * `@hashintel/petrinaut/core` (`SimulationState` from `core/simulation`) and
+ * `@hashintel/petrinaut-core` (`SimulationState` from `core/simulation`) and
  * has six values including `Initializing` and `Ready`. The provider maps
  * between the two.
  */
@@ -37,9 +35,9 @@ export type SimulationState =
 /**
  * The combined simulation context containing both state and actions.
  *
- * Note: The full SimulationInstance is not exposed. Instead, use `getFrame()`
- * to access individual frame data. This encapsulation supports the WebWorker
- * architecture where frames are computed off the main thread.
+ * Note: The full SimulationInstance and raw frame storage are not exposed.
+ * Instead, use `getFrame()` to access individual frames through a
+ * `SimulationFrameReader`.
  */
 export type SimulationContextValue = {
   // State values
@@ -87,9 +85,9 @@ export type SimulationContextValue = {
    * is kept internal to the provider for memory management.
    *
    * @param frameIndex - The index of the frame to retrieve (0-based)
-   * @returns Promise resolving to the frame data or null
+   * @returns Promise resolving to the frame reader or null
    */
-  getFrame: (frameIndex: number) => Promise<SimulationFrame | null>;
+  getFrame: (frameIndex: number) => Promise<SimulationFrameReader | null>;
 
   /**
    * Get all computed frames.
@@ -98,9 +96,9 @@ export type SimulationContextValue = {
    * Note: For large simulations, this may return a large array.
    * Consider using getFrame() for single-frame access when possible.
    *
-   * @returns Promise resolving to array of all frames
+   * @returns Promise resolving to array of all frame readers
    */
-  getAllFrames: () => Promise<SimulationFrame[]>;
+  getAllFrames: () => Promise<SimulationFrameReader[]>;
 
   /**
    * Get frames in a specified range.
@@ -112,12 +110,12 @@ export type SimulationContextValue = {
    *
    * @param startIndex - The starting frame index (inclusive, 0-based)
    * @param endIndex - The ending frame index (exclusive). If omitted, returns to the end.
-   * @returns Promise resolving to array of frames in the range
+   * @returns Promise resolving to array of frame readers in the range
    */
   getFramesInRange: (
     startIndex: number,
     endIndex?: number,
-  ) => Promise<SimulationFrame[]>;
+  ) => Promise<SimulationFrameReader[]>;
 
   /**
    * ID of the currently selected scenario, or `null` for no scenario.
@@ -139,10 +137,7 @@ export type SimulationContextValue = {
   // Actions
   setSelectedScenarioId: (scenarioId: string | null) => void;
   setScenarioParameterValue: (identifier: string, value: string) => void;
-  setInitialMarking: (
-    placeId: string,
-    marking: { values: Float64Array; count: number },
-  ) => void;
+  setInitialMarking: (placeId: string, marking: InitialPlaceMarking) => void;
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
   /**
@@ -190,7 +185,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   error: null,
   errorItemId: null,
   parameterValues: {},
-  initialMarking: new Map(),
+  initialMarking: {},
   selectedScenarioId: null,
   scenarioParameterValues: {},
   compiledScenarioResult: null,

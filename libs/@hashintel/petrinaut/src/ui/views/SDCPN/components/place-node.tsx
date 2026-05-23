@@ -1,13 +1,12 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { NodeProps } from "@xyflow/react";
 import { use } from "react";
-import { TbCircleFilled, TbMathFunction } from "react-icons/tb";
 
-import { hexToHsl } from "../../../lib/hsl-color";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { PlaybackContext } from "../../../../react/playback/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../react/state/editor-context";
-import type { PlaceNodeType } from "../reactflow-types";
+import { hexToHsl } from "../../../lib/hsl-color";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -15,6 +14,9 @@ import {
   nodeCardStyle,
   type SelectionVariant,
 } from "./node-card";
+
+import type { PlaceNodeType } from "../reactflow-types";
+import type { NodeProps } from "@xyflow/react";
 
 const placeCardStyle = css({
   borderRadius: "full",
@@ -69,8 +71,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = currentViewedFrame.places[id]?.tokenCount ?? null;
   } else if (isSimulateMode) {
     // In simulate mode but no simulation running - show initial marking
-    const marking = initialMarking.get(id);
-    tokenCount = marking?.count ?? 0;
+    const marking = initialMarking[id];
+    tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
   // Determine selection state
@@ -106,10 +108,10 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           className={`${iconContainerBaseStyle} ${placeIconContainerStyle}`}
           style={{ color: typeColorBorder }}
         >
-          <TbCircleFilled />
+          <Icon name="circleFilled" />
           {data.dynamicsEnabled && (
             <div className={`${iconBadgeStyle} ${dynamicsBadgeStyle}`}>
-              <TbMathFunction />
+              <Icon name="function" size="xs" />
             </div>
           )}
         </div>

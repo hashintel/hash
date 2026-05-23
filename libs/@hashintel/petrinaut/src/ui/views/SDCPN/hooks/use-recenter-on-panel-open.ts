@@ -1,9 +1,11 @@
-import type { PetrinautReactFlowInstance, NodeType } from "../reactflow-types";
 import { use, useEffect, useRef } from "react";
 
-import { recenterToFitViewport, getViewportRect } from "../../../lib/viewport";
+import { parseArcId } from "@hashintel/petrinaut-core";
+
 import { EditorContext } from "../../../../react/state/editor-context";
-import { parseArcId } from "../../../../core/types/selection";
+import { recenterToFitViewport, getViewportRect } from "../../../lib/viewport";
+
+import type { PetrinautReactFlowInstance, NodeType } from "../reactflow-types";
 
 const RE_CENTER_PADDING = 20;
 

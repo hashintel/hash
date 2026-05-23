@@ -1,5 +1,6 @@
-import type { Subgraph } from "@blockprotocol/graph";
-import type { EntityId, OriginProvenance } from "@blockprotocol/type-system";
+import { Box, Stack, Typography } from "@mui/material";
+import { useState } from "react";
+
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
@@ -9,17 +10,18 @@ import {
   WandMagicSparklesIcon,
 } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { SvgIconProps, SxProps, Theme } from "@mui/material";
-import { Box, Stack, Typography } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { useState } from "react";
 
 import { SearchIcon } from "../../../../../../shared/icons/search-icon";
 import { UserIcon } from "../../../../../../shared/icons/user-icon";
 import { Link } from "../../../../../../shared/ui/link";
 import { useActors } from "../../../../../../shared/use-actors";
-import type { HistoryEvent } from "../shared/types";
 import { SourcesSlideover } from "./provenance/sources-slideover";
+
+import type { HistoryEvent } from "../shared/types";
+import type { Subgraph } from "@blockprotocol/graph";
+import type { EntityId, OriginProvenance } from "@blockprotocol/type-system";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 const ProvenanceHeader = ({ label }: { label: string }) => (
   <Typography sx={{ color: "black", fontWeight: 700, fontSize: 14 }}>

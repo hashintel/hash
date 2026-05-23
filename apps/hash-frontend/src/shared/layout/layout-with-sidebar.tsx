@@ -1,7 +1,7 @@
-import { IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Stack, styled } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 import { useEffect, useState } from "react";
+
+import { IconButton } from "@hashintel/design-system";
 
 import { EditBarScroller } from "../edit-bar-scroller";
 import { ArrowRightToLineIcon } from "../icons";
@@ -13,6 +13,8 @@ import {
   SIDEBAR_WIDTH,
   useSidebarContext,
 } from "./layout-with-sidebar/page-sidebar";
+
+import type { FunctionComponent, ReactNode } from "react";
 
 const Main = styled("main")(({ theme }) => ({
   flexGrow: 1,

@@ -1,20 +1,22 @@
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
+
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 
 import {
   constructMinimalUser,
   isEntityUserEntity,
 } from "../../../lib/user-and-org";
-import type { NextPageWithLayout } from "../../../shared/layout";
 import { Link } from "../../../shared/ui";
 import { useUserOrOrg } from "../../../shared/use-user-or-org";
 import { SettingsPageContainer } from "../../settings/shared/settings-page-container";
 import { getAdminLayout } from "../admin-page-layout";
 import { BasicInfoSection } from "./basic-info-section";
+
+import type { NextPageWithLayout } from "../../../shared/layout";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 
 const AdminUserPage: NextPageWithLayout = () => {
   const router = useRouter();

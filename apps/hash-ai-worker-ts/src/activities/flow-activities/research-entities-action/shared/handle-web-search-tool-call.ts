@@ -1,20 +1,22 @@
+import { Context } from "@temporalio/activity";
+
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { StatusCode } from "@local/status";
+
+import { logProgress } from "../../../shared/log-progress.js";
+import { getWebPageSummaryAction } from "../../get-web-page-summary-action.js";
+import { webSearchAction } from "../../web-search-action.js";
+
+import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
 import type { Url } from "@blockprotocol/type-system";
 import type {
   InputNameForAiFlowAction,
   OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   StepInput,
   WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
-
-import { logProgress } from "../../../shared/log-progress.js";
-import { getWebPageSummaryAction } from "../../get-web-page-summary-action.js";
-import { webSearchAction } from "../../web-search-action.js";
-import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
 
 export type WebResourceSummary = {
   url: Url;

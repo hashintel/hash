@@ -1,9 +1,10 @@
 import { use, useMemo } from "react";
-import { LuCheck, LuHistory } from "react-icons/lu";
 
-import { IconButton } from "../../../../components/icon-button";
-import { Menu, type MenuItem } from "../../../../components/menu";
+import { Icon } from "@hashintel/ds-components";
+
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { Button } from "../../../../components/button";
+import { Menu, type MenuItem } from "../../../../components/menu";
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);
@@ -29,7 +30,7 @@ export const VersionHistoryButton = () => {
       return {
         id: `version-${String(realIndex)}`,
         label: formatTime(entry.timestamp),
-        suffix: isCurrent && <LuCheck size={14} />,
+        suffix: isCurrent && <Icon name="check" size="sm" />,
         selected: isCurrent,
         onClick: () => goToIndex(realIndex),
       };
@@ -43,9 +44,14 @@ export const VersionHistoryButton = () => {
   return (
     <Menu
       trigger={
-        <IconButton size="md" variant="ghost" aria-label="Version history">
-          <LuHistory size={16} />
-        </IconButton>
+        <Button
+          size="md"
+          variant="ghost"
+          aria-label="Version history"
+          tooltip="Version history"
+          tooltipDisplay="inline"
+          iconName="clockRotateLeft"
+        />
       }
       items={menuItems}
       animated

@@ -1,10 +1,15 @@
 import { createContext, use } from "react";
 
-import type { Color } from "../../../../../../core/types/sdcpn";
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { Color } from "@hashintel/petrinaut-core";
 
 export interface TypePropertiesContextValue {
   type: Color;
-  updateType: (typeId: string, updateFn: (type: Color) => void) => void;
+  updateType: MutationContextValue["updateType"];
+  addTypeElement: MutationContextValue["addTypeElement"];
+  updateTypeElement: MutationContextValue["updateTypeElement"];
+  removeTypeElement: MutationContextValue["removeTypeElement"];
+  moveTypeElement: MutationContextValue["moveTypeElement"];
 }
 
 export const TypePropertiesContext =

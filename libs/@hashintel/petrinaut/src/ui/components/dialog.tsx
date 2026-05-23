@@ -1,10 +1,10 @@
 import { Dialog as ArkDialog } from "@ark-ui/react/dialog";
 import { Portal } from "@ark-ui/react/portal";
+
 import { css, cx } from "@hashintel/ds-helpers/css";
-import type { ComponentProps, ReactNode } from "react";
-import { TbX } from "react-icons/tb";
 
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
+import { Button } from "./button";
 import {
   Body,
   Card as PanelCard,
@@ -13,6 +13,8 @@ import {
   Header as PanelHeader,
   outerStyle,
 } from "./panel-primitives";
+
+import type { ComponentProps, ReactNode } from "react";
 
 // -- Dialog-specific styles ---------------------------------------------------
 
@@ -85,8 +87,16 @@ const Content = ({
 const Card = ({ children }: { children: ReactNode }) => (
   <PanelCard
     closeButton={
-      <ArkDialog.CloseTrigger className={closeButtonStyle} aria-label="Close">
-        <TbX />
+      <ArkDialog.CloseTrigger asChild>
+        <Button
+          className={closeButtonStyle}
+          variant="ghost"
+          size="sm"
+          aria-label="Close"
+          tooltip="Close"
+          tooltipDisplay="inline"
+          iconName="close"
+        />
       </ArkDialog.CloseTrigger>
     }
   >

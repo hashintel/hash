@@ -1,5 +1,3 @@
-import type { ClientRequest, IncomingMessage } from "node:http";
-
 import { type Span, trace } from "@opentelemetry/api";
 import { describe, expect, it } from "vitest";
 
@@ -8,6 +6,8 @@ import {
   httpRequestSpanNameHook,
   resolvePeerService,
 } from "./opentelemetry.js";
+
+import type { ClientRequest, IncomingMessage } from "node:http";
 
 describe("resolvePeerService", () => {
   it("matches exact hosts to their service label", () => {

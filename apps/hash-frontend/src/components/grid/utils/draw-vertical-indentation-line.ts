@@ -1,6 +1,6 @@
-import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
-
 import { getYCenter } from "../utils";
+
+import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 export type VerticalIndentationLineDir = "up" | "down" | "full";
 

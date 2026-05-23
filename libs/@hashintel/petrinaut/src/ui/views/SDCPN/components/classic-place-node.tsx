@@ -1,15 +1,17 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { use } from "react";
-import { TbMathFunction } from "react-icons/tb";
 
-import { hexToHsl } from "../../../lib/hsl-color";
-import { splitPascalCase } from "../../../lib/split-pascal-case";
+import { Icon } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
 import { PlaybackContext } from "../../../../react/playback/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../react/state/editor-context";
-import type { PlaceNodeType } from "../reactflow-types";
+import { hexToHsl } from "../../../lib/hsl-color";
+import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { handleStyling } from "../styles/styling";
+
+import type { PlaceNodeType } from "../reactflow-types";
 
 const containerStyle = css({
   position: "relative",
@@ -137,8 +139,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     tokenCount = currentViewedFrame.places[id]?.tokenCount ?? null;
   } else if (isSimulateMode) {
     // In simulate mode but no simulation running - show initial marking
-    const marking = initialMarking.get(id);
-    tokenCount = marking?.count ?? 0;
+    const marking = initialMarking[id];
+    tokenCount = typeof marking === "number" ? marking : (marking?.length ?? 0);
   }
 
   // Add zero width space to labels between pascal case points as text-wrapping breakpoints
@@ -176,7 +178,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
       >
         {data.dynamicsEnabled && (
           <div className={dynamicsIconStyle}>
-            <TbMathFunction />
+            <Icon name="function" size="sm" />
           </div>
         )}
         <div className={labelContainerStyle}>{label}</div>

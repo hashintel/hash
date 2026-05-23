@@ -1,22 +1,24 @@
-import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useMemo } from "react";
+
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { User } from "../../lib/user-and-org";
-import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
+import type { ApolloQueryResult } from "@apollo/client";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 
 /**
  * Retrieves a specific set of users, with their avatars populated

@@ -5,8 +5,18 @@ import { act, renderHook } from "@testing-library/react";
 import { type ReactNode, use } from "react";
 import { describe, expect, test, vi } from "vitest";
 
-import type { Petrinaut } from "../core/instance";
-import type { SDCPN } from "../core/types/sdcpn";
+import {
+  createPetrinautActions,
+  type Petrinaut,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
+import { PetrinautInstanceContext } from "./instance-context";
+import { MutationProvider } from "./mutation-provider";
+import {
+  SimulationContext,
+  type SimulationContextValue,
+} from "./simulation/context";
 import {
   EditorContext,
   type EditorContextValue,
@@ -19,12 +29,6 @@ import {
   UserSettingsContext,
   type UserSettingsContextValue,
 } from "./state/user-settings-context";
-import { PetrinautInstanceContext } from "./instance-context";
-import { MutationProvider } from "./mutation-provider";
-import {
-  SimulationContext,
-  type SimulationContextValue,
-} from "./simulation/context";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,7 +51,7 @@ const DEFAULT_SIMULATION: SimulationContextValue = {
   error: null,
   errorItemId: null,
   parameterValues: {},
-  initialMarking: new Map(),
+  initialMarking: {},
   selectedScenarioId: null,
   scenarioParameterValues: {},
   compiledScenarioResult: null,
@@ -158,6 +162,7 @@ function createWrapper(options: WrapperOptions = {}) {
   });
 
   const fakeInstance = {
+    ...createPetrinautActions(mutateFn),
     handle: { id: "test-net" },
     definition: { get: () => currentSdcpn, subscribe: () => () => {} },
     patches: { subscribe: () => () => {} },
@@ -289,10 +294,16 @@ describe("MutationProvider (instance bridge)", () => {
       const { result } = renderHook(useMutations, { wrapper: Wrapper });
 
       act(() => {
-        result.current.commitNodePositions([
-          { id: "p1", itemType: "place", position: { x: 100, y: 200 } },
-          { id: "t1", itemType: "transition", position: { x: 300, y: 400 } },
-        ]);
+        result.current.commitNodePositions({
+          commits: [
+            { id: "p1", itemType: "place", position: { x: 100, y: 200 } },
+            {
+              id: "t1",
+              itemType: "transition",
+              position: { x: 300, y: 400 },
+            },
+          ],
+        });
       });
 
       expect(getSdcpn().places[0]!.x).toBe(100);
@@ -373,7 +384,7 @@ describe("MutationProvider (instance bridge)", () => {
       const { result } = renderHook(useMutations, { wrapper: Wrapper });
 
       act(() => {
-        result.current.removeType("type-1");
+        result.current.removeType({ typeId: "type-1" });
       });
 
       expect(mutateFn).not.toHaveBeenCalled();
@@ -386,7 +397,7 @@ describe("MutationProvider (instance bridge)", () => {
       const { result } = renderHook(useMutations, { wrapper: Wrapper });
 
       act(() => {
-        result.current.removeParameter("param-1");
+        result.current.removeParameter({ parameterId: "param-1" });
       });
 
       expect(mutateFn).not.toHaveBeenCalled();
@@ -413,9 +424,11 @@ describe("MutationProvider (instance bridge)", () => {
       const { result } = renderHook(useMutations, { wrapper: Wrapper });
 
       act(() => {
-        result.current.commitNodePositions([
-          { id: "p1", itemType: "place", position: { x: 100, y: 200 } },
-        ]);
+        result.current.commitNodePositions({
+          commits: [
+            { id: "p1", itemType: "place", position: { x: 100, y: 200 } },
+          ],
+        });
       });
 
       expect(mutateFn).not.toHaveBeenCalled();
@@ -463,7 +476,7 @@ describe("MutationProvider (instance bridge)", () => {
       const { result } = renderHook(useMutations, { wrapper: Wrapper });
 
       act(() => {
-        result.current.removePlace("p1");
+        result.current.removePlace({ placeId: "p1" });
       });
 
       expect(getSdcpn().places).toHaveLength(1);
@@ -507,18 +520,18 @@ describe("MutationProvider (instance bridge)", () => {
       const { result } = renderHook(useMutations, { wrapper: Wrapper });
 
       act(() => {
-        result.current.removeType("type-1");
+        result.current.removeType({ typeId: "type-1" });
       });
 
       expect(getSdcpn().types).toHaveLength(0);
       expect(getSdcpn().places[0]!.colorId).toBeNull();
-      expect(getSdcpn().differentialEquations[0]!.colorId).toBe("");
+      expect(getSdcpn().differentialEquations[0]!.colorId).toBeNull();
     });
 
     test("removeDifferentialEquation cascades to clear differentialEquationId on places", () => {
       const sdcpn = makeSDCPN({
         differentialEquations: [
-          { id: "eq-1", name: "Eq1", colorId: "", code: "" },
+          { id: "eq-1", name: "Eq1", colorId: null, code: "" },
         ],
         places: [
           {
@@ -536,7 +549,7 @@ describe("MutationProvider (instance bridge)", () => {
       const { result } = renderHook(useMutations, { wrapper: Wrapper });
 
       act(() => {
-        result.current.removeDifferentialEquation("eq-1");
+        result.current.removeDifferentialEquation({ equationId: "eq-1" });
       });
 
       expect(getSdcpn().differentialEquations).toHaveLength(0);
@@ -607,7 +620,7 @@ describe("MutationProvider (instance bridge)", () => {
       ]);
 
       act(() => {
-        result.current.deleteItemsByIds(items);
+        result.current.deleteItemsByIds({ items: Array.from(items.values()) });
       });
 
       const final = getSdcpn();

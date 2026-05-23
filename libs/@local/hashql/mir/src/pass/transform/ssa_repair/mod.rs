@@ -547,10 +547,13 @@ impl<'heap> VisitorMut<'heap> for RewireBody<'_, 'heap> {
         location: Location,
         params: &mut Interned<'heap, [Local]>,
     ) -> Self::Result<()> {
-        // We don't walk the params here, we handle the `Def` site differently in `visit_local`, so
-        // don't need to set `self.last_def`.
+        // Block parameters are definitions at the block header. They must be renamed and placed
+        // on the reaching-definition chain before any uses in the block are visited. This is
+        // independent of `block_top`: a block can have an existing param for the repaired local
+        // without being in the IDF (e.g. terminal blocks where the IDF is empty).
+        Ok(()) = visit::r#mut::walk_params(self, location, params);
+
         let Some(&def) = self.block_top.lookup(location.block) else {
-            // No `FindDefFromTop` result is required in the body
             return Ok(());
         };
 
@@ -751,6 +754,19 @@ impl<'heap> Visitor<'heap> for UseBeforeDef {
         }
 
         visit::r#ref::walk_statement(self, location, statement)
+    }
+
+    fn visit_terminator(
+        &mut self,
+        location: Location,
+        terminator: &crate::body::terminator::Terminator<'heap>,
+    ) -> Self::Result {
+        // Same thing applies as in `visit_statement`.
+        if location.statement_index >= self.def_statement_index {
+            return ControlFlow::Continue(());
+        }
+
+        visit::r#ref::walk_terminator(self, location, terminator)
     }
 
     fn visit_statement_assign(

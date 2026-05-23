@@ -1,11 +1,10 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { NodeProps } from "@xyflow/react";
 import { use, useEffect, useRef } from "react";
-import { TbBolt, TbLambda, TbSquareFilled } from "react-icons/tb";
+
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
-import type { TransitionNodeType } from "../reactflow-types";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -13,6 +12,9 @@ import {
   nodeCardStyle,
   type SelectionVariant,
 } from "./node-card";
+
+import type { TransitionNodeType } from "../reactflow-types";
+import type { NodeProps } from "@xyflow/react";
 
 const FIRING_ANIMATION_DURATION_MS = 300;
 
@@ -146,10 +148,10 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
         <div
           className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
         >
-          <TbSquareFilled />
+          <Icon name="squareFilled" />
           {data.lambdaType === "stochastic" && (
             <div className={`${iconBadgeStyle} ${stochasticBadgeStyle}`}>
-              <TbLambda />
+              <Icon name="lambda" size="xs" />
             </div>
           )}
         </div>
@@ -158,7 +160,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
       subtitle={subtitle}
       badge={
         <div ref={boltRef} className={firingIndicatorStyle}>
-          <TbBolt />
+          <Icon name="lightning" />
         </div>
       }
       isConnectable={isConnectable}

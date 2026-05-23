@@ -1,9 +1,15 @@
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef } from "react";
-import { FaXmark } from "react-icons/fa6";
 
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
+
+import { SimulationContext } from "../../../../../react/simulation/context";
+import {
+  type BottomPanelTab,
+  EditorContext,
+} from "../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { Button } from "../../../../components/button";
 import { GlassPanel } from "../../../../components/glass-panel";
-import { IconButton } from "../../../../components/icon-button";
 import {
   HorizontalTabsContent,
   HorizontalTabsHeader,
@@ -18,12 +24,6 @@ import {
   BOTTOM_PANEL_SUBVIEWS,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
-import { SimulationContext } from "../../../../../react/simulation/context";
-import {
-  type BottomPanelTab,
-  EditorContext,
-} from "../../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -179,14 +179,15 @@ export const BottomPanel: React.FC = () => {
             subViews={subViews}
             activeTabId={activeTab}
           />
-          <IconButton
+          <Button
             size="xxs"
             variant="ghost"
             onClick={toggleBottomPanel}
             aria-label="Close panel"
-          >
-            <FaXmark size={14} />
-          </IconButton>
+            tooltip="Close panel"
+            tooltipDisplay="inline"
+            iconName="close"
+          />
         </div>
       </div>
 

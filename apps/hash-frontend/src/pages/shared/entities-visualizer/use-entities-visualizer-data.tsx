@@ -1,27 +1,29 @@
-import type { ApolloQueryResult } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
-import type {
-  EntityQueryCursor,
-  EntityQuerySortingRecord,
-} from "@local/hash-graph-client";
 import {
   type ConversionRequest,
   deserializeQueryEntitySubgraphResponse,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { useMemo } from "react";
+
+import { useEntityTypeEntities } from "../../../shared/use-entity-type-entities";
+import { useEntitiesTableData } from "./use-entities-table-data";
 
 import type { QueryEntitySubgraphQuery } from "../../../graphql/api-types.gen";
-import { useEntityTypeEntities } from "../../../shared/use-entity-type-entities";
 import type { VisualizerView } from "../visualizer-views";
 import type {
   EntitiesTableData,
   EntitiesTableRow,
   UpdateTableDataFn,
 } from "./types";
-import { useEntitiesTableData } from "./use-entities-table-data";
+import type { ApolloQueryResult } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type {
+  EntityQueryCursor,
+  EntityQuerySortingRecord,
+} from "@local/hash-graph-client";
 
 export type EntitiesVisualizerData = Partial<
   Pick<

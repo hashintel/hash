@@ -1,6 +1,6 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { Story, StoryDefault } from "@ladle/react";
 import { Fragment, useState } from "react";
+
+import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
 import { Icon, iconNames } from "../Icon/icon";
@@ -11,6 +11,8 @@ import {
   type Tone,
   type Variant,
 } from "./button";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 const variants: Variant[] = ["solid", "subtle", "ghost", "link", "linkSubtle"];
 const tones: Tone[] = ["neutral", "brand", "error"];
@@ -197,7 +199,7 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
         })}
       >
         {formInputSizes.map((size) => (
-          <>
+          <Fragment key={size}>
             {/* eslint-disable -- spreading union-typed Ladle args triggers false TS errors from RequireAtLeastOne/ExclusifyUnion distribution */}
             <Button
               {...(args as any)}
@@ -231,6 +233,7 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
               variant={variant}
               iconName="star"
               size={size}
+              tooltip="Star"
             >
               {undefined}
             </Button>
@@ -246,10 +249,16 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
               {undefined}
             </ButtonComponent>
             {/* eslint-enable */}
-          </>
+          </Fragment>
         ))}
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */}
-        <Button {...(args as any)} variant={variant} iconName="star" loading>
+        <Button
+          /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */
+          {...(args as any)}
+          variant={variant}
+          iconName="star"
+          loading
+          tooltip="Star"
+        >
           {undefined}
         </Button>
       </div>

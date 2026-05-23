@@ -1,17 +1,19 @@
+import ts from "typescript";
+
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+
+import { mustBeDefined } from "../../util/must-be-defined.js";
+import { typedEntries, typedKeys } from "../../util/typed-entries.js";
+import { generatedTypeSuffix } from "../shared.js";
+
+import type { PreprocessContext } from "../context.js";
+import type { JsonSchema } from "../shared.js";
 import type {
   BaseUrl,
   DataType,
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
-import ts from "typescript";
-
-import { mustBeDefined } from "../../util/must-be-defined.js";
-import { typedEntries, typedKeys } from "../../util/typed-entries.js";
-import type { PreprocessContext } from "../context.js";
-import type { JsonSchema } from "../shared.js";
-import { generatedTypeSuffix } from "../shared.js";
 
 const typescriptKeywords = new Array(
   ts.SyntaxKind.LastKeyword - ts.SyntaxKind.FirstKeyword,

@@ -747,22 +747,25 @@ export type OutputPayloadKindForAiFlowAction<
 type AiFlowInputPayloadType<
   T extends AiFlowActionDefinitionId,
   N extends InputNameForAiFlowAction<T>,
-> = Extract<
-  (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
-> extends { required: true; array: true }
-  ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true>
-  : Extract<
-        (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
-        { name: N }
-      > extends { required: false; array: true }
-    ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true> | undefined
+> =
+  Extract<
+    (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
+    { name: N }
+  > extends { required: true; array: true }
+    ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true>
     : Extract<
           (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
           { name: N }
-        > extends { required: true; array: false }
-      ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
-      : PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false> | undefined;
+        > extends { required: false; array: true }
+      ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, true> | undefined
+      : Extract<
+            (typeof aiFlowActionDefinitionsAsConst)[T]["inputs"][number],
+            { name: N }
+          > extends { required: true; array: false }
+        ? PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
+        :
+            | PayloadValue<InputPayloadKindForAiFlowAction<T, N>, false>
+            | undefined;
 
 type SimplifiedActionInputsObject<T extends AiFlowActionDefinitionId> = {
   [N in InputNameForAiFlowAction<T>]: AiFlowInputPayloadType<T, N>;
@@ -776,44 +779,45 @@ export const getSimplifiedAiFlowActionInputs = <
 }): SimplifiedActionInputsObject<T> => {
   const { inputs } = params;
 
-  return inputs.reduce(
-    (acc, input) => {
-      const inputName = input.inputName as InputNameForAiFlowAction<T>;
+  return inputs.reduce((acc, input) => {
+    const inputName = input.inputName as InputNameForAiFlowAction<T>;
 
-      acc[inputName] = input.payload.value as AiFlowInputPayloadType<
-        T,
-        typeof inputName
-      >;
+    acc[inputName] = input.payload.value as AiFlowInputPayloadType<
+      T,
+      typeof inputName
+    >;
 
-      return acc;
-    },
-    {} as SimplifiedActionInputsObject<T>,
-  );
+    return acc;
+  }, {} as SimplifiedActionInputsObject<T>);
 };
 
 type IntegrationFlowInputPayloadType<
   T extends IntegrationFlowActionDefinitionId,
   N extends InputNameForIntegrationFlowAction<T>,
-> = Extract<
-  (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-  { name: N }
-> extends { required: true; array: true }
-  ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
-  : Extract<
-        (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
-        { name: N }
-      > extends { required: false; array: true }
-    ?
-        | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
-        | undefined
+> =
+  Extract<
+    (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
+    { name: N }
+  > extends { required: true; array: true }
+    ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
     : Extract<
           (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
           { name: N }
-        > extends { required: true; array: false }
-      ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
-      :
-          | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
-          | undefined;
+        > extends { required: false; array: true }
+      ?
+          | PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, true>
+          | undefined
+      : Extract<
+            (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
+            { name: N }
+          > extends { required: true; array: false }
+        ? PayloadValue<InputPayloadKindForIntegrationFlowAction<T, N>, false>
+        :
+            | PayloadValue<
+                InputPayloadKindForIntegrationFlowAction<T, N>,
+                false
+              >
+            | undefined;
 
 type SimplifiedIntegrationActionInputsObject<
   T extends IntegrationFlowActionDefinitionId,
@@ -832,19 +836,16 @@ export const getSimplifiedIntegrationFlowActionInputs = <
 }): SimplifiedIntegrationActionInputsObject<T> => {
   const { inputs } = params;
 
-  return inputs.reduce(
-    (acc, input) => {
-      const inputName = input.inputName as InputNameForIntegrationFlowAction<T>;
+  return inputs.reduce((acc, input) => {
+    const inputName = input.inputName as InputNameForIntegrationFlowAction<T>;
 
-      acc[inputName] = input.payload.value as IntegrationFlowInputPayloadType<
-        T,
-        typeof inputName
-      >;
+    acc[inputName] = input.payload.value as IntegrationFlowInputPayloadType<
+      T,
+      typeof inputName
+    >;
 
-      return acc;
-    },
-    {} as SimplifiedIntegrationActionInputsObject<T>,
-  );
+    return acc;
+  }, {} as SimplifiedIntegrationActionInputsObject<T>);
 };
 
 /**

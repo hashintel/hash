@@ -1,17 +1,14 @@
-import type { DataTypeRootType } from "@blockprotocol/graph";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import { Box, Container, Stack, Typography } from "@mui/material";
-import type { GetServerSideProps } from "next";
 import { NextSeo } from "next-seo";
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+import { getRoots } from "@blockprotocol/graph/stdlib";
 
 import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
 import { PlusRegularIcon } from "../../shared/icons/plus-regular";
-import type { NextPageWithLayout } from "../../shared/layout";
 import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
@@ -21,6 +18,11 @@ import {
   tabTitles,
   TypesPageTabs,
 } from "./[[...type-kind]].page/types-page-tabs";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { DataTypeRootType } from "@blockprotocol/graph";
+import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
+import type { GetServerSideProps } from "next";
 
 type ParsedQueryKindParam =
   | "entity-type"

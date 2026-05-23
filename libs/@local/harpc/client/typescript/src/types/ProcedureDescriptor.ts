@@ -11,7 +11,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../utils.js";
-
 import * as ProcedureId from "./ProcedureId.js";
 
 const TypeId: unique symbol = Symbol(
@@ -21,9 +20,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface ProcedureDescriptor
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly id: ProcedureId.ProcedureId;

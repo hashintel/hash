@@ -1,12 +1,14 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { CloseIcon, IconButton } from "@hashintel/design-system";
 import { TableCell, TableRow } from "@mui/material";
 import { useCallback, useMemo } from "react";
 
-import type { LocalStorage } from "../../../../../../shared/storage";
+import { CloseIcon, IconButton } from "@hashintel/design-system";
+
 import { EntityTypeSelector } from "../../shared/entity-type-selector";
 import { SelectDomains } from "./select-domains";
+
+import type { LocalStorage } from "../../../../../../shared/storage";
 import type { CommonRowsProps } from "./shared/common-rows-props";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 type RuleByLocation = {
   entityTypeIds: VersionedUrl[];

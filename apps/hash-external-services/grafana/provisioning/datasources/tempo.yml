@@ -9,27 +9,23 @@ datasources:
     jsonData:
       httpMethod: GET
       tracesToLogs:
-        datasourceUid: 'loki'
-        tags: ['service.name']
-        mappedTags: [
-          { key: 'service.name', value: 'service_name' }
-        ]
+        datasourceUid: "loki"
+        tags: ["service.name"]
+        mappedTags: [{ key: "service.name", value: "service_name" }]
         mapTagNamesEnabled: true
         filterByTraceID: true
       tracesToMetrics:
-        datasourceUid: 'mimir'
-        tags: [
-          { key: 'service.name', value: 'service' }
-        ]
+        datasourceUid: "mimir"
+        tags: [{ key: "service.name", value: "service" }]
         queries:
-          - name: 'Request rate'
-            query: 'rate(traces_spanmetrics_latency_bucket{$$__tags}[5m])'
-          - name: 'Request duration'
-            query: 'histogram_quantile(0.95, rate(traces_spanmetrics_latency_bucket{$$__tags}[5m]))'
+          - name: "Request rate"
+            query: "rate(traces_spanmetrics_latency_bucket{$$__tags}[5m])"
+          - name: "Request duration"
+            query: "histogram_quantile(0.95, rate(traces_spanmetrics_latency_bucket{$$__tags}[5m]))"
       lokiSearch:
-        datasourceUid: 'loki'
+        datasourceUid: "loki"
       serviceMap:
-        datasourceUid: 'mimir'
+        datasourceUid: "mimir"
       search:
         hide: false
       nodeGraph:

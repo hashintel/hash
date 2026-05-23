@@ -1,9 +1,9 @@
 import { createComponent } from "@lit-labs/react";
-import type { FunctionComponent } from "react";
 // eslint-disable-next-line unicorn/import-style
 import React, { useLayoutEffect, useRef, useState } from "react";
 
 import type { CustomElementDefinition } from "../util";
+import type { FunctionComponent } from "react";
 
 type CustomElementLoaderProps = {
   properties: Record<string, unknown>;

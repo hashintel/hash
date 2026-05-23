@@ -1,3 +1,12 @@
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
+
+import {
+  // getEntitiesByLinearId,
+  getEntityOutgoingLinks,
+  getLatestEntityById,
+} from "../../shared/graph-requests.js";
+
 import type {
   ActorEntityUuid,
   EntityId,
@@ -5,22 +14,14 @@ import type {
   PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import type {
   SupportedLinearTypeNames,
   SupportedLinearTypes,
   SupportedLinearUpdateInput,
 } from "@local/hash-backend-utils/linear-type-mappings";
-import { getLinearMappingByLinearType } from "@local/hash-backend-utils/linear-type-mappings";
 import type { PartialEntity } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-
-import {
-  // getEntitiesByLinearId,
-  getEntityOutgoingLinks,
-  getLatestEntityById,
-} from "../../shared/graph-requests.js";
 
 export const mapLinearDataToEntity = <
   T extends SupportedLinearTypeNames,

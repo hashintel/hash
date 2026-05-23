@@ -1,7 +1,8 @@
 import { useRouter } from "next/router";
 
-import type { NextPageWithLayout } from "../../shared/layout";
 import { getAdminLayout } from "./admin-page-layout";
+
+import type { NextPageWithLayout } from "../../shared/layout";
 
 const AdminHomePage: NextPageWithLayout = () => {
   const router = useRouter();

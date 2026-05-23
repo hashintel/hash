@@ -1,35 +1,37 @@
 import { useQuery } from "@apollo/client";
-import type { EntityId, EntityType } from "@blockprotocol/type-system";
+import { useMemo, useState } from "react";
+
 import {
   entityIdFromComponents,
   extractDraftIdFromEntityId,
   mustHaveAtLeastOne,
   splitEntityId,
 } from "@blockprotocol/type-system";
-import type {
-  SelectorAutocompleteProps,
-  TypeListSelectorDropdownProps,
-} from "@hashintel/design-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   deserializeQueryEntitiesResponse,
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { useMemo, useState } from "react";
+
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import type { EntityId, EntityType } from "@blockprotocol/type-system";
+import type {
+  SelectorAutocompleteProps,
+  TypeListSelectorDropdownProps,
+} from "@hashintel/design-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
 type EntitySelectorProps<Multiple extends boolean = false> = Omit<
   SelectorAutocompleteProps<HashEntity, Multiple>,

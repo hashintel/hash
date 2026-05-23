@@ -1,9 +1,11 @@
 import { use } from "react";
-import type { Diagnostic, DocumentUri } from "vscode-languageserver-types";
+
 import {
   LanguageClientContext,
   type LanguageClientContextValue,
 } from "../lsp/context";
+
+import type { Diagnostic, DocumentUri } from "@hashintel/petrinaut-core";
 
 /**
  * All current diagnostics, grouped by document URI, plus a total count.

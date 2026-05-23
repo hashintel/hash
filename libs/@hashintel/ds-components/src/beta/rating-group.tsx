@@ -7,10 +7,6 @@ import {
   useRatingGroupContext,
   useRatingGroupItemContext,
 } from "@ark-ui/react/rating-group";
-import {
-  createStyleContext,
-  type HTMLStyledProps,
-} from "@hashintel/ds-helpers/jsx";
 import { StarIcon } from "lucide-react";
 import {
   cloneElement,
@@ -19,6 +15,11 @@ import {
   isValidElement,
   type ReactElement,
 } from "react";
+
+import {
+  createStyleContext,
+  type HTMLStyledProps,
+} from "@hashintel/ds-helpers/jsx";
 
 import { ratingGroupSlotRecipe } from "./rating-group.recipe";
 

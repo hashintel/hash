@@ -1,8 +1,3 @@
-import type {
-  OntologyTemporalMetadata,
-  PropertyTypeWithMetadata,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   queryPropertyTypes,
   type QueryPropertyTypesResponse,
@@ -17,6 +12,8 @@ import {
   unarchivePropertyType,
   updatePropertyType,
 } from "../../../graph/ontology/primitive/property-type";
+import { graphQLContextToImpureGraphContext } from "../util";
+
 import type {
   MutationArchivePropertyTypeArgs,
   MutationCreatePropertyTypeArgs,
@@ -27,7 +24,11 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { graphQLContextToImpureGraphContext } from "../util";
+import type {
+  OntologyTemporalMetadata,
+  PropertyTypeWithMetadata,
+  WebId,
+} from "@blockprotocol/type-system";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,

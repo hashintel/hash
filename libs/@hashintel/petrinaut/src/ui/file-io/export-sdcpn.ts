@@ -1,5 +1,5 @@
-import { serializeSDCPN } from "../../core/file-format/serialize-sdcpn";
-import type { SDCPN } from "../../core/types/sdcpn";
+import { serializeSDCPN, type SDCPN } from "@hashintel/petrinaut-core";
+
 import { downloadBlob, timestampedFilename } from "../lib/download-blob";
 
 /**

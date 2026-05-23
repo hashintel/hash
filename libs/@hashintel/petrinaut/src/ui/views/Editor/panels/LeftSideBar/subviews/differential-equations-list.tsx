@@ -1,20 +1,22 @@
 import { use } from "react";
-import { TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
-import { IconButton } from "../../../../../components/icon-button";
-import type { SubView } from "../../../../../components/sub-view/types";
-import { DifferentialEquationIcon } from "../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../constants/ui-messages";
-import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../../../core/default-codes";
+import { Icon } from "@hashintel/ds-components";
+import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "@hashintel/petrinaut-core";
+
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { Button } from "../../../../../components/button";
+import { DifferentialEquationIcon } from "../../../../../constants/entity-icons";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import {
   RowMenu,
   createFilterableListSubView,
 } from "./filterable-list-sub-view";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 
 /**
  * DifferentialEquationsSectionHeaderAction renders the add button for the section header.
@@ -29,11 +31,16 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <IconButton
+    <Button
       aria-label="Add differential equation"
       size="xs"
+      variant="ghost"
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      tooltip={
+        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add differential equation"
+      }
+      tooltipDisplay="inline"
+      iconName="plus"
       onClick={() => {
         const name = `Equation ${differentialEquations.length + 1}`;
         const id = uuidv4();
@@ -45,9 +52,7 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
         });
         selectItem({ type: "differentialEquation", id });
       }}
-    >
-      <TbPlus />
-    </IconButton>
+    />
   );
 };
 
@@ -61,10 +66,10 @@ const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <TbTrash />,
+          icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
-          onClick: () => removeDifferentialEquation(item.id),
+          onClick: () => removeDifferentialEquation({ equationId: item.id }),
         },
       ]}
     />

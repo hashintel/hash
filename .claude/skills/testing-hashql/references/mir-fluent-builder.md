@@ -102,19 +102,19 @@ builder.build_block(bb).unreachable();
 
 ## RValue Methods
 
-| Method | Creates | Example |
-| ------ | ------- | ------- |
-| `load(operand)` | Copy/move | `rv.load(x)` |
-| `binary(l, op, r)` | Binary op | `rv.binary(x, op![+], y)` |
-| `unary(op, val)` | Unary op | `rv.unary(op![!], cond)` |
-| `tuple([...])` | Tuple | `rv.tuple([x, y, z])` |
-| `list([...])` | List | `rv.list([a, b, c])` |
-| `struct([...])` | Struct | `rv.r#struct([("x", val)])` |
-| `closure(def, env)` | Closure | `rv.closure(def_id, env_place)` |
-| `dict([...])` | Dict | `rv.dict([(k, v)])` |
-| `apply(fn, args)` | Call | `rv.apply(func, [arg1])` |
-| `call(fn)` | Call (no args) | `rv.call(func)` |
-| `input(op, name)` | Input | `rv.input(InputOp::Load { required: true }, "x")` |
+| Method              | Creates        | Example                                           |
+| ------------------- | -------------- | ------------------------------------------------- |
+| `load(operand)`     | Copy/move      | `rv.load(x)`                                      |
+| `binary(l, op, r)`  | Binary op      | `rv.binary(x, op![+], y)`                         |
+| `unary(op, val)`    | Unary op       | `rv.unary(op![!], cond)`                          |
+| `tuple([...])`      | Tuple          | `rv.tuple([x, y, z])`                             |
+| `list([...])`       | List           | `rv.list([a, b, c])`                              |
+| `struct([...])`     | Struct         | `rv.r#struct([("x", val)])`                       |
+| `closure(def, env)` | Closure        | `rv.closure(def_id, env_place)`                   |
+| `dict([...])`       | Dict           | `rv.dict([(k, v)])`                               |
+| `apply(fn, args)`   | Call           | `rv.apply(func, [arg1])`                          |
+| `call(fn)`          | Call (no args) | `rv.call(func)`                                   |
+| `input(op, name)`   | Input          | `rv.input(InputOp::Load { required: true }, "x")` |
 
 ## Places with Projections
 

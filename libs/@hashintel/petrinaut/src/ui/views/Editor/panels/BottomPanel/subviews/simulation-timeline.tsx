@@ -1,34 +1,44 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useMemo, useRef, useState } from "react";
-import { TbList, TbPencil, TbPlus } from "react-icons/tb";
+import {
+  use,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import uPlot from "uplot";
+
+import { css } from "@hashintel/ds-helpers/css";
 import "uplot/dist/uPlot.min.css";
 
-import { IconButton } from "../../../../../components/icon-button";
-import { SegmentGroup } from "../../../../../components/segment-group";
-import { Select } from "../../../../../components/select";
-import type { SubView } from "../../../../../components/sub-view/types";
+import {
+  compileMetric,
+  buildMetricState,
+  type CompiledMetric,
+} from "@hashintel/petrinaut-core";
+
+import { createValueStore } from "../../../../../../react/create-value-store";
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { useLatest } from "../../../../../../react/hooks/use-latest";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../../react/playback/context";
 import {
-  type CompiledMetric,
-  compileMetric,
-} from "../../../../../../core/simulation/compile-metric";
-import {
   SimulationContext,
-  type SimulationFrame,
+  type SimulationFrameReader,
 } from "../../../../../../react/simulation/context";
-import { buildMetricState } from "../../../../../../core/simulation/metric-state";
 import {
   EditorContext,
   type TimelineChartType,
   type TimelineView,
 } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { CreateMetricDrawer } from "../../SimulateView/create-metric-drawer";
-import { ViewMetricDrawer } from "../../SimulateView/view-metric-drawer";
+import { Button } from "../../../../../components/button";
+import { SegmentGroup } from "../../../../../components/segment-group";
+import { Select } from "../../../../../components/select";
+import { CreateMetricDrawer } from "../../SimulateView/metrics/create-metric-drawer";
+import { ViewMetricDrawer } from "../../SimulateView/metrics/view-metric-drawer";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -235,37 +245,37 @@ const TimelineViewPicker: React.FC = () => {
       </div>
       <div style={{ display: "flex" }}>
         {selectedMetric && (
-          <IconButton
-            size="xs"
+          <Button
+            size="sm"
             variant="ghost"
             aria-label="Edit metric"
             tooltip="Edit Metric"
+            tooltipDisplay="inline"
+            iconName="pencil"
             onClick={() => setIsViewOpen(true)}
-          >
-            <TbPencil size={14} />
-          </IconButton>
+          />
         )}
-        <IconButton
-          size="xs"
+        <Button
+          size="sm"
           variant="ghost"
           aria-label="Create metric"
           tooltip="Create Metric"
+          tooltipDisplay="inline"
+          iconName="plus"
           onClick={() => setIsCreateOpen(true)}
-        >
-          <TbPlus size={14} />
-        </IconButton>
-        <IconButton
-          size="xs"
+        />
+        <Button
+          size="sm"
           variant="ghost"
           aria-label="Manage metrics"
           tooltip="Manage Metrics"
+          tooltipDisplay="inline"
+          iconName="list"
           onClick={() => {
             setSimulateViewMode("metrics");
             setGlobalMode("simulate");
           }}
-        >
-          <TbList size={14} />
-        </IconButton>
+        />
       </div>
       <CreateMetricDrawer
         open={isCreateOpen}
@@ -319,7 +329,10 @@ function createEmptyStore(places: PlaceMeta[]): StreamingStore {
  * A single extractor returns the value for series `seriesIdx` at the given
  * frame. Returning NaN leaves a gap on the chart.
  */
-type SeriesExtractor = (frame: SimulationFrame, seriesIdx: number) => number;
+type SeriesExtractor = (
+  frame: SimulationFrameReader,
+  seriesIdx: number,
+) => number;
 
 const UNTYPED_COLOR = "#94a3b8"; // slate-400
 
@@ -470,7 +483,7 @@ function useStreamingData(): {
           timeHistory.push(frame.time);
         }
 
-        const transitionState = frame.transitions[id];
+        const transitionState = frame.getTransitionState(id);
         const firingCount = transitionState?.firingCount ?? 0;
         const tslSec = (transitionState?.timeSinceLastFiringMs ?? 0) / 1000;
 
@@ -564,7 +577,7 @@ function useStreamingData(): {
         }
         let sum = 0;
         for (const id of ids) {
-          sum += frame.places[id]?.count ?? 0;
+          sum += frame.getPlaceTokenCount(id);
         }
         return sum;
       };
@@ -585,7 +598,7 @@ function useStreamingData(): {
     const placeIds = places.map((p) => p.id);
     const extract: SeriesExtractor = (frame, seriesIdx) => {
       const id = placeIds[seriesIdx];
-      return id ? (frame.places[id]?.count ?? 0) : 0;
+      return id ? frame.getPlaceTokenCount(id) : 0;
     };
     return { series, extract };
   }, [
@@ -597,29 +610,35 @@ function useStreamingData(): {
     compiledMetric.fn,
   ]);
 
-  const storeRef = useRef<StreamingStore>(
-    createEmptyStore(seriesConfig.series),
+  const [streamingStore] = useState(() =>
+    createValueStore<StreamingStore>(createEmptyStore(seriesConfig.series)),
+  );
+  const store = useSyncExternalStore(
+    (listener) => streamingStore.subscribe(listener),
+    () => streamingStore.getSnapshot(),
+    () => streamingStore.getSnapshot(),
   );
   const processedRef = useRef(0);
   const [, setRevision] = useState(0);
 
   // Reset store when the series structure changes (view switch or net edits).
   useEffect(() => {
-    storeRef.current = createEmptyStore(seriesConfig.series);
+    const nextStore = createEmptyStore(seriesConfig.series);
+    streamingStore.set(nextStore);
     processedRef.current = 0;
-    setRevision((r) => r + 1);
-  }, [seriesConfig.series]);
+  }, [seriesConfig.series, streamingStore]);
 
   // Stream new frames into the store
   useEffect(() => {
     let cancelled = false;
 
     const fetchData = async () => {
-      const store = storeRef.current;
+      const initialStore = streamingStore.getSnapshot();
 
       if (totalFrames === 0) {
-        if (store.length > 0) {
-          storeRef.current = createEmptyStore(store.places);
+        if (initialStore.length > 0) {
+          const nextStore = createEmptyStore(initialStore.places);
+          streamingStore.set(nextStore);
           processedRef.current = 0;
           setRevision((r) => r + 1);
         }
@@ -628,7 +647,8 @@ function useStreamingData(): {
 
       // Handle simulation restart
       if (totalFrames < processedRef.current) {
-        storeRef.current = createEmptyStore(store.places);
+        const nextStore = createEmptyStore(initialStore.places);
+        streamingStore.set(nextStore);
         processedRef.current = 0;
         setRevision((r) => r + 1);
       }
@@ -644,9 +664,10 @@ function useStreamingData(): {
       }
 
       // Push new data directly into existing arrays — O(k) where k = new frames
-      const cols = storeRef.current.columns;
+      const activeStore = streamingStore.getSnapshot();
+      const cols = activeStore.columns;
       const timeCol = cols[0]!;
-      const seriesCount = storeRef.current.places.length;
+      const seriesCount = activeStore.places.length;
       const { extract } = seriesConfig;
 
       for (const frame of newFrames) {
@@ -656,8 +677,8 @@ function useStreamingData(): {
         }
       }
 
-      storeRef.current.length = timeCol.length;
-      storeRef.current.revision++;
+      activeStore.length = timeCol.length;
+      activeStore.revision++;
       processedRef.current = totalFrames;
 
       // Single state update to trigger React re-render
@@ -668,10 +689,10 @@ function useStreamingData(): {
     return () => {
       cancelled = true;
     };
-  }, [getFramesInRange, totalFrames, seriesConfig]);
+  }, [getFramesInRange, totalFrames, seriesConfig, streamingStore]);
 
   return {
-    store: storeRef.current,
+    store,
     metricError: compiledMetric.error,
   };
 }

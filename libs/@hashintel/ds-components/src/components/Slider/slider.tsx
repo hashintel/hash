@@ -1,4 +1,5 @@
 import { Slider as BaseSlider } from "@ark-ui/react/slider";
+
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 const THUMB_WIDTH = 18;

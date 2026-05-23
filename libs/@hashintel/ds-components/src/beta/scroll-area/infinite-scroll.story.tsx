@@ -1,8 +1,9 @@
 "use client";
 
-import { Box, Center } from "@hashintel/ds-helpers/jsx";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useState } from "react";
+
+import { Box, Center } from "@hashintel/ds-helpers/jsx";
 
 import * as ScrollArea from "../scroll-area";
 

@@ -1,7 +1,8 @@
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
-import type { RequestHandler } from "express";
 
 import { hydraAdmin } from "../../auth/ory-hydra";
+
+import type { RequestHandler } from "express";
 
 type UpsertOAuthClientRequestBody = {
   redirectUri: string;

@@ -1,7 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { Button } from "./button";
 import { Popover } from "./popover";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components / Popover",
@@ -14,47 +16,14 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-const triggerButtonStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: "[32px]",
-  paddingX: "[12px]",
-  fontSize: "[14px]",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  backgroundColor: "[white]",
-  border: "[1px solid]",
-  borderColor: "neutral.s30",
-  borderRadius: "[8px]",
-  cursor: "pointer",
-  _hover: {
-    backgroundColor: "neutral.s10",
-  },
-});
-
 const contentWidthStyle = css({
   width: "[240px]",
 });
 
 const itemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[8px]",
   width: "[100%]",
-  height: "[28px]",
-  paddingX: "[8px]",
-  borderRadius: "[8px]",
-  fontSize: "[14px]",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  backgroundColor: "[transparent]",
-  border: "none",
-  cursor: "pointer",
+  justifyContent: "flex-start",
   textAlign: "left",
-  _hover: {
-    backgroundColor: "neutral.s10",
-  },
 });
 
 export const Default: Story = {
@@ -62,24 +31,22 @@ export const Default: Story = {
   render: () => (
     <Popover.Root positioning={{ placement: "bottom", gutter: 8 }}>
       <Popover.Trigger asChild>
-        <button type="button" className={triggerButtonStyle}>
-          Open Popover
-        </button>
+        <Button variant="subtle">Open Popover</Button>
       </Popover.Trigger>
       <Popover.Content className={contentWidthStyle}>
         <Popover.Header>Settings</Popover.Header>
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>Options</Popover.SectionLabel>
-            <button type="button" className={itemStyle}>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               Option A
-            </button>
-            <button type="button" className={itemStyle}>
+            </Button>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               Option B
-            </button>
-            <button type="button" className={itemStyle}>
+            </Button>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               Option C
-            </button>
+            </Button>
           </Popover.SectionCard>
         </Popover.Section>
       </Popover.Content>
@@ -92,32 +59,30 @@ export const MultipleSections: Story = {
   render: () => (
     <Popover.Root positioning={{ placement: "bottom", gutter: 8 }}>
       <Popover.Trigger asChild>
-        <button type="button" className={triggerButtonStyle}>
-          Preferences
-        </button>
+        <Button variant="subtle">Preferences</Button>
       </Popover.Trigger>
       <Popover.Content className={contentWidthStyle}>
         <Popover.Header>Preferences</Popover.Header>
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>Display</Popover.SectionLabel>
-            <button type="button" className={itemStyle}>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               Light mode
-            </button>
-            <button type="button" className={itemStyle}>
+            </Button>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               Dark mode
-            </button>
+            </Button>
           </Popover.SectionCard>
         </Popover.Section>
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>Language</Popover.SectionLabel>
-            <button type="button" className={itemStyle}>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               English
-            </button>
-            <button type="button" className={itemStyle}>
+            </Button>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               French
-            </button>
+            </Button>
           </Popover.SectionCard>
         </Popover.Section>
       </Popover.Content>
@@ -130,21 +95,19 @@ export const TopPlacement: Story = {
   render: () => (
     <Popover.Root positioning={{ placement: "top", gutter: 8 }}>
       <Popover.Trigger asChild>
-        <button type="button" className={triggerButtonStyle}>
-          Open above
-        </button>
+        <Button variant="subtle">Open above</Button>
       </Popover.Trigger>
       <Popover.Content className={contentWidthStyle}>
         <Popover.Header>Info</Popover.Header>
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>Details</Popover.SectionLabel>
-            <button type="button" className={itemStyle}>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               Item one
-            </button>
-            <button type="button" className={itemStyle}>
+            </Button>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               Item two
-            </button>
+            </Button>
           </Popover.SectionCard>
         </Popover.Section>
       </Popover.Content>
@@ -157,18 +120,16 @@ export const OpenByDefault: Story = {
   render: () => (
     <Popover.Root defaultOpen positioning={{ placement: "bottom", gutter: 8 }}>
       <Popover.Trigger asChild>
-        <button type="button" className={triggerButtonStyle}>
-          Already open
-        </button>
+        <Button variant="subtle">Already open</Button>
       </Popover.Trigger>
       <Popover.Content className={contentWidthStyle}>
         <Popover.Header>Popover</Popover.Header>
         <Popover.Section>
           <Popover.SectionCard>
             <Popover.SectionLabel>Content</Popover.SectionLabel>
-            <button type="button" className={itemStyle}>
+            <Button variant="ghost" size="sm" className={itemStyle}>
               This popover starts open
-            </button>
+            </Button>
           </Popover.SectionCard>
         </Popover.Section>
       </Popover.Content>

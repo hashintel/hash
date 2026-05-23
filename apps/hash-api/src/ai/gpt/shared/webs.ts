@@ -1,9 +1,9 @@
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import { getOrgMembershipOrg } from "../../../graph/knowledge/system-types/org-membership";
+import { getUserOrgMemberships } from "../../../graph/knowledge/system-types/user";
 
 import type { ImpureGraphContext } from "../../../graph/context-types";
-import { getOrgMembershipOrg } from "../../../graph/knowledge/system-types/org-membership";
 import type { User } from "../../../graph/knowledge/system-types/user";
-import { getUserOrgMemberships } from "../../../graph/knowledge/system-types/user";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 
 export type SimpleWeb = {
   uuid: string;

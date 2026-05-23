@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Context } from "@temporalio/activity";
 
 import { logger } from "../activity-logger.js";
+
 import type { LlmLog, LlmServerErrorLog } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);

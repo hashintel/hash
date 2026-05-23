@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/ds-helpers",
-  "version": "0.1.2",
+  "version": "0.2.1",
   "description": "HASH PandaCSS Styled System",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
@@ -52,5 +52,9 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "codegen": "true",
+    "prepack": "turbo run codegen --filter @hashintel/ds-helpers"
   }
 }

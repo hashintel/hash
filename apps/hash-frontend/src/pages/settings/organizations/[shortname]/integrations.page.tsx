@@ -1,10 +1,4 @@
 import { useQuery } from "@apollo/client";
-import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   Box,
   Skeleton,
@@ -14,17 +8,19 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
 import { useMemo } from "react";
 
-import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../../../../graphql/api-types.gen";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { LinearLogo } from "../../../../shared/icons/linear-logo";
-import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui";
 import { useActors } from "../../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
@@ -33,6 +29,12 @@ import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { SettingsTable } from "../../shared/settings-table";
 import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { OrgIntegrationContextMenu } from "./integrations.page/org-integrations-context-menu";
+
+import type {
+  QueryEntitiesQuery,
+  QueryEntitiesQueryVariables,
+} from "../../../../graphql/api-types.gen";
+import type { NextPageWithLayout } from "../../../../shared/layout";
 
 const OrgIntegrationsPage: NextPageWithLayout = () => {
   const router = useRouter();

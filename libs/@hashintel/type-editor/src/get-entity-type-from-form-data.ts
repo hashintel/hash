@@ -1,12 +1,12 @@
+import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
+
+import type { EntityTypeEditorFormData } from "./shared/form-types";
 import type {
   EntityType,
   EntityTypeReference,
   PropertyTypeReference,
   ValueOrArray,
 } from "@blockprotocol/type-system";
-import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
-
-import type { EntityTypeEditorFormData } from "./shared/form-types";
 
 export const getEntityTypeFromFormData = (
   data: EntityTypeEditorFormData,

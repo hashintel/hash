@@ -1,4 +1,6 @@
-import type { WebId } from "@blockprotocol/type-system";
+import { generateKeyBetween } from "fractional-indexing";
+import { useCallback } from "react";
+
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks-constants";
 import {
   blockProtocolPropertyTypes,
@@ -6,11 +8,11 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { generateKeyBetween } from "fractional-indexing";
-import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
+
+import type { WebId } from "@blockprotocol/type-system";
+import type { BlockCollectionProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const useCreateBlockCollection = (props: { webId: WebId }) => {
   const { webId } = props;

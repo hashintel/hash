@@ -1,15 +1,17 @@
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { useCallback } from "react";
+
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
+import { useEntityEditor } from "../../entity-editor-context";
+import { fillRowIndentCalculations } from "./fill-row-indent-calculations";
+import { flattenExpandedItemsOfTree } from "./flatten";
+import { usePropertyRowsFromEntity } from "./use-rows/use-property-rows-from-entity";
 
 import type {
   GridSort,
   SortGridRows,
 } from "../../../../../../components/grid/grid";
-import { useEntityEditor } from "../../entity-editor-context";
-import { fillRowIndentCalculations } from "./fill-row-indent-calculations";
-import { flattenExpandedItemsOfTree } from "./flatten";
 import type { PropertyColumn, PropertyColumnKey, PropertyRow } from "./types";
-import { usePropertyRowsFromEntity } from "./use-rows/use-property-rows-from-entity";
 
 const sortPropertyRows: SortGridRows<
   PropertyRow,

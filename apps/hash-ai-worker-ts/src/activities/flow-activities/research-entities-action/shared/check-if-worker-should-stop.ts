@@ -1,15 +1,17 @@
-import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
-import type {
-  FlowSignalType,
-  WorkerIdentifiers,
-} from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 
-import type { FlowSignal } from "../../../../shared/signals.js";
+import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
+
 import {
   getTemporalClient,
   isActivityCancelled,
 } from "../../../shared/get-flow-context.js";
+
+import type { FlowSignal } from "../../../../shared/signals.js";
+import type {
+  FlowSignalType,
+  WorkerIdentifiers,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * Check if a HASH worker should stop what it is doing and return early.

@@ -1,19 +1,14 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { useReactFlow } from "@xyflow/react";
 import { use, useState } from "react";
-import {
-  TbLockOpen,
-  TbMaximize,
-  TbMinus,
-  TbPlus,
-  TbSettings,
-} from "react-icons/tb";
 
-import { IconButton } from "../../../components/icon-button";
-import { PANEL_MARGIN } from "../../../constants/ui";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
 import { EditorContext } from "../../../../react/state/editor-context";
-import type { ViewportAction } from "../../../types/viewport-action";
+import { Button } from "../../../components/button";
+import { PANEL_MARGIN } from "../../../constants/ui";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
+
+import type { ViewportAction } from "../../../types/viewport-action";
 
 const BASE_OFFSET = 12;
 
@@ -62,73 +57,72 @@ export const ViewportControls: React.FC<{
       className={`${containerStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
       style={{ right: rightOffset, bottom: bottomOffset }}
     >
-      <IconButton
-        size="xs"
-        variant="outline"
+      <Button
+        size="sm"
+        variant="subtle"
         aria-label="Zoom in"
         tooltip="Zoom in"
+        tooltipDisplay="inline"
+        iconName="plus"
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomIn()}
-      >
-        <TbPlus size={14} />
-      </IconButton>
-      <IconButton
-        size="xs"
-        variant="outline"
+      />
+      <Button
+        size="sm"
+        variant="subtle"
         aria-label="Zoom out"
         tooltip="Zoom out"
+        tooltipDisplay="inline"
+        iconName="dash"
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomOut()}
-      >
-        <TbMinus size={14} />
-      </IconButton>
-      <IconButton
-        size="xs"
-        variant="outline"
+      />
+      <Button
+        size="sm"
+        variant="subtle"
         aria-label="Fullscreen"
         tooltip="Fullscreen"
+        tooltipDisplay="inline"
+        iconName="expand"
         onClick={collapseAllPanels}
-      >
-        <TbMaximize size={14} />
-      </IconButton>
-      <IconButton
-        size="xs"
-        variant="outline"
+      />
+      <Button
+        size="sm"
+        variant="subtle"
         aria-label="Lock view"
         tooltip="Lock view"
+        tooltipDisplay="inline"
+        iconName="lockOpen"
         onClick={() => {
           // Placeholder for future lock view functionality
         }}
-      >
-        <TbLockOpen size={14} />
-      </IconButton>
-      <IconButton
-        size="xs"
-        variant="outline"
+      />
+      <Button
+        size="sm"
+        variant="subtle"
         aria-label="Settings"
         tooltip="Settings"
+        tooltipDisplay="inline"
+        iconName="gear"
         onClick={() => setIsSettingsOpen(true)}
-      >
-        <TbSettings size={14} />
-      </IconButton>
+      />
       <ViewportSettingsDialog
         open={isSettingsOpen}
         onOpenChange={(details) => setIsSettingsOpen(details.open)}
       />
       {viewportActions?.map((action) => (
-        <IconButton
+        <Button
           key={action.key}
           ref={action.ref}
-          size="xs"
-          variant="outline"
+          size="sm"
+          variant="subtle"
           aria-label={action.label}
           tooltip={action.tooltip}
+          tooltipDisplay="inline"
           onClick={action.onClick}
-          style={action.style}
           className={action.className}
-        >
-          {action.icon}
-        </IconButton>
+          prefix={action.icon}
+        />
       ))}
     </div>
   );

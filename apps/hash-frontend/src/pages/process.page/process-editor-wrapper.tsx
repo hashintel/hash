@@ -1,6 +1,7 @@
 import "@hashintel/petrinaut/dist/main.css";
+import { Box, Stack } from "@mui/material";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { EntityId } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import {
   createJsonDocHandle,
@@ -8,14 +9,14 @@ import {
   type PetrinautDocHandle,
   type SDCPN,
 } from "@hashintel/petrinaut";
-import { Box, Stack } from "@mui/material";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
 import {
   type PersistedNet,
   useProcessSaveAndLoad,
 } from "./process-editor-wrapper/use-process-save-and-load";
+
+import type { EntityId } from "@blockprotocol/type-system";
 
 const emptySDCPN: SDCPN = {
   places: [],

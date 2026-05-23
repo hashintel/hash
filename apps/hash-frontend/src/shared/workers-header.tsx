@@ -1,12 +1,14 @@
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import { Box, Container, Stack, Typography } from "@mui/material";
-import type { FunctionComponent, ReactElement } from "react";
 
-import type { Breadcrumb } from "../pages/shared/breadcrumbs";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+
 import { TopContextBar } from "../pages/shared/top-context-bar";
 import { BoltLightIcon } from "./icons/bolt-light-icon";
+
+import type { Breadcrumb } from "../pages/shared/breadcrumbs";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import type { FunctionComponent, ReactElement } from "react";
 
 type WorkersHeaderProps = {
   endElement?: ReactElement;

@@ -24,10 +24,12 @@ For other distributions (e.g. log-normal, deterministic), place dynamics and dur
 ```ts
 export default TransitionKernel((tokensByPlace, parameters) => {
   return {
-    InProgress: [{
-      remaining_time: Distribution.Lognormal(2.0, 0.5),
-      // ... other dimensions
-    }],
+    InProgress: [
+      {
+        remaining_time: Distribution.Lognormal(2.0, 0.5),
+        // ... other dimensions
+      },
+    ],
   };
 });
 ```

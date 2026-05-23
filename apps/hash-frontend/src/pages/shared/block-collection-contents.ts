@@ -1,18 +1,20 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
-import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type { QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
   Block,
@@ -23,8 +25,6 @@ import type {
   EntityTraversalPath,
   GraphResolveDepths,
 } from "@rust/hash-graph-store/types";
-
-import type { QueryEntitySubgraphQueryVariables } from "../../graphql/api-types.gen";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection

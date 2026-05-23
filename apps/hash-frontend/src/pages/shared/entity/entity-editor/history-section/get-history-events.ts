@@ -1,17 +1,8 @@
-import type { EntityVertexId, Subgraph } from "@blockprotocol/graph";
 import {
   getEntityRevision,
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  BaseUrl,
-  EntityTypeIdDiff,
-  EntityTypeWithMetadata,
-  PropertyDiff,
-  Timestamp,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractVersion,
@@ -21,6 +12,15 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import type { EntityDiff } from "../../../../../graphql/api-types.gen";
 import type { HistoryEvent } from "./shared/types";
+import type { EntityVertexId, Subgraph } from "@blockprotocol/graph";
+import type {
+  BaseUrl,
+  EntityTypeIdDiff,
+  EntityTypeWithMetadata,
+  PropertyDiff,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
   const firstEditionIdentifier = [...(subgraph.roots as EntityVertexId[])].sort(

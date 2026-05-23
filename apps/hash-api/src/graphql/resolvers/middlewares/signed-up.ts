@@ -1,5 +1,6 @@
-import type { LoggedInGraphQLContext } from "../../context";
 import * as Error from "../../error";
+
+import type { LoggedInGraphQLContext } from "../../context";
 import type { ResolverMiddleware } from "./middleware-types";
 
 export const signedUpMiddleware: ResolverMiddleware<

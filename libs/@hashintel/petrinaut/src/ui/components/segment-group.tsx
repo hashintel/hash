@@ -1,10 +1,12 @@
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
+
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { token } from "@hashintel/ds-helpers/tokens";
-import type { ReactNode } from "react";
 
 import { withTooltip } from "./hoc/with-tooltip";
 import { Tooltip } from "./tooltip";
+
+import type { ReactNode } from "react";
 
 const rootStyle = cva({
   base: {

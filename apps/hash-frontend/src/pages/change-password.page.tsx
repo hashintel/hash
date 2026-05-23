@@ -1,13 +1,10 @@
-import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
-import type { SettingsFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
 import { useEffect, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
+import { TextField } from "@hashintel/design-system";
+
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {
@@ -15,6 +12,11 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
+
+import type { NextPageWithLayout } from "../shared/layout";
+import type { SettingsFlow } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { FormEventHandler } from "react";
 
 const ChangePasswordPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL

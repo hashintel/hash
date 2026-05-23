@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
@@ -68,6 +66,7 @@ import type {
   URIDataType,
   URIDataTypeWithMetadata,
 } from "./shared.js";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   BooleanDataType,

@@ -1,17 +1,4 @@
 import { useMutation } from "@apollo/client";
-import type { BaseUrl, WebId } from "@blockprotocol/type-system";
-import { Autocomplete, TextField } from "@hashintel/design-system";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  FractionalIndexPropertyValueWithMetadata,
-  PageProperties,
-  TitlePropertyValueWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/page";
-import type { ModalProps } from "@mui/material";
 import {
   autocompleteClasses,
   Box,
@@ -19,21 +6,36 @@ import {
   Typography,
 } from "@mui/material";
 import { generateKeyBetween } from "fractional-indexing";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
+import { Autocomplete, TextField } from "@hashintel/design-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import type { SimplePage } from "../../components/hooks/use-account-pages";
 import { useAccountPages } from "../../components/hooks/use-account-pages";
 import { PageIcon } from "../../components/page-icon";
+import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
+import { Button, Modal } from "../../shared/ui";
+import { useAuthenticatedUser } from "../shared/auth-info-context";
+
+import type { SimplePage } from "../../components/hooks/use-account-pages";
 import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
-import { Button, Modal } from "../../shared/ui";
-import { useAuthenticatedUser } from "../shared/auth-info-context";
+import type { BaseUrl, WebId } from "@blockprotocol/type-system";
+import type {
+  FractionalIndexPropertyValueWithMetadata,
+  PageProperties,
+  TitlePropertyValueWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/page";
+import type { ModalProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export type PageWithParentLink = SimplePage & {
   parentLinkEntity?: HashEntity;

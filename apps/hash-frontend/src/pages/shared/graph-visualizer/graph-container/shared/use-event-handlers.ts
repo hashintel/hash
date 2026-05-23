@@ -1,27 +1,24 @@
 import { useRegisterEvents, useSigma } from "@react-sigma/core";
-import type { RefObject } from "react";
 import { useCallback, useEffect } from "react";
+
+import { useFullScreen } from "./full-screen-context";
 
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
   StaticNodeSizing,
 } from "./config-control";
-import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
 import type { GraphVizEdge } from "./types";
+import type { RefObject } from "react";
 
 export type RegisterEventsArgs = {
   config: GraphVizConfig<DynamicNodeSizing | StaticNodeSizing>;
   graphContainerRef: RefObject<HTMLDivElement | null>;
   graphState: GraphState;
-  onEdgeClick?: (params: {
-    edgeData: GraphVizEdge;
-  }) => void;
+  onEdgeClick?: (params: { edgeData: GraphVizEdge }) => void;
   onRender?: () => void;
-  onNodeSecondClick?: (params: {
-    nodeId: string;
-  }) => void;
+  onNodeSecondClick?: (params: { nodeId: string }) => void;
   setConfigPanelOpen: (open: boolean) => void;
   setFilterPanelOpen: (open: boolean) => void;
   setPathFinderPanelOpen: (open: boolean) => void;

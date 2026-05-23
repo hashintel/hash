@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/node";
+
 import type { InjectedSinks } from "@temporalio/worker";
 import type { Sinks, WorkflowInfo } from "@temporalio/workflow";
 

@@ -1,5 +1,33 @@
 # @hashintel/ds-components
 
+## 0.2.1
+
+### Patch Changes
+
+- [#8727](https://github.com/hashintel/hash/pull/8727) [`834cbee`](https://github.com/hashintel/hash/commit/834cbeeb7d8045f006d7a1fab1e5858b83c437d6) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add NumberInput component
+
+- Updated dependencies [[`c0c9498`](https://github.com/hashintel/hash/commit/c0c9498dc4f648814a80fc6e8df3598ff8a108ac)]:
+  - @hashintel/ds-helpers@0.2.1
+
+## 0.2.0
+
+### Minor Changes
+
+- [#8670](https://github.com/hashintel/hash/pull/8670) [`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa) Thanks [@lunelson](https://github.com/lunelson)! - Expose preset-owned `tokens` and `semanticTokens` from `@hashintel/ds-components/tokens` in place of the old `./theme` export, and add generated `@hashintel/ds-helpers/recipes` exports for recipe consumers.
+
+### Patch Changes
+
+- [#8687](https://github.com/hashintel/hash/pull/8687) [`926f9fa`](https://github.com/hashintel/hash/commit/926f9fa3b844a9dd4ca26cdbe6dd69ceed87dcb5) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - New Button component added to design system
+
+- [#8699](https://github.com/hashintel/hash/pull/8699) [`ab0a035`](https://github.com/hashintel/hash/commit/ab0a0353baa0f1611ceba7ca29cd8adb575392f5) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add tooltip component to DS
+
+- [#8710](https://github.com/hashintel/hash/pull/8710) [`d9eb831`](https://github.com/hashintel/hash/commit/d9eb8317bd0c981e45f263a007aeac48f309e268) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Added TextInput component to DS
+
+- [#8661](https://github.com/hashintel/hash/pull/8661) [`79eda1e`](https://github.com/hashintel/hash/commit/79eda1e27e9a6b2959a68e59f9a25791639f5770) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Adds the Icon component
+
+- Updated dependencies [[`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa)]:
+  - @hashintel/ds-helpers@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes

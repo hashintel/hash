@@ -26,7 +26,7 @@ fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Boolean {
         %9 = closure(({def@42} as FnPtr), %8)                                   // cost: 8
         %10 = apply %9 5                                                        // cost: 8
         %11 = input LOAD param                                                  // cost: 8
-        %12 = 1                                                                 // cost: 8
+        %12 = true                                                              // cost: 8
 
         return %12
     }

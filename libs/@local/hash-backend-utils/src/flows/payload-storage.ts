@@ -1,12 +1,12 @@
+import { getAwsS3Config } from "../aws-config.js";
+import { AwsS3StorageProvider } from "../file-storage/aws-s3-storage-provider.js";
+
+import type { FileStorageProvider } from "../file-storage.js";
 import type {
   PayloadKindValues,
   StoredPayloadKind,
   StoredPayloadRef,
 } from "@local/hash-isomorphic-utils/flows/types";
-
-import { getAwsS3Config } from "../aws-config.js";
-import type { FileStorageProvider } from "../file-storage.js";
-import { AwsS3StorageProvider } from "../file-storage/aws-s3-storage-provider.js";
 
 let _storageProvider: FileStorageProvider | undefined;
 

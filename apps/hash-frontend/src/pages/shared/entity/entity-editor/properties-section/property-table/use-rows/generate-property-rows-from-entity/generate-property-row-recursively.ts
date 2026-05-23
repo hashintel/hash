@@ -1,3 +1,15 @@
+import get from "lodash/get";
+
+import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
+
+import {
+  isPropertyValueArray,
+  isPropertyValueObject,
+} from "../../../../../../../../lib/typeguards";
+import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
+
+import type { MinimalEntityValidationReport } from "../../../../../../use-validate-entity";
+import type { PropertyRow } from "../../types";
 import type {
   BaseUrl,
   ClosedMultiEntityType,
@@ -6,16 +18,6 @@ import type {
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
-import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
-import get from "lodash/get";
-
-import {
-  isPropertyValueArray,
-  isPropertyValueObject,
-} from "../../../../../../../../lib/typeguards";
-import type { MinimalEntityValidationReport } from "../../../../../../use-validate-entity";
-import type { PropertyRow } from "../../types";
-import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
 
 /**
  * This function generates property row data,

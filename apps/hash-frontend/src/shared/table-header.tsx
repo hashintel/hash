@@ -1,21 +1,3 @@
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import {
-  CheckIcon,
-  Chip,
-  EyeRegularIcon,
-  EyeSlashRegularIcon,
-  IconButton,
-  LoadingSpinner,
-} from "@hashintel/design-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { SxProps, Theme, TooltipProps } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -27,6 +9,40 @@ import {
   tooltipClasses,
   useTheme,
 } from "@mui/material";
+import { useCallback, useState } from "react";
+
+import {
+  CheckIcon,
+  Chip,
+  EyeRegularIcon,
+  EyeSlashRegularIcon,
+  IconButton,
+  LoadingSpinner,
+} from "@hashintel/design-system";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
+import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
+import { FilterListIcon } from "./icons/filter-list-icon";
+import { HouseRegularIcon } from "./icons/house-regular-icon";
+import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
+import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
+import { ExportToCsvButton } from "./table-header/export-to-csv-button";
+import { TableHeaderButton } from "./table-header/table-header-button";
+
+import type { GridRow } from "../components/grid/grid";
+import type { MinimalUser } from "../lib/user-and-org";
+import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/types";
+import type { TypesTableRow } from "../pages/shared/types-table";
+import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-button";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { SxProps, Theme, TooltipProps } from "@mui/material";
 import type {
   Dispatch,
   FunctionComponent,
@@ -34,20 +50,6 @@ import type {
   ReactNode,
   SetStateAction,
 } from "react";
-import { useCallback, useState } from "react";
-
-import type { GridRow } from "../components/grid/grid";
-import type { MinimalUser } from "../lib/user-and-org";
-import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/types";
-import type { TypesTableRow } from "../pages/shared/types-table";
-import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
-import { FilterListIcon } from "./icons/filter-list-icon";
-import { HouseRegularIcon } from "./icons/house-regular-icon";
-import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
-import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
-import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-button";
-import { ExportToCsvButton } from "./table-header/export-to-csv-button";
-import { TableHeaderButton } from "./table-header/table-header-button";
 
 export const tableHeaderHeight = 52;
 

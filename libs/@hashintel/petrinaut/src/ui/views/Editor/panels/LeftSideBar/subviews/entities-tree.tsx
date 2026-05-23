@@ -1,9 +1,12 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { ComponentType } from "react";
 import { use } from "react";
-import { TbTrash } from "react-icons/tb";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { MutationContext } from "../../../../../../react/state/mutation-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import {
   DifferentialEquationIcon,
   ParameterIcon,
@@ -11,11 +14,6 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../../react/state/mutation-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import type { SelectionItem } from "../../../../../../core/types/selection";
-import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { DifferentialEquationsSectionHeaderAction } from "./differential-equations-list";
 import {
   RowMenu,
@@ -23,6 +21,10 @@ import {
 } from "./filterable-list-sub-view";
 import { ParametersHeaderAction } from "./parameters-list";
 import { TypesSectionHeaderAction } from "./types-list";
+
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { SelectionItem } from "@hashintel/petrinaut-core";
+import type { ComponentType } from "react";
 
 const parameterVarNameStyle = css({
   margin: "0",
@@ -66,9 +68,10 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
   }
 
   const deleteActions: Partial<Record<string, () => void>> = {
-    type: () => removeType(item.id),
-    differentialEquation: () => removeDifferentialEquation(item.id),
-    parameter: () => removeParameter(item.id),
+    type: () => removeType({ typeId: item.id }),
+    differentialEquation: () =>
+      removeDifferentialEquation({ equationId: item.id }),
+    parameter: () => removeParameter({ parameterId: item.id }),
   };
   const deleteAction = deleteActions[type];
 
@@ -82,7 +85,7 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <TbTrash />,
+          icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
           onClick: deleteAction,

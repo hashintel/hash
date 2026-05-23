@@ -1,9 +1,19 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
-import { type ReactNode, use, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  use,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createPortal } from "react-dom";
-import { TbX } from "react-icons/tb";
 
+import { css, cx } from "@hashintel/ds-helpers/css";
+
+import { createValueStore } from "../../react/create-value-store";
 import { PortalContainerContext } from "../../react/state/portal-container-context";
+import { Button } from "./button";
 import {
   Body,
   Card as PanelCard,
@@ -102,23 +112,33 @@ const Root = ({
   className,
 }: DrawerRootProps) => {
   const portalContainerRef = use(PortalContainerContext);
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
-    null,
+  const [portalContainerStore] = useState(() =>
+    createValueStore<HTMLElement | null>(null),
   );
-  const [mounted, setMounted] = useState(false);
+  const portalContainer = useSyncExternalStore(
+    (listener) => portalContainerStore.subscribe(listener),
+    () => portalContainerStore.getSnapshot(),
+    () => portalContainerStore.getSnapshot(),
+  );
+  const [mountedStore] = useState(() => createValueStore(false));
+  const mounted = useSyncExternalStore(
+    (listener) => mountedStore.subscribe(listener),
+    () => mountedStore.getSnapshot(),
+    () => mountedStore.getSnapshot(),
+  );
 
-  useEffect(() => {
-    setPortalContainer(portalContainerRef?.current ?? null);
-  }, [portalContainerRef]);
+  useLayoutEffect(() => {
+    portalContainerStore.set(portalContainerRef?.current ?? null);
+  }, [portalContainerRef, portalContainerStore]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (open) {
-      setMounted(true);
+      mountedStore.set(true);
     }
-  }, [open]);
+  }, [mountedStore, open]);
 
   const handleExited = () => {
-    setMounted(false);
+    mountedStore.set(false);
   };
 
   if (!mounted || !portalContainer) {
@@ -146,14 +166,16 @@ const Card = ({
 }) => (
   <PanelCard
     closeButton={
-      <button
-        type="button"
+      <Button
         className={closeButtonStyle}
+        variant="ghost"
+        size="sm"
         aria-label="Close"
+        tooltip="Close"
+        tooltipDisplay="inline"
+        iconName="close"
         onClick={onClose}
-      >
-        <TbX />
-      </button>
+      />
     }
   >
     {children}

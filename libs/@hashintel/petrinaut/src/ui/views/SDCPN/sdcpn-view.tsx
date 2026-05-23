@@ -1,9 +1,4 @@
 import "@xyflow/react/dist/style.css";
-
-import { css } from "@hashintel/ds-helpers/css";
-import { useResizeObserver } from "./hooks/util/use-resize-observer";
-import { useDebounceCallback } from "./hooks/util/use-debounce-callback";
-import type { Connection } from "@xyflow/react";
 import { Background, ReactFlow, SelectionMode } from "@xyflow/react";
 import {
   use,
@@ -15,18 +10,19 @@ import {
 } from "react";
 import { v4 as generateUuid } from "uuid";
 
-import { SNAP_GRID_SIZE } from "../../constants/ui";
-import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
-} from "../../../core/default-codes";
+} from "@hashintel/petrinaut-core";
+
 import { EditorContext } from "../../../react/state/editor-context";
 import { MutationContext } from "../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
-import type { ViewportAction } from "../../types/viewport-action";
+import { SNAP_GRID_SIZE } from "../../constants/ui";
+import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 import { Arc } from "./components/arc";
 import { ClassicPlaceNode } from "./components/classic-place-node";
 import { ClassicTransitionNode } from "./components/classic-transition-node";
@@ -37,7 +33,12 @@ import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useRecenterOnPanelOpen } from "./hooks/use-recenter-on-panel-open";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
+import { useDebounceCallback } from "./hooks/util/use-debounce-callback";
+import { useResizeObserver } from "./hooks/util/use-resize-observer";
+
+import type { ViewportAction } from "../../types/viewport-action";
 import type { PetrinautReactFlowInstance } from "./reactflow-types";
+import type { Connection } from "@xyflow/react";
 
 const COMPACT_NODE_TYPES = {
   place: PlaceNode,
@@ -200,13 +201,23 @@ export const SDCPNView: React.FC<{
     // Determine direction: place->transition or transition->place
     if (sourceNode.type === "place" && targetNode.type === "transition") {
       // Input arc: place to transition
-      addArc(target, "input", source, 1);
+      addArc({
+        transitionId: target,
+        arcDirection: "input",
+        placeId: source,
+        weight: 1,
+      });
     } else if (
       sourceNode.type === "transition" &&
       targetNode.type === "place"
     ) {
       // Output arc: transition to place
-      addArc(source, "output", target, 1);
+      addArc({
+        transitionId: source,
+        arcDirection: "output",
+        placeId: target,
+        weight: 1,
+      });
     }
   }
 

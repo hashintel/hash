@@ -1,6 +1,7 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { FaCheck, FaXmark } from "react-icons/fa6";
+
+import { Icon } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import { ToolbarButton } from "./toolbar-button";
@@ -69,11 +70,11 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
       >
         {hasErrors ? (
           <>
-            <FaXmark size={15} />
+            <Icon name="close" size="sm" />
             <span className={countStyle}>{totalDiagnosticsCount}</span>
           </>
         ) : (
-          <FaCheck size={15} />
+          <Icon name="check" size="sm" />
         )}
       </div>
     </ToolbarButton>

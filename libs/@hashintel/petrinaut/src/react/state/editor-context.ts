@@ -5,7 +5,8 @@ import {
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "./panel-defaults";
-import type { SelectionItem, SelectionMap } from "../../core/types/selection";
+
+import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 
 export type DraggingStateByNodeId = Record<
   string,

@@ -1,8 +1,10 @@
-import { ArrowUpRightIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
-import type { ReactElement } from "react";
+
+import { ArrowUpRightIcon } from "@hashintel/design-system";
 
 import { ValueChip } from "./value-chip";
+
+import type { ReactElement } from "react";
 
 export const ClickableCellChip = ({
   fontSize,

@@ -1,10 +1,3 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
-
-import type {
-  AiFlowActionDefinitionId,
-  InputNameForAiFlowAction,
-  OutputNameForAiFlowAction,
-} from "./action-definitions.js";
 import {
   googleSheetDeliverable,
   googleSheetStep,
@@ -16,7 +9,14 @@ import {
   markdownReportStep,
   markdownReportTriggerInputs,
 } from "./goal-flow-definitions/markdown-report.js";
+
+import type {
+  AiFlowActionDefinitionId,
+  InputNameForAiFlowAction,
+  OutputNameForAiFlowAction,
+} from "./action-definitions.js";
 import type { FlowDefinition } from "./types.js";
+import type { EntityUuid } from "@blockprotocol/type-system";
 
 export type GoalFlowTriggerInput =
   | "Research guidance"

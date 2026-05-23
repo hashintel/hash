@@ -8,21 +8,22 @@ import { memo, useMemo, useRef } from "react";
 import { createNodeCompoundProgram, EdgeArrowProgram } from "sigma/rendering";
 
 import { FullScreenButton } from "./graph-container/full-screen-button";
-import type { GraphLoaderProps } from "./graph-container/graph-data-loader";
 import { GraphDataLoader } from "./graph-container/graph-data-loader";
 import { PathFinderControl } from "./graph-container/path-finder-control";
 import { SearchControl } from "./graph-container/search-control";
+import { ConfigControl } from "./graph-container/shared/config-control";
+import { FilterControl } from "./graph-container/shared/filter-control";
+import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
+import { GraphContextProvider } from "./graph-container/shared/graph-context";
+import { ZoomControl } from "./graph-container/zoom-control";
+
+import type { GraphLoaderProps } from "./graph-container/graph-data-loader";
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
   StaticNodeSizing,
 } from "./graph-container/shared/config-control";
-import { ConfigControl } from "./graph-container/shared/config-control";
 import type { GraphVizFilters } from "./graph-container/shared/filter-control";
-import { FilterControl } from "./graph-container/shared/filter-control";
-import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
-import { GraphContextProvider } from "./graph-container/shared/graph-context";
-import { ZoomControl } from "./graph-container/zoom-control";
 
 export type GraphContainerProps<
   NodeSizing extends DynamicNodeSizing | StaticNodeSizing,

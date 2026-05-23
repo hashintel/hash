@@ -11,9 +11,8 @@ import {
   Predicate,
 } from "effect";
 
-import { createProto, implDecode, implEncode } from "../../utils.js";
 import { MutableBuffer } from "../../binary/index.js";
-
+import { createProto, implDecode, implEncode } from "../../utils.js";
 import * as ProtocolVersion from "./ProtocolVersion.js";
 
 const TypeId: unique symbol = Symbol(
@@ -33,9 +32,7 @@ export class InvalidMagicError extends Data.TaggedError("InvalidMagicError")<{
 }
 
 export interface Protocol
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly version: ProtocolVersion.ProtocolVersion;
 }

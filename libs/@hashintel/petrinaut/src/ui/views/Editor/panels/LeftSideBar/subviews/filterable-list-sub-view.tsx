@@ -1,21 +1,20 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
-import type { ComponentType, ReactNode } from "react";
 import { Fragment, use, useEffect, useRef, useState } from "react";
-import { LuChevronRight, LuSearch } from "react-icons/lu";
-import { TbDots } from "react-icons/tb";
 
-import { IconButton } from "../../../../../components/icon-button";
-import type { MenuItem } from "../../../../../components/menu";
+import { Icon } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { Button } from "../../../../../components/button";
 import { Menu } from "../../../../../components/menu";
+import { clampIndex } from "../../../../../lib/clamp-index";
+
+import type { MenuItem } from "../../../../../components/menu";
 import type {
   SubView,
   SubViewResizeConfig,
 } from "../../../../../components/sub-view/types";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import type {
-  SelectionItem,
-  SelectionMap,
-} from "../../../../../../core/types/selection";
+import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
+import type { ComponentType, ReactNode } from "react";
 
 const listContainerStyle = css({
   display: "flex",
@@ -158,7 +157,6 @@ const chevronStyle = cva({
   },
 });
 
-const CHEVRON_SIZE = 10;
 const NESTING_INDENT = 16;
 
 const emptyMessageStyle = css({
@@ -203,13 +201,15 @@ const FilterHeaderAction: React.FC<{
 
   return (
     <>
-      <IconButton
+      <Button
         aria-label="Search list"
+        tooltip="Search list"
+        tooltipDisplay="inline"
         size="xs"
+        variant="ghost"
+        iconName="search"
         onClick={() => setSearchOpen(true)}
-      >
-        <LuSearch />
-      </IconButton>
+      />
       {renderExtraAction?.()}
     </>
   );
@@ -228,14 +228,16 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
     <Menu
       animated
       trigger={
-        <IconButton
+        <Button
           aria-label="More options"
+          tooltip="More options"
+          tooltipDisplay="inline"
           size="xxs"
+          variant="ghost"
+          iconName="ellipsis"
           data-row-action
           onClick={(event) => event.stopPropagation()}
-        >
-          <TbDots />
-        </IconButton>
+        />
       }
       items={items}
       placement="bottom-end"
@@ -243,18 +245,20 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
   );
 };
 
-const FilterableListContent = <T extends FilterableListItem>({
+const NonEmptyFilterableListContent = <T extends FilterableListItem>({
   items,
   getSelectionItem,
   renderItem,
   renderRowMenu: RenderRowMenu,
-  emptyMessage,
+  collapsedGroups,
+  toggleGroup,
 }: {
   items: T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
   renderRowMenu?: ComponentType<{ item: T }>;
-  emptyMessage: string;
+  collapsedGroups: Set<string>;
+  toggleGroup: (groupId: string) => void;
 }) => {
   const {
     isSelected: checkIsSelected,
@@ -264,11 +268,8 @@ const FilterableListContent = <T extends FilterableListItem>({
     setSelection,
   } = use(EditorContext);
 
-  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
+  const [anchorIndexState, setAnchorIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -310,32 +311,12 @@ const FilterableListContent = <T extends FilterableListItem>({
     }
   }
 
-  const toggleGroup = (groupId: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-      return next;
-    });
-  };
+  const focusedIndex = clampIndex(focusedIndexState, flatRows.length);
+  const anchorIndex = clampIndex(anchorIndexState, flatRows.length);
 
-  // Clamp focus/anchor when visible rows change and truncate stale row refs
+  // Truncate stale row refs when visible rows change.
   useEffect(() => {
     rowRefs.current.length = flatRows.length;
-    if (flatRows.length === 0) {
-      setFocusedIndex(null);
-      setAnchorIndex(null);
-    } else {
-      setFocusedIndex((prev) =>
-        prev !== null ? Math.min(prev, flatRows.length - 1) : prev,
-      );
-      setAnchorIndex((prev) =>
-        prev !== null ? Math.min(prev, flatRows.length - 1) : prev,
-      );
-    }
   }, [flatRows.length]);
 
   // Scroll focused item into view
@@ -567,7 +548,7 @@ const FilterableListContent = <T extends FilterableListItem>({
               <div className={listItemContentStyle}>
                 {isItemGroup && (
                   <span className={chevronStyle({ expanded: !isCollapsed })}>
-                    <LuChevronRight size={CHEVRON_SIZE} />
+                    <Icon name="chevronRight" size="xxs" />
                   </span>
                 )}
                 {item.icon && (
@@ -635,10 +616,61 @@ const FilterableListContent = <T extends FilterableListItem>({
           </Fragment>
         );
       })}
-      {items.length === 0 && (
-        <div className={emptyMessageStyle}>{emptyMessage}</div>
-      )}
     </div>
+  );
+};
+
+const FilterableListContent = <T extends FilterableListItem>({
+  items,
+  getSelectionItem,
+  renderItem,
+  renderRowMenu,
+  emptyMessage,
+}: {
+  items: T[];
+  getSelectionItem: (item: T) => SelectionItem;
+  renderItem: (item: T, isSelected: boolean) => ReactNode;
+  renderRowMenu?: ComponentType<{ item: T }>;
+  emptyMessage: string;
+}) => {
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set(),
+  );
+
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  if (items.length === 0) {
+    return (
+      <div
+        className={listContainerStyle}
+        role="listbox"
+        aria-multiselectable="true"
+        tabIndex={0}
+      >
+        <div className={emptyMessageStyle}>{emptyMessage}</div>
+      </div>
+    );
+  }
+
+  return (
+    <NonEmptyFilterableListContent
+      items={items}
+      getSelectionItem={getSelectionItem}
+      renderItem={renderItem}
+      renderRowMenu={renderRowMenu}
+      collapsedGroups={collapsedGroups}
+      toggleGroup={toggleGroup}
+    />
   );
 };
 

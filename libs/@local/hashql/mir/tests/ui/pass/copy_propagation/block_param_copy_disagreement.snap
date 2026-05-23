@@ -10,7 +10,7 @@ fn {closure@4294967040}() -> Boolean {
     let %4: Boolean
 
     bb0(): {
-        %2 = 1
+        %2 = true
 
         switchInt(%2) -> [0: bb2(), 1: bb1()]
     }
@@ -40,9 +40,9 @@ fn {closure@4294967040}() -> Boolean {
     let %4: Boolean
 
     bb0(): {
-        %2 = 1
+        %2 = true
 
-        switchInt(1) -> [0: bb2(), 1: bb1()]
+        switchInt(true) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {

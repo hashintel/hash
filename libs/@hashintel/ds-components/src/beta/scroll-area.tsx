@@ -1,10 +1,12 @@
 "use client";
 
 import { ScrollArea } from "@ark-ui/react/scroll-area";
+
 import { createStyleContext } from "@hashintel/ds-helpers/jsx";
-import type { ComponentProps } from "react";
 
 import { scrollAreaSlotRecipe } from "./scroll-area.recipe";
+
+import type { ComponentProps } from "react";
 
 const { withProvider, withContext } = createStyleContext(scrollAreaSlotRecipe);
 

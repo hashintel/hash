@@ -2,19 +2,20 @@ import {
   extractBaseUrl,
   type OriginProvenance,
 } from "@blockprotocol/type-system";
-import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getHistoricalArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { aviationProposedEntityToFlowProposedEntity } from "./get-scheduled-flights-action.js";
+
+import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * Validates that the end date is yesterday or earlier.

@@ -19,7 +19,7 @@
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
-    "generate-system-types": "tsx ./src/generate-system-types.ts; echo 'Fixing import paths'; fix-esm-import-path ./src/system-types/; yarn fix:eslint; biome format --write ./src/system-types/{*.ts,**/*.ts}",
+    "generate-system-types": "tsx ./src/generate-system-types.ts; echo 'Fixing import paths'; fix-esm-import-path ./src/system-types/; yarn fix:eslint; oxfmt --write --ignore-path /dev/null ./src/system-types/{*.ts,**/*.ts}",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test:unit": "vitest --run"
@@ -70,8 +70,8 @@
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.39.4",
     "graphql": "16.11.0",
-    "next": "15.5.15",
-    "react": "19.2.3",
+    "next": "15.5.18",
+    "react": "19.2.6",
     "rimraf": "6.1.3",
     "typescript": "5.9.3",
     "vitest": "3.2.4"

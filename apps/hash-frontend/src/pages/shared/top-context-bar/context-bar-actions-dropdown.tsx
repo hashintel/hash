@@ -1,16 +1,18 @@
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Menu } from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, ReactElement } from "react";
 import { useMemo } from "react";
 
-import type { MenuItemProps } from "../../../shared/ui/menu-item";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+
 import { ContextBarActionsContext } from "./context-bar-actions-context";
+
+import type { MenuItemProps } from "../../../shared/ui/menu-item";
+import type { FunctionComponent, ReactElement } from "react";
 
 export const ContextBarActionsDropdown: FunctionComponent<{
   children: ReactElement<MenuItemProps> | ReactElement<MenuItemProps>[];

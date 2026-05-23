@@ -1,20 +1,22 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { TbPlus, TbTrash } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
-import { IconButton } from "../../../../../components/icon-button";
-import type { SubView } from "../../../../../components/sub-view/types";
-import { ParameterIcon } from "../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { Button } from "../../../../../components/button";
+import { ParameterIcon } from "../../../../../constants/entity-icons";
+import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import {
   RowMenu,
   createFilterableListSubView,
 } from "./filterable-list-sub-view";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 
 const parameterVarNameStyle = css({
   margin: "0",
@@ -50,15 +52,16 @@ export const ParametersHeaderAction: React.FC = () => {
   };
 
   return (
-    <IconButton
+    <Button
       aria-label="Add parameter"
       size="xs"
+      variant="ghost"
       disabled={isReadOnly}
-      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add parameter"}
+      tooltipDisplay="inline"
+      iconName="plus"
       onClick={handleAddParameter}
-    >
-      <TbPlus />
-    </IconButton>
+    />
   );
 };
 
@@ -77,10 +80,10 @@ const ParameterRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <TbTrash />,
+          icon: <Icon name="trash" />,
           destructive: true,
           disabled: isReadOnly,
-          onClick: () => removeParameter(item.id),
+          onClick: () => removeParameter({ parameterId: item.id }),
         },
       ]}
     />

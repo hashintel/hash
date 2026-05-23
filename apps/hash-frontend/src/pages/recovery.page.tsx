@@ -1,12 +1,10 @@
-import { TextField } from "@hashintel/design-system";
 import { Box, Collapse, Typography } from "@mui/material";
-import type { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
 import { useCallback, useEffect, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
+import { TextField } from "@hashintel/design-system";
+
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
@@ -17,6 +15,10 @@ import {
   oryKratosClient,
 } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
+
+import type { NextPageWithLayout } from "../shared/layout";
+import type { RecoveryFlow } from "@ory/client";
+import type { FormEventHandler } from "react";
 
 const extractFlowEmailValue = (flowToSearch: RecoveryFlow | undefined) => {
   const uiCode = flowToSearch?.ui.nodes.find(

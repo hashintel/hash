@@ -83,13 +83,13 @@ package_name/
 
 ### Test Components
 
-| File | Purpose | Required |
-| ---- | ------- | -------- |
-| `.jsonc` | J-Expr test code | ✅ Yes |
-| `.spec.toml` | Test suite specification | ✅ Yes (in dir or parent) |
-| `.stdout` | Expected standard output | Optional (empty if none) |
-| `.stderr` | Expected diagnostics | Optional (empty if none) |
-| `.aux.<ext>` | Auxiliary/secondary output | Suite-dependent |
+| File         | Purpose                    | Required                  |
+| ------------ | -------------------------- | ------------------------- |
+| `.jsonc`     | J-Expr test code           | ✅ Yes                    |
+| `.spec.toml` | Test suite specification   | ✅ Yes (in dir or parent) |
+| `.stdout`    | Expected standard output   | Optional (empty if none)  |
+| `.stderr`    | Expected diagnostics       | Optional (empty if none)  |
+| `.aux.<ext>` | Auxiliary/secondary output | Suite-dependent           |
 
 The harness searches upward from the test file to find `.spec.toml`, stopping at `tests/ui/`. This allows shared specs at directory roots with overrides for specific subdirectories.
 
@@ -132,7 +132,6 @@ Directives control test behavior. They **must** be at the start of the file, bef
 //@ run: fail                      // Test should fail with errors (DEFAULT)
 //@ run: skip                      // Skip this test
 //@ run: skip reason=Not implemented yet
-
 //@ name: custom_test_name         // Override the default test name
 //@ description: Tests that...     // Describe test purpose (ENCOURAGED)
 //@ suite#key: value               // Suite-specific directive (TOML value)
@@ -140,11 +139,11 @@ Directives control test behavior. They **must** be at the start of the file, bef
 
 ### Run Modes
 
-| Mode | Behavior |
-| ---- | -------- |
-| `pass` | Test must succeed with no errors |
+| Mode   | Behavior                                          |
+| ------ | ------------------------------------------------- |
+| `pass` | Test must succeed with no errors                  |
 | `fail` | Test must produce errors (**default if omitted**) |
-| `skip` | Test is skipped entirely |
+| `skip` | Test is skipped entirely                          |
 
 **Important:** If you don't specify `//@ run:`, the test defaults to `fail` mode. Always use `//@ run: pass` explicitly for tests that should succeed.
 
@@ -179,17 +178,17 @@ Annotations verify that specific diagnostics appear at expected locations.
 
 ### Line Reference Types
 
-| Syntax | Meaning | Example |
-| ------ | ------- | ------- |
-| `//~ ERROR msg` | Current line | Error on this exact line |
-| `//~^ ERROR msg` | Previous line (1 up) | Error on line above |
-| `//~^^ ERROR msg` | 2 lines above | |
-| `//~^^^ ERROR msg` | 3 lines above | |
-| `//~v ERROR msg` | Next line (1 down) | Error on line below |
-| `//~vv ERROR msg` | 2 lines below | |
-| `//~vvv ERROR msg` | 3 lines below | |
-| `//~\| ERROR msg` | Same line as previous | Multiple errors, same location |
-| `//~? ERROR msg` | Unknown/any line | Use sparingly |
+| Syntax             | Meaning               | Example                        |
+| ------------------ | --------------------- | ------------------------------ |
+| `//~ ERROR msg`    | Current line          | Error on this exact line       |
+| `//~^ ERROR msg`   | Previous line (1 up)  | Error on line above            |
+| `//~^^ ERROR msg`  | 2 lines above         |                                |
+| `//~^^^ ERROR msg` | 3 lines above         |                                |
+| `//~v ERROR msg`   | Next line (1 down)    | Error on line below            |
+| `//~vv ERROR msg`  | 2 lines below         |                                |
+| `//~vvv ERROR msg` | 3 lines below         |                                |
+| `//~\| ERROR msg`  | Same line as previous | Multiple errors, same location |
+| `//~? ERROR msg`   | Unknown/any line      | Use sparingly                  |
 
 ### Error Codes
 
@@ -202,21 +201,23 @@ Include optional error codes in brackets:
 ### Multi-Annotation Example
 
 ```jsonc
-["let", "x",          //~^ ERROR first error on the let line
-  ["invalid"]         //~ ERROR error on this line
-]                     //~| ERROR another error on same line as previous
-                      //~| NOTE additional context
+[
+  "let",
+  "x", //~^ ERROR first error on the let line
+  ["invalid"], //~ ERROR error on this line
+] //~| ERROR another error on same line as previous
+//~| NOTE additional context
 ```
 
 ### Severity Levels
 
-| Level | Use Case |
-| ----- | -------- |
+| Level      | Use Case             |
+| ---------- | -------------------- |
 | `CRITICAL` | Unrecoverable errors |
-| `ERROR` | Standard errors |
-| `WARNING` | Non-fatal warnings |
-| `NOTE` | Informational notes |
-| `DEBUG` | Debug output |
+| `ERROR`    | Standard errors      |
+| `WARNING`  | Non-fatal warnings   |
+| `NOTE`     | Informational notes  |
+| `DEBUG`    | Debug output         |
 
 ---
 
@@ -261,8 +262,11 @@ Create a `.jsonc` file with your test code and directives:
 //@ description: Verifies that undefined variables produce an error
 //@ run: fail
 
-["let", "x", {"#literal": 42},
-  "undefined_var"  //~ ERROR unknown variable
+[
+  "let",
+  "x",
+  { "#literal": 42 },
+  "undefined_var", //~ ERROR unknown variable
 ]
 ```
 

@@ -1,14 +1,14 @@
 import { Array as ReadonlyArray, Option, pipe, Predicate } from "effect";
-import type { PartialDeep } from "type-fest";
 
+import { defineConfig, type ESConfig } from "./utils.js";
+
+import type { Options } from "./index.js";
 import type {
   NoRestrictedImportsRule,
   NormalizedNoRestrictedImportsRule,
   ValidNoRestrictedImportPatternOptions,
 } from "./types.js";
-import { defineConfig, type ESConfig } from "./utils.js";
-
-import type { Options } from "./index.js";
+import type { PartialDeep } from "type-fest";
 
 const normalizeRestrictedImports = (
   rule: Partial<NoRestrictedImportsRule>,

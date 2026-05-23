@@ -1,3 +1,11 @@
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { getWebMachineId } from "./machine-actors.js";
+
 import type {
   EntityId,
   ProvidedEntityEditionProvenance,
@@ -6,17 +14,10 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   GraphChangeNotification,
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
-
-import { getWebMachineId } from "./machine-actors.js";
 
 export const createGraphChangeNotification = async (
   context: { graphApi: GraphApi },

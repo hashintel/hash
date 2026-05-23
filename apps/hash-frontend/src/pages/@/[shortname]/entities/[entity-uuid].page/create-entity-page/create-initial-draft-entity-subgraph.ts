@@ -1,18 +1,19 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
   extractWebIdFromEntityId,
   generateTimestamp,
 } from "@blockprotocol/type-system";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   Entity as GraphApiEntity,
   EntityVertex,
   EntityVertexId,
   KnowledgeGraphVertices,
 } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 export const createInitialDraftEntitySubgraph = (
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]],

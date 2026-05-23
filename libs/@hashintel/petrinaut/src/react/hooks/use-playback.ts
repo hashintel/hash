@@ -1,14 +1,15 @@
 import { use } from "react";
 
-import type {
-  PlaybackSpeed,
-  PlaybackState,
-  PlayMode,
-} from "../../core/playback";
 import {
   PlaybackContext,
   type PlaybackContextValue,
 } from "../playback/context";
+
+import type {
+  PlaybackSpeed,
+  PlaybackState,
+  PlayMode,
+} from "@hashintel/petrinaut-core";
 
 export function usePlaybackState(): PlaybackState {
   return use(PlaybackContext).playbackState;
@@ -26,10 +27,12 @@ export function usePlaybackMode(): PlayMode {
   return use(PlaybackContext).playMode;
 }
 
-/** Currently displayed frame data, or `null` if no simulation is running. */
-export function useCurrentFrame(): PlaybackContextValue["currentFrame"] {
-  return use(PlaybackContext).currentFrame;
+/** Reader for the currently displayed frame, or `null` if no simulation is running. */
+export function useCurrentFrameReader(): PlaybackContextValue["currentFrameReader"] {
+  return use(PlaybackContext).currentFrameReader;
 }
+
+export const useCurrentFrame = useCurrentFrameReader;
 
 /** Simplified, UI-shaped view of the current frame. */
 export function useCurrentViewedFrame(): PlaybackContextValue["currentViewedFrame"] {

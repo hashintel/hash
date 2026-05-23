@@ -1,11 +1,16 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
 import fuzzysort from "fuzzysort";
-import type { ComponentType, ReactNode } from "react";
 import { use, useEffect, useRef, useState } from "react";
-import { LuSearch } from "react-icons/lu";
 
-import { IconButton } from "../../../../../components/icon-button";
-import type { SubView } from "../../../../../components/sub-view/types";
+import { Icon } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
+import type { ComponentType, ReactNode } from "react";
+
+const SearchIcon = () => <Icon name="search" />;
+
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { Button } from "../../../../../components/button";
 import {
   DifferentialEquationIcon,
   ParameterIcon,
@@ -13,9 +18,10 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { EditorContext } from "../../../../../../react/state/editor-context";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import type { SelectionItem } from "../../../../../../core/types/selection";
+import { clampIndex } from "../../../../../lib/clamp-index";
+
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -201,63 +207,21 @@ function useSearchableItems(): SearchableItem[] {
 
 // -- Components ---------------------------------------------------------------
 
-const SearchContent: React.FC = () => {
+const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
+  results,
+}) => {
   const {
     isSelected: checkIsSelected,
     selectItem,
     searchInputRef,
   } = use(EditorContext);
-  const allItems = useSearchableItems();
-  const [query, setQuery] = useState("");
-  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const focusedIndex = clampIndex(focusedIndexState, results.length);
 
-  // Sync query from the input (the input lives in SearchTitle, so we read its value)
-  useEffect(() => {
-    const input = searchInputRef.current;
-    if (!input) {
-      return;
-    }
-
-    const handleInput = () => {
-      setQuery(input.value);
-      // Reset focus when query changes
-      setFocusedIndex(null);
-    };
-    input.addEventListener("input", handleInput);
-    setQuery(input.value);
-    return () => input.removeEventListener("input", handleInput);
-  }, [searchInputRef]);
-
-  const trimmed = query.trim();
-  const results: SearchResult[] =
-    trimmed === ""
-      ? []
-      : fuzzysort
-          .go(trimmed, allItems, {
-            key: "name",
-            threshold: -1000,
-          })
-          .map((result) => ({
-            item: result.obj,
-            highlighted: result.highlight((match, i) => (
-              <span key={i} className={highlightStyle}>
-                {match}
-              </span>
-            )),
-          }));
-
-  // Clamp focusedIndex when results shrink and truncate stale row refs
+  // Truncate stale row refs when results change.
   useEffect(() => {
     rowRefs.current.length = results.length;
-    if (results.length === 0) {
-      setFocusedIndex(null);
-    } else {
-      setFocusedIndex((prev) =>
-        prev !== null ? Math.min(prev, results.length - 1) : prev,
-      );
-    }
   }, [results.length]);
 
   // Scroll focused item into view
@@ -314,6 +278,103 @@ const SearchContent: React.FC = () => {
     }
   };
 
+  return (
+    <div
+      className={resultListStyle}
+      role="listbox"
+      tabIndex={0}
+      onKeyDown={handleListKeyDown}
+      onFocus={() => {
+        // When the list receives focus (e.g. from ArrowDown in input),
+        // highlight the first item. Selection happens on Enter or ArrowDown.
+        if (focusedIndex === null && results.length > 0) {
+          setFocusedIndex(0);
+        }
+      }}
+    >
+      {results.map(({ item, highlighted }, index) => {
+        const isSelected = checkIsSelected(item.id);
+        const isFocused = focusedIndex === index;
+        return (
+          <div
+            key={item.id}
+            ref={(el) => {
+              rowRefs.current[index] = el;
+            }}
+            role="option"
+            tabIndex={-1}
+            aria-selected={isSelected}
+            className={resultRowStyle({ isSelected, isFocused })}
+            onClick={() => {
+              selectItem(item.selectionItem);
+              setFocusedIndex(index);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.stopPropagation();
+                event.preventDefault();
+                selectItem(item.selectionItem);
+                setFocusedIndex(index);
+              }
+            }}
+          >
+            <div className={resultContentStyle}>
+              <span
+                className={resultIconStyle}
+                style={{
+                  color: item.iconColor ?? DEFAULT_ICON_COLOR,
+                }}
+              >
+                <item.icon size={ICON_SIZE} />
+              </span>
+              <span className={resultNameStyle}>{highlighted}</span>
+            </div>
+            <span className={resultCategoryStyle}>{item.category}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const SearchContent: React.FC = () => {
+  const { searchInputRef } = use(EditorContext);
+  const allItems = useSearchableItems();
+  const [query, setQuery] = useState("");
+
+  // Sync query from the input (the input lives in SearchTitle, so we read its value)
+  useEffect(() => {
+    const input = searchInputRef.current;
+    if (!input) {
+      return;
+    }
+
+    const handleInput = () => {
+      setQuery(input.value);
+    };
+    input.addEventListener("input", handleInput);
+    setQuery(input.value);
+    return () => input.removeEventListener("input", handleInput);
+  }, [searchInputRef]);
+
+  const trimmed = query.trim();
+  const results: SearchResult[] =
+    trimmed === ""
+      ? []
+      : fuzzysort
+          .go(trimmed, allItems, {
+            key: "name",
+            threshold: -1000,
+          })
+          .map((result) => ({
+            item: result.obj,
+            highlighted: result.highlight((match, i) => (
+              <span key={i} className={highlightStyle}>
+                {match}
+              </span>
+            )),
+          }));
+
   const hasQuery = trimmed !== "";
   const matchLabel = hasQuery
     ? `${results.length} match${results.length === 1 ? "" : "es"}`
@@ -323,62 +384,7 @@ const SearchContent: React.FC = () => {
     <>
       {matchLabel && <div className={matchCountStyle}>{matchLabel}</div>}
       {results.length > 0 ? (
-        <div
-          ref={listRef}
-          className={resultListStyle}
-          role="listbox"
-          tabIndex={0}
-          onKeyDown={handleListKeyDown}
-          onFocus={() => {
-            // When the list receives focus (e.g. from ArrowDown in input),
-            // highlight the first item. Selection happens on Enter or ArrowDown.
-            if (focusedIndex === null && results.length > 0) {
-              setFocusedIndex(0);
-            }
-          }}
-        >
-          {results.map(({ item, highlighted }, index) => {
-            const isSelected = checkIsSelected(item.id);
-            const isFocused = focusedIndex === index;
-            return (
-              <div
-                key={item.id}
-                ref={(el) => {
-                  rowRefs.current[index] = el;
-                }}
-                role="option"
-                tabIndex={-1}
-                aria-selected={isSelected}
-                className={resultRowStyle({ isSelected, isFocused })}
-                onClick={() => {
-                  selectItem(item.selectionItem);
-                  setFocusedIndex(index);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    selectItem(item.selectionItem);
-                    setFocusedIndex(index);
-                  }
-                }}
-              >
-                <div className={resultContentStyle}>
-                  <span
-                    className={resultIconStyle}
-                    style={{
-                      color: item.iconColor ?? DEFAULT_ICON_COLOR,
-                    }}
-                  >
-                    <item.icon size={ICON_SIZE} />
-                  </span>
-                  <span className={resultNameStyle}>{highlighted}</span>
-                </div>
-                <span className={resultCategoryStyle}>{item.category}</span>
-              </div>
-            );
-          })}
-        </div>
+        <SearchResultsList key={query} results={results} />
       ) : hasQuery ? (
         <div className={emptyResultsStyle}>No matches</div>
       ) : null}
@@ -421,20 +427,22 @@ const SearchHeaderAction: React.FC = () => {
   const { setSearchOpen } = use(EditorContext);
 
   return (
-    <IconButton
+    <Button
       aria-label="Close search"
+      tooltip="Close search"
+      tooltipDisplay="inline"
+      variant="ghost"
       size="xxs"
+      iconName="close"
       onClick={() => setSearchOpen(false)}
-    >
-      ✕
-    </IconButton>
+    />
   );
 };
 
 export const searchSubView: SubView = {
   id: "search",
   title: "Search",
-  icon: LuSearch,
+  icon: SearchIcon,
   component: SearchContent,
   renderTitle: () => <SearchTitle />,
   renderHeaderAction: () => <SearchHeaderAction />,

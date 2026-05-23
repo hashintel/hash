@@ -1,7 +1,7 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { IoMdPause, IoMdPlay } from "react-icons/io";
-import { MdRotateLeft } from "react-icons/md";
+
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { PlaybackContext } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
@@ -74,7 +74,7 @@ interface SimulationControlsProps {
 export const SimulationControls: React.FC<SimulationControlsProps> = ({
   disabled = false,
 }) => {
-  const { state: simulationState, reset } = use(SimulationContext);
+  const { dt, state: simulationState, reset } = use(SimulationContext);
 
   const {
     currentViewedFrame,
@@ -100,7 +100,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const isSimulationErrored = simulationState === "Error";
   const isPlaybackPlaying = playbackState === "Playing";
   const frameIndex = currentFrameIndex;
-  const elapsedTime = currentViewedFrame?.time ?? 0;
+  const elapsedTime = currentViewedFrame ? frameIndex * dt : 0;
 
   // Disable play button when at the last frame and simulation is complete or errored
   const isAtLastFrame = totalFrames > 0 && frameIndex >= totalFrames - 1;
@@ -171,7 +171,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             disabled={isDisabled}
             ariaLabel="Reset simulation"
           >
-            <MdRotateLeft />
+            <Icon name="rotateLeft" />
           </ToolbarButton>
           <ToolbarDivider />
         </>
@@ -184,7 +184,11 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         disabled={isPlayDisabled}
         ariaLabel={getPlayPauseAriaLabel()}
       >
-        {isPlaybackPlaying ? <IoMdPause /> : <IoMdPlay />}
+        {isPlaybackPlaying ? (
+          <Icon name="pauseFilled" />
+        ) : (
+          <Icon name="playFilled" />
+        )}
       </ToolbarButton>
 
       {/* Frame controls - only visible when simulation exists */}

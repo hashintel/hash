@@ -13,7 +13,6 @@ import {
 } from "effect";
 
 import { createProto, implDecode, implEncode } from "../../../utils.js";
-
 import * as RequestBegin from "./RequestBegin.js";
 import * as RequestFrame from "./RequestFrame.js";
 
@@ -26,9 +25,7 @@ export type TypeId = typeof TypeId;
 export type RequestBodyVariant = "RequestBegin" | "RequestFrame";
 
 export interface RequestBody
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly body: Either.Either<

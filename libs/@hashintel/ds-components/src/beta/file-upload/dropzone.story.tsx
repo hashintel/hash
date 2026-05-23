@@ -1,5 +1,6 @@
-import { Box } from "@hashintel/ds-helpers/jsx";
 import { UploadIcon } from "lucide-react";
+
+import { Box } from "@hashintel/ds-helpers/jsx";
 
 import * as FileUpload from "../file-upload";
 import { Icon } from "../icon";

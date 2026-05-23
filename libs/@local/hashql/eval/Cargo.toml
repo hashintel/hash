@@ -8,14 +8,16 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hash-graph-store   = { workspace = true, optional = true, public = true }
-hashql-diagnostics = { workspace = true, public = true }
-hashql-hir         = { workspace = true, optional = true, public = true }
+hash-graph-postgres-store = { workspace = true, public = true }
+hash-graph-store          = { workspace = true, optional = true, public = true }
+hashql-diagnostics        = { workspace = true, public = true }
+hashql-hir                = { workspace = true, public = true }
+hashql-mir                = { workspace = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
-hashql-core = { workspace = true, optional = true }
+hashql-core = { workspace = true }
 type-system = { workspace = true, optional = true }
 
 # Private third-party dependencies
@@ -24,9 +26,10 @@ simple-mermaid = { workspace = true }
 
 [dev-dependencies]
 hashql-compiletest = { workspace = true }
+insta              = { workspace = true }
 
 [features]
-graph = ["dep:hash-graph-store", "dep:hashql-core", "dep:hashql-hir", "dep:type-system"]
+graph = ["dep:hash-graph-store", "dep:type-system"]
 
 [lints]
 workspace = true

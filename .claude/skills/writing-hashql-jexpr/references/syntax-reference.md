@@ -6,11 +6,11 @@ Core syntax reference for J-Expr, the JSON expression syntax for HashQL.
 
 J-Expr maps JSON types to expression semantics:
 
-| JSON Type | J-Expr Meaning                     |
-| --------- | ---------------------------------- |
-| String    | Path/identifier                    |
-| Array     | Function call                      |
-| Object    | Data constructor (with `#` keys)   |
+| JSON Type | J-Expr Meaning                   |
+| --------- | -------------------------------- |
+| String    | Path/identifier                  |
+| Array     | Function call                    |
+| Object    | Data constructor (with `#` keys) |
 
 ## Paths (String Expressions)
 
@@ -73,9 +73,7 @@ Arrays represent function calls: `[function, arg1, arg2, ...]`
 ### Nested Calls
 
 ```jsonc
-["add", 
-  ["multiply", {"#literal": 2}, {"#literal": 3}],
-  {"#literal": 4}]
+["add", ["multiply", { "#literal": 2 }, { "#literal": 3 }], { "#literal": 4 }]
 ```
 
 ### Labeled Arguments
@@ -85,13 +83,16 @@ Use `:` prefix for named/labeled arguments.
 **Object syntax:**
 
 ```jsonc
-["greet", {":name": {"#literal": "Alice"}, ":greeting": {"#literal": "Hello"}}]
+[
+  "greet",
+  { ":name": { "#literal": "Alice" }, ":greeting": { "#literal": "Hello" } },
+]
 ```
 
 **Shorthand string syntax:**
 
 ```jsonc
-["func", ":varName"]  // References variable "varName" as labeled argument
+["func", ":varName"] // References variable "varName" as labeled argument
 ```
 
 ## Operators
@@ -135,9 +136,17 @@ Use `:` prefix for named/labeled arguments.
 ### Filtering
 
 ```jsonc
-["filter", "entities",
-  ["fn", {"#tuple": []}, {"#struct": {"entity": "_"}}, "_",
-    ["==", "entity.draft_id", {"#literal": null}]]]
+[
+  "filter",
+  "entities",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "entity": "_" } },
+    "_",
+    ["==", "entity.draft_id", { "#literal": null }],
+  ],
+]
 ```
 
 ### Property Access
@@ -154,31 +163,59 @@ Use dotted paths:
 ### Entity Query with Filter
 
 ```jsonc
-["let", "entities",
+[
+  "let",
+  "entities",
   ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
-  ["filter", "entities",
-    ["fn", {"#tuple": []}, {"#struct": {"e": "_"}}, "_",
-      ["==", "e.archived", {"#literal": false}]]]]
+  [
+    "filter",
+    "entities",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "e": "_" } },
+      "_",
+      ["==", "e.archived", { "#literal": false }],
+    ],
+  ],
+]
 ```
 
 ### Nested Conditional
 
 ```jsonc
-["let", "value", {"#literal": 42},
-  ["if", [">", "value", {"#literal": 0}],
-    ["if", ["<", "value", {"#literal": 100}],
-      {"#literal": "in range"},
-      {"#literal": "too high"}],
-    {"#literal": "too low"}]]
+[
+  "let",
+  "value",
+  { "#literal": 42 },
+  [
+    "if",
+    [">", "value", { "#literal": 0 }],
+    [
+      "if",
+      ["<", "value", { "#literal": 100 }],
+      { "#literal": "in range" },
+      { "#literal": "too high" },
+    ],
+    { "#literal": "too low" },
+  ],
+]
 ```
 
 ### Multiple Variable Bindings
 
 ```jsonc
-["let", "x", {"#literal": 1},
-  ["let", "y", {"#literal": 2},
-    ["let", "z", ["add", "x", "y"],
-      ["multiply", "z", {"#literal": 2}]]]]
+[
+  "let",
+  "x",
+  { "#literal": 1 },
+  [
+    "let",
+    "y",
+    { "#literal": 2 },
+    ["let", "z", ["add", "x", "y"], ["multiply", "z", { "#literal": 2 }]],
+  ],
+]
 ```
 
 ## Related References

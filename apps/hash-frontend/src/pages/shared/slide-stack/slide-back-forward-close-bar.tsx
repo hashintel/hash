@@ -1,10 +1,11 @@
+import { Box, Tooltip } from "@mui/material";
+
 import {
   ArrowLeftIcon,
   ArrowRightRegularIcon,
   CloseIcon,
   IconButton,
 } from "@hashintel/design-system";
-import { Box, Tooltip } from "@mui/material";
 
 export const backForwardHeight = 56;
 

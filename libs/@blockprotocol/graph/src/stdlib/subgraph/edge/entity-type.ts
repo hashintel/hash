@@ -1,15 +1,5 @@
-import type {
-  BaseUrl,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 
-import type {
-  OntologyRootedEdges,
-  OntologyTypeVertexId,
-  Subgraph,
-} from "../../../types/subgraph.js";
 import {
   isConstrainsLinkDestinationsOnEdge,
   isConstrainsLinksOnEdge,
@@ -17,6 +7,17 @@ import {
   isInheritsFromEdge,
 } from "../../../types/subgraph.js";
 import { getOntologyEndpointsForOntologyOutwardEdge } from "./shared.js";
+
+import type {
+  OntologyRootedEdges,
+  OntologyTypeVertexId,
+  Subgraph,
+} from "../../../types/subgraph.js";
+import type {
+  BaseUrl,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /**
  * Gets identifiers for all `PropertyType`s referenced within a given `EntityType` schema by searching for

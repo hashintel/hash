@@ -5,6 +5,7 @@ import {
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "./panel-defaults";
+
 import type {
   BottomPanelTab,
   CursorMode,

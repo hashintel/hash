@@ -9,8 +9,6 @@ export type ViewportAction = {
   tooltip: string;
   /** Click handler. */
   onClick?: () => void;
-  /** Inline styles applied to the button element. */
-  style?: React.CSSProperties;
   /** CSS class name applied to the button element. */
   className?: string;
   /** Ref callback to access the underlying button DOM element. */

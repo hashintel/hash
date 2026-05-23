@@ -1,4 +1,3 @@
-import type { DefaultOptions, NormalizedCacheObject } from "@apollo/client";
 import {
   ApolloClient,
   ApolloLink,
@@ -9,10 +8,10 @@ import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
 
 import { apiGraphQLEndpoint } from "./environment.js";
-import possibleTypes from "./graphql/fragment-types.gen.json" with {
-  type: "json",
-};
+import possibleTypes from "./graphql/fragment-types.gen.json" with { type: "json" };
 import { hashClientHeaderKey } from "./http-requests.js";
+
+import type { DefaultOptions, NormalizedCacheObject } from "@apollo/client";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {

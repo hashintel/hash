@@ -1,9 +1,10 @@
 import { createRequire } from "node:module";
 
 import { defineConfig } from "@pandacss/dev";
+
 import { scopedThemeConfig } from "@hashintel/ds-components/preset";
 
-import { CODE_FONT_FAMILY } from "./src/ui/constants/ui";
+import { CODE_FONT_FAMILY } from "./src/ui/constants/fonts";
 
 export const DS_COMPONENTS_BUILD_INFO_SUBPATH =
   "@hashintel/ds-components/panda.buildinfo.json";
@@ -47,6 +48,10 @@ export const createPetrinautPandaConfig = (dsComponentsBuildInfoPath: string) =>
           fadeOut: {
             from: { opacity: "1", transform: "translateY(0)" },
             to: { opacity: "0", transform: "translateY(-10px)" },
+          },
+          spin: {
+            from: { transform: "rotate(0deg)" },
+            to: { transform: "rotate(360deg)" },
           },
           expand: {
             from: { height: "0", opacity: "0" },

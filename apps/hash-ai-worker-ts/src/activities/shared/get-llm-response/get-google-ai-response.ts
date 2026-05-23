@@ -6,8 +6,6 @@ import {
   type GenerateContentResponse,
   type Part,
 } from "@google-cloud/vertexai";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { logger } from "../activity-logger.js";
 import { isActivityCancelled } from "../get-flow-context.js";
@@ -16,6 +14,7 @@ import { mapLlmContentToGooglePartAndUploadFiles } from "./get-google-ai-respons
 import { rewriteSchemaForGoogle } from "./get-google-ai-response/rewrite-schema-for-google.js";
 import { getVertexAiClient } from "./google-vertex-ai-client.js";
 import { type LlmMessage } from "./llm-message.js";
+
 import type {
   GoogleAiParams,
   LlmRequestMetadata,
@@ -23,6 +22,8 @@ import type {
   LlmToolDefinition,
   LlmUsage,
 } from "./types.js";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const mapLlmToolDefinitionToGoogleAiToolDefinition = (
   tool: LlmToolDefinition,

@@ -1,6 +1,7 @@
 import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
-import type { SDCPN } from "../../../core/types/sdcpn";
+
 import type { MutationContextValue } from "../../../react/state/mutation-context";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 type NodeDimensions = {
   place: { width: number; height: number };
@@ -34,8 +35,9 @@ export async function runAutoLayout({
 
   const positions = await calculateGraphLayout(sdcpn, dimensions);
 
-  const commits: Parameters<MutationContextValue["commitNodePositions"]>[0] =
-    [];
+  const commits: Parameters<
+    MutationContextValue["commitNodePositions"]
+  >[0]["commits"] = [];
 
   for (const place of sdcpn.places) {
     const position = positions[place.id];
@@ -59,6 +61,6 @@ export async function runAutoLayout({
   }
 
   if (commits.length > 0) {
-    commitNodePositions(commits);
+    commitNodePositions({ commits });
   }
 }

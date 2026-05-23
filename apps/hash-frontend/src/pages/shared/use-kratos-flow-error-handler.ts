@@ -1,16 +1,17 @@
+import { useRouter } from "next/router";
+import { useCallback } from "react";
+
+import { useAuthInfo } from "./auth-info-context";
+import { flowMetadata, uiPathForKratosBrowserRedirect } from "./ory-kratos";
+
+import type { Flows } from "./ory-kratos";
 import type {
   ErrorAuthenticatorAssuranceLevelNotSatisfied,
   ErrorBrowserLocationChangeRequired,
   NeedsPrivilegedSessionError,
 } from "@ory/client";
 import type { AxiosError } from "axios";
-import { useRouter } from "next/router";
 import type { Dispatch, SetStateAction } from "react";
-import { useCallback } from "react";
-
-import { useAuthInfo } from "./auth-info-context";
-import type { Flows } from "./ory-kratos";
-import { flowMetadata, uiPathForKratosBrowserRedirect } from "./ory-kratos";
 
 export const useKratosErrorHandler = <K extends keyof Flows>(props: {
   flowType: K;

@@ -1,14 +1,16 @@
+import { Box, Stack, Typography } from "@mui/material";
+
 import {
   ArrowRightRegularIcon,
   ArrowUpRightRegularIcon,
   UserPlusRegularIcon,
 } from "@hashintel/design-system";
-import { Box, Stack, Typography } from "@mui/material";
-import type { ReactNode } from "react";
 
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { Button } from "../../shared/ui/button";
 import { useAuthInfo } from "./auth-info-context";
+
+import type { ReactNode } from "react";
 
 const GoBackButton = () => {
   return (

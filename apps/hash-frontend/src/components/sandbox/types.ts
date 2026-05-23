@@ -1,6 +1,5 @@
-import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
-
 import type { FetchEmbedCodeFn } from "../block-loader/fetch-embed-code";
+import type { GraphEmbedderMessageCallbacks } from "@blockprotocol/graph";
 
 export type MessageFromFramedBlock = {
   requestId: string;

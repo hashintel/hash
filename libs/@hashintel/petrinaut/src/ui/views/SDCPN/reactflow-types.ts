@@ -1,6 +1,9 @@
+import type { SimulationFrameReader } from "../../../react/simulation/context";
 import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
 
-import type { SimulationFrameState_Transition } from "../../../react/simulation/context";
+type TransitionFrameState = NonNullable<
+  ReturnType<SimulationFrameReader["getTransitionState"]>
+>;
 
 //
 // Specific types for ReactFlow nodes, arcs, and instance.
@@ -14,7 +17,7 @@ export type ArcData = {
    * State of the transition connected to this arc in the current simulation frame.
    * Null when no simulation is running.
    */
-  frame: SimulationFrameState_Transition | null;
+  frame: TransitionFrameState | null;
 };
 
 export type ArcEdgeType = Edge<ArcData>;
@@ -43,7 +46,7 @@ export type TransitionNodeData = {
    * State of this transition in the current simulation frame.
    * Null when no simulation is running.
    */
-  frame: SimulationFrameState_Transition | null;
+  frame: TransitionFrameState | null;
 };
 
 export type TransitionNodeType = Node<TransitionNodeData, "transition">;

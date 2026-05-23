@@ -1,6 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { InfoIconTooltip } from "../../tooltip";
+
 import type { SubView } from "../types";
 
 const tabsContainerStyle = css({

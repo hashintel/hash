@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+
 import { subgraphFieldsFragment } from "@local/hash-isomorphic-utils/graphql/queries/subgraph";
 
 export const isShortnameTaken = gql`

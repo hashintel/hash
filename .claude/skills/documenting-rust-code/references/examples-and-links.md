@@ -79,7 +79,7 @@ With link definition:
 
 ### Basic Example Structure
 
-```rust
+````rust
 /// # Examples
 ///
 /// ```rust
@@ -89,7 +89,7 @@ With link definition:
 /// assert_eq!(entity.id(), id);
 /// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
-```
+````
 
 ### Example Checklist
 
@@ -105,7 +105,7 @@ With link definition:
 
 Use `#` to hide necessary setup from docs display:
 
-```rust
+````rust
 /// # Examples
 ///
 /// ```rust
@@ -118,7 +118,7 @@ Use `#` to hide necessary setup from docs display:
 /// # Ok(())
 /// # }
 /// ```
-```
+````
 
 **What renders:**
 
@@ -133,7 +133,7 @@ println!("Found: {}", entity.name);
 
 ### Using `?` Operator
 
-```rust
+````rust
 /// # Examples
 ///
 /// ```rust
@@ -141,18 +141,18 @@ println!("Found: {}", entity.name);
 /// assert!(result.is_valid());
 /// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
-```
+````
 
 ### Using `expect` for Infallible Cases
 
-```rust
+````rust
 /// # Examples
 ///
 /// ```rust
 /// let config = Config::default();
 /// let value = config.get("key").expect("should have default key");
 /// ```
-```
+````
 
 ---
 
@@ -160,7 +160,7 @@ println!("Found: {}", entity.name);
 
 Show realistic usage patterns:
 
-```rust
+````rust
 /// # Examples
 ///
 /// ```rust
@@ -179,7 +179,7 @@ Show realistic usage patterns:
 /// # Ok(())
 /// # }
 /// ```
-```
+````
 
 ---
 
@@ -187,7 +187,7 @@ Show realistic usage patterns:
 
 Use `//!` for module-level docs:
 
-```rust
+````rust
 //! Entity management functionality.
 //!
 //! This module provides types and functions for creating, updating,
@@ -208,7 +208,7 @@ Use `//!` for module-level docs:
 //! store.save(&entity)?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
-```
+````
 
 ---
 
@@ -234,7 +234,7 @@ Document performance characteristics when relevant:
 
 ## Async Documentation
 
-```rust
+````rust
 /// Processes entity asynchronously.
 ///
 /// # Concurrency
@@ -253,13 +253,13 @@ Document performance characteristics when relevant:
 /// # }
 /// ```
 pub async fn process_async(&self, entity: Entity) -> Result<ProcessResult, Error> {
-```
+````
 
 ---
 
 ## Complete Example
 
-```rust
+````rust
 /// Validates and creates entity with type checking.
 ///
 /// Takes `properties` and validates them against the entity's type schema.
@@ -311,7 +311,7 @@ pub fn create_entity(
     properties: Vec<(String, Value)>,
     web_id: WebId,
 ) -> Result<EntityId, Report<EntityError>> {
-```
+````
 
 ---
 

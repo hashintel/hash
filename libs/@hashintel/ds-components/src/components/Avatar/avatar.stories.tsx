@@ -1,6 +1,6 @@
-import type { Story, StoryDefault } from "@ladle/react";
-
 import { Avatar, type AvatarProps } from "./avatar";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 // User icon SVG
 const UserIcon = (

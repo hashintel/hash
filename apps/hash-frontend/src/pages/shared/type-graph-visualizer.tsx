@@ -1,14 +1,11 @@
-import type {
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import { useTheme } from "@mui/material";
 import { useCallback, useMemo } from "react";
 
+import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
+
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { GraphVisualizer } from "./graph-visualizer";
+
 import type {
   GraphVisualizerProps,
   GraphVizConfig,
@@ -16,7 +13,12 @@ import type {
   GraphVizNode,
   StaticNodeSizing,
 } from "./graph-visualizer";
-import { GraphVisualizer } from "./graph-visualizer";
+import type {
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 const anythingNodeId = "anything";
 

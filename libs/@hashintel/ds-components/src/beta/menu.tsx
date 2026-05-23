@@ -3,12 +3,13 @@
 /* eslint-disable import/no-extraneous-dependencies */
 
 import { Menu, useMenuItemContext } from "@ark-ui/react/menu";
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { type ComponentProps, forwardRef } from "react";
+
 import {
   createStyleContext,
   type HTMLStyledProps,
 } from "@hashintel/ds-helpers/jsx";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
-import { type ComponentProps, forwardRef } from "react";
 
 import { menuSlotRecipe } from "./menu.recipe";
 

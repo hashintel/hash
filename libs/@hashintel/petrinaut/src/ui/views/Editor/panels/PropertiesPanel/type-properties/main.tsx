@@ -1,10 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { SubView } from "../../../../../components/sub-view/types";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
-import type { Color } from "../../../../../../core/types/sdcpn";
 import { TypePropertiesContext } from "./context";
 import { typeMainContentSubView } from "./subviews/main";
+
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { SubView } from "../../../../../components/sub-view/types";
+import type { Color } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",
@@ -17,14 +19,29 @@ const subViews: SubView[] = [typeMainContentSubView];
 
 interface TypePropertiesProps {
   type: Color;
-  updateType: (typeId: string, updateFn: (type: Color) => void) => void;
+  updateType: MutationContextValue["updateType"];
+  addTypeElement: MutationContextValue["addTypeElement"];
+  updateTypeElement: MutationContextValue["updateTypeElement"];
+  removeTypeElement: MutationContextValue["removeTypeElement"];
+  moveTypeElement: MutationContextValue["moveTypeElement"];
 }
 
 export const TypeProperties: React.FC<TypePropertiesProps> = ({
   type,
   updateType,
+  addTypeElement,
+  updateTypeElement,
+  removeTypeElement,
+  moveTypeElement,
 }) => {
-  const value = { type, updateType };
+  const value = {
+    type,
+    updateType,
+    addTypeElement,
+    updateTypeElement,
+    removeTypeElement,
+    moveTypeElement,
+  };
 
   return (
     <div className={containerStyle}>

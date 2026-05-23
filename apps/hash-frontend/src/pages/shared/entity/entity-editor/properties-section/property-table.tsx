@@ -1,4 +1,3 @@
-import type { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useMemo, useRef } from "react";
 
 import { Grid } from "../../../../../components/grid/grid";
@@ -13,6 +12,8 @@ import { propertyGridColumns } from "./property-table/constants";
 import { useCreateGetCellContent } from "./property-table/use-create-get-cell-content";
 import { useCreateOnCellEdited } from "./property-table/use-create-on-cell-edited";
 import { useRows } from "./property-table/use-rows";
+
+import type { DataEditorRef } from "@glideapps/glide-data-grid";
 
 interface PropertyTableProps {
   showSearch: boolean;

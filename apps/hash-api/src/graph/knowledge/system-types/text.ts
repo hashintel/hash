@@ -1,4 +1,3 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
@@ -15,23 +14,25 @@ import {
   pageEntityTypeFilter,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { Text as TextEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
+
+import { getLatestEntityById } from "../primitive/entity";
+import { isEntityLinkEntity } from "../primitive/link-entity";
+import { getBlockById } from "./block";
+import { getCommentById } from "./comment";
+import { getPageFromEntity } from "./page";
+import { getUser } from "./user";
 
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { getLatestEntityById } from "../primitive/entity";
-import { isEntityLinkEntity } from "../primitive/link-entity";
 import type { Block } from "./block";
-import { getBlockById } from "./block";
 import type { Comment } from "./comment";
-import { getCommentById } from "./comment";
 import type { Page } from "./page";
-import { getPageFromEntity } from "./page";
 import type { User } from "./user";
-import { getUser } from "./user";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { Text as TextEntity } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
 
 export type Text = {
   textualContent: TextToken[];

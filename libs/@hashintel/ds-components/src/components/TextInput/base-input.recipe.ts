@@ -9,7 +9,6 @@ export const baseInputRecipe = sva({
     "inputWrapper",
     "input",
     "hiddenInput",
-    "sizer",
     "prefix",
     "suffix",
     "adornment",
@@ -21,6 +20,7 @@ export const baseInputRecipe = sva({
     "editIcon",
     "clear",
     "clearIcon",
+    "hideClear",
     "styledValueOverlay",
     "readonly",
   ],
@@ -29,6 +29,7 @@ export const baseInputRecipe = sva({
       ...formWidths.base,
       display: "inline-flex",
       width: "[fit-content]",
+      minWidth: "[min-content]",
       position: "relative",
       border: "var(--form-border-width) solid transparent",
       borderRadius: "var(--base-input-border-radius)",
@@ -78,13 +79,25 @@ export const baseInputRecipe = sva({
       borderRadius: "var(--base-input-border-radius)",
       _placeholder: { color: "neutral.s80" },
       _disabled: { cursor: "auto" },
+
+      // Hide the number step controls in safari + chrome when not focused.
+      // Use opacity (not appearance) so the controls still reserve layout
+      // space — otherwise the input would grow when focus reveals them.
+      "&[type=number]:not(:focus)::-webkit-outer-spin-button, &[type=number]:not(:focus)::-webkit-inner-spin-button":
+        {
+          opacity: 0,
+          pointerEvents: "none",
+        },
+      // Firefox exposes no public selector for the spin buttons, so we can't
+      // reserve their space. Hide them permanently to keep the width stable.
+      "&[type=number]": {
+        // @ts-expect-error moz-appearance is a valid firefox property
+        "-moz-appearance": "textfield",
+      },
     },
     hiddenInput: {
       color: "[transparent]",
       caretColor: "[transparent]",
-    },
-    sizer: {
-      display: "none",
     },
     prefix: {
       borderLeftRadius: "var(--base-input-border-radius)",
@@ -147,15 +160,16 @@ export const baseInputRecipe = sva({
       position: "absolute",
       zIndex: "1",
       right: "2",
+      paddingX: "0.5",
       display: "flex",
       alignItems: "center",
       color: "fg.muted",
       cursor: "pointer",
       _before: {
-        content: "''",
+        content: "'\\200B'",
         position: "absolute",
-        insetY: "[calc(var(--form-padding-y) * -1)]",
-        insetX: "-1.5",
+        paddingY: "[var(--form-padding-y)]",
+        insetX: "0",
         background: "white",
         zIndex: "-2",
         borderRightRadius: "var(--base-input-border-radius)",
@@ -177,10 +191,10 @@ export const baseInputRecipe = sva({
       _hover: { color: "neutral.s125" },
       _focus: { _after: { background: "neutral.s30" }, outline: "none" },
       _before: {
-        content: "''",
+        content: "'\\200B'",
         position: "absolute",
-        insetY: "[calc(var(--form-padding-y) * -1)]",
-        insetX: "-1.5",
+        paddingY: "[var(--form-padding-y)]",
+        insetX: "0",
         background: "white",
         zIndex: "-2",
         borderRightRadius: "var(--base-input-border-radius)",
@@ -195,6 +209,9 @@ export const baseInputRecipe = sva({
     },
     clearIcon: {
       padding: "0.5",
+    },
+    hideClear: {
+      visibility: "hidden !important",
     },
     styledValueOverlay: {
       position: "absolute",
@@ -267,6 +284,9 @@ export const baseInputRecipe = sva({
               borderColor: "var(--base-input-border-color)",
             },
           },
+          "&:not(.layer-style_disabled):hover [data-part='edit']": {
+            visibility: "hidden",
+          },
         },
         prefix: {
           paddingLeft: "1",
@@ -288,10 +308,16 @@ export const baseInputRecipe = sva({
         editIcon: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+          _before: {
+            background: "[transparent]",
+          },
         },
         clear: {
           right:
             "[calc(var(--base-input-padding-x) * -1 + 1px + var(--spacing-2))]",
+          _before: {
+            background: "[transparent]",
+          },
         },
         adornment: {
           position: "relative",
@@ -384,17 +410,13 @@ export const baseInputRecipe = sva({
           display: "inline-grid",
           minWidth: "[unset]",
         },
-        sizer: {
-          display: "[inline-block]",
-          gridArea: "[1 / 1]",
-          visibility: "hidden",
-          whiteSpace: "pre",
-          pointerEvents: "none",
-          minWidth: "[1ch]",
-          paddingY: "var(--form-padding-y)",
-        },
         input: {
           gridArea: "[1 / 1]",
+          fieldSizing: "content",
+          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
+            {
+              marginLeft: "1.5",
+            },
         },
         clear: {
           position: "relative",
@@ -423,17 +445,31 @@ export const baseInputRecipe = sva({
         },
       },
     },
-  },
-  compoundVariants: [
-    {
-      variant: "default",
-      width: "fitContent",
-      css: {
-        sizer: {
-          paddingX: "var(--base-input-padding-x)",
+    willClear: { true: {} },
+    editAndClear: {
+      true: {
+        editIcon: {
+          _before: {
+            left: "[calc(var(--spacing-1\\.5) * -1 - 1px)]",
+          },
         },
       },
     },
+    hasIcons: { true: {} },
+    hasBrowserControls: {
+      true: {
+        clear: {
+          position: "relative",
+          right: "1",
+          gridArea: "[1 / 2]",
+        },
+        editIcon: {
+          paddingX: "0.5",
+        },
+      },
+    },
+  },
+  compoundVariants: [
     {
       variant: "subtle",
       loading: true,
@@ -566,6 +602,43 @@ export const baseInputRecipe = sva({
       css: {
         root: {
           "--base-input-padding-x": "spacing.2",
+        },
+      },
+    },
+    {
+      hasBrowserControls: true,
+      willClear: true,
+      css: {
+        input: {
+          // Hide the number scroll arrows in safari + firefox when not focused
+          "&[type=number]::-webkit-outer-spin-button, &[type=number]::-webkit-inner-spin-button":
+            {
+              WebkitAppearance: "none",
+            },
+          "&[type=number]": {
+            // @ts-expect-error moz-appearance is a valid firefox property
+            "-moz-appearance": "textfield",
+          },
+        },
+      },
+    },
+    {
+      hasBrowserControls: true,
+      hasIcons: true,
+      css: {
+        input: {
+          paddingRight: "1",
+        },
+      },
+    },
+    {
+      hasBrowserControls: true,
+      editAndClear: true,
+      css: {
+        editIcon: {
+          _before: {
+            left: "0",
+          },
         },
       },
     },

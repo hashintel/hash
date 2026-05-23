@@ -1,7 +1,8 @@
+import { use, useCallback, useEffect } from "react";
+
+import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
-import { use, useCallback, useEffect } from "react";
-import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
 import { LanguageClientContext } from "../../../../../react/lsp/context";
 import {
@@ -154,9 +155,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             ariaExpanded={isBottomPanelOpen}
           >
             {isBottomPanelOpen ? (
-              <FaChevronDown size={14} />
+              <Icon name="chevronDown" size="sm" />
             ) : (
-              <FaChevronUp size={14} />
+              <Icon name="chevronUp" size="sm" />
             )}
           </ToolbarButton>
           <DiagnosticsIndicator

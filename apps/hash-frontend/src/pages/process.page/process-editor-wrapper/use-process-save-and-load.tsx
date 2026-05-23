@@ -1,17 +1,4 @@
 import { useMutation } from "@apollo/client";
-import type {
-  EntityId,
-  PropertyObjectWithMetadata,
-} from "@blockprotocol/type-system";
-import type { SDCPN } from "@hashintel/petrinaut";
-import { isSDCPNEqual } from "@hashintel/petrinaut";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  blockProtocolDataTypes,
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { PetriNetPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/petrinet";
 import {
   type Dispatch,
   type SetStateAction,
@@ -20,12 +7,14 @@ import {
   useState,
 } from "react";
 
-import type {
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../../graphql/api-types.gen";
+import { isSDCPNEqual } from "@hashintel/petrinaut";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  blockProtocolDataTypes,
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import {
   createEntityMutation,
   updateEntityMutation,
@@ -35,6 +24,19 @@ import {
   getPersistedNetsFromSubgraph,
   usePersistedNets,
 } from "./use-process-save-and-load/use-persisted-nets";
+
+import type {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../graphql/api-types.gen";
+import type {
+  EntityId,
+  PropertyObjectWithMetadata,
+} from "@blockprotocol/type-system";
+import type { SDCPN } from "@hashintel/petrinaut";
+import type { PetriNetPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/petrinet";
 
 export type PersistedNet = {
   entityId: EntityId;

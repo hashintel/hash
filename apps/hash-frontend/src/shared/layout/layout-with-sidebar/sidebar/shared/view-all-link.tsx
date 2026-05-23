@@ -1,9 +1,11 @@
-import { ArrowRightRegularIcon } from "@hashintel/design-system";
-import type { LinkProps } from "@mui/material";
 import { Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
+
+import { ArrowRightRegularIcon } from "@hashintel/design-system";
 
 import { Link } from "../../../../ui";
+
+import type { LinkProps } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
 
 export const ViewAllLink: FunctionComponent<{
   href: string;

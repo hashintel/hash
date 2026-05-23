@@ -3,6 +3,7 @@
 import { useListCollection } from "@ark-ui/react/collection";
 import { useFilter } from "@ark-ui/react/locale";
 import { Portal } from "@ark-ui/react/portal";
+
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
 import * as Combobox from "../combobox";

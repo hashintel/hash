@@ -1,14 +1,4 @@
 import { useQuery } from "@apollo/client";
-import { getRoots } from "@blockprotocol/graph/stdlib";
-import {
-  deserializeQueryEntitySubgraphResponse,
-  type HashEntity,
-} from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Container } from "@mui/material";
 import {
   differenceInDays,
@@ -19,15 +9,21 @@ import {
 } from "date-fns";
 import { useCallback, useMemo, useRef, useState } from "react";
 
+import { getRoots } from "@blockprotocol/graph/stdlib";
+import {
+  deserializeQueryEntitySubgraphResponse,
+  type HashEntity,
+} from "@local/hash-graph-sdk/entity";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../blocks/user-blocks";
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
@@ -35,6 +31,12 @@ import { useAuthenticatedUser } from "./shared/auth-info-context";
 import { blockCollectionContentsTraversalParams } from "./shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "./shared/block-collection-context";
 import { TopContextBar } from "./shared/top-context-bar";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../graphql/api-types.gen";
+import type { NextPageWithLayout } from "../shared/layout";
 
 const NotesPage: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthenticatedUser();

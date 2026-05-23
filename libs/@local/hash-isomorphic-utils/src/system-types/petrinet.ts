@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   Link,
   LinkOutgoingLinkAndTarget,
@@ -17,6 +15,7 @@ import type {
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
 } from "./shared.js";
+import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   Link,

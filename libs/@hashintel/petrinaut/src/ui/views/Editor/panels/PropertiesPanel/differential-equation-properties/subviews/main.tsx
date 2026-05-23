@@ -1,25 +1,27 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
-import { Button } from "../../../../../../components/button";
-import { IconButton } from "../../../../../../components/icon-button";
-import { Input } from "../../../../../../components/input";
-import { Menu } from "../../../../../../components/menu";
-import { Section, SectionList } from "../../../../../../components/section";
-import { Select } from "../../../../../../components/select";
-import type { SubView } from "../../../../../../components/sub-view/types";
-import { Tooltip } from "../../../../../../components/tooltip";
-import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
-import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
-} from "../../../../../../../core/default-codes";
+  validateDisplayName,
+} from "@hashintel/petrinaut-core";
+
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { Button } from "../../../../../../components/button";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
+import { Menu } from "../../../../../../components/menu";
+import { Section, SectionList } from "../../../../../../components/section";
+import { Select } from "../../../../../../components/select";
+import { Tooltip } from "../../../../../../components/tooltip";
+import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
+import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../monaco/editor-paths";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { useDiffEqPropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const colorDotStyle = css({
   width: "[12px]",
@@ -86,10 +88,6 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
-const aiIconStyle = css({
-  fontSize: "base",
-});
-
 const DiffEqMainContent: React.FC = () => {
   const { differentialEquation, types, places, updateDifferentialEquation } =
     useDiffEqPropertiesContext();
@@ -112,23 +110,19 @@ const DiffEqMainContent: React.FC = () => {
       setPendingTypeId(newTypeId);
       setShowConfirmDialog(true);
     } else {
-      updateDifferentialEquation(
-        differentialEquation.id,
-        (existingEquation) => {
-          existingEquation.colorId = newTypeId;
-        },
-      );
+      updateDifferentialEquation({
+        equationId: differentialEquation.id,
+        update: { colorId: newTypeId },
+      });
     }
   };
 
   const confirmTypeChange = () => {
     if (pendingTypeId !== null) {
-      updateDifferentialEquation(
-        differentialEquation.id,
-        (existingEquation) => {
-          existingEquation.colorId = pendingTypeId;
-        },
-      );
+      updateDifferentialEquation({
+        equationId: differentialEquation.id,
+        update: { colorId: pendingTypeId },
+      });
     }
     setShowConfirmDialog(false);
     setPendingTypeId(null);
@@ -142,16 +136,16 @@ const DiffEqMainContent: React.FC = () => {
   return (
     <SectionList>
       <Section title="Name">
-        <Input
-          value={differentialEquation.name}
-          onChange={(event) => {
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.name = event.target.value;
-              },
-            );
-          }}
+        <DraftFieldInput
+          sourceId={differentialEquation.id}
+          sourceValue={differentialEquation.name}
+          validate={validateDisplayName}
+          onCommit={(name) =>
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: { name },
+            })
+          }
           disabled={isReadOnly}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
         />
@@ -159,7 +153,7 @@ const DiffEqMainContent: React.FC = () => {
 
       <Section title="Associated Type">
         <Select
-          value={differentialEquation.colorId}
+          value={differentialEquation.colorId ?? undefined}
           onValueChange={handleTypeChange}
           options={types.map((type) => ({
             value: type.id,
@@ -267,12 +261,10 @@ const DiffEqMainContent: React.FC = () => {
           value={differentialEquation.code}
           height="100%"
           onChange={(newCode) => {
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.code = newCode ?? "";
-              },
-            );
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: { code: newCode ?? "" },
+            });
           }}
           options={{ readOnly: isReadOnly }}
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
@@ -295,9 +287,14 @@ const DiffEqCodeAction: React.FC = () => {
     <Menu
       animated
       trigger={
-        <IconButton aria-label="More options" size="xs">
-          <TbDotsVertical />
-        </IconButton>
+        <Button
+          aria-label="More options"
+          tooltip="More options"
+          tooltipDisplay="inline"
+          variant="ghost"
+          size="xs"
+          iconName="ellipsisVertical"
+        />
       }
       items={[
         {
@@ -308,14 +305,14 @@ const DiffEqCodeAction: React.FC = () => {
               (tp) => tp.id === differentialEquation.colorId,
             );
 
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.code = equationType
+            updateDifferentialEquation({
+              equationId: differentialEquation.id,
+              update: {
+                code: equationType
                   ? generateDefaultDifferentialEquationCode(equationType)
-                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
+                  : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
               },
-            );
+            });
           },
         },
         {
@@ -326,7 +323,7 @@ const DiffEqCodeAction: React.FC = () => {
               display="inline"
             >
               <div className={aiMenuItemStyle}>
-                <TbSparkles className={aiIconStyle} />
+                <Icon name="sparkles" size="sm" />
                 Generate with AI
               </div>
             </Tooltip>

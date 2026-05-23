@@ -2,7 +2,6 @@ import {
   faCircleExclamation,
   faWarning,
 } from "@fortawesome/free-solid-svg-icons";
-import type { BoxProps, TooltipProps } from "@mui/material";
 import {
   Box,
   Collapse,
@@ -14,6 +13,8 @@ import {
 import { forwardRef } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
+
+import type { BoxProps, TooltipProps } from "@mui/material";
 
 const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
   <Tooltip {...props} classes={{ popper: className }} />

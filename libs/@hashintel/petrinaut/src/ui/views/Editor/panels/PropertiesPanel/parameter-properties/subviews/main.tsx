@@ -1,89 +1,66 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { useEffect, useState } from "react";
+import {
+  validateDisplayName,
+  validateVariableName,
+} from "@hashintel/petrinaut-core";
 
+import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
-import type { SubView } from "../../../../../../components/sub-view/types";
 import { ParameterIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { validateVariableName } from "../../../../../../../core/validation/variable-name";
 import { useParameterPropertiesContext } from "../context";
 
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
-});
+import type { SubView } from "../../../../../../components/sub-view/types";
 
 const ParameterMainContent: React.FC = () => {
   const { parameter, updateParameter } = useParameterPropertiesContext();
   const isDisabled = useIsReadOnly();
 
-  const [varNameInput, setVarNameInput] = useState(parameter.variableName);
-  const [varNameError, setVarNameError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setVarNameInput(parameter.variableName);
-    setVarNameError(null);
-  }, [parameter.id, parameter.variableName]);
-
-  const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
-    updateParameter(parameter.id, (existingParameter) => {
-      existingParameter.name = event.target.value;
-    });
-  };
-
   const handleUpdateDefaultValue = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    updateParameter(parameter.id, (existingParameter) => {
-      existingParameter.defaultValue = event.target.value;
+    updateParameter({
+      parameterId: parameter.id,
+      update: { defaultValue: event.target.value },
     });
   };
+
+  const readOnlyTooltip = isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined;
 
   return (
     <SectionList>
       <Section title="Name">
-        <Input
-          value={parameter.name}
-          onChange={handleUpdateName}
+        <DraftFieldInput
+          sourceId={parameter.id}
+          sourceValue={parameter.name}
+          validate={validateDisplayName}
+          onCommit={(name) =>
+            updateParameter({
+              parameterId: parameter.id,
+              update: { name },
+            })
+          }
           disabled={isDisabled}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          tooltip={readOnlyTooltip}
         />
       </Section>
 
       <Section title="Variable Name">
-        <Input
-          value={varNameInput}
-          onChange={(event) => {
-            setVarNameInput(event.target.value);
-            if (varNameError) {
-              setVarNameError(null);
-            }
-          }}
-          onBlur={() => {
-            const result = validateVariableName(varNameInput);
-
-            if (!result.valid) {
-              setVarNameError(result.error);
-              return;
-            }
-
-            setVarNameError(null);
-            if (result.name !== parameter.variableName) {
-              updateParameter(parameter.id, (existingParameter) => {
-                existingParameter.variableName = result.name;
-              });
-            }
-          }}
+        <DraftFieldInput
+          sourceId={parameter.id}
+          sourceValue={parameter.variableName}
+          validate={validateVariableName}
+          onCommit={(variableName) =>
+            updateParameter({
+              parameterId: parameter.id,
+              update: { variableName },
+            })
+          }
           disabled={isDisabled}
           monospace
-          hasError={!!varNameError}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          tooltip={readOnlyTooltip}
         />
-        {varNameError && (
-          <div className={errorMessageStyle}>{varNameError}</div>
-        )}
       </Section>
 
       <Section title="Default Value">
@@ -91,7 +68,7 @@ const ParameterMainContent: React.FC = () => {
           value={parameter.defaultValue}
           onChange={handleUpdateDefaultValue}
           disabled={isDisabled}
-          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          tooltip={readOnlyTooltip}
         />
       </Section>
     </SectionList>

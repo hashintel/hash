@@ -1,3 +1,7 @@
+import { Stack } from "@mui/material";
+import { formatDuration, intervalToDuration } from "date-fns";
+import { useEffect, useState } from "react";
+
 import {
   ArrowDownRegularIcon,
   ArrowRightRegularIcon,
@@ -11,21 +15,19 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { SvgIconProps } from "@mui/material";
-import { Stack } from "@mui/material";
-import { formatDuration, intervalToDuration } from "date-fns";
-import type { FunctionComponent } from "react";
-import { useEffect, useState } from "react";
+
+import { queryEntitiesQuery } from "../../../../../../../graphql/queries/entity.queries";
+import { queryGraphQlApi } from "../../../../../../../shared/query-graphql-api";
+import { iconSx } from "./styles";
 
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../../../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../../../../../../graphql/queries/entity.queries";
-import { queryGraphQlApi } from "../../../../../../../shared/query-graphql-api";
 import type { MinimalFlowRun } from "../../../../../../../shared/storage";
-import { iconSx } from "./styles";
+import type { UsageRecordProperties } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type { SvgIconProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 const MetadataItem = ({
   marginRight = 0.6,

@@ -1,8 +1,9 @@
-import { OntologyChip } from "@hashintel/design-system";
-import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { Typography } from "@mui/material";
 import { Box, Container, Stack } from "@mui/system";
 import { type ReactElement, useContext } from "react";
+
+import { OntologyChip } from "@hashintel/design-system";
+import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 
 import { TopContextBar } from "../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../shared/workspace-context";

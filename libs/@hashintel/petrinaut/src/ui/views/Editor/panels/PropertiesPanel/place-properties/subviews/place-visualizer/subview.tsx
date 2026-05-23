@@ -1,29 +1,31 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { use, useEffect, useMemo, useState } from "react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
+import { use, useMemo, useState } from "react";
 
-import { IconButton } from "../../../../../../../components/icon-button";
-import { Menu } from "../../../../../../../components/menu";
-import { SegmentGroup } from "../../../../../../../components/segment-group";
-import type { SubView } from "../../../../../../../components/sub-view/types";
-import { Switch } from "../../../../../../../components/switch";
-import { Tooltip } from "../../../../../../../components/tooltip";
-import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
-} from "../../../../../../../../core/default-codes";
+} from "@hashintel/petrinaut-core";
+
 import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../../../../../../react/hooks/use-default-parameter-values";
-import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaybackContext } from "../../../../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../../../../react/simulation/context";
-import { compileVisualizer } from "../../../../../../../../core/simulation/simulator/compile-visualizer";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { Button } from "../../../../../../../components/button";
+import { Menu } from "../../../../../../../components/menu";
+import { SegmentGroup } from "../../../../../../../components/segment-group";
+import { Switch } from "../../../../../../../components/switch";
+import { Tooltip } from "../../../../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
+import { compileVisualizer } from "../../../../../../../lib/compile-visualizer";
+import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { usePlacePropertiesContext } from "../../context";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
+
+import type { SubView } from "../../../../../../../components/sub-view/types";
 
 type ViewMode = "code" | "preview" | "split";
 
@@ -71,19 +73,17 @@ const aiMenuItemStyle = css({
   gap: "[6px]",
 });
 
-const aiIconStyle = css({
-  fontSize: "base",
-});
-
 /**
  * Renders the visualizer preview for the current place,
  * using simulation frame data or initial marking.
  */
 const VisualizerPreview: React.FC = () => {
+  "use no memo"; // User-authored visualizer code is compiled into a component at runtime.
+
   const { place, placeType } = usePlacePropertiesContext();
 
   const { initialMarking, parameterValues } = use(SimulationContext);
-  const { currentFrame, totalFrames } = use(PlaybackContext);
+  const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   const defaultParameterValues = useDefaultParameterValues();
 
@@ -112,19 +112,19 @@ const VisualizerPreview: React.FC = () => {
   const tokens: Record<string, number>[] = [];
   let parameters: Record<string, number | boolean> = {};
 
-  if (totalFrames > 0 && currentFrame) {
-    const placeState = currentFrame.places[place.id];
-    if (!placeState) {
+  if (totalFrames > 0 && currentFrameReader) {
+    const placeTokenValues = currentFrameReader.getPlaceTokenValues(place.id);
+    if (!placeTokenValues) {
       return <div className={messageStyle}>Place not found in frame</div>;
     }
 
-    const { offset, count } = placeState;
-    const placeSize = count * dimensions;
-    const tokenValues = Array.from(
-      currentFrame.buffer.slice(offset, offset + placeSize),
-    );
+    const tokenValues = Array.from(placeTokenValues.values);
 
-    for (let tokenIndex = 0; tokenIndex < count; tokenIndex++) {
+    for (
+      let tokenIndex = 0;
+      tokenIndex < placeTokenValues.count;
+      tokenIndex++
+    ) {
       const token: Record<string, number> = {};
       for (let colIndex = 0; colIndex < dimensions; colIndex++) {
         const dimensionName = placeType.elements[colIndex]!.name;
@@ -136,14 +136,13 @@ const VisualizerPreview: React.FC = () => {
 
     parameters = mergeParameterValues(parameterValues, defaultParameterValues);
   } else {
-    const marking = initialMarking.get(place.id);
-    if (marking && marking.count > 0) {
-      for (let tokenIndex = 0; tokenIndex < marking.count; tokenIndex++) {
+    const marking = initialMarking[place.id];
+    if (Array.isArray(marking) && marking.length > 0) {
+      for (let tokenIndex = 0; tokenIndex < marking.length; tokenIndex++) {
         const token: Record<string, number> = {};
         for (let colIndex = 0; colIndex < dimensions; colIndex++) {
           const dimensionName = placeType.elements[colIndex]!.name;
-          token[dimensionName] =
-            marking.values[tokenIndex * dimensions + colIndex] ?? 0;
+          token[dimensionName] = marking[tokenIndex]?.[dimensionName] ?? 0;
         }
         tokens.push(token);
       }
@@ -162,6 +161,7 @@ const VisualizerPreview: React.FC = () => {
 
   return (
     <VisualizerErrorBoundary>
+      {/* eslint-disable-next-line react-hooks-js/static-components -- Runtime visualizer code intentionally creates a component from user input. */}
       <VisualizerComponent tokens={tokens} parameters={parameters} />
     </VisualizerErrorBoundary>
   );
@@ -211,8 +211,9 @@ const PlaceVisualizerContent: React.FC = () => {
               height="100%"
               value={place.visualizerCode}
               onChange={(value) => {
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.visualizerCode = value ?? "";
+                updatePlace({
+                  placeId: place.id,
+                  update: { visualizerCode: value ?? "" },
                 });
               }}
             />
@@ -232,10 +233,14 @@ const VisualizerHeaderAction: React.FC = () => {
   const { place, types, isReadOnly, updatePlace } = usePlacePropertiesContext();
   const { globalMode } = use(EditorContext);
 
-  const [savedVisualizerCode, setSavedVisualizerCode] = useState<
-    string | undefined
-  >(undefined);
-  useEffect(() => setSavedVisualizerCode(undefined), [place.id]);
+  const [savedVisualizerCodeState, setSavedVisualizerCodeState] = useState<{
+    placeId: string;
+    code: string;
+  } | null>(null);
+  const savedVisualizerCode =
+    savedVisualizerCodeState?.placeId === place.id
+      ? savedVisualizerCodeState.code
+      : undefined;
 
   const hasVisualizer = place.visualizerCode !== undefined;
 
@@ -248,16 +253,23 @@ const VisualizerHeaderAction: React.FC = () => {
           tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           onCheckedChange={(checked) => {
             if (checked) {
-              updatePlace(place.id, (existingPlace) => {
-                existingPlace.visualizerCode =
-                  savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE;
+              updatePlace({
+                placeId: place.id,
+                update: {
+                  visualizerCode:
+                    savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
+                },
               });
             } else {
               if (place.visualizerCode) {
-                setSavedVisualizerCode(place.visualizerCode);
+                setSavedVisualizerCodeState({
+                  placeId: place.id,
+                  code: place.visualizerCode,
+                });
               }
-              updatePlace(place.id, (existingPlace) => {
-                existingPlace.visualizerCode = undefined;
+              updatePlace({
+                placeId: place.id,
+                update: { visualizerCode: undefined },
               });
             }
           }}
@@ -267,9 +279,14 @@ const VisualizerHeaderAction: React.FC = () => {
         <Menu
           animated
           trigger={
-            <IconButton aria-label="More options" size="xs">
-              <TbDotsVertical />
-            </IconButton>
+            <Button
+              aria-label="More options"
+              tooltip="More options"
+              tooltipDisplay="inline"
+              variant="ghost"
+              size="xs"
+              iconName="ellipsisVertical"
+            />
           }
           items={[
             {
@@ -280,10 +297,13 @@ const VisualizerHeaderAction: React.FC = () => {
                   ? types.find((type) => type.id === place.colorId)
                   : null;
 
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.visualizerCode = currentPlaceType
-                    ? generateDefaultVisualizerCode(currentPlaceType)
-                    : DEFAULT_VISUALIZER_CODE;
+                updatePlace({
+                  placeId: place.id,
+                  update: {
+                    visualizerCode: currentPlaceType
+                      ? generateDefaultVisualizerCode(currentPlaceType)
+                      : DEFAULT_VISUALIZER_CODE,
+                  },
                 });
               },
             },
@@ -295,7 +315,7 @@ const VisualizerHeaderAction: React.FC = () => {
                   display="inline"
                 >
                   <div className={aiMenuItemStyle}>
-                    <TbSparkles className={aiIconStyle} />
+                    <Icon name="sparkles" size="sm" />
                     Generate with AI
                   </div>
                 </Tooltip>

@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   ArchivedPropertyValue,
   ArchivedPropertyValueWithMetadata,
@@ -59,6 +57,7 @@ import type {
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
 } from "./shared.js";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   ArchivedPropertyValue,

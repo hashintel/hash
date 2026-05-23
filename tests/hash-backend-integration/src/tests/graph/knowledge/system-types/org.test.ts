@@ -1,5 +1,6 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import {
   createOrg,
   getOrgByShortname,
@@ -8,10 +9,11 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestOrg } from "../../../util";
+
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 
 const logger = new Logger({
   environment: "test",

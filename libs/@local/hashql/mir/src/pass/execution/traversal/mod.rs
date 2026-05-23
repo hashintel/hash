@@ -19,7 +19,11 @@ mod analysis;
 mod tests;
 
 pub(crate) use analysis::{TraversalAnalysisVisitor, TraversalResult};
-use hashql_core::{id::IdArray, symbol::Symbol};
+use hashql_core::{
+    id::IdArray,
+    symbol::Symbol,
+    r#type::{TypeId, environment::Environment},
+};
 
 pub use self::entity::{EntityPath, EntityPathBitSet};
 pub(crate) use self::{access::Access, entity::TransferCostConfig};
@@ -238,6 +242,19 @@ impl TraversalPath {
     pub const fn as_symbol(self) -> Symbol<'static> {
         match self {
             Self::Entity(path) => path.as_symbol(),
+        }
+    }
+
+    /// Returns the type of this path.
+    ///
+    /// Most paths have a fixed type determined by the graph schema. Paths whose type
+    /// depends on the specific vertex being queried (e.g. entity properties) return
+    /// [`None`].
+    #[inline]
+    #[must_use]
+    pub fn resolve_type(self, env: &Environment<'_>) -> Option<TypeId> {
+        match self {
+            Self::Entity(path) => path.resolve_type(env),
         }
     }
 

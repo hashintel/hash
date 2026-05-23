@@ -1,21 +1,20 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
-import { FaBars } from "react-icons/fa6";
-import {
-  TbLayoutSidebarLeftCollapse,
-  TbLayoutSidebarRightCollapse,
-} from "react-icons/tb";
 
-import { IconButton } from "../../../../components/icon-button";
-import { Menu, type MenuItem } from "../../../../components/menu";
+import { css } from "@hashintel/ds-helpers/css";
+
 import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
+import { Button } from "../../../../components/button";
+import { Menu, type MenuItem } from "../../../../components/menu";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
+import { RunningExperimentsPopover } from "./running-experiments-popover";
 import { VersionHistoryButton } from "./version-history-button";
+
+import type { ExperimentRecord } from "../../../../../react/experiments/context";
 
 const topBarStyle = css({
   display: "flex",
@@ -56,6 +55,7 @@ interface TopBarProps {
   hideNetManagementControls: boolean;
   mode: EditorState["globalMode"];
   onModeChange: (mode: EditorState["globalMode"]) => void;
+  onRunningExperimentClick?: (experiment: ExperimentRecord) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -65,6 +65,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   hideNetManagementControls,
   mode,
   onModeChange,
+  onRunningExperimentClick,
 }) => {
   const { isLeftSidebarOpen, setLeftSidebarOpen, setSearchOpen } =
     use(EditorContext);
@@ -73,8 +74,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   return (
     <div className={topBarStyle}>
       <div className={leftSectionStyle}>
-        <IconButton
-          size="xs"
+        <Button
+          size="sm"
           variant="ghost"
           onClick={() => {
             setLeftSidebarOpen(!isLeftSidebarOpen);
@@ -83,19 +84,21 @@ export const TopBar: React.FC<TopBarProps> = ({
             }
           }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {isLeftSidebarOpen ? (
-            <TbLayoutSidebarLeftCollapse size={16} />
-          ) : (
-            <TbLayoutSidebarRightCollapse size={16} />
-          )}
-        </IconButton>
+          tooltip={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          tooltipDisplay="inline"
+          iconName="sidebar"
+        />
 
         <Menu
           trigger={
-            <IconButton aria-label="Menu" size="sm" variant="ghost">
-              <FaBars />
-            </IconButton>
+            <Button
+              aria-label="Menu"
+              size="sm"
+              variant="ghost"
+              tooltip="Menu"
+              tooltipDisplay="inline"
+              iconName="bars"
+            />
           }
           items={menuItems}
           animated
@@ -114,6 +117,9 @@ export const TopBar: React.FC<TopBarProps> = ({
       <ModeSelector mode={mode} onChange={onModeChange} />
 
       <div className={rightSectionStyle}>
+        <RunningExperimentsPopover
+          onExperimentClick={onRunningExperimentClick}
+        />
         {undoRedo && <VersionHistoryButton />}
       </div>
     </div>

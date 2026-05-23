@@ -1,9 +1,10 @@
-import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import {
   buildStructEvent,
   newTracker,
   type Tracker,
 } from "@snowplow/node-tracker";
+
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
 /**
  * Sets up snowplow telemetry for HASH usage. Disabled by default.

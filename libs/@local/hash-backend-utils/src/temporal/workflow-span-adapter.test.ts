@@ -1,7 +1,8 @@
-import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 import { describe, expect, it } from "vitest";
 
 import { wrapWorkflowSpanExporter } from "./workflow-span-adapter.js";
+
+import type { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-base";
 
 /**
  * Recording exporter that captures the spans handed to it without

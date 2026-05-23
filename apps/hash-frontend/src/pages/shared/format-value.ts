@@ -1,21 +1,22 @@
-import type { JsonValue } from "@blockprotocol/core";
-import type { PropertyMetadata } from "@blockprotocol/type-system";
 import {
   isArrayMetadata,
   isObjectMetadata,
   isValueMetadata,
 } from "@blockprotocol/type-system";
 import { customColors } from "@hashintel/design-system/theme";
-import type {
-  ClosedDataTypeDefinition,
-  ClosedMultiEntityTypesDefinitions,
-} from "@local/hash-graph-sdk/ontology";
 import {
   createFormattedValueParts,
   formatDataValue,
   type FormattedValuePart,
   getMergedDataTypeSchema,
 } from "@local/hash-isomorphic-utils/data-types";
+
+import type { JsonValue } from "@blockprotocol/core";
+import type { PropertyMetadata } from "@blockprotocol/type-system";
+import type {
+  ClosedDataTypeDefinition,
+  ClosedMultiEntityTypesDefinitions,
+} from "@local/hash-graph-sdk/ontology";
 
 export const formatValue = (
   value: unknown,

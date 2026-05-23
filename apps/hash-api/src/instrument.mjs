@@ -1,17 +1,17 @@
 /** Required to load environment variables */
 import "@local/hash-backend-utils/environment";
-
-import {
-  createHttpInstrumentation,
-  createUndiciInstrumentation,
-  registerOpenTelemetry,
-} from "@local/hash-backend-utils/opentelemetry";
 import {
   ExpressInstrumentation,
   ExpressLayerType,
 } from "@opentelemetry/instrumentation-express";
 import { GraphQLInstrumentation } from "@opentelemetry/instrumentation-graphql";
 import * as Sentry from "@sentry/node";
+
+import {
+  createHttpInstrumentation,
+  createUndiciInstrumentation,
+  registerOpenTelemetry,
+} from "@local/hash-backend-utils/opentelemetry";
 
 import { isProdEnv } from "./lib/env-config";
 

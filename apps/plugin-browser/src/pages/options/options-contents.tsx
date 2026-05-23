@@ -1,9 +1,9 @@
 import "../shared/common.scss";
+import { Box, Skeleton, Stack, ThemeProvider, Typography } from "@mui/material";
+import browser from "webextension-polyfill";
 
 import { Button } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import { Box, Skeleton, Stack, ThemeProvider, Typography } from "@mui/material";
-import browser from "webextension-polyfill";
 
 import { HashLockup } from "../shared/hash-lockup";
 import { lightModeBorderColor } from "../shared/style-values";

@@ -4,8 +4,9 @@
 
 import { ark } from "@ark-ui/react/factory";
 import { createContext, mergeProps } from "@ark-ui/react/utils";
-import { type HTMLStyledProps, styled } from "@hashintel/ds-helpers/jsx";
 import { forwardRef, useMemo } from "react";
+
+import { type HTMLStyledProps, styled } from "@hashintel/ds-helpers/jsx";
 
 import { buttonRecipe, type ButtonRecipeProps } from "./button.recipe";
 import { Group, type GroupProps } from "./group";
@@ -41,9 +42,7 @@ type BaseButtonProps = HTMLStyledProps<"button"> &
   NonNullable<ButtonRecipeProps>;
 
 export interface ButtonProps
-  extends BaseButtonProps,
-    ButtonCompositionProps,
-    ButtonLoadingProps {}
+  extends BaseButtonProps, ButtonCompositionProps, ButtonLoadingProps {}
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (props, ref) => {

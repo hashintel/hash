@@ -1,17 +1,14 @@
+import { beforeAll, describe, expect, it } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
-import type { OrgMembership } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import {
   createOrgMembership,
   getOrgMembershipOrg,
   getOrgMembershipUser,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../admin-server";
 import {
@@ -19,6 +16,11 @@ import {
   createTestOrg,
   createTestUser,
 } from "../../../util";
+
+import type { Org } from "@apps/hash-api/src/graph/knowledge/system-types/org";
+import type { OrgMembership } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 
 const logger = new Logger({
   environment: "test",

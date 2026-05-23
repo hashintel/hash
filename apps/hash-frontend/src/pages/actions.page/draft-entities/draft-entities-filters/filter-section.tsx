@@ -11,12 +11,12 @@ import {
   switchClasses,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import type {
   FilterSectionDefinition,
   MultipleChoiceFilterSectionDefinition,
 } from "./types";
+import type { FunctionComponent, ReactNode } from "react";
 
 const CheckboxFilter: FunctionComponent<{
   label: ReactNode;

@@ -1,5 +1,4 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
-
 import {
   existsSync,
   mkdirSync,
@@ -13,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 
 import { researchEntitiesAction } from "./research-entities-action.js";
+
 import type { CoordinatingAgentState } from "./research-entities-action/shared/coordinators.js";
 
 const __filename = fileURLToPath(import.meta.url);

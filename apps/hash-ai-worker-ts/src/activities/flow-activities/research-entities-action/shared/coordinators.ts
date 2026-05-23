@@ -1,20 +1,16 @@
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  ProposedEntity,
-  WorkerIdentifiers,
-} from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 
 import { stopWorkerSignal } from "../../../../shared/signals.js";
+import { getTemporalClient } from "../../../shared/get-flow-context.js";
+import { areUrlsEqual } from "./are-urls-equal.js";
+
 import type { DereferencedEntityTypesByTypeId } from "../../../infer-entities/inference-types.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
-import { getTemporalClient } from "../../../shared/get-flow-context.js";
 import type { LlmParams } from "../../../shared/get-llm-response/types.js";
 import type { Claim } from "../../shared/claims.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { ExistingEntitySummary } from "../coordinating-agent/summarize-existing-entities.js";
 import type { SubCoordinatingAgentState } from "../sub-coordinating-agent/state.js";
-import { areUrlsEqual } from "./are-urls-equal.js";
 import type {
   CompletedCoordinatorToolCall,
   CoordinatorToolName,
@@ -22,6 +18,11 @@ import type {
   ParsedSubCoordinatorToolCall,
 } from "./coordinator-tools.js";
 import type { WebResourceSummary } from "./handle-web-search-tool-call.js";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  ProposedEntity,
+  WorkerIdentifiers,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 export const coordinatingAgentModel: LlmParams["model"] = "gpt-4o-2024-08-06";
 

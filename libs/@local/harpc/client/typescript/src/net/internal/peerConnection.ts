@@ -17,10 +17,7 @@ type TypeId = typeof TypeId;
 
 /** @internal */
 export interface PeerConnection
-  extends Connection,
-    Inspectable.Inspectable,
-    Equal.Equal,
-    Pipeable.Pipeable {
+  extends Connection, Inspectable.Inspectable, Equal.Equal, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly [connectionSymbol]: true;
   readonly inner: Connection;

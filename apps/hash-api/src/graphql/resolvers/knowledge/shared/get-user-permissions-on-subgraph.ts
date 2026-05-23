@@ -1,13 +1,14 @@
+import { parseResolveInfo } from "graphql-parse-resolve-info";
+
+import { checkPermissionsOnEntitiesInSubgraph } from "../../../../graph/knowledge/primitive/entity";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
+import type { SubgraphAndPermissions } from "../../../api-types.gen";
+import type { GraphQLContext } from "../../../context";
 import type { Subgraph } from "@blockprotocol/graph";
 import type { UserPermissionsOnEntities } from "@local/hash-graph-sdk/authorization";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ResolveTree } from "graphql-parse-resolve-info";
-import { parseResolveInfo } from "graphql-parse-resolve-info";
-
-import { checkPermissionsOnEntitiesInSubgraph } from "../../../../graph/knowledge/primitive/entity";
-import type { SubgraphAndPermissions } from "../../../api-types.gen";
-import type { GraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 
 const werePermissionsRequested = (info: GraphQLResolveInfo) => {
   const parsedResolveInfoFragment = parseResolveInfo(info);

@@ -1,5 +1,6 @@
-import { Center } from "@hashintel/ds-helpers/jsx";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+
+import { Center } from "@hashintel/ds-helpers/jsx";
 
 import * as Carousel from "../carousel";
 import { IconButton } from "../icon-button";

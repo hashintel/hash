@@ -1,12 +1,14 @@
-import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
+import { Context } from "@temporalio/activity";
+
 import {
   getBaseWorkflowParams,
   getFlowContextCache,
   getFlowEntityInfo,
 } from "@local/hash-backend-utils/flows/get-flow-context";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
+
+import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
 
 let _temporalClient: TemporalClient | undefined;

@@ -9,6 +9,6 @@
     "ms-playwright.playwright",
     "ms-vscode.vscode-typescript-next",
     "vitest.explorer",
-    "biomejs.biome"
+    "oxc.oxc-vscode"
   ]
 }

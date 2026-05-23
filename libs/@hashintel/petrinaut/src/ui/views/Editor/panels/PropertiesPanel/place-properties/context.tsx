@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type { Color, Place } from "../../../../../../core/types/sdcpn";
+import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { Color, Place } from "@hashintel/petrinaut-core";
 
 /**
  * Context for providing place-specific data to subview components
@@ -16,7 +17,7 @@ interface PlacePropertiesContextValue {
   /** Whether the panel is in read-only mode */
   isReadOnly: boolean;
   /** Function to update the place */
-  updatePlace: (placeId: string, updateFn: (place: Place) => void) => void;
+  updatePlace: MutationContextValue["updatePlace"];
 }
 
 const PlacePropertiesContext =
@@ -41,7 +42,7 @@ interface PlacePropertiesProviderProps {
   placeType: Color | null;
   types: Color[];
   isReadOnly: boolean;
-  updatePlace: (placeId: string, updateFn: (place: Place) => void) => void;
+  updatePlace: MutationContextValue["updatePlace"];
   children: ReactNode;
 }
 

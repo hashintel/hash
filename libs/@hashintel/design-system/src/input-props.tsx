@@ -1,9 +1,5 @@
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
-import type {
-  InputProps,
-  TextFieldProps as MuiTextFieldProps,
-} from "@mui/material";
 import {
   InputAdornment,
   inputClasses,
@@ -13,6 +9,11 @@ import {
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { LoadingSpinner } from "./loading-spinner";
+
+import type {
+  InputProps,
+  TextFieldProps as MuiTextFieldProps,
+} from "@mui/material";
 
 export type TextFieldProps = {
   /**

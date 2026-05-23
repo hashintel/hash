@@ -1,7 +1,8 @@
 import { getCommentText } from "../../../../graph/knowledge/system-types/comment";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { CommentResolvers } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const commentTextUpdatedAtResolver: CommentResolvers<LoggedInGraphQLContext>["textUpdatedAt"] =
   async ({ metadata }, _, graphQLContext) => {

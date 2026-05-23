@@ -2,14 +2,6 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type {
-  DataType,
-  DataTypeWithMetadata,
-  EntityType,
-  EntityTypeWithMetadata,
-  PropertyType,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
@@ -20,13 +12,22 @@ import { queryEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { queryPropertyTypes } from "@local/hash-graph-sdk/property-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
+import { getOrgByShortname } from "./graph/knowledge/system-types/org";
+import { isEntityTypeLinkEntityType } from "./graph/ontology/primitive/entity-type";
+
 import type {
   ImpureGraphContext,
   ImpureGraphFunction,
 } from "./graph/context-types";
 import type { Org } from "./graph/knowledge/system-types/org";
-import { getOrgByShortname } from "./graph/knowledge/system-types/org";
-import { isEntityTypeLinkEntityType } from "./graph/ontology/primitive/entity-type";
+import type {
+  DataType,
+  DataTypeWithMetadata,
+  EntityType,
+  EntityTypeWithMetadata,
+  PropertyType,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

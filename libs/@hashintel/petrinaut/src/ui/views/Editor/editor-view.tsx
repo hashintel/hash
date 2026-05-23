@@ -1,24 +1,28 @@
-import { css, cx } from "@hashintel/ds-helpers/css";
 import { use, useRef, useState } from "react";
 
-import { Box } from "../../components/box";
-import { Stack } from "../../components/stack";
-import { productionMachines } from "../../../examples/broken-machines";
-import { deploymentPipelineSDCPN } from "../../../examples/deployment-pipeline";
-import { satellitesSDCPN } from "../../../examples/satellites";
-import { probabilisticSatellitesSDCPN } from "../../../examples/satellites-launcher";
-import { sirModel } from "../../../examples/sir-model";
-import { supplyChainStochasticSDCPN } from "../../../examples/supply-chain-stochastic";
-import { importSDCPN } from "../../file-io/import-sdcpn";
-import { exportSDCPN } from "../../file-io/export-sdcpn";
-import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
+import { css, cx } from "@hashintel/ds-helpers/css";
+import {
+  deploymentPipelineSDCPN,
+  probabilisticSatellitesSDCPN,
+  productionMachines,
+  satellitesSDCPN,
+  sirModel,
+  supplyChainStochasticSDCPN,
+} from "@hashintel/petrinaut-core/examples";
+
+import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { MutationContext } from "../../../react/state/mutation-context";
 import { PortalContainerContext } from "../../../react/state/portal-container-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
-import type { ViewportAction } from "../../types/viewport-action";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { Box } from "../../components/box";
+import { Stack } from "../../components/stack";
+import { exportSDCPN } from "../../file-io/export-sdcpn";
+import { exportTikZ } from "../../file-io/export-tikz";
+import { importSDCPN } from "../../file-io/import-sdcpn";
+import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
@@ -27,12 +31,13 @@ import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
-import { exportTikZ } from "../../file-io/export-tikz";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
 import { runAutoLayout } from "./run-auto-layout";
+
+import type { ViewportAction } from "../../types/viewport-action";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
   numeric: "auto",
@@ -119,7 +124,9 @@ export const EditorView = ({
     cursorMode,
     setCursorMode,
     clearSelection,
+    setSimulateViewMode,
   } = use(EditorContext);
+  const { setSelectedExperimentId } = use(ExperimentsContext);
 
   const { compactNodes } = use(UserSettingsContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
@@ -165,6 +172,12 @@ export const EditorView = ({
 
   function handleExportTikZ() {
     exportTikZ({ petriNetDefinition, title });
+  }
+
+  function handleRunningExperimentClick(experimentId: string) {
+    setGlobalMode("simulate");
+    setSimulateViewMode("experiments");
+    setSelectedExperimentId(experimentId);
   }
 
   async function handleImport() {
@@ -372,6 +385,9 @@ export const EditorView = ({
           hideNetManagementControls={hideNetManagementControls}
           mode={mode}
           onModeChange={setGlobalMode}
+          onRunningExperimentClick={(experiment) =>
+            handleRunningExperimentClick(experiment.id)
+          }
         />
 
         <Stack direction="row" className={rowContainerStyle}>

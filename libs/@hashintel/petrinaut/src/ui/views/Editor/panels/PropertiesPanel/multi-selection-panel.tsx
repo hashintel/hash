@@ -1,18 +1,19 @@
-import { css } from "@hashintel/ds-helpers/css";
 import { createContext, use } from "react";
-import { GrMultiple } from "react-icons/gr";
-import { TbTrash } from "react-icons/tb";
 
-import { IconButton } from "../../../../components/icon-button";
-import type { SubView } from "../../../../components/sub-view/types";
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+const MultipleIcon = () => <Icon name="layer" />;
+
+import { EditorContext } from "../../../../../react/state/editor-context";
+import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
+import { Button } from "../../../../components/button";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
-import { EditorContext } from "../../../../../react/state/editor-context";
-import type {
-  SelectionItem,
-  SelectionMap,
-} from "../../../../../core/types/selection";
-import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
+
+import type { MutationContextValue } from "../../../../../react/state/mutation-context";
+import type { SubView } from "../../../../components/sub-view/types";
+import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 const containerStyle = css({
   display: "flex",
@@ -29,7 +30,7 @@ const summaryStyle = css({
 
 interface MultiSelectionData {
   items: SelectionItem[];
-  deleteItemsByIds: (items: SelectionMap) => void;
+  deleteItemsByIds: MutationContextValue["deleteItemsByIds"];
 }
 
 const MultiSelectionContext = createContext<MultiSelectionData | null>(null);
@@ -78,26 +79,27 @@ const DeleteSelectionAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <IconButton
+    <Button
       aria-label="Delete selected"
       size="xs"
-      colorScheme="red"
+      variant="ghost"
+      tone="error"
+      iconName="trash"
       disabled={isReadOnly}
       onClick={() => {
-        deleteItemsByIds(new Map(items.map((item) => [item.id, item])));
+        deleteItemsByIds({ items });
         clearSelection();
       }}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete selected"}
-    >
-      <TbTrash />
-    </IconButton>
+      tooltipDisplay="inline"
+    />
   );
 };
 
 const multiSelectionMainSubView: SubView = {
   id: "multi-selection-main",
   title: "Multiple Selection",
-  icon: GrMultiple,
+  icon: MultipleIcon,
   main: true,
   component: MultiSelectionContent,
   renderHeaderAction: () => <DeleteSelectionAction />,
@@ -108,7 +110,7 @@ const subViews: SubView[] = [multiSelectionMainSubView];
 
 interface MultiSelectionPanelProps {
   items: SelectionItem[];
-  deleteItemsByIds: (items: SelectionMap) => void;
+  deleteItemsByIds: MutationContextValue["deleteItemsByIds"];
 }
 
 export const MultiSelectionPanel: React.FC<MultiSelectionPanelProps> = ({

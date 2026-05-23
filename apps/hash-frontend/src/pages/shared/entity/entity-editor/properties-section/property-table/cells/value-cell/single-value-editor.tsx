@@ -1,24 +1,16 @@
 import { useQuery } from "@apollo/client";
-import type {
-  ClosedDataType,
-  PropertyValueMetadata,
-} from "@blockprotocol/type-system";
-import { isValueMetadata } from "@blockprotocol/type-system";
-import { Autocomplete, Chip } from "@hashintel/design-system";
-import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
-import {
-  createConversionFunction,
-  getMergedDataTypeSchema,
-} from "@local/hash-isomorphic-utils/data-types";
 import { Box, outlinedInputClasses, Typography } from "@mui/material";
 import { produce } from "immer";
 import { useEffect, useRef, useState } from "react";
 
-import type {
-  FindDataTypeConversionTargetsQuery,
-  FindDataTypeConversionTargetsQueryVariables,
-} from "../../../../../../../../graphql/api-types.gen";
+import { isValueMetadata } from "@blockprotocol/type-system";
+import { Autocomplete, Chip } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import {
+  createConversionFunction,
+  getMergedDataTypeSchema,
+} from "@local/hash-isomorphic-utils/data-types";
+
 import { findDataTypeConversionTargetsQuery } from "../../../../../../../../graphql/queries/ontology/data-type.queries";
 import { NumberOrTextInput } from "../../../../../../number-or-text-input";
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
@@ -26,7 +18,17 @@ import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
 import { JsonInput } from "./inputs/json-input";
+
+import type {
+  FindDataTypeConversionTargetsQuery,
+  FindDataTypeConversionTargetsQueryVariables,
+} from "../../../../../../../../graphql/api-types.gen";
 import type { ValueCell, ValueCellEditorComponent } from "./types";
+import type {
+  ClosedDataType,
+  PropertyValueMetadata,
+} from "@blockprotocol/type-system";
+import type { MergedDataTypeSingleSchema } from "@local/hash-isomorphic-utils/data-types";
 
 export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   const { value: cell, onChange, onFinishedEditing } = props;

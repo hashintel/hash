@@ -1,10 +1,11 @@
-import type { CollapseProps } from "@mui/material";
 import { Box, Collapse, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { TypeAnimation } from "react-type-animation";
 
 import { CodeBlock } from "./ai-assistant-message/code-block";
+
+import type { CollapseProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 /**
  * A prompt for encouraging the AI model to generate code blocks

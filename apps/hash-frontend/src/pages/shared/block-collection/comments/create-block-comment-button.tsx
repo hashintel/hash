@@ -1,13 +1,15 @@
-import type { EntityId } from "@blockprotocol/type-system";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Popper } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useCallback, useState } from "react";
+
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 
 import { useBlockView } from "../block-view";
 import styles from "../style.module.css";
 import { CreateBlockComment } from "./create-block-comment";
+
+import type { EntityId } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 type CreateBlockCommentButtonProps = {
   blockEntityId: EntityId | null;

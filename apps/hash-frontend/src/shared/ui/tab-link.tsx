@@ -1,11 +1,13 @@
-import { LoadingSpinner } from "@hashintel/design-system";
-import { theme } from "@hashintel/design-system/theme";
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Tab, Typography } from "@mui/material";
 import millify from "millify";
-import type { FunctionComponent, ReactElement, ReactNode } from "react";
+
+import { LoadingSpinner } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
 
 import { Link } from "./link";
+
+import type { SxProps, Theme } from "@mui/material";
+import type { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export type TabLinkProps = {
   label: ReactNode;

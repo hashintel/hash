@@ -1,9 +1,10 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { Story, StoryDefault } from "@ladle/react";
 
 import { Button } from "../Button/button";
 import { Icon } from "../Icon/icon";
 import { Tooltip } from "./tooltip";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Components/Tooltip",

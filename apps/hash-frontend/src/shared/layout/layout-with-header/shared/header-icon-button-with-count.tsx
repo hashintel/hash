@@ -4,9 +4,10 @@ import {
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { HeaderIconButton } from "./header-icon-button";
+
+import type { FunctionComponent, ReactNode } from "react";
 
 export const HeaderIconButtonWithCount: FunctionComponent<{
   count?: number;

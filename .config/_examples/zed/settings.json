@@ -10,11 +10,11 @@
     ]
   },
   "auto_install_extensions": {
-    "biome": true
+    "oxc": true
   },
   "formatter": {
     "language_server": {
-      "name": "biome"
+      "name": "oxc"
     }
   }
 }

@@ -1,8 +1,8 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 
 import type { LinkAndTargetEntity } from "../entity-editor/links-section/outgoing-links-section/types";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { Dispatch, SetStateAction } from "react";
 
 export type DraftLinksToCreate = (LinkAndTargetEntity & {
   rightEntityLabel: string;

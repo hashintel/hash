@@ -1,10 +1,10 @@
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-
 import { systemEntityTypes } from "./ontology-type-ids.js";
+
 import type {
   InvitationViaEmail,
   InvitationViaShortname,
 } from "./system-types/shared.js";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export { validateOrgName } from "@local/hash-graph-sdk/org-entity-restrictions";
 

@@ -1,14 +1,14 @@
-import type { S3ClientConfig } from "@aws-sdk/client-s3";
 import {
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { Url } from "@blockprotocol/type-system";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
+
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+
+import { getSafeContentType } from "../file-storage.js";
 
 import type {
   FileStorageProvider,
@@ -18,7 +18,9 @@ import type {
   PresignedStorageRequest,
   StorageType,
 } from "../file-storage.js";
-import { getSafeContentType } from "../file-storage.js";
+import type { S3ClientConfig } from "@aws-sdk/client-s3";
+import type { Url } from "@blockprotocol/type-system";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export interface AwsS3StorageProviderConstructorArgs {
   credentials: S3ClientConfig["credentials"];

@@ -1,21 +1,17 @@
 import { useLazyQuery } from "@apollo/client";
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
-import {
-  DATA_TYPE_META_SCHEMA,
-  makeOntologyTypeVersion,
-} from "@blockprotocol/type-system";
-import { Callout, TextField } from "@hashintel/design-system";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { Box, Stack } from "@mui/material";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useContext } from "react";
 import { useForm } from "react-hook-form";
 
-import type {
-  QueryDataTypesQuery,
-  QueryDataTypesQueryVariables,
-} from "../../graphql/api-types.gen";
+import {
+  DATA_TYPE_META_SCHEMA,
+  makeOntologyTypeVersion,
+} from "@blockprotocol/type-system";
+import { Callout, TextField } from "@hashintel/design-system";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
 import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
 import { Button } from "../../shared/ui/button";
 import { useAuthenticatedUser } from "./auth-info-context";
@@ -23,6 +19,12 @@ import { useDataTypesContext } from "./data-types-context";
 import { useSlideStack } from "./slide-stack";
 import { useGenerateTypeUrlsForUser } from "./use-generate-type-urls-for-user";
 import { WorkspaceContext } from "./workspace-context";
+
+import type {
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
+} from "../../graphql/api-types.gen";
+import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
 
 const HELPER_TEXT_WIDTH = 290;
 

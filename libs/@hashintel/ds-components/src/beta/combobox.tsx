@@ -4,12 +4,13 @@
 
 import { Combobox, useComboboxItemContext } from "@ark-ui/react/combobox";
 import { ark } from "@ark-ui/react/factory";
+import { CheckIcon, ChevronsUpDownIcon, XIcon } from "lucide-react";
+import { forwardRef } from "react";
+
 import {
   createStyleContext,
   type HTMLStyledProps,
 } from "@hashintel/ds-helpers/jsx";
-import { CheckIcon, ChevronsUpDownIcon, XIcon } from "lucide-react";
-import { forwardRef } from "react";
 
 import {
   comboboxSlotRecipe,

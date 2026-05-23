@@ -1,5 +1,5 @@
-import type { EntityId } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import { Context } from "@temporalio/activity";
+
 import {
   getStorageProvider,
   resolvePayloadValue,
@@ -7,16 +7,18 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { StatusCode } from "@local/status";
+
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { fileEntityTypeIds, persistEntity } from "./persist-entity-action.js";
+
+import type { EntityId } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import type {
   FailedEntityProposal,
   PersistedEntityMetadata,
   ProposedEntityWithResolvedLinks,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
-
-import { getFlowContext } from "../shared/get-flow-context.js";
-import { fileEntityTypeIds, persistEntity } from "./persist-entity-action.js";
 
 export const persistEntitiesAction: AiFlowActionActivity<
   "persistEntities"

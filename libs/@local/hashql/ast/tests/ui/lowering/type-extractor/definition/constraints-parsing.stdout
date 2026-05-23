@@ -3,5 +3,5 @@ Expr#4294967040@28
 
 ------------------------
 
-┌─ Sortable:0<T:0?26>
-└→ <T:0?26: Number>(items: List<T:0?26>)
+┌─ Sortable:0<T:0?30>
+└→ <T:0?30: Number>(items: List<T:0?30>)

@@ -1,7 +1,5 @@
 import { getEntityRevision, getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
 import {
   type HashEntity,
   queryEntitySubgraph,
@@ -14,6 +12,9 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
 

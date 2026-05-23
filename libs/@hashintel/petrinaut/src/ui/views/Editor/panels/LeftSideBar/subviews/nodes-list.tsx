@@ -1,12 +1,13 @@
 import { use } from "react";
 
-import type { SubView } from "../../../../../components/sub-view/types";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
   PlaceFilledIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { createFilterableListSubView } from "./filterable-list-sub-view";
+
+import type { SubView } from "../../../../../components/sub-view/types";
 
 interface NodeItem {
   id: string;

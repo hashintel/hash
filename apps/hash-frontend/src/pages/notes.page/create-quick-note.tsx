@@ -1,10 +1,7 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type { WebId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getBlockCollectionTraversalPath } from "@local/hash-isomorphic-utils/block-collection";
 import { Box, Skeleton } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import { getBlockCollectionTraversalPath } from "@local/hash-isomorphic-utils/block-collection";
 
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { ArrowTurnDownLeftRegularIcon } from "../../shared/icons/arrow-turn-down-left-regular-icon";
@@ -16,6 +13,11 @@ import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
 import { EditableQuickNote } from "./editable-quick-note";
+
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { WebId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FunctionComponent } from "react";
 
 export const CreateQuickNote: FunctionComponent<{
   initialQuickNoteEntity?: HashEntity | null;

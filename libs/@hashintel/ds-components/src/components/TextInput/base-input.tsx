@@ -1,6 +1,11 @@
-import { cx } from "@hashintel/ds-helpers/css";
 import { useRef, useState } from "react";
 import { useMergeRefs } from "use-callback-ref";
+
+import { cx } from "@hashintel/ds-helpers/css";
+
+import { Icon } from "../Icon/icon";
+import { LoadingSpinner } from "../Loading/loading-spinner";
+import { baseInputRecipe } from "./base-input.recipe";
 
 import type {
   FormInputSize,
@@ -8,9 +13,6 @@ import type {
   SharedInputProps,
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
-import { Icon } from "../Icon/icon";
-import { LoadingSpinner } from "../Loading/loading-spinner";
-import { baseInputRecipe } from "./base-input.recipe";
 
 export type BaseInputProps = {
   /** The html type of the input element (text/number etc) */
@@ -188,6 +190,11 @@ export const BaseInput = ({
     ...(inputRef ? [inputRef] : []),
   ]);
 
+  const hasBrowserControls = type === "number";
+  const noAutocomplete = !!clearable || autocomplete === false;
+  const showClear = !!(clearable && !disabled);
+  const hasIcons = !!loading || showClear;
+
   const classes = baseInputRecipe({
     variant,
     size,
@@ -196,6 +203,13 @@ export const BaseInput = ({
     invalid: !!invalid,
     disabled: !!disabled,
     loading: !!loading,
+    hasBrowserControls,
+    hasIcons,
+    editAndClear: showClear && showEditIcon,
+    willClear:
+      showClear &&
+      clearable.clearable &&
+      (value === null || value === undefined),
   });
 
   if (readonly) {
@@ -210,9 +224,6 @@ export const BaseInput = ({
       </span>
     );
   }
-
-  const noAutocomplete = !!clearable || autocomplete === false;
-  const showClear = !!(clearable?.clearable && value && !disabled);
 
   const input = (
     <input
@@ -276,11 +287,6 @@ export const BaseInput = ({
       {prefix != null && renderAdornment("prefix", prefix, size, classes)}
 
       <div className={classes.inputWrapper}>
-        {width === "fitContent" && (
-          <span aria-hidden="true" className={classes.sizer}>
-            {value != null && value.length > 0 ? value : (placeholder ?? "")}
-          </span>
-        )}
         {input}
         {styledValue && !focused && (
           <div className={classes.styledValueOverlay}>{styledValue}</div>
@@ -301,7 +307,10 @@ export const BaseInput = ({
               clearable.onClear();
               internalRef.current?.focus();
             }}
-            className={classes.clear}
+            className={cx(
+              classes.clear,
+              (!clearable.clearable || !value) && classes.hideClear,
+            )}
             aria-label="Clear input"
           >
             <Icon

@@ -1,7 +1,8 @@
-import type { EntityId, Url, VersionedUrl } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type { EntityId, Url, VersionedUrl } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const storageTypes = ["AWS_S3", "LOCAL_FILE_SYSTEM"] as const;

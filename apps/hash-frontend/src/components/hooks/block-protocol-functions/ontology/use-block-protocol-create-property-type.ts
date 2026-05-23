@@ -1,13 +1,14 @@
 import { useMutation } from "@apollo/client";
-import type { WebId } from "@blockprotocol/type-system";
 import { useCallback } from "react";
+
+import { createPropertyTypeMutation } from "../../../../graphql/queries/ontology/property-type.queries";
 
 import type {
   CreatePropertyTypeMutation,
   CreatePropertyTypeMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import { createPropertyTypeMutation } from "../../../../graphql/queries/ontology/property-type.queries";
 import type { CreatePropertyTypeMessageCallback } from "./ontology-types-shim";
+import type { WebId } from "@blockprotocol/type-system";
 
 export const useBlockProtocolCreatePropertyType = (
   webId: WebId | null,

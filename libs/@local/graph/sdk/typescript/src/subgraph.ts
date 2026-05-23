@@ -6,14 +6,8 @@ import {
   type SubgraphRootType,
   type Vertices,
 } from "@blockprotocol/graph";
-import type { TypeIdsAndPropertiesForEntity } from "@blockprotocol/type-system";
 import { isEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  KnowledgeGraphVertex as GraphApiKnowledgeGraphVertex,
-  Subgraph as GraphApiSubgraph,
-  Vertices as GraphApiVertices,
-} from "@local/hash-graph-client";
 
 import {
   HashEntity,
@@ -21,6 +15,13 @@ import {
   type SerializedSubgraph,
   type SerializedVertices,
 } from "./entity.js";
+
+import type { TypeIdsAndPropertiesForEntity } from "@blockprotocol/type-system";
+import type {
+  KnowledgeGraphVertex as GraphApiKnowledgeGraphVertex,
+  Subgraph as GraphApiSubgraph,
+  Vertices as GraphApiVertices,
+} from "@local/hash-graph-client";
 
 const mapKnowledgeGraphVertex = (vertex: GraphApiKnowledgeGraphVertex) => {
   return {
@@ -94,8 +95,8 @@ export const serializeGraphVertices = (vertices: Vertices<HashEntity>) =>
   ) as SerializedVertices;
 
 export const deserializeGraphVertices = <
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+  PropertyMap extends TypeIdsAndPropertiesForEntity =
+    TypeIdsAndPropertiesForEntity,
 >(
   vertices: SerializedVertices,
 ): Vertices<HashEntity<PropertyMap>> =>

@@ -1,9 +1,7 @@
-import { css } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { editor as MonacoEditor } from "monaco-editor";
 import { type ReactNode, useRef, useState } from "react";
 
-import type { SDCPN } from "../../core/types/sdcpn";
+import { css } from "@hashintel/ds-helpers/css";
+
 import { LanguageClientProvider } from "../../react/lsp/provider";
 import {
   SDCPNContext,
@@ -11,6 +9,10 @@ import {
 } from "../../react/state/sdcpn-context";
 import { CodeEditor } from "./code-editor";
 import { MonacoProvider } from "./provider";
+
+import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { editor as MonacoEditor } from "monaco-editor";
 
 // -- Helpers ------------------------------------------------------------------
 

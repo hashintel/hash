@@ -1,28 +1,27 @@
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useState } from "react";
 
-import type { ReadableStore } from "../../core/handle";
 import {
   createSimulation,
+  compileScenario,
+  type ReadableStore,
   type Simulation,
   type SimulationState as CoreSimulationState,
   type WorkerFactory,
-} from "../../core/simulation";
-import {
-  compileScenario,
   type CompiledScenarioResult,
-} from "../../core/simulation/compile-scenario";
-import { createSimulationWorker } from "../../core/simulation/worker/create-simulation-worker";
+} from "@hashintel/petrinaut-core";
+import { createSimulationWorker } from "@hashintel/petrinaut-core/workers/simulation";
+
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
+import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
-import { SimulationToaster, type SimulationToast } from "./toaster";
 import {
   type InitialMarking,
   SimulationContext,
   type SimulationContextValue,
-  type SimulationFrame,
+  type SimulationFrameReader,
   type SimulationState,
 } from "./context";
 
@@ -42,7 +41,7 @@ type SimulationStateValues = {
 
 const INITIAL_STATE_VALUES: SimulationStateValues = {
   parameterValues: {},
-  initialMarking: new Map(),
+  initialMarking: {},
   selectedScenarioId: null,
   scenarioParameterValues: {},
   dt: 0.01,
@@ -61,7 +60,7 @@ const EMPTY_STATUS_STORE: ReadableStore<CoreSimulationState> = {
  */
 const EMPTY_FRAME_SUMMARY: {
   count: number;
-  latest: SimulationFrame | null;
+  latest: SimulationFrameReader | null;
 } = { count: 0, latest: null };
 
 const EMPTY_FRAMES_STORE: ReadableStore<typeof EMPTY_FRAME_SUMMARY> = {
@@ -95,9 +94,6 @@ function mapCoreState(status: CoreSimulationState | null): SimulationState {
   }
 }
 
-const TOAST_DURATION_MS = 3000;
-const TOAST_FADE_OUT_MS = 200;
-
 type SimulationProviderProps = React.PropsWithChildren<{
   /**
    * Factory that produces the simulation worker. Hosts can plug in their own
@@ -117,7 +113,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
-  const { petriNetId, petriNetDefinition } = sdcpnContext;
+  const { petriNetDefinition } = sdcpnContext;
+  const { addNotification } = use(NotificationsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
@@ -137,63 +134,30 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [errorItemId, setErrorItemId] = useState<string | null>(null);
 
-  // Transient toasts surfaced from the simulation events stream. Replaces the
-  // old standalone `<NotificationsProvider>` system — see Q7 in
-  // 07-open-questions.md.
-  const [toasts, setToasts] = useState<SimulationToast[]>([]);
-  const nextToastIdRef = useRef(0);
-
   // Subscribe to the active simulation's stores. EMPTY_*_STORE provides a
   // stable fallback so hook order doesn't change when no sim is active.
   const coreStatus = useStore(simulation?.status ?? EMPTY_STATUS_STORE);
   const frameSummary = useStore(simulation?.frames ?? EMPTY_FRAMES_STORE);
 
-  // When the simulation changes, wire up its events stream for error
-  // surfacing and clear stale error state.
+  // When the simulation changes, wire up its events stream for errors and
+  // completion notifications.
   useEffect(() => {
     if (!simulation) {
       return;
     }
-    setError(null);
-    setErrorItemId(null);
     const off = simulation.events.subscribe((event) => {
       if (event.type === "error") {
         setError(event.message);
         setErrorItemId(event.itemId);
       } else {
-        const id = nextToastIdRef.current++;
-        setToasts((prev) => [
-          ...prev,
-          { id, message: "Simulation complete", exiting: false },
-        ]);
-        // Start exit animation just before removal.
-        setTimeout(() => {
-          setToasts((prev) =>
-            prev.map((toast) =>
-              toast.id === id ? { ...toast, exiting: true } : toast,
-            ),
-          );
-        }, TOAST_DURATION_MS - TOAST_FADE_OUT_MS);
-        // Remove once the exit animation finishes.
-        setTimeout(() => {
-          setToasts((prev) => prev.filter((toast) => toast.id !== id));
-        }, TOAST_DURATION_MS);
+        addNotification({
+          message: "Simulation complete",
+          tone: "success",
+        });
       }
     });
     return off;
-  }, [simulation]);
-
-  // Reinitialize when petriNetId changes — drop any active simulation and
-  // reset configuration to defaults.
-  useEffect(() => {
-    setSimulation((prev) => {
-      prev?.dispose();
-      return null;
-    });
-    setStateValues(INITIAL_STATE_VALUES);
-    setError(null);
-    setErrorItemId(null);
-  }, [petriNetId]);
+  }, [addNotification, simulation]);
 
   // Dispose on unmount.
   useEffect(() => {
@@ -206,8 +170,25 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Actions
   //
 
+  const invalidateSimulationForConfigurationChange = (): void => {
+    const current = simulationRef.current;
+    if (!current) {
+      return;
+    }
+
+    current.dispose();
+    simulationRef.current = null;
+    setSimulation(null);
+    setError(null);
+    setErrorItemId(null);
+  };
+
   const setSelectedScenarioId: SimulationContextValue["setSelectedScenarioId"] =
     (scenarioId) => {
+      if (stateValuesRef.current.selectedScenarioId !== scenarioId) {
+        invalidateSimulationForConfigurationChange();
+      }
+
       setStateValues((prev) => {
         // Initialize scenario parameter values from the scenario's defaults
         const scenarioParameterValues: Record<string, string> = {};
@@ -231,6 +212,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] =
     (identifier, value) => {
+      if (
+        stateValuesRef.current.scenarioParameterValues[identifier] !== value
+      ) {
+        invalidateSimulationForConfigurationChange();
+      }
+
       setStateValues((prev) => ({
         ...prev,
         scenarioParameterValues: {
@@ -244,10 +231,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     placeId,
     marking,
   ) => {
+    invalidateSimulationForConfigurationChange();
+
     setStateValues((prev) => {
-      const newMarking = new Map(prev.initialMarking);
-      newMarking.set(placeId, marking);
-      return { ...prev, initialMarking: newMarking };
+      return {
+        ...prev,
+        initialMarking: {
+          ...prev.initialMarking,
+          [placeId]: marking,
+        },
+      };
     });
   };
 
@@ -255,6 +248,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     parameterId,
     value,
   ) => {
+    if (stateValuesRef.current.parameterValues[parameterId] !== value) {
+      invalidateSimulationForConfigurationChange();
+    }
+
     setStateValues((prev) => ({
       ...prev,
       parameterValues: {
@@ -265,10 +262,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   };
 
   const setDt: SimulationContextValue["setDt"] = (dt) => {
+    if (stateValuesRef.current.dt !== dt) {
+      invalidateSimulationForConfigurationChange();
+    }
+
     setStateValues((prev) => ({ ...prev, dt }));
   };
 
   const setMaxTime: SimulationContextValue["setMaxTime"] = (maxTime) => {
+    if (stateValuesRef.current.maxTime !== maxTime) {
+      invalidateSimulationForConfigurationChange();
+    }
+
     setStateValues((prev) => ({ ...prev, maxTime }));
   };
 
@@ -296,21 +301,32 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // Update local dt
     setStateValues((prev) => ({ ...prev, dt }));
 
-    const sim = await createSimulation({
-      sdcpn,
-      // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-      initialMarking: effectiveInitialMarkingRef.current,
-      // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-      parameterValues: effectiveParameterValuesRef.current,
-      seed,
-      dt,
-      maxTime: currentState.maxTime,
-      backpressure:
-        maxFramesAhead !== undefined || batchSize !== undefined
-          ? { maxFramesAhead, batchSize }
-          : undefined,
-      createWorker: workerFactoryRef.current,
-    });
+    let sim: Simulation;
+    try {
+      sim = await createSimulation({
+        sdcpn,
+        // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+        initialMarking: effectiveInitialMarkingRef.current,
+        // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+        parameterValues: effectiveParameterValuesRef.current,
+        seed,
+        dt,
+        maxTime: currentState.maxTime,
+        backpressure:
+          maxFramesAhead !== undefined || batchSize !== undefined
+            ? { maxFramesAhead, batchSize }
+            : undefined,
+        createWorker: workerFactoryRef.current,
+      });
+    } catch (caught) {
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : "Failed to initialize simulation";
+      setError(message);
+      setErrorItemId(null);
+      throw caught;
+    }
 
     // Write the ref synchronously *before* setSimulation so a same-tick
     // caller (e.g. PlaybackProvider's `play()` chains `runSimulation()`
@@ -338,10 +354,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       parameterValues[key] = String(value);
     }
 
-    setSimulation((prev) => {
-      prev?.dispose();
-      return null;
-    });
+    simulationRef.current?.dispose();
+    simulationRef.current = null;
+    setSimulation(null);
     setError(null);
     setErrorItemId(null);
 
@@ -365,7 +380,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // Frame access — reads from the active simulation handle.
   const getFrame: SimulationContextValue["getFrame"] = (
     frameIndex: number,
-  ): Promise<SimulationFrame | null> => {
+  ): Promise<SimulationFrameReader | null> => {
     const sim = simulationRef.current;
     if (!sim) {
       return Promise.resolve(null);
@@ -378,7 +393,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     if (!sim) {
       return Promise.resolve([]);
     }
-    const all: SimulationFrame[] = [];
+    const all: SimulationFrameReader[] = [];
     const total = sim.frames.get().count;
     for (let i = 0; i < total; i++) {
       const frame = sim.getFrame(i);
@@ -400,7 +415,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     const total = sim.frames.get().count;
     const start = Math.max(0, startIndex);
     const end = endIndex === undefined ? total : Math.min(endIndex, total);
-    const slice: SimulationFrame[] = [];
+    const slice: SimulationFrameReader[] = [];
     for (let i = start; i < end; i++) {
       const frame = sim.getFrame(i);
       if (frame) {
@@ -452,16 +467,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     effectiveParameterValues = compiledScenarioResult.parameterValues;
 
     // Merge compiled scenario initial state on top of manual markings.
-    const mergedMarking: InitialMarking = new Map(stateValues.initialMarking);
-    for (const [placeId, marking] of Object.entries(
-      compiledScenarioResult.initialState,
-    )) {
-      mergedMarking.set(placeId, {
-        values: new Float64Array(marking.values),
-        count: marking.count,
-      });
-    }
-    effectiveInitialMarking = mergedMarking;
+    effectiveInitialMarking = {
+      ...stateValues.initialMarking,
+      ...compiledScenarioResult.initialState,
+    };
   }
 
   // Keep refs to effective values so `initialize` uses scenario-overridden
@@ -501,7 +510,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   return (
     <SimulationContext.Provider value={contextValue}>
       {children}
-      <SimulationToaster toasts={toasts} />
     </SimulationContext.Provider>
   );
 };

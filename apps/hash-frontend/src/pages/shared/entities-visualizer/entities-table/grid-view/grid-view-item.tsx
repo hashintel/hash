@@ -1,12 +1,9 @@
-import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import { Box, Typography } from "@mui/material";
+import { useMemo } from "react";
+
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Box, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FileAudioLightIcon } from "../../../../../shared/icons/file-audio-light-icon";
@@ -19,6 +16,11 @@ import { FileVideoLightIcon } from "../../../../../shared/icons/file-video-light
 import { FileWordLightIcon } from "../../../../../shared/icons/file-word-light-icon";
 import { getImageUrlFromEntityProperties } from "../../../get-file-properties";
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
+
+import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { FunctionComponent, ReactNode } from "react";
 
 /**
  * @todo: gradually we will want to rely more on entity types to determine the icon

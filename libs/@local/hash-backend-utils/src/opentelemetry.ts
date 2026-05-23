@@ -13,14 +13,12 @@ import { logs } from "@opentelemetry/api-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-grpc";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-grpc";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
-import type { Instrumentation } from "@opentelemetry/instrumentation";
 import { registerInstrumentations } from "@opentelemetry/instrumentation";
 import {
   HttpInstrumentation,
   type HttpInstrumentationConfig,
 } from "@opentelemetry/instrumentation-http";
 import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
-import type { Resource } from "@opentelemetry/resources";
 import {
   defaultResource,
   resourceFromAttributes,
@@ -33,9 +31,12 @@ import {
   MeterProvider,
   PeriodicExportingMetricReader,
 } from "@opentelemetry/sdk-metrics";
-import type { SpanExporter } from "@opentelemetry/sdk-trace-base";
 import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+
+import type { Instrumentation } from "@opentelemetry/instrumentation";
+import type { Resource } from "@opentelemetry/resources";
+import type { SpanExporter } from "@opentelemetry/sdk-trace-base";
 
 const traceTimeoutMs = 5000;
 const metricExportIntervalMs = 30_000;

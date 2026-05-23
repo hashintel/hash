@@ -1,4 +1,3 @@
-import type { Theme } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -7,10 +6,12 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import type { SystemStyleObject } from "@mui/system";
 import { useSigma } from "@react-sigma/core";
 
 import { useGraphContext } from "../graph-context";
+
+import type { Theme } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 
 type CheckboxListProps = {
   typesInData: { count: number; nodeTypeLabel: string; nodeTypeId: string }[];

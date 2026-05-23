@@ -1,11 +1,13 @@
-import { Modal } from "@hashintel/design-system";
-import type { ModalProps } from "@mui/material";
 import { Box } from "@mui/material";
-import type { FunctionComponent } from "react";
 
-import type { User } from "../../../lib/user-and-org";
+import { Modal } from "@hashintel/design-system";
+
 import { UserProfileInfoForm } from "./edit-user-profile-info-modal/user-profile-info-form";
 import { UserProfileInfoModalHeader } from "./edit-user-profile-info-modal/user-profile-info-modal-header";
+
+import type { User } from "../../../lib/user-and-org";
+import type { ModalProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export const EditUserProfileInfoModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {

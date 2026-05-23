@@ -1,22 +1,24 @@
+import { faSmile } from "@fortawesome/free-regular-svg-icons";
+import { useState } from "react";
+
 import {
   incrementOntologyTypeVersion,
   makeOntologyTypeVersion,
   type OntologyTypeVersion,
 } from "@blockprotocol/type-system";
-import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { useEntityTypeFormState } from "@hashintel/type-editor";
-import { useState } from "react";
 
 import { PencilSimpleLine } from "../../../shared/icons/svg";
-import type { ButtonProps } from "../../../shared/ui/button";
 import {
   EditBarCollapse,
   EditBarContainer,
   EditBarContents,
   useFreezeScrollWhileTransitioning,
 } from "../shared/edit-bar-contents";
+
+import type { ButtonProps } from "../../../shared/ui/button";
+import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 
 const useFrozenValue = <T extends number | boolean | object>(value: T): T => {
   const { dirtyFields } = useEntityTypeFormState<EntityTypeEditorFormData>();

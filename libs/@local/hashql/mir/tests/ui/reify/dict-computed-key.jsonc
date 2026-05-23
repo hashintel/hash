@@ -8,7 +8,12 @@
   [
     "let",
     "bar",
-    { "#dict": [["foo", { "#literal": 42 }], [{ "#literal": true }, "foo"]] },
+    {
+      "#dict": [
+        ["foo", { "#literal": 42 }],
+        [{ "#literal": true }, "foo"]
+      ]
+    },
     "bar"
   ]
 ]

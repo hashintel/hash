@@ -1,13 +1,12 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
+import { expect, test } from "vitest";
+
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import {
@@ -17,7 +16,9 @@ import {
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { inferSummariesThenClaimsFromText } from "../infer-summaries-then-claims-from-text.js";
+
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
+import type { EntityUuid, Url, WebId } from "@blockprotocol/type-system";
 
 /**
  * @file These are not 'tests' but rather ways of running specific agents,

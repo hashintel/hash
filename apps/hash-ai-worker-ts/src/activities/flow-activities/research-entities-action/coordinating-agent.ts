@@ -1,10 +1,6 @@
-import type {
-  EntityUuid,
-  OriginProvenance,
-  Url,
-} from "@blockprotocol/type-system";
+import { Context } from "@temporalio/activity";
+
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   resolvePayloadValue,
@@ -12,16 +8,10 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
 import { logger } from "../../shared/activity-logger.js";
@@ -37,24 +27,36 @@ import { createCheckpoint } from "./checkpoints.js";
 import { createInitialPlan } from "./coordinating-agent/create-initial-plan.js";
 import { processCompleteToolCall } from "./coordinating-agent/process-complete-tool-call.js";
 import { requestCoordinatorActions } from "./coordinating-agent/request-coordinator-actions.js";
-import type { ExistingEntitySummary } from "./coordinating-agent/summarize-existing-entities.js";
 import { summarizeExistingEntities } from "./coordinating-agent/summarize-existing-entities.js";
 import { updateStateFromInferredClaims } from "./coordinating-agent/update-state-from-inferred-claims.js";
-import type {
-  ParsedCoordinatorToolCall,
-  ParsedCoordinatorToolCallMap,
-} from "./shared/coordinator-tools.js";
 import {
   getSomeToolCallResults,
   handleStopTasksRequests,
   nullReturns,
   triggerToolCallsRequests,
 } from "./shared/coordinator-tools.js";
+import { processCommonStateMutationsFromToolResults } from "./shared/coordinators.js";
+
+import type { ExistingEntitySummary } from "./coordinating-agent/summarize-existing-entities.js";
+import type {
+  ParsedCoordinatorToolCall,
+  ParsedCoordinatorToolCallMap,
+} from "./shared/coordinator-tools.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "./shared/coordinators.js";
-import { processCommonStateMutationsFromToolResults } from "./shared/coordinators.js";
+import type {
+  EntityUuid,
+  OriginProvenance,
+  Url,
+} from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type {
+  ProposedEntity,
+  StepInput,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 /**
  * Takes the inputs to the coordinating agent, parses them, and:

@@ -1,20 +1,21 @@
 import { use, useEffect, useEffectEvent } from "react";
 
-import type { SelectionItem } from "../../../../../core/types/selection";
-import { usePetrinautInstance } from "../../../../../react/use-petrinaut-instance";
-import type {
-  CursorMode,
-  EditorState,
-} from "../../../../../react/state/editor-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { MutationContext } from "../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
+import { usePetrinautInstance } from "../../../../../react/use-petrinaut-instance";
 import {
   copySelectionToClipboard,
   pasteFromClipboard,
 } from "../../../../clipboard/clipboard";
+
+import type {
+  CursorMode,
+  EditorState,
+} from "../../../../../react/state/editor-context";
+import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
@@ -150,7 +151,7 @@ export function useKeyboardShortcuts(
       hasSelection
     ) {
       event.preventDefault();
-      deleteItemsByIds(selection);
+      deleteItemsByIds({ items: Array.from(selection.values()) });
       clearSelection();
       return;
     }

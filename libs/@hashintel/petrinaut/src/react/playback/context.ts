@@ -6,9 +6,10 @@ import {
   type PlaybackSpeed,
   type PlaybackState,
   type PlayMode,
-} from "../../core/playback";
+} from "@hashintel/petrinaut-core";
+
 import type {
-  SimulationFrame,
+  SimulationFrameReader,
   SimulationFrameState,
 } from "../simulation/context";
 
@@ -32,15 +33,14 @@ export {
 export type PlaybackContextValue = {
   // State values
   /**
-   * The raw simulation frame data for the currently viewed frame.
-   * Contains buffer data for accessing token values directly.
+   * Reader for the currently viewed frame.
    * Null when no simulation is running or no frames exist.
    */
-  currentFrame: SimulationFrame | null;
+  currentFrameReader: SimulationFrameReader | null;
 
   /**
    * The currently viewed simulation frame state (simplified view).
-   * Provides easy access to token counts and transition states.
+   * Provides easy access to place token counts.
    * Null when no simulation is running or no frames exist.
    */
   currentViewedFrame: SimulationFrameState | null;
@@ -120,7 +120,7 @@ export type PlaybackContextValue = {
 };
 
 const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
-  currentFrame: null,
+  currentFrameReader: null,
   currentViewedFrame: null,
   playbackState: "Stopped",
   currentFrameIndex: 0,

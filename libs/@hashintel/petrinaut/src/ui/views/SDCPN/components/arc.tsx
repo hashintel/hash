@@ -1,4 +1,3 @@
-import { css } from "@hashintel/ds-helpers/css";
 import {
   BaseEdge,
   type EdgeProps,
@@ -8,9 +7,12 @@ import {
 } from "@xyflow/react";
 import { type CSSProperties, use, useEffect, useRef } from "react";
 
+import { css } from "@hashintel/ds-helpers/css";
+
 import { EditorContext } from "../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
+
 import type { ArcEdgeType } from "../reactflow-types";
 
 const BASE_STROKE_WIDTH = 2;

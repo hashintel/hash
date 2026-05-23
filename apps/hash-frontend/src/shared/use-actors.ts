@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import { useMemo } from "react";
+
 import {
   deserializeQueryEntitiesResponse,
   type SerializedQueryEntitiesResponse,
@@ -10,15 +11,16 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitiesQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
-import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
+
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../graphql/api-types.gen";
 import type { MinimalUser } from "../lib/user-and-org";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 
 type MachineActor = {
   accountId: ActorEntityUuid;

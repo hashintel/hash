@@ -1,11 +1,13 @@
 /* eslint-disable react/destructuring-assignment, react/button-has-type, @typescript-eslint/prefer-nullish-coalescing */
 import { cx } from "@hashintel/ds-helpers/css";
-import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 
-import type { FormInputSize } from "../../util/form-shared";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
+import { Tooltip } from "../Tooltip/tooltip";
 import { styles } from "./button.recipe";
+
+import type { FormInputSize } from "../../util/form-shared";
+import type { ExclusifyUnion, RequireAtLeastOne } from "type-fest";
 
 export type Variant = "solid" | "subtle" | "ghost" | "link" | "linkSubtle";
 export type Tone = "neutral" | "brand" | "error"; // success, warning, etc
@@ -35,6 +37,10 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     onKeyDown?: React.ButtonHTMLAttributes<Element>["onKeyDown"];
     onFocus?: React.ButtonHTMLAttributes<Element>["onFocus"];
     onBlur?: React.ButtonHTMLAttributes<Element>["onBlur"];
+    tooltipOptions?: Omit<
+      React.ComponentProps<typeof Tooltip>,
+      "children" | "content"
+    >;
   } & RequireAtLeastOne<{
     tooltip?: string;
     children?: React.ReactNode;
@@ -65,10 +71,8 @@ type ButtonElementOnlyProps = {
   target?: never;
   download?: never;
   ref?: React.Ref<HTMLButtonElement>;
-} & RequireAtLeastOne<{
-  onClick: React.ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
-  type: "submit" | "reset";
-}>;
+  onClick?: React.ButtonHTMLAttributes<HTMLButtonElement>["onClick"];
+};
 
 export type AnchorElementOnlyProps = {
   href: string;
@@ -129,6 +133,7 @@ export const Button = (props: ButtonProps) => {
     onFocus,
     onBlur,
     tabIndex,
+    tooltipOptions,
     ...rest
   } = props;
 
@@ -192,7 +197,6 @@ export const Button = (props: ButtonProps) => {
 
   const sharedProps = {
     className: cx(classes.button, className),
-    title: tooltip,
     tabIndex,
     "aria-pressed": pressed,
     "aria-busy": loading,
@@ -213,10 +217,12 @@ export const Button = (props: ButtonProps) => {
     onBlur,
   };
 
+  let element: React.ReactElement;
+
   if ("href" in props) {
     const isInactive = disabled || loading;
 
-    return (
+    element = (
       <a
         {...sharedProps}
         {...(isInactive
@@ -228,21 +234,33 @@ export const Button = (props: ButtonProps) => {
         target={isInactive ? undefined : props.target}
         download={isInactive ? undefined : props.download || undefined}
         tabIndex={isInactive ? -1 : props.tabIndex}
+        aria-label={props["aria-label"] ?? (!children ? tooltip : undefined)}
       >
         {content}
       </a>
     );
+  } else {
+    element = (
+      <button
+        {...sharedProps}
+        {...(sharedEventHandlers as React.DOMAttributes<HTMLButtonElement>)}
+        ref={ref as React.Ref<HTMLButtonElement>}
+        type={(props as ButtonElementOnlyProps).type ?? "button"}
+        disabled={disabled || loading}
+        aria-label={props["aria-label"] ?? (!children ? tooltip : undefined)}
+      >
+        {content}
+      </button>
+    );
   }
 
-  return (
-    <button
-      {...sharedProps}
-      {...(sharedEventHandlers as React.DOMAttributes<HTMLButtonElement>)}
-      ref={ref as React.Ref<HTMLButtonElement>}
-      type={(props as ButtonElementOnlyProps).type ?? "button"}
-      disabled={disabled || loading}
-    >
-      {content}
-    </button>
-  );
+  if (tooltip) {
+    return (
+      <Tooltip {...tooltipOptions} content={tooltip}>
+        {element}
+      </Tooltip>
+    );
+  }
+
+  return element;
 };

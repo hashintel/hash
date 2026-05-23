@@ -1,3 +1,13 @@
+import type { EntityIdWithInterval } from "./edges.js";
+import type { EntityIdWithTimestamp } from "./edges/outward-edge.js";
+import type {
+  DataTypeVertex,
+  EntityTypeVertex,
+  EntityVertex,
+  EntityVertexId,
+  OntologyTypeVertexId,
+  PropertyTypeVertex,
+} from "./vertices.js";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
@@ -9,17 +19,6 @@ import type {
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-
-import type { EntityIdWithInterval } from "./edges.js";
-import type { EntityIdWithTimestamp } from "./edges/outward-edge.js";
-import type {
-  DataTypeVertex,
-  EntityTypeVertex,
-  EntityVertex,
-  EntityVertexId,
-  OntologyTypeVertexId,
-  PropertyTypeVertex,
-} from "./vertices.js";
 
 /**
  * A utility type that maps various ways of identifying a single (or series of) element(s) of the graph to their

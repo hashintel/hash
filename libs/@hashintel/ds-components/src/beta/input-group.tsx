@@ -1,8 +1,9 @@
 "use client";
 
 import { ark } from "@ark-ui/react/factory";
-import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 import { type ComponentProps, forwardRef, type ReactNode } from "react";
+
+import { createStyleContext } from "@hashintel/ds-helpers/jsx";
 
 import { inputGroupSlotRecipe } from "./input-group.recipe";
 
