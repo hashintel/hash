@@ -25,16 +25,16 @@ const petrinautApiDevPlugin = (): Plugin => ({
   name: "petrinaut-api-dev",
   apply: "serve",
   configureServer(server) {
+    // The chat endpoint ships a default `{ fetch }` so Vercel's Node.js
+    // runtime treats it as a Web fetch handler in production. We mirror the
+    // same shape here so dev and prod hit the same code path.
     const adapter = createServerAdapter(async (request) => {
-      const apiModule = await server.ssrLoadModule("/api/chat.ts");
-      const handler = (apiModule as { default?: unknown }).default;
-
-      if (typeof handler !== "function") {
-        throw new Error("Expected /api/chat.ts to export a default handler.");
-      }
+      const { default: api } = (await server.ssrLoadModule(
+        "/api/chat.ts",
+      )) as { default: { fetch: (request: Request) => Promise<Response> } };
 
       try {
-        return await (handler as (req: Request) => Promise<Response>)(request);
+        return await api.fetch(request);
       } catch (error) {
         server.ssrFixStacktrace(error as Error);
         throw error;
@@ -68,6 +68,11 @@ export default defineConfig(({ mode }) => {
       cssMinify: "esbuild" as const,
     },
 
+    server: {
+      /** vercel dev will provide a PORT to run on */
+      port: process.env.PORT ? Number(process.env.PORT) : 5173,
+    },
+
     plugins: [
       petrinautApiDevPlugin(),
       react(),
@@ -85,6 +90,7 @@ export default defineConfig(({ mode }) => {
           }),
         ],
       }),
+
     ],
   };
 });

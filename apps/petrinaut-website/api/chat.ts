@@ -48,6 +48,7 @@ const logChatFailure = (
   reason: string,
   context: Record<string, unknown> = {},
 ) => {
+  // oxlint-disable-next-line no-console
   console.error(`[Petrinaut AI] ${reason}`, context);
 };
 
@@ -111,8 +112,16 @@ const checkRateLimit = (clientIp: string): boolean => {
 
 /**
  * API endpoint to proxy requests for AI assistance to OpenAI.
+ *
+ * Exported via a default `{ fetch }` object so Vercel's Node.js runtime treats
+ * this as a Web fetch handler and hands us a `Request`. Without this opt-in,
+ * the default export is invoked with a Node.js `IncomingMessage`, whose
+ * `headers` is a plain object (no `.get(...)` method) and would crash
+ * `resolveClientIp`.
+ *
+ * See https://vercel.com/changelog/node-js-vercel-functions-now-support-fetch-web-handlers
  */
-export default async function handler(request: Request): Promise<Response> {
+const fetch = async (request: Request): Promise<Response> => {
   if (request.method === "OPTIONS") {
     // We'll always serve this same-origin so we don't need any CORS config
     return new Response(null, { status: 204 });
@@ -201,4 +210,6 @@ export default async function handler(request: Request): Promise<Response> {
   });
 
   return result.toUIMessageStreamResponse({ sendReasoning: true });
-}
+};
+
+export default { fetch };

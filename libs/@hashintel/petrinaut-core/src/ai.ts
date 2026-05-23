@@ -90,7 +90,7 @@ const getLatestNetDefinitionToolInputSchema = z
 const getNetCompilationErrorsToolInputSchema = z
   .strictObject({})
   .describe(
-    "Get the current TypeScript diagnostics for the Petrinaut net code. Use this after editing lambdas, kernels, differential equations, scenarios, or metrics to check whether the model compiles.",
+    "Get the current TypeScript diagnostics for the Petrinaut net code. Use this after the net to check whether the model compiles.",
   );
 
 export const setNetTitleToolInputSchema = z
