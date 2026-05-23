@@ -6,13 +6,11 @@ This crate implements the SemType specification in Rust. It provides the foundat
 
 The corresponding TypeScript implementation can be found in the [`@blockprotocol/type-system`](../typescript) package. This crate is used to generate the TypeScript typings from the Rust implementation.
 
-
 The predecessor to SemType was the "Block Protocol type system". For details on its (now deprecated) design, see the original [Block Protocol Type System RFC](https://github.com/blockprotocol/blockprotocol/blob/main/rfcs/text/0352-graph-type-system.md).
 
 ## Overview
 
 SemType defines a structured approach to typing data. It enables:
-
 
 - Clear definition of data schemas
 - Validation of data against schemas
