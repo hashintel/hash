@@ -1,12 +1,16 @@
-# Block Protocol Type System
+# SemType (Block Protocol Type System)
 
-This crate implements the Block Protocol type system in Rust. It provides the foundation for defining, validating, and working with typed data in the HASH ecosystem. For details on the type system design, see the [Block Protocol Type System RFC](https://github.com/blockprotocol/blockprotocol/blob/main/rfcs/text/0352-graph-type-system.md).
+This crate implements the SemType specification in Rust. It provides the foundation for defining, validating, and working with typed data in the HASH ecosystem.
+
+**The public, canonical specification of the type system is published at [semtype.org/spec](https://semtype.org/spec).** This Rust crate is the reference implementation; the spec is kept in sync with it by hand, so changes to the type system here should be reflected at `semtype.org/spec`.
 
 The corresponding TypeScript implementation can be found in the [`@blockprotocol/type-system`](../typescript) package. This crate is used to generate the TypeScript typings from the Rust implementation.
 
+The predecessor to SemType was the "Block Protocol type system". For details on its (now deprecated) design, see the original [Block Protocol Type System RFC](https://github.com/blockprotocol/blockprotocol/blob/main/rfcs/text/0352-graph-type-system.md).
+
 ## Overview
 
-The Block Protocol Type System defines a structured approach to typing data. It enables:
+SemType defines a structured approach to typing data. It enables:
 
 - Clear definition of data schemas
 - Validation of data against schemas

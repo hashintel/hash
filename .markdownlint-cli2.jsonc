@@ -33,6 +33,7 @@
     "target/**",
     "**/_temp/**",
     "**/_ai/**",
+    "**/.cursor/plans/**",
     "libs/@hashintel/ds-components/**",
     "libs/@hashintel/ds-helpers/**"
   ]
