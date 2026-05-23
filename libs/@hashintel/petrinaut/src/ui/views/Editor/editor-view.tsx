@@ -28,7 +28,7 @@ import {
   compactNodeDimensions,
 } from "../SDCPN/node-dimensions";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
-import { EmptyAiHero } from "./components/ai-cta-modal";
+import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
@@ -143,12 +143,12 @@ export const EditorView = ({
   } = use(EditorContext);
   const { setSelectedExperimentId } = use(ExperimentsContext);
 
-  const { compactNodes } = use(UserSettingsContext);
-  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
-  const [emptyAiPromptInput, setEmptyAiPromptInput] = useState("");
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
   >(null);
+
+  const { compactNodes } = use(UserSettingsContext);
+  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
 
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -371,6 +371,7 @@ export const EditorView = ({
   ];
 
   const portalContainerRef = useRef<HTMLDivElement>(null);
+
   const showEmptyAiHero =
     aiAssistant !== undefined &&
     !isAiAssistantOpen &&
@@ -420,12 +421,9 @@ export const EditorView = ({
               <SDCPNView viewportActions={viewportActions} />
 
               {showEmptyAiHero && (
-                <EmptyAiHero
+                <AiCtaModal
                   bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                  input={emptyAiPromptInput}
-                  onInputChange={setEmptyAiPromptInput}
                   onSubmit={(message) => {
-                    setEmptyAiPromptInput("");
                     setPendingAiAssistantMessage(message);
                     setAiAssistantOpen(true);
                   }}

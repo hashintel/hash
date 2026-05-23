@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -6,7 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
 import { Input } from "../../../components/input";
 
-const emptyAiHeroLayerStyle = css({
+const aiCtaModalLayerStyle = css({
   position: "absolute",
   inset: "0",
   zIndex: 20,
@@ -17,7 +17,7 @@ const emptyAiHeroLayerStyle = css({
   pointerEvents: "none",
 });
 
-const emptyAiHeroStyle = css({
+const aiCtaModalStyle = css({
   pointerEvents: "auto",
   display: "flex",
   flexDirection: "column",
@@ -37,7 +37,7 @@ const emptyAiHeroStyle = css({
   backdropFilter: "[blur(14px)]",
 });
 
-const emptyAiHeroIconStyle = css({
+const aiCtaModalIconStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -49,14 +49,14 @@ const emptyAiHeroIconStyle = css({
   color: "blue.s90",
 });
 
-const emptyAiHeroCopyStyle = css({
+const aiCtaModalCopyStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
   maxWidth: "[420px]",
 });
 
-const emptyAiHeroTitleStyle = css({
+const aiCtaModalTitleStyle = css({
   margin: "0",
   color: "neutral.s110",
   fontFamily: "[Inter Tight, Inter, sans-serif]",
@@ -65,7 +65,7 @@ const emptyAiHeroTitleStyle = css({
   lineHeight: "[30px]",
 });
 
-const emptyAiHeroFormStyle = css({
+const aiCtaModalFormStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
@@ -77,7 +77,7 @@ const emptyAiHeroFormStyle = css({
     "[0px 0px 0px 1px rgba(15, 23, 42, 0.08), 0px 12px 28px rgba(15, 23, 42, 0.12)]",
 });
 
-const emptyAiHeroInputStyle = css({
+const aiCtaModalInputStyle = css({
   flex: "[1]",
   minWidth: "[0]",
   height: "[48px]",
@@ -98,18 +98,16 @@ const emptyAiHeroInputStyle = css({
   },
 });
 
-export const EmptyAiHero = ({
+export const AiCtaModal = ({
   bottomClearance,
-  input,
-  onInputChange,
   onSubmit,
 }: {
   bottomClearance: number;
-  input: string;
-  onInputChange: (value: string) => void;
   onSubmit: (message: string) => void;
 }) => {
-  const canSubmit = input.trim().length > 0;
+  const [promptInput, setPromptInput] = useState("");
+
+  const canSubmit = promptInput.trim().length > 0;
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -117,12 +115,12 @@ export const EmptyAiHero = ({
   }, []);
 
   return (
-    <div className={emptyAiHeroLayerStyle} style={{ bottom: bottomClearance }}>
+    <div className={aiCtaModalLayerStyle} style={{ bottom: bottomClearance }}>
       <form
-        className={emptyAiHeroStyle}
+        className={aiCtaModalStyle}
         onSubmit={(event) => {
           event.preventDefault();
-          const trimmedInput = input.trim();
+          const trimmedInput = promptInput.trim();
           if (!trimmedInput) {
             return;
           }
@@ -130,20 +128,20 @@ export const EmptyAiHero = ({
           onSubmit(trimmedInput);
         }}
       >
-        <div className={emptyAiHeroIconStyle}>
+        <div className={aiCtaModalIconStyle}>
           <AiAssistantIcon size={32} />
         </div>
-        <div className={emptyAiHeroCopyStyle}>
-          <h2 className={emptyAiHeroTitleStyle}>
+        <div className={aiCtaModalCopyStyle}>
+          <h2 className={aiCtaModalTitleStyle}>
             Describe the process you want to create
           </h2>
         </div>
-        <div className={emptyAiHeroFormStyle}>
+        <div className={aiCtaModalFormStyle}>
           <Input
             ref={inputRef}
-            className={emptyAiHeroInputStyle}
-            value={input}
-            onChange={(event) => onInputChange(event.currentTarget.value)}
+            className={aiCtaModalInputStyle}
+            value={promptInput}
+            onChange={(event) => setPromptInput(event.currentTarget.value)}
             placeholder="e.g. Model an SIR outbreak with recovery"
             aria-label="Describe the process you want to create"
             size="lg"
