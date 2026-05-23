@@ -846,6 +846,7 @@ __metadata:
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@mantine/hooks": "npm:8.3.5"
     "@pandacss/dev": "npm:1.11.1"
     "@rolldown/plugin-babel": "npm:0.2.1"
@@ -7714,7 +7715,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/petrinaut-core@workspace:^, @hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core":
+"@hashintel/petrinaut-core@workspace:*, @hashintel/petrinaut-core@workspace:^, @hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-core@workspace:libs/@hashintel/petrinaut-core"
   dependencies:
