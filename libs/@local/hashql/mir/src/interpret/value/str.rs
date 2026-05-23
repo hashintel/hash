@@ -1,12 +1,12 @@
 //! String representation for the MIR interpreter.
 
 use alloc::{alloc::Global, rc::Rc};
-use core::{alloc::Allocator, cmp};
+use core::{alloc::Allocator, cmp, fmt};
 
 use hashql_core::{symbol::Symbol, value::String};
 
 /// Internal storage for string values.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 enum StrInner<'heap, A: Allocator> {
     Owned(Rc<str, A>),
     Interned(Symbol<'heap>),
@@ -46,7 +46,7 @@ impl<A: Allocator> Ord for StrInner<'_, A> {
 /// Supports both owned strings (via [`Rc<str>`]) and borrowed interned
 /// symbols. This dual representation allows efficient handling of both
 /// dynamically created strings and compile-time literals.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Str<'heap, A: Allocator = Global> {
     inner: StrInner<'heap, A>,
 }
@@ -86,6 +86,20 @@ impl<'heap, A: Allocator> From<&String<'heap>> for Str<'heap, A> {
         Self {
             inner: StrInner::Interned(value.as_symbol()),
         }
+    }
+}
+
+impl<A: Allocator> From<Rc<str, A>> for Str<'_, A> {
+    fn from(value: Rc<str, A>) -> Self {
+        Self {
+            inner: StrInner::Owned(value),
+        }
+    }
+}
+
+impl<A: Allocator> core::fmt::Debug for Str<'_, A> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Str").field(&self.as_str()).finish()
     }
 }
 

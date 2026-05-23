@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Textarea } from "./textarea";
+import { Textarea } from "../textarea";
 
 export const App = () => {
   const variants = ["outline", "subtle", "surface", "flushed"] as const;

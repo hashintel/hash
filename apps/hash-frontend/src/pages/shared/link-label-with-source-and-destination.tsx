@@ -1,18 +1,20 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import {
+  Box,
+  Stack,
+  styled,
+  Tooltip,
+  Typography,
+  typographyClasses,
+  useTheme,
+} from "@mui/material";
+import { Fragment, useMemo, useRef } from "react";
+
 import {
   getEntityRevision,
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  Entity,
-  EntityId,
-  EntityType,
-  EntityTypeWithMetadata,
-  LinkEntity,
-  PropertyValue,
-} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractVersion,
@@ -27,30 +29,30 @@ import {
   getDisplayFieldsForClosedEntityType,
   getPropertyTypeForClosedMultiEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type {
-  ClosedMultiEntityTypesDefinitions,
-  ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-sdk/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { BoxProps } from "@mui/material";
-import {
-  Box,
-  Stack,
-  styled,
-  Tooltip,
-  Typography,
-  typographyClasses,
-  useTheme,
-} from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { Fragment, useMemo, useRef } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { Link } from "../../shared/ui";
 import { useEntityEditor } from "./entity/entity-editor/entity-editor-context";
 import { TooltipChip } from "./tooltip-chip";
+
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  Entity,
+  EntityId,
+  EntityType,
+  EntityTypeWithMetadata,
+  LinkEntity,
+  PropertyValue,
+} from "@blockprotocol/type-system";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/ontology";
+import type { BoxProps } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
   fontSize: 14,

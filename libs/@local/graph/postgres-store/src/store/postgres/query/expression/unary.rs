@@ -16,6 +16,8 @@ pub enum UnaryOperator {
     Negate,
     /// `~<expr>`
     BitwiseNot,
+    /// `<expr> IS NOT FALSE`
+    IsNotFalse,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -54,6 +56,10 @@ impl Transpile for UnaryExpression {
                 fmt.write_str("~(")?;
                 self.expr.transpile(fmt)?;
                 fmt.write_char(')')
+            }
+            UnaryOperator::IsNotFalse => {
+                self.expr.transpile(fmt)?;
+                fmt.write_str(" IS NOT FALSE")
             }
         }
     }

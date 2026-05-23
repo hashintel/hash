@@ -1,10 +1,12 @@
-import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
-import { Chip } from "@hashintel/design-system";
 import { Stack } from "@mui/material";
+
+import { Chip } from "@hashintel/design-system";
 
 import { SectionWrapper } from "../../../section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
 import { IncomingLinksTable } from "./incoming-links-section/incoming-links-table";
+
+import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
 
 interface IncomingLinksSectionProps {
   incomingLinksAndSources: LinkEntityAndLeftEntity[];

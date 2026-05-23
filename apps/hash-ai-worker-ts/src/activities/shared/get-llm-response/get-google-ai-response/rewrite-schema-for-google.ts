@@ -1,9 +1,10 @@
-import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { FunctionDeclarationSchema, Schema } from "@google-cloud/vertexai";
 import { SchemaType } from "@google-cloud/vertexai";
-import type { JSONSchema } from "openai/lib/jsonschema.mjs";
+
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 
 import type { LlmToolDefinition } from "../types.js";
+import type { FunctionDeclarationSchema, Schema } from "@google-cloud/vertexai";
+import type { JSONSchema } from "openai/lib/jsonschema.mjs";
 
 /**
  * @file

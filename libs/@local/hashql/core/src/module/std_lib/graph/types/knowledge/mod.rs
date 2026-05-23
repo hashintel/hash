@@ -1,4 +1,4 @@
-pub(in crate::module::std_lib) mod entity;
+pub mod entity;
 
 use crate::{
     heap::Heap,

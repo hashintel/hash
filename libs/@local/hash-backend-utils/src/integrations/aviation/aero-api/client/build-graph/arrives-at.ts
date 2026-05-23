@@ -1,8 +1,7 @@
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
-import type { ArrivesAt as HashArrivesAt } from "@local/hash-isomorphic-utils/system-types/flight";
-
 import type { AeroApiScheduledFlight } from "../types.js";
 import type { MappingFunction } from "./mapping-types.js";
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import type { ArrivesAt as HashArrivesAt } from "@local/hash-isomorphic-utils/system-types/flight";
 
 /**
  * Input type for arrival link mapping from AeroAPI data.

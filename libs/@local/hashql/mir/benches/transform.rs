@@ -512,8 +512,7 @@ fn pipeline(criterion: &mut Criterion) {
             changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
                 .run(context, &mut state, bodies);
             scratch.reset();
-            changed |=
-                PostInline::new_in(context.heap, &mut *scratch).run(context, &mut state, bodies);
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
             scratch.reset();
             changed
         });
@@ -528,8 +527,7 @@ fn pipeline(criterion: &mut Criterion) {
             changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
                 .run(context, &mut state, bodies);
             scratch.reset();
-            changed |=
-                PostInline::new_in(context.heap, &mut *scratch).run(context, &mut state, bodies);
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
             scratch.reset();
             changed
         });
@@ -544,8 +542,7 @@ fn pipeline(criterion: &mut Criterion) {
             changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
                 .run(context, &mut state, bodies);
             scratch.reset();
-            changed |=
-                PostInline::new_in(context.heap, &mut *scratch).run(context, &mut state, bodies);
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
             scratch.reset();
             changed
         });
@@ -560,8 +557,7 @@ fn pipeline(criterion: &mut Criterion) {
             changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
                 .run(context, &mut state, bodies);
             scratch.reset();
-            changed |=
-                PostInline::new_in(context.heap, &mut *scratch).run(context, &mut state, bodies);
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
             scratch.reset();
             changed
         });

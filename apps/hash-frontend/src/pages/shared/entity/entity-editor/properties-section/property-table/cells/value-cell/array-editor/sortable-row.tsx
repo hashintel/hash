@@ -1,4 +1,3 @@
-import type { JsonValue } from "@blockprotocol/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -7,22 +6,25 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import { Box, Divider, Stack, Typography } from "@mui/material";
+import { useRef, useState } from "react";
+
 import {
   formatDataValue,
   getMergedDataTypeSchema,
 } from "@local/hash-isomorphic-utils/data-types";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import { Box, Divider, Stack, Typography } from "@mui/material";
-import { useRef, useState } from "react";
 
 import { NumberOrTextInput } from "../../../../../../../number-or-text-input";
 import { getEditorSpecs } from "../editor-specs";
 import { BooleanInput } from "../inputs/boolean-input";
 import { JsonInput } from "../inputs/json-input";
 import { RowAction } from "./row-action";
-import type { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
+
+import type { SortableItem } from "./types";
+import type { JsonValue } from "@blockprotocol/core";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 
 interface SortableRowProps {
   item: SortableItem;

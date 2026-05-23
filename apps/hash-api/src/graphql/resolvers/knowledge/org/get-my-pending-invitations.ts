@@ -1,9 +1,9 @@
-import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-
 import { getUserPendingInvitations } from "../../../../graph/knowledge/system-types/user";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 export const getMyPendingInvitationsResolver: ResolverFn<
   Promise<PendingOrgInvitation[]>,

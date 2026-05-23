@@ -2,6 +2,50 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  atLeastOne,
+  componentsFromVersionedUrl,
+  DATA_TYPE_META_SCHEMA,
+  ENTITY_TYPE_META_SCHEMA,
+  extractBaseUrl,
+  extractWebIdFromEntityId,
+  incrementOntologyTypeVersion,
+  makeOntologyTypeVersion,
+  PROPERTY_TYPE_META_SCHEMA,
+  versionedUrlFromComponents,
+} from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
+import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
+import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
+import {
+  blockProtocolDataTypes,
+  systemDataTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  generateLinkMapWithConsistentSelfReferences,
+  generateTypeBaseUrl,
+} from "@local/hash-isomorphic-utils/ontology-types";
+
+import { createDataType } from "../../ontology/primitive/data-type";
+import { createEntityType } from "../../ontology/primitive/entity-type";
+import { createPropertyType } from "../../ontology/primitive/property-type";
+import { getOrCreateOwningWebId } from "../system-webs-and-entities";
+import { upgradeWebEntities } from "./util/upgrade-entities";
+import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
+
+import type { ImpureGraphFunction } from "../../context-types";
+import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
+import type { MigrationState } from "./types";
 import type {
   BaseUrl,
   Conversions,
@@ -26,55 +70,12 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  atLeastOne,
-  componentsFromVersionedUrl,
-  DATA_TYPE_META_SCHEMA,
-  ENTITY_TYPE_META_SCHEMA,
-  extractBaseUrl,
-  extractWebIdFromEntityId,
-  incrementOntologyTypeVersion,
-  makeOntologyTypeVersion,
-  PROPERTY_TYPE_META_SCHEMA,
-  versionedUrlFromComponents,
-} from "@blockprotocol/type-system";
-import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
-import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
-import { queryEntities } from "@local/hash-graph-sdk/entity";
-import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
-import { getPropertyTypeById } from "@local/hash-graph-sdk/property-type";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import {
-  blockProtocolDataTypes,
-  systemDataTypes,
-  systemEntityTypes,
-  systemLinkEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   SchemaKind,
   SystemTypeWebShortname,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import {
-  generateLinkMapWithConsistentSelfReferences,
-  generateTypeBaseUrl,
-} from "@local/hash-isomorphic-utils/ontology-types";
-
-import type { ImpureGraphFunction } from "../../context-types";
-import { createDataType } from "../../ontology/primitive/data-type";
-import { createEntityType } from "../../ontology/primitive/entity-type";
-import { createPropertyType } from "../../ontology/primitive/property-type";
-import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
-import { getOrCreateOwningWebId } from "../system-webs-and-entities";
-import type { MigrationState } from "./types";
-import { upgradeWebEntities } from "./util/upgrade-entities";
-import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

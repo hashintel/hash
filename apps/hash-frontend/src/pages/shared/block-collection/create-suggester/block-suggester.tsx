@@ -1,14 +1,15 @@
-import type { BlockVariant } from "@blockprotocol/core";
-import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useMemo } from "react";
 
 import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { WarnIcon } from "../../../../shared/icons";
 import { useFilteredBlocks } from "../shared/use-filtered-blocks";
 import { Suggester } from "./suggester";
+
+import type { BlockVariant } from "@blockprotocol/core";
+import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
+import type { SxProps, Theme } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export interface BlockSuggesterProps {
   search?: string;

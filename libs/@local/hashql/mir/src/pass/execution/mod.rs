@@ -7,29 +7,24 @@ macro_rules! cost {
 #[cfg(test)]
 mod tests;
 
+mod block_partitioned_vec;
 mod cost;
 mod fusion;
 mod island;
 mod placement;
 mod splitting;
 mod statement_placement;
-pub mod storage;
 mod target;
 mod terminator_placement;
+pub mod traversal;
 mod vertex;
 
 use core::{alloc::Allocator, assert_matches};
 
 use hashql_core::heap::{BumpAllocator, Heap};
 
-pub use self::{
-    cost::{ApproxCost, Cost},
-    island::{Island, IslandId, IslandVec},
-    placement::error::PlacementDiagnosticCategory,
-    target::TargetId,
-    vertex::VertexType,
-};
 use self::{
+    cost::BasicBlockCostAnalysis,
     fusion::BasicBlockFusion,
     island::IslandPlacement,
     placement::{ArcConsistency, PlacementSolverContext},
@@ -37,92 +32,142 @@ use self::{
     statement_placement::{StatementPlacement as _, TargetPlacementStatement},
     target::TargetArray,
     terminator_placement::TerminatorPlacement,
+    traversal::TransferCostConfig,
 };
-use super::{analysis::size_estimation::BodyFootprint, transform::Traversals};
+pub use self::{
+    cost::{ApproxCost, Cost},
+    island::{
+        Island, IslandId, IslandVec,
+        graph::{ExecIsland, IslandEdge, IslandGraph, IslandKind, IslandNode},
+        schedule::{IslandSchedule, ScheduledIsland},
+    },
+    placement::error::PlacementDiagnosticCategory,
+    target::TargetId,
+    vertex::VertexType,
+};
+use super::analysis::size_estimation::BodyFootprint;
 use crate::{
-    body::{Body, Source, basic_block::BasicBlockVec},
+    body::{Body, Source, basic_block::BasicBlockVec, local::Local},
     context::MirContext,
-    def::DefIdSlice,
+    def::{DefIdSlice, DefIdVec},
     pass::analysis::size_estimation::InformationRange,
 };
 
+pub struct ExecutionAnalysisResidual<A: Allocator> {
+    pub assignment: BasicBlockVec<TargetId, A>,
+    pub islands: IslandGraph<A>,
+}
+
 pub struct ExecutionAnalysis<'ctx, 'heap, S: Allocator> {
-    pub traversals: &'ctx DefIdSlice<Option<Traversals<'heap>>>,
     pub footprints: &'ctx DefIdSlice<BodyFootprint<&'heap Heap>>,
     pub scratch: S,
 }
 
 impl<'heap, S: BumpAllocator> ExecutionAnalysis<'_, 'heap, S> {
-    pub fn run(
+    pub fn run_in<A: Allocator + Clone>(
         &self,
         context: &mut MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
-    ) -> (
-        BasicBlockVec<TargetId, &'heap Heap>,
-        IslandVec<Island, &'heap Heap>,
-    ) {
+        alloc: A,
+    ) -> ExecutionAnalysisResidual<A> {
         assert_matches!(body.source, Source::GraphReadFilter(_));
 
-        let traversals = self
-            .traversals
-            .lookup(body.id)
-            .unwrap_or_else(|| unreachable!());
+        let Some(vertex) = VertexType::from_local(context.env, &body.local_decls[Local::VERTEX])
+        else {
+            unreachable!("unsupported graph read target")
+        };
 
-        let mut traversal_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
         let mut statement_costs: TargetArray<_> = TargetArray::from_fn(|_| None);
 
-        let mut targets = TargetId::all();
-        targets.reverse(); // We reverse the order, so that earlier targets (aka the interpreter) can have access to traversal costs
+        for target in TargetId::all() {
+            let mut statement = TargetPlacementStatement::new_in(target, &self.scratch);
+            let statement_cost =
+                statement.statement_placement_in(context, body, vertex, &self.scratch);
 
-        for target in targets {
-            let mut statement =
-                TargetPlacementStatement::new_in(target, &traversal_costs, &self.scratch);
-            let (traversal_cost, statement_cost) =
-                statement.statement_placement_in(context, body, traversals, &self.scratch);
-
-            traversal_costs[target] = Some(traversal_cost);
             statement_costs[target] = Some(statement_cost);
         }
 
         let mut statement_costs =
             statement_costs.map(|cost| cost.unwrap_or_else(|| unreachable!()));
 
-        let mut possibilities = BasicBlockSplitting::new_in(&self.scratch).split_in(
+        let mut assignments = BasicBlockSplitting::new_in(&self.scratch).split_in(
             context,
             body,
             &mut statement_costs,
             &self.scratch,
         );
 
-        let terminators = TerminatorPlacement::new_in(InformationRange::full(), &self.scratch);
+        let terminators = TerminatorPlacement::new_in(
+            TransferCostConfig::new(InformationRange::full()),
+            &self.scratch,
+        );
         let mut terminator_costs = terminators.terminator_placement_in(
             body,
+            vertex,
             &self.footprints[body.id],
-            traversals,
-            &possibilities,
+            &assignments,
             &self.scratch,
         );
 
         ArcConsistency {
-            blocks: &mut possibilities,
+            blocks: &mut assignments,
             terminators: &mut terminator_costs,
         }
         .run_in(body, &self.scratch);
 
+        let block_costs = BasicBlockCostAnalysis {
+            vertex,
+            assignments: &assignments,
+            costs: &statement_costs,
+        }
+        .analyze_in(
+            &TransferCostConfig::new(InformationRange::full()),
+            &body.basic_blocks,
+            &self.scratch,
+        );
+
         let mut solver = PlacementSolverContext {
-            assignment: &possibilities,
-            statements: &statement_costs,
+            blocks: &block_costs,
             terminators: &terminator_costs,
         }
         .build_in(body, &self.scratch);
 
-        let mut assignment = solver.run(context, body);
+        let mut assignment = solver.run_in(context, body, alloc.clone());
 
         let fusion = BasicBlockFusion::new_in(&self.scratch);
         fusion.fuse(body, &mut assignment);
 
-        let islands = IslandPlacement::new_in(&self.scratch).run(body, &assignment, context.heap);
+        let islands =
+            IslandPlacement::new_in(&self.scratch).run_in(body, vertex, &assignment, &self.scratch);
+        let islands = IslandGraph::new_in(body, vertex, islands, &self.scratch, alloc);
 
-        (assignment, islands)
+        ExecutionAnalysisResidual {
+            assignment,
+            islands,
+        }
+    }
+
+    pub fn run_all_in<A: Allocator + Clone>(
+        &self,
+        context: &mut MirContext<'_, 'heap>,
+        bodies: &mut DefIdSlice<Body<'heap>>,
+        alloc: A,
+    ) -> DefIdVec<Option<ExecutionAnalysisResidual<A>>, A> {
+        let mut items = DefIdVec::with_capacity_in(bodies.len(), alloc.clone());
+
+        for (def, body) in bodies.iter_enumerated_mut() {
+            match body.source {
+                Source::Ctor(_)
+                | Source::Closure(_, _)
+                | Source::Thunk(_, _)
+                | Source::Intrinsic(_) => continue,
+                Source::GraphReadFilter(_) => {}
+            }
+
+            let residual = self.run_in(context, body, alloc.clone());
+            items.insert(def, residual);
+        }
+
+        items
     }
 }

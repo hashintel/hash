@@ -1,6 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-
 import type { LocalStorage } from "../../../../../../../shared/storage";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 type DraftRule = {
   entityTypeId?: VersionedUrl;

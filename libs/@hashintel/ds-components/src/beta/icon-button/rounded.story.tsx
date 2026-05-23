@@ -1,6 +1,6 @@
 import { SendIcon } from "lucide-react";
 
-import { IconButton } from "./icon-button";
+import { IconButton } from "../icon-button";
 
 export const App = () => {
   return (

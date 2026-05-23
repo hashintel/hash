@@ -1,6 +1,5 @@
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { replacePlugin } from "rolldown/plugins";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 
@@ -10,14 +9,25 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
 export default defineConfig(({ command }) => ({
   build: {
     lib: {
-      entry: "src/main.ts",
-      fileName: "main",
+      // Three entry points: the legacy `main` (back-compat), plus the
+      // React/UI split per RFC 0001. Each emits its own JS + dts bundle.
+      entry: {
+        main: "src/main.ts",
+        react: "src/react/index.ts",
+        ui: "src/ui/index.ts",
+      },
+      fileName: (_format, entryName) => `${entryName}.js`,
+      // Emit the bundled CSS as `main.css` so the package.json `style` field
+      // and the `./styles.css` / `./dist/main.css` exports resolve. Without
+      // this vite uses the package name (`petrinaut.css`).
+      cssFileName: "main",
       formats: ["es"],
     },
     rolldownOptions: {
       external: [
         "@hashintel/ds-components",
         "@hashintel/ds-helpers",
+        /^@hashintel\/petrinaut-core(\/.*)?$/,
         "react",
         "react-dom",
         "@xyflow/react",
@@ -43,30 +53,6 @@ export default defineConfig(({ command }) => ({
     cssMinify: "esbuild",
   },
 
-  define: {
-    "process.versions": JSON.stringify({ pnp: undefined }),
-  },
-
-  worker: {
-    plugins: () => [
-      replacePlugin({
-        // Consumer Webpack config seem to `define` `typeof window` to `"object"` by default.
-        // This causes crashes in Web Workers, since `window` is not defined there.
-        "typeof window": '"undefined"',
-        // TypeScript's internals reference process, process.versions.pnp, etc.
-        "typeof process": "'undefined'",
-        "typeof process.versions.pnp": "'undefined'",
-      }),
-      // Separate replacePlugin for call-expression replacements:
-      // 1. Empty end delimiter because \b can't match after `)` (non-word → non-word).
-      // 2. Negative lookbehind skips the function definition (`function isNodeLikeSystem`).
-      replacePlugin(
-        { "isNodeLikeSystem()": "false" },
-        { delimiters: ["(?<!function )\\b", ""] },
-      ),
-    ],
-  },
-
   plugins: [
     esmExternalRequirePlugin({
       external: [
@@ -74,12 +60,20 @@ export default defineConfig(({ command }) => ({
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
-        "typescript",
       ],
     }),
 
     react(),
     babel({
+      // Default excludes node_modules. Also skip workspace `dist/` outputs:
+      // those are pre-bundled JSX → `jsx(tag, { ref, ... })` calls, and
+      // React Compiler flags the inlined `ref` prop as "Passing a ref to a
+      // function" (the rule fires for `jsx()` calls but not raw JSX).
+      exclude: [
+        /[\\/]node_modules[\\/]/,
+        /[\\/]libs[\\/]@hashintel[\\/][^\\/]+[\\/]dist[\\/]/,
+        /^0rolldown\/runtime\.js$/,
+      ],
       presets: [
         reactCompilerPreset({
           target: "19",

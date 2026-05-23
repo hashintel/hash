@@ -2,7 +2,6 @@ import { defineGlobalStyles, definePreset } from "@pandacss/dev";
 import pandaPreset from "@pandacss/preset-panda";
 
 import { documentSurfaceStyles, fontPipelineCssVars } from "./preset/document";
-import { recipes, slotRecipes } from "./preset/recipes";
 import { semanticTokens, tokens } from "./preset/tokens";
 
 export type PresetOptions = {
@@ -135,6 +134,13 @@ export function createPreset(options?: PresetOptions) {
           },
         },
         textStyles: {
+          xxs: {
+            value: {
+              fontSize: "{fontSizes.xxs}",
+              lineHeight: "calc(1em * 1.6 * var(--leading-factor, 1))",
+              letterSpacing: "0.01em",
+            },
+          },
           xs: {
             value: {
               fontSize: "{fontSizes.xs}",
@@ -192,14 +198,10 @@ export function createPreset(options?: PresetOptions) {
             },
           },
         },
-        // see https://github.com/chakra-ui/panda/issues/3441#issuecomment-3642011828
-        // @ts-expect-error -- `colorPalette` not in PartialTheme types but works at runtime
         colorPalette: {
           enabled: true,
           include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
         },
-        recipes,
-        slotRecipes,
       },
     },
   });

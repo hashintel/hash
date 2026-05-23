@@ -33,7 +33,7 @@ pub fn create_web(&mut self) -> Result<WebId, Report<WebError>> {
 
 - `# Errors` section header
 - Bullet point for each error variant
-- Intra-doc links using `` [`VariantName`] `` syntax
+- Intra-doc links using ``[`VariantName`]`` syntax
 - Link definitions at the bottom
 
 ---
@@ -227,7 +227,7 @@ When writing `# Examples` sections for fallible functions:
 
 Use `?` for error propagation in examples whenever possible:
 
-```rust
+````rust
 /// Fetches and processes user data.
 ///
 /// # Examples
@@ -242,7 +242,7 @@ Use `?` for error propagation in examples whenever possible:
 pub fn fetch_user(id: &str) -> Result<User, Report<UserError>> {
     // Implementation
 }
-```
+````
 
 **Key Points:**
 
@@ -254,7 +254,7 @@ pub fn fetch_user(id: &str) -> Result<User, Report<UserError>> {
 
 Only use explicit error handling when demonstrating error handling itself:
 
-```rust
+````rust
 /// Validates user input.
 ///
 /// # Examples
@@ -269,7 +269,7 @@ Only use explicit error handling when demonstrating error handling itself:
 pub fn validate_input(input: &str) -> Result<(), Report<ValidationError>> {
     // Implementation
 }
-```
+````
 
 ---
 
@@ -298,7 +298,7 @@ pub fn validate_input(input: &str) -> Result<(), Report<ValidationError>> {
 
 ### Complete Function Documentation
 
-```rust
+````rust
 #[derive(Debug, derive_more::Display)]
 pub enum RegistrationError {
     #[display("Email already registered")]
@@ -339,7 +339,7 @@ impl Error for RegistrationError {}
 pub fn register_user(email: &str, password: &str) -> Result<UserId, Report<RegistrationError>> {
     // Implementation
 }
-```
+````
 
 ---
 

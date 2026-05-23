@@ -1,7 +1,8 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { Story, StoryDefault } from "@ladle/react";
 
 import { Badge, type BadgeProps } from "./badge";
+
+import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
   title: "Legacy/Badge",

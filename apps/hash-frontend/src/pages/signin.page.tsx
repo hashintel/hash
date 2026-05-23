@@ -1,20 +1,15 @@
-import type { WebId } from "@blockprotocol/type-system";
+import { Box, buttonClasses, styled, Typography } from "@mui/material";
+import { isUiNodeInputAttributes } from "@ory/integrations/ui";
+import { useRouter } from "next/router";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { Box, buttonClasses, styled, Typography } from "@mui/material";
-import type { LoginFlow } from "@ory/client";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
-import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
 import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-left-regular-icon";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
-import type { ButtonProps } from "../shared/ui";
 import { Button, Link } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
@@ -29,6 +24,13 @@ import {
 import { SsoProviderButtons } from "./shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
+
+import type { NextPageWithLayout } from "../shared/layout";
+import type { ButtonProps } from "../shared/ui";
+import type { WebId } from "@blockprotocol/type-system";
+import type { LoginFlow } from "@ory/client";
+import type { AxiosError } from "axios";
+import type { FormEventHandler } from "react";
 
 const SignupButton = styled((props: ButtonProps) => (
   <Button variant="secondary" size="small" {...props} />
@@ -545,7 +547,9 @@ const SigninPage: NextPageWithLayout = () => {
                     )
                   }
                   helperText={passwordInputUiNode?.messages.map(
-                    ({ id, text }) => <Typography key={id}>{text}</Typography>,
+                    ({ id, text }) => (
+                      <Typography key={id}>{text}</Typography>
+                    ),
                   )}
                   required
                   inputProps={{ "data-1p-ignore": false }}

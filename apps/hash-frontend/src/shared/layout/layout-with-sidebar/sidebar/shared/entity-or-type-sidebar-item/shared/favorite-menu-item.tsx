@@ -1,11 +1,13 @@
-import { StarRegularIcon, StarSolidIcon } from "@hashintel/design-system";
-import type { PopupState } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
+import { StarRegularIcon, StarSolidIcon } from "@hashintel/design-system";
+
 import { useUpdateAuthenticatedUser } from "../../../../../../../components/hooks/use-update-authenticated-user";
-import type { Favorite } from "../../../../../../use-user-preferences";
 import { useUserPreferences } from "../../../../../../use-user-preferences";
 import { SidebarMenuItem } from "./sidebar-menu-item";
+
+import type { Favorite } from "../../../../../../use-user-preferences";
+import type { PopupState } from "material-ui-popup-state/hooks";
 
 const matchFavorite = (item1: Favorite, item2: Favorite) => {
   switch (item1.type) {

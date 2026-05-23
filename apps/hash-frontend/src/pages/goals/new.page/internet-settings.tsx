@@ -1,8 +1,9 @@
-import type { FlowInternetAccessSettings } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Checkbox, Stack, Tooltip, Typography } from "@mui/material";
-import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
 
 import { CircleInfoIcon } from "../../../shared/icons/circle-info-icon";
+
+import type { FlowInternetAccessSettings } from "@local/hash-isomorphic-utils/flows/types";
+import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
 
 /**
  * Sites where the useful content is gated behind an authentication or paywall,

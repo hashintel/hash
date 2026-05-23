@@ -3,7 +3,6 @@ import { TextDecoder } from "node:util";
 import { Data, Effect, Layer, Option, pipe, Schema, Stream } from "effect";
 
 import { InvalidUtf8Error } from "../ClientError.js";
-
 import * as Decoder from "./Decoder.js";
 
 // 1E is the ASCII record separator character, and is invalid in JSON.

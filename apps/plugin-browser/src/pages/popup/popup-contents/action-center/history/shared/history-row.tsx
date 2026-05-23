@@ -1,14 +1,4 @@
 import {
-  ArrowUpRightFromSquareRegularIcon,
-  CaretDownSolidIcon,
-  IconButton,
-  InfinityLightIcon,
-  MemoCircleCheckRegularIcon,
-  MicroscopeRegularIcon,
-  PlugRegularIcon,
-} from "@hashintel/design-system";
-import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import {
   Box,
   Collapse,
   Link,
@@ -19,13 +9,25 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 
-import type { LocalStorage } from "../../../../../../shared/storage";
+import {
+  ArrowUpRightFromSquareRegularIcon,
+  CaretDownSolidIcon,
+  IconButton,
+  InfinityLightIcon,
+  MemoCircleCheckRegularIcon,
+  MicroscopeRegularIcon,
+  PlugRegularIcon,
+} from "@hashintel/design-system";
+import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+
 import { useStorageSync } from "../../../../../shared/use-storage-sync";
 import { CellWithHoverButton } from "./history-row/cell-with-hover-button";
 import { Chip } from "./history-row/chip";
 import { FlowMetadataCellContents } from "./history-row/flow-metadata-cell-contents";
 import { FlowStatusCell } from "./history-row/flow-status-cell";
 import { iconSx } from "./history-row/styles";
+
+import type { LocalStorage } from "../../../../../../shared/storage";
 
 type RowType = "automatic" | "manual" | "external-page-request";
 

@@ -1,29 +1,31 @@
-import { ArrowRightRegularIcon } from "@hashintel/design-system";
-import type {
-  ExternalInputRequest,
-  FlowActionDefinitionId,
-} from "@local/hash-isomorphic-utils/flows/types";
-import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
-import type { NodeProps } from "reactflow";
+
+import { ArrowRightRegularIcon } from "@hashintel/design-system";
 
 import { Button } from "../../../../../../shared/ui/button";
-import type {
-  SimpleStatus,
-  StepRunStatus,
-} from "../../../../../shared/flow-runs-context";
 import {
   statusToSimpleStatus,
   useFlowRunsContext,
   useStatusForCurrentStep,
 } from "../../../../../shared/flow-runs-context";
 import { QuestionModal } from "../shared/question-modal";
-import type { NodeData } from "../shared/types";
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
 import { statusSx } from "./custom-node/node-styles";
+
+import type {
+  SimpleStatus,
+  StepRunStatus,
+} from "../../../../../shared/flow-runs-context";
+import type { NodeData } from "../shared/types";
+import type {
+  ExternalInputRequest,
+  FlowActionDefinitionId,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { SxProps, Theme } from "@mui/material";
+import type { NodeProps } from "reactflow";
 
 const getTimeAgo = (isoString: string) =>
   formatDistance(new Date(isoString), new Date(), {

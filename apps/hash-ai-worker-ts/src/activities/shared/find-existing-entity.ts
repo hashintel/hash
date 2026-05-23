@@ -1,23 +1,11 @@
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  LinkData,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  AllFilter,
-  CosineDistanceFilter,
-  GraphApi,
-} from "@local/hash-graph-client";
 import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -26,13 +14,26 @@ import {
 import { deduplicateSources } from "@local/hash-isomorphic-utils/provenance";
 
 import { logger } from "./activity-logger.js";
-import type { DereferencedEntityType } from "./dereference-entity-type.js";
 import { dereferenceEntityType } from "./dereference-entity-type.js";
 import { createEntityEmbeddings } from "./embeddings.js";
 import {
   type MatchedEntityUpdate,
   matchExistingEntity,
 } from "./match-existing-entity.js";
+
+import type { DereferencedEntityType } from "./dereference-entity-type.js";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  LinkData,
+  WebId,
+} from "@blockprotocol/type-system";
+import type {
+  AllFilter,
+  CosineDistanceFilter,
+  GraphApi,
+} from "@local/hash-graph-client";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 
 export const findExistingEntity = async ({
   actorId,

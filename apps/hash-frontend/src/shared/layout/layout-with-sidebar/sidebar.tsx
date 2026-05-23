@@ -1,10 +1,4 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import {
-  AsteriskRegularIcon,
-  FontAwesomeIcon,
-  IconButton,
-  ShapesRegularIcon,
-} from "@hashintel/design-system";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -13,6 +7,13 @@ import {
   type ReactNode,
   useMemo,
 } from "react";
+
+import {
+  AsteriskRegularIcon,
+  FontAwesomeIcon,
+  IconButton,
+  ShapesRegularIcon,
+} from "@hashintel/design-system";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
@@ -26,13 +27,13 @@ import { useInvites } from "../../invites-context";
 import { useNotificationCount } from "../../notification-count-context";
 import { useRoutePageInfo } from "../../routing";
 import { useUserPreferences } from "../../use-user-preferences";
+import { useSidebarContext } from "./sidebar-context";
 import { AccountEntitiesList } from "./sidebar/account-entities-list";
 import { AccountEntityTypeList } from "./sidebar/account-entity-type-list";
 import { AccountPageList } from "./sidebar/account-page-list";
 import { FavoritesList } from "./sidebar/favorites-list";
 import { TopNavLink } from "./sidebar/top-nav-link";
 import { WorkspaceSwitcher } from "./sidebar/workspace-switcher";
-import { useSidebarContext } from "./sidebar-context";
 
 export const SIDEBAR_WIDTH = 260;
 

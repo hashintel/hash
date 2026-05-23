@@ -1,18 +1,19 @@
+import { Box, Container } from "@mui/material";
+
+import { PinnedEntityTypeTabContents } from "./pinned-entity-type-tab-contents";
+import { ProfilePageInfo } from "./profile-page-info";
+import { ProfileTab } from "./profile-tab";
+import { TypesTab } from "./types-tab";
+import { leftColumnWidth } from "./util";
+
+import type { Org, User } from "../../../lib/user-and-org";
+import type { ProfilePageTab } from "./util";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
-import { Box, Container } from "@mui/material";
 import type { FunctionComponent } from "react";
-
-import type { Org, User } from "../../../lib/user-and-org";
-import { PinnedEntityTypeTabContents } from "./pinned-entity-type-tab-contents";
-import { ProfilePageInfo } from "./profile-page-info";
-import { ProfileTab } from "./profile-tab";
-import { TypesTab } from "./types-tab";
-import type { ProfilePageTab } from "./util";
-import { leftColumnWidth } from "./util";
 
 export const ProfilePageContent: FunctionComponent<{
   profile?: User | Org;

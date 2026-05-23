@@ -1,9 +1,10 @@
 import { useLazyQuery } from "@apollo/client";
+import { useCallback } from "react";
+
 import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { useCallback } from "react";
 
 import type {
   QueryEntitySubgraphQuery,

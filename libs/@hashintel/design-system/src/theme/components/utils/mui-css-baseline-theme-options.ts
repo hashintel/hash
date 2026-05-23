@@ -1,10 +1,10 @@
-import type { Components } from "@mui/material";
-
 import {
   fluidFontClassName,
   fluidTypographyStyles,
 } from "../../../fluid-fonts";
 import { customColors } from "../../palette";
+
+import type { Components } from "@mui/material";
 
 const typographyVariableSelector = `:root, .${fluidFontClassName}`;
 

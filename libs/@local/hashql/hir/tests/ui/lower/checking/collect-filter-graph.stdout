@@ -5,7 +5,7 @@
         ::graph::head::entities(::graph::tmp::decision_time_now()),
         (vertex:0: _0): _1 ->
             ::core::cmp::eq(
-                vertex:0.id.entity_id.entity_uuid,
+                vertex:0.metadata.record_id.entity_id.entity_uuid,
                 ::graph::types::knowledge::entity::EntityUuid(
                     ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
                 )
@@ -20,35 +20,70 @@
         ::graph::head::entities(::graph::tmp::decision_time_now()),
         (
             vertex:0: ::graph::types::knowledge::entity::Entity(
-                id: ::graph::types::knowledge::entity::EntityRecordId(
-                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-                    entity_id: ::graph::types::knowledge::entity::EntityId(
-                        draft_id: ::core::option::None(Null)
-                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                    )
+                encodings: ::graph::types::knowledge::entity::EntityEncodings(
+                    vectors: ?
                 ),
                 link_data: ::core::option::None(Null)
                 | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+                    left_entity_confidence: ::core::option::None(Null)
+                    | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                     left_entity_id: ::graph::types::knowledge::entity::EntityId(
                         draft_id: ::core::option::None(Null)
                         | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                         entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                         web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                     ),
+                    left_entity_provenance: ?,
+                    right_entity_confidence: ::core::option::None(Null)
+                    | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                     right_entity_id: ::graph::types::knowledge::entity::EntityId(
                         draft_id: ::core::option::None(Null)
                         | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                         entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                         web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                    )
+                    ),
+                    right_entity_provenance: ?
                 )),
+                metadata: ::graph::types::knowledge::entity::EntityMetadata(
+                    archived: Boolean,
+                    confidence: ::core::option::None(Null)
+                    | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+                    entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                        base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                        version: ::graph::ontology::OntologyTypeVersion(String)
+                    )>,
+                    properties: ?,
+                    provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                        edition: ?,
+                        inferred: ?
+                    ),
+                    record_id: ::graph::types::knowledge::entity::RecordId(
+                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                        entity_id: ::graph::types::knowledge::entity::EntityId(
+                            draft_id: ::core::option::None(Null)
+                            | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                            entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                        )
+                    ),
+                    temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                        decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                            end: ::graph::temporal::UnboundedTemporalBound(Null)
+                            | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                            start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                        )),
+                        transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                            end: ::graph::temporal::UnboundedTemporalBound(Null)
+                            | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                            start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                        ))
+                    )
+                ),
                 properties: ?
             )
         ): Boolean ->
             ::core::cmp::eq(
-                vertex:0.id.entity_id.entity_uuid,
+                vertex:0.metadata.record_id.entity_id.entity_uuid,
                 ::graph::types::knowledge::entity::EntityUuid(
                     ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
                 )
@@ -63,7 +98,309 @@
 │          ::graph::head::entities(::graph::tmp::decision_time_now()),
 │          (
 │              vertex:0: ::graph::types::knowledge::entity::Entity(
-│                  id: ::graph::types::knowledge::entity::EntityRecordId(
+│                  encodings: ::graph::types::knowledge::entity::EntityEncodings(
+│                      vectors: ?
+│                  ),
+│                  link_data: ::core::option::None(Null)
+│                  | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+│                      left_entity_confidence: ::core::option::None(Null)
+│                      | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+│                      left_entity_id: ::graph::types::knowledge::entity::EntityId(
+│                          draft_id: ::core::option::None(Null)
+│                          | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+│                          entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+│                          web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+│                      ),
+│                      left_entity_provenance: ?,
+│                      right_entity_confidence: ::core::option::None(Null)
+│                      | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+│                      right_entity_id: ::graph::types::knowledge::entity::EntityId(
+│                          draft_id: ::core::option::None(Null)
+│                          | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+│                          entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+│                          web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+│                      ),
+│                      right_entity_provenance: ?
+│                  )),
+│                  metadata: ::graph::types::knowledge::entity::EntityMetadata(
+│                      archived: Boolean,
+│                      confidence: ::core::option::None(Null)
+│                      | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+│                      entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+│                          base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+│                          version: ::graph::ontology::OntologyTypeVersion(String)
+│                      )>,
+│                      properties: ?,
+│                      provenance: ::graph::types::knowledge::entity::EntityProvenance(
+│                          edition: ?,
+│                          inferred: ?
+│                      ),
+│                      record_id: ::graph::types::knowledge::entity::RecordId(
+│                          edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+│                          entity_id: ::graph::types::knowledge::entity::EntityId(
+│                              draft_id: ::core::option::None(Null)
+│                              | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+│                              entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+│                              web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+│                          )
+│                      ),
+│                      temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+│                          decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+│                              end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                              | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                              start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                          )),
+│                          transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+│                              end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                              | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                              start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                          ))
+│                      )
+│                  ),
+│                  properties: ?
+│              )
+│          ): Boolean ->
+│              ::core::cmp::eq(
+│                  vertex:0.metadata.record_id.entity_id.entity_uuid,
+│                  ::graph::types::knowledge::entity::EntityUuid(
+│                      ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
+│                  )
+│              )
+│      )
+│  )
+└→ List<::graph::types::knowledge::entity::Entity(
+       encodings: ::graph::types::knowledge::entity::EntityEncodings(vectors: ?),
+       link_data: ::core::option::None(Null)
+       | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+           left_entity_confidence: ::core::option::None(Null)
+           | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+           left_entity_id: ::graph::types::knowledge::entity::EntityId(
+               draft_id: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+               entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+               web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+           ),
+           left_entity_provenance: ?,
+           right_entity_confidence: ::core::option::None(Null)
+           | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+           right_entity_id: ::graph::types::knowledge::entity::EntityId(
+               draft_id: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+               entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+               web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+           ),
+           right_entity_provenance: ?
+       )),
+       metadata: ::graph::types::knowledge::entity::EntityMetadata(
+           archived: Boolean,
+           confidence: ::core::option::None(Null)
+           | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+           entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+               base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+               version: ::graph::ontology::OntologyTypeVersion(String)
+           )>,
+           properties: ?,
+           provenance: ::graph::types::knowledge::entity::EntityProvenance(
+               edition: ?,
+               inferred: ?
+           ),
+           record_id: ::graph::types::knowledge::entity::RecordId(
+               edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+               entity_id: ::graph::types::knowledge::entity::EntityId(
+                   draft_id: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+               )
+           ),
+           temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+               decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                   end: ::graph::temporal::UnboundedTemporalBound(Null)
+                   | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                   start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               )),
+               transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                   end: ::graph::temporal::UnboundedTemporalBound(Null)
+                   | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                   start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               ))
+           )
+       ),
+       properties: ?
+   )>
+
+┌─ ::graph::tail::collect
+└→ (
+       ::graph::Graph(
+           'marker: ::graph::types::knowledge::entity::Entity(
+               encodings: ::graph::types::knowledge::entity::EntityEncodings(
+                   vectors: ?
+               ),
+               link_data: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+                   left_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+                   left_entity_id: ::graph::types::knowledge::entity::EntityId(
+                       draft_id: ::core::option::None(Null)
+                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                   ),
+                   left_entity_provenance: ?,
+                   right_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+                   right_entity_id: ::graph::types::knowledge::entity::EntityId(
+                       draft_id: ::core::option::None(Null)
+                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                   ),
+                   right_entity_provenance: ?
+               )),
+               metadata: ::graph::types::knowledge::entity::EntityMetadata(
+                   archived: Boolean,
+                   confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+                   entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                       base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                       version: ::graph::ontology::OntologyTypeVersion(String)
+                   )>,
+                   properties: ?,
+                   provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       edition: ?,
+                       inferred: ?
+                   ),
+                   record_id: ::graph::types::knowledge::entity::RecordId(
+                       edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                       entity_id: ::graph::types::knowledge::entity::EntityId(
+                           draft_id: ::core::option::None(Null)
+                           | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                           entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                           web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                       )
+                   ),
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
+                   )
+               ),
+               properties: ?
+           )
+       )
+   ) ->
+       List<::graph::types::knowledge::entity::Entity(
+           encodings: ::graph::types::knowledge::entity::EntityEncodings(
+               vectors: ?
+           ),
+           link_data: ::core::option::None(Null)
+           | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+               left_entity_confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+               left_entity_id: ::graph::types::knowledge::entity::EntityId(
+                   draft_id: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+               ),
+               left_entity_provenance: ?,
+               right_entity_confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+               right_entity_id: ::graph::types::knowledge::entity::EntityId(
+                   draft_id: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+               ),
+               right_entity_provenance: ?
+           )),
+           metadata: ::graph::types::knowledge::entity::EntityMetadata(
+               archived: Boolean,
+               confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+               entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                   base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                   version: ::graph::ontology::OntologyTypeVersion(String)
+               )>,
+               properties: ?,
+               provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                   edition: ?,
+                   inferred: ?
+               ),
+               record_id: ::graph::types::knowledge::entity::RecordId(
+                   edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                   entity_id: ::graph::types::knowledge::entity::EntityId(
+                       draft_id: ::core::option::None(Null)
+                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                   )
+               ),
+               temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                   decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   )),
+                   transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   ))
+               )
+           ),
+           properties: ?
+       )>
+
+┌─ ::graph::body::filter(
+│      ::graph::head::entities(::graph::tmp::decision_time_now()),
+│      (
+│          vertex:0: ::graph::types::knowledge::entity::Entity(
+│              encodings: ::graph::types::knowledge::entity::EntityEncodings(
+│                  vectors: ?
+│              ),
+│              link_data: ::core::option::None(Null)
+│              | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+│                  left_entity_confidence: ::core::option::None(Null)
+│                  | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+│                  left_entity_id: ::graph::types::knowledge::entity::EntityId(
+│                      draft_id: ::core::option::None(Null)
+│                      | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+│                      entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+│                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+│                  ),
+│                  left_entity_provenance: ?,
+│                  right_entity_confidence: ::core::option::None(Null)
+│                  | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+│                  right_entity_id: ::graph::types::knowledge::entity::EntityId(
+│                      draft_id: ::core::option::None(Null)
+│                      | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+│                      entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+│                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+│                  ),
+│                  right_entity_provenance: ?
+│              )),
+│              metadata: ::graph::types::knowledge::entity::EntityMetadata(
+│                  archived: Boolean,
+│                  confidence: ::core::option::None(Null)
+│                  | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+│                  entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+│                      base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+│                      version: ::graph::ontology::OntologyTypeVersion(String)
+│                  )>,
+│                  properties: ?,
+│                  provenance: ::graph::types::knowledge::entity::EntityProvenance(
+│                      edition: ?,
+│                      inferred: ?
+│                  ),
+│                  record_id: ::graph::types::knowledge::entity::RecordId(
 │                      edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
 │                      entity_id: ::graph::types::knowledge::entity::EntityId(
 │                          draft_id: ::core::option::None(Null)
@@ -72,65 +409,69 @@
 │                          web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │                      )
 │                  ),
-│                  link_data: ::core::option::None(Null)
-│                  | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-│                      left_entity_id: ::graph::types::knowledge::entity::EntityId(
-│                          draft_id: ::core::option::None(Null)
-│                          | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-│                          entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-│                          web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-│                      ),
-│                      right_entity_id: ::graph::types::knowledge::entity::EntityId(
-│                          draft_id: ::core::option::None(Null)
-│                          | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-│                          entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-│                          web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-│                      )
-│                  )),
-│                  properties: ?
-│              )
-│          ): Boolean ->
-│              ::core::cmp::eq(
-│                  vertex:0.id.entity_id.entity_uuid,
-│                  ::graph::types::knowledge::entity::EntityUuid(
-│                      ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
+│                  temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+│                      decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+│                          end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                          | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                          start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                      )),
+│                      transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+│                          end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                          | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                          start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                      ))
 │                  )
+│              ),
+│              properties: ?
+│          )
+│      ): Boolean ->
+│          ::core::cmp::eq(
+│              vertex:0.metadata.record_id.entity_id.entity_uuid,
+│              ::graph::types::knowledge::entity::EntityUuid(
+│                  ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
 │              )
-│      )
+│          )
 │  )
-└→ List<::graph::types::knowledge::entity::Entity(
-       id: ::graph::types::knowledge::entity::EntityRecordId(
-           edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-           entity_id: ::graph::types::knowledge::entity::EntityId(
-               draft_id: ::core::option::None(Null)
-               | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-               entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-               web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-           )
-       ),
-       link_data: ::core::option::None(Null)
-       | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-           left_entity_id: ::graph::types::knowledge::entity::EntityId(
-               draft_id: ::core::option::None(Null)
-               | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-               entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-               web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+└→ ::graph::Graph(
+       'marker: ::graph::types::knowledge::entity::Entity(
+           encodings: ::graph::types::knowledge::entity::EntityEncodings(
+               vectors: ?
            ),
-           right_entity_id: ::graph::types::knowledge::entity::EntityId(
-               draft_id: ::core::option::None(Null)
-               | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-               entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-               web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-           )
-       )),
-       properties: ?
-   )>
-
-┌─ ::graph::tail::collect
-└→ (
-       ::graph::Graph(
-           'marker: ::graph::types::knowledge::entity::Entity(
-               id: ::graph::types::knowledge::entity::EntityRecordId(
+           link_data: ::core::option::None(Null)
+           | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+               left_entity_confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+               left_entity_id: ::graph::types::knowledge::entity::EntityId(
+                   draft_id: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+               ),
+               left_entity_provenance: ?,
+               right_entity_confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+               right_entity_id: ::graph::types::knowledge::entity::EntityId(
+                   draft_id: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+               ),
+               right_entity_provenance: ?
+           )),
+           metadata: ::graph::types::knowledge::entity::EntityMetadata(
+               archived: Boolean,
+               confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+               entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                   base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                   version: ::graph::ontology::OntologyTypeVersion(String)
+               )>,
+               properties: ?,
+               provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                   edition: ?,
+                   inferred: ?
+               ),
+               record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
@@ -139,117 +480,19 @@
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    )
                ),
-               link_data: ::core::option::None(Null)
-               | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-                   left_entity_id: ::graph::types::knowledge::entity::EntityId(
-                       draft_id: ::core::option::None(Null)
-                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   ),
-                   right_entity_id: ::graph::types::knowledge::entity::EntityId(
-                       draft_id: ::core::option::None(Null)
-                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   )
-               )),
-               properties: ?
-           )
-       )
-   ) ->
-       List<::graph::types::knowledge::entity::Entity(
-           id: ::graph::types::knowledge::entity::EntityRecordId(
-               edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-               entity_id: ::graph::types::knowledge::entity::EntityId(
-                   draft_id: ::core::option::None(Null)
-                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+               temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                   decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   )),
+                   transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   ))
                )
            ),
-           link_data: ::core::option::None(Null)
-           | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-               left_entity_id: ::graph::types::knowledge::entity::EntityId(
-                   draft_id: ::core::option::None(Null)
-                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               ),
-               right_entity_id: ::graph::types::knowledge::entity::EntityId(
-                   draft_id: ::core::option::None(Null)
-                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               )
-           )),
-           properties: ?
-       )>
-
-┌─ ::graph::body::filter(
-│      ::graph::head::entities(::graph::tmp::decision_time_now()),
-│      (
-│          vertex:0: ::graph::types::knowledge::entity::Entity(
-│              id: ::graph::types::knowledge::entity::EntityRecordId(
-│                  edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-│                  entity_id: ::graph::types::knowledge::entity::EntityId(
-│                      draft_id: ::core::option::None(Null)
-│                      | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-│                      entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-│                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-│                  )
-│              ),
-│              link_data: ::core::option::None(Null)
-│              | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-│                  left_entity_id: ::graph::types::knowledge::entity::EntityId(
-│                      draft_id: ::core::option::None(Null)
-│                      | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-│                      entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-│                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-│                  ),
-│                  right_entity_id: ::graph::types::knowledge::entity::EntityId(
-│                      draft_id: ::core::option::None(Null)
-│                      | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-│                      entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-│                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-│                  )
-│              )),
-│              properties: ?
-│          )
-│      ): Boolean ->
-│          ::core::cmp::eq(
-│              vertex:0.id.entity_id.entity_uuid,
-│              ::graph::types::knowledge::entity::EntityUuid(
-│                  ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
-│              )
-│          )
-│  )
-└→ ::graph::Graph(
-       'marker: ::graph::types::knowledge::entity::Entity(
-           id: ::graph::types::knowledge::entity::EntityRecordId(
-               edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-               entity_id: ::graph::types::knowledge::entity::EntityId(
-                   draft_id: ::core::option::None(Null)
-                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               )
-           ),
-           link_data: ::core::option::None(Null)
-           | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-               left_entity_id: ::graph::types::knowledge::entity::EntityId(
-                   draft_id: ::core::option::None(Null)
-                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               ),
-               right_entity_id: ::graph::types::knowledge::entity::EntityId(
-                   draft_id: ::core::option::None(Null)
-                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               )
-           )),
            properties: ?
        )
    )
@@ -258,89 +501,194 @@
 └→ (
        ::graph::Graph(
            'marker: ::graph::types::knowledge::entity::Entity(
-               id: ::graph::types::knowledge::entity::EntityRecordId(
-                   edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-                   entity_id: ::graph::types::knowledge::entity::EntityId(
-                       draft_id: ::core::option::None(Null)
-                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   )
+               encodings: ::graph::types::knowledge::entity::EntityEncodings(
+                   vectors: ?
                ),
                link_data: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+                   left_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    left_entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
+                   left_entity_provenance: ?,
+                   right_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    right_entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   )
+                   ),
+                   right_entity_provenance: ?
                )),
+               metadata: ::graph::types::knowledge::entity::EntityMetadata(
+                   archived: Boolean,
+                   confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+                   entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                       base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                       version: ::graph::ontology::OntologyTypeVersion(String)
+                   )>,
+                   properties: ?,
+                   provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       edition: ?,
+                       inferred: ?
+                   ),
+                   record_id: ::graph::types::knowledge::entity::RecordId(
+                       edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                       entity_id: ::graph::types::knowledge::entity::EntityId(
+                           draft_id: ::core::option::None(Null)
+                           | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                           entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                           web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                       )
+                   ),
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
+                   )
+               ),
                properties: ?
            )
        ),
        (
            ::graph::types::knowledge::entity::Entity(
-               id: ::graph::types::knowledge::entity::EntityRecordId(
-                   edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-                   entity_id: ::graph::types::knowledge::entity::EntityId(
-                       draft_id: ::core::option::None(Null)
-                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   )
+               encodings: ::graph::types::knowledge::entity::EntityEncodings(
+                   vectors: ?
                ),
                link_data: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+                   left_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    left_entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
+                   left_entity_provenance: ?,
+                   right_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    right_entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   )
+                   ),
+                   right_entity_provenance: ?
                )),
+               metadata: ::graph::types::knowledge::entity::EntityMetadata(
+                   archived: Boolean,
+                   confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+                   entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                       base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                       version: ::graph::ontology::OntologyTypeVersion(String)
+                   )>,
+                   properties: ?,
+                   provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       edition: ?,
+                       inferred: ?
+                   ),
+                   record_id: ::graph::types::knowledge::entity::RecordId(
+                       edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                       entity_id: ::graph::types::knowledge::entity::EntityId(
+                           draft_id: ::core::option::None(Null)
+                           | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                           entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                           web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                       )
+                   ),
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
+                   )
+               ),
                properties: ?
            )
        ) -> Boolean
    ) ->
        ::graph::Graph(
            'marker: ::graph::types::knowledge::entity::Entity(
-               id: ::graph::types::knowledge::entity::EntityRecordId(
-                   edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-                   entity_id: ::graph::types::knowledge::entity::EntityId(
-                       draft_id: ::core::option::None(Null)
-                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   )
+               encodings: ::graph::types::knowledge::entity::EntityEncodings(
+                   vectors: ?
                ),
                link_data: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+                   left_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    left_entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
+                   left_entity_provenance: ?,
+                   right_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    right_entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   )
+                   ),
+                   right_entity_provenance: ?
                )),
+               metadata: ::graph::types::knowledge::entity::EntityMetadata(
+                   archived: Boolean,
+                   confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+                   entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                       base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                       version: ::graph::ontology::OntologyTypeVersion(String)
+                   )>,
+                   properties: ?,
+                   provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       edition: ?,
+                       inferred: ?
+                   ),
+                   record_id: ::graph::types::knowledge::entity::RecordId(
+                       edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                       entity_id: ::graph::types::knowledge::entity::EntityId(
+                           draft_id: ::core::option::None(Null)
+                           | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                           entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                           web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                       )
+                   ),
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
+                   )
+               ),
                properties: ?
            )
        )
@@ -348,39 +696,44 @@
 ┌─ ::graph::head::entities(::graph::tmp::decision_time_now())
 └→ ::graph::Graph(
        'marker: ::graph::types::knowledge::entity::Entity(
-           id: ::graph::types::knowledge::entity::EntityRecordId(
-               edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-               entity_id: ::graph::types::knowledge::entity::EntityId(
-                   draft_id: ::core::option::None(Null)
-                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               )
+           encodings: ::graph::types::knowledge::entity::EntityEncodings(
+               vectors: ?
            ),
            link_data: ::core::option::None(Null)
            | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+               left_entity_confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                left_entity_id: ::graph::types::knowledge::entity::EntityId(
                    draft_id: ::core::option::None(Null)
                    | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                ),
+               left_entity_provenance: ?,
+               right_entity_confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                right_entity_id: ::graph::types::knowledge::entity::EntityId(
                    draft_id: ::core::option::None(Null)
                    | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               )
+               ),
+               right_entity_provenance: ?
            )),
-           properties: ?
-       )
-   )
-
-┌─ ::graph::head::entities
-└→ (::graph::TimeAxis(:)) ->
-       ::graph::Graph(
-           'marker: ::graph::types::knowledge::entity::Entity(
-               id: ::graph::types::knowledge::entity::EntityRecordId(
+           metadata: ::graph::types::knowledge::entity::EntityMetadata(
+               archived: Boolean,
+               confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+               entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                   base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                   version: ::graph::ontology::OntologyTypeVersion(String)
+               )>,
+               properties: ?,
+               provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                   edition: ?,
+                   inferred: ?
+               ),
+               record_id: ::graph::types::knowledge::entity::RecordId(
                    edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
                    entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
@@ -389,98 +742,293 @@
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    )
                ),
+               temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                   decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   )),
+                   transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   ))
+               )
+           ),
+           properties: ?
+       )
+   )
+
+┌─ ::graph::head::entities
+└→ (
+       ::graph::temporal::PinnedTransactionTimeTemporalAxes(
+           pinned: ::graph::temporal::TransactionTime(::graph::temporal::Timestamp(Integer)),
+           variable: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       )
+       | ::graph::temporal::PinnedDecisionTimeTemporalAxes(
+           pinned: ::graph::temporal::DecisionTime(::graph::temporal::Timestamp(Integer)),
+           variable: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       )
+   ) ->
+       ::graph::Graph(
+           'marker: ::graph::types::knowledge::entity::Entity(
+               encodings: ::graph::types::knowledge::entity::EntityEncodings(
+                   vectors: ?
+               ),
                link_data: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+                   left_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    left_entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                    ),
+                   left_entity_provenance: ?,
+                   right_entity_confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                    right_entity_id: ::graph::types::knowledge::entity::EntityId(
                        draft_id: ::core::option::None(Null)
                        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                        entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                   )
+                   ),
+                   right_entity_provenance: ?
                )),
+               metadata: ::graph::types::knowledge::entity::EntityMetadata(
+                   archived: Boolean,
+                   confidence: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+                   entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                       base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                       version: ::graph::ontology::OntologyTypeVersion(String)
+                   )>,
+                   properties: ?,
+                   provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                       edition: ?,
+                       inferred: ?
+                   ),
+                   record_id: ::graph::types::knowledge::entity::RecordId(
+                       edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                       entity_id: ::graph::types::knowledge::entity::EntityId(
+                           draft_id: ::core::option::None(Null)
+                           | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                           entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                           web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                       )
+                   ),
+                   temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                       decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       )),
+                       transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                           end: ::graph::temporal::UnboundedTemporalBound(Null)
+                           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                           start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                       ))
+                   )
+               ),
                properties: ?
            )
        )
 
 ┌─ ::graph::tmp::decision_time_now()
-└→ ::graph::TimeAxis(:)
+└→ ::graph::temporal::PinnedTransactionTimeTemporalAxes(
+       pinned: ::graph::temporal::TransactionTime(::graph::temporal::Timestamp(Integer)),
+       variable: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+           end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+           start: ::graph::temporal::UnboundedTemporalBound(Null)
+           | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+       ))
+   )
+   | ::graph::temporal::PinnedDecisionTimeTemporalAxes(
+       pinned: ::graph::temporal::DecisionTime(::graph::temporal::Timestamp(Integer)),
+       variable: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+           end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+           start: ::graph::temporal::UnboundedTemporalBound(Null)
+           | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+       ))
+   )
 
 ┌─ ::graph::tmp::decision_time_now
-└→ () -> ::graph::TimeAxis(:)
+└→ () ->
+       (::graph::temporal::PinnedTransactionTimeTemporalAxes(
+           pinned: ::graph::temporal::TransactionTime(::graph::temporal::Timestamp(Integer)),
+           variable: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       )
+       | ::graph::temporal::PinnedDecisionTimeTemporalAxes(
+           pinned: ::graph::temporal::DecisionTime(::graph::temporal::Timestamp(Integer)),
+           variable: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       ))
 
 ┌─ (
 │      vertex:0: ::graph::types::knowledge::entity::Entity(
-│          id: ::graph::types::knowledge::entity::EntityRecordId(
-│              edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-│              entity_id: ::graph::types::knowledge::entity::EntityId(
-│                  draft_id: ::core::option::None(Null)
-│                  | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-│                  entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-│                  web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-│              )
+│          encodings: ::graph::types::knowledge::entity::EntityEncodings(
+│              vectors: ?
 │          ),
 │          link_data: ::core::option::None(Null)
 │          | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+│              left_entity_confidence: ::core::option::None(Null)
+│              | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
 │              left_entity_id: ::graph::types::knowledge::entity::EntityId(
 │                  draft_id: ::core::option::None(Null)
 │                  | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
 │                  entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
 │                  web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
 │              ),
+│              left_entity_provenance: ?,
+│              right_entity_confidence: ::core::option::None(Null)
+│              | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
 │              right_entity_id: ::graph::types::knowledge::entity::EntityId(
 │                  draft_id: ::core::option::None(Null)
 │                  | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
 │                  entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
 │                  web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-│              )
+│              ),
+│              right_entity_provenance: ?
 │          )),
+│          metadata: ::graph::types::knowledge::entity::EntityMetadata(
+│              archived: Boolean,
+│              confidence: ::core::option::None(Null)
+│              | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+│              entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+│                  base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+│                  version: ::graph::ontology::OntologyTypeVersion(String)
+│              )>,
+│              properties: ?,
+│              provenance: ::graph::types::knowledge::entity::EntityProvenance(
+│                  edition: ?,
+│                  inferred: ?
+│              ),
+│              record_id: ::graph::types::knowledge::entity::RecordId(
+│                  edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+│                  entity_id: ::graph::types::knowledge::entity::EntityId(
+│                      draft_id: ::core::option::None(Null)
+│                      | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+│                      entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+│                      web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+│                  )
+│              ),
+│              temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+│                  decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+│                      end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                      | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                      start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                  )),
+│                  transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+│                      end: ::graph::temporal::UnboundedTemporalBound(Null)
+│                      | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+│                      start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+│                  ))
+│              )
+│          ),
 │          properties: ?
 │      )
 │  ): Boolean ->
 │      ::core::cmp::eq(
-│          vertex:0.id.entity_id.entity_uuid,
+│          vertex:0.metadata.record_id.entity_id.entity_uuid,
 │          ::graph::types::knowledge::entity::EntityUuid(
 │              ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
 │          )
 │      )
 └→ (
        ::graph::types::knowledge::entity::Entity(
-           id: ::graph::types::knowledge::entity::EntityRecordId(
-               edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-               entity_id: ::graph::types::knowledge::entity::EntityId(
-                   draft_id: ::core::option::None(Null)
-                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               )
+           encodings: ::graph::types::knowledge::entity::EntityEncodings(
+               vectors: ?
            ),
            link_data: ::core::option::None(Null)
            | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+               left_entity_confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                left_entity_id: ::graph::types::knowledge::entity::EntityId(
                    draft_id: ::core::option::None(Null)
                    | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                ),
+               left_entity_provenance: ?,
+               right_entity_confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
                right_entity_id: ::graph::types::knowledge::entity::EntityId(
                    draft_id: ::core::option::None(Null)
                    | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-               )
+               ),
+               right_entity_provenance: ?
            )),
+           metadata: ::graph::types::knowledge::entity::EntityMetadata(
+               archived: Boolean,
+               confidence: ::core::option::None(Null)
+               | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+               entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+                   base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+                   version: ::graph::ontology::OntologyTypeVersion(String)
+               )>,
+               properties: ?,
+               provenance: ::graph::types::knowledge::entity::EntityProvenance(
+                   edition: ?,
+                   inferred: ?
+               ),
+               record_id: ::graph::types::knowledge::entity::RecordId(
+                   edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                   entity_id: ::graph::types::knowledge::entity::EntityId(
+                       draft_id: ::core::option::None(Null)
+                       | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                       entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                       web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                   )
+               ),
+               temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+                   decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   )),
+                   transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                       end: ::graph::temporal::UnboundedTemporalBound(Null)
+                       | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                       start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+                   ))
+               )
+           ),
            properties: ?
        )
    ) -> Boolean
 
 ┌─ ::core::cmp::eq(
-│      vertex:0.id.entity_id.entity_uuid,
+│      vertex:0.metadata.record_id.entity_id.entity_uuid,
 │      ::graph::types::knowledge::entity::EntityUuid(
 │          ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
 │      )
@@ -493,10 +1041,10 @@
        ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String))
    ) -> Boolean
 
-┌─ vertex:0.id.entity_id.entity_uuid
+┌─ vertex:0.metadata.record_id.entity_id.entity_uuid
 └→ ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String))
 
-┌─ vertex:0.id.entity_id
+┌─ vertex:0.metadata.record_id.entity_id
 └→ ::graph::types::knowledge::entity::EntityId(
        draft_id: ::core::option::None(Null)
        | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
@@ -504,8 +1052,8 @@
        web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
    )
 
-┌─ vertex:0.id
-└→ ::graph::types::knowledge::entity::EntityRecordId(
+┌─ vertex:0.metadata.record_id
+└→ ::graph::types::knowledge::entity::RecordId(
        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
        entity_id: ::graph::types::knowledge::entity::EntityId(
            draft_id: ::core::option::None(Null)
@@ -515,9 +1063,21 @@
        )
    )
 
-┌─ vertex:0
-└→ ::graph::types::knowledge::entity::Entity(
-       id: ::graph::types::knowledge::entity::EntityRecordId(
+┌─ vertex:0.metadata
+└→ ::graph::types::knowledge::entity::EntityMetadata(
+       archived: Boolean,
+       confidence: ::core::option::None(Null)
+       | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+       entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+           base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+           version: ::graph::ontology::OntologyTypeVersion(String)
+       )>,
+       properties: ?,
+       provenance: ::graph::types::knowledge::entity::EntityProvenance(
+           edition: ?,
+           inferred: ?
+       ),
+       record_id: ::graph::types::knowledge::entity::RecordId(
            edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
            entity_id: ::graph::types::knowledge::entity::EntityId(
                draft_id: ::core::option::None(Null)
@@ -526,21 +1086,79 @@
                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
            )
        ),
+       temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+           decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           )),
+           transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+               end: ::graph::temporal::UnboundedTemporalBound(Null)
+               | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+               start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+           ))
+       )
+   )
+
+┌─ vertex:0
+└→ ::graph::types::knowledge::entity::Entity(
+       encodings: ::graph::types::knowledge::entity::EntityEncodings(vectors: ?),
        link_data: ::core::option::None(Null)
        | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+           left_entity_confidence: ::core::option::None(Null)
+           | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
            left_entity_id: ::graph::types::knowledge::entity::EntityId(
                draft_id: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
            ),
+           left_entity_provenance: ?,
+           right_entity_confidence: ::core::option::None(Null)
+           | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
            right_entity_id: ::graph::types::knowledge::entity::EntityId(
                draft_id: ::core::option::None(Null)
                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-           )
+           ),
+           right_entity_provenance: ?
        )),
+       metadata: ::graph::types::knowledge::entity::EntityMetadata(
+           archived: Boolean,
+           confidence: ::core::option::None(Null)
+           | ::core::option::Some(::graph::types::knowledge::entity::Confidence(Number)),
+           entity_type_ids: List<::graph::types::ontology::VersionedUrl(
+               base_url: ::graph::types::ontology::BaseUrl(::core::url::Url(String)),
+               version: ::graph::ontology::OntologyTypeVersion(String)
+           )>,
+           properties: ?,
+           provenance: ::graph::types::knowledge::entity::EntityProvenance(
+               edition: ?,
+               inferred: ?
+           ),
+           record_id: ::graph::types::knowledge::entity::RecordId(
+               edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+               entity_id: ::graph::types::knowledge::entity::EntityId(
+                   draft_id: ::core::option::None(Null)
+                   | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                   entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                   web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+               )
+           ),
+           temporal_versioning: ::graph::types::knowledge::entity::TemporalMetadata(
+               decision_time: ::graph::temporal::DecisionTime(::graph::temporal::Interval(
+                   end: ::graph::temporal::UnboundedTemporalBound(Null)
+                   | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                   start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               )),
+               transaction_time: ::graph::temporal::TransactionTime(::graph::temporal::Interval(
+                   end: ::graph::temporal::UnboundedTemporalBound(Null)
+                   | ::graph::temporal::ExclusiveTemporalBound(::graph::temporal::Timestamp(Integer)),
+                   start: ::graph::temporal::InclusiveTemporalBound(::graph::temporal::Timestamp(Integer))
+               ))
+           )
+       ),
        properties: ?
    )
 

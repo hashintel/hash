@@ -1,5 +1,5 @@
-import { Span } from "../span/span";
-import * as TagsInput from "./tags-input";
+import { Span } from "../span";
+import * as TagsInput from "../tags-input";
 
 export const App = () => {
   return (

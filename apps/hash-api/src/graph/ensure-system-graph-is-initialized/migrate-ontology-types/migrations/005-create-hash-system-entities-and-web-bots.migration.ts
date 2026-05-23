@@ -14,11 +14,12 @@ import {
   ensureSystemWebEntitiesExist,
   owningWebs,
 } from "../../system-webs-and-entities";
-import type { MigrationFunction } from "../types";
 import {
   getCurrentHashSystemEntityTypeId,
   getExistingUsersAndOrgs,
 } from "../util";
+
+import type { MigrationFunction } from "../types";
 
 const migrate: MigrationFunction = async ({
   authentication,

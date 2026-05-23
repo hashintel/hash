@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/refractive",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "HASH Refractive Filter Components",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
@@ -22,27 +22,27 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "vite build",
+    "build-storybook": "storybook build",
     "dev": "storybook dev -p 6006",
     "dev:lib": "vite build --watch",
-    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
-    "prepublishOnly": "yarn build",
-    "build-storybook": "storybook build"
+    "prepublishOnly": "yarn build"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "0.2.1",
     "@storybook/react-vite": "10.2.19",
-    "@types/react": "19.2.7",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@typescript/native-preview": "7.0.0-dev.20260315.1",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@vitejs/plugin-react": "6.0.1",
     "babel-plugin-react-compiler": "1.0.0",
-    "oxlint": "1.55.0",
-    "oxlint-tsgolint": "0.17.0",
-    "rolldown-plugin-dts": "0.22.5",
+    "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
+    "rolldown-plugin-dts": "0.25.0",
     "storybook": "10.2.19",
-    "vite": "8.0.10"
+    "vite": "8.0.12"
   },
   "peerDependencies": {
     "react": "^19.0.0",

@@ -8,7 +8,7 @@ fn {closure@4294967040}() -> Integer {
     let %2: Integer
 
     bb0(): {
-        %0 = 1
+        %0 = true
 
         switchInt(%0) -> [0: bb2(), 1: bb1()]
     }

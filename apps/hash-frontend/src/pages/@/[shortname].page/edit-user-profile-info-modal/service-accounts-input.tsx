@@ -1,23 +1,25 @@
 import {
-  IconButton,
-  Select,
-  TextField,
-  XMarkRegularIcon,
-} from "@hashintel/design-system";
-import {
   Box,
   outlinedInputClasses,
   selectClasses,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 
-import type { ServiceAccountKind } from "../../../../lib/user-and-org";
+import {
+  IconButton,
+  Select,
+  TextField,
+  XMarkRegularIcon,
+} from "@hashintel/design-system";
+
 import { PlusRegularIcon } from "../../../../shared/icons/plus-regular";
 import { Button, MenuItem } from "../../../../shared/ui";
-import type { UserProfileFormData } from "./user-profile-info-form";
 import { urlRegex } from "./util";
+
+import type { ServiceAccountKind } from "../../../../lib/user-and-org";
+import type { UserProfileFormData } from "./user-profile-info-form";
+import type { FunctionComponent } from "react";
 
 const serviceAccountKindOptions: Record<ServiceAccountKind, string> = {
   linkedinAccount: "LinkedIn",

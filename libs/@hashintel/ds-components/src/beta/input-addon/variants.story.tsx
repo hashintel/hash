@@ -1,9 +1,10 @@
-import { Stack } from "@hashintel/ds-helpers/jsx";
 import { EuroIcon } from "lucide-react";
 
-import { Group } from "../group/group";
-import { Input } from "../input/input";
-import { InputAddon } from "./input-addon";
+import { Stack } from "@hashintel/ds-helpers/jsx";
+
+import { Group } from "../group";
+import { Input } from "../input";
+import { InputAddon } from "../input-addon";
 
 export const App = () => {
   const variants = ["outline", "subtle", "surface"] as const;

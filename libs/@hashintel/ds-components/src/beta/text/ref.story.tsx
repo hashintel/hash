@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-import { Text } from "./text";
+import { Text } from "../text";
 
 export const App = () => {
   const ref = useRef<HTMLParagraphElement>(null);

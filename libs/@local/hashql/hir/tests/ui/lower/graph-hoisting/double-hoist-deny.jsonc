@@ -36,8 +36,8 @@
                   "_",
                   [
                     "==",
-                    "vertex1.id.entity_id.entity_uuid",
-                    "vertex2.id.entity_id.entity_uuid"
+                    "vertex1.metadata.record_id.entity_id.entity_uuid",
+                    "vertex2.metadata.record_id.entity_id.entity_uuid"
                   ]
                 ]
               ]

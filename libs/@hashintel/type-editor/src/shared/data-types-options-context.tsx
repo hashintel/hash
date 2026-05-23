@@ -1,17 +1,11 @@
-import type {
-  ArrayItemsSchema,
-  ArraySchema,
-  DataType,
-  TupleConstraints,
-  ValueConstraints,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import {
   faList,
   faListCheck,
   faListOl,
   faListUl,
 } from "@fortawesome/free-solid-svg-icons";
+import { createContext, useCallback, useContext, useMemo } from "react";
+
 import {
   fa100,
   faAtRegular,
@@ -31,8 +25,16 @@ import {
   measurementTypeTitles,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
+
+import type {
+  ArrayItemsSchema,
+  ArraySchema,
+  DataType,
+  TupleConstraints,
+  ValueConstraints,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
 
 const chipColors = {
   blue: {

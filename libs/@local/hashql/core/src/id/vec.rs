@@ -6,7 +6,7 @@ use core::{
     fmt::{self, Debug},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    ops::{Deref, DerefMut},
+    ops::{Deref, DerefMut, RangeBounds},
     slice,
 };
 
@@ -39,6 +39,7 @@ pub struct IdVec<I, T, A: Allocator = Global> {
 }
 
 impl<I, T, A: Allocator> IdVec<I, T, A> {
+    /// Returns a reference to the underlying allocator.
     #[inline]
     pub fn allocator(&self) -> &A {
         self.raw.allocator()
@@ -125,7 +126,23 @@ where
     I: Id,
     A: Allocator,
 {
-    /// Creates an `IdVec` from a raw `Vec`.
+    /// Creates an `IdVec` from a raw [`Vec`].
+    ///
+    /// No validation is performed on the contents. The caller is responsible for ensuring the
+    /// vector's length stays within the valid range for `I`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
+    /// # newtype!(struct NodeId(u32 is 0..=100));
+    /// let raw = vec!["a", "b", "c"];
+    /// let vec = IdVec::<NodeId, _>::from_raw(raw);
+    ///
+    /// assert_eq!(vec.len(), 3);
+    /// assert_eq!(vec[NodeId::new(0)], "a");
+    /// assert_eq!(vec[NodeId::new(2)], "c");
+    /// ```
     #[inline]
     pub const fn from_raw(raw: Vec<T, A>) -> Self {
         Self {
@@ -203,6 +220,25 @@ where
         Self::from_domain_in(elem, domain, domain.raw.allocator().clone())
     }
 
+    /// Creates an `IdVec` with the same length as `domain`, deriving each element from the
+    /// corresponding domain entry.
+    ///
+    /// The closure receives each ID and a reference to the domain element at that ID.
+    /// The allocator is cloned from the domain vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
+    /// # newtype!(struct NodeId(u32 is 0..=100));
+    /// let names: IdVec<NodeId, &str> = IdVec::from_raw(vec!["alice", "bob", "charlie"]);
+    /// let lengths = IdVec::<NodeId, usize>::from_domain_derive(|_id, name| name.len(), &names);
+    ///
+    /// assert_eq!(lengths.len(), names.len());
+    /// assert_eq!(lengths[NodeId::new(0)], 5); // "alice"
+    /// assert_eq!(lengths[NodeId::new(1)], 3); // "bob"
+    /// assert_eq!(lengths[NodeId::new(2)], 7); // "charlie"
+    /// ```
     #[inline]
     pub fn from_domain_derive<U>(func: impl FnMut(I, &U) -> T, domain: &IdVec<I, U, A>) -> Self
     where
@@ -225,6 +261,12 @@ where
         Self::from_raw(alloc::vec::from_elem_in(elem, domain.len(), alloc))
     }
 
+    /// Creates an `IdVec` with the same length as `domain`, deriving each element from the
+    /// corresponding domain entry, using a custom allocator.
+    ///
+    /// This is the allocator-aware version of [`from_domain_derive`].
+    ///
+    /// [`from_domain_derive`]: IdVec::from_domain_derive
     #[inline]
     pub fn from_domain_derive_in<U>(
         mut func: impl FnMut(I, &U) -> T,
@@ -403,6 +445,9 @@ where
         self.raw.truncate(index.as_usize());
     }
 
+    /// Clones and appends all elements in `other` to this vector.
+    ///
+    /// See [`Vec::extend_from_slice`] for details.
     #[inline]
     pub fn extend_from_slice(&mut self, other: &IdSlice<I, T>)
     where
@@ -411,11 +456,40 @@ where
         self.raw.extend_from_slice(other.as_raw());
     }
 
+    /// Moves all elements from `other` into this vector, leaving `other` empty.
+    ///
+    /// See [`Vec::append`] for details.
     #[inline]
     pub fn append(&mut self, other: &mut Self) {
         self.raw.append(&mut other.raw);
     }
 
+    /// Returns an iterator over `(I, T)` pairs, consuming the vector.
+    ///
+    /// Each element is paired with its corresponding [`Id`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
+    /// # newtype!(struct NodeId(u32 is 0..=100));
+    /// let vec: IdVec<NodeId, &str> = IdVec::from_raw(vec!["x", "y", "z"]);
+    /// let pairs: Vec<_> = vec.into_iter_enumerated().collect();
+    ///
+    /// assert_eq!(pairs[0], (NodeId::new(0), "x"));
+    /// assert_eq!(pairs[1], (NodeId::new(1), "y"));
+    /// assert_eq!(pairs[2], (NodeId::new(2), "z"));
+    /// ```
+    ///
+    /// The iterator can be reversed:
+    ///
+    /// ```
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
+    /// # newtype!(struct NodeId(u32 is 0..=100));
+    /// let vec: IdVec<NodeId, &str> = IdVec::from_raw(vec!["a", "b"]);
+    /// let last = vec.into_iter_enumerated().next_back().unwrap();
+    /// assert_eq!(last, (NodeId::new(1), "b"));
+    /// ```
     pub fn into_iter_enumerated(
         self,
     ) -> impl DoubleEndedIterator<Item = (I, T)> + ExactSizeIterator {
@@ -426,6 +500,20 @@ where
             .into_iter()
             .enumerate()
             .map(|(index, value)| (I::from_usize(index), value))
+    }
+
+    /// Copies elements from the `src` range to a position starting at `dst` within the vector.
+    ///
+    /// See [`slice::copy_within`](prim@slice#method.copy_within) for details.
+    #[inline]
+    pub fn copy_within(&mut self, src: impl RangeBounds<I>, dst: I)
+    where
+        T: Copy,
+    {
+        let start = src.start_bound().copied().map(Id::as_usize);
+        let end = src.end_bound().copied().map(Id::as_usize);
+
+        self.raw.copy_within((start, end), dst.as_usize());
     }
 }
 

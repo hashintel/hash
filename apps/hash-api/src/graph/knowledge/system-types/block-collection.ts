@@ -1,8 +1,3 @@
-import type {
-  Entity,
-  EntityId,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   HashLinkEntity,
@@ -13,11 +8,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
-import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import type { PositionInput } from "../../../graphql/api-types.gen";
-import type { ImpureGraphFunction } from "../../context-types";
 import {
   getEntityOutgoingLinks,
   getLatestEntityById,
@@ -27,8 +18,18 @@ import {
   getLinkEntityRightEntity,
   updateLinkEntity,
 } from "../primitive/link-entity";
-import type { Block } from "./block";
 import { getBlockFromEntity } from "./block";
+
+import type { PositionInput } from "../../../graphql/api-types.gen";
+import type { ImpureGraphFunction } from "../../context-types";
+import type { Block } from "./block";
+import type {
+  Entity,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
+import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
 /**
  * Get the blocks in this blockCollection.

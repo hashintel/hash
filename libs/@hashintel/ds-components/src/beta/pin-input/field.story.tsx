@@ -1,5 +1,5 @@
-import * as Field from "../field/field";
-import * as PinInput from "./pin-input";
+import * as Field from "../field";
+import * as PinInput from "../pin-input";
 
 export const App = () => {
   return (

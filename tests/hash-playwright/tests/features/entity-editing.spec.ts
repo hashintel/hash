@@ -1,8 +1,9 @@
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
-import type { Locator, Page } from "../shared/runtime";
 import { expect, test } from "../shared/runtime";
+
+import type { Locator, Page } from "../shared/runtime";
 
 /**
  * This gets the text for the requested cell in the hidden html table,

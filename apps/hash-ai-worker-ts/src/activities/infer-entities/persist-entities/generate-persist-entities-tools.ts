@@ -1,7 +1,6 @@
-import type { JsonObject } from "@blockprotocol/core";
-
 import type { ProposedEntityToolCreationsByType } from "../shared/generate-propose-entities-tools.js";
 import type { PropertyValueWithSimplifiedProperties } from "../shared/map-simplified-properties-to-properties.js";
+import type { JsonObject } from "@blockprotocol/core";
 
 export type ProposedEntityToolUpdatesByType = Record<
   string,

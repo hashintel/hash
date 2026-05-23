@@ -1,10 +1,13 @@
-import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
-import type {
-  Entity,
-  EntityId,
-  PartialEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { Box, Stack, TableCell, Typography } from "@mui/material";
+import {
+  memo,
+  type ReactElement,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
@@ -17,35 +20,13 @@ import {
   generateLinkEntityLabel,
 } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import { Box, Stack, TableCell, Typography } from "@mui/material";
-import {
-  memo,
-  type ReactElement,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 
 import { ClickableCellChip } from "../../../../clickable-cell-chip";
-import type {
-  CreateVirtualizedRowContentFn,
-  VirtualizedTableColumn,
-  VirtualizedTableRow,
-} from "../../../../virtualized-table";
 import { VirtualizedTable } from "../../../../virtualized-table";
 import { virtualizedTableHeaderHeight } from "../../../../virtualized-table/header";
-import type {
-  VirtualizedTableFilterDefinition,
-  VirtualizedTableFilterDefinitionsByFieldId,
-  VirtualizedTableFilterValue,
-  VirtualizedTableFilterValuesByFieldId,
-} from "../../../../virtualized-table/header/filter";
 import { isValueIncludedInFilter } from "../../../../virtualized-table/header/filter";
-import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
 import { useVirtualizedTableFilterState } from "../../../../virtualized-table/use-filter-state";
 import { useEntityEditor } from "../../entity-editor-context";
-import type { CustomEntityLinksColumn } from "../../shared/types";
 import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
@@ -53,6 +34,27 @@ import {
   linksTableRowHeight,
   maxLinksTableHeight,
 } from "../shared/table-styling";
+
+import type {
+  CreateVirtualizedRowContentFn,
+  VirtualizedTableColumn,
+  VirtualizedTableRow,
+} from "../../../../virtualized-table";
+import type {
+  VirtualizedTableFilterDefinition,
+  VirtualizedTableFilterDefinitionsByFieldId,
+  VirtualizedTableFilterValue,
+  VirtualizedTableFilterValuesByFieldId,
+} from "../../../../virtualized-table/header/filter";
+import type { VirtualizedTableSort } from "../../../../virtualized-table/header/sort";
+import type { CustomEntityLinksColumn } from "../../shared/types";
+import type { LinkEntityAndLeftEntity } from "@blockprotocol/graph";
+import type {
+  Entity,
+  EntityId,
+  PartialEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 type FieldId = "linkedFrom" | "linkTypes" | "linkedFromTypes" | "link";
 

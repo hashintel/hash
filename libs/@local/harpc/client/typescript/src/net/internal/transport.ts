@@ -25,15 +25,15 @@ import {
   Stream,
   Struct,
 } from "effect";
-import type { NonEmptyArray } from "effect/Array";
 import { type Libp2p, createLibp2p } from "libp2p";
 
 import * as NetworkLogger from "../NetworkLogger.js";
-import type { Multiaddr, TransportConfig } from "../Transport.js";
-
 import * as Dns from "./dns.js";
 import * as HashableMultiaddr from "./multiaddr.js";
 import * as PeerConnection from "./peerConnection.js";
+
+import type { Multiaddr, TransportConfig } from "../Transport.js";
+import type { NonEmptyArray } from "effect/Array";
 
 interface TransportState {
   config: TransportConfig;

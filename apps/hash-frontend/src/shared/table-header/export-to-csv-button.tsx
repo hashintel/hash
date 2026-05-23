@@ -1,9 +1,10 @@
 import { Tooltip } from "@mui/material";
 import { unparse } from "papaparse";
-import type { FunctionComponent } from "react";
 import { useCallback } from "react";
 
 import { TableHeaderButton } from "./table-header-button";
+
+import type { FunctionComponent } from "react";
 
 type CsvFile = {
   title: string;

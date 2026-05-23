@@ -5,12 +5,12 @@ use crate::{
         locals::TypeDef,
         std_lib::{self, ModuleDef, StandardLibraryModule, core::func},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
     r#type::TypeId,
 };
 
 pub(in crate::module::std_lib) struct Tmp {
-    _dependencies: (std_lib::graph::Graph,),
+    _dependencies: (std_lib::graph::temporal::Temporal,),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Tmp {
@@ -22,11 +22,10 @@ impl<'heap> StandardLibraryModule<'heap> for Tmp {
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
-        let heap = lib.heap;
 
         let query_temporal_axes_ty = lib
-            .manifest::<std_lib::graph::Graph>()
-            .expect_type(heap.intern_symbol("QueryTemporalAxes"));
+            .manifest::<std_lib::graph::temporal::Temporal>()
+            .expect_type(sym::QueryTemporalAxes);
 
         // ::graph::tmp::decision_time_now() -> TimeAxis
         func(

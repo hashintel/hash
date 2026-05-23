@@ -1,5 +1,5 @@
-import { Button } from "../button/button";
-import { Group } from "./group";
+import { Button } from "../button";
+import { Group } from "../group";
 
 export const App = () => {
   return (

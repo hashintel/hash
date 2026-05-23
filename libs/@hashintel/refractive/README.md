@@ -46,5 +46,5 @@ const RefractiveButton = refractive(Button);
   }}
 >
   Click Me
-</RefractiveButton>
+</RefractiveButton>;
 ```

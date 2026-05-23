@@ -1,5 +1,6 @@
-import { EditableField } from "@hashintel/block-design-system";
 import { useController, useFormContext } from "react-hook-form";
+
+import { EditableField } from "@hashintel/block-design-system";
 
 import type { DataTypeFormData } from "../data-type-form";
 

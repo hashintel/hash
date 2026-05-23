@@ -1,8 +1,7 @@
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
-import type { DepartsFrom as HashDepartsFrom } from "@local/hash-isomorphic-utils/system-types/flight";
-
 import type { AeroApiScheduledFlight } from "../types.js";
 import type { MappingFunction } from "./mapping-types.js";
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import type { DepartsFrom as HashDepartsFrom } from "@local/hash-isomorphic-utils/system-types/flight";
 
 /**
  * Input type for departure link mapping from AeroAPI data.

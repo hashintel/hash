@@ -19,13 +19,13 @@
 //!
 //! | Transition | Allowed? | Cost |
 //! |------------|----------|------|
-//! | Same backend (A → A) | Always | 0 |
-//! | Any → Interpreter | Always | Transfer cost |
-//! | Other → Postgres | Never | — |
+//! | Same backend (A -> A) | Always | 0 |
+//! | Any -> Interpreter | Always | Transfer cost |
+//! | Other -> Postgres | Never | — |
 //! | Any Postgres in loop | Never | — |
-//! | `GraphRead` edge | Interpreter → Interpreter only | 0 |
+//! | `GraphRead` edge | Interpreter -> Interpreter only | 0 |
 //! | `Goto` edge | Any supported transition | Transfer cost |
-//! | `SwitchInt` edge | Same-backend or → Interpreter only | Transfer cost |
+//! | `SwitchInt` edge | Same-backend or -> Interpreter only | Transfer cost |
 //!
 //! Transfer cost is computed from the estimated size of live locals that must cross the edge.
 //!
@@ -34,8 +34,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
-    iter,
-    ops::{Index, IndexMut},
+    ops::{AddAssign, Index, IndexMut},
 };
 
 use hashql_core::{
@@ -51,8 +50,10 @@ use hashql_core::{
 };
 
 use super::{
-    Cost,
+    Cost, VertexType,
+    block_partitioned_vec::BlockPartitionedVec,
     target::{TargetBitSet, TargetId},
+    traversal::{TransferCostConfig, TraversalPathBitSet},
 };
 use crate::{
     body::{
@@ -62,15 +63,13 @@ use crate::{
         local::Local,
         terminator::TerminatorKind,
     },
-    pass::{
-        analysis::{
-            dataflow::{
-                TraversalLivenessAnalysis,
-                framework::{DataflowAnalysis as _, DataflowResults},
-            },
-            size_estimation::{BodyFootprint, Cardinality, InformationRange},
+    macros::forward_ref_op_assign,
+    pass::analysis::{
+        dataflow::{
+            TraversalLivenessAnalysis,
+            framework::{DataflowAnalysis as _, DataflowResults},
         },
-        transform::Traversals,
+        size_estimation::{BodyFootprint, Cardinality, InformationRange},
     },
 };
 
@@ -84,7 +83,7 @@ mod tests;
 ///
 /// # Invariants
 ///
-/// - Same-backend transitions (`A → A`) always have cost 0, enforced by [`insert`](Self::insert)
+/// - Same-backend transitions (`A -> A`) always have cost 0, enforced by [`insert`](Self::insert)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct TransMatrix {
     matrix: [Option<Cost>; TargetId::VARIANT_COUNT * TargetId::VARIANT_COUNT],
@@ -100,13 +99,13 @@ impl TransMatrix {
     }
 
     #[inline]
-    fn offset(from: TargetId, to: TargetId) -> usize {
+    const fn offset(from: TargetId, to: TargetId) -> usize {
         from.as_usize() * TargetId::VARIANT_COUNT + to.as_usize()
     }
 
     #[inline]
     #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
-    fn from_offset(offset: usize) -> (TargetId, TargetId) {
+    const fn from_offset(offset: usize) -> (TargetId, TargetId) {
         let from = TargetId::from_usize(offset / TargetId::VARIANT_COUNT);
         let to = TargetId::from_usize(offset % TargetId::VARIANT_COUNT);
         (from, to)
@@ -115,13 +114,13 @@ impl TransMatrix {
     /// Returns the cost for transitioning from `from` to `to`, or `None` if disallowed.
     #[inline]
     #[must_use]
-    pub(crate) fn get(&self, from: TargetId, to: TargetId) -> Option<Cost> {
+    pub(crate) const fn get(&self, from: TargetId, to: TargetId) -> Option<Cost> {
         self.matrix[Self::offset(from, to)]
     }
 
     #[inline]
     #[must_use]
-    pub(crate) fn contains(&self, from: TargetId, to: TargetId) -> bool {
+    pub(crate) const fn contains(&self, from: TargetId, to: TargetId) -> bool {
         self.matrix[Self::offset(from, to)].is_some()
     }
 
@@ -146,7 +145,7 @@ impl TransMatrix {
 
     /// Removes all incoming transitions to `target` from other backends.
     ///
-    /// Self-loops (`target` → `target`) are preserved.
+    /// Self-loops (`target` -> `target`) are preserved.
     #[inline]
     pub(crate) fn remove_incoming(&mut self, target: TargetId) {
         for source in TargetId::all() {
@@ -221,6 +220,20 @@ impl IndexMut<(TargetId, TargetId)> for TransMatrix {
     }
 }
 
+impl AddAssign<Self> for TransMatrix {
+    /// Element-wise saturating addition. Only entries where both matrices have `Some` are added;
+    /// `None` entries in either matrix are left unchanged.
+    fn add_assign(&mut self, rhs: Self) {
+        for (entry, overhead) in self.matrix.iter_mut().zip(rhs.matrix) {
+            if let (Some(cost), Some(overhead)) = (entry, overhead) {
+                *cost = cost.saturating_add(overhead);
+            }
+        }
+    }
+}
+
+forward_ref_op_assign!(impl AddAssign<Self>::add_assign for TransMatrix);
+
 /// Collection of [`TransMatrix`] entries for all terminator edges in a body.
 ///
 /// Indexed by [`BasicBlockId`] via [`of`](Self::of), returning a slice of matrices corresponding
@@ -238,54 +251,16 @@ impl IndexMut<(TargetId, TargetId)> for TransMatrix {
 /// [`Return`]: TerminatorKind::Return
 /// [`Unreachable`]: TerminatorKind::Unreachable
 #[derive(Debug)]
-pub(crate) struct TerminatorCostVec<A: Allocator = Global> {
-    offsets: Box<BasicBlockSlice<u32>, A>,
-    matrices: Vec<TransMatrix, A>,
-}
+pub(crate) struct TerminatorCostVec<A: Allocator = Global>(BlockPartitionedVec<TransMatrix, A>);
 
-impl<A: Allocator> TerminatorCostVec<A> {
-    #[expect(unsafe_code)]
-    fn compute_offsets(
-        mut iter: impl ExactSizeIterator<Item = u32>,
-        alloc: A,
-    ) -> (Box<BasicBlockSlice<u32>, A>, usize) {
-        let mut offsets = Box::new_uninit_slice_in(iter.len() + 1, alloc);
-        let mut running_offset = 0_u32;
-
-        offsets[0].write(0);
-
-        let (_, rest) = offsets[1..].write_iter(iter::from_fn(|| {
-            let successor_count = iter.next()?;
-            running_offset += successor_count;
-            Some(running_offset)
-        }));
-
-        debug_assert!(rest.is_empty());
-        debug_assert_eq!(iter.len(), 0);
-
-        // SAFETY: All elements initialized by write_iter loop.
-        let offsets = unsafe { offsets.assume_init() };
-        let offsets = BasicBlockSlice::from_boxed_slice(offsets);
-
-        (offsets, running_offset as usize)
-    }
-
-    fn from_successor_counts(iter: impl ExactSizeIterator<Item = u32>, alloc: A) -> Self
-    where
-        A: Clone,
-    {
-        let (offsets, total_edges) = Self::compute_offsets(iter, alloc.clone());
-        let matrices = alloc::vec::from_elem_in(TransMatrix::new(), total_edges, alloc);
-
-        Self { offsets, matrices }
-    }
-
+impl<A: Allocator + Clone> TerminatorCostVec<A> {
     /// Creates a cost vector sized for `blocks`, with all transitions initially disallowed.
-    pub(crate) fn new(blocks: &BasicBlocks, alloc: A) -> Self
-    where
-        A: Clone,
-    {
-        Self::from_successor_counts(blocks.iter().map(Self::successor_count), alloc)
+    pub(crate) fn new(blocks: &BasicBlocks, alloc: A) -> Self {
+        Self(BlockPartitionedVec::new_in(
+            blocks.iter().map(|block| Self::successor_count(block)),
+            TransMatrix::new(),
+            alloc,
+        ))
     }
 
     #[expect(clippy::cast_possible_truncation)]
@@ -296,25 +271,27 @@ impl<A: Allocator> TerminatorCostVec<A> {
             TerminatorKind::Return(_) | TerminatorKind::Unreachable => 0,
         }
     }
+}
 
+impl<A: Allocator> TerminatorCostVec<A> {
     pub(crate) const fn len(&self) -> usize {
-        self.matrices.len()
+        self.0.len()
+    }
+
+    /// Returns the number of blocks in the partition.
+    #[cfg(test)]
+    pub(crate) fn block_count(&self) -> usize {
+        self.0.block_count()
     }
 
     /// Returns the transition matrices for all successor edges of `block`.
     pub(crate) fn of(&self, block: BasicBlockId) -> &[TransMatrix] {
-        let start = self.offsets[block] as usize;
-        let end = self.offsets[block.plus(1)] as usize;
-
-        &self.matrices[start..end]
+        self.0.of(block)
     }
 
     /// Returns mutable transition matrices for all successor edges of `block`.
     pub(crate) fn of_mut(&mut self, block: BasicBlockId) -> &mut [TransMatrix] {
-        let start = self.offsets[block] as usize;
-        let end = self.offsets[block.plus(1)] as usize;
-
-        &mut self.matrices[start..end]
+        self.0.of_mut(block)
     }
 }
 
@@ -339,6 +316,27 @@ impl<N, S> Metadata<N, S> for ComponentSizeMetadata {
     fn merge_reachable(&mut self, _: &mut Self::Annotation, _: &Self::Annotation) {}
 }
 
+/// Fixed overhead for switching between different execution backends, independent of how much
+/// data crosses the edge.
+fn backend_switch_cost() -> TransMatrix {
+    let mut matrix = TransMatrix::new();
+
+    // Postgres -> Interpreter: continuation ROW + block id + locals/values arrays + interpreter
+    // resume. This is the heaviest switch path.
+    matrix.insert(TargetId::Postgres, TargetId::Interpreter, cost!(8));
+
+    // Postgres -> Embedding: via interpreter (P->I + I->E = 8+4).
+    matrix.insert(TargetId::Postgres, TargetId::Embedding, cost!(12));
+
+    // Interpreter -> Embedding: serialize embedding request.
+    matrix.insert(TargetId::Interpreter, TargetId::Embedding, cost!(4));
+
+    // Embedding -> Interpreter: deserialize embedding result.
+    matrix.insert(TargetId::Embedding, TargetId::Interpreter, cost!(4));
+
+    matrix
+}
+
 /// Parameters for populating a single edge's [`TransMatrix`].
 struct PopulateEdgeMatrix {
     /// Backends the source block can execute on.
@@ -348,6 +346,8 @@ struct PopulateEdgeMatrix {
 
     /// Cost of transferring live data across this edge.
     transfer_cost: Cost,
+    /// Per-pair fixed overhead for switching backends.
+    switch_cost: TransMatrix,
     /// Whether this edge is part of a loop (disables Postgres transitions).
     is_in_loop: bool,
 }
@@ -359,6 +359,7 @@ impl PopulateEdgeMatrix {
         self.add_interpreter_fallback(matrix);
         self.add_terminator_specific_transitions(matrix, terminator);
         self.apply_postgres_restrictions(matrix);
+        *matrix += self.switch_cost;
     }
 
     /// Adds zero-cost transitions for staying on the same backend.
@@ -458,33 +459,34 @@ impl PopulateEdgeMatrix {
 /// ```
 pub(crate) struct TerminatorPlacement<S: Allocator> {
     scratch: S,
-    entity_size: InformationRange,
+    transfer_config: TransferCostConfig,
 }
 
 impl<S: Allocator> TerminatorPlacement<S> {
     /// Creates a new placement analyzer.
     ///
-    /// The `entity_size` estimate is used when computing transfer costs — it represents the
-    /// expected size of entity data that may need to cross backend boundaries.
+    /// The [`TransferCostConfig`] provides size estimates for the variable-cost entity fields
+    /// (properties, embeddings, provenance). Fixed-size fields (UUIDs, timestamps, scalars)
+    /// use constants derived from the entity schema.
     #[inline]
     #[must_use]
-    pub(crate) const fn new_in(entity_size: InformationRange, scratch: S) -> Self {
+    pub(crate) const fn new_in(transfer_config: TransferCostConfig, scratch: S) -> Self {
         Self {
             scratch,
-            entity_size,
+            transfer_config,
         }
     }
 
-    fn compute_liveness<'heap>(
+    fn compute_liveness(
         &self,
-        body: &Body<'heap>,
-        traversals: &Traversals<'heap>,
-    ) -> BasicBlockVec<DenseBitSet<Local>, &S> {
+        body: &Body<'_>,
+        vertex: VertexType,
+    ) -> BasicBlockVec<(DenseBitSet<Local>, TraversalPathBitSet), &S> {
         let DataflowResults {
             analysis: _,
             entry_states: live_in,
             exit_states: _,
-        } = TraversalLivenessAnalysis { traversals }.iterate_to_fixpoint_in(body, &self.scratch);
+        } = TraversalLivenessAnalysis { vertex }.iterate_to_fixpoint_in(body, &self.scratch);
 
         live_in
     }
@@ -500,16 +502,16 @@ impl<S: Allocator> TerminatorPlacement<S> {
     pub(crate) fn terminator_placement<'heap>(
         &self,
         body: &Body<'heap>,
+        vertex: VertexType,
         footprint: &BodyFootprint<&'heap Heap>,
-        traversals: &Traversals<'heap>,
         targets: &BasicBlockSlice<TargetBitSet>,
     ) -> TerminatorCostVec<Global> {
-        self.terminator_placement_in(body, footprint, traversals, targets, Global)
+        self.terminator_placement_in(body, vertex, footprint, targets, Global)
     }
 
     /// Computes transition costs for all terminator edges in `body`.
     ///
-    /// For each edge, determines which (source → destination) backend transitions are valid and
+    /// For each edge, determines which (source -> destination) backend transitions are valid and
     /// their associated costs. The `targets` slice provides the set of backends each block can
     /// execute on (from statement placement), and `footprint` provides size estimates for
     /// computing transfer costs.
@@ -519,13 +521,14 @@ impl<S: Allocator> TerminatorPlacement<S> {
     pub(crate) fn terminator_placement_in<'heap, A: Allocator + Clone>(
         &self,
         body: &Body<'heap>,
+        vertex: VertexType,
         footprint: &BodyFootprint<&'heap Heap>,
-        traversals: &Traversals<'heap>,
         targets: &BasicBlockSlice<TargetBitSet>,
         alloc: A,
     ) -> TerminatorCostVec<A> {
-        let live_in = self.compute_liveness(body, traversals);
+        let live_in = self.compute_liveness(body, vertex);
         let scc = self.compute_scc(body);
+        let switch_cost = backend_switch_cost();
 
         let mut output = TerminatorCostVec::new(&body.basic_blocks, alloc);
         let mut required_locals = DenseBitSet::new_empty(body.local_decls.len());
@@ -551,6 +554,7 @@ impl<S: Allocator> TerminatorPlacement<S> {
                     source_targets: block_targets,
                     target_targets: successor_targets,
                     transfer_cost,
+                    switch_cost,
                     is_in_loop,
                 }
                 .populate(&mut matrices[edge_index], &block.terminator.kind);
@@ -562,18 +566,21 @@ impl<S: Allocator> TerminatorPlacement<S> {
 
     /// Computes the cost of transferring live data across an edge to `successor`.
     ///
-    /// The cost is the sum of estimated sizes for all locals that are:
-    /// - Live at the successor's entry
-    /// - Passed as parameters to the successor block
+    /// The cost has two components:
+    /// - **Local cost**: estimated sizes of all non-vertex locals that are live at the successor's
+    ///   entry or passed as block parameters.
+    /// - **Path cost**: estimated sizes of all live entity field paths, computed from per-path
+    ///   transfer sizes rather than the monolithic entity size.
     fn compute_transfer_cost(
         &self,
         required_locals: &mut DenseBitSet<Local>,
         body: &Body,
         footprint: &BodyFootprint<&Heap>,
-        live_in: &BasicBlockSlice<DenseBitSet<Local>>,
+        live_in: &BasicBlockSlice<(DenseBitSet<Local>, TraversalPathBitSet)>,
         successor: BasicBlockId,
     ) -> Cost {
-        required_locals.clone_from(&live_in[successor]);
+        let (locals, _) = &live_in[successor];
+        required_locals.clone_from(locals);
 
         for &param in body.basic_blocks[successor].params {
             required_locals.insert(param);
@@ -595,7 +602,10 @@ impl<S: Allocator> TerminatorPlacement<S> {
 
         for local in locals {
             let Some(size_estimate) = footprint.locals[local].average(
-                &[InformationRange::zero(), self.entity_size],
+                &[
+                    InformationRange::zero(),
+                    self.transfer_config.properties_size,
+                ],
                 &[Cardinality::one(), Cardinality::one()],
             ) else {
                 return Cost::MAX;

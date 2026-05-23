@@ -1,6 +1,8 @@
 import { globSync } from "node:fs";
 import path from "node:path";
 
+import svgr from "esbuild-plugin-svgr";
+
 const componentEntries = Object.fromEntries(
   globSync("./src/components/*/*.tsx", { exclude: ["**/*.stories.tsx"] }).map(
     (file) => [`components/${path.basename(file, ".tsx")}`, file],
@@ -16,6 +18,7 @@ export default {
     tokens: "./src/tokens.ts",
     ...componentEntries,
   },
+  esbuildPlugins: [svgr()],
   format: ["esm"],
   outDir: "dist",
   platform: "neutral",

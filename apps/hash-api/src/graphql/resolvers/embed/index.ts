@@ -1,6 +1,8 @@
 import oEmbedData from "oembed-providers/providers.json";
 import sanitizeHtml from "sanitize-html";
 
+import * as Error from "../../error";
+
 import type {
   Embed,
   Maybe,
@@ -8,7 +10,6 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import * as Error from "../../error";
 
 /**
  * Sanitize oEmbed HTML to prevent XSS from third-party providers.

@@ -1,10 +1,12 @@
-import type { OntologyTypeVersion } from "@blockprotocol/type-system";
+import { useCallback, useContext } from "react";
+
 import { versionedUrlFromComponents } from "@blockprotocol/type-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateTypeBaseUrl } from "@local/hash-isomorphic-utils/ontology-types";
-import { useCallback, useContext } from "react";
 
 import { WorkspaceContext } from "./workspace-context";
+
+import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 
 export const useGenerateTypeUrlsForUser = () => {
   const { activeWorkspace } = useContext(WorkspaceContext);

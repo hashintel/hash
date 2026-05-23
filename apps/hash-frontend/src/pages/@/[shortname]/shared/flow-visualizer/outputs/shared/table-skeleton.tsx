@@ -1,5 +1,6 @@
-import { Skeleton } from "@hashintel/design-system";
 import { Stack } from "@mui/material";
+
+import { Skeleton } from "@hashintel/design-system";
 
 export const TableSkeleton = ({
   cellHeight,

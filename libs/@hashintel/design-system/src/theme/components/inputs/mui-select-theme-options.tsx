@@ -1,5 +1,4 @@
 import { faAngleDown } from "@fortawesome/free-solid-svg-icons";
-import type { Components, Theme } from "@mui/material";
 import {
   listItemAvatarClasses,
   listItemIconClasses,
@@ -9,6 +8,8 @@ import {
 } from "@mui/material";
 
 import { FontAwesomeIcon } from "../../../fontawesome-icon";
+
+import type { Components, Theme } from "@mui/material";
 
 export const MuiSelectThemeOptions: Components<Theme>["MuiSelect"] = {
   defaultProps: {

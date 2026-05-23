@@ -1,9 +1,10 @@
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import type { FallbackRender } from "@sentry/react";
 import { useState } from "react";
 
 import { Button } from "../../shared/ui/button";
 import { Link } from "../../shared/ui/link";
+
+import type { FallbackRender } from "@sentry/react";
 
 const CopyableMonospace = ({ text }: { text: string }) => {
   const [tooltipTitle, setTooltipTitle] = useState("Copy to clipboard");

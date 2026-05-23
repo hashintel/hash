@@ -1,15 +1,16 @@
 import { useQuery } from "@apollo/client";
-import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
+
+import { getMyPendingInvitationsQuery } from "../graphql/queries/knowledge/org.queries";
+import { useAuthInfo } from "../pages/shared/auth-info-context";
+import { usePollInterval } from "./use-poll-interval";
 
 import type {
   GetMyPendingInvitationsQuery,
   GetMyPendingInvitationsQueryVariables,
   PendingOrgInvitation,
 } from "../graphql/api-types.gen";
-import { getMyPendingInvitationsQuery } from "../graphql/queries/knowledge/org.queries";
-import { useAuthInfo } from "../pages/shared/auth-info-context";
-import { usePollInterval } from "./use-poll-interval";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type InvitesContextValues = {
   pendingInvites: PendingOrgInvitation[];

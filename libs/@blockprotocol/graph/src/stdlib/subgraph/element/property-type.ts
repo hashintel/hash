@@ -1,3 +1,17 @@
+import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+
+import { isPropertyTypeVertex } from "../../../types/subgraph/vertices.js";
+import { typedValues } from "../../../util/typed-entries.js";
+import {
+  getBreadthFirstEntityTypesAndParents,
+  getEntityTypeById,
+} from "./entity-type.js";
+
+import type {
+  OntologyTypeVertexId,
+  OntologyVertices,
+  Subgraph,
+} from "../../../types/subgraph.js";
 import type {
   BaseUrl,
   EntityType,
@@ -7,19 +21,6 @@ import type {
   ValueOrArray,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
-
-import type {
-  OntologyTypeVertexId,
-  OntologyVertices,
-  Subgraph,
-} from "../../../types/subgraph.js";
-import { isPropertyTypeVertex } from "../../../types/subgraph/vertices.js";
-import { typedValues } from "../../../util/typed-entries.js";
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getEntityTypeById,
-} from "./entity-type.js";
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph

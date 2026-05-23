@@ -1,5 +1,6 @@
-import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 import { config } from "dotenv-flow";
+
+import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 
 config({ silent: true, path: monorepoRootDir });
 

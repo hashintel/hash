@@ -1,13 +1,14 @@
-import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Stack, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
 import { useNodeId, useStore } from "reactflow";
 
-import type { SimpleStatus } from "../../../../../../shared/flow-runs-context";
 import { useFlowRunsContext } from "../../../../../../shared/flow-runs-context";
 import { nodeTabHeight } from "../../shared/dimensions";
 import { transitionOptions } from "../../shared/styles";
 import { statusSx } from "./node-styles";
+
+import type { SimpleStatus } from "../../../../../../shared/flow-runs-context";
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type { PropsWithChildren } from "react";
 
 const Tab = ({
   label,

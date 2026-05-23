@@ -1,0 +1,48 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/ssa_repair/tests.rs
+expression: value
+---
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        %1 = true
+
+        switchInt(%1) -> [0: bb2(0), 1: bb1()]
+    }
+
+    bb1(): {
+        %0 = 1
+
+        return %0
+    }
+
+    bb2(%0): {
+        return %0
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Boolean
+    let %2: Integer
+
+    bb0(): {
+        %1 = true
+
+        switchInt(%1) -> [0: bb2(0), 1: bb1()]
+    }
+
+    bb1(): {
+        %2 = 1
+
+        return %2
+    }
+
+    bb2(%0): {
+        return %0
+    }
+}

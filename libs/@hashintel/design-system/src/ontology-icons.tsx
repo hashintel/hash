@@ -1,10 +1,10 @@
-import type { SvgIconProps } from "@mui/material";
-import type { FunctionComponent } from "react";
-
 import { AsteriskRegularIcon } from "./icon-asterisk-regular";
 import { BarcodeIcon } from "./icon-barcode";
 import { InputPipeIcon } from "./icon-input-pipe";
 import { LinkIcon } from "./icon-link";
+
+import type { SvgIconProps } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 export const DataTypeIcon: FunctionComponent<SvgIconProps> = ({
   sx,

@@ -1,8 +1,9 @@
 import { Box } from "@mui/material";
-import type { ReactNode } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 import { HEADER_HEIGHT } from "./layout/layout-with-header/page-header";
+
+import type { ReactNode } from "react";
 
 const EditBarContext = createContext<{
   page: HTMLElement;

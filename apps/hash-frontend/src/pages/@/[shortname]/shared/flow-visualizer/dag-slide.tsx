@@ -1,17 +1,19 @@
-import { IconButton, XMarkRegularIcon } from "@hashintel/design-system";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type {
-  FlowActionDefinitionId,
-  FlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
 import { Backdrop, Box, Slide, Stack } from "@mui/material";
 
+import { IconButton, XMarkRegularIcon } from "@hashintel/design-system";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+
 import { DAG } from "./dag";
+import { Topbar } from "./topbar";
+
 import type {
   GroupWithEdgesAndNodes,
   UngroupedEdgesAndNodes,
 } from "./shared/types";
-import { Topbar } from "./topbar";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 type DagSlideProps = {
   groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];

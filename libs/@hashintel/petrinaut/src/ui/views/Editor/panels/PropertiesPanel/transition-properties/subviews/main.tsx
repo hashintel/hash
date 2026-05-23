@@ -1,0 +1,243 @@
+import { use } from "react";
+
+import { css } from "@hashintel/ds-helpers/css";
+import { validateDisplayName } from "@hashintel/petrinaut-core";
+
+import { MutationContext } from "../../../../../../../react/state/mutation-context";
+import {
+  ArcItem,
+  ArcList,
+  type PlaceOption,
+} from "../../../../../../components/arc-item";
+import { Button } from "../../../../../../components/button";
+import { DraftFieldInput } from "../../../../../../components/draft-field-input";
+import { Section, SectionList } from "../../../../../../components/section";
+import { TransitionIcon } from "../../../../../../constants/entity-icons";
+import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
+import { useTransitionPropertiesContext } from "../context";
+
+import type { SubView } from "../../../../../../components/sub-view/types";
+
+const emptyArcMessageStyle = css({
+  fontSize: "xs",
+  color: "[#999]",
+});
+
+const TransitionMainContent: React.FC = () => {
+  const {
+    transition,
+    places,
+    types,
+    isReadOnly,
+    updateTransition,
+    onArcWeightUpdate,
+    updateArcPlace,
+    removeArc,
+  } = useTransitionPropertiesContext();
+
+  const getPlaceColor = (placeId: string): string | undefined => {
+    const place = places.find((pl) => pl.id === placeId);
+    if (!place?.colorId) {
+      return undefined;
+    }
+    return types.find((tp) => tp.id === place.colorId)?.displayColor;
+  };
+
+  const toPlaceOption = (pl: (typeof places)[number]): PlaceOption => ({
+    id: pl.id,
+    name: pl.name,
+    color: pl.colorId
+      ? types.find((tp) => tp.id === pl.colorId)?.displayColor
+      : undefined,
+  });
+
+  const getAvailableInputPlaces = (currentPlaceId: string): PlaceOption[] => {
+    const usedIds = new Set(
+      transition.inputArcs
+        .filter((arc) => arc.placeId !== currentPlaceId)
+        .map((arc) => arc.placeId),
+    );
+    return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
+  };
+
+  const getAvailableOutputPlaces = (currentPlaceId: string): PlaceOption[] => {
+    const usedIds = new Set(
+      transition.outputArcs
+        .filter((arc) => arc.placeId !== currentPlaceId)
+        .map((arc) => arc.placeId),
+    );
+    return places.filter((pl) => !usedIds.has(pl.id)).map(toPlaceOption);
+  };
+
+  const handleInputArcPlaceChange = (
+    oldPlaceId: string,
+    newPlaceId: string,
+  ) => {
+    updateArcPlace({
+      transitionId: transition.id,
+      arcDirection: "input",
+      oldPlaceId,
+      newPlaceId,
+    });
+  };
+
+  const handleOutputArcPlaceChange = (
+    oldPlaceId: string,
+    newPlaceId: string,
+  ) => {
+    updateArcPlace({
+      transitionId: transition.id,
+      arcDirection: "output",
+      oldPlaceId,
+      newPlaceId,
+    });
+  };
+
+  const handleDeleteInputArc = (placeId: string) => {
+    removeArc({
+      transitionId: transition.id,
+      arcDirection: "input",
+      placeId,
+    });
+  };
+
+  const handleDeleteOutputArc = (placeId: string) => {
+    removeArc({
+      transitionId: transition.id,
+      arcDirection: "output",
+      placeId,
+    });
+  };
+
+  return (
+    <SectionList>
+      <Section title="Name">
+        <DraftFieldInput
+          sourceId={transition.id}
+          sourceValue={transition.name}
+          validate={validateDisplayName}
+          onCommit={(name) =>
+            updateTransition({
+              transitionId: transition.id,
+              update: { name },
+            })
+          }
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+      </Section>
+
+      <Section title="Input Arcs" collapsible>
+        {transition.inputArcs.length === 0 ? (
+          <div className={emptyArcMessageStyle}>
+            Connect inputs to the transition's left side.
+          </div>
+        ) : (
+          <ArcList>
+            {transition.inputArcs.map((arc) => {
+              const place = places.find(
+                (placeItem) => placeItem.id === arc.placeId,
+              );
+              return (
+                <ArcItem
+                  key={arc.placeId}
+                  placeId={arc.placeId}
+                  placeName={place?.name ?? arc.placeId}
+                  weight={arc.weight}
+                  color={getPlaceColor(arc.placeId)}
+                  disabled={isReadOnly}
+                  availablePlaces={getAvailableInputPlaces(arc.placeId)}
+                  onPlaceChange={(newPlaceId) =>
+                    handleInputArcPlaceChange(arc.placeId, newPlaceId)
+                  }
+                  onWeightChange={(weight) => {
+                    onArcWeightUpdate({
+                      transitionId: transition.id,
+                      arcDirection: "input",
+                      placeId: arc.placeId,
+                      weight,
+                    });
+                  }}
+                  onDelete={() => handleDeleteInputArc(arc.placeId)}
+                />
+              );
+            })}
+          </ArcList>
+        )}
+      </Section>
+
+      <Section title="Output Arcs" collapsible>
+        {transition.outputArcs.length === 0 ? (
+          <div className={emptyArcMessageStyle}>
+            Connect outputs to the transition's right side.
+          </div>
+        ) : (
+          <ArcList>
+            {transition.outputArcs.map((arc) => {
+              const place = places.find(
+                (placeItem) => placeItem.id === arc.placeId,
+              );
+              return (
+                <ArcItem
+                  key={arc.placeId}
+                  placeId={arc.placeId}
+                  placeName={place?.name ?? arc.placeId}
+                  weight={arc.weight}
+                  color={getPlaceColor(arc.placeId)}
+                  disabled={isReadOnly}
+                  availablePlaces={getAvailableOutputPlaces(arc.placeId)}
+                  onPlaceChange={(newPlaceId) =>
+                    handleOutputArcPlaceChange(arc.placeId, newPlaceId)
+                  }
+                  onWeightChange={(weight) => {
+                    onArcWeightUpdate({
+                      transitionId: transition.id,
+                      arcDirection: "output",
+                      placeId: arc.placeId,
+                      weight,
+                    });
+                  }}
+                  onDelete={() => handleDeleteOutputArc(arc.placeId)}
+                />
+              );
+            })}
+          </ArcList>
+        )}
+      </Section>
+    </SectionList>
+  );
+};
+
+const DeleteTransitionAction: React.FC = () => {
+  const { transition, isReadOnly } = useTransitionPropertiesContext();
+  const { removeTransition } = use(MutationContext);
+
+  return (
+    <Button
+      aria-label="Delete"
+      size="xs"
+      variant="ghost"
+      tone="error"
+      iconName="trash"
+      onClick={() => removeTransition({ transitionId: transition.id })}
+      disabled={isReadOnly}
+      tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
+      tooltipDisplay="inline"
+    />
+  );
+};
+
+export const transitionMainContentSubView: SubView = {
+  id: "transition-main-content",
+  title: "Transition",
+  icon: TransitionIcon,
+  main: true,
+  component: TransitionMainContent,
+  renderHeaderAction: () => <DeleteTransitionAction />,
+  alwaysShowHeaderAction: true,
+  resizable: {
+    minHeight: 100,
+    maxHeight: 1200,
+    defaultHeight: 300,
+  },
+};

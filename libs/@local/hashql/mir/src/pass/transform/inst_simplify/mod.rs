@@ -252,20 +252,19 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
 
     /// Evaluates a binary operation on two constant integers.
     fn eval_bin_op(lhs: Int, op: BinOp, rhs: Int) -> Option<Int> {
-        let lhs = lhs.as_int();
-        let rhs = rhs.as_int();
-
         let result = match op {
-            BinOp::Add => return lhs.checked_add(rhs).map(Int::from),
-            BinOp::Sub => return lhs.checked_sub(rhs).map(Int::from),
-            BinOp::BitAnd => lhs & rhs,
-            BinOp::BitOr => lhs | rhs,
-            BinOp::Eq => i128::from(lhs == rhs),
-            BinOp::Ne => i128::from(lhs != rhs),
-            BinOp::Lt => i128::from(lhs < rhs),
-            BinOp::Lte => i128::from(lhs <= rhs),
-            BinOp::Gt => i128::from(lhs > rhs),
-            BinOp::Gte => i128::from(lhs >= rhs),
+            BinOp::Add => return lhs.checked_add(rhs),
+            BinOp::Sub => return lhs.checked_sub(rhs),
+            // Bitwise ops preserve bool provenance via the Int operators
+            BinOp::BitAnd => return Some(lhs & rhs),
+            BinOp::BitOr => return Some(lhs | rhs),
+            // Comparisons produce booleans
+            BinOp::Eq => lhs.as_int() == rhs.as_int(),
+            BinOp::Ne => lhs.as_int() != rhs.as_int(),
+            BinOp::Lt => lhs.as_int() < rhs.as_int(),
+            BinOp::Lte => lhs.as_int() <= rhs.as_int(),
+            BinOp::Gt => lhs.as_int() > rhs.as_int(),
+            BinOp::Gte => lhs.as_int() >= rhs.as_int(),
         };
 
         Some(Int::from(result))
@@ -273,21 +272,12 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
 
     /// Evaluates a unary operation on a constant integer.
     fn eval_un_op(op: UnOp, operand: Int) -> Int {
-        let value = operand.as_int();
-
-        let result = match op {
-            UnOp::Not => {
-                let Some(value) = operand.as_bool() else {
-                    unreachable!("only boolean values can be negated");
-                };
-
-                i128::from(!value)
-            }
-            UnOp::Neg => -value,
-            UnOp::BitNot => !value,
-        };
-
-        Int::from(result)
+        match op {
+            // Both Not and BitNot use the `!` operator, which dispatches on size:
+            // booleans get logical NOT, integers get bitwise NOT.
+            UnOp::Not | UnOp::BitNot => !operand,
+            UnOp::Neg => Int::from(-operand.as_int()),
+        }
     }
 
     /// Attempts to simplify a binary operation with a constant left operand and place right

@@ -2,7 +2,7 @@
 
 fn {closure#4}(%0: ()) -> Boolean {
     bb0(): {
-        return 1
+        return true
     }
 }
 
@@ -63,7 +63,7 @@ thunk unused:0() -> String {
 
 fn {closure#4}(%0: ()) -> Boolean {
     bb0(): {
-        return 1
+        return true
     }
 }
 
@@ -79,7 +79,7 @@ thunk get_flag:0() -> () -> Boolean {
 
 thunk flag:0() -> Boolean {
     bb0(): {
-        return 1
+        return true
     }
 }
 

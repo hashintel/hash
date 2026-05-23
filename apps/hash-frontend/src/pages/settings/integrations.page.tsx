@@ -1,19 +1,21 @@
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { Box, Paper, Stack, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 import { useContext } from "react";
+
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { extractWebId } from "../../lib/user-and-org";
 import { GoogleSheetsIcon } from "../../shared/icons/google-sheets-icon";
 import { LinearLogo } from "../../shared/icons/linear-logo";
-import type { NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
 import { getSettingsLayout } from "../shared/settings-layout";
 import { WorkspaceContext } from "../shared/workspace-context";
 import { UserConnectedIntegrations } from "./integrations/user-connected-integrations";
 import { SettingsPageContainer } from "./shared/settings-page-container";
+
+import type { NextPageWithLayout } from "../../shared/layout";
+import type { FunctionComponent, ReactNode } from "react";
 
 type IntegrationCardProps = {
   href: string;

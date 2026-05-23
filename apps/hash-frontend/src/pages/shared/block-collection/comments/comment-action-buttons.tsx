@@ -1,8 +1,9 @@
-import type { SxProps, Theme } from "@mui/material";
 import { Box } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { Button } from "../../../../shared/ui";
+
+import type { SxProps, Theme } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 type CommentActionButtonsProps = {
   submitLabel?: string;

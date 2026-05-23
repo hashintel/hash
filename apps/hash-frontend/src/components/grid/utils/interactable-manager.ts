@@ -1,5 +1,12 @@
-import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 import { typedKeys } from "@local/advanced-types/typed-entries";
+
+import {
+  drawArgsToCellPath,
+  drawArgsToColumnHeaderPath,
+  isCursorOnInteractable,
+  isPathCellPath,
+  splitPath,
+} from "./interactable-manager/utils";
 
 import type {
   CellPath,
@@ -8,13 +15,7 @@ import type {
   CursorPos,
   Interactable,
 } from "./interactable-manager/types";
-import {
-  drawArgsToCellPath,
-  drawArgsToColumnHeaderPath,
-  isCursorOnInteractable,
-  isPathCellPath,
-  splitPath,
-} from "./interactable-manager/utils";
+import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 class InteractableManagerClass {
   static instance: InteractableManagerClass | null = null;

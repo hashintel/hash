@@ -1,5 +1,3 @@
-import type { Url } from "@blockprotocol/type-system";
-import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { logger } from "../../../../shared/activity-logger.js";
@@ -9,6 +7,9 @@ import { stringify } from "../../../../shared/stringify.js";
 import { getAnswersFromHuman } from "../../get-answers-from-human.js";
 import { linkFollowerAgent } from "../../link-follower-agent.js";
 import { runSubCoordinatingAgent } from "../../sub-coordinating-agent.js";
+import { nullReturns } from "../coordinator-tools.js";
+import { handleWebSearchToolCall } from "../handle-web-search-tool-call.js";
+
 import type { SubCoordinatingAgentInput } from "../../sub-coordinating-agent/input.js";
 import type { SubCoordinatingAgentState } from "../../sub-coordinating-agent/state.js";
 import type {
@@ -20,12 +21,12 @@ import type {
   ParsedSubCoordinatorToolCallMap,
   SubCoordinatingAgentToolName,
 } from "../coordinator-tools.js";
-import { nullReturns } from "../coordinator-tools.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "../coordinators.js";
-import { handleWebSearchToolCall } from "../handle-web-search-tool-call.js";
+import type { Url } from "@blockprotocol/type-system";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 export type GetCoordinatorToolCallResultsParams = {
   agentType: "coordinator";

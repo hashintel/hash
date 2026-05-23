@@ -1,7 +1,7 @@
-import type { DatabasePoolType } from "slonik";
 import { createPool } from "slonik";
 
 import type { Logger } from "./logger.js";
+import type { DatabasePoolType } from "slonik";
 
 export type PgPool = DatabasePoolType;
 

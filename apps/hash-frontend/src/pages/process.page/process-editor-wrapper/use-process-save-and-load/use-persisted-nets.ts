@@ -1,18 +1,20 @@
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { SDCPN } from "@hashintel/petrinaut";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { PetriNet } from "@local/hash-isomorphic-utils/system-types/petrinet";
-import { useMemo } from "react";
+
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import type { PersistedNet } from "../use-process-save-and-load";
+import type { SDCPN } from "@hashintel/petrinaut";
+import type { PetriNet } from "@local/hash-isomorphic-utils/system-types/petrinet";
 
 export const getPersistedNetsFromSubgraph = (
   data: QueryEntitySubgraphQuery,

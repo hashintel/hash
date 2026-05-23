@@ -1,17 +1,19 @@
-import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
+import { google } from "googleapis";
+
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
-import type { Auth } from "googleapis";
-import { google } from "googleapis";
 
 import { getSecretEntitiesForIntegration } from "./user-secret.js";
+
 import type { VaultClient } from "./vault.js";
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
+import type { Auth } from "googleapis";
 
 const googleOAuthClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const googleOAuthClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;

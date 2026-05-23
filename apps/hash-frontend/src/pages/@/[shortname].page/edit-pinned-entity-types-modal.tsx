@@ -1,5 +1,10 @@
 import { useMutation } from "@apollo/client";
-import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import { Box, Typography, typographyClasses } from "@mui/material";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+import { createPortal } from "react-dom";
+import { useFieldArray, useForm } from "react-hook-form";
+
 import {
   AsteriskRegularIcon,
   IconButton,
@@ -10,27 +15,9 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { ModalProps } from "@mui/material";
-import { Box, Typography, typographyClasses } from "@mui/material";
-import type { FunctionComponent, ReactElement } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  DraggableProvided,
-  DraggingStyle,
-  NotDraggingStyle,
-  OnDragEndResponder,
-} from "react-beautiful-dnd";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-import { createPortal } from "react-dom";
-import { useFieldArray, useForm } from "react-hook-form";
 
 import { useBlockProtocolCreateEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
-import type {
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
-import type { Org, User } from "../../../lib/user-and-org";
 import { useLatestEntityTypesOptional } from "../../../shared/entity-types-context/hooks";
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { ArrowUpRightRegularIcon } from "../../../shared/icons/arrow-up-right-regular-icon";
@@ -43,6 +30,21 @@ import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { EntityTypeSelector } from "../../shared/entity-type-selector";
 import { useActiveWorkspace } from "../../shared/workspace-context";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
+
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../graphql/api-types.gen";
+import type { Org, User } from "../../../lib/user-and-org";
+import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { ModalProps } from "@mui/material";
+import type { FunctionComponent, ReactElement } from "react";
+import type {
+  DraggableProvided,
+  DraggingStyle,
+  NotDraggingStyle,
+  OnDragEndResponder,
+} from "react-beautiful-dnd";
 
 /** @see https://github.com/atlassian/react-beautiful-dnd/issues/128#issuecomment-1010053365 */
 const useDraggableInPortal = () => {

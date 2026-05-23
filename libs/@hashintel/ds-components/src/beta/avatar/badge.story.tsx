@@ -1,6 +1,6 @@
 import { Circle, Float } from "@hashintel/ds-helpers/jsx";
 
-import * as Avatar from "./avatar";
+import * as Avatar from "../avatar";
 
 export const App = () => {
   return (

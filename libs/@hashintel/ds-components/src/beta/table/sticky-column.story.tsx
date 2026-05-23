@@ -1,5 +1,5 @@
-import * as ScrollArea from "../scroll-area/scroll-area";
-import * as Table from "./table";
+import * as ScrollArea from "../scroll-area";
+import * as Table from "../table";
 
 const items = [
   { id: 1, name: "Laptop", category: "Electronics", price: 999.99 },

@@ -11,7 +11,6 @@ import {
   RequestFrame,
   RequestHeader,
 } from "../../src/wire-protocol/models/request/index.js";
-
 import { callEncode } from "./utils.js";
 
 const RequestHeaderFromSelf = Schema.declare(RequestHeader.isRequestHeader, {

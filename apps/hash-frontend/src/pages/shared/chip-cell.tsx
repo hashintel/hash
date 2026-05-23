@@ -1,18 +1,20 @@
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import { Box } from "@mui/material";
+
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { Box } from "@mui/material";
 
 import { getCellHorizontalPadding } from "../../components/grid/utils";
 import { drawCellFadeOutGradient } from "../../components/grid/utils/draw-cell-fade-out-gradient";
-import type { DrawChipWithIconProps } from "../../components/grid/utils/draw-chip-with-icon";
 import { drawChipWithIcon } from "../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../components/grid/utils/interactable-manager";
+
+import type { DrawChipWithIconProps } from "../../components/grid/utils/draw-chip-with-icon";
 import type { Interactable } from "../../components/grid/utils/interactable-manager/types";
+import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 
 export type ChipCellColor = "blue" | "gray" | "white";
 export type ChipCellVariant = "outlined" | "filled";

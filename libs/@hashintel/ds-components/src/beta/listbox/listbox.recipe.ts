@@ -1,7 +1,8 @@
 import { listboxAnatomy } from "@ark-ui/react/anatomy";
-import { defineSlotRecipe } from "@pandacss/dev";
 
-export const listbox = defineSlotRecipe({
+import { sva } from "@hashintel/ds-helpers/css";
+
+export const listboxSlotRecipe = sva({
   className: "listbox",
   slots: listboxAnatomy.keys(),
   base: {},

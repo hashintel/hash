@@ -7,11 +7,12 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import type { ReactNode } from "react";
 import { forwardRef, useState } from "react";
 
-import type { TextFieldProps } from "./input-props";
 import { getInputProps, inputLabelProps } from "./input-props";
+
+import type { TextFieldProps } from "./input-props";
+import type { ReactNode } from "react";
 
 /**
  * 'Freezes' a value when it's falsy, meaning the value will never update to

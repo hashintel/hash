@@ -66,41 +66,41 @@ decl result: Bool;
 
 ### Header
 
-| Component | Description | Example |
-| --------- | ----------- | ------- |
-| `<source>` | Body source type | `fn`, `thunk`, `[ctor expr]`, `intrinsic` |
-| `<id>` | DefId (literal or variable) | `0`, `42`, `my_def_id` |
-| `<arity>` | Number of function arguments | `0`, `1`, `2` |
-| `<return_type>` | Return type | `Int`, `Bool`, `(Int, Bool)` |
+| Component       | Description                  | Example                                   |
+| --------------- | ---------------------------- | ----------------------------------------- |
+| `<source>`      | Body source type             | `fn`, `thunk`, `[ctor expr]`, `intrinsic` |
+| `<id>`          | DefId (literal or variable)  | `0`, `42`, `my_def_id`                    |
+| `<arity>`       | Number of function arguments | `0`, `1`, `2`                             |
+| `<return_type>` | Return type                  | `Int`, `Bool`, `(Int, Bool)`              |
 
 The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`callee_id`, `my_def_id`). When using a variable, it must be a `DefId` in scope.
 
 **Source types:**
 
-| Syntax | Maps to | Use case |
-| ------ | ------- | -------- |
-| `fn` | `Source::Closure` | Regular closures/functions |
-| `thunk` | `Source::Thunk` | Thunk bodies (zero-arg delayed computations) |
-| `[ctor sym::path]` | `Source::Ctor(sym)` | Constructor bodies (always inlined) |
-| `[graph::read::filter]` | `Source::GraphReadFilter` | Graph read filter bodies (never inlined) |
-| `intrinsic` | `Source::Intrinsic` | Intrinsic bodies (never inlined) |
+| Syntax                  | Maps to                   | Use case                                     |
+| ----------------------- | ------------------------- | -------------------------------------------- |
+| `fn`                    | `Source::Closure`         | Regular closures/functions                   |
+| `thunk`                 | `Source::Thunk`           | Thunk bodies (zero-arg delayed computations) |
+| `[ctor sym::path]`      | `Source::Ctor(sym)`       | Constructor bodies (always inlined)          |
+| `[graph::read::filter]` | `Source::GraphReadFilter` | Graph read filter bodies (never inlined)     |
+| `intrinsic`             | `Source::Intrinsic`       | Intrinsic bodies (never inlined)             |
 
 ### Types
 
-| Syntax | Description | Example |
-| ------ | ----------- | ------- |
-| `Int` | Integer type | `Int` |
-| `Num` | Number (float) type | `Num` |
-| `Bool` | Boolean type | `Bool` |
-| `Null` | Null type | `Null` |
-| `?` | Unknown type (dynamic) | `?` |
-| `(T1, T2, ...)` | Tuple types | `(Int, Bool, Int)` |
-| `(T,)` | Single-element tuple | `(Int,)` |
-| `(a: T1, b: T2)` | Struct types | `(a: Int, b: Bool)` |
-| `[List T]` | List type (intrinsic) | `[List Int]`, `[List (Int, Bool)]` |
-| `[fn(T1, T2) -> R]` | Closure types | `[fn(Int) -> Int]`, `[fn() -> Bool]` |
-| `[Opaque path; T]` | Opaque type with symbol path | `[Opaque sym::path::Entity; ?]` |
-| `\|types\| types.custom()` | Custom type expression | `\|t\| t.null()` |
+| Syntax                     | Description                  | Example                              |
+| -------------------------- | ---------------------------- | ------------------------------------ |
+| `Int`                      | Integer type                 | `Int`                                |
+| `Num`                      | Number (float) type          | `Num`                                |
+| `Bool`                     | Boolean type                 | `Bool`                               |
+| `Null`                     | Null type                    | `Null`                               |
+| `?`                        | Unknown type (dynamic)       | `?`                                  |
+| `(T1, T2, ...)`            | Tuple types                  | `(Int, Bool, Int)`                   |
+| `(T,)`                     | Single-element tuple         | `(Int,)`                             |
+| `(a: T1, b: T2)`           | Struct types                 | `(a: Int, b: Bool)`                  |
+| `[List T]`                 | List type (intrinsic)        | `[List Int]`, `[List (Int, Bool)]`   |
+| `[fn(T1, T2) -> R]`        | Closure types                | `[fn(Int) -> Int]`, `[fn() -> Bool]` |
+| `[Opaque path; T]`         | Opaque type with symbol path | `[Opaque sym::path::Entity; ?]`      |
+| `\|types\| types.custom()` | Custom type expression       | `\|t\| t.null()`                     |
 
 ### Projections (Optional)
 
@@ -148,44 +148,44 @@ let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
 
 ### Statements
 
-| Syntax | Description | MIR Equivalent |
-| ------ | ----------- | -------------- |
-| `let x;` | Mark storage live | `StorageLive(x)` |
-| `drop x;` | Mark storage dead | `StorageDead(x)` |
-| `x = load <operand>;` | Load value | `Assign(x, Load(operand))` |
-| `x = apply <func>;` | Call with no args | `Assign(x, Apply(func, []))` |
-| `x = apply <func>, <a1>, <a2>;` | Call with args | `Assign(x, Apply(func, [a1, a2]))` |
-| `x = tuple <a>, <b>;` | Create tuple | `Assign(x, Aggregate(Tuple, [a, b]))` |
-| `x = struct a: <v1>, b: <v2>;` | Create struct | `Assign(x, Aggregate(Struct, [v1, v2]))` |
-| `x = closure <def> <env>;` | Create closure | `Assign(x, Aggregate(Closure, [def, env]))` |
-| `x = bin.<op> <lhs> <rhs>;` | Binary operation | `Assign(x, Binary(lhs, op, rhs))` |
-| `x = un.<op> <operand>;` | Unary operation | `Assign(x, Unary(op, operand))` |
-| `x = input.load! "name";` | Load required input | `Assign(x, Input(Load { required: true }, "name"))` |
-| `x = input.load "name";` | Load optional input | `Assign(x, Input(Load { required: false }, "name"))` |
-| `x = input.exists "name";` | Check if input exists | `Assign(x, Input(Exists, "name"))` |
+| Syntax                          | Description           | MIR Equivalent                                       |
+| ------------------------------- | --------------------- | ---------------------------------------------------- |
+| `let x;`                        | Mark storage live     | `StorageLive(x)`                                     |
+| `drop x;`                       | Mark storage dead     | `StorageDead(x)`                                     |
+| `x = load <operand>;`           | Load value            | `Assign(x, Load(operand))`                           |
+| `x = apply <func>;`             | Call with no args     | `Assign(x, Apply(func, []))`                         |
+| `x = apply <func>, <a1>, <a2>;` | Call with args        | `Assign(x, Apply(func, [a1, a2]))`                   |
+| `x = tuple <a>, <b>;`           | Create tuple          | `Assign(x, Aggregate(Tuple, [a, b]))`                |
+| `x = struct a: <v1>, b: <v2>;`  | Create struct         | `Assign(x, Aggregate(Struct, [v1, v2]))`             |
+| `x = closure <def> <env>;`      | Create closure        | `Assign(x, Aggregate(Closure, [def, env]))`          |
+| `x = bin.<op> <lhs> <rhs>;`     | Binary operation      | `Assign(x, Binary(lhs, op, rhs))`                    |
+| `x = un.<op> <operand>;`        | Unary operation       | `Assign(x, Unary(op, operand))`                      |
+| `x = input.load! "name";`       | Load required input   | `Assign(x, Input(Load { required: true }, "name"))`  |
+| `x = input.load "name";`        | Load optional input   | `Assign(x, Input(Load { required: false }, "name"))` |
+| `x = input.exists "name";`      | Check if input exists | `Assign(x, Input(Exists, "name"))`                   |
 
 ### Terminators
 
-| Syntax | Description |
-| ------ | ----------- |
-| `return <operand>;` | Return from function |
-| `goto <block>(<args>...);` | Unconditional jump with args |
-| `if <cond> then <tb>(<ta>) else <eb>(<ea>);` | Conditional branch |
-| `switch <discr> [<val> => <block>(<args>), ...];` | Switch (no otherwise) |
-| `switch <discr> [<val> => <block>(), _ => <block>()];` | Switch with otherwise |
-| `unreachable;` | Mark block as unreachable |
+| Syntax                                                 | Description                  |
+| ------------------------------------------------------ | ---------------------------- |
+| `return <operand>;`                                    | Return from function         |
+| `goto <block>(<args>...);`                             | Unconditional jump with args |
+| `if <cond> then <tb>(<ta>) else <eb>(<ea>);`           | Conditional branch           |
+| `switch <discr> [<val> => <block>(<args>), ...];`      | Switch (no otherwise)        |
+| `switch <discr> [<val> => <block>(), _ => <block>()];` | Switch with otherwise        |
+| `unreachable;`                                         | Mark block as unreachable    |
 
 ### Operands
 
-| Syntax | Description |
-| ------ | ----------- |
-| `x`, `cond` | Place (local variable or projection) |
-| `42`, `-5` | Integer literal (i64) |
-| `3.14` | Float literal (f64) |
-| `true`, `false` | Boolean literal |
-| `()` | Unit |
-| `null` | Null |
-| `def_id` | DefId variable (for function pointers) |
+| Syntax          | Description                            |
+| --------------- | -------------------------------------- |
+| `x`, `cond`     | Place (local variable or projection)   |
+| `42`, `-5`      | Integer literal (i64)                  |
+| `3.14`          | Float literal (f64)                    |
+| `true`, `false` | Boolean literal                        |
+| `()`            | Unit                                   |
+| `null`          | Null                                   |
+| `def_id`        | DefId variable (for function pointers) |
 
 ### Operators
 
@@ -451,7 +451,7 @@ fn assert_pass<'heap>(
 
     // Run the pass and capture change status
     let changed = YourPass::new().run(context, &mut bodies[0]);
-    
+
     // Include Changed value in snapshot
     write!(
         text_format.writer,

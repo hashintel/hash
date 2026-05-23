@@ -1,27 +1,29 @@
-import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityMetadata, WebId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import { useMemo } from "react";
+
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { getAccountPagesVariables } from "../../shared/account-pages-variables";
+import { useHashInstance } from "./use-hash-instance";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { getAccountPagesVariables } from "../../shared/account-pages-variables";
-import { useHashInstance } from "./use-hash-instance";
+import type { ApolloQueryResult } from "@apollo/client";
+import type { EntityMetadata, WebId } from "@blockprotocol/type-system";
+import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export type SimplePage = SimpleProperties<PageProperties> & {
   metadata: EntityMetadata;

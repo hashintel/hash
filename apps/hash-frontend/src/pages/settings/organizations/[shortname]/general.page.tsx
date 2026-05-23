@@ -1,29 +1,31 @@
 import { useMutation } from "@apollo/client";
-import type { PropertyPatchOperation } from "@blockprotocol/type-system";
+import { useTheme } from "@mui/material";
+import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
+import { useRef } from "react";
+
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useTheme } from "@mui/material";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import { useRef } from "react";
 
 import { useOrgs } from "../../../../components/hooks/use-orgs";
-import type {
-  UpdateEntityMutation,
-  UpdateEntityMutationVariables,
-} from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
-import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
-import type { OrgFormData } from "../shared/org-form";
 import { OrgForm } from "../shared/org-form";
+
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import type { NextPageWithLayout } from "../../../../shared/layout";
+import type { OrgFormData } from "../shared/org-form";
+import type { PropertyPatchOperation } from "@blockprotocol/type-system";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const router = useRouter();

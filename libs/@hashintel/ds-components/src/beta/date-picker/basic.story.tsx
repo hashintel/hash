@@ -2,7 +2,7 @@
 
 import { Portal } from "@ark-ui/react/portal";
 
-import * as DatePicker from "./date-picker";
+import * as DatePicker from "../date-picker";
 
 export const App = () => {
   return (

@@ -1,8 +1,3 @@
-import type {
-  ActorEntityUuid,
-  Entity,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -20,12 +15,18 @@ import {
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
 import { Linear } from "../../../../integrations/linear";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type {
   MutationSyncLinearIntegrationWithWebsArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import type {
+  ActorEntityUuid,
+  Entity,
+  WebId,
+} from "@blockprotocol/type-system";
 
 export const syncLinearIntegrationWithWebsMutation: ResolverFn<
   Promise<Entity>,

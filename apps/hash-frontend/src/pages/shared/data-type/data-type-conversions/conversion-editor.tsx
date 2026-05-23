@@ -1,14 +1,3 @@
-import type {
-  ConversionDefinition,
-  Conversions,
-  DataType,
-  DataTypeWithMetadata,
-  Operator,
-} from "@blockprotocol/type-system";
-import { CloseIcon, IconButton, Select } from "@hashintel/design-system";
-import { typedKeys } from "@local/advanced-types/typed-entries";
-import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
-import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import {
   Box,
   outlinedInputClasses,
@@ -19,11 +8,24 @@ import {
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { CloseIcon, IconButton, Select } from "@hashintel/design-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
+import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
+import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
+
 import { TriangleExclamationRegularIcon } from "../../../../shared/icons/triangle-exclamation-regular-icon";
 import { MenuItem } from "../../../../shared/ui/menu-item";
 import { NumberInput } from "../data-type-constraints/shared/number-input";
-import type { DataTypeFormData } from "../data-type-form";
 import { ItemLabel } from "../shared/item-label";
+
+import type { DataTypeFormData } from "../data-type-form";
+import type {
+  ConversionDefinition,
+  Conversions,
+  DataType,
+  DataTypeWithMetadata,
+  Operator,
+} from "@blockprotocol/type-system";
 
 const characterToOpMap = {
   "+": "+",

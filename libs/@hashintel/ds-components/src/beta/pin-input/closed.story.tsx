@@ -2,8 +2,8 @@
 
 import { forwardRef, type InputHTMLAttributes, type RefObject } from "react";
 
-import { Group } from "../group/group";
-import * as StyledPinInput from "./pin-input";
+import { Group } from "../group";
+import * as StyledPinInput from "../pin-input";
 
 export interface PinInputProps extends StyledPinInput.RootProps {
   rootRef?: RefObject<HTMLDivElement | null>;

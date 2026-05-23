@@ -1,17 +1,18 @@
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+
+import { isEntityTypeVertex } from "../../../types/subgraph/vertices.js";
+import { typedValues } from "../../../util/typed-entries.js";
 
 import type {
   OntologyTypeVertexId,
   OntologyVertices,
   Subgraph,
 } from "../../../types/subgraph.js";
-import { isEntityTypeVertex } from "../../../types/subgraph/vertices.js";
-import { typedValues } from "../../../util/typed-entries.js";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph

@@ -1,10 +1,11 @@
-import type { ActorEntityUuid, AiId, WebId } from "@blockprotocol/type-system";
 import { getAiIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
-import type { GraphApi } from "@local/hash-graph-client";
 import {
   addActorGroupMember,
   getActorGroupRole,
 } from "@local/hash-graph-sdk/principal/actor-group";
+
+import type { ActorEntityUuid, AiId, WebId } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 
 export const getAiAssistantAccountIdActivity = async (params: {
   authentication: { actorId: ActorEntityUuid };

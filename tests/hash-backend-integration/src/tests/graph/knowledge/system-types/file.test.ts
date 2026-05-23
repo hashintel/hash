@@ -1,9 +1,16 @@
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   createFileFromExternalUrl,
   createFileFromUploadRequest,
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
+import { Logger } from "@local/hash-backend-utils/logger";
+
+import { resetGraph } from "../../../admin-server";
+import { createTestImpureGraphContext, createTestUser } from "../../../util";
+
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import type {
   EntityId,
@@ -11,11 +18,6 @@ import type {
   Url,
   WebId,
 } from "@blockprotocol/type-system";
-import { Logger } from "@local/hash-backend-utils/logger";
-import { beforeAll, describe, expect, it, vi } from "vitest";
-
-import { resetGraph } from "../../../admin-server";
-import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 const logger = new Logger({
   environment: "test",

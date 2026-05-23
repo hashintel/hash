@@ -1,4 +1,5 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
+import { createContext, useContext, useMemo, useState } from "react";
+
 import {
   automaticBrowserInferenceFlowDefinition,
   manualBrowserInferenceFlowDefinition,
@@ -19,12 +20,13 @@ import {
   goalFlowDefinitionWithSpreadsheetDeliverable,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { scheduledFlightsFlowDefinition } from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
+
+import type { EntityUuid } from "@blockprotocol/type-system";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
 
 export type FlowDefinitionsContextType = {
   flowDefinitions: FlowDefinition<FlowActionDefinitionId>[];

@@ -35,13 +35,13 @@ package_name/
 
 ### Test Components
 
-| File | Purpose | Required |
-| ---- | ------- | -------- |
-| `.jsonc` | J-Expr test code | ✅ Yes |
-| `.spec.toml` | Test suite specification | ✅ Yes (in dir or parent) |
-| `.stdout` | Expected standard output | Optional |
-| `.stderr` | Expected diagnostics | Optional |
-| `.aux.<ext>` | Auxiliary/secondary output | Suite-dependent |
+| File         | Purpose                    | Required                  |
+| ------------ | -------------------------- | ------------------------- |
+| `.jsonc`     | J-Expr test code           | ✅ Yes                    |
+| `.spec.toml` | Test suite specification   | ✅ Yes (in dir or parent) |
+| `.stdout`    | Expected standard output   | Optional                  |
+| `.stderr`    | Expected diagnostics       | Optional                  |
+| `.aux.<ext>` | Auxiliary/secondary output | Suite-dependent           |
 
 The harness searches upward from the test file to find `.spec.toml`, stopping at `tests/ui/`. This allows shared specs at directory roots with overrides for subdirectories.
 
@@ -58,7 +58,6 @@ Directives control test behavior and **must** appear at the start of the file:
 //@ run: fail                      // Test should fail with errors (DEFAULT)
 //@ run: skip                      // Skip this test
 //@ run: skip reason=Not implemented yet
-
 //@ name: custom_test_name         // Override the default test name
 //@ description: Tests that...     // Describe test purpose (encouraged)
 //@ suite#key: value               // Suite-specific directive (TOML value)
@@ -86,25 +85,27 @@ Annotations verify that specific diagnostics appear at expected locations:
 
 ### Line References
 
-| Syntax | Meaning |
-| ------ | ------- |
-| `//~ ERROR msg` | Current line |
-| `//~^ ERROR msg` | Previous line (1 up) |
-| `//~^^ ERROR msg` | 2 lines above |
-| `//~^^^ ERROR msg` | 3 lines above |
-| `//~v ERROR msg` | Next line (1 down) |
-| `//~vv ERROR msg` | 2 lines below |
-| `//~vvv ERROR msg` | 3 lines below |
-| `//~\| ERROR msg` | Same line as previous annotation |
-| `//~? ERROR msg` | Unknown/any line (use sparingly) |
+| Syntax             | Meaning                          |
+| ------------------ | -------------------------------- |
+| `//~ ERROR msg`    | Current line                     |
+| `//~^ ERROR msg`   | Previous line (1 up)             |
+| `//~^^ ERROR msg`  | 2 lines above                    |
+| `//~^^^ ERROR msg` | 3 lines above                    |
+| `//~v ERROR msg`   | Next line (1 down)               |
+| `//~vv ERROR msg`  | 2 lines below                    |
+| `//~vvv ERROR msg` | 3 lines below                    |
+| `//~\| ERROR msg`  | Same line as previous annotation |
+| `//~? ERROR msg`   | Unknown/any line (use sparingly) |
 
 ### Example
 
 ```jsonc
-["let", "x",          //~^ ERROR first error on the let line
-  ["invalid"]         //~ ERROR error on this line
-]                     //~| ERROR another error on same line
-                      //~| NOTE additional context
+[
+  "let",
+  "x", //~^ ERROR first error on the let line
+  ["invalid"], //~ ERROR error on this line
+] //~| ERROR another error on same line
+//~| NOTE additional context
 ```
 
 ## Discovering Test Suites
@@ -142,12 +143,12 @@ When a test fails, the harness shows:
 
 ### Resolution
 
-| Failure Type | Action |
-| ------------ | ------ |
-| Real bug | Fix the implementation code |
-| Intentional change | Run `--bless` to update expected outputs |
+| Failure Type        | Action                                                   |
+| ------------------- | -------------------------------------------------------- |
+| Real bug            | Fix the implementation code                              |
+| Intentional change  | Run `--bless` to update expected outputs                 |
 | Annotation mismatch | Update `//~` annotations to match new messages/locations |
-| Missing annotation | Add `//~` for legitimate new diagnostics |
+| Missing annotation  | Add `//~` for legitimate new diagnostics                 |
 
 ## Extending Test Suites
 

@@ -1,15 +1,16 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
-import type { DocumentNode } from "graphql";
+
+import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
 
 import type {
   QueryDataTypesQueryVariables,
   QueryEntityTypesQueryVariables,
   QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
-import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { DocumentNode } from "graphql";
 
 /**
  * Return the internal query string from a gql-tagged query, i.e. gql`string` -> string

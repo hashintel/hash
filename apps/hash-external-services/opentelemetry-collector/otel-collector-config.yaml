@@ -5,6 +5,34 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  # Scrape Prometheus-format metrics that the Temporal server cluster
+  # exposes on its `PROMETHEUS_ENDPOINT` (port 8000) so we get
+  # server-side counters (workflow_started, persistence latency,
+  # mutable-state cache, queue depth, …) alongside the worker SDK
+  # metrics that arrive via OTLP.
+  #
+  # Temporal emits unprefixed metric names (`cache_miss`,
+  # `request_latency`, `activity_end_to_end_latency`, …) that collide
+  # visually with metrics from every other scrape job. Force a
+  # `temporal_` prefix on everything coming out of this scrape so
+  # they're disambiguated in Mimir / Grafana auto-complete. Go runtime
+  # metrics from the Temporal process are also prefixed — that's
+  # intentional, those are *Temporal's* runtime, not ours.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: temporal-server
+          scrape_interval: 30s
+          static_configs:
+            - targets: [temporal:8000]
+              labels:
+                service.name: temporal-server
+          metric_relabel_configs:
+            - source_labels: [__name__]
+              regex: ^(.+)$
+              target_label: __name__
+              replacement: temporal_${1}
+              action: replace
 
 processors:
   batch:
@@ -40,7 +68,7 @@ service:
       processors: [resource/deployment_environment, batch]
       exporters: [otlp/tempo]
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, prometheus]
       processors: [batch]
       exporters: [otlphttp/mimir]
     logs:

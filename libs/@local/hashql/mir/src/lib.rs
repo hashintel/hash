@@ -16,17 +16,19 @@
     allocator_api,
     binary_heap_drain_sorted,
     clone_from_ref,
+    const_convert,
     const_type_name,
     get_mut_unchecked,
     iter_array_chunks,
     iter_collect_into,
     likely_unlikely,
     maybe_uninit_fill,
+    option_into_flat_iter,
     step_trait,
-    try_trait_v2,
     temporary_niche_types,
-    const_convert,
+    try_trait_v2,
     variant_count,
+    maybe_uninit_uninit_array_transpose
 )]
 #![cfg_attr(test, feature(
     // Library Features

@@ -1,8 +1,26 @@
 import http from "node:http";
 import { promisify } from "node:util";
 
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import KeyvRedis from "@keyv/redis";
+import * as Sentry from "@sentry/node";
+import bodyParser from "body-parser";
+import cors from "cors";
+import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
+import { RuntimeException } from "effect/Cause";
+import express, { raw } from "express";
+import { create as handlebarsCreate } from "express-handlebars";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
+import helmet from "helmet";
+import { StatsD } from "hot-shots";
+import {
+  createProxyMiddleware,
+  fixRequestBody,
+  responseInterceptor,
+} from "http-proxy-middleware";
+import httpTerminator from "http-terminator";
+import Keyv from "keyv";
+import { customAlphabet } from "nanoid";
+
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
@@ -23,26 +41,6 @@ import {
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
-import * as Sentry from "@sentry/node";
-import bodyParser from "body-parser";
-import cors from "cors";
-import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
-import { RuntimeException } from "effect/Cause";
-import type { ErrorRequestHandler, Request, Response } from "express";
-import express, { raw } from "express";
-import { create as handlebarsCreate } from "express-handlebars";
-import type { Options as RateLimitOptions } from "express-rate-limit";
-import { ipKeyGenerator, rateLimit } from "express-rate-limit";
-import helmet from "helmet";
-import { StatsD } from "hot-shots";
-import {
-  createProxyMiddleware,
-  fixRequestBody,
-  responseInterceptor,
-} from "http-proxy-middleware";
-import httpTerminator from "http-terminator";
-import Keyv from "keyv";
-import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
 import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
@@ -66,6 +64,7 @@ import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
+import { otelSetup } from "./instrument.mjs";
 import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
@@ -94,11 +93,25 @@ import {
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import type { ErrorRequestHandler, Request, Response } from "express";
+import type { Options as RateLimitOptions } from "express-rate-limit";
+
 const app = express();
 
 const httpServer = http.createServer(app);
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
+
+// Register OpenTelemetry first so it flushes last — `GracefulShutdown`
+// runs cleanups in reverse registration order. Cleanup hooks added below
+// can still emit shutdown spans / logs before the providers disconnect
+// from the collector. `otelSetup` is `undefined` when no
+// `HASH_OTLP_ENDPOINT` is configured (no collector) or when bootstrap
+// throws.
+if (otelSetup) {
+  shutdown.addCleanup("OpenTelemetry", otelSetup.shutdown);
+}
 
 const baseRateLimitOptions: Partial<RateLimitOptions> = {
   windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 10, // 10 seconds
@@ -244,6 +257,30 @@ const sanitizeProxyLogArgs = (args: unknown[]): unknown[] =>
     typeof arg === "string" ? redactAuthQueryParams(arg) : arg,
   );
 
+/**
+ * Forward a `http-proxy-middleware` variadic log call to the
+ * structured logger as `(message, meta?)`. Without this, passing the
+ * raw `args` array as a single argument to `logger.info` results in
+ * the OTLP body being a JSON-encoded array (`["[HPM] …"]`) instead of
+ * the proxy log message itself.
+ */
+const forwardProxyLog = (level: "info" | "warn" | "error", args: unknown[]) => {
+  const sanitized = sanitizeProxyLogArgs(args);
+  if (sanitized.length === 0) {
+    return;
+  }
+  const [first, ...rest] = sanitized;
+  if (typeof first === "string") {
+    if (rest.length === 0) {
+      logger[level](first);
+    } else {
+      logger[level](first, { args: rest });
+    }
+    return;
+  }
+  logger[level]("[HPM]", { args: sanitized });
+};
+
 const kratosProxyLogger = {
   /**
    * `http-proxy-middleware` logs include request URLs.
@@ -251,15 +288,9 @@ const kratosProxyLogger = {
    * `/auth/*` requests can include Ory self-service query parameters, so we
    * sanitize all forwarded log levels consistently.
    */
-  info: (...args: unknown[]) => {
-    logger.info(sanitizeProxyLogArgs(args));
-  },
-  warn: (...args: unknown[]) => {
-    logger.warn(sanitizeProxyLogArgs(args));
-  },
-  error: (...args: unknown[]) => {
-    logger.error(sanitizeProxyLogArgs(args));
-  },
+  info: (...args: unknown[]) => forwardProxyLog("info", args),
+  warn: (...args: unknown[]) => forwardProxyLog("warn", args),
+  error: (...args: unknown[]) => forwardProxyLog("error", args),
 };
 
 const kratosProxy = createProxyMiddleware<Request, Response>({
@@ -418,7 +449,7 @@ const main = async () => {
   // Setup upload storage provider and express routes for local file uploads
   const uploadProvider = setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
-  const temporalClient = await createTemporalClient(logger);
+  const temporalClient = await createTemporalClient();
 
   const vaultClient = await createVaultClient({ logger });
 

@@ -2,9 +2,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { Url } from "@blockprotocol/type-system";
-
 import { getWebPageActivity } from "../src/activities/get-web-page-activity.js";
+
+import type { Url } from "@blockprotocol/type-system";
 
 /**
  * @file a script which fetches a web page and sanitizes its HTML content for LLM consumption,

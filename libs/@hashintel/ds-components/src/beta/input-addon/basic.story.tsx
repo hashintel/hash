@@ -1,8 +1,8 @@
 import { EuroIcon } from "lucide-react";
 
-import { Group } from "../group/group";
-import { Input } from "../input/input";
-import { InputAddon } from "./input-addon";
+import { Group } from "../group";
+import { Input } from "../input";
+import { InputAddon } from "../input-addon";
 
 export const App = () => {
   return (

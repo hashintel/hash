@@ -1,23 +1,13 @@
 import { useMutation } from "@apollo/client";
-import type {
-  DataTypeWithMetadata,
-  Entity,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { useArchivePage } from "../../../components/hooks/use-archive-page";
 import { useUsers } from "../../../components/hooks/use-users";
-import type {
-  UnarchiveEntityTypeMutation,
-  UnarchiveEntityTypeMutationVariables,
-} from "../../../graphql/api-types.gen";
 import { unarchiveEntityTypeMutation } from "../../../graphql/queries/ontology/entity-type.queries";
 import { useFetchEntityTypes } from "../../../shared/entity-types-context/hooks";
 import { BoxArchiveIcon } from "../../../shared/icons/box-archive-icon";
@@ -26,6 +16,18 @@ import { UserIcon } from "../../../shared/icons/user-icon";
 import { isEntityPageEntity } from "../../../shared/is-of-type";
 import { Button, Link } from "../../../shared/ui";
 import { isItemType } from "./util";
+
+import type {
+  UnarchiveEntityTypeMutation,
+  UnarchiveEntityTypeMutationVariables,
+} from "../../../graphql/api-types.gen";
+import type {
+  DataTypeWithMetadata,
+  Entity,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 type ArchivedItemBannerProps = {
   item:

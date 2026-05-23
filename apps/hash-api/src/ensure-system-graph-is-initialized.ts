@@ -2,9 +2,10 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 
-import type { ImpureGraphContext } from "./graph/context-types";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { logger } from "./logger";
+
+import type { ImpureGraphContext } from "./graph/context-types";
 
 const context: ImpureGraphContext<false, true> = {
   provenance: {
@@ -17,7 +18,7 @@ const context: ImpureGraphContext<false, true> = {
     host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
     port: Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
   }),
-  temporalClient: await createTemporalClient(logger),
+  temporalClient: await createTemporalClient(),
 };
 
 await ensureSystemGraphIsInitialized({

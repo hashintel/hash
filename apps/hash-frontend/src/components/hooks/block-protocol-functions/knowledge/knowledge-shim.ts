@@ -6,6 +6,10 @@
  * package and be removed from here.
  */
 
+import type {
+  FileEntityCreationInput,
+  FileEntityUpdateInput,
+} from "../../../../graphql/api-types.gen";
 import type { MessageCallback, MessageReturn } from "@blockprotocol/core";
 import type {
   CreateResourceError,
@@ -28,11 +32,6 @@ import type {
   GraphResolveDepths,
   TraversalPath,
 } from "@rust/hash-graph-store/types";
-
-import type {
-  FileEntityCreationInput,
-  FileEntityUpdateInput,
-} from "../../../../graphql/api-types.gen";
 
 /* Entity CRU */
 

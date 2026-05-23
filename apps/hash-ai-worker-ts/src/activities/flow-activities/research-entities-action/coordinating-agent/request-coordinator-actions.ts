@@ -2,15 +2,9 @@ import dedent from "dedent";
 
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { ParsedCoordinatorToolCall } from "../shared/coordinator-tools.js";
 import { generateToolDefinitions } from "../shared/coordinator-tools.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
 import { mapPreviousCoordinatorCallsToLlmMessages } from "../shared/map-previous-coordinator-calls-to-llm-messages.js";
 import {
@@ -18,6 +12,13 @@ import {
   generateProgressReport,
   generateSystemPromptPrefix,
 } from "./generate-messages.js";
+
+import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js";
+import type { ParsedCoordinatorToolCall } from "../shared/coordinator-tools.js";
+import type {
+  CoordinatingAgentInput,
+  CoordinatingAgentState,
+} from "../shared/coordinators.js";
 
 /**
  * Given the current state of the coordinating agent, request the next actions to be taken.

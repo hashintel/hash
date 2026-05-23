@@ -1,10 +1,11 @@
 "use client";
 
-import { Box, Center } from "@hashintel/ds-helpers/jsx";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef, useState } from "react";
 
-import * as ScrollArea from "./scroll-area";
+import { Box, Center } from "@hashintel/ds-helpers/jsx";
+
+import * as ScrollArea from "../scroll-area";
 
 export const App = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -15,6 +16,7 @@ export const App = () => {
 
   const hasMore = items.length < 200;
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: hasMore ? items.length + 1 : items.length,
     getScrollElement: () => scrollRef.current,

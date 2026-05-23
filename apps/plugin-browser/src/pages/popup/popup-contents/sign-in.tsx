@@ -1,5 +1,6 @@
-import { Button } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
+
+import { Button } from "@hashintel/design-system";
 
 import { popupWidth } from "./shared/sizing";
 import { HashRainbowLockup } from "./sign-in/hash-rainbow-lockup";

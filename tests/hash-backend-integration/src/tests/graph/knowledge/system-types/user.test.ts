@@ -1,5 +1,9 @@
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import {
   createKratosIdentity,
+  deleteKratosIdentity,
+  kratosFrontendApi,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
@@ -7,7 +11,6 @@ import {
   checkEntityPermission,
   updateEntity,
 } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createUser,
   getUser,
@@ -16,7 +19,6 @@ import {
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import type { EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -35,7 +37,6 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { deleteUser, resetGraph } from "../../../admin-server";
 import {
@@ -43,6 +44,9 @@ import {
   createTestOrg,
   generateRandomShortname,
 } from "../../../util";
+
+import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import type { EntityId } from "@blockprotocol/type-system";
 
 const logger = new Logger({
   environment: "test",
@@ -195,6 +199,78 @@ describe("User model class", () => {
     expect(fetchedUser).not.toBeNull();
 
     expect(fetchedUser).toEqual(createdUser);
+  });
+
+  it("prevents users from amending Kratos profile traits directly", async () => {
+    const email = "kratos-profile-update@example.com";
+    const injectedEmail = "injected-profile-update@example.com";
+    const password = "password";
+
+    const identity = await createKratosIdentity({
+      traits: {
+        emails: [email],
+      },
+      credentials: {
+        password: {
+          config: {
+            password,
+          },
+        },
+      },
+    });
+
+    try {
+      const { data: loginFlow } = await kratosFrontendApi.createNativeLoginFlow(
+        {},
+      );
+
+      const { data: login } = await kratosFrontendApi.updateLoginFlow({
+        flow: loginFlow.id,
+        updateLoginFlowBody: {
+          identifier: email,
+          method: "password",
+          password,
+        },
+      });
+
+      const sessionToken = login.session_token;
+
+      if (!sessionToken) {
+        throw new Error("Expected Kratos to return a native session token.");
+      }
+
+      const { data: settingsFlow } =
+        await kratosFrontendApi.createNativeSettingsFlow({
+          xSessionToken: sessionToken,
+        });
+
+      await expect(
+        kratosFrontendApi.updateSettingsFlow({
+          flow: settingsFlow.id,
+          updateSettingsFlowBody: {
+            method: "profile",
+            traits: {
+              emails: [email, injectedEmail],
+            },
+          },
+          xSessionToken: sessionToken,
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          status: 404,
+        },
+      });
+
+      const { data: updatedIdentity } = await kratosIdentityApi.getIdentity({
+        id: identity.id,
+      });
+
+      expect(updatedIdentity.traits).toMatchObject({
+        emails: [email],
+      });
+    } finally {
+      await deleteKratosIdentity({ kratosIdentityId: identity.id });
+    }
   });
 
   it("can join an org", async () => {

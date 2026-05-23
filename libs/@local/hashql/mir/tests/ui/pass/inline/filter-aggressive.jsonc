@@ -4,10 +4,7 @@
   "::graph::tail::collect",
   [
     "::graph::body::filter",
-    [
-      "::graph::head::entities",
-      ["input", "axis", "::graph::QueryTemporalAxes"]
-    ],
+    ["::graph::head::entities", ["input", "axis", "_"]],
     [
       "fn",
       { "#tuple": [] },

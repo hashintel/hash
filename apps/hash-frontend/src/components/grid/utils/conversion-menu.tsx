@@ -1,5 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { Select } from "@hashintel/design-system";
 import {
   Box,
   ClickAwayListener,
@@ -12,7 +10,11 @@ import {
 } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
+import { Select } from "@hashintel/design-system";
+
 import { MenuItem } from "../../../shared/ui";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export type ConversionTargetsByColumnKey = Record<
   string,

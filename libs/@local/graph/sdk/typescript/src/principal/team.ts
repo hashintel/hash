@@ -1,3 +1,4 @@
+import type { AuthenticationContext } from "../authentication-context.js";
 import type {
   Team,
   TeamId,
@@ -5,8 +6,6 @@ import type {
   TeamRoleId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-
-import type { AuthenticationContext } from "../authentication-context.js";
 
 /**
  * Retrieves a web by its shortname.

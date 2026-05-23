@@ -1,4 +1,3 @@
-import type { Entity, EntityId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -19,15 +18,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { contentLinkTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  Block as BlockEntity,
-  HasData,
-} from "@local/hash-isomorphic-utils/system-types/shared";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
 import {
   createEntity,
   getEntityIncomingLinks,
@@ -40,8 +31,18 @@ import {
   getLinkEntityRightEntity,
   isEntityLinkEntity,
 } from "../primitive/link-entity";
-import type { Comment } from "./comment";
 import { getCommentFromEntity } from "./comment";
+
+import type {
+  ImpureGraphFunction,
+  PureGraphFunction,
+} from "../../context-types";
+import type { Comment } from "./comment";
+import type { Entity, EntityId } from "@blockprotocol/type-system";
+import type {
+  Block as BlockEntity,
+  HasData,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 
 export type Block = {
   componentId: string;

@@ -1,18 +1,3 @@
-import type {
-  Entity,
-  EntityId,
-  TemporalBound,
-  TemporalInterval,
-  Timestamp,
-} from "@blockprotocol/type-system";
-
-import type { EntityRevisionId } from "../../../types/entity.js";
-import type {
-  KnowledgeGraphVertex,
-  KnowledgeGraphVertices,
-  Subgraph,
-  SubgraphRootType,
-} from "../../../types/subgraph.js";
 import { isEntityVertex } from "../../../types/subgraph/vertices.js";
 import { mustBeDefined } from "../../../util.js";
 import {
@@ -26,6 +11,21 @@ import {
   intervalIsStrictlyAfterInterval,
   intervalOverlapsInterval,
 } from "../../interval.js";
+
+import type { EntityRevisionId } from "../../../types/entity.js";
+import type {
+  KnowledgeGraphVertex,
+  KnowledgeGraphVertices,
+  Subgraph,
+  SubgraphRootType,
+} from "../../../types/subgraph.js";
+import type {
+  Entity,
+  EntityId,
+  TemporalBound,
+  TemporalInterval,
+  Timestamp,
+} from "@blockprotocol/type-system";
 
 /**
  * Returns all {@link Entity}s within the vertices of the given {@link Subgraph}, optionally filtering to only get their

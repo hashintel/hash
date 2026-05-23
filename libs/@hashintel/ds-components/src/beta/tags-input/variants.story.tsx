@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as TagsInput from "./tags-input";
+import * as TagsInput from "../tags-input";
 
 export const App = () => {
   const variants = ["outline", "subtle", "surface"] as const;

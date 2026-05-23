@@ -1,9 +1,10 @@
 import { faCircle } from "@fortawesome/free-solid-svg-icons";
-import type { ChipProps as MuiChipProps } from "@mui/material";
 import { Chip as MuiChip, chipClasses } from "@mui/material";
 import { forwardRef } from "react";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
+
+import type { ChipProps as MuiChipProps } from "@mui/material";
 
 export type ChipProps = {
   hasCircleStartIcon?: boolean;

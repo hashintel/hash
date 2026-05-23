@@ -1,6 +1,7 @@
+import { v4 as uuidv4 } from "uuid";
+
 import type { Filter } from "@local/hash-graph-client";
 import type { Client } from "@temporalio/client";
-import { v4 as uuidv4 } from "uuid";
 
 export type CreateEmbeddingsParams = {
   input: string[];

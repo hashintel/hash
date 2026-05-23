@@ -1,3 +1,4 @@
+import type { AuthenticationContext } from "../authentication-context.js";
 import type {
   ActorEntityUuid,
   ActorGroupEntityUuid,
@@ -13,8 +14,6 @@ import type {
   RoleAssignmentStatus,
   RoleUnassignmentStatus,
 } from "@local/hash-graph-client";
-
-import type { AuthenticationContext } from "../authentication-context.js";
 
 export const getActorGroupMembers = (
   graphApi: GraphApi,

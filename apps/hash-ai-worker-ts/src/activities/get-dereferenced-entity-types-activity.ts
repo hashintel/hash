@@ -1,12 +1,14 @@
-import type { ActorEntityUuid, VersionedUrl } from "@blockprotocol/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { GraphApi } from "@local/hash-graph-client";
-import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { backOff } from "exponential-backoff";
 
-import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types.js";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+
 import { dereferenceEntityType } from "./shared/dereference-entity-type.js";
+
+import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types.js";
+import type { ActorEntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 
 /**
  * @see {@link dereferenceEntityType}

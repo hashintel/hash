@@ -1,11 +1,13 @@
-import { MenuItem } from "@hashintel/design-system";
 import { FormControl } from "@mui/material";
 import { useFormContext } from "react-hook-form";
 
+import { MenuItem } from "@hashintel/design-system";
+
 import { useReadonlyContext } from "../../readonly-context";
-import type { FormValues } from "../../types";
 import { RHFSelect } from "./rhf-select";
 import { fieldOperators } from "./utils";
+
+import type { FormValues } from "../../types";
 
 export const OperatorSelector = ({ index }: { index: number }) => {
   const { watch, control } = useFormContext<FormValues>();

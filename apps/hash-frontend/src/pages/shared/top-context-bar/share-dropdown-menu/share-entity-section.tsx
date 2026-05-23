@@ -1,39 +1,41 @@
 import { useMutation } from "@apollo/client";
-import type {
-  ActorEntityUuid,
-  ActorGroupEntityUuid,
-  Entity,
-} from "@blockprotocol/type-system";
-import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Box, Skeleton, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
+
+import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { useOrgsWithLinks } from "../../../../components/hooks/use-orgs-with-links";
 import { useUsersWithLinks } from "../../../../components/hooks/use-users-with-links";
-import type {
-  AddEntityViewerMutation,
-  AddEntityViewerMutationVariables,
-} from "../../../../graphql/api-types.gen";
 import { EntityAuthorizationRelation } from "../../../../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   getEntityAuthorizationRelationshipsQuery,
 } from "../../../../graphql/queries/knowledge/entity.queries";
+import { isEntityPageEntity } from "../../../../shared/is-of-type";
+import { EditableAuthorizationRelationships } from "./editable-authorization-relationship";
+import { InviteAccountForm } from "./invite-account-form";
+
+import type {
+  AddEntityViewerMutation,
+  AddEntityViewerMutationVariables,
+} from "../../../../graphql/api-types.gen";
 import type {
   MinimalOrg,
   MinimalUser,
   Org,
   User,
 } from "../../../../lib/user-and-org";
-import { isEntityPageEntity } from "../../../../shared/is-of-type";
-import { EditableAuthorizationRelationships } from "./editable-authorization-relationship";
-import { InviteAccountForm } from "./invite-account-form";
 import type {
   AccountAuthorizationRelationship,
   AuthorizationRelationship,
   PublicAuthorizationRelationship,
 } from "./types";
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+  Entity,
+} from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 type AccountAuthorizationRelationshipsByAccount = {
   account: User | Org;

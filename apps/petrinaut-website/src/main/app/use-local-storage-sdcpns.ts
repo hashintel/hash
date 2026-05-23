@@ -1,5 +1,6 @@
-import type { SDCPN } from "@hashintel/petrinaut";
 import { useLocalStorage } from "@mantine/hooks";
+
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const rootLocalStorageKey = "petrinaut-sdcpn";
 

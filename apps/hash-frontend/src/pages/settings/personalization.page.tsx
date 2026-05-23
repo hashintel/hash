@@ -2,10 +2,11 @@ import { Box, Stack, Switch, Typography } from "@mui/material";
 import { useState } from "react";
 
 import { useUpdateAuthenticatedUser } from "../../components/hooks/use-update-authenticated-user";
-import type { NextPageWithLayout } from "../../shared/layout";
 import { useUserPreferences } from "../../shared/use-user-preferences";
 import { getSettingsLayout } from "../shared/settings-layout";
 import { SettingsPageContainer } from "./shared/settings-page-container";
+
+import type { NextPageWithLayout } from "../../shared/layout";
 
 const SidebarItemDisplaySwitch = ({
   section,

@@ -1,8 +1,8 @@
 import "../shared/common.scss";
+import { Box, Link, Stack, ThemeProvider, Typography } from "@mui/material";
 
 import { Button } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import { Box, Link, Stack, ThemeProvider, Typography } from "@mui/material";
 
 import { HashLockup } from "../shared/hash-lockup";
 import { lightModeBorderColor } from "../shared/style-values";

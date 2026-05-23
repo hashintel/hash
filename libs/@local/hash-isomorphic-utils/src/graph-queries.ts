@@ -1,3 +1,16 @@
+import {
+  componentsFromVersionedUrl,
+  splitEntityId,
+} from "@blockprotocol/type-system";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "./ontology-type-ids.js";
+
+import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
 import type {
   EntityRootType,
   QueryTemporalAxesUnresolved,
@@ -8,10 +21,6 @@ import type {
   Timestamp,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import {
-  componentsFromVersionedUrl,
-  splitEntityId,
-} from "@blockprotocol/type-system";
 import type {
   DataTypeQueryToken,
   EntityQueryToken,
@@ -21,15 +30,7 @@ import type {
   Selector,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import type { GraphResolveDepths } from "@rust/hash-graph-store/types";
-
-import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-  systemPropertyTypes,
-} from "./ontology-type-ids.js";
 
 /**
  * Ontology resolve depths that traverse most relationships fully, except for link constraints.

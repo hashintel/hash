@@ -1,6 +1,7 @@
 import path from "node:path";
 
-import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import {
   archiveDataType,
   unarchiveDataType,
@@ -13,10 +14,6 @@ import {
   archivePropertyType,
   unarchivePropertyType,
 } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import type {
-  KnowledgeGraphRootedEdges,
-  OntologyVertices,
-} from "@blockprotocol/graph";
 import {
   getEntityTypes as getEntityTypesFromSubgraph,
   getIncomingLinksForEntity,
@@ -26,19 +23,6 @@ import {
   getRightEntityForLinkEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  Entity,
-  EntityTypeWithMetadata,
-  Timestamp,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import type { DistributiveField } from "@local/advanced-types/distribute";
-import type {
-  QueryEntitySubgraphRequest,
-  QueryTemporalAxesUnresolved,
-} from "@local/hash-graph-client";
 import {
   queryDataTypes,
   type QueryDataTypesParams,
@@ -61,10 +45,28 @@ import {
   fullDecisionTimeAxis,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../admin-server";
 import { createTestImpureGraphContext } from "../util";
+
+import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
+import type {
+  KnowledgeGraphRootedEdges,
+  OntologyVertices,
+} from "@blockprotocol/graph";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  Entity,
+  EntityTypeWithMetadata,
+  Timestamp,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { DistributiveField } from "@local/advanced-types/distribute";
+import type {
+  QueryEntitySubgraphRequest,
+  QueryTemporalAxesUnresolved,
+} from "@local/hash-graph-client";
 
 export const temporalAxesForTimestamp = (
   decisionTime: Timestamp | null,

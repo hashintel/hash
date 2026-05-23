@@ -1,9 +1,9 @@
-import "../src/index.css";
-
-import type { Preview } from "@storybook/react-vite";
+import "../src/ui/index.css";
 import { useRef } from "react";
 
-import { PortalContainerContext } from "../src/state/portal-container-context";
+import { PortalContainerContext } from "../src/react/state/portal-container-context";
+
+import type { Preview } from "@storybook/react-vite";
 
 const preview: Preview = {
   decorators: [

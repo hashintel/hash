@@ -1,10 +1,11 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 
-import type { NextPageWithLayout } from "../../../shared/layout";
 import { getLayoutWithSidebar } from "../../../shared/layout";
 import { CreateDataTypeForm } from "../../shared/create-data-type-form";
 import { NewTypePageContainer } from "./shared/new-type-page-container";
+
+import type { NextPageWithLayout } from "../../../shared/layout";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();

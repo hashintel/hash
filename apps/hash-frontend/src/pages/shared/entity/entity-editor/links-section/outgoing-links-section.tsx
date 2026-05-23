@@ -1,11 +1,10 @@
-import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
-import type { Entity } from "@blockprotocol/type-system";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Paper, Stack } from "@mui/material";
 import { useCallback, useState } from "react";
 
-import type { SortGridRows } from "../../../../../components/grid/grid";
+import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
+import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+
 import { Grid } from "../../../../../components/grid/grid";
 import { createRenderChipCell } from "../../../chip-cell";
 import { SectionWrapper } from "../../../section-wrapper";
@@ -16,13 +15,16 @@ import { renderLinkCell } from "./outgoing-links-section/cells/link-cell";
 import { renderLinkedWithCell } from "./outgoing-links-section/cells/linked-with-cell";
 import { linkGridColumns } from "./outgoing-links-section/constants";
 import { OutgoingLinksTable } from "./outgoing-links-section/readonly-outgoing-links-table";
+import { useCreateGetCellContent } from "./outgoing-links-section/use-create-get-cell-content";
+import { useRows } from "./outgoing-links-section/use-rows";
+
+import type { SortGridRows } from "../../../../../components/grid/grid";
 import type {
   LinkColumn,
   LinkColumnKey,
   LinkRow,
 } from "./outgoing-links-section/types";
-import { useCreateGetCellContent } from "./outgoing-links-section/use-create-get-cell-content";
-import { useRows } from "./outgoing-links-section/use-rows";
+import type { Entity } from "@blockprotocol/type-system";
 
 interface OutgoingLinksSectionPropsProps {
   isLinkEntity: boolean;

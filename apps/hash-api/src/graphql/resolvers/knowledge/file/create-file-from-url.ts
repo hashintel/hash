@@ -1,15 +1,16 @@
-import type { Entity } from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
-import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
+import { graphQLContextToImpureGraphContext } from "../../util";
+import { triggerPdfAnalysisWorkflow } from "./shared";
+
 import type {
   MutationCreateFileFromUrlArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import { triggerPdfAnalysisWorkflow } from "./shared";
+import type { Entity } from "@blockprotocol/type-system";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const createFileFromUrl: ResolverFn<
   Promise<Entity<FileEntity>>,

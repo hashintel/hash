@@ -1,22 +1,24 @@
-import type { ApolloQueryResult } from "@apollo/client";
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useMemo } from "react";
+
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 
 import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import type { Org } from "../../lib/user-and-org";
-import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
+import type { ApolloQueryResult } from "@apollo/client";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 
 const emptyOrgsArray: Org[] = [];
 

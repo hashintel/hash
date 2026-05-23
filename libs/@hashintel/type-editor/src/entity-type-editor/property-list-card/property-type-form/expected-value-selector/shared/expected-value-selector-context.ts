@@ -1,6 +1,7 @@
+import { createContext, useContext } from "react";
+
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { RefObject } from "react";
-import { createContext, useContext } from "react";
 
 export type ExpectedValueSelectorContextValue = {
   addDataType: (dataTypeId: VersionedUrl) => void;

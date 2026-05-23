@@ -1,5 +1,11 @@
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import { Box, Stack, Typography } from "@mui/material";
+import { debounce } from "lodash";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useState } from "react";
+import { FullScreen, useFullScreenHandle } from "react-full-screen";
+import { Document, Page, pdfjs } from "react-pdf";
 
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
@@ -8,17 +14,6 @@ import {
   MagnifyingGlassMinusLightIcon,
   MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
-import { Box, Stack, Typography } from "@mui/material";
-import { debounce } from "lodash";
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
-import { FullScreen, useFullScreenHandle } from "react-full-screen";
-import { Document, Page, pdfjs } from "react-pdf";
-import type {
-  CustomTextRenderer,
-  DocumentCallback,
-  OnDocumentLoadSuccess,
-} from "react-pdf/dist/cjs/shared/types";
 
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
@@ -35,6 +30,12 @@ import {
   type SearchHits,
 } from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
+
+import type {
+  CustomTextRenderer,
+  DocumentCallback,
+  OnDocumentLoadSuccess,
+} from "react-pdf/dist/cjs/shared/types";
 
 /**
  * Highlights search hits within the text representing a row/line on the page.

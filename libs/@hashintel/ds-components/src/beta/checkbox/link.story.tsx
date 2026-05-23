@@ -1,5 +1,5 @@
-import { Link } from "../link/link";
-import * as Checkbox from "./checkbox";
+import * as Checkbox from "../checkbox";
+import { Link } from "../link";
 
 export const App = () => {
   return (

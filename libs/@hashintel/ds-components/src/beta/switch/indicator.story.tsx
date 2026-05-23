@@ -1,7 +1,7 @@
 import { MoonIcon, SunIcon } from "lucide-react";
 
-import { Icon } from "../icon/icon";
-import * as Switch from "./switch";
+import { Icon } from "../icon";
+import * as Switch from "../switch";
 
 export const App = () => {
   return (

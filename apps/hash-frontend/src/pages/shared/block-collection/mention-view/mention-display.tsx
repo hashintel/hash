@@ -1,3 +1,6 @@
+import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
+import { useMemo, useRef, useState } from "react";
+
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
@@ -13,10 +16,6 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo, useRef, useState } from "react";
 
 import { useEntityById } from "../../../../components/hooks/use-entity-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
@@ -26,7 +25,10 @@ import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { Link } from "../../../../shared/ui";
 import { useEntityIcon } from "../../../../shared/use-entity-icon";
 import { useUserOrOrg } from "../../../../shared/use-user-or-org";
+
 import type { Mention } from "../shared/mention-suggester";
+import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
+import type { FunctionComponent } from "react";
 
 const LinkIcon = styled(ArrowUpRightRegularIcon)(({ theme }) => ({
   marginLeft: theme.spacing(1),

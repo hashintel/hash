@@ -1,18 +1,9 @@
-import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import {
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import type {
-  SimpleEntityWithoutHref,
-  SimpleLinkWithoutHref,
-} from "@local/hash-backend-utils/simplified-graph";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
-import type {
-  CreateEmbeddingsParams,
-  CreateEmbeddingsReturn,
-} from "@local/hash-graph-sdk/embeddings";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
@@ -21,16 +12,26 @@ import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
+
+import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
+import { stringifyResults } from "./shared/stringify-results";
+import { getUserSimpleWebs } from "./shared/webs";
+
+import type { SimpleWeb } from "./shared/webs";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type {
+  SimpleEntityWithoutHref,
+  SimpleLinkWithoutHref,
+} from "@local/hash-backend-utils/simplified-graph";
+import type {
+  CreateEmbeddingsParams,
+  CreateEmbeddingsReturn,
+} from "@local/hash-graph-sdk/embeddings";
 import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { RequestHandler } from "express";
-
-import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import { stringifyResults } from "./shared/stringify-results";
-import type { SimpleWeb } from "./shared/webs";
-import { getUserSimpleWebs } from "./shared/webs";
 
 export type GptQueryEntitiesRequestBody = {
   /**

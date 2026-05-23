@@ -6,18 +6,18 @@
     let %2: Boolean
 
     bb0(): {
-        switchInt(1) -> [0: bb2(), 1: bb1()]
+        switchInt(true) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
         %1 = 1 == 1
-        %2 = %1 & 0
+        %2 = %1 & false
 
         goto -> bb3(%2)
     }
 
     bb2(): {
-        goto -> bb3(1)
+        goto -> bb3(true)
     }
 
     bb3(%0): {
@@ -32,8 +32,8 @@
     let %2: Boolean
 
     bb0(): {
-        %1 = 1
-        %2 = 0
+        %1 = true
+        %2 = false
         %0 = %2
 
         return %2

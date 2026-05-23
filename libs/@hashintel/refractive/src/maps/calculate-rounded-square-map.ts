@@ -1,4 +1,5 @@
 import { calculateCircleMap } from "./calculate-circle-map";
+
 import type { ProcessPixelFunction } from "./process-pixel.type";
 
 /**

@@ -1,9 +1,19 @@
+import { Box } from "@mui/material";
+import { generateKeyBetween } from "fractional-indexing";
+
 import { Button } from "@hashintel/design-system";
 import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks-constants";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { createEntity } from "../../../../../shared/create-entity";
+import { useStorageSync } from "../../../../shared/use-storage-sync";
+import { Section } from "../shared/section";
+import { TextFieldWithDarkMode } from "../text-field-with-dark-mode";
+import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
+
 import type { Note } from "@local/hash-isomorphic-utils/system-types/note";
 import type {
   Block,
@@ -12,14 +22,6 @@ import type {
   Text,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { Box } from "@mui/material";
-import { generateKeyBetween } from "fractional-indexing";
-
-import { createEntity } from "../../../../../shared/create-entity";
-import { useStorageSync } from "../../../../shared/use-storage-sync";
-import { Section } from "../shared/section";
-import { TextFieldWithDarkMode } from "../text-field-with-dark-mode";
-import { QuickNoteIcon } from "./quick-note-action/quick-note-icon";
 
 const createQuickNote = async (text: string) => {
   const paragraphs = text

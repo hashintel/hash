@@ -1,7 +1,3 @@
-import type {
-  LocalOrExistingEntityId,
-  ProposedEntity,
-} from "@local/hash-isomorphic-utils/flows/types";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import type {
@@ -11,6 +7,10 @@ import type {
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type.js";
 import type { Claim } from "../../shared/claims.js";
+import type {
+  LocalOrExistingEntityId,
+  ProposedEntity,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;

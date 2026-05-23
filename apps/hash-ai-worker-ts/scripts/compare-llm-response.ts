@@ -2,16 +2,16 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { WebId } from "@blockprotocol/type-system";
-
 import { getLlmResponse } from "../src/activities/shared/get-llm-response.js";
+import { graphApiClient } from "../src/activities/shared/graph-api-client.js";
+import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id.js";
+
 import type {
   LlmParams,
   LlmResponse,
 } from "../src/activities/shared/get-llm-response/types.js";
-import { graphApiClient } from "../src/activities/shared/graph-api-client.js";
-import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id.js";
 import type { CompareLlmResponseConfig } from "./compare-llm-response/types.js";
+import type { WebId } from "@blockprotocol/type-system";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

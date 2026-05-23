@@ -1,19 +1,19 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import getGitignorePatterns from "eslint-config-flat-gitignore";
-import importPlugin from "eslint-plugin-import";
-import { ignores } from "eslint-config-sheriff";
-import canonical from "eslint-plugin-canonical";
-import reactHooks from "eslint-plugin-react-hooks";
-import simpleImportSort from "eslint-plugin-simple-import-sort";
-import unicorn from "eslint-plugin-unicorn";
-import globals from "globals";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import { Array, pipe, Record, Struct } from "effect";
+import getGitignorePatterns from "eslint-config-flat-gitignore";
+import { ignores } from "eslint-config-sheriff";
+import canonical from "eslint-plugin-canonical";
+import importPlugin from "eslint-plugin-import";
+import reactHooks from "eslint-plugin-react-hooks";
+import simpleImportSort from "eslint-plugin-simple-import-sort";
+import unicorn from "eslint-plugin-unicorn";
+import globals from "globals";
 
 import { projectIgnoreFiles, type ESConfig } from "../utils.js";
 
@@ -340,8 +340,11 @@ export const create = (projectDirectory: string) =>
           },
         ],
 
+        // Import ordering and sorting is handled by oxfmt
+        "import/first": "off",
+        "import/order": "off",
         "simple-import-sort/exports": "error",
-        "simple-import-sort/imports": "error",
+        "simple-import-sort/imports": "off",
         "unicorn/filename-case": "error",
 
         "unicorn/import-style": [

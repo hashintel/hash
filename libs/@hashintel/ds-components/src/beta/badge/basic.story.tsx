@@ -1,6 +1,6 @@
 import { Wrap } from "@hashintel/ds-helpers/jsx";
 
-import { Badge } from "./badge";
+import { Badge } from "../badge";
 
 export const App = () => {
   return (

@@ -1,22 +1,24 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { vi } from "vitest";
+
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { graphApiClient } from "../../activities/shared/graph-api-client.js";
+import { getAliceUserAccountId } from "./get-alice-user-account-id.js";
+
 import type {
   ActorEntityUuid,
   EntityUuid,
   WebId,
 } from "@blockprotocol/type-system";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Context } from "@temporalio/activity";
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { vi } from "vitest";
-
-import { graphApiClient } from "../../activities/shared/graph-api-client.js";
-import { getAliceUserAccountId } from "./get-alice-user-account-id.js";
 
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends Array<infer U>

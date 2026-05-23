@@ -1,12 +1,13 @@
 import { Portal } from "@ark-ui/react/portal";
-import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
 import { MapPinIcon } from "lucide-react";
 
-import * as Avatar from "../avatar/avatar";
-import { Icon } from "../icon/icon";
-import { Link } from "../link/link";
-import { Text } from "../text/text";
-import * as HoverCard from "./hover-card";
+import { HStack, Stack } from "@hashintel/ds-helpers/jsx";
+
+import * as Avatar from "../avatar";
+import * as HoverCard from "../hover-card";
+import { Icon } from "../icon";
+import { Link } from "../link";
+import { Text } from "../text";
 
 export const App = () => {
   return (

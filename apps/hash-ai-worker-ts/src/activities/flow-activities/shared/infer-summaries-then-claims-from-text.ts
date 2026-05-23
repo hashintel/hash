@@ -1,13 +1,13 @@
-import type { Url, VersionedUrl } from "@blockprotocol/type-system";
-import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
+import { logger } from "../../shared/activity-logger.js";
+import { getEntitySummariesFromText } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import { inferEntityClaimsFromTextAgent } from "./infer-summaries-then-claims-from-text/infer-entity-claims-from-text-agent.js";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
-import { logger } from "../../shared/activity-logger.js";
 import type { LlmParams } from "../../shared/get-llm-response/types.js";
 import type { Claim } from "./claims.js";
 import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import { getEntitySummariesFromText } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import { inferEntityClaimsFromTextAgent } from "./infer-summaries-then-claims-from-text/infer-entity-claims-from-text-agent.js";
+import type { Url, VersionedUrl } from "@blockprotocol/type-system";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * A two-step process for extracting claims about entities from text:

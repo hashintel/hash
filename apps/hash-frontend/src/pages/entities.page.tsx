@@ -1,7 +1,15 @@
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import {
+  Box,
+  buttonClasses,
+  Container,
+  Fade,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { NextSeo } from "next-seo";
+import { useRouter } from "next/router";
+import { useCallback, useMemo } from "react";
+
 import {
   extractBaseUrl,
   extractVersion,
@@ -18,19 +26,6 @@ import {
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import type { SxProps, Theme } from "@mui/material";
-import {
-  Box,
-  buttonClasses,
-  Container,
-  Fade,
-  Stack,
-  Typography,
-} from "@mui/material";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
@@ -43,18 +38,25 @@ import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regu
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
 import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
 import { PlusRegularIcon } from "../shared/icons/plus-regular";
-import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
-import type { Breadcrumb } from "./shared/breadcrumbs";
 import { CreateButton } from "./shared/create-button";
 import { EntitiesVisualizer } from "./shared/entities-visualizer";
 import { TopContextBar } from "./shared/top-context-bar";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "./shared/workspace-context";
+
+import type { NextPageWithLayout } from "../shared/layout";
+import type { Breadcrumb } from "./shared/breadcrumbs";
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { SxProps, Theme } from "@mui/material";
+import type { FunctionComponent } from "react";
 
 const contentMaxWidth = 1000;
 

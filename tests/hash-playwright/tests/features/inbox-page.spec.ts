@@ -4,15 +4,16 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
+
+import { createEntity, getUser } from "../shared/api-queries";
+import { expect, test } from "../shared/runtime";
+
+import type { APIRequestContext } from "../shared/runtime";
 import type {
   GraphChangeNotification,
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { Page } from "@local/hash-isomorphic-utils/system-types/shared";
-
-import { createEntity, getUser } from "../shared/api-queries";
-import type { APIRequestContext } from "../shared/runtime";
-import { expect, test } from "../shared/runtime";
 
 const createNotification = async ({
   draft,

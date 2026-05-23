@@ -1,8 +1,9 @@
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { MultiDirectedGraph } from "graphology";
 import { edgePathFromNodePath } from "graphology-shortest-path";
 import { allSimplePaths } from "graphology-simple-path";
+
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import type {
   GenerateSimplePathsParams,

@@ -1,25 +1,15 @@
+import { castDraft, produce } from "immer";
+import { isEqual } from "lodash-es";
+import { Plugin, PluginKey } from "prosemirror-state";
+import { v4 as uuid } from "uuid";
+
 import {
   currentTimestamp,
   type EntityId,
   type PropertyObject,
   type WebId,
 } from "@blockprotocol/type-system";
-import type { Draft } from "immer";
-import { castDraft, produce } from "immer";
-import { isEqual } from "lodash-es";
-import type { Node } from "prosemirror-model";
-import type { EditorState, Transaction } from "prosemirror-state";
-import { Plugin, PluginKey } from "prosemirror-state";
-import type { EditorView } from "prosemirror-view";
-import { v4 as uuid } from "uuid";
 
-import type { BlockEntity } from "./entity.js";
-import { getEntityChildEntity, isRichTextProperties } from "./entity.js";
-import type {
-  DraftEntity,
-  EntityStore,
-  EntityStoreType,
-} from "./entity-store.js";
 import {
   createEntityStore,
   getDraftEntityByEntityId,
@@ -27,7 +17,7 @@ import {
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,
 } from "./entity-store.js";
-import type { ComponentNode, EntityNode } from "./prosemirror.js";
+import { getEntityChildEntity, isRichTextProperties } from "./entity.js";
 import {
   componentNodeToId,
   findComponentNodes,
@@ -36,6 +26,18 @@ import {
 } from "./prosemirror.js";
 import { textBlockNodeToEntityProperties } from "./text.js";
 import { collect } from "./util.js";
+
+import type {
+  DraftEntity,
+  EntityStore,
+  EntityStoreType,
+} from "./entity-store.js";
+import type { BlockEntity } from "./entity.js";
+import type { ComponentNode, EntityNode } from "./prosemirror.js";
+import type { Draft } from "immer";
+import type { Node } from "prosemirror-model";
+import type { EditorState, Transaction } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 
@@ -47,19 +49,19 @@ type EntityStorePluginState = {
 
 export type EntityStorePluginAction = { received?: boolean } & (
   | /**
-   * This is an action that merges in a new set of blocks from a Page
-   * entity's contents property, usually post save while attempting to
-   * remember draft data which has not yet been saved. This is not a
-   * fool-proof solution, and is only necessary because we don't yet
-   * convert the changes made during a save into discrete actions. Once
-   * we do that, we should remove this as its a source of complexity and
-   * bugs. It also results in needing to send the entire store to the
-   * other clients, as it is not sync-able.
-   *
-   * @deprecated
-   * @todo remove this once we better handle saves
-   */
-  {
+     * This is an action that merges in a new set of blocks from a Page
+     * entity's contents property, usually post save while attempting to
+     * remember draft data which has not yet been saved. This is not a
+     * fool-proof solution, and is only necessary because we don't yet
+     * convert the changes made during a save into discrete actions. Once
+     * we do that, we should remove this as its a source of complexity and
+     * bugs. It also results in needing to send the entire store to the
+     * other clients, as it is not sync-able.
+     *
+     * @deprecated
+     * @todo remove this once we better handle saves
+     */
+    {
       type: "mergeNewPageContents";
       payload: {
         blocks: BlockEntity[];
@@ -783,11 +785,7 @@ const scheduleNotifyEntityStoreSubscribers = collect<
   }
 });
 
-export const createEntityStorePlugin = ({
-  webId,
-}: {
-  webId: WebId;
-}) => {
+export const createEntityStorePlugin = ({ webId }: { webId: WebId }) => {
   // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
   const entityStorePlugin = new Plugin<EntityStorePluginState>({
     key: entityStorePluginKey,

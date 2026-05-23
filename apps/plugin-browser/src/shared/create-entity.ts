@@ -1,15 +1,16 @@
-import type {
-  LinkData,
-  TypeIdsAndPropertiesForEntity,
-} from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
+
+import { createEntityMutation } from "../graphql/queries/entity.queries";
+import { queryGraphQlApi } from "./query-graphql-api";
 
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
 } from "../graphql/api-types.gen";
-import { createEntityMutation } from "../graphql/queries/entity.queries";
-import { queryGraphQlApi } from "./query-graphql-api";
+import type {
+  LinkData,
+  TypeIdsAndPropertiesForEntity,
+} from "@blockprotocol/type-system";
 
 export const createEntity = <T extends TypeIdsAndPropertiesForEntity>(params: {
   entityTypeIds: T["entityTypeIds"];

@@ -1,6 +1,6 @@
 //@ run: fail
 //@ description: Test error when using computed paths for indexing in filter expressions
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
@@ -9,7 +9,7 @@
         {"#literal": 2},
         ["[]",
           ["input", "user_ids", "Dict<::graph::types::knowledge::entity::EntityUuid, Integer>"],
-          "vertex.id.entity_id.entity_uuid"
+          "vertex.metadata.record_id.entity_id.entity_uuid"
           //~^ ERROR Cannot use computed value as index
         ]
       ]

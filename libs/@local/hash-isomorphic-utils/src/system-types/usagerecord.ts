@@ -2,8 +2,6 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
-
 import type {
   AppliesFromPropertyValue,
   AppliesFromPropertyValueWithMetadata,
@@ -120,6 +118,7 @@ import type {
   WorkflowIDPropertyValue,
   WorkflowIDPropertyValueWithMetadata,
 } from "./shared.js";
+import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
 
 export type {
   AppliesFromPropertyValue,

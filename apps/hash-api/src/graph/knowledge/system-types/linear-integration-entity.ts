@@ -2,13 +2,6 @@ import {
   getRightEntityForLinkEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  Entity,
-  EntityId,
-  EntityUuid,
-} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -30,18 +23,26 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type {
-  LinearIntegration as LinearIntegrationEntity,
-  SyncLinearDataWith,
-  SyncLinearDataWithProperties,
-} from "@local/hash-isomorphic-utils/system-types/linearintegration";
+
+import { getLatestEntityById, updateEntity } from "../primitive/entity";
+import { createLinkEntity } from "../primitive/link-entity";
 
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { getLatestEntityById, updateEntity } from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
+import type {
+  ActorEntityUuid,
+  BaseUrl,
+  Entity,
+  EntityId,
+  EntityUuid,
+} from "@blockprotocol/type-system";
+import type {
+  LinearIntegration as LinearIntegrationEntity,
+  SyncLinearDataWith,
+  SyncLinearDataWithProperties,
+} from "@local/hash-isomorphic-utils/system-types/linearintegration";
 
 export type LinearIntegration = {
   linearOrgId: string;

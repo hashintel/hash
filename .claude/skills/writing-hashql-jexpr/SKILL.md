@@ -1,6 +1,6 @@
 ---
 name: writing-hashql-jexpr
-description: 'HashQL J-Expr syntax for writing queries. Use when writing J-Expr code, using #literal/#struct/#list constructs, understanding function call syntax, or working with HashQL query files (.jsonc).'
+description: "HashQL J-Expr syntax for writing queries. Use when writing J-Expr code, using #literal/#struct/#list constructs, understanding function call syntax, or working with HashQL query files (.jsonc)."
 license: AGPL-3.0
 metadata:
   triggers:
@@ -29,11 +29,11 @@ J-Expr is a JSON-based expression syntax for HashQL. It represents typed express
 
 J-Expr has three expression types:
 
-| JSON Type | J-Expr Meaning |
-| --------- | -------------- |
-| String | Path/identifier/symbol |
-| Array | Function call |
-| Object | Data constructor (with `#` keys) |
+| JSON Type | J-Expr Meaning                   |
+| --------- | -------------------------------- |
+| String    | Path/identifier/symbol           |
+| Array     | Function call                    |
+| Object    | Data constructor (with `#` keys) |
 
 ## Paths (Strings)
 
@@ -68,14 +68,14 @@ Arrays represent function calls: `[function, arg1, arg2, ...]`
 
 Objects with special `#` keys construct data:
 
-| Key | Purpose | Example |
-| --- | ------- | ------- |
-| `#literal` | Primitive values | `{"#literal": 42}` |
-| `#struct` | Named fields | `{"#struct": {"x": ...}}` |
-| `#list` | Variable-size ordered | `{"#list": [...]}` |
-| `#tuple` | Fixed-size ordered | `{"#tuple": [...]}` |
-| `#dict` | Key-value map | `{"#dict": {"k": ...}}` |
-| `#type` | Type annotation | Used with other keys |
+| Key        | Purpose               | Example                   |
+| ---------- | --------------------- | ------------------------- |
+| `#literal` | Primitive values      | `{"#literal": 42}`        |
+| `#struct`  | Named fields          | `{"#struct": {"x": ...}}` |
+| `#list`    | Variable-size ordered | `{"#list": [...]}`        |
+| `#tuple`   | Fixed-size ordered    | `{"#tuple": [...]}`       |
+| `#dict`    | Key-value map         | `{"#dict": {"k": ...}}`   |
+| `#type`    | Type annotation       | Used with other keys      |
 
 ### Literals
 
@@ -104,7 +104,7 @@ Objects with special `#` keys construct data:
 ### Dict
 
 ```jsonc
-{"#dict": {"key": {"#literal": "value"}}}
+{ "#dict": { "key": { "#literal": "value" } } }
 ```
 
 ## Common Patterns
@@ -112,7 +112,7 @@ Objects with special `#` keys construct data:
 ### Let Binding
 
 ```jsonc
-["let", "varName", {"#literal": 10}, ["add", "varName", {"#literal": 5}]]
+["let", "varName", { "#literal": 10 }, ["add", "varName", { "#literal": 5 }]]
 ```
 
 ### Function Definition
@@ -159,15 +159,23 @@ Objects with special `#` keys construct data:
 **Filtering with comparison:**
 
 ```jsonc
-["filter", "entities", 
-  ["fn", {"#tuple": []}, {"#struct": {"entity": "_"}}, "_",
-    ["==", "entity.draft_id", {"#literal": null}]]]
+[
+  "filter",
+  "entities",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "entity": "_" } },
+    "_",
+    ["==", "entity.draft_id", { "#literal": null }],
+  ],
+]
 ```
 
 **Struct with type:**
 
 ```jsonc
-{"#struct": {"value": {"#literal": 100}}, "#type": "Amount"}
+{ "#struct": { "value": { "#literal": 100 } }, "#type": "Amount" }
 ```
 
 ## References

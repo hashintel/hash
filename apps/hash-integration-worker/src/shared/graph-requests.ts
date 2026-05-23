@@ -1,15 +1,8 @@
-import type {
-  ActorEntityUuid,
-  EntityId,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
-import type { GraphApi } from "@local/hash-graph-client";
 import {
   HashEntity,
   HashLinkEntity,
@@ -20,6 +13,14 @@ import {
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type {
+  ActorEntityUuid,
+  EntityId,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 
 export const getEntitiesByLinearId = async (params: {
   graphApiClient: GraphApi;

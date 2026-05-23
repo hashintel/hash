@@ -1,24 +1,21 @@
-import type {
-  BaseUrl,
-  Entity,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import mime from "mime-types";
+
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
 import {
   formatFileUrl,
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
 import { validateExternalUrl } from "@local/hash-backend-utils/url-validation";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import mime from "mime-types";
+
+import {
+  createEntity,
+  getLatestEntityById,
+  updateEntity,
+} from "../primitive/entity";
 
 import type {
   MutationCreateFileFromUrlArgs,
@@ -28,11 +25,16 @@ import type {
   ImpureGraphContext,
   ImpureGraphFunction,
 } from "../../context-types";
-import {
-  createEntity,
-  getLatestEntityById,
-  updateEntity,
-} from "../primitive/entity";
+import type {
+  BaseUrl,
+  Entity,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { PresignedPutUpload } from "@local/hash-backend-utils/file-storage";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
 
 // 1800 seconds
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;

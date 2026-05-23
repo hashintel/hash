@@ -6,28 +6,32 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "lint:tsc": "tsgo --noEmit",
+    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error ."
+    "lint:tsc": "tsgo --noEmit"
   },
   "dependencies": {
+    "@hashintel/ds-components": "workspace:*",
+    "@hashintel/ds-helpers": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
+    "@hashintel/petrinaut-core": "workspace:*",
     "@mantine/hooks": "8.3.5",
+    "@pandacss/dev": "1.11.1",
     "@sentry/react": "10.22.0",
     "immer": "10.1.3",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "react-icons": "5.5.0"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "0.2.1",
-    "@types/react": "19.2.7",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@typescript/native-preview": "7.0.0-dev.20260315.1",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@vitejs/plugin-react": "6.0.1",
     "babel-plugin-react-compiler": "1.0.0",
-    "oxlint": "1.55.0",
-    "oxlint-tsgolint": "0.17.0",
-    "vite": "8.0.10"
+    "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
+    "vite": "8.0.12"
   }
 }

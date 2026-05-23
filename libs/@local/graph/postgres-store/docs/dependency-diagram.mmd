@@ -24,36 +24,52 @@ graph TD
     12[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
     13[<a href="../harpc_types/index.html">harpc-types</a>]
     14[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    15[<a href="../hash_status/index.html">hash-status</a>]
-    16[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
-    17[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    18[<a href="../error_stack/index.html">error-stack</a>]
-    19[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    20[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    21[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    15[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    16[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    17[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    18[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    19[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    20[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    21[<a href="../hash_status/index.html">hash-status</a>]
+    22[<a href="../hash_telemetry/index.html">hash-telemetry</a>]
+    23[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    24[<a href="../error_stack/index.html">error-stack</a>]
+    25[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    26[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    27[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
     1 --> 10
-    1 -.-> 21
+    1 -.-> 27
     2 -.-> 3
     2 --> 14
-    4 --> 8
+    4 --> 17
+    4 --> 20
     5 --> 1
     6 --> 7
-    6 --> 16
+    6 --> 22
     8 -.-> 6
     8 --> 12
-    8 --> 15
+    8 --> 21
     9 --> 5
     9 --> 11
-    9 --> 17
+    9 --> 23
     10 --> 2
-    11 -.-> 21
-    12 -.-> 21
+    11 -.-> 27
+    12 -.-> 27
     14 -.-> 13
     14 --> 13
-    14 --> 18
-    16 --> 18
-    17 --> 1
-    19 -.-> 4
-    20 -.-> 8
-    21 --> 9
+    14 --> 24
+    15 -.-> 16
+    16 --> 17
+    16 --> 20
+    16 --> 24
+    17 --> 8
+    17 --> 19
+    18 -.-> 16
+    19 --> 18
+    20 --> 15
+    22 --> 24
+    23 --> 1
+    25 -.-> 4
+    26 -.-> 8
+    27 --> 9

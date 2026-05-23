@@ -1,14 +1,15 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 
 import { createComment } from "../../../../graph/knowledge/system-types/comment";
+import { graphQLContextToImpureGraphContext } from "../../util";
+import { mapCommentToGQL } from "../graphql-mapping";
+
 import type {
   MutationCreateCommentArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedCommentGQL } from "../graphql-mapping";
-import { mapCommentToGQL } from "../graphql-mapping";
 
 export const createCommentResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,

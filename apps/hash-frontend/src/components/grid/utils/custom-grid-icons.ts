@@ -1,5 +1,6 @@
-import type { SpriteProps } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
+
+import type { SpriteProps } from "@glideapps/glide-data-grid";
 
 export const customGridIcons = {
   bpAsteriskCircle: ({ fgColor }) =>

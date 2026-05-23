@@ -1,5 +1,29 @@
 # @hashintel/petrinaut
 
+## 0.0.15
+
+### Patch Changes
+
+- [#8730](https://github.com/hashintel/hash/pull/8730) [`ed40011`](https://github.com/hashintel/hash/commit/ed40011ba896b77db0dae30c219e1f2066382c28) Thanks [@kube](https://github.com/kube)! - Extract the headless Petrinaut core into `@hashintel/petrinaut-core`, expose dedicated core worker entry points, and remove the `@hashintel/petrinaut/core` compatibility entry point.
+
+- [#8709](https://github.com/hashintel/hash/pull/8709) [`2c1c977`](https://github.com/hashintel/hash/commit/2c1c977d8d2772706f4edb91dd79a8d28866bff0) Thanks [@kube](https://github.com/kube)! - Add basic MonteCarlo-based experiments
+
+- Updated dependencies [[`c0c9498`](https://github.com/hashintel/hash/commit/c0c9498dc4f648814a80fc6e8df3598ff8a108ac), [`ed40011`](https://github.com/hashintel/hash/commit/ed40011ba896b77db0dae30c219e1f2066382c28), [`d3ac60c`](https://github.com/hashintel/hash/commit/d3ac60c5509bd2d5a478f2e5a56433c59d353f7b), [`834cbee`](https://github.com/hashintel/hash/commit/834cbeeb7d8045f006d7a1fab1e5858b83c437d6)]:
+  - @hashintel/ds-helpers@0.2.1
+  - @hashintel/petrinaut-core@0.0.1
+  - @hashintel/refractive@0.0.4
+  - @hashintel/ds-components@0.2.1
+
+## 0.0.14
+
+### Patch Changes
+
+- [#8633](https://github.com/hashintel/hash/pull/8633) [`fe08932`](https://github.com/hashintel/hash/commit/fe0893270534885d81ea909b871d4185d6aa0c2e) Thanks [@kube](https://github.com/kube)! - Add Metrics: user-authored functions over simulation state that produce a single number per frame, plotted via a new metric picker in the simulation timeline header
+
+- Updated dependencies [[`926f9fa`](https://github.com/hashintel/hash/commit/926f9fa3b844a9dd4ca26cdbe6dd69ceed87dcb5), [`ab0a035`](https://github.com/hashintel/hash/commit/ab0a0353baa0f1611ceba7ca29cd8adb575392f5), [`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa), [`d9eb831`](https://github.com/hashintel/hash/commit/d9eb8317bd0c981e45f263a007aeac48f309e268), [`79eda1e`](https://github.com/hashintel/hash/commit/79eda1e27e9a6b2959a68e59f9a25791639f5770)]:
+  - @hashintel/ds-components@0.2.0
+  - @hashintel/ds-helpers@0.2.0
+
 ## 0.0.13
 
 ### Patch Changes

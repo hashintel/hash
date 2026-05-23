@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.config/oxlint/react-compiler.json"],
   "plugins": ["import", "react", "jsx-a11y", "unicorn", "typescript"],
   "categories": {
     "correctness": "error"
@@ -81,9 +82,6 @@
       "error",
       { "button": true, "submit": true, "reset": false }
     ],
-
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "off",
 
     "jsx-a11y/prefer-tag-over-role": "off",
     "jsx-a11y/aria-role": ["error", { "ignoreNonDOM": false }],

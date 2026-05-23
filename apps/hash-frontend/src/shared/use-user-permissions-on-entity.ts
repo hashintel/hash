@@ -1,12 +1,14 @@
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+
+import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
+
 import type { EntityMetadata } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   CheckUserPermissionsOnEntityQuery,
   CheckUserPermissionsOnEntityQueryVariables,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import { checkUserPermissionsOnEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import { useMemo } from "react";
 
 export const useUserPermissionsOnEntity = (
   entity?: Pick<HashEntity, "metadata">,

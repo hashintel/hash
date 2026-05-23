@@ -1,21 +1,23 @@
+import { useMemo } from "react";
+
 import {
   getOutgoingLinkAndTargetEntities,
   intervalCompareWithInterval,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  PartialEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../shared/file-upload-context";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
+
 import type { LinkRow } from "./types";
+import type {
+  PartialEntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 export const useRows = () => {
   const {

@@ -1,5 +1,6 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { createContext, useContext } from "react";
+
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 
 export const EntityTypeContext = createContext<null | {
   entityType: EntityType;

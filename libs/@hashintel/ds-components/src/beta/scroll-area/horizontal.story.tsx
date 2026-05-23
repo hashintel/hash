@@ -1,6 +1,6 @@
 import { Center, HStack } from "@hashintel/ds-helpers/jsx";
 
-import * as ScrollArea from "./scroll-area";
+import * as ScrollArea from "../scroll-area";
 
 export const App = () => (
   <ScrollArea.Root scrollbar="visible">

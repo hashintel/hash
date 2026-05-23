@@ -1,34 +1,36 @@
-import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import { Context } from "@temporalio/activity";
+import dedent from "dedent";
+
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
-import type { DeprecatedProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
-import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
-import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
-import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
 import { stringify } from "../shared/stringify.js";
 import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt.js";
+import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools.js";
+import { extractErrorMessage } from "./shared/extract-validation-failure-details.js";
+import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools.js";
+import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties.js";
+
+import type {
+  LlmMessage,
+  LlmUserMessage,
+} from "../shared/get-llm-response/llm-message.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
 } from "./inference-types.js";
-import { validateProposedEntitiesByType } from "./persist-entities/generate-persist-entities-tools.js";
-import { extractErrorMessage } from "./shared/extract-validation-failure-details.js";
 import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools.js";
-import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools.js";
-import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties.js";
+import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
+import type { DeprecatedProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
+import type { Status } from "@local/status";
 
 /**
  * This method is used by the 'infer-entities-from-web-page-activity', which is used by the browser plugin inference flow.

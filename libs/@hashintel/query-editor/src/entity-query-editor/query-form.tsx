@@ -1,12 +1,14 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { Button, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Stack, Typography } from "@mui/material";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
+import { Button, FontAwesomeIcon } from "@hashintel/design-system";
+
 import { FilterRow } from "./query-form/filter-row";
 import { useReadonlyContext } from "./readonly-context";
+
 import type { FormValues } from "./types";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 
 interface QueryFormProps {
   entityTypes: EntityType[];

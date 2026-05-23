@@ -1,9 +1,10 @@
+import { createContext, useContext } from "react";
+
 import type {
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext } from "react";
 
 export type PropertyTypesByVersionedUrl = Record<
   VersionedUrl,

@@ -15,12 +15,22 @@ use hashql_core::{
     id::{self, bit_vec::DenseBitSet},
 };
 
-use super::target::TargetId;
-use crate::body::{
-    Body,
-    basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockUnionFind, BasicBlockVec},
+use super::{
+    VertexType,
+    target::TargetId,
+    traversal::{TraversalAnalysisVisitor, TraversalLattice, TraversalPathBitSet, TraversalResult},
+};
+use crate::{
+    body::{
+        Body,
+        basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockUnionFind, BasicBlockVec},
+    },
+    pass::analysis::dataflow::lattice::HasBottom as _,
+    visit::Visitor as _,
 };
 
+pub(crate) mod graph;
+pub(crate) mod schedule;
 #[cfg(test)]
 mod tests;
 
@@ -43,6 +53,7 @@ id::newtype_collections!(pub type Island* from IslandId);
 pub struct Island {
     target: TargetId,
     members: DenseBitSet<BasicBlockId>,
+    traversals: TraversalPathBitSet,
 }
 
 impl Island {
@@ -74,6 +85,11 @@ impl Island {
         self.members.is_empty()
     }
 
+    #[must_use]
+    pub const fn traversals(&self) -> TraversalPathBitSet {
+        self.traversals
+    }
+
     /// Iterates over the [`BasicBlockId`]s in this island in ascending order.
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = BasicBlockId> + '_ {
@@ -86,8 +102,8 @@ impl Island {
 /// Two blocks belong to the same island when they are connected in the CFG (directly or
 /// transitively through same-target successors) and share the same [`TargetId`]. The pass
 /// uses a union-find to identify these components in nearly linear time.
-pub(crate) struct IslandPlacement<A: Allocator> {
-    scratch: A,
+pub(crate) struct IslandPlacement<S: Allocator> {
+    scratch: S,
 }
 
 impl IslandPlacement<Global> {
@@ -114,15 +130,19 @@ impl<S: Allocator + Clone> IslandPlacement<S> {
     ///
     /// Returns an [`IslandVec`] where each [`Island`] contains the set of blocks that form
     /// a connected same-target component. The output is allocated with `alloc`.
-    pub(crate) fn run<A>(
+    pub(crate) fn run_in<A>(
         &self,
         body: &Body<'_>,
+        vertex: VertexType,
+
         targets: &BasicBlockSlice<TargetId>,
+
         alloc: A,
     ) -> IslandVec<Island, A>
     where
         A: Allocator,
     {
+        let lattice = TraversalLattice::new(vertex);
         let mut union = BasicBlockUnionFind::new_in(body.basic_blocks.len(), self.scratch.clone());
 
         for bb in body.basic_blocks.ids() {
@@ -144,10 +164,22 @@ impl<S: Allocator + Clone> IslandPlacement<S> {
                 islands.push(Island {
                     target: targets[root],
                     members: DenseBitSet::new_empty(body.basic_blocks.len()),
+                    traversals: lattice.bottom(),
                 })
             });
 
             islands[index].members.insert(bb);
+        }
+
+        for island in &mut islands {
+            let mut visitor = TraversalAnalysisVisitor::new(vertex, |_, result| match result {
+                TraversalResult::Path(path) => island.traversals.insert(path),
+                TraversalResult::Complete => island.traversals.insert_all(),
+            });
+
+            for id in &island.members {
+                Ok(()) = visitor.visit_basic_block(id, &body.basic_blocks[id]);
+            }
         }
 
         islands

@@ -1,5 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import {
   faAdd,
   faAsterisk,
@@ -7,14 +5,18 @@ import {
   faList,
 } from "@fortawesome/free-solid-svg-icons";
 import { Box, Menu } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindMenu } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
+
+import { extractBaseUrl } from "@blockprotocol/type-system";
 
 import { useEntityTypesContextRequired } from "../../../../../entity-types-context/hooks/use-entity-types-context-required";
 import { generateLinkParameters } from "../../../../../generate-link-parameters";
 import { FavoriteMenuItem } from "./shared/favorite-menu-item";
 import { SidebarMenuItem } from "./shared/sidebar-menu-item";
+
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent } from "react";
 
 type EntityTypeMenuProps = {
   entityTypeId: VersionedUrl;

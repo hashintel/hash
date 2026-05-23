@@ -1,7 +1,8 @@
 import { faSquare, faSquareCheck } from "@fortawesome/free-regular-svg-icons";
 import { faRightLeft } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, chipClasses, Tooltip, Typography } from "@mui/material";
+
+import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 
 import type { CellInputProps } from "./types";
 

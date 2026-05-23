@@ -1,5 +1,3 @@
-import type { EntityId } from "@blockprotocol/type-system";
-
 import { PencilSimpleLine } from "../../../shared/icons/svg";
 import {
   EditBarCollapse,
@@ -7,6 +5,8 @@ import {
   EditBarContents,
   useFreezeScrollWhileTransitioning,
 } from "../../shared/shared/edit-bar-contents";
+
+import type { EntityId } from "@blockprotocol/type-system";
 
 export const ProcessEditBar = ({
   discardChanges,

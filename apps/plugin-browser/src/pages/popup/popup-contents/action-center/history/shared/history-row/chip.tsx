@@ -1,5 +1,6 @@
-import type { SxProps, Theme } from "@mui/material";
 import { Stack } from "@mui/material";
+
+import type { SxProps, Theme } from "@mui/material";
 import type { PropsWithChildren } from "react";
 
 export const chipSx: SxProps<Theme> = ({ palette }) => ({

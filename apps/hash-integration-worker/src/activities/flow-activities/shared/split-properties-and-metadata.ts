@@ -1,3 +1,5 @@
+import { isBaseUrl } from "@blockprotocol/type-system";
+
 import type {
   ArrayMetadata,
   BaseUrl,
@@ -10,7 +12,6 @@ import type {
   PropertyValueMetadata,
   PropertyWithMetadata,
 } from "@blockprotocol/type-system";
-import { isBaseUrl } from "@blockprotocol/type-system";
 
 /**
  * Recursively extracts the raw property value from a PropertyWithMetadata.

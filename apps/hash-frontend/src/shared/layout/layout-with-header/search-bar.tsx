@@ -1,40 +1,42 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { useClickOutside, useDebouncedState, useHotkeys } from "@mantine/hooks";
+import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import {
   getEntityTypeById,
   getRoots,
   isEntityRootedSubgraph,
 } from "@blockprotocol/graph/stdlib";
-import type { EntityType } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
-import type { Filter } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import { useClickOutside, useDebouncedState, useHotkeys } from "@mantine/hooks";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-  QueryEntityTypesQuery,
-  QueryEntityTypesQueryVariables,
-} from "../../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-type.queries";
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
 import { SearchInput } from "./search-bar/search-input";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
+} from "../../../graphql/api-types.gen";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { EntityType } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { SxProps, Theme } from "@mui/material";
+import type { FunctionComponent, ReactNode } from "react";
 
 /**
  * finds the query's words in the result and chops it into parts at the words' boundaries

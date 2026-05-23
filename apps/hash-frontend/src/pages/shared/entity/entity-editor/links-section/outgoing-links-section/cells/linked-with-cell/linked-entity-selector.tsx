@@ -1,14 +1,3 @@
-import type {
-  EntityId,
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
-import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { PaperProps } from "@mui/material";
 import { Stack, Typography } from "@mui/material";
 import {
   createContext,
@@ -19,6 +8,11 @@ import {
   useState,
 } from "react";
 
+import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+
 import { useEntityTypesContextRequired } from "../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../../shared/file-upload-context";
 import { Button } from "../../../../../../../../shared/ui/button";
@@ -26,6 +20,14 @@ import { FileUploadDropzone } from "../../../../../../../settings/shared/file-up
 import { EntitySelector } from "../../../../../../entity-selector";
 import { WorkspaceContext } from "../../../../../../workspace-context";
 import { useEntityEditor } from "../../../../entity-editor-context";
+
+import type {
+  EntityId,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { PaperProps } from "@mui/material";
 
 interface LinkedEntitySelectorProps {
   includeDrafts: boolean;

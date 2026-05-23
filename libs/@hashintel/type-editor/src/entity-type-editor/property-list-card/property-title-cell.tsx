@@ -1,15 +1,10 @@
-import type {
-  EntityTypeWithMetadata,
-  OntologyTypeVersion,
-  PropertyType,
-} from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
 import { faChevronRight, faList } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Fade, Stack, TableCell, Tooltip } from "@mui/material";
 import { useWatch } from "react-hook-form";
 
-import type { EntityTypeEditorFormData } from "../../shared/form-types";
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+
 import { useIsReadonly } from "../../shared/read-only-context";
 import { ArrowTurnDownRightIcon } from "../shared/arrow-turn-down-right-icon";
 import {
@@ -20,6 +15,13 @@ import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
 import { useInheritedValuesForCurrentDraft } from "../shared/use-inherited-values";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
 import { TagIcon } from "./property-title-cell/tag-icon";
+
+import type { EntityTypeEditorFormData } from "../../shared/form-types";
+import type {
+  EntityTypeWithMetadata,
+  OntologyTypeVersion,
+  PropertyType,
+} from "@blockprotocol/type-system";
 
 interface PropertyTitleCellProps {
   property: PropertyType;

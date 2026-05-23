@@ -1,6 +1,6 @@
 import { forwardRef, type InputHTMLAttributes } from "react";
 
-import * as StyledRadioGroup from "./radio-group";
+import * as StyledRadioGroup from "../radio-group";
 
 export interface RadioProps extends StyledRadioGroup.ItemProps {
   inputProps?: InputHTMLAttributes<HTMLInputElement>;

@@ -26,16 +26,16 @@ HashQL uses three testing approaches. **compiletest is the default** for testing
 
 ## Quick Reference
 
-| Scenario | Test Type | Location |
-| -------- | --------- | -------- |
-| Diagnostics/error messages | compiletest | `tests/ui/` |
-| Compiler pipeline phases | compiletest | `tests/ui/` |
-| MIR/HIR/AST pass integration | compiletest | `tests/ui/` |
-| MIR/HIR/AST pass edge cases | insta | `tests/ui/<category>/` |
-| MIR pass unit tests | MIR builder | `src/**/tests.rs` |
-| Core crate (where needed) | insta | `src/**/snapshots/` |
-| Parser fragments (syntax-jexpr) | insta | `src/*/snapshots/` |
-| Internal functions/logic | Unit tests | `src/*.rs` |
+| Scenario                        | Test Type   | Location               |
+| ------------------------------- | ----------- | ---------------------- |
+| Diagnostics/error messages      | compiletest | `tests/ui/`            |
+| Compiler pipeline phases        | compiletest | `tests/ui/`            |
+| MIR/HIR/AST pass integration    | compiletest | `tests/ui/`            |
+| MIR/HIR/AST pass edge cases     | insta       | `tests/ui/<category>/` |
+| MIR pass unit tests             | MIR builder | `src/**/tests.rs`      |
+| Core crate (where needed)       | insta       | `src/**/snapshots/`    |
+| Parser fragments (syntax-jexpr) | insta       | `src/*/snapshots/`     |
+| Internal functions/logic        | Unit tests  | `src/*.rs`             |
 
 ## compiletest (UI Tests)
 
@@ -66,7 +66,7 @@ cargo run -p hashql-compiletest run --bless                   # Update expected
 ```jsonc
 //@ run: fail
 //@ description: Tests duplicate field detection
-["type", "Bad", {"#struct": {"x": "Int", "x": "String"}}, "_"]
+["type", "Bad", { "#struct": { "x": "Int", "x": "String" } }, "_"]
 //~^ ERROR Field `x` first defined here
 ```
 
@@ -115,11 +115,11 @@ cargo test --package hashql-<package> --doc    # Doc tests
 
 Use `insta` crate for snapshot-based output when compiletest (the preferred method) is infeasible. Three categories exist:
 
-| Category | Crates | Snapshot Location | Rationale |
-| -------- | ------ | ----------------- | --------- |
-| **Pipeline Crates** | mir, hir, ast | `tests/ui/<category>/*.snap` | Colocate with compiletest tests |
-| **Core** | hashql-core | Default insta (`src/**/snapshots/`) | Separate from pipeline; prefer unit tests |
-| **Syntax** | syntax-jexpr | `src/*/snapshots/` | Macro-based for parser fragments |
+| Category            | Crates        | Snapshot Location                   | Rationale                                 |
+| ------------------- | ------------- | ----------------------------------- | ----------------------------------------- |
+| **Pipeline Crates** | mir, hir, ast | `tests/ui/<category>/*.snap`        | Colocate with compiletest tests           |
+| **Core**            | hashql-core   | Default insta (`src/**/snapshots/`) | Separate from pipeline; prefer unit tests |
+| **Syntax**          | syntax-jexpr  | `src/*/snapshots/`                  | Macro-based for parser fragments          |
 
 ### Pipeline Crates (mir, hir, ast)
 

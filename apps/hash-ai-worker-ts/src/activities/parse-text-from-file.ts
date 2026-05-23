@@ -1,20 +1,22 @@
+import officeParser from "officeparser";
+
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  blockProtocolPropertyTypes,
+  systemEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import { fetchFileFromUrl } from "./shared/fetch-file-from-url.js";
+import { getFlowContext } from "./shared/get-flow-context.js";
+
 import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  blockProtocolPropertyTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
-import officeParser from "officeparser";
-
-import { fetchFileFromUrl } from "./shared/fetch-file-from-url.js";
-import { getFlowContext } from "./shared/get-flow-context.js";
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 

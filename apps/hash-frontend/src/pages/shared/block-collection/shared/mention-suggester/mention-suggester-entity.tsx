@@ -1,19 +1,3 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  Entity,
-  EntityTypeWithMetadata,
-  LinkEntity,
-  PropertyTypeWithMetadata,
-  PropertyValue,
-} from "@blockprotocol/type-system";
-import {
-  AsteriskRegularIcon,
-  EntityOrTypeIcon,
-  IconButton,
-} from "@hashintel/design-system";
-import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { ListItemButtonProps } from "@mui/material";
 import {
   Box,
   ListItemButton as MuiListItemButton,
@@ -27,6 +11,14 @@ import {
 } from "@mui/material";
 import { forwardRef, useEffect, useRef } from "react";
 
+import {
+  AsteriskRegularIcon,
+  EntityOrTypeIcon,
+  IconButton,
+} from "@hashintel/design-system";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
+
 import { ArrowDownArrowUpRegularIcon } from "../../../../../shared/icons/arrow-down-arrow-up-regular-icon";
 import { ChevronRightRegularIcon } from "../../../../../shared/icons/chevron-right-regular-icon";
 import { LinkRegularIcon } from "../../../../../shared/icons/link-regular-icon";
@@ -34,6 +26,16 @@ import { Button } from "../../../../../shared/ui";
 import { useEntityIcon } from "../../../../../shared/use-entity-icon";
 import { MentionSuggesterSubheading } from "./mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester-wrapper";
+
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  Entity,
+  EntityTypeWithMetadata,
+  LinkEntity,
+  PropertyTypeWithMetadata,
+  PropertyValue,
+} from "@blockprotocol/type-system";
+import type { ListItemButtonProps } from "@mui/material";
 
 export type SortOrder = "asc" | "desc";
 

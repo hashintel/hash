@@ -19,10 +19,7 @@
     },
     "codegen": {
       "dependsOn": ["^build"],
-      "outputs": [
-        "src/preset/theme/**/*.gen.ts",
-        "../ds-helpers/styled-system/**"
-      ]
+      "outputs": ["src/preset/**/*.gen.ts", "../ds-helpers/styled-system/**"]
     },
     "dev": {
       "cache": false,
@@ -39,6 +36,9 @@
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"]
     },
     "lint:tsc": {
+      "dependsOn": ["codegen"]
+    },
+    "fix": {
       "dependsOn": ["codegen"]
     },
     "preview:ladle": {

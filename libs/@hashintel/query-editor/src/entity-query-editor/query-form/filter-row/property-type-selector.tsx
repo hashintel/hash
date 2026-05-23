@@ -1,14 +1,16 @@
-import type { PropertyType } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
-import { MenuItem, OntologyChip } from "@hashintel/design-system";
 import { FormControl, listClasses } from "@mui/material";
 import { useMemo } from "react";
-import type { FieldErrorsImpl } from "react-hook-form";
 import { useFormContext } from "react-hook-form";
 
+import { extractBaseUrl } from "@blockprotocol/type-system";
+import { MenuItem, OntologyChip } from "@hashintel/design-system";
+
 import { useReadonlyContext } from "../../readonly-context";
-import type { FormValues, PropertyFilter } from "../../types";
 import { RHFSelect } from "./rhf-select";
+
+import type { FormValues, PropertyFilter } from "../../types";
+import type { PropertyType } from "@blockprotocol/type-system";
+import type { FieldErrorsImpl } from "react-hook-form";
 
 export const PropertyTypeSelector = ({
   index,

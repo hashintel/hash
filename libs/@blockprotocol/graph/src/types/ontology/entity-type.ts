@@ -1,7 +1,6 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-
 import type { QueryOperationInput } from "../entity.js";
 import type { EntityTypeRootType, Subgraph } from "../subgraph.js";
+import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 export type QueryEntityTypesData = {
   // @todo mention in spec or remove

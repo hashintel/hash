@@ -1,6 +1,7 @@
-import { sleep } from "@local/hash-isomorphic-utils/sleep";
 // eslint-disable-next-line no-restricted-imports
 import { test as testTolerateConsoleErrors } from "@playwright/test";
+
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
 import { expect, test } from "../shared/runtime";
 

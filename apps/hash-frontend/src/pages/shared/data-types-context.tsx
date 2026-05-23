@@ -1,21 +1,23 @@
 import { useQuery } from "@apollo/client";
-import type {
-  BaseUrl,
-  DataTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { createContext, useContext, useMemo } from "react";
+
 import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import { deserializeQueryDataTypeSubgraphResponse } from "@local/hash-graph-sdk/data-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
-import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo } from "react";
+
+import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
 
 import type {
   QueryDataTypeSubgraphQuery,
   QueryDataTypeSubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryDataTypeSubgraphQuery } from "../../graphql/queries/ontology/data-type.queries";
+import type {
+  BaseUrl,
+  DataTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { PropsWithChildren } from "react";
 
 export type DataTypesContextValue = {
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;

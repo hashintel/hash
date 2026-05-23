@@ -11,9 +11,9 @@ import {
   Predicate,
 } from "effect";
 
+import { MutableBuffer } from "../binary/index.js";
 import { U8_MAX, U8_MIN } from "../constants.js";
 import { createProto, implDecode, implEncode } from "../utils.js";
-import { MutableBuffer } from "../binary/index.js";
 
 const TypeId: unique symbol = Symbol(
   "@local/harpc-client/wire-protocol/types/Version",
@@ -22,9 +22,7 @@ const TypeId: unique symbol = Symbol(
 export type TypeId = typeof TypeId;
 
 export interface Version
-  extends Equal.Equal,
-    Inspectable.Inspectable,
-    Pipeable.Pipeable {
+  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly major: number;

@@ -1,21 +1,23 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { createContext, useContext, useMemo, useState } from "react";
+
 import {
   deserializeQueryEntitiesResponse,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
+
+import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
+import { usePollInterval } from "../../shared/use-poll-interval";
+import { useAuthInfo } from "../shared/auth-info-context";
 
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { useDraftEntitiesCount } from "../../shared/draft-entities-count-context";
-import { usePollInterval } from "../../shared/use-poll-interval";
-import { useAuthInfo } from "../shared/auth-info-context";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type DraftEntitiesContextValue = {
   draftEntities?: HashEntity[];

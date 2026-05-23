@@ -1,15 +1,17 @@
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { useMemo, useRef, useState } from "react";
+
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
 import { pageEntityTypeIds } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { BoxProps } from "@mui/material";
-import { useMemo, useRef, useState } from "react";
 
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useEnabledFeatureFlags } from "./use-enabled-feature-flags";
+
+import type {
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { BoxProps } from "@mui/material";
 
 export const EntityTypeSelector = <Multiple extends boolean = false>({
   disableCreate,

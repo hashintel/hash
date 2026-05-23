@@ -1,7 +1,7 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import { Text } from "../text/text";
-import { Skeleton } from "./skeleton";
+import { Skeleton } from "../skeleton";
+import { Text } from "../text";
 
 export const App = () => {
   return (

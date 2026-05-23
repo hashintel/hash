@@ -54,7 +54,7 @@ const script = async () => {
   // We need to override some options to generate a build that is ready for publishing.
   await execa(
     "tsc",
-    // biome-ignore format: manual formatting for readability
+    // oxfmt-ignore
     [
       "--project", "tsconfig.json",
 

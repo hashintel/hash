@@ -1,10 +1,10 @@
+import { getGoogleAccessTokenForExpressRequest } from "./shared/get-or-check-access-token";
+
 import type {
   CheckGoogleTokenRequest,
   CheckGoogleTokenResponse,
 } from "@local/hash-isomorphic-utils/google-integration";
 import type { RequestHandler } from "express";
-
-import { getGoogleAccessTokenForExpressRequest } from "./shared/get-or-check-access-token";
 
 /**
  * Check if a valid access token is present for the requested Google Account.

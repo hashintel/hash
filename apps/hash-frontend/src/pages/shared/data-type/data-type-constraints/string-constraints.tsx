@@ -1,14 +1,15 @@
-import type { StringFormat } from "@blockprotocol/type-system";
 import { Box, Stack, Typography } from "@mui/material";
 import { useEffect } from "react";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 
-import type { DataTypeFormData } from "../data-type-form";
 import { ItemLabel } from "../shared/item-label";
 import { ConstraintText } from "./shared/constraint-text";
 import { EnumEditor } from "./shared/enum-editor";
 import { NumberInput } from "./shared/number-input";
+
+import type { DataTypeFormData } from "../data-type-form";
 import type { InheritedConstraints } from "./types";
+import type { StringFormat } from "@blockprotocol/type-system";
 
 const isStringLengthIrrelevant = (format?: StringFormat) => {
   return ["date", "time", "date-time"].includes(format ?? "");

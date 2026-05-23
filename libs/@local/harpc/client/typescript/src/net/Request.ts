@@ -1,9 +1,5 @@
 import { Effect, Function, Option, pipe, Predicate, Ref, Stream } from "effect";
 
-import type {
-  ProcedureDescriptor,
-  SubsystemDescriptor,
-} from "../types/index.js";
 import { createProto } from "../utils.js";
 import {
   Payload,
@@ -20,6 +16,11 @@ import {
   RequestHeader,
 } from "../wire-protocol/models/request/index.js";
 import * as RequestIdProducer from "../wire-protocol/RequestIdProducer.js";
+
+import type {
+  ProcedureDescriptor,
+  SubsystemDescriptor,
+} from "../types/index.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Request");
 

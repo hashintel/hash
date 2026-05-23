@@ -12,12 +12,20 @@
  * Do not edit the class manually.
  */
 
-import { Configuration } from "./configuration.js";
 import globalAxios, {
   AxiosPromise,
   AxiosInstance,
   AxiosRequestConfig,
 } from "axios";
+
+// @ts-ignore
+import {
+  BASE_PATH,
+  COLLECTION_FORMATS,
+  RequestArgs,
+  BaseAPI,
+  RequiredError,
+} from "./base.js";
 // Some imports not used depending on template conditions
 // @ts-ignore
 import {
@@ -32,14 +40,7 @@ import {
   toPathString,
   createRequestFunction,
 } from "./common.js";
-// @ts-ignore
-import {
-  BASE_PATH,
-  COLLECTION_FORMATS,
-  RequestArgs,
-  BaseAPI,
-  RequiredError,
-} from "./base.js";
+import { Configuration } from "./configuration.js";
 
 /**
  *

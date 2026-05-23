@@ -1,13 +1,15 @@
-import type { WebId } from "@blockprotocol/type-system";
+import { useCallback, useState } from "react";
+
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useCallback, useState } from "react";
 
-import type { Org, User } from "../../../../lib/user-and-org";
 import { useFileUploads } from "../../../../shared/file-upload-context";
 import { useAuthInfo } from "../../../shared/auth-info-context";
+
+import type { Org, User } from "../../../../lib/user-and-org";
+import type { WebId } from "@blockprotocol/type-system";
 
 export const useUpdateProfileAvatar = (props: {
   profile?: User | Org;

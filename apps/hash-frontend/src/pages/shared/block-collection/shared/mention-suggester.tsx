@@ -1,16 +1,20 @@
 import { useQuery } from "@apollo/client";
+import { useHotkeys } from "@mantine/hooks";
+import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  BaseUrl,
-  EntityId,
-  EntityTypeWithMetadata,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
@@ -33,22 +37,7 @@ import {
   includesPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { useHotkeys } from "@mantine/hooks";
-import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
-import type { FunctionComponent } from "react";
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 
-import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
-} from "../../../../graphql/api-types.gen";
 import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { isPageArchived } from "../../../../shared/is-archived";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
@@ -57,13 +46,26 @@ import { useScrollLock } from "../../../../shared/use-scroll-lock";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { hiddenEntityTypeIds } from "../../hidden-types";
 import { fuzzySearchBy } from "./fuzzy-search-by";
+import { MentionSuggesterEntity } from "./mention-suggester/mention-suggester-entity";
+import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
+import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
+
+import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
+} from "../../../../graphql/api-types.gen";
 import type {
   SortOrder,
   SubMenuItem,
 } from "./mention-suggester/mention-suggester-entity";
-import { MentionSuggesterEntity } from "./mention-suggester/mention-suggester-entity";
-import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
-import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
+import type {
+  BaseUrl,
+  EntityId,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+  WebId,
+} from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 export type Mention =
   | {

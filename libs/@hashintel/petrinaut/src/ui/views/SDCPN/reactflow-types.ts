@@ -1,0 +1,72 @@
+import type { SimulationFrameReader } from "../../../react/simulation/context";
+import type { Edge, Node, ReactFlowInstance } from "@xyflow/react";
+
+type TransitionFrameState = NonNullable<
+  ReturnType<SimulationFrameReader["getTransitionState"]>
+>;
+
+//
+// Specific types for ReactFlow nodes, arcs, and instance.
+// Serve for mapping between Petrinaut Contexts and ReactFlow.
+//
+
+export type ArcData = {
+  weight: number;
+  arcType: "standard" | "inhibitor";
+  /**
+   * State of the transition connected to this arc in the current simulation frame.
+   * Null when no simulation is running.
+   */
+  frame: TransitionFrameState | null;
+};
+
+export type ArcEdgeType = Edge<ArcData>;
+
+export type ArcType = Omit<ArcEdgeType, "style">;
+
+export type PlaceNodeData = {
+  label: string;
+  type: "place";
+  dynamicsEnabled: boolean;
+  hasColorType: boolean;
+  typeColor?: string; // Color code from the type, if assigned
+};
+
+export type PlaceNodeType = Node<PlaceNodeData, "place">;
+
+export type TransitionNodeData = {
+  label: string;
+  /**
+   * Although a reactflow {@link Node} has a 'type' field, the library types don't discriminate on this field in all methods,
+   * so we add our own discriminating field here to make it easier to narrow between Transition and Place nodes.
+   */
+  type: "transition";
+  lambdaType: "predicate" | "stochastic";
+  /**
+   * State of this transition in the current simulation frame.
+   * Null when no simulation is running.
+   */
+  frame: TransitionFrameState | null;
+};
+
+export type TransitionNodeType = Node<TransitionNodeData, "transition">;
+
+export type NodeData = PlaceNodeData | TransitionNodeData;
+
+export type NodeType = TransitionNodeType | PlaceNodeType;
+
+/**
+ * Object containing the nodes and arcs for the ReactFlow instance.
+ */
+export type PetrinautReactFlowDefinitionObject = {
+  arcs: ArcType[];
+  nodes: NodeType[];
+};
+
+/**
+ * ReactFlow instance type for Petrinaut.
+ */
+export type PetrinautReactFlowInstance = ReactFlowInstance<
+  NodeType,
+  ArcEdgeType
+>;

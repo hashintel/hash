@@ -1,3 +1,17 @@
+import { backOff } from "exponential-backoff";
+
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
+import {
+  getAiByIdentifier,
+  getMachineByIdentifier,
+} from "@local/hash-graph-sdk/principal/actor";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+
+import type { Logger } from "./logger.js";
 import type {
   ActorEntityUuid,
   ActorId,
@@ -9,21 +23,8 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  getAiByIdentifier,
-  getMachineByIdentifier,
-} from "@local/hash-graph-sdk/principal/actor";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
-import { backOff } from "exponential-backoff";
-
-import type { Logger } from "./logger.js";
 
 export type WebMachineActorIdentifier = `system-${WebId}`;
 

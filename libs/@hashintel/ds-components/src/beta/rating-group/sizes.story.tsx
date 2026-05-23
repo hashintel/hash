@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as RatingGroup from "./rating-group";
+import * as RatingGroup from "../rating-group";
 
 export const App = () => {
   const sizes = ["xs", "sm", "md", "lg", "xl"] as const;

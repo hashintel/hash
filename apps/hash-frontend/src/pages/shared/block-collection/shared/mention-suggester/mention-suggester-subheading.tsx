@@ -2,8 +2,6 @@ import {
   faChevronLeft,
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { BoxProps } from "@mui/material";
 import {
   ListItem,
   ListItemButton,
@@ -11,6 +9,10 @@ import {
   ListItemText,
   listItemTextClasses,
 } from "@mui/material";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
+
+import type { BoxProps } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
 export const MentionSuggesterSubheading: FunctionComponent<

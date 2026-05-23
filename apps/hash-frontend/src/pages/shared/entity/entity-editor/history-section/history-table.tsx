@@ -1,6 +1,3 @@
-import type { Subgraph } from "@blockprotocol/graph";
-import { AngleRightRegularIcon, IconButton } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
 import {
   Box,
   Collapse,
@@ -13,18 +10,23 @@ import {
 import { format } from "date-fns";
 import { memo, useMemo, useRef, useState } from "react";
 
+import { AngleRightRegularIcon, IconButton } from "@hashintel/design-system";
+
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
+import { defaultCellSx, VirtualizedTable } from "../../../virtualized-table";
+import { virtualizedTableHeaderHeight } from "../../../virtualized-table/header";
+import { Provenance } from "./history-table/provenance";
+import { EventDetail } from "./history-table/shared/event-detail";
+
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
 } from "../../../virtualized-table";
-import { defaultCellSx, VirtualizedTable } from "../../../virtualized-table";
-import { virtualizedTableHeaderHeight } from "../../../virtualized-table/header";
 import type { VirtualizedTableSort } from "../../../virtualized-table/header/sort";
-import { Provenance } from "./history-table/provenance";
-import { EventDetail } from "./history-table/shared/event-detail";
 import type { HistoryEvent } from "./shared/types";
+import type { Subgraph } from "@blockprotocol/graph";
+import type { SxProps, Theme } from "@mui/material";
 
 type FieldId = "number" | "event" | "time" | "actions";
 

@@ -1,6 +1,6 @@
 import { Stack } from "@hashintel/ds-helpers/jsx";
 
-import * as NumberInput from "./number-input";
+import * as NumberInput from "../number-input";
 
 export const App = () => {
   const sizes = ["sm", "md", "lg", "xl"] as const;

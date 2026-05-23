@@ -2,11 +2,13 @@ import {
   faCheck,
   // faEnvelope,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
+
+import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { PizzaSolidIcon } from "../../shared/icons/pizza-solid-icon";
+
+import type { FunctionComponent, ReactNode } from "react";
 
 const infoItems: { title: string; description: string; icon: ReactNode }[] = [
   /** @todo: add this info item when email verification is supported */

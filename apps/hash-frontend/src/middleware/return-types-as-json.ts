@@ -1,9 +1,6 @@
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import { NextResponse } from "next/server";
+import stringify from "safe-stable-stringify";
+
 import {
   apiGraphQLEndpoint,
   frontendUrl,
@@ -12,10 +9,8 @@ import {
   type SystemTypeWebShortname,
   systemTypeWebShortnames,
 } from "@local/hash-isomorphic-utils/ontology-types";
-import type { GraphQLError } from "graphql";
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
-import stringify from "safe-stable-stringify";
+
+import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
 import type {
   QueryDataTypesQuery,
@@ -25,7 +20,14 @@ import type {
   QueryPropertyTypesQuery,
   QueryPropertyTypesQueryVariables,
 } from "../graphql/api-types.gen";
-import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
+import type {
+  DataType,
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
+import type { GraphQLError } from "graphql";
+import type { NextRequest } from "next/server";
 
 const generateErrorResponse = (
   status: 400 | 401 | 404 | 500,

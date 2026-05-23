@@ -1,7 +1,9 @@
-import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { Configuration } from "@ory/client";
-import type { CreateIdentityBody, Identity } from "@ory/kratos-client";
 import { FrontendApi, IdentityApi } from "@ory/kratos-client";
+
+import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+
+import type { CreateIdentityBody, Identity } from "@ory/kratos-client";
 
 export const kratosPublicUrl = getRequiredEnv("HASH_KRATOS_PUBLIC_URL");
 
@@ -23,6 +25,13 @@ export type KratosUserIdentityTraits = {
 export type KratosUserIdentity = Omit<Identity, "traits"> & {
   traits: KratosUserIdentityTraits;
 };
+
+export const getVerifiedEmailsFromKratosIdentity = (
+  identity: Pick<Identity, "verifiable_addresses">,
+): string[] =>
+  (identity.verifiable_addresses ?? [])
+    .filter((address) => address.verified === true)
+    .map(({ value }) => value);
 
 export const createKratosIdentity = async (
   params: Omit<CreateIdentityBody, "schema_id" | "traits"> & {
@@ -76,9 +85,7 @@ export const isUserEmailVerified = async (
     id: kratosIdentityId,
   });
 
-  return (
-    identity.verifiable_addresses?.some(({ verified }) => verified) ?? false
-  );
+  return getVerifiedEmailsFromKratosIdentity(identity).length > 0;
 };
 
 /**

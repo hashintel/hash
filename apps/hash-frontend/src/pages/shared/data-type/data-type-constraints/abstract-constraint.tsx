@@ -1,15 +1,12 @@
 import { Checkbox, Stack, Typography } from "@mui/material";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import type { DataTypeFormData } from "../data-type-form";
 import { ItemLabel } from "../shared/item-label";
 import { ConstraintText } from "./shared/constraint-text";
 
-export const AbstractConstraint = ({
-  isReadOnly,
-}: {
-  isReadOnly: boolean;
-}) => {
+import type { DataTypeFormData } from "../data-type-form";
+
+export const AbstractConstraint = ({ isReadOnly }: { isReadOnly: boolean }) => {
   const { control, setValue } = useFormContext<DataTypeFormData>();
 
   const abstract = useWatch({ control, name: "abstract" });

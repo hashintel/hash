@@ -1,31 +1,20 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import { Context } from "@temporalio/activity";
+import { backOff } from "exponential-backoff";
+
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   getStorageProvider,
   resolvePayloadValue,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
   HashEntity,
   HashLinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  PersistedEntityMetadata,
-  ProposedEntityWithResolvedLinks,
-} from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  HasObject,
-  HasSubject,
-} from "@local/hash-isomorphic-utils/system-types/claim";
-import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
-import { Context } from "@temporalio/activity";
-import { backOff } from "exponential-backoff";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
@@ -37,12 +26,25 @@ import {
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
-import type { MatchedEntityUpdate } from "../shared/match-existing-entity.js";
 import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
 import {
   getEntityUpdate,
   getLatestEntityById,
 } from "./shared/graph-requests.js";
+
+import type { MatchedEntityUpdate } from "../shared/match-existing-entity.js";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
+import type {
+  PersistedEntityMetadata,
+  ProposedEntityWithResolvedLinks,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  HasObject,
+  HasSubject,
+} from "@local/hash-isomorphic-utils/system-types/claim";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,

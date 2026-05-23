@@ -4,7 +4,7 @@ import { useListCollection } from "@ark-ui/react/collection";
 import { useFilter } from "@ark-ui/react/locale";
 import { Portal } from "@ark-ui/react/portal";
 
-import * as Combobox from "./combobox";
+import * as Combobox from "../combobox";
 
 const frameworks = [
   { label: "React", value: "react" },

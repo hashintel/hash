@@ -11,7 +11,7 @@
 //! Block ordering uses the MRV (minimum remaining values) heuristic, with highest constraint degree
 //! as tie-breaker. Forward checking narrows domains bidirectionally after each assignment.
 
-use core::{alloc::Allocator, cmp, mem};
+use core::{alloc::Allocator, mem};
 use std::f32;
 
 use hashql_core::{
@@ -156,7 +156,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                 id: member,
                 heap: TargetHeap::new(),
                 target: HeapElement::EMPTY,
-                possible: self.solver.data.assignment[member],
+                possible: self.solver.data.blocks.assignments(member),
             }
         }
     }
@@ -283,7 +283,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
     fn replay_narrowing(&mut self, body: &Body<'_>) {
         // Reset unfixed domains to their original AC-3 state
         for block in &mut self.region.blocks[self.depth..] {
-            block.possible = self.solver.data.assignment[block.id];
+            block.possible = self.solver.data.blocks.assignments(block.id);
         }
 
         self.region.fixed.clear();
@@ -395,17 +395,17 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
     /// Computes a lower bound on the cost of completing the current partial assignment.
     ///
-    /// Sums `min(statement_cost)` and `min(transition_cost)` independently over unfixed blocks.
+    /// Sums `min(block_cost)` and `min(transition_cost)` independently over unfixed blocks.
     /// Used for `BnB` pruning: a branch is skipped when `cost_so_far + lower_bound ≥
     /// worst_retained`.
     ///
     /// This is *not* redundant with [`CostEstimation`] despite operating on the same data.
     /// [`CostEstimation::estimate`] computes a per-block heuristic that jointly optimizes
-    /// `statement + transition` costs and double-counts edges (both predecessor and successor
+    /// `block + transition` costs and double-counts edges (both predecessor and successor
     /// sides) for join-point influence. This method instead:
     ///
-    /// - **Independently minimizes** statement and transition costs (`min(stmt) + min(trans) ≤
-    ///   min(stmt + trans)`), producing a weaker but valid lower bound.
+    /// - **Independently minimizes** block and transition costs (`min(block) + min(trans) ≤
+    ///   min(block + trans)`), producing a weaker but valid lower bound.
     /// - **Single-counts edges** — only outgoing edges from each unfixed block — to avoid inflating
     ///   the bound when both endpoints are unfixed.
     /// - **Omits boundary dampening** — the bound should be optimistic, not weighted.
@@ -413,19 +413,16 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
         let unfixed = &self.region.blocks[self.depth..];
         let mut bound = ApproxCost::ZERO;
 
-        // Per-unassigned-block: minimum statement cost over remaining domain
+        // Per-unassigned-block: minimum block cost over remaining domain
         for block in unfixed {
-            let mut min_stmt = ApproxCost::INF;
+            let min_block = block
+                .possible
+                .iter()
+                .map(|target| self.solver.data.blocks.cost(block.id, target))
+                .min();
 
-            for target in &block.possible {
-                min_stmt = cmp::min(
-                    min_stmt,
-                    self.solver.data.statements[target].sum_approx(block.id),
-                );
-            }
-
-            if min_stmt < ApproxCost::INF {
-                bound += min_stmt;
+            if let Some(min_block) = min_block {
+                bound += min_block;
             }
         }
 
@@ -449,7 +446,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
 
                 #[expect(clippy::option_if_let_else, reason = "readability")]
                 let min_trans = if let Some(succ_possible) = succ_domain {
-                    // Both endpoints involve an unfixed block — min over all compatible pairs
+                    // Both endpoints involve an unfixed block - min over all compatible pairs
                     block
                         .possible
                         .iter()
@@ -460,9 +457,8 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                                 .then_some(cost.as_approx())
                         })
                         .min()
-                        .unwrap_or(ApproxCost::INF)
                 } else {
-                    // Successor is fixed (or external) — min over block's domain
+                    // Successor is fixed (or external) - min over block's domain
                     let succ_target = self
                         .region
                         .find_block(succ)
@@ -474,20 +470,17 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
                         })
                         .or_else(|| self.solver.targets[succ].map(|elem| elem.target));
 
-                    if let Some(succ_target) = succ_target {
+                    succ_target.and_then(|succ_target| {
                         block
                             .possible
                             .iter()
                             .filter_map(|source_target| matrix.get(source_target, succ_target))
                             .map(Cost::as_approx)
                             .min()
-                            .unwrap_or(ApproxCost::INF)
-                    } else {
-                        ApproxCost::INF
-                    }
+                    })
                 };
 
-                if min_trans < ApproxCost::INF {
+                if let Some(min_trans) = min_trans {
                     bound += min_trans;
                 }
             }
@@ -643,7 +636,7 @@ impl<'ctx, 'parent, 'alloc, A: Allocator, S: BumpAllocator>
             solutions
         } else {
             self.solver
-                .alloc
+                .scratch
                 .allocate_slice_uninit(RETAIN_SOLUTIONS)
                 .write_filled(Solution::new())
         };

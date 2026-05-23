@@ -1,11 +1,10 @@
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
-
 import { createRateLimitedRequester } from "../../../rate-limiter.js";
 import {
   type BatchFlightGraphResult,
   buildFlightGraphBatch,
 } from "./client/build-graph.js";
 import { generateAeroApiProvenance } from "./client/provenance.js";
+
 import type {
   AeroApiHistoricalArrivalsResponse,
   AeroApiScheduledArrivalsResponse,
@@ -13,6 +12,7 @@ import type {
   HistoricalArrivalsRequestParams,
   ScheduledArrivalsRequestParams,
 } from "./client/types.js";
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 
 export type { AviationProposedEntity } from "./client/build-graph.js";
 export type {

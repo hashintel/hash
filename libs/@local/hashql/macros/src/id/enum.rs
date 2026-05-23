@@ -186,8 +186,10 @@ pub(super) fn expand_enum(
             fn prev(self) -> ::core::option::Option<Self> {
                 let discriminant = self.into_discriminant();
 
-                let prev = discriminant.checked_sub(1)?;
-                Self::try_from_discriminant(prev)
+                match discriminant.checked_sub(1) {
+                    Some(prev) => Self::try_from_discriminant(prev),
+                    None => None,
+                }
             }
         }
     });
@@ -196,7 +198,7 @@ pub(super) fn expand_enum(
     for int in [quote!(u32), quote!(u64), quote!(usize)] {
         output.extend(quote! {
             #[automatically_derived]
-            impl ::core::convert::TryFrom<#int> for #name {
+            impl #konst ::core::convert::TryFrom<#int> for #name {
                 type Error = #krate::id::IdError;
 
                 #[inline]
@@ -218,7 +220,7 @@ pub(super) fn expand_enum(
     // 6. HasId impl
     output.extend(quote! {
         #[automatically_derived]
-        impl #krate::id::HasId for #name {
+        impl #konst #krate::id::HasId for #name {
             type Id = Self;
 
             #[inline]

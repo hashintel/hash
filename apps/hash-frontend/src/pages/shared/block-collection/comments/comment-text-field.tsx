@@ -1,4 +1,11 @@
 import { faAt } from "@fortawesome/free-solid-svg-icons";
+import { Box } from "@mui/material";
+import { debounce, isEqual } from "lodash";
+import { baseKeymap } from "prosemirror-commands";
+import { keymap } from "prosemirror-keymap";
+import { EditorState } from "prosemirror-state";
+import { useContext, useEffect, useLayoutEffect, useRef } from "react";
+
 import {
   FontAwesomeIcon,
   IconButton,
@@ -13,15 +20,6 @@ import {
   textBlockNodesFromTokens,
   textBlockNodeToTextTokens,
 } from "@local/hash-isomorphic-utils/text";
-import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import { Box } from "@mui/material";
-import { debounce, isEqual } from "lodash";
-import { baseKeymap } from "prosemirror-commands";
-import { keymap } from "prosemirror-keymap";
-import { EditorState } from "prosemirror-state";
-import type { EditorView } from "prosemirror-view";
-import type { FunctionComponent } from "react";
-import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 
 import { WorkspaceContext } from "../../workspace-context";
 import { usePortals } from "../block-portals";
@@ -31,12 +29,16 @@ import {
   suggesterPluginKey,
 } from "../create-suggester/create-suggester";
 import { createTextEditorView } from "../create-text-editor-view";
-import type { CommentPlaceholderAction } from "./comment-placeholder-plugin";
 import {
   commentPlaceholderPlugin,
   commentPlaceholderPluginkey,
 } from "./comment-placeholder-plugin";
 import styles from "./style.module.css";
+
+import type { CommentPlaceholderAction } from "./comment-placeholder-plugin";
+import type { TextToken } from "@local/hash-isomorphic-utils/types";
+import type { EditorView } from "prosemirror-view";
+import type { FunctionComponent } from "react";
 
 type CommentTextFieldProps = {
   value?: TextToken[];

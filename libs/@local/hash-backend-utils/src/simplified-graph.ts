@@ -1,15 +1,9 @@
-import type { Subgraph } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getOutgoingLinksForEntity,
   getPropertyTypeById,
   getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  Entity,
-  EntityId,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
 import {
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
@@ -19,6 +13,13 @@ import {
   typedKeys,
   typedValues,
 } from "@local/advanced-types/typed-entries";
+
+import type { Subgraph } from "@blockprotocol/graph";
+import type {
+  Entity,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /**
  * A simplified object representing an entity type, which will be converted to plain text for the response.

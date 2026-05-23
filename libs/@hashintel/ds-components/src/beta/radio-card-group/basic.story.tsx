@@ -1,6 +1,6 @@
 import { HStack } from "@hashintel/ds-helpers/jsx";
 
-import * as RadioCardGroup from "./radio-card-group";
+import * as RadioCardGroup from "../radio-card-group";
 
 const items = [
   { value: "react", title: "React" },

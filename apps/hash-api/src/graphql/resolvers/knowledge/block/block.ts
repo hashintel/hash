@@ -1,7 +1,8 @@
 import { getBlockById } from "../../../../graph/knowledge/system-types/block";
+import { graphQLContextToImpureGraphContext } from "../../util";
+
 import type { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
 import type { UnresolvedBlockGQL } from "../graphql-mapping";
 
 export const blocksResolver: ResolverFn<

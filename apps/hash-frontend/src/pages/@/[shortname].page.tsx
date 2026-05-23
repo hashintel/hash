@@ -1,14 +1,11 @@
 import { useQuery } from "@apollo/client";
+import { useRouter } from "next/router";
+import { useCallback, useMemo, useState } from "react";
+
 import {
   getEntityTypeAndDescendantsById,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type {
-  BaseUrl,
-  DataTypeWithMetadata,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
@@ -18,8 +15,25 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
-import { useRouter } from "next/router";
-import { useCallback, useMemo, useState } from "react";
+
+import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
+import {
+  constructOrg,
+  constructUser,
+  isEntityUserEntity,
+} from "../../lib/user-and-org";
+import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
+import { getLayoutWithSidebar } from "../../shared/layout";
+import { useUserOrOrg } from "../../shared/use-user-or-org";
+import { NotFound } from "../shared/not-found";
+import { useEnabledFeatureFlags } from "../shared/use-enabled-feature-flags";
+import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
+import { ProfilePageContent } from "./[shortname].page/profile-page-content";
+import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
+import { parseProfilePageUrlQueryParams } from "./[shortname].page/util";
 
 import type {
   QueryDataTypesQuery,
@@ -31,26 +45,14 @@ import type {
   QueryPropertyTypesQuery,
   QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
-import { queryEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
-import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
-import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
-import {
-  constructOrg,
-  constructUser,
-  isEntityUserEntity,
-} from "../../lib/user-and-org";
-import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import type { NextPageWithLayout } from "../../shared/layout";
-import { getLayoutWithSidebar } from "../../shared/layout";
-import { useUserOrOrg } from "../../shared/use-user-or-org";
-import { NotFound } from "../shared/not-found";
-import { useEnabledFeatureFlags } from "../shared/use-enabled-feature-flags";
-import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
-import { ProfilePageContent } from "./[shortname].page/profile-page-content";
-import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
 import type { ProfilePageTab } from "./[shortname].page/util";
-import { parseProfilePageUrlQueryParams } from "./[shortname].page/util";
+import type {
+  BaseUrl,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 
 const ProfilePage: NextPageWithLayout = () => {
   const router = useRouter();

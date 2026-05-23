@@ -1,6 +1,6 @@
 import { forwardRef, type InputHTMLAttributes, type RefObject } from "react";
 
-import * as StyledNumberInput from "./number-input";
+import * as StyledNumberInput from "../number-input";
 
 export interface NumberInputProps extends StyledNumberInput.RootProps {
   rootRef?: RefObject<HTMLDivElement | null>;

@@ -1,9 +1,8 @@
-import type { Url } from "@blockprotocol/type-system";
-import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import dedent from "dedent";
+
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
-import dedent from "dedent";
 
 import { getWebPageActivity } from "../get-web-page-activity.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -11,6 +10,9 @@ import { getLlmResponse } from "../shared/get-llm-response.js";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
+
+import type { Url } from "@blockprotocol/type-system";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 
 const generateSummarizeWebPageSystemPrompt = (params: {
   numberOfSentences: number;
