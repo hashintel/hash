@@ -3,10 +3,7 @@ import { Typography } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import type { PropsWithChildren } from "react";
 
-export const HomepageBigText = ({
-  children,
-  sx,
-}: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
+export const HomepageBigText = ({ children, sx }: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
   <Typography
     sx={[
       ({ palette, typography }) => ({
@@ -47,10 +44,7 @@ export const HomepageMediumText = ({
   </Typography>
 );
 
-export const HomepageSmallCaps = ({
-  children,
-  sx,
-}: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
+export const HomepageSmallCaps = ({ children, sx }: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
   <Typography
     sx={[
       ({ palette }) => ({

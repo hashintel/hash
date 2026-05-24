@@ -39,11 +39,7 @@ type SnippetProps = {
   language: string;
 } & BoxProps;
 
-export const Snippet: FunctionComponent<SnippetProps> = ({
-  source,
-  language,
-  ...boxProps
-}) => {
+export const Snippet: FunctionComponent<SnippetProps> = ({ source, language, ...boxProps }) => {
   const grammar = Prism.languages[language];
   if (!grammar) {
     return (

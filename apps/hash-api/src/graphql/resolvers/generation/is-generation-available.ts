@@ -1,9 +1,6 @@
 import { getOpenAiClient } from "./shared/openai-client";
 
-import type {
-  IsGenerationAvailableResponse,
-  ResolverFn,
-} from "../../api-types.gen";
+import type { IsGenerationAvailableResponse, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
 import type OpenAI from "openai";
 

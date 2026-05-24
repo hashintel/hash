@@ -77,6 +77,4 @@ const editableSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const editableSlotRecipe = sva(editableSlotRecipeDefinition);
 
-export type EditableSlotRecipeProps = RecipeVariantProps<
-  typeof editableSlotRecipe
->;
+export type EditableSlotRecipeProps = RecipeVariantProps<typeof editableSlotRecipe>;

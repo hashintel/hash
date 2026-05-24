@@ -73,12 +73,9 @@ export const deploymentPipelineSDCPN: {
         id: "transition__incident-raised",
         name: "Incident Raised",
         inputArcs: [],
-        outputArcs: [
-          { placeId: "place__incident-being-investigated", weight: 1 },
-        ],
+        outputArcs: [{ placeId: "place__incident-being-investigated", weight: 1 }],
         lambdaType: "stochastic",
-        lambdaCode:
-          "export default Lambda((tokens, parameters) => parameters.incident_rate)",
+        lambdaCode: "export default Lambda((tokens, parameters) => parameters.incident_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    IncidentBeingInvestigated: [{}],\n  };\n});",
         x: -30 * GRID_SIZE,

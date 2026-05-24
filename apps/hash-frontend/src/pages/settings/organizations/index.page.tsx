@@ -35,11 +35,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
 
       <SettingsPageContainer
         topRightElement={
-          <Button
-            href="/settings/organizations/new"
-            size="small"
-            variant="tertiary"
-          >
+          <Button href="/settings/organizations/new" size="small" variant="tertiary">
             Create organization
             <FontAwesomeIcon
               icon={faPlus}
@@ -68,12 +64,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
             </TableBody>
           </SettingsTable>
         ) : (
-          <Box
-            display="flex"
-            alignItems="center"
-            flexDirection="column"
-            paddingY={10}
-          >
+          <Box display="flex" alignItems="center" flexDirection="column" paddingY={10}>
             <PeopleGroupIcon
               sx={{
                 color: ({ palette }) => palette.gray[30],

@@ -23,9 +23,7 @@ export function buildPerPlaceSeriesConfig(args: {
       return {
         seriesId: place.id,
         seriesName: place.name,
-        color:
-          tokenType?.displayColor ??
-          DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
+        color: tokenType?.displayColor ?? DEFAULT_COLORS[index % DEFAULT_COLORS.length]!,
       };
     }),
     extract: (frame, seriesIdx) => {

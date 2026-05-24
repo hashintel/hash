@@ -25,17 +25,13 @@ export class TypeDependencyMap {
     };
 
     this.dependencyMap[typeId] ??= { typeId, dependencies: [] };
-    this.dependencyMap[typeId].dependencies.push(
-      this.dependencyMap[dependency],
-    );
+    this.dependencyMap[typeId].dependencies.push(this.dependencyMap[dependency]);
   }
 
   getDependenciesForType(typeId: VersionedUrl): Set<VersionedUrl> {
     const flattenedDependencies = new Set<VersionedUrl>();
 
-    const dependencyQueue = this.dependencyMap[typeId]
-      ? [this.dependencyMap[typeId]]
-      : [];
+    const dependencyQueue = this.dependencyMap[typeId] ? [this.dependencyMap[typeId]] : [];
 
     while (dependencyQueue.length > 0) {
       // The dependencyQueue can have an undefined value for entity types with no properties

@@ -1,21 +1,10 @@
 import { useQuery } from "@apollo/client";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  InputAdornment,
-  ListItemIcon,
-  ListItemText,
-  MenuList,
-  Tooltip,
-} from "@mui/material";
+import { Box, InputAdornment, ListItemIcon, ListItemText, MenuList, Tooltip } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import {
-  FontAwesomeIcon,
-  LoadingSpinner,
-  TextField,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, LoadingSpinner, TextField } from "@hashintel/design-system";
 import {
   deserializeQueryEntitySubgraphResponse,
   type HashEntity,
@@ -46,9 +35,7 @@ type LoadEntityMenuContentProps = {
   popupState?: PopupState;
 };
 
-export const LoadEntityMenuContent: FunctionComponent<
-  LoadEntityMenuContentProps
-> = ({
+export const LoadEntityMenuContent: FunctionComponent<LoadEntityMenuContentProps> = ({
   blockEntityId,
   childEntityEntityTypeId,
   childEntityEntityId,
@@ -105,10 +92,7 @@ export const LoadEntityMenuContent: FunctionComponent<
        * @todo properly type this part of the DraftEntity type
        * @see https://linear.app/hash/issue/H-3000
        */
-      blockView.manager.replaceBlockChildEntity(
-        blockEntityId,
-        targetEntity as EntityStoreType,
-      );
+      blockView.manager.replaceBlockChildEntity(blockEntityId, targetEntity as EntityStoreType);
     },
     [blockView, blockEntityId],
   );
@@ -116,9 +100,7 @@ export const LoadEntityMenuContent: FunctionComponent<
   const subgraph = useMemo(
     () =>
       queryResult
-        ? deserializeQueryEntitySubgraphResponse(
-            queryResult.queryEntitySubgraph,
-          ).subgraph
+        ? deserializeQueryEntitySubgraphResponse(queryResult.queryEntitySubgraph).subgraph
         : undefined,
     [queryResult],
   );

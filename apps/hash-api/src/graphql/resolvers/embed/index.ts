@@ -3,12 +3,7 @@ import sanitizeHtml from "sanitize-html";
 
 import * as Error from "../../error";
 
-import type {
-  Embed,
-  Maybe,
-  QueryEmbedCodeArgs,
-  ResolverFn,
-} from "../../api-types.gen";
+import type { Embed, Maybe, QueryEmbedCodeArgs, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
 
 /**
@@ -71,9 +66,7 @@ const sanitizeOembedHtml = (html: string): string =>
         "text-align": [/^(?:left|right|center|justify)$/],
         "vertical-align": [/^(?:top|middle|bottom|baseline)$/],
         display: [/^(?:block|inline|inline-block|flex|none)$/],
-        margin: [
-          /^[\d.]+(?:px|em|rem|%|auto)(?:\s+[\d.]+(?:px|em|rem|%|auto)){0,3}$/,
-        ],
+        margin: [/^[\d.]+(?:px|em|rem|%|auto)(?:\s+[\d.]+(?:px|em|rem|%|auto)){0,3}$/],
         padding: [/^[\d.]+(?:px|em|rem|%)(?:\s+[\d.]+(?:px|em|rem|%)){0,3}$/],
         border: [/^(?:none|\d+px\s+\w+\s+#?[a-zA-Z0-9]+)$/],
         "aspect-ratio": [/^[\d.]+\s*\/\s*[\d.]+$/],
@@ -152,13 +145,7 @@ const getOembedEndpoint = (url: string, type?: string) => {
   }
 };
 
-async function getEmbedResponse({
-  url,
-  type,
-}: {
-  url: string;
-  type?: Maybe<string>;
-}) {
+async function getEmbedResponse({ url, type }: { url: string; type?: Maybe<string> }) {
   const oembedEndpoint = getOembedEndpoint(url, type || undefined);
 
   if (!oembedEndpoint) {
@@ -167,9 +154,9 @@ async function getEmbedResponse({
     };
   }
 
-  return await fetch(
-    `${oembedEndpoint}?url=${encodeURIComponent(url)}&maxwidth=1000`,
-  ).then((response) => response.json());
+  return await fetch(`${oembedEndpoint}?url=${encodeURIComponent(url)}&maxwidth=1000`).then(
+    (response) => response.json(),
+  );
 }
 
 export const embedCode: ResolverFn<
@@ -183,9 +170,7 @@ export const embedCode: ResolverFn<
     type,
   }).catch((__) => {
     throw Error.notFound(
-      `Embed Code for URL ${url} not found${
-        type?.trim() ? ` for type ${type}` : ""
-      }`,
+      `Embed Code for URL ${url} not found${type?.trim() ? ` for type ${type}` : ""}`,
     );
   })) as OembedResponse & { error: boolean };
 
@@ -193,9 +178,7 @@ export const embedCode: ResolverFn<
 
   if (error) {
     throw Error.notFound(
-      `Embed Code for URL ${url} not found${
-        type?.trim() ? ` for type ${type}` : ""
-      }`,
+      `Embed Code for URL ${url} not found${type?.trim() ? ` for type ${type}` : ""}`,
     );
   }
 

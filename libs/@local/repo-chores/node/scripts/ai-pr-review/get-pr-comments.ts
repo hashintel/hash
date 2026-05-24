@@ -183,21 +183,14 @@ const fetchAllThreadsWithComments = async (
       ...(cursor ? ["-f", `cursor=${cursor}`] : []),
     ]);
 
-    const parsedResponse = ReviewThreadsGraphQLResponseSchema.parse(
-      JSON.parse(stdout),
-    );
+    const parsedResponse = ReviewThreadsGraphQLResponseSchema.parse(JSON.parse(stdout));
 
-    const threads =
-      parsedResponse.data.repository.pullRequest.reviewThreads.nodes;
+    const threads = parsedResponse.data.repository.pullRequest.reviewThreads.nodes;
 
-    const pageInfo =
-      parsedResponse.data.repository.pullRequest.reviewThreads.pageInfo;
+    const pageInfo = parsedResponse.data.repository.pullRequest.reviewThreads.pageInfo;
 
     if (pageInfo.hasNextPage && pageInfo.endCursor) {
-      const nextThreads = await fetchAllThreadsWithComments(
-        prNumber,
-        pageInfo.endCursor,
-      );
+      const nextThreads = await fetchAllThreadsWithComments(prNumber, pageInfo.endCursor);
       return [...threads, ...nextThreads];
     }
 
@@ -216,9 +209,7 @@ const fetchAllThreadsWithComments = async (
  * - 'maybe' if someone else started the thread, and the AI wasn't the last to reply
  * - 'no' if the AI was the last to reply
  */
-export const getPrComments = async (
-  prNumber: string,
-): Promise<ExistingCommentThread[]> => {
+export const getPrComments = async (prNumber: string): Promise<ExistingCommentThread[]> => {
   const allThreads = await fetchAllThreadsWithComments(prNumber);
 
   const commentThreads: ExistingCommentThread[] = [];
@@ -234,14 +225,9 @@ export const getPrComments = async (
 
     const originalAuthor = rootComment.author.login;
 
-    const replies = comments.filter(
-      (comment) => comment.replyTo?.id === rootComment.id,
-    );
+    const replies = comments.filter((comment) => comment.replyTo?.id === rootComment.id);
 
-    replies.sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+    replies.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     const lastReply = replies[replies.length - 1];
 

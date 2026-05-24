@@ -38,12 +38,7 @@
       "data": {
         "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity"
       },
-      "errorCodes": [
-        "FORBIDDEN",
-        "INVALID_INPUT",
-        "NOT_IMPLEMENTED",
-        "INTERNAL_ERROR"
-      ]
+      "errorCodes": ["FORBIDDEN", "INVALID_INPUT", "NOT_IMPLEMENTED", "INTERNAL_ERROR"]
     },
     {
       "messageName": "updateEntity",
@@ -87,13 +82,7 @@
       "data": {
         "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity"
       },
-      "errorCodes": [
-        "FORBIDDEN",
-        "INVALID_INPUT",
-        "NOT_FOUND",
-        "NOT_IMPLEMENTED",
-        "INTERNAL_ERROR"
-      ]
+      "errorCodes": ["FORBIDDEN", "INVALID_INPUT", "NOT_FOUND", "NOT_IMPLEMENTED", "INTERNAL_ERROR"]
     },
     {
       "messageName": "deleteEntity",
@@ -118,13 +107,7 @@
         "type": "boolean",
         "const": true
       },
-      "errorCodes": [
-        "FORBIDDEN",
-        "INVALID_INPUT",
-        "NOT_FOUND",
-        "NOT_IMPLEMENTED",
-        "INTERNAL_ERROR"
-      ]
+      "errorCodes": ["FORBIDDEN", "INVALID_INPUT", "NOT_FOUND", "NOT_IMPLEMENTED", "INTERNAL_ERROR"]
     },
     {
       "messageName": "getEntity",
@@ -156,13 +139,7 @@
       "data": {
         "$ref": "https://blockprotocol.org/types/modules/graph/0.3/schema/subgraph"
       },
-      "errorCodes": [
-        "FORBIDDEN",
-        "INVALID_INPUT",
-        "NOT_FOUND",
-        "NOT_IMPLEMENTED",
-        "INTERNAL_ERROR"
-      ]
+      "errorCodes": ["FORBIDDEN", "INVALID_INPUT", "NOT_FOUND", "NOT_IMPLEMENTED", "INTERNAL_ERROR"]
     },
     {
       "messageName": "queryEntities",
@@ -204,12 +181,7 @@
         },
         "required": ["results", "operation"]
       },
-      "errorCodes": [
-        "FORBIDDEN",
-        "INVALID_INPUT",
-        "NOT_IMPLEMENTED",
-        "INTERNAL_ERROR"
-      ]
+      "errorCodes": ["FORBIDDEN", "INVALID_INPUT", "NOT_IMPLEMENTED", "INTERNAL_ERROR"]
     },
     {
       "messageName": "uploadFile",
@@ -264,13 +236,7 @@
       "data": {
         "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/remote-file/v/2"
       },
-      "errorCodes": [
-        "FORBIDDEN",
-        "INVALID_INPUT",
-        "NOT_FOUND",
-        "NOT_IMPLEMENTED",
-        "INTERNAL_ERROR"
-      ]
+      "errorCodes": ["FORBIDDEN", "INVALID_INPUT", "NOT_FOUND", "NOT_IMPLEMENTED", "INTERNAL_ERROR"]
     }
   ]
 }

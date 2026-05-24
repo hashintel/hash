@@ -95,10 +95,7 @@ function makeCompiledTransitions({
       return null;
     }
 
-    return (
-      typesMap.get(place.colorId)?.elements.map((element) => element.name) ??
-      null
-    );
+    return typesMap.get(place.colorId)?.elements.map((element) => element.name) ?? null;
   };
 
   return new Map(
@@ -156,9 +153,7 @@ function makeSimulation({
 
   return {
     places: new Map(places.map((place) => [place.id, place])),
-    transitions: new Map(
-      transitions.map((transition) => [transition.id, transition]),
-    ),
+    transitions: new Map(transitions.map((transition) => [transition.id, transition])),
     types: new Map(types.map((type) => [type.id, type])),
     differentialEquationFns: new Map(),
     compiledTransitions: makeCompiledTransitions({
@@ -180,16 +175,10 @@ function makeSimulation({
 }
 
 function makeFrame(snapshot: EngineFrameSnapshot): TestFrame {
-  const dimensions = new Set(
-    Object.values(snapshot.places).map((place) => place.dimensions),
-  );
+  const dimensions = new Set(Object.values(snapshot.places).map((place) => place.dimensions));
   const layout = createEngineFrameLayout({
     places: Object.entries(snapshot.places).map(([id, place]) =>
-      makePlace(
-        id,
-        id,
-        place.dimensions === 0 ? null : `frame-type-${place.dimensions}`,
-      ),
+      makePlace(id, id, place.dimensions === 0 ? null : `frame-type-${place.dimensions}`),
     ),
     transitions: Object.keys(snapshot.transitions).map((id) =>
       makeTransition({ id, inputArcs: [], outputArcs: [] }),
@@ -253,9 +242,7 @@ describe("computePossibleTransition", () => {
     const simulation = makeSimulation({
       transitions: [transition],
       lambdaFns: new Map([["t1", () => 1.0]]),
-      transitionKernelFns: new Map<string, TransitionKernelFn>([
-        ["t1", () => ({})],
-      ]),
+      transitionKernelFns: new Map<string, TransitionKernelFn>([["t1", () => ({})]]),
     });
     const frame = makeFrame({
       places: {
@@ -323,10 +310,7 @@ describe("computePossibleTransition", () => {
       transitionKernelCode: "return [[[2.0]]];",
     });
     const simulation = makeSimulation({
-      places: [
-        makePlace("p1", "Place 1", "type1"),
-        makePlace("p2", "Place 2", "type1"),
-      ],
+      places: [makePlace("p1", "Place 1", "type1"), makePlace("p2", "Place 2", "type1")],
       transitions: [transition],
       types: [type1],
       lambdaFns: new Map([["t1", () => 10.0]]),

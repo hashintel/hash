@@ -22,8 +22,7 @@ export type EditorProviderProps = React.PropsWithChildren;
 
 const canvasSelections = (selection: SelectionMap) =>
   Array.from(selection.entries()).filter(
-    ([_, s]) =>
-      s.type === "arc" || s.type === "place" || s.type === "transition",
+    ([_, s]) => s.type === "arc" || s.type === "place" || s.type === "transition",
   );
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
@@ -42,9 +41,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     timelineChartType: userSettings.timelineChartType,
   }));
 
-  const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
-  );
+  const animationTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   /**
    * Returns state patch to enable panel animation. Must be spread into the
@@ -103,12 +100,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     | "isHoveredConnection"
     | "isNotHoveredConnection"
   > = {
-    setGlobalMode: (mode) =>
-      setState((prev) => ({ ...prev, globalMode: mode })),
-    setEditionMode: (mode) =>
-      setState((prev) => ({ ...prev, editionMode: mode })),
-    setCursorMode: (mode) =>
-      setState((prev) => ({ ...prev, cursorMode: mode })),
+    setGlobalMode: (mode) => setState((prev) => ({ ...prev, globalMode: mode })),
+    setEditionMode: (mode) => setState((prev) => ({ ...prev, editionMode: mode })),
+    setCursorMode: (mode) => setState((prev) => ({ ...prev, cursorMode: mode })),
     setLeftSidebarOpen: (isOpen) => {
       scheduleAnimationEnd();
       setState((prev) => ({
@@ -117,8 +111,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isLeftSidebarOpen: isOpen,
       }));
     },
-    setLeftSidebarWidth: (width) =>
-      setState((prev) => ({ ...prev, leftSidebarWidth: width })),
+    setLeftSidebarWidth: (width) => setState((prev) => ({ ...prev, leftSidebarWidth: width })),
     setPropertiesPanelWidth: (width) =>
       setState((prev) => ({ ...prev, propertiesPanelWidth: width })),
     setBottomPanelOpen: (isOpen) => {
@@ -137,10 +130,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         isBottomPanelOpen: !prev.isBottomPanelOpen,
       }));
     },
-    setBottomPanelHeight: (height) =>
-      setState((prev) => ({ ...prev, bottomPanelHeight: height })),
-    setActiveBottomPanelTab: (tab) =>
-      setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
+    setBottomPanelHeight: (height) => setState((prev) => ({ ...prev, bottomPanelHeight: height })),
+    setActiveBottomPanelTab: (tab) => setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
     setSelection,
     selectItem: (item: SelectionItem) => {
       scheduleAnimationEnd();
@@ -186,10 +177,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         hasCanvasSelection: false,
       }));
     },
-    setHoveredItem: (item: SelectionItem) =>
-      setState((prev) => ({ ...prev, hoveredItem: item })),
-    clearHoveredItem: () =>
-      setState((prev) => ({ ...prev, hoveredItem: null })),
+    setHoveredItem: (item: SelectionItem) => setState((prev) => ({ ...prev, hoveredItem: item })),
+    clearHoveredItem: () => setState((prev) => ({ ...prev, hoveredItem: null })),
     setDraggingStateByNodeId: (draggingState: DraggingStateByNodeId) =>
       setState((prev) => ({ ...prev, draggingStateByNodeId: draggingState })),
     updateDraggingStateByNodeId: (updater) =>
@@ -197,8 +186,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
         ...prev,
         draggingStateByNodeId: updater(prev.draggingStateByNodeId),
       })),
-    resetDraggingState: () =>
-      setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
+    resetDraggingState: () => setState((prev) => ({ ...prev, draggingStateByNodeId: {} })),
     collapseAllPanels: () => {
       scheduleAnimationEnd();
       setState((prev) => ({
@@ -214,10 +202,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     },
     setTimelineChartType: (chartType) =>
       setState((prev) => ({ ...prev, timelineChartType: chartType })),
-    setTimelineView: (view) =>
-      setState((prev) => ({ ...prev, timelineView: view })),
-    setSimulateViewMode: (mode) =>
-      setState((prev) => ({ ...prev, simulateViewMode: mode })),
+    setTimelineView: (view) => setState((prev) => ({ ...prev, timelineView: view })),
+    setSimulateViewMode: (mode) => setState((prev) => ({ ...prev, simulateViewMode: mode })),
     setSearchOpen: (isOpen) => {
       scheduleAnimationEnd();
       setState((prev) => {
@@ -262,9 +248,7 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
 
   const isSelectedConnection = (id: string) => selectedConnections.has(id);
   const isNotSelectedConnection = (id: string) =>
-    canvasSelections(selection).length > 0 &&
-    !isSelected(id) &&
-    !selectedConnections.has(id);
+    canvasSelections(selection).length > 0 && !isSelected(id) && !selectedConnections.has(id);
 
   const isHovered = (id: string) => hoveredItem?.id === id;
 
@@ -292,9 +276,5 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     searchInputRef,
   };
 
-  return (
-    <EditorContext.Provider value={contextValue}>
-      {children}
-    </EditorContext.Provider>
-  );
+  return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
 };

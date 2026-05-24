@@ -5,18 +5,11 @@ import {
   getRightEntityForLinkEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import {
-  type Entity,
-  type EntityId,
-  type VersionedUrl,
-} from "@blockprotocol/type-system";
+import { type Entity, type EntityId, type VersionedUrl } from "@blockprotocol/type-system";
 
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 
-const addEntityTypeIdsToSet = (
-  uniqueJoinedMultiEntityTypeIds: Set<string>,
-  entity: Entity,
-) => {
+const addEntityTypeIdsToSet = (uniqueJoinedMultiEntityTypeIds: Set<string>, entity: Entity) => {
   const joinedMultiTypeIds = entity.metadata.entityTypeIds.toSorted().join(",");
   uniqueJoinedMultiEntityTypeIds.add(joinedMultiTypeIds);
 };
@@ -54,9 +47,7 @@ export const getEntityMultiTypeDependencies = ({
       addEntityTypeIdsToSet(uniqueJoinedMultiEntityTypeIds, rightEntity[0]);
     } else {
       // eslint-disable-next-line no-console
-      console.warn(
-        `Right entity with for link entity ${entityId} not found in subgraph`,
-      );
+      console.warn(`Right entity with for link entity ${entityId} not found in subgraph`);
     }
 
     const leftEntity = getLeftEntityForLinkEntity(entitySubgraph, entityId);
@@ -65,9 +56,7 @@ export const getEntityMultiTypeDependencies = ({
       addEntityTypeIdsToSet(uniqueJoinedMultiEntityTypeIds, leftEntity[0]);
     } else {
       // eslint-disable-next-line no-console
-      console.warn(
-        `Left entity for link entity ${entityId} not found in subgraph`,
-      );
+      console.warn(`Left entity for link entity ${entityId} not found in subgraph`);
     }
   }
 
@@ -86,10 +75,7 @@ export const getEntityMultiTypeDependencies = ({
     const rightEntityRevision = rightEntity[0];
 
     if (rightEntityRevision) {
-      addEntityTypeIdsToSet(
-        uniqueJoinedMultiEntityTypeIds,
-        rightEntityRevision,
-      );
+      addEntityTypeIdsToSet(uniqueJoinedMultiEntityTypeIds, rightEntityRevision);
     } else {
       // eslint-disable-next-line no-console
       console.warn(`Right entity not found in subgraph`);
@@ -123,9 +109,7 @@ export const getEntityMultiTypeDependencies = ({
   return [
     entityTypeIds,
     ...Array.from(uniqueJoinedMultiEntityTypeIds).map((joinedMultiTypeIds) =>
-      joinedMultiTypeIds
-        .split(",")
-        .map((multiTypeId) => multiTypeId as VersionedUrl),
+      joinedMultiTypeIds.split(",").map((multiTypeId) => multiTypeId as VersionedUrl),
     ),
   ];
 };

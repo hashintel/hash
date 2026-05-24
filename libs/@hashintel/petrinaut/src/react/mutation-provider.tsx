@@ -1,9 +1,6 @@
 import { use, type ReactNode } from "react";
 
-import {
-  MutationContext,
-  type MutationContextValue,
-} from "./state/mutation-context";
+import { MutationContext, type MutationContextValue } from "./state/mutation-context";
 import { SDCPNContext } from "./state/sdcpn-context";
 import { useIsReadOnly } from "./state/use-is-read-only";
 import { usePetrinautInstance } from "./use-petrinaut-instance";
@@ -13,9 +10,7 @@ import { usePetrinautInstance } from "./use-petrinaut-instance";
  * instance's actions. Read-only checks honour the editor mode (which lives in
  * `EditorContext`) — only `readonly` blocks scenario mutations.
  */
-export const MutationProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const MutationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const instance = usePetrinautInstance();
   const { readonly } = use(SDCPNContext);
   const isReadOnly = useIsReadOnly();
@@ -211,9 +206,5 @@ export const MutationProvider: React.FC<{ children: ReactNode }> = ({
     },
   };
 
-  return (
-    <MutationContext.Provider value={value}>
-      {children}
-    </MutationContext.Provider>
-  );
+  return <MutationContext.Provider value={value}>{children}</MutationContext.Provider>;
 };

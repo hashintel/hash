@@ -19,10 +19,8 @@ export interface DraftLinkState {
 }
 
 export const useDraftLinkState = () => {
-  const [draftLinksToCreate, setDraftLinksToCreate] =
-    useState<DraftLinksToCreate>([]);
-  const [draftLinksToArchive, setDraftLinksToArchive] =
-    useState<DraftLinksToArchive>([]);
+  const [draftLinksToCreate, setDraftLinksToCreate] = useState<DraftLinksToCreate>([]);
+  const [draftLinksToArchive, setDraftLinksToArchive] = useState<DraftLinksToArchive>([]);
 
   return [
     draftLinksToCreate,

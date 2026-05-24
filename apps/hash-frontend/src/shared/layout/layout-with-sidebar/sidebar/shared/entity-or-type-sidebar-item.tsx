@@ -56,12 +56,7 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
   href?: string;
   variant: "entity" | "entity-type";
 }> = ({ entityType, href, variant }) => {
-  const {
-    title,
-    titlePlural: maybeTitlePlural,
-    $id: entityTypeId,
-    icon,
-  } = entityType;
+  const { title, titlePlural: maybeTitlePlural, $id: entityTypeId, icon } = entityType;
 
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
   const titlePlural = maybeTitlePlural || pluralize(title);
@@ -79,8 +74,7 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
   const url = new URL(`${window.location.origin}${router.asPath}/`);
   const urlBase = `${url.origin}${url.pathname.replace(/\/$/, "")}/`;
   const selected =
-    router.route === "/[shortname]/types/entity-type/[entity-type-id]" &&
-    urlBase === baseUrl;
+    router.route === "/[shortname]/types/entity-type/[entity-type-id]" && urlBase === baseUrl;
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -88,13 +82,7 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
 
   return (
     <Container component="li" tabIndex={0} selected={selected} minHeight={32}>
-      <Link
-        tabIndex={-1}
-        sx={{ flex: 1 }}
-        noLinkStyle
-        href={href ?? baseUrl}
-        flex={1}
-      >
+      <Link tabIndex={-1} sx={{ flex: 1 }} noLinkStyle href={href ?? baseUrl} flex={1}>
         <Typography
           variant="smallTextLabels"
           sx={{

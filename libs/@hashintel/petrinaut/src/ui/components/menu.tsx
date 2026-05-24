@@ -242,9 +242,7 @@ export interface MenuProps {
 
 // -- Helpers ------------------------------------------------------------------
 
-function isMenuGroupArray(
-  items: MenuItem[] | MenuGroup[],
-): items is MenuGroup[] {
+function isMenuGroupArray(items: MenuItem[] | MenuGroup[]): items is MenuGroup[] {
   return items.length > 0 && items[0] != null && "items" in items[0];
 }
 
@@ -267,9 +265,7 @@ const MenuItemContent = ({ item }: { item: MenuItem }) => (
       {typeof item.label === "string" ? (
         <>
           {item.label}
-          {item.description && (
-            <div className={itemDescriptionStyle}>{item.description}</div>
-          )}
+          {item.description && <div className={itemDescriptionStyle}>{item.description}</div>}
         </>
       ) : (
         item.label
@@ -310,9 +306,7 @@ export const Menu: React.FC<MenuProps> = ({
               <div key={group.id}>
                 {groupIndex > 0 && <div className={separatorStyle} />}
                 <div className={groupStyle}>
-                  {group.title && (
-                    <div className={groupTitleStyle}>{group.title}</div>
-                  )}
+                  {group.title && <div className={groupTitleStyle}>{group.title}</div>}
                   <div className={groupItemsStyle}>
                     {group.items.map((item) =>
                       item.submenu ? (

@@ -25,13 +25,8 @@ export const initializeActionStep = (params: {
   existingFlow?: LocalFlowRun;
   parallelGroupInputPayload?: Payload;
 }): ActionStep => {
-  const {
-    overrideStepId,
-    stepDefinition,
-    flowTrigger,
-    existingFlow,
-    parallelGroupInputPayload,
-  } = params;
+  const { overrideStepId, stepDefinition, flowTrigger, existingFlow, parallelGroupInputPayload } =
+    params;
 
   const actionDefinition = actionDefinitions[stepDefinition.actionDefinitionId];
 
@@ -44,8 +39,7 @@ export const initializeActionStep = (params: {
         if (inputSource.kind === "step-output") {
           if (inputSource.sourceStepId === "trigger") {
             const matchingTriggerOutput = flowTrigger.outputs?.find(
-              ({ outputName }) =>
-                outputName === inputSource.sourceStepOutputName,
+              ({ outputName }) => outputName === inputSource.sourceStepOutputName,
             );
 
             if (matchingTriggerOutput) {
@@ -72,8 +66,7 @@ export const initializeActionStep = (params: {
                   : [];
 
             const matchingSourceStepOutput = sourceStepOutputs.find(
-              ({ outputName }) =>
-                outputName === inputSource.sourceStepOutputName,
+              ({ outputName }) => outputName === inputSource.sourceStepOutputName,
             );
 
             if (matchingSourceStepOutput) {
@@ -109,10 +102,7 @@ export const initializeActionStep = (params: {
        */
       ...actionDefinition.inputs
         .filter(
-          ({ name }) =>
-            !stepDefinition.inputSources.some(
-              ({ inputName }) => inputName === name,
-            ),
+          ({ name }) => !stepDefinition.inputSources.some(({ inputName }) => inputName === name),
         )
         .flatMap((inputWithoutInputSource) =>
           inputWithoutInputSource.default

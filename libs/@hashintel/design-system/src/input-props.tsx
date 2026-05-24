@@ -1,19 +1,11 @@
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
-import {
-  InputAdornment,
-  inputClasses,
-  outlinedInputClasses,
-  Tooltip,
-} from "@mui/material";
+import { InputAdornment, inputClasses, outlinedInputClasses, Tooltip } from "@mui/material";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
 import { LoadingSpinner } from "./loading-spinner";
 
-import type {
-  InputProps,
-  TextFieldProps as MuiTextFieldProps,
-} from "@mui/material";
+import type { InputProps, TextFieldProps as MuiTextFieldProps } from "@mui/material";
 
 export type TextFieldProps = {
   /**
@@ -51,13 +43,7 @@ export const getInputProps = ({
 }: InputProps &
   Pick<
     TextFieldProps,
-    | "success"
-    | "error"
-    | "errorText"
-    | "loading"
-    | "multiline"
-    | "autoResize"
-    | "variant"
+    "success" | "error" | "errorText" | "loading" | "multiline" | "autoResize" | "variant"
   > = {}): InputProps => {
   const { sx: InputPropsSx = [], ...otherInputProps } = otherProps;
 
@@ -105,10 +91,7 @@ export const getInputProps = ({
      */
     ...(variant === "outlined" ? { notched: false } : {}),
     ...otherInputProps,
-    endAdornment:
-      !!error || !!success || loading
-        ? renderEndAdornment()
-        : otherProps.endAdornment,
+    endAdornment: !!error || !!success || loading ? renderEndAdornment() : otherProps.endAdornment,
   };
 };
 export const inputLabelProps = {

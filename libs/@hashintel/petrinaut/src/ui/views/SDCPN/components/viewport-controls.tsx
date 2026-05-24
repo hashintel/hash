@@ -47,10 +47,8 @@ export const ViewportControls: React.FC<{
 
   const isPropertiesPanelVisible = hasSelection;
   const rightOffset =
-    BASE_OFFSET +
-    (isPropertiesPanelVisible ? propertiesPanelWidth + PANEL_MARGIN : 0);
-  const bottomOffset =
-    BASE_OFFSET + (isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0);
+    BASE_OFFSET + (isPropertiesPanelVisible ? propertiesPanelWidth + PANEL_MARGIN : 0);
+  const bottomOffset = BASE_OFFSET + (isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0);
 
   return (
     <div

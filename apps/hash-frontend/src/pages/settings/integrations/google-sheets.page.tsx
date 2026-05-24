@@ -27,8 +27,8 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
           WIP: Google Sheets
         </Typography>
         <Typography mb={4}>
-          This UI requires updating to take account of Flows – visit `/flows` to
-          create a Google Sheet sync instead
+          This UI requires updating to take account of Flows – visit `/flows` to create a Google
+          Sheet sync instead
         </Typography>
         {addingNewIntegration ? (
           <CreateOrEditSheetsSync
@@ -41,9 +41,7 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
           />
         ) : (
           <Box>
-            <Button onClick={() => setAddingNewIntegration(true)}>
-              Add new sync
-            </Button>
+            <Button onClick={() => setAddingNewIntegration(true)}>Add new sync</Button>
           </Box>
         )}
       </Container>

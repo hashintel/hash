@@ -72,8 +72,7 @@ const CheckboxFilter: FunctionComponent<{
         fontSize: 13,
         fontWeight: 500,
       },
-      transition: ({ transitions }) =>
-        transitions.create(["background", "color"]),
+      transition: ({ transitions }) => transitions.create(["background", "color"]),
       "&:hover": {
         background: ({ palette }) => palette.gray[10],
         color: ({ palette }) => palette.gray[90],
@@ -158,8 +157,7 @@ export const TableHeader = <R extends GridRow>({
   toggleSearch,
 }: TableHeaderProps<R>) => {
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
-  const [publicFilterHovered, setPublicFilterHovered] =
-    useState<boolean>(false);
+  const [publicFilterHovered, setPublicFilterHovered] = useState<boolean>(false);
 
   const theme = useTheme();
 
@@ -203,9 +201,7 @@ export const TableHeader = <R extends GridRow>({
           } else if (key === "archived") {
             return (row as unknown as TypesTableRow).archived ? "Yes" : "No";
           } else if (key === "sourceEntity" || key === "targetEntity") {
-            return (
-              (row as unknown as EntitiesTableRow).sourceEntity?.label ?? ""
-            );
+            return (row as unknown as EntitiesTableRow).sourceEntity?.label ?? "";
           } else if (key === "entityTypes") {
             return (row as unknown as EntitiesTableRow).entityTypes
               .map((type) => type.title)
@@ -294,26 +290,18 @@ export const TableHeader = <R extends GridRow>({
                   icon={
                     filterState.includeGlobal ? (
                       publicFilterHovered ? (
-                        <EyeSlashRegularIcon
-                          sx={{ fill: ({ palette }) => palette.primary.main }}
-                        />
+                        <EyeSlashRegularIcon sx={{ fill: ({ palette }) => palette.primary.main }} />
                       ) : (
-                        <CheckIcon
-                          sx={{ fill: ({ palette }) => palette.primary.main }}
-                        />
+                        <CheckIcon sx={{ fill: ({ palette }) => palette.primary.main }} />
                       )
                     ) : publicFilterHovered ? (
-                      <EyeRegularIcon
-                        sx={{ fill: ({ palette }) => palette.primary.main }}
-                      />
+                      <EyeRegularIcon sx={{ fill: ({ palette }) => palette.primary.main }} />
                     ) : (
                       <EarthAmericasRegularIcon />
                     )
                   }
                   label={`${
-                    numberOfExternalItems !== undefined
-                      ? formatNumber(numberOfExternalItems)
-                      : "–"
+                    numberOfExternalItems !== undefined ? formatNumber(numberOfExternalItems) : "–"
                   } others`}
                   sx={({ palette }) => ({
                     ...commonChipSx,
@@ -340,8 +328,7 @@ export const TableHeader = <R extends GridRow>({
               display: "flex",
               justifyContent: "flex-end",
               background: ({ palette }) =>
-                displayFilters ||
-                Object.values(filterState).some((value) => value)
+                displayFilters || Object.values(filterState).some((value) => value)
                   ? palette.common.white
                   : "transparent",
               transition: ({ transitions }) => transitions.create("background"),
@@ -357,8 +344,7 @@ export const TableHeader = <R extends GridRow>({
             </TableHeaderButton>
             <Box
               sx={{
-                transition: ({ transitions }) =>
-                  transitions.create("max-width"),
+                transition: ({ transitions }) => transitions.create("max-width"),
                 maxWidth: displayFilters ? 500 : 0,
                 overflow: "hidden",
               }}
@@ -398,9 +384,7 @@ export const TableHeader = <R extends GridRow>({
             </Box>
           </Box>
         )}
-        {!hideExportToCsv && (
-          <ExportToCsvButton generateCsvFile={generateCsvFile} />
-        )}
+        {!hideExportToCsv && <ExportToCsvButton generateCsvFile={generateCsvFile} />}
         {toggleSearch ? (
           /**
            * @todo H-3909 full text search via API

@@ -7,17 +7,13 @@ import { fillRowIndentCalculations } from "./fill-row-indent-calculations";
 import { flattenExpandedItemsOfTree } from "./flatten";
 import { usePropertyRowsFromEntity } from "./use-rows/use-property-rows-from-entity";
 
-import type {
-  GridSort,
-  SortGridRows,
-} from "../../../../../../components/grid/grid";
+import type { GridSort, SortGridRows } from "../../../../../../components/grid/grid";
 import type { PropertyColumn, PropertyColumnKey, PropertyRow } from "./types";
 
-const sortPropertyRows: SortGridRows<
-  PropertyRow,
-  PropertyColumn,
-  PropertyColumnKey
-> = (rows, sort) => {
+const sortPropertyRows: SortGridRows<PropertyRow, PropertyColumn, PropertyColumnKey> = (
+  rows,
+  sort,
+) => {
   const { columnKey, direction } = sort;
 
   return rows.toSorted((a, b) => {
@@ -54,10 +50,7 @@ export const useRows = () => {
     (_rows: PropertyRow[], sort: GridSort<PropertyColumnKey>) => {
       const sortedRows = sortPropertyRows(_rows, sort);
 
-      const flattenedRows = flattenExpandedItemsOfTree(
-        sortedRows,
-        propertyExpandStatus,
-      );
+      const flattenedRows = flattenExpandedItemsOfTree(sortedRows, propertyExpandStatus);
 
       fillRowIndentCalculations(flattenedRows);
 

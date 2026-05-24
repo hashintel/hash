@@ -12,8 +12,7 @@ export const getAiAssistantAccountIdActivity = async (params: {
   grantCreatePermissionForWeb?: WebId;
   graphApiClient: GraphApi;
 }): Promise<AiId | null> => {
-  const { authentication, graphApiClient, grantCreatePermissionForWeb } =
-    params;
+  const { authentication, graphApiClient, grantCreatePermissionForWeb } = params;
 
   const aiAssistantAccountId = await getAiIdByIdentifier(
     { graphApi: graphApiClient },
@@ -36,14 +35,10 @@ export const getAiAssistantAccountIdActivity = async (params: {
     // If the AI assistant is not a member of the web, we need to add them as a member.
     // This can only be done if the user is an administrator of the web.
     if (!webRole) {
-      const isWebAdmin = await getActorGroupRole(
-        graphApiClient,
-        authentication,
-        {
-          actorId: authentication.actorId,
-          actorGroupId: grantCreatePermissionForWeb,
-        },
-      ).then((role) => role === "administrator");
+      const isWebAdmin = await getActorGroupRole(graphApiClient, authentication, {
+        actorId: authentication.actorId,
+        actorGroupId: grantCreatePermissionForWeb,
+      }).then((role) => role === "administrator");
 
       if (isWebAdmin) {
         await addActorGroupMember(graphApiClient, authentication, {

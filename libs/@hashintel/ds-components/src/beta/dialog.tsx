@@ -34,20 +34,18 @@ export type ActionTriggerProps = ComponentProps<typeof StyledButton>;
 
 export const ActionTrigger: React.ForwardRefExoticComponent<
   ActionTriggerProps & React.RefAttributes<HTMLButtonElement>
-> = forwardRef<HTMLButtonElement, ActionTriggerProps>(
-  ({ onClick, ...props }, ref) => {
-    const dialog = useDialogContext();
-    return (
-      <StyledButton
-        {...props}
-        ref={ref}
-        onClick={(event) => {
-          onClick?.(event);
-          dialog.setOpen(false);
-        }}
-      />
-    );
-  },
-);
+> = forwardRef<HTMLButtonElement, ActionTriggerProps>(({ onClick, ...props }, ref) => {
+  const dialog = useDialogContext();
+  return (
+    <StyledButton
+      {...props}
+      ref={ref}
+      onClick={(event) => {
+        onClick?.(event);
+        dialog.setOpen(false);
+      }}
+    />
+  );
+});
 
 export { DialogContext as Context } from "@ark-ui/react/dialog";

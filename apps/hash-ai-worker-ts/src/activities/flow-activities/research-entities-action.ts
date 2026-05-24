@@ -15,10 +15,7 @@ import {
 import { runCoordinatingAgent } from "./research-entities-action/coordinating-agent.js";
 
 import type { CoordinatingAgentState } from "./research-entities-action/shared/coordinators.js";
-import type {
-  OriginProvenance,
-  ProvidedEntityEditionProvenance,
-} from "@blockprotocol/type-system";
+import type { OriginProvenance, ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 
 /**
@@ -91,10 +88,9 @@ export const researchEntitiesAction: AiFlowActionActivity<
         temporalAxes: currentTimeInstantTemporalAxes,
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.claim.entityTypeId,
-              { ignoreParents: true },
-            ),
+            generateVersionedUrlMatchingFilter(systemEntityTypes.claim.entityTypeId, {
+              ignoreParents: true,
+            }),
             {
               equal: [
                 {
@@ -135,8 +131,7 @@ export const researchEntitiesAction: AiFlowActionActivity<
         .filter(
           (claim) =>
             !state.inferredClaims.some(
-              (claimInState) =>
-                claimInState.claimId === claim.metadata.recordId.entityId,
+              (claimInState) => claimInState.claimId === claim.metadata.recordId.entityId,
             ),
         )
         .map(async (claim) =>

@@ -15,15 +15,9 @@ import {
   maxRetryCount,
   serverErrorRetryStartingDelay,
 } from "./constants.js";
-import {
-  mapLlmMessageToOpenAiMessages,
-  mapOpenAiMessagesToLlmMessages,
-} from "./llm-message.js";
+import { mapLlmMessageToOpenAiMessages, mapOpenAiMessagesToLlmMessages } from "./llm-message.js";
 import { logLlmRequest, logLlmServerError } from "./log-llm-request.js";
-import {
-  getInputValidationErrors,
-  sanitizeInputBeforeValidation,
-} from "./validation.js";
+import { getInputValidationErrors, sanitizeInputBeforeValidation } from "./validation.js";
 
 import type {
   LlmAssistantMessage,
@@ -122,10 +116,7 @@ const getWaitPeriodFromHeaders = (headers?: Headers): number => {
 };
 
 const isServerError = (error: unknown): error is APIError =>
-  error instanceof APIError &&
-  !!error.status &&
-  error.status >= 500 &&
-  error.status < 600;
+  error instanceof APIError && !!error.status && error.status >= 500 && error.status < 600;
 
 const openAiChatCompletionWithBackoff = async (params: {
   completionPayload: OpenAI.ChatCompletionCreateParamsNonStreaming;
@@ -175,10 +166,7 @@ const openAiChatCompletionWithBackoff = async (params: {
       },
     );
   } catch (error) {
-    if (
-      error instanceof RateLimitError &&
-      retryCount < maximumRateLimitRetries
-    ) {
+    if (error instanceof RateLimitError && retryCount < maximumRateLimitRetries) {
       logger.debug(
         `Encountered rate limit error with OpenAI provider, delaying retry request until the rate limit wait period has ended.`,
       );
@@ -230,9 +218,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
           },
         ]
       : []),
-    ...messages.flatMap((message) =>
-      mapLlmMessageToOpenAiMessages({ message }),
-    ),
+    ...messages.flatMap((message) => mapLlmMessageToOpenAiMessages({ message })),
   ];
 
   const completionPayload: OpenAI.ChatCompletionCreateParamsNonStreaming = {
@@ -244,8 +230,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
      * Return `logprobs` by default when in development mode, unless
      * explicitly overridden by the caller.
      */
-    logprobs:
-      remainingParams.logprobs ?? process.env.NODE_ENV === "development",
+    logprobs: remainingParams.logprobs ?? process.env.NODE_ENV === "development",
     tool_choice: toolChoice
       ? toolChoice === "required"
         ? "required"
@@ -275,8 +260,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
       logger.info(`Estimated prompt tokens: ${estimatedPromptTokens}`);
 
-      excessTokens =
-        estimatedPromptTokens + completionPayloadOverhead - modelContextWindow;
+      excessTokens = estimatedPromptTokens + completionPayloadOverhead - modelContextWindow;
 
       if (excessTokens < 10) {
         break;
@@ -288,14 +272,10 @@ export const getOpenAiResponse = async <ToolName extends string>(
         } characters.`,
       );
 
-      const firstUserMessageContent =
-        completionPayload.messages[trimMessageAtIndex]!.content;
+      const firstUserMessageContent = completionPayload.messages[trimMessageAtIndex]!.content;
 
       completionPayload.messages[trimMessageAtIndex]!.content =
-        firstUserMessageContent?.slice(
-          0,
-          firstUserMessageContent.length - excessTokens * 4,
-        ) ?? "";
+        firstUserMessageContent?.slice(0, firstUserMessageContent.length - excessTokens * 4) ?? "";
     } while (excessTokens > 9);
   }
 
@@ -320,10 +300,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
       };
     }
 
-    const message =
-      "message" in (error as Error)
-        ? (error as Error).message
-        : "Unknown error";
+    const message = "message" in (error as Error) ? (error as Error).message : "Unknown error";
 
     return {
       llmResponse: {
@@ -340,15 +317,10 @@ export const getOpenAiResponse = async <ToolName extends string>(
   const { previousUsage, retryCount = 0 } = retryContext ?? {};
 
   const usage: LlmUsage = {
-    inputTokens:
-      (previousUsage?.inputTokens ?? 0) +
-      (openAiResponse.usage?.prompt_tokens ?? 0),
+    inputTokens: (previousUsage?.inputTokens ?? 0) + (openAiResponse.usage?.prompt_tokens ?? 0),
     outputTokens:
-      (previousUsage?.outputTokens ?? 0) +
-      (openAiResponse.usage?.completion_tokens ?? 0),
-    totalTokens:
-      (previousUsage?.totalTokens ?? 0) +
-      (openAiResponse.usage?.total_tokens ?? 0),
+      (previousUsage?.outputTokens ?? 0) + (openAiResponse.usage?.completion_tokens ?? 0),
+    totalTokens: (previousUsage?.totalTokens ?? 0) + (openAiResponse.usage?.total_tokens ?? 0),
   };
 
   const lastRequestTime = currentRequestTime;
@@ -577,10 +549,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
     });
   }
 
-  if (
-    firstChoice.finish_reason === "tool_calls" &&
-    parsedToolCalls.length === 0
-  ) {
+  if (firstChoice.finish_reason === "tool_calls" && parsedToolCalls.length === 0) {
     return retry({
       successfullyParsedToolCalls: [],
       retryMessageContent: [
@@ -595,18 +564,13 @@ export const getOpenAiResponse = async <ToolName extends string>(
   if (!openAiResponse.usage) {
     logger.error(`OpenAI returned no usage information for call`);
   } else {
-    const { completion_tokens, prompt_tokens, total_tokens } =
-      openAiResponse.usage;
+    const { completion_tokens, prompt_tokens, total_tokens } = openAiResponse.usage;
     logger.info(
       `Actual usage for iteration: prompt tokens: ${prompt_tokens}, completion tokens: ${completion_tokens}, total tokens: ${total_tokens}`,
     );
 
     if (estimatedPromptTokens) {
-      logger.info(
-        `Estimated prompt usage off by ${
-          prompt_tokens - estimatedPromptTokens
-        } tokens.`,
-      );
+      logger.info(`Estimated prompt usage off by ${prompt_tokens - estimatedPromptTokens} tokens.`);
     }
   }
 
@@ -634,10 +598,9 @@ export const getOpenAiResponse = async <ToolName extends string>(
    * response message, which may have been previously filtered out.
    */
   if (retryContext) {
-    const previousSuccessfulToolUses =
-      retryContext.previousSuccessfulToolCalls.map<
-        LlmMessageToolUseContent<ToolName>
-      >(({ id, input, name }) => ({ type: "tool_use", id, input, name }));
+    const previousSuccessfulToolUses = retryContext.previousSuccessfulToolCalls.map<
+      LlmMessageToolUseContent<ToolName>
+    >(({ id, input, name }) => ({ type: "tool_use", id, input, name }));
 
     responseMessage.content.push(...previousSuccessfulToolUses);
   }

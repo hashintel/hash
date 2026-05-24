@@ -6,8 +6,7 @@ import type { BaseUrl } from "@blockprotocol/type-system";
  * The base URL of the User entity type, used to detect user entities
  * when enforcing property update restrictions.
  */
-export const userEntityTypeBaseUrl =
-  "https://hash.ai/@h/types/entity-type/user/" as BaseUrl;
+export const userEntityTypeBaseUrl = "https://hash.ai/@h/types/entity-type/user/" as BaseUrl;
 
 /**
  * The base URL of the display-name property type.

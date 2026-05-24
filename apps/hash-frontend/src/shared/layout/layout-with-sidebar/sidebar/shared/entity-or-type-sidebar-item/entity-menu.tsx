@@ -1,9 +1,4 @@
-import {
-  faAdd,
-  faAsterisk,
-  faChain,
-  faList,
-} from "@fortawesome/free-solid-svg-icons";
+import { faAdd, faAsterisk, faChain, faList } from "@fortawesome/free-solid-svg-icons";
 import { Box, Menu } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state/hooks";
 
@@ -49,10 +44,7 @@ export const EntityMenu: FunctionComponent<EntityTypeMenuProps> = ({
           popupState={popupState}
         />
       )}
-      <FavoriteMenuItem
-        item={{ type: "entityType", entityTypeId }}
-        popupState={popupState}
-      />
+      <FavoriteMenuItem item={{ type: "entityType", entityTypeId }} popupState={popupState} />
       <SidebarMenuItem
         title={`View all ${isLinkType ? `${title} links` : titlePlural}`}
         icon={faList}

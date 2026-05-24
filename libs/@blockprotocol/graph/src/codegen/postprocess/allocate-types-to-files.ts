@@ -22,9 +22,7 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
         mapObject[typeId] ??= new Set();
         mapObject[typeId].add(file);
 
-        for (const dependencyUrl of context.typeDependencyMap.getDependenciesForType(
-          typeId,
-        )) {
+        for (const dependencyUrl of context.typeDependencyMap.getDependenciesForType(typeId)) {
           // eslint-disable-next-line no-param-reassign -- this is a reduce function..
           mapObject[dependencyUrl] ??= new Set();
           mapObject[dependencyUrl].add(file);
@@ -38,10 +36,7 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
 
   for (const [typeId, fileSet] of typedEntries(typesToFiles)) {
     const files = [...fileSet];
-    const type = mustBeDefined(
-      context.allTypes[typeId],
-      `Could not find ${typeId} in all types`,
-    );
+    const type = mustBeDefined(context.allTypes[typeId], `Could not find ${typeId} in all types`);
 
     let definingFile;
     if (files.length > 1) {
@@ -62,20 +57,14 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
 
     const dependentOnIdentifiers = [
       ...context.typeDependencyMap.getDependenciesForType(type.$id),
-    ].map(
-      (dependencyUrl) => mustBeDefined(context.allTypes[dependencyUrl]).title,
-    );
+    ].map((dependencyUrl) => mustBeDefined(context.allTypes[dependencyUrl]).title);
 
-    const compiledContents = mustBeDefined(
-      context.typeIdsToCompiledTypes[typeId],
-    );
+    const compiledContents = mustBeDefined(context.typeIdsToCompiledTypes[typeId]);
 
     context.logTrace(
       `Defining type ${
         type.title
-      } in file ${definingFile} with dependencies ${dependentOnIdentifiers.join(
-        ", ",
-      )}`,
+      } in file ${definingFile} with dependencies ${dependentOnIdentifiers.join(", ")}`,
     );
 
     context.defineIdentifierInFile(
@@ -89,11 +78,7 @@ export const allocateTypesToFiles = (context: PostprocessContext): void => {
     );
   }
 
-  for (const [file, identifiers] of typedEntries(
-    context.filesToDefinedIdentifiers,
-  )) {
-    context.logTrace(
-      `Allocating types ${[...identifiers].join(`,`)} to file ${file}`,
-    );
+  for (const [file, identifiers] of typedEntries(context.filesToDefinedIdentifiers)) {
+    context.logTrace(`Allocating types ${[...identifiers].join(`,`)} to file ${file}`);
   }
 };

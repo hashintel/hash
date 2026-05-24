@@ -83,18 +83,12 @@ export function toCompletionItemKind(kind: string): CompletionItemKind {
 }
 
 /** Convert a TS diagnostic to an LSP Diagnostic with position-based ranges. */
-export function serializeDiagnostic(
-  diag: ts.Diagnostic,
-  fileContent: string,
-): Diagnostic {
+export function serializeDiagnostic(diag: ts.Diagnostic, fileContent: string): Diagnostic {
   const start = diag.start ?? 0;
   const end = start + (diag.length ?? 0);
   return {
     severity: toLspSeverity(diag.category),
-    range: Range.create(
-      offsetToPosition(fileContent, start),
-      offsetToPosition(fileContent, end),
-    ),
+    range: Range.create(offsetToPosition(fileContent, start), offsetToPosition(fileContent, end)),
     message: ts.flattenDiagnosticMessageText(diag.messageText, "\n"),
     code: diag.code,
     source: "ts",

@@ -14,10 +14,7 @@ const base32Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
  * forbids bitwise operators).
  */
 const decodeBase32 = (encodedSecret: string): Buffer => {
-  const normalizedSecret = encodedSecret
-    .replace(/\s/g, "")
-    .replace(/=+$/, "")
-    .toUpperCase();
+  const normalizedSecret = encodedSecret.replace(/\s/g, "").replace(/=+$/, "").toUpperCase();
 
   const bytes: number[] = [];
   let accumulator = 0;
@@ -44,10 +41,7 @@ const decodeBase32 = (encodedSecret: string): Buffer => {
   return Buffer.from(bytes);
 };
 
-export const generateTotpCode = (
-  secret: string,
-  timestamp: number = Date.now(),
-): string => {
+export const generateTotpCode = (secret: string, timestamp: number = Date.now()): string => {
   const key = decodeBase32(secret);
   const counter = Math.floor(timestamp / 1_000 / 30);
   const counterBuffer = Buffer.alloc(8);

@@ -1,10 +1,7 @@
 import "../shared/testing-utilities/mock-get-flow-context.js";
 import { expect, test } from "vitest";
 
-import {
-  getWebPageActivity,
-  sanitizeHtmlForLlmConsumption,
-} from "./get-web-page-activity.js";
+import { getWebPageActivity, sanitizeHtmlForLlmConsumption } from "./get-web-page-activity.js";
 
 import type { Url } from "@blockprotocol/type-system";
 

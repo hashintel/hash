@@ -4,22 +4,11 @@ import {
   getPropertyTypeById,
   getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import {
-  extractDraftIdFromEntityId,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
-import {
-  typedEntries,
-  typedKeys,
-  typedValues,
-} from "@local/advanced-types/typed-entries";
+import { extractDraftIdFromEntityId, extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import { typedEntries, typedKeys, typedValues } from "@local/advanced-types/typed-entries";
 
 import type { Subgraph } from "@blockprotocol/graph";
-import type {
-  Entity,
-  EntityId,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { Entity, EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * A simplified object representing an entity type, which will be converted to plain text for the response.
@@ -46,23 +35,16 @@ export type SimpleEntityType = {
   entityTypeId: string;
 };
 
-export const getSimpleEntityType = (
-  subgraph: Subgraph,
-  entityTypeId: VersionedUrl,
-) => {
+export const getSimpleEntityType = (subgraph: Subgraph, entityTypeId: VersionedUrl) => {
   const typeSchema = getEntityTypeById(subgraph, entityTypeId)?.schema;
   if (!typeSchema) {
     throw new Error("Entity type not found in subgraph");
   }
 
   const properties: SimpleEntityType["properties"] = {};
-  for (const [_baseUrl, propertySchema] of typedEntries(
-    typeSchema.properties,
-  )) {
+  for (const [_baseUrl, propertySchema] of typedEntries(typeSchema.properties)) {
     const propertyTypeId =
-      "$ref" in propertySchema
-        ? propertySchema.$ref
-        : propertySchema.items.$ref;
+      "$ref" in propertySchema ? propertySchema.$ref : propertySchema.items.$ref;
 
     const propertyType = getPropertyTypeById(subgraph, propertyTypeId);
     if (!propertyType) {
@@ -128,9 +110,7 @@ const createBaseSimpleEntityFields = (
 ): BaseSimpleEntityFields => {
   const properties: SimpleEntityWithoutHref["properties"] = {};
 
-  for (const [propertyBaseUrl, propertyValue] of typedEntries(
-    entity.properties,
-  )) {
+  for (const [propertyBaseUrl, propertyValue] of typedEntries(entity.properties)) {
     const { propertyType } = getPropertyTypeForEntity(
       subgraph,
       entity.metadata.entityTypeIds,
@@ -154,9 +134,7 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
   const entities: SimpleEntityWithoutHref[] = [];
   const entityTypes: SimpleEntityType[] = [];
 
-  const vertices = typedValues(subgraph.vertices).flatMap((vertex) =>
-    typedValues(vertex),
-  );
+  const vertices = typedValues(subgraph.vertices).flatMap((vertex) => typedValues(vertex));
 
   for (const vertex of vertices) {
     if (vertex.kind === "entity") {
@@ -174,9 +152,7 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
        * Resolve details of the entity type(s) that the entity belongs to
        */
       for (const entityTypeId of vertex.inner.metadata.entityTypeIds) {
-        let entityType = entityTypes.find(
-          (type) => type.entityTypeId === entityTypeId,
-        );
+        let entityType = entityTypes.find((type) => type.entityTypeId === entityTypeId);
 
         if (!entityType) {
           entityType = getSimpleEntityType(subgraph, entityTypeId);
@@ -189,11 +165,7 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
       /**
        * Create the entity object
        */
-      const baseFields = createBaseSimpleEntityFields(
-        subgraph,
-        vertex.inner,
-        typeTitlesForEntity,
-      );
+      const baseFields = createBaseSimpleEntityFields(subgraph, vertex.inner, typeTitlesForEntity);
 
       const links: SimpleEntityWithoutHref["links"] = [];
       const linksFromEntity = getOutgoingLinksForEntity(
@@ -203,17 +175,13 @@ export const getSimpleGraph = (subgraph: Subgraph) => {
 
       for (const link of linksFromEntity) {
         if (!link.linkData) {
-          throw new Error(
-            `Link with entityId ${link.metadata.recordId.entityId} has no linkData`,
-          );
+          throw new Error(`Link with entityId ${link.metadata.recordId.entityId} has no linkData`);
         }
 
-        const linkTypeTitles = link.metadata.entityTypeIds.map(
-          (entityTypeId) => {
-            const entityType = getSimpleEntityType(subgraph, entityTypeId);
-            return entityType.title;
-          },
-        );
+        const linkTypeTitles = link.metadata.entityTypeIds.map((entityTypeId) => {
+          const entityType = getSimpleEntityType(subgraph, entityTypeId);
+          return entityType.title;
+        });
 
         links.push({
           ...createBaseSimpleEntityFields(subgraph, link, linkTypeTitles),

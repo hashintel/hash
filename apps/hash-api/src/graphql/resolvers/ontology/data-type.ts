@@ -26,10 +26,7 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import type {
-  DataTypeWithMetadata,
-  OntologyTemporalMetadata,
-} from "@blockprotocol/type-system";
+import type { DataTypeWithMetadata, OntologyTemporalMetadata } from "@blockprotocol/type-system";
 import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
 import type {
   QueryDataTypesResponse,
@@ -143,8 +140,4 @@ export const checkUserPermissionsOnDataTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   QueryCheckUserPermissionsOnDataTypeArgs
 > = async (_, params, { dataSources, authentication, provenance }) =>
-  checkPermissionsOnDataType(
-    { ...dataSources, provenance },
-    authentication,
-    params,
-  );
+  checkPermissionsOnDataType({ ...dataSources, provenance }, authentication, params);

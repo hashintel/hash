@@ -19,13 +19,8 @@ export type HydratedLinearComment = {
  * @param {Comment} comment - The Linear comment to hydrate.
  * @returns {HydratedLinearComment}
  */
-const hydrateComment = async (
-  comment: Comment,
-): Promise<HydratedLinearComment> => {
-  const [author, children] = await Promise.all([
-    comment.user,
-    comment.children(),
-  ]);
+const hydrateComment = async (comment: Comment): Promise<HydratedLinearComment> => {
+  const [author, children] = await Promise.all([comment.user, comment.children()]);
 
   return {
     id: comment.id,
@@ -88,9 +83,7 @@ export const hydrateLinearIssue = async ({
     .filter((comment) => !comment.parent)
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
-  const comments = await Promise.all(
-    rootComments.map((comment) => hydrateComment(comment)),
-  );
+  const comments = await Promise.all(rootComments.map((comment) => hydrateComment(comment)));
 
   let priority: string | undefined;
   switch (issue.priority) {

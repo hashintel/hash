@@ -22,11 +22,7 @@ export function sendMessage<T = unknown>(
     const timeout = 10_000;
     setTimeout(() => {
       reject(
-        new Error(
-          `Cross-frame request ${requestId} unresolved in ${
-            timeout / 1000
-          } seconds.`,
-        ),
+        new Error(`Cross-frame request ${requestId} unresolved in ${timeout / 1000} seconds.`),
       );
     }, timeout);
   });

@@ -14,13 +14,10 @@ export interface AvatarProps extends StyledAvatar.RootProps {
 }
 
 export const Avatar = forwardRef<HTMLDivElement, AvatarProps>((props, ref) => {
-  const { name, src, srcSet, loading, icon, fallback, children, ...rest } =
-    props;
+  const { name, src, srcSet, loading, icon, fallback, children, ...rest } = props;
   return (
     <StyledAvatar.Root ref={ref} {...rest}>
-      <StyledAvatar.Fallback name={name}>
-        {fallback ?? icon}
-      </StyledAvatar.Fallback>
+      <StyledAvatar.Fallback name={name}>{fallback ?? icon}</StyledAvatar.Fallback>
       <StyledAvatar.Image src={src} srcSet={srcSet} loading={loading} />
       {children}
     </StyledAvatar.Root>

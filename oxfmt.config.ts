@@ -4,7 +4,7 @@ export default defineConfig({
   // Indentation and line length
   useTabs: false,
   tabWidth: 2,
-  printWidth: 80,
+  printWidth: 100,
   endOfLine: "lf",
 
   // Quotes
@@ -31,13 +31,7 @@ export default defineConfig({
       "value-external",
       "value-internal",
       ["value-parent", "value-sibling", "value-index"],
-      [
-        "type-import",
-        "type-internal",
-        "type-parent",
-        "type-sibling",
-        "type-index",
-      ],
+      ["type-import", "type-internal", "type-parent", "type-sibling", "type-index"],
       "unknown",
     ],
   },

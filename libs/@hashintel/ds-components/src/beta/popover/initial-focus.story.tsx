@@ -24,9 +24,7 @@ export const App = () => {
             <Popover.Arrow />
             <Popover.Header>
               <Popover.Title>Report an issue</Popover.Title>
-              <Popover.Description>
-                Please fill out the form below.
-              </Popover.Description>
+              <Popover.Description>Please fill out the form below.</Popover.Description>
             </Popover.Header>
             <Popover.Body gap="4">
               <Field.Root>
@@ -35,11 +33,7 @@ export const App = () => {
               </Field.Root>
               <Field.Root>
                 <Field.Label>Description</Field.Label>
-                <Textarea
-                  ref={ref}
-                  autoresize
-                  placeholder="Describe the issue"
-                />
+                <Textarea ref={ref} autoresize placeholder="Describe the issue" />
               </Field.Root>
             </Popover.Body>
             <Popover.Footer>

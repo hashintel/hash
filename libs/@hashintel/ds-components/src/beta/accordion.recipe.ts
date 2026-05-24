@@ -93,6 +93,4 @@ const accordionSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const accordionSlotRecipe = sva(accordionSlotRecipeDefinition);
 
-export type AccordionSlotRecipeProps = RecipeVariantProps<
-  typeof accordionSlotRecipe
->;
+export type AccordionSlotRecipeProps = RecipeVariantProps<typeof accordionSlotRecipe>;

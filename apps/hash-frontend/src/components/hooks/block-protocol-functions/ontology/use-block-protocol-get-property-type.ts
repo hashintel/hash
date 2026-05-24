@@ -51,10 +51,7 @@ export const useBlockProtocolGetPropertyType = (): {
         variables: {
           request: {
             filter: {
-              equal: [
-                { path: ["versionedUrl"] },
-                { parameter: propertyTypeId },
-              ],
+              equal: [{ path: ["versionedUrl"] }, { parameter: propertyTypeId }],
             },
             temporalAxes: currentTimeInstantTemporalAxes,
             graphResolveDepths: {
@@ -78,9 +75,8 @@ export const useBlockProtocolGetPropertyType = (): {
       }
 
       return {
-        data: deserializeQueryPropertyTypeSubgraphResponse(
-          response.data.queryPropertyTypeSubgraph,
-        ).subgraph,
+        data: deserializeQueryPropertyTypeSubgraphResponse(response.data.queryPropertyTypeSubgraph)
+          .subgraph,
       };
     },
     [getFn],

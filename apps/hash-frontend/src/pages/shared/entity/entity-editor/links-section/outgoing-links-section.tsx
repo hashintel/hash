@@ -19,11 +19,7 @@ import { useCreateGetCellContent } from "./outgoing-links-section/use-create-get
 import { useRows } from "./outgoing-links-section/use-rows";
 
 import type { SortGridRows } from "../../../../../components/grid/grid";
-import type {
-  LinkColumn,
-  LinkColumnKey,
-  LinkRow,
-} from "./outgoing-links-section/types";
+import type { LinkColumn, LinkColumnKey, LinkRow } from "./outgoing-links-section/types";
 import type { Entity } from "@blockprotocol/type-system";
 
 interface OutgoingLinksSectionPropsProps {
@@ -42,31 +38,32 @@ export const OutgoingLinksSection = ({
   const rows = useRows();
   const createGetCellContent = useCreateGetCellContent();
 
-  const sortRows = useCallback<
-    SortGridRows<LinkRow, LinkColumn, LinkColumnKey>
-  >((unsortedRows, sort) => {
-    const { columnKey, direction } = sort;
+  const sortRows = useCallback<SortGridRows<LinkRow, LinkColumn, LinkColumnKey>>(
+    (unsortedRows, sort) => {
+      const { columnKey, direction } = sort;
 
-    return unsortedRows.toSorted((a, b) => {
-      let firstString = "";
-      let secondString = "";
+      return unsortedRows.toSorted((a, b) => {
+        let firstString = "";
+        let secondString = "";
 
-      if (columnKey === "linkTitle") {
-        firstString = a.linkTitle;
-        secondString = b.linkTitle;
-      } else if (columnKey === "linkedWith") {
-        firstString = a.linkAndTargetEntities[0]?.rightEntityLabel ?? "";
-        secondString = b.linkAndTargetEntities[0]?.rightEntityLabel ?? "";
-      } else {
-        firstString = a.expectedEntityTypes[0]?.title ?? "";
-        secondString = b.expectedEntityTypes[0]?.title ?? "";
-      }
+        if (columnKey === "linkTitle") {
+          firstString = a.linkTitle;
+          secondString = b.linkTitle;
+        } else if (columnKey === "linkedWith") {
+          firstString = a.linkAndTargetEntities[0]?.rightEntityLabel ?? "";
+          secondString = b.linkAndTargetEntities[0]?.rightEntityLabel ?? "";
+        } else {
+          firstString = a.expectedEntityTypes[0]?.title ?? "";
+          secondString = b.expectedEntityTypes[0]?.title ?? "";
+        }
 
-      const comparison = firstString.localeCompare(secondString);
+        const comparison = firstString.localeCompare(secondString);
 
-      return direction === "asc" ? comparison : -comparison;
-    });
-  }, []);
+        return direction === "asc" ? comparison : -comparison;
+      });
+    },
+    [],
+  );
 
   if (outgoingLinks.length === 0 && isLinkEntity) {
     /**
@@ -81,9 +78,7 @@ export const OutgoingLinksSection = ({
     ? getOutgoingLinkAndTargetEntities(
         entitySubgraph,
         entity.metadata.recordId.entityId,
-        entity.metadata.temporalVersioning[
-          entitySubgraph.temporalAxes.resolved.variable.axis
-        ],
+        entity.metadata.temporalVersioning[entitySubgraph.temporalAxes.resolved.variable.axis],
       )
     : null;
 

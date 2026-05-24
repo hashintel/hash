@@ -29,10 +29,7 @@ export const App = () => {
   });
 
   return (
-    <Combobox.Root
-      collection={collection}
-      onInputValueChange={(e) => filter(e.inputValue)}
-    >
+    <Combobox.Root collection={collection} onInputValueChange={(e) => filter(e.inputValue)}>
       <Combobox.Label>Framework</Combobox.Label>
       <Combobox.Control>
         <Combobox.Input placeholder="Type to search" />

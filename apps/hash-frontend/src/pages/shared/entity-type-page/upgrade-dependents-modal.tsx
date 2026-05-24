@@ -1,12 +1,4 @@
-import {
-  Box,
-  Checkbox,
-  CircularProgress,
-  List,
-  ListItem,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Checkbox, CircularProgress, List, ListItem, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
@@ -15,11 +7,7 @@ import { Button } from "../../../shared/ui/button";
 import { Modal } from "../../../shared/ui/modal";
 
 import type { EntityTypeDependent } from "./use-entity-type-dependents";
-import type {
-  BaseUrl,
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 type UpgradeDependentsModalProps = {
   dependents: Record<BaseUrl, EntityTypeDependent>;
@@ -51,13 +39,7 @@ const DependentListItem = ({
   toggleExcluded: (excluded: boolean) => void;
   showNamespace: boolean;
 }) => {
-  const {
-    dependentOn,
-    namespace,
-    entityType,
-    noFurtherTraversalBecause,
-    toggleable,
-  } = dependent;
+  const { dependentOn, namespace, entityType, noFurtherTraversalBecause, toggleable } = dependent;
 
   return (
     <ListItem
@@ -124,9 +106,7 @@ const DependentListItem = ({
             }}
           />
         ) : (
-          <Typography
-            sx={{ color: ({ palette }) => palette.gray[50], fontSize: 13 }}
-          >
+          <Typography sx={{ color: ({ palette }) => palette.gray[50], fontSize: 13 }}>
             External
           </Typography>
         )}
@@ -145,57 +125,56 @@ export const UpgradeDependentsModal = ({
   setDependenciesToExclude,
   upgradingEntityType,
 }: UpgradeDependentsModalProps) => {
-  const { upgradingDependencies, notUpgradingDependencies, showNamespace } =
-    useMemo(() => {
-      const upgrading: DependentForDisplay[] = [];
-      const notUpgrading: DependentForDisplay[] = [];
+  const { upgradingDependencies, notUpgradingDependencies, showNamespace } = useMemo(() => {
+    const upgrading: DependentForDisplay[] = [];
+    const notUpgrading: DependentForDisplay[] = [];
 
-      const namespacesSeen = new Set<string>();
+    const namespacesSeen = new Set<string>();
 
-      for (const dependent of Object.values(dependents)) {
-        const dependentOn = Array.from(dependent.dependentOn).map((baseUrl) => {
-          if (baseUrl === extractBaseUrl(upgradingEntityType.$id)) {
-            return upgradingEntityType.title;
-          }
-
-          const title = dependents[baseUrl]?.entityType.title;
-
-          if (!title) {
-            throw new Error(`No title found for dependent ${baseUrl}`);
-          }
-
-          return title;
-        });
-
-        const namespace = extractNamespace(dependent.entityType.$id);
-
-        if (namespace) {
-          namespacesSeen.add(namespace);
+    for (const dependent of Object.values(dependents)) {
+      const dependentOn = Array.from(dependent.dependentOn).map((baseUrl) => {
+        if (baseUrl === extractBaseUrl(upgradingEntityType.$id)) {
+          return upgradingEntityType.title;
         }
 
-        if (dependent.noFurtherTraversalBecause) {
-          notUpgrading.push({
-            ...dependent,
-            dependentOn,
-            namespace,
-            toggleable: dependent.noFurtherTraversalBecause === "user-excluded",
-          });
-        } else {
-          upgrading.push({
-            ...dependent,
-            dependentOn,
-            namespace,
-            toggleable: true,
-          });
+        const title = dependents[baseUrl]?.entityType.title;
+
+        if (!title) {
+          throw new Error(`No title found for dependent ${baseUrl}`);
         }
+
+        return title;
+      });
+
+      const namespace = extractNamespace(dependent.entityType.$id);
+
+      if (namespace) {
+        namespacesSeen.add(namespace);
       }
 
-      return {
-        upgradingDependencies: upgrading,
-        notUpgradingDependencies: notUpgrading,
-        showNamespace: namespacesSeen.size > 1,
-      };
-    }, [dependents, upgradingEntityType]);
+      if (dependent.noFurtherTraversalBecause) {
+        notUpgrading.push({
+          ...dependent,
+          dependentOn,
+          namespace,
+          toggleable: dependent.noFurtherTraversalBecause === "user-excluded",
+        });
+      } else {
+        upgrading.push({
+          ...dependent,
+          dependentOn,
+          namespace,
+          toggleable: true,
+        });
+      }
+    }
+
+    return {
+      upgradingDependencies: upgrading,
+      notUpgradingDependencies: notUpgrading,
+      showNamespace: namespacesSeen.size > 1,
+    };
+  }, [dependents, upgradingEntityType]);
 
   return (
     <Modal
@@ -208,20 +187,17 @@ export const UpgradeDependentsModal = ({
     >
       <Box sx={{ px: 2.5, py: 2 }}>
         <Box>
-          <Typography
-            variant="smallTextParagraphs"
-            sx={{ display: "block", lineHeight: 1.3 }}
-          >
-            This entity type is referenced by other entity types. You can choose
-            which of these to automatically upgrade. All selected entity types
-            will be upgraded to use the latest version of each other.
+          <Typography variant="smallTextParagraphs" sx={{ display: "block", lineHeight: 1.3 }}>
+            This entity type is referenced by other entity types. You can choose which of these to
+            automatically upgrade. All selected entity types will be upgraded to use the latest
+            version of each other.
           </Typography>
           <Typography
             variant="smallTextParagraphs"
             sx={{ display: "block", lineHeight: 1.3, mt: 1.5 }}
           >
-            Any you choose not to upgrade, or which are in webs you don't belong
-            to, will continue to use the previous version.
+            Any you choose not to upgrade, or which are in webs you don't belong to, will continue
+            to use the previous version.
           </Typography>
         </Box>
         {loading ? (
@@ -269,9 +245,7 @@ export const UpgradeDependentsModal = ({
                         toggleExcluded={() => {
                           setDependenciesToExclude(
                             excludedDependencies.filter(
-                              (baseUrl) =>
-                                baseUrl !==
-                                extractBaseUrl(dependent.entityType.$id),
+                              (baseUrl) => baseUrl !== extractBaseUrl(dependent.entityType.$id),
                             ),
                           );
                         }}

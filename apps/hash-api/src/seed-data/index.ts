@@ -1,9 +1,6 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 
-import {
-  createOrg,
-  getOrgByShortname,
-} from "../graph/knowledge/system-types/org";
+import { createOrg, getOrgByShortname } from "../graph/knowledge/system-types/org";
 import { createOrgMembershipLinkEntity } from "../graph/knowledge/system-types/org-membership";
 import { joinOrg } from "../graph/knowledge/system-types/user";
 import { seedPages } from "./seed-pages";
@@ -40,9 +37,7 @@ const seedOrg = async (params: {
     shortname: exampleOrgShortname,
   });
 
-  logger.info(
-    `Development Org available with shortname = "${sharedOrg.shortname}"`,
-  );
+  logger.info(`Development Org available with shortname = "${sharedOrg.shortname}"`);
 
   const pageTitles: PageDefinition[] = [
     {
@@ -58,9 +53,7 @@ const seedOrg = async (params: {
 
   await seedPages(authentication, pageTitles, sharedOrg.webId, params);
 
-  logger.info(
-    `Development Org with shortname = "${sharedOrg.shortname}" now has seeded pages.`,
-  );
+  logger.info(`Development Org with shortname = "${sharedOrg.shortname}" now has seeded pages.`);
 
   return sharedOrg;
 };
@@ -74,17 +67,12 @@ export const seedOrgsAndUsers = async (params: {
   const createdUsers = await ensureUsersAreSeeded(params);
 
   if (createdUsers.length > 0) {
-    const orgOwner = createdUsers.find(
-      ({ shortname }) => shortname === "alice",
-    )!;
+    const orgOwner = createdUsers.find(({ shortname }) => shortname === "alice")!;
 
     const sharedOrg = await seedOrg({ ...params, owner: orgOwner });
 
     for (const user of createdUsers) {
-      if (
-        extractWebIdFromEntityId(user.entity.metadata.recordId.entityId) !==
-        orgOwner.accountId
-      ) {
+      if (extractWebIdFromEntityId(user.entity.metadata.recordId.entityId) !== orgOwner.accountId) {
         /**
          * For users who AREN'T the org owner, we need to create their full membership,
          * including both the permission system membership, and the link entity in the graph.
@@ -145,15 +133,8 @@ export const seedOrgsAndUsers = async (params: {
         },
       ];
 
-      await seedPages(
-        { actorId: user.accountId },
-        pageTitles,
-        user.accountId,
-        params,
-      );
-      logger.info(
-        `Seeded User with shortname = "${user.shortname}" now has seeded pages.`,
-      );
+      await seedPages({ actorId: user.accountId }, pageTitles, user.accountId, params);
+      logger.info(`Seeded User with shortname = "${user.shortname}" now has seeded pages.`);
     }
   }
 };

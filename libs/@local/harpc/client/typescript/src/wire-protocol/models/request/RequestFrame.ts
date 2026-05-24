@@ -20,8 +20,7 @@ const TypeId: unique symbol = Symbol(
 
 export type TypeId = typeof TypeId;
 
-export interface RequestFrame
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface RequestFrame extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly payload: Payload.Payload;
@@ -38,11 +37,7 @@ const RequestFrameProto: Omit<RequestFrame, "payload"> = {
   },
 
   [Hash.symbol](this: RequestFrame) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.payload)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.payload)), Hash.cached(this));
   },
 
   toString(this: RequestFrame) {
@@ -72,11 +67,7 @@ export const make = (payload: Payload.Payload): RequestFrame =>
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, frame: RequestFrame) =>
-  pipe(
-    buffer,
-    MutableBuffer.advance(19),
-    Either.andThen(Payload.encode(frame.payload)),
-  ),
+  pipe(buffer, MutableBuffer.advance(19), Either.andThen(Payload.encode(frame.payload))),
 );
 
 export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
@@ -93,5 +84,4 @@ export const decode = implDecode((buffer) =>
 export const isRequestFrame = (value: unknown): value is RequestFrame =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) =>
-  Payload.arbitrary(fc).map(make);
+export const arbitrary = (fc: typeof FastCheck) => Payload.arbitrary(fc).map(make);

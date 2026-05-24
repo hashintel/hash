@@ -14,12 +14,11 @@ export type SDCPNInLocalStorage = {
 type LocalStorageSDCPNsStore = Record<string, SDCPNInLocalStorage>;
 
 export const useLocalStorageSDCPNs = () => {
-  const [storedSDCPNs, setStoredSDCPNs] =
-    useLocalStorage<LocalStorageSDCPNsStore>({
-      key: rootLocalStorageKey,
-      defaultValue: {},
-      getInitialValueInEffect: false,
-    });
+  const [storedSDCPNs, setStoredSDCPNs] = useLocalStorage<LocalStorageSDCPNsStore>({
+    key: rootLocalStorageKey,
+    defaultValue: {},
+    getInitialValueInEffect: false,
+  });
 
   return { storedSDCPNs, setStoredSDCPNs };
 };

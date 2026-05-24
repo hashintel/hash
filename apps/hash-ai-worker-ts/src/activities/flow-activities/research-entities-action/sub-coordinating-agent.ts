@@ -11,10 +11,7 @@ import {
   type ParsedSubCoordinatorToolCall,
   triggerToolCallsRequests,
 } from "./shared/coordinator-tools.js";
-import {
-  processCommonStateMutationsFromToolResults,
-  stopWorkers,
-} from "./shared/coordinators.js";
+import { processCommonStateMutationsFromToolResults, stopWorkers } from "./shared/coordinators.js";
 import { deduplicateClaims } from "./shared/deduplicate-claims.js";
 import { deduplicateEntities } from "./shared/deduplicate-entities.js";
 import { createInitialPlan } from "./sub-coordinating-agent/create-initial-plan.js";
@@ -144,9 +141,7 @@ export const runSubCoordinatingAgent = async (params: {
   > => {
     const { toolCalls, isCleanupIteration } = processToolCallsParams;
 
-    const terminateToolCall = toolCalls.find(
-      (toolCall) => toolCall.name === "terminate",
-    );
+    const terminateToolCall = toolCalls.find((toolCall) => toolCall.name === "terminate");
 
     if (terminateToolCall) {
       const { explanation } = terminateToolCall.input;
@@ -174,15 +169,12 @@ export const runSubCoordinatingAgent = async (params: {
       }),
     );
 
-    const completeToolCall = toolCalls.find(
-      (toolCall) => toolCall.name === "complete",
-    );
+    const completeToolCall = toolCalls.find((toolCall) => toolCall.name === "complete");
 
     /**
      * Prior to initiating more requests based on the agent's tool calls, check if we should stop.
      */
-    const preRequestToolResultsStopCheck =
-      await checkIfWorkerShouldStop(workerIdentifiers);
+    const preRequestToolResultsStopCheck = await checkIfWorkerShouldStop(workerIdentifiers);
 
     if (preRequestToolResultsStopCheck.shouldStop) {
       await handleStopReturn(
@@ -228,8 +220,7 @@ export const runSubCoordinatingAgent = async (params: {
 
     const completedToolCalls = await getSomeToolCallResults({
       state,
-      waitForAll:
-        !!completeToolCall || preRequestToolResultsStopCheck.shouldStop,
+      waitForAll: !!completeToolCall || preRequestToolResultsStopCheck.shouldStop,
     });
 
     state.lastCompletedToolCalls = completedToolCalls;
@@ -239,9 +230,7 @@ export const runSubCoordinatingAgent = async (params: {
       state,
     });
 
-    const updatedPlan = completedToolCalls.find(
-      (call) => !!call.updatedPlan,
-    )?.updatedPlan;
+    const updatedPlan = completedToolCalls.find((call) => !!call.updatedPlan)?.updatedPlan;
 
     if (updatedPlan) {
       state.plan = updatedPlan;
@@ -250,24 +239,16 @@ export const runSubCoordinatingAgent = async (params: {
     const newEntitySummaries = completedToolCalls.flatMap(
       ({ entitySummaries }) => entitySummaries ?? [],
     );
-    const newClaims = completedToolCalls.flatMap(
-      ({ inferredClaims }) => inferredClaims ?? [],
-    );
+    const newClaims = completedToolCalls.flatMap(({ inferredClaims }) => inferredClaims ?? []);
 
     state.inferredClaims = [...state.inferredClaims, ...newClaims];
 
     if (newEntitySummaries.length > 0) {
       const { duplicates } = await deduplicateEntities({
-        entities: [
-          ...input.relevantEntities,
-          ...newEntitySummaries,
-          ...state.entitySummaries,
-        ],
+        entities: [...input.relevantEntities, ...newEntitySummaries, ...state.entitySummaries],
       });
 
-      const existingEntityIds = input.relevantEntities.map(
-        ({ localId }) => localId,
-      );
+      const existingEntityIds = input.relevantEntities.map(({ localId }) => localId);
 
       const adjustedDuplicates = duplicates.map<DuplicateReport>(
         ({ canonicalId, duplicateIds }) => {
@@ -287,9 +268,7 @@ export const runSubCoordinatingAgent = async (params: {
             return {
               canonicalId: existingEntityIdMarkedAsDuplicate,
               duplicateIds: [
-                ...duplicateIds.filter(
-                  (id) => id !== existingEntityIdMarkedAsDuplicate,
-                ),
+                ...duplicateIds.filter((id) => id !== existingEntityIdMarkedAsDuplicate),
                 canonicalId,
               ],
             };
@@ -299,41 +278,29 @@ export const runSubCoordinatingAgent = async (params: {
         },
       );
 
-      const inferredClaimsWithDeduplicatedEntities = state.inferredClaims.map(
-        (claim) => {
-          const { subjectEntityLocalId, objectEntityLocalId } = claim;
-          const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
-            duplicateIds.includes(subjectEntityLocalId),
-          );
+      const inferredClaimsWithDeduplicatedEntities = state.inferredClaims.map((claim) => {
+        const { subjectEntityLocalId, objectEntityLocalId } = claim;
+        const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
+          duplicateIds.includes(subjectEntityLocalId),
+        );
 
-          const objectDuplicate = objectEntityLocalId
-            ? duplicates.find(({ duplicateIds }) =>
-                duplicateIds.includes(objectEntityLocalId),
-              )
-            : undefined;
+        const objectDuplicate = objectEntityLocalId
+          ? duplicates.find(({ duplicateIds }) => duplicateIds.includes(objectEntityLocalId))
+          : undefined;
 
-          return {
-            ...claim,
-            subjectEntityLocalId:
-              subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
-            objectEntityLocalId:
-              objectDuplicate?.canonicalId ?? objectEntityLocalId,
-          };
-        },
-      );
+        return {
+          ...claim,
+          subjectEntityLocalId: subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
+          objectEntityLocalId: objectDuplicate?.canonicalId ?? objectEntityLocalId,
+        };
+      });
 
       state.inferredClaims.push(...inferredClaimsWithDeduplicatedEntities);
 
       state.inferredClaims = await deduplicateClaims(state.inferredClaims, []);
 
-      state.entitySummaries = [
-        ...state.entitySummaries,
-        ...newEntitySummaries,
-      ].filter(
-        ({ localId }) =>
-          !duplicates.some(({ duplicateIds }) =>
-            duplicateIds.includes(localId),
-          ),
+      state.entitySummaries = [...state.entitySummaries, ...newEntitySummaries].filter(
+        ({ localId }) => !duplicates.some(({ duplicateIds }) => duplicateIds.includes(localId)),
       );
     }
 
@@ -358,8 +325,7 @@ export const runSubCoordinatingAgent = async (params: {
      * Prior to asking the coordinator to decide on its next actions, check if we should stop.
      * We checked before waiting for outstanding tasks, but we may have received a stop signal from the coordinator since.
      */
-    const preRequestNextActionsShouldStop =
-      await checkIfWorkerShouldStop(workerIdentifiers);
+    const preRequestNextActionsShouldStop = await checkIfWorkerShouldStop(workerIdentifiers);
     if (preRequestNextActionsShouldStop.shouldStop) {
       await handleStopReturn(
         preRequestNextActionsShouldStop,

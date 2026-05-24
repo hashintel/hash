@@ -18,10 +18,7 @@ The package exports a **standard library of helper functions** for interacting w
 import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
 
 // find the outgoing links and target entities for a given entity
-const linkAndTargetEntities = getOutgoingLinkAndTargetEntities(
-  subgraph,
-  "entity-123",
-);
+const linkAndTargetEntities = getOutgoingLinkAndTargetEntities(subgraph, "entity-123");
 
 for (const { linkEntity, rightEntity } of linkAndTargetEntities) {
   // do something with each link and the entity it points to

@@ -23,18 +23,8 @@ import {
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import type { UserPreferences } from "../shared/use-user-preferences";
-import type {
-  EntityRootType,
-  LinkEntityAndRightEntity,
-  Subgraph,
-} from "@blockprotocol/graph";
-import type {
-  BaseUrl,
-  Entity,
-  LinkEntity,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityRootType, LinkEntityAndRightEntity, Subgraph } from "@blockprotocol/graph";
+import type { BaseUrl, Entity, LinkEntity, UserId, WebId } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
@@ -50,13 +40,12 @@ import type {
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
 import type { VerifiableIdentityAddress } from "@ory/client";
 
-export const constructMinimalOrg = (params: {
-  orgEntity: Entity<Organization>;
-}): MinimalOrg => {
+export const constructMinimalOrg = (params: { orgEntity: Entity<Organization> }): MinimalOrg => {
   const { orgEntity } = params;
 
-  const { organizationName, pinnedEntityTypeBaseUrl, ...simpleProperties } =
-    simplifyProperties(orgEntity.properties);
+  const { organizationName, pinnedEntityTypeBaseUrl, ...simpleProperties } = simplifyProperties(
+    orgEntity.properties,
+  );
 
   return {
     kind: "org",
@@ -86,25 +75,19 @@ export type MinimalUser = {
   websiteUrl?: string;
 };
 
-export const isEntityUserEntity = (
-  entity: Entity,
-): entity is Entity<UserEntity> =>
+export const isEntityUserEntity = (entity: Entity): entity is Entity<UserEntity> =>
   entity.metadata.entityTypeIds.some(
-    (entityTypeId) =>
-      extractBaseUrl(entityTypeId) === systemEntityTypes.user.entityTypeBaseUrl,
+    (entityTypeId) => extractBaseUrl(entityTypeId) === systemEntityTypes.user.entityTypeBaseUrl,
   );
 
-export const constructMinimalUser = (params: {
-  userEntity: Entity<UserEntity>;
-}): MinimalUser => {
+export const constructMinimalUser = (params: { userEntity: Entity<UserEntity> }): MinimalUser => {
   const { userEntity } = params;
 
   const simpleProperties = simplifyProperties(userEntity.properties);
 
   const { shortname, displayName, pinnedEntityTypeBaseUrl } = simpleProperties;
 
-  const enabledFeatureFlags = (simpleProperties.enabledFeatureFlags ??
-    []) as FeatureFlag[];
+  const enabledFeatureFlags = (simpleProperties.enabledFeatureFlags ?? []) as FeatureFlag[];
 
   const accountSignupComplete = !!shortname && !!displayName;
 
@@ -112,9 +95,7 @@ export const constructMinimalUser = (params: {
     kind: "user",
     entity: userEntity,
     // Cast reason: A user web's `WebId` is also their `UserId`
-    accountId: extractWebIdFromEntityId(
-      userEntity.metadata.recordId.entityId,
-    ) as UserId,
+    accountId: extractWebIdFromEntityId(userEntity.metadata.recordId.entityId) as UserId,
     accountSignupComplete,
     ...simpleProperties,
     enabledFeatureFlags,
@@ -142,19 +123,14 @@ export type Org = MinimalOrg & {
   }[];
   invitations: {
     linkEntity: HashLinkEntity;
-    invitationEntity:
-      | HashEntity<InvitationViaEmail>
-      | HashEntity<InvitationViaShortname>;
+    invitationEntity: HashEntity<InvitationViaEmail> | HashEntity<InvitationViaShortname>;
   }[];
 };
 
-export const isEntityOrgEntity = (
-  entity: Entity,
-): entity is Entity<Organization> =>
+export const isEntityOrgEntity = (entity: Entity): entity is Entity<Organization> =>
   entity.metadata.entityTypeIds.some(
     (entityTypeId) =>
-      extractBaseUrl(entityTypeId) ===
-      systemEntityTypes.organization.entityTypeBaseUrl,
+      extractBaseUrl(entityTypeId) === systemEntityTypes.organization.entityTypeBaseUrl,
   );
 
 /**
@@ -288,14 +264,9 @@ export const constructOrg = (params: {
     });
   }
 
-  const firstRevision = getFirstEntityRevision(
-    subgraph,
-    orgEntity.metadata.recordId.entityId,
-  );
+  const firstRevision = getFirstEntityRevision(subgraph, orgEntity.metadata.recordId.entityId);
 
-  const createdAt = new Date(
-    firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
-  );
+  const createdAt = new Date(firstRevision.metadata.temporalVersioning.decisionTime.start.limit);
 
   return {
     ...minimalOrg,
@@ -375,9 +346,8 @@ export const constructUser = (params: {
   const primaryEmailAddress = email?.[0] ?? "";
 
   const isPrimaryEmailAddressVerified =
-    params.verifiableAddresses?.find(
-      ({ value }) => value === primaryEmailAddress,
-    )?.verified === true;
+    params.verifiableAddresses?.find(({ value }) => value === primaryEmailAddress)?.verified ===
+    true;
 
   const minimalUser = constructMinimalUser({ userEntity });
 
@@ -388,9 +358,7 @@ export const constructUser = (params: {
       userEntity.metadata.recordId.entityId,
       intervalForTimestamp(currentTimestamp()),
     ).filter((linkEntity) =>
-      linkEntity.metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-      ),
+      linkEntity.metadata.entityTypeIds.includes(systemLinkEntityTypes.isMemberOf.linkEntityTypeId),
     );
 
   const memberOf = orgMemberships.map((untypedLinkEntity) => {
@@ -462,18 +430,12 @@ export const constructUser = (params: {
 
     const entityTypeIds = linkEntity.metadata.entityTypeIds;
 
-    if (
-      entityTypeIds.includes(systemLinkEntityTypes.hasAvatar.linkEntityTypeId)
-    ) {
+    if (entityTypeIds.includes(systemLinkEntityTypes.hasAvatar.linkEntityTypeId)) {
       avatarLinkAndEntities.push(linkAndEntity);
       continue;
     }
 
-    if (
-      entityTypeIds.includes(
-        systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
-      )
-    ) {
+    if (entityTypeIds.includes(systemLinkEntityTypes.hasCoverImage.linkEntityTypeId)) {
       coverImageLinkAndEntities.push(linkAndEntity);
       continue;
     }
@@ -483,11 +445,7 @@ export const constructUser = (params: {
       continue;
     }
 
-    if (
-      entityTypeIds.includes(
-        systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
-      )
-    ) {
+    if (entityTypeIds.includes(systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId)) {
       const serviceAccountEntity = linkAndEntity.rightEntity[0]!;
 
       const { profileUrl } = simplifyProperties(
@@ -511,8 +469,7 @@ export const constructUser = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0]! as Entity<ImageFile>,
+        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Entity<ImageFile>,
       }
     : undefined;
 
@@ -520,24 +477,19 @@ export const constructUser = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: coverImageLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: coverImageLinkAndEntities[0]
-          .rightEntity[0]! as Entity<ImageFile>,
+        imageEntity: coverImageLinkAndEntities[0].rightEntity[0]! as Entity<ImageFile>,
       }
     : undefined;
 
   const hasBio = hasBioLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntities[0]
-          .linkEntity[0]! as LinkEntity<HasBio>,
-        profileBioEntity: hasBioLinkAndEntities[0]
-          .rightEntity[0]! as Entity<ProfileBio>,
+        linkEntity: hasBioLinkAndEntities[0].linkEntity[0]! as LinkEntity<HasBio>,
+        profileBioEntity: hasBioLinkAndEntities[0].rightEntity[0]! as Entity<ProfileBio>,
       }
     : undefined;
 
-  const joinedAt = new Date(
-    userEntity.metadata.provenance.createdAtDecisionTime,
-  );
+  const joinedAt = new Date(userEntity.metadata.provenance.createdAtDecisionTime);
 
   return {
     ...minimalUser,
@@ -572,13 +524,11 @@ export type MinimalOrg = {
   websiteUrl?: string;
 };
 
-export const isUser = (
-  userOrOrg: MinimalUser | MinimalOrg,
-): userOrOrg is MinimalUser => "accountId" in userOrOrg;
+export const isUser = (userOrOrg: MinimalUser | MinimalOrg): userOrOrg is MinimalUser =>
+  "accountId" in userOrOrg;
 
-export const isOrg = (
-  userOrOrg: MinimalUser | MinimalOrg,
-): userOrOrg is MinimalOrg => "accountGroupId" in userOrOrg;
+export const isOrg = (userOrOrg: MinimalUser | MinimalOrg): userOrOrg is MinimalOrg =>
+  "accountGroupId" in userOrOrg;
 
 export const extractWebId = (userOrOrg: MinimalUser | MinimalOrg): WebId =>
   isUser(userOrOrg) ? userOrOrg.accountId : userOrOrg.webId;

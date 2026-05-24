@@ -15,9 +15,7 @@ import { MutableBuffer } from "../../binary/index.js";
 import { createProto, implDecode, implEncode } from "../../utils.js";
 import * as ProtocolVersion from "./ProtocolVersion.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/models/Protocol",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/models/Protocol");
 
 export type TypeId = typeof TypeId;
 
@@ -31,8 +29,7 @@ export class InvalidMagicError extends Data.TaggedError("InvalidMagicError")<{
   }
 }
 
-export interface Protocol
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface Protocol extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly version: ProtocolVersion.ProtocolVersion;
 }
@@ -46,11 +43,7 @@ const ProtocolProto: Omit<Protocol, "version"> = {
   },
 
   [Hash.symbol](this: Protocol) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.version)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.version)), Hash.cached(this));
   },
 
   toString(this: Protocol) {

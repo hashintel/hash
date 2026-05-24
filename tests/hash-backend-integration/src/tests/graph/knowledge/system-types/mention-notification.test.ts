@@ -16,10 +16,7 @@ import {
   createMentionNotification,
   getMentionNotification,
 } from "@apps/hash-api/src/graph/knowledge/system-types/notification";
-import {
-  createPage,
-  getPageBlocks,
-} from "@apps/hash-api/src/graph/knowledge/system-types/page";
+import { createPage, getPageBlocks } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
@@ -70,11 +67,7 @@ describe.skip("Page Mention Notification", () => {
 
     triggerUser = await createTestUser(graphContext, "notifTrigger", logger);
 
-    recipientUser = await createTestUser(
-      graphContext,
-      "notifRecipient",
-      logger,
-    );
+    recipientUser = await createTestUser(graphContext, "notifRecipient", logger);
   });
 
   afterAll(async () => {
@@ -109,9 +102,7 @@ describe.skip("Page Mention Notification", () => {
     const pageBlocks = await getPageBlocks(graphContext, authentication, {
       pageEntityId: occurredInEntity.entity.metadata.recordId.entityId,
       type: "document",
-    }).then((blocksWithLinks) =>
-      blocksWithLinks.map(({ rightEntity }) => rightEntity),
-    );
+    }).then((blocksWithLinks) => blocksWithLinks.map(({ rightEntity }) => rightEntity));
 
     occurredInBlock = pageBlocks[0]!;
 
@@ -119,9 +110,7 @@ describe.skip("Page Mention Notification", () => {
       block: occurredInBlock,
     });
 
-    expect(textEntity.metadata.entityTypeIds).toContain(
-      systemEntityTypes.text.entityTypeId,
-    );
+    expect(textEntity.metadata.entityTypeIds).toContain(systemEntityTypes.text.entityTypeId);
 
     occurredInText = getTextFromEntity({ entity: textEntity });
 
@@ -146,9 +135,7 @@ describe.skip("Page Mention Notification", () => {
     );
 
     const occurredInEntityLinks = outgoingLinks.filter(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.occurredInEntity.linkEntityTypeId),
     );
 
     expect(occurredInEntityLinks).toHaveLength(1);
@@ -160,9 +147,7 @@ describe.skip("Page Mention Notification", () => {
     );
 
     const occurredInTextLinks = outgoingLinks.filter(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.occurredInText.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.occurredInText.linkEntityTypeId),
     );
 
     expect(occurredInTextLinks).toHaveLength(1);
@@ -174,9 +159,7 @@ describe.skip("Page Mention Notification", () => {
     );
 
     const triggeredByUserLinks = outgoingLinks.filter(({ metadata }) =>
-      metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
-      ),
+      metadata.entityTypeIds.includes(systemLinkEntityTypes.triggeredByUser.linkEntityTypeId),
     );
 
     expect(triggeredByUserLinks).toHaveLength(1);
@@ -206,9 +189,9 @@ describe.skip("Page Mention Notification", () => {
 
     expect(fetchedPageMentionNotification).toBeDefined();
 
-    expect(
-      fetchedPageMentionNotification.entity.metadata.recordId.entityId,
-    ).toBe(pageMentionNotification.entity.metadata.recordId.entityId);
+    expect(fetchedPageMentionNotification.entity.metadata.recordId.entityId).toBe(
+      pageMentionNotification.entity.metadata.recordId.entityId,
+    );
   });
 
   it("can archive a notification", async () => {
@@ -268,15 +251,12 @@ describe.skip("Page Mention Notification", () => {
         propertyPatches: [
           {
             op: "replace",
-            path: [
-              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
-            ],
+            path: [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl],
             property: {
               value: updatedTextualContent.map((token) => ({
                 value: token,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
                 },
               })),
             } satisfies TextualContentPropertyValueWithMetadata,
@@ -336,15 +316,12 @@ describe.skip("Page Mention Notification", () => {
         propertyPatches: [
           {
             op: "replace",
-            path: [
-              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
-            ],
+            path: [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl],
             property: {
               value: updatedTextualContent.map((token) => ({
                 value: token,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
                 },
               })),
             } satisfies TextualContentPropertyValueWithMetadata,
@@ -458,15 +435,12 @@ describe.skip("Page Mention Notification", () => {
         propertyPatches: [
           {
             op: "replace",
-            path: [
-              blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl,
-            ],
+            path: [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl],
             property: {
               value: updatedCommentTextualContent.map((token) => ({
                 value: token,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
                 },
               })),
             } satisfies TextualContentPropertyValueWithMetadata,

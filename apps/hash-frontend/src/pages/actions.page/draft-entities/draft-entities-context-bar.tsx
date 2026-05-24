@@ -41,17 +41,13 @@ export const DraftEntitiesContextBar: FunctionComponent<{
   const hasSelectedAllDisplayedDraftEntities =
     !!displayedDraftEntities &&
     displayedDraftEntities.filter((displayedEntity) =>
-      selectedDraftEntityIds.includes(
-        displayedEntity.metadata.recordId.entityId,
-      ),
+      selectedDraftEntityIds.includes(displayedEntity.metadata.recordId.entityId),
     ).length === displayedDraftEntities.length;
 
   const hasSelectedAllMatchingDraftEntities =
     !!matchingDraftEntities &&
     matchingDraftEntities.filter((matchingEntity) =>
-      selectedDraftEntityIds.includes(
-        matchingEntity.metadata.recordId.entityId,
-      ),
+      selectedDraftEntityIds.includes(matchingEntity.metadata.recordId.entityId),
     ).length === matchingDraftEntities.length;
 
   const hasPartiallySelectedDisplayedDraftEntities =
@@ -65,9 +61,7 @@ export const DraftEntitiesContextBar: FunctionComponent<{
     selectedDraftEntityIds.length !== matchingDraftEntities.length;
 
   const isDisplayingAllDraftEntities =
-    draftEntities &&
-    matchingDraftEntities &&
-    draftEntities.length === matchingDraftEntities.length;
+    draftEntities && matchingDraftEntities && draftEntities.length === matchingDraftEntities.length;
 
   const handleCheckboxClick = useCallback(() => {
     if (hasSelectedAllDisplayedDraftEntities) {
@@ -77,16 +71,10 @@ export const DraftEntitiesContextBar: FunctionComponent<{
         return;
       }
       setSelectedDraftEntityIds(
-        displayedDraftEntities.map(
-          ({ metadata }) => metadata.recordId.entityId,
-        ),
+        displayedDraftEntities.map(({ metadata }) => metadata.recordId.entityId),
       );
     }
-  }, [
-    hasSelectedAllDisplayedDraftEntities,
-    displayedDraftEntities,
-    setSelectedDraftEntityIds,
-  ]);
+  }, [hasSelectedAllDisplayedDraftEntities, displayedDraftEntities, setSelectedDraftEntityIds]);
 
   const handleSelectAllDisplayedDraftEntitiesClick = useCallback(() => {
     if (!displayedDraftEntities) {
@@ -110,14 +98,10 @@ export const DraftEntitiesContextBar: FunctionComponent<{
     <Box display="flex" justifyContent="space-between" marginBottom={1.5}>
       <Box display="flex" alignItems="center" columnGap={1}>
         <Checkbox
-          checked={
-            hasSelectedAllDisplayedDraftEntities ||
-            hasSelectedAllMatchingDraftEntities
-          }
+          checked={hasSelectedAllDisplayedDraftEntities || hasSelectedAllMatchingDraftEntities}
           indeterminate={
             hasPartiallySelectedDisplayedDraftEntities ||
-            (!hasSelectedAllDisplayedDraftEntities &&
-              hasPartiallySelectedMatchingDraftEntities)
+            (!hasSelectedAllDisplayedDraftEntities && hasPartiallySelectedMatchingDraftEntities)
           }
           onClick={handleCheckboxClick}
           sx={{
@@ -144,8 +128,7 @@ export const DraftEntitiesContextBar: FunctionComponent<{
             }}
           >
             selected
-            {hasSelectedAllDisplayedDraftEntities &&
-            hasPartiallySelectedMatchingDraftEntities
+            {hasSelectedAllDisplayedDraftEntities && hasPartiallySelectedMatchingDraftEntities
               ? " (all on this page)"
               : ""}
           </Box>

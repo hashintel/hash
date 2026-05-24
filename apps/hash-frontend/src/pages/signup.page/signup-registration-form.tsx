@@ -11,10 +11,7 @@ import { Button, Link } from "../../shared/ui";
 import { AuthHeading } from "../shared/auth-heading";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { AuthPaper } from "../shared/auth-paper";
-import {
-  mustGetCsrfTokenFromFlow,
-  oryKratosClient,
-} from "../shared/ory-kratos";
+import { mustGetCsrfTokenFromFlow, oryKratosClient } from "../shared/ory-kratos";
 import { SsoProviderButtons } from "../shared/sso-provider-buttons";
 import { useKratosErrorHandler } from "../shared/use-kratos-flow-error-handler";
 
@@ -30,10 +27,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
 
   useEffect(() => {
     // If user registration is disabled, redirect the user to the signin page
-    if (
-      hashInstance &&
-      !hashInstance.properties.userSelfRegistrationIsEnabled
-    ) {
+    if (hashInstance && !hashInstance.properties.userSelfRegistrationIsEnabled) {
       void router.push("/signin");
     }
   }, [hashInstance, router]);
@@ -185,13 +179,11 @@ export const SignupRegistrationForm: FunctionComponent = () => {
 
   const emailInputUiNode = flow?.ui.nodes.find(
     ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) &&
-      attributes.name.startsWith("traits.emails"),
+      isUiNodeInputAttributes(attributes) && attributes.name.startsWith("traits.emails"),
   );
 
   const passwordInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "password",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "password",
   );
 
   return (
@@ -216,9 +208,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             placeholder="Enter your email address"
             value={email}
             onChange={({ target }) => setEmail(target.value)}
-            error={
-              !!emailInputUiNode?.messages.find(({ type }) => type === "error")
-            }
+            error={!!emailInputUiNode?.messages.find(({ type }) => type === "error")}
             helperText={emailInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
@@ -233,11 +223,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             value={password}
             placeholder="Enter a password"
             onChange={({ target }) => setPassword(target.value)}
-            error={
-              !!passwordInputUiNode?.messages.find(
-                ({ type }) => type === "error",
-              )
-            }
+            error={!!passwordInputUiNode?.messages.find(({ type }) => type === "error")}
             helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
@@ -253,11 +239,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
           {errorMessage ? <Typography>{errorMessage}</Typography> : null}
         </Box>
         {flow ? (
-          <SsoProviderButtons
-            kind="registration"
-            flow={flow}
-            onFlowError={handleFlowError}
-          />
+          <SsoProviderButtons kind="registration" flow={flow} onFlowError={handleFlowError} />
         ) : null}
         <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
           <Typography

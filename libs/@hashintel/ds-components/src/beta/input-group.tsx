@@ -18,24 +18,22 @@ export interface InputGroupProps extends RootProps {
   endElement?: ReactNode | undefined;
 }
 
-export const InputGroup = forwardRef<HTMLDivElement, InputGroupProps>(
-  (props, ref) => {
-    const { startElement, endElement, children, ...rest } = props;
+export const InputGroup = forwardRef<HTMLDivElement, InputGroupProps>((props, ref) => {
+  const { startElement, endElement, children, ...rest } = props;
 
-    return (
-      <Root ref={ref} {...rest}>
-        {startElement && (
-          <Element insetInlineStart="0" top="0">
-            {startElement}
-          </Element>
-        )}
-        {children}
-        {endElement && (
-          <Element insetInlineEnd="0" top="0">
-            {endElement}
-          </Element>
-        )}
-      </Root>
-    );
-  },
-);
+  return (
+    <Root ref={ref} {...rest}>
+      {startElement && (
+        <Element insetInlineStart="0" top="0">
+          {startElement}
+        </Element>
+      )}
+      {children}
+      {endElement && (
+        <Element insetInlineEnd="0" top="0">
+          {endElement}
+        </Element>
+      )}
+    </Root>
+  );
+});

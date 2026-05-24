@@ -6,10 +6,7 @@ import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-f
 import { DAG } from "./dag";
 import { Topbar } from "./topbar";
 
-import type {
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "./shared/types";
+import type { GroupWithEdgesAndNodes, UngroupedEdgesAndNodes } from "./shared/types";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
@@ -22,15 +19,8 @@ type DagSlideProps = {
   selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
 };
 
-export const DagSlide = ({
-  groups,
-  open,
-  onClose,
-  selectedFlowDefinition,
-}: DagSlideProps) => {
-  const isGoal = goalFlowDefinitionIds.includes(
-    selectedFlowDefinition.flowDefinitionId,
-  );
+export const DagSlide = ({ groups, open, onClose, selectedFlowDefinition }: DagSlideProps) => {
+  const isGoal = goalFlowDefinitionIds.includes(selectedFlowDefinition.flowDefinitionId);
 
   return (
     <Backdrop
@@ -41,11 +31,7 @@ export const DagSlide = ({
         justifyContent: "flex-end",
       }}
     >
-      <Slide
-        in={open}
-        direction="left"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <Slide in={open} direction="left" onClick={(event) => event.stopPropagation()}>
         <Box
           sx={{
             height: "100vh",
@@ -67,18 +53,12 @@ export const DagSlide = ({
               readonly
               workerType={isGoal ? "goal" : "flow"}
             />
-            <IconButton
-              onClick={onClose}
-              sx={{ "& svg": { fontSize: 18 }, mr: 2.5, p: 0.5 }}
-            >
+            <IconButton onClick={onClose} sx={{ "& svg": { fontSize: 18 }, mr: 2.5, p: 0.5 }}>
               <XMarkRegularIcon sx={{ fontSize: 22 }} />
             </IconButton>
           </Stack>
           <Box p={3}>
-            <DAG
-              groups={groups}
-              selectedFlowDefinition={selectedFlowDefinition}
-            />
+            <DAG groups={groups} selectedFlowDefinition={selectedFlowDefinition} />
           </Box>
         </Box>
       </Slide>

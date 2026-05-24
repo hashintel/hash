@@ -17,9 +17,7 @@ type BlockLoaderInputProps = {
   onLoad: () => void;
 };
 
-export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
-  onLoad,
-}) => {
+export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({ onLoad }) => {
   const blockView = useBlockView();
   const { value: userBlocks, setValue: setUserBlocks } = useUserBlocks();
 
@@ -55,19 +53,12 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
           }));
         });
         const renderedBlock = blockView.manager.renderBlock(normalizedUrl);
-        blockView.editorView.dispatch(
-          blockView.editorView.state.tr.insert(pos, renderedBlock),
-        );
+        blockView.editorView.dispatch(blockView.editorView.state.tr.insert(pos, renderedBlock));
         onLoad();
       })
       .catch((err) => {
         // eslint-disable-next-line no-console -- requires individual debugging
-        console.error(
-          "could not load block from url:",
-          normalizedUrl,
-          "\n",
-          err,
-        );
+        console.error("could not load block from url:", normalizedUrl, "\n", err);
 
         // clear the error after short delay to enable retries (re-enable load button)
         setError(err);
@@ -76,12 +67,7 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
   };
 
   return (
-    <Box
-      component="form"
-      display="flex"
-      flexDirection="column"
-      onSubmit={loadBlockFromUrl}
-    >
+    <Box component="form" display="flex" flexDirection="column" onSubmit={loadBlockFromUrl}>
       <TextField
         size="xs"
         type="url"

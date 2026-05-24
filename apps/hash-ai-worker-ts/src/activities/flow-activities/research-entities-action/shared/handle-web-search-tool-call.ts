@@ -13,10 +13,7 @@ import type {
   InputNameForAiFlowAction,
   OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  StepInput,
-  WorkerIdentifiers,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { StepInput, WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 export type WebResourceSummary = {
   url: Url;
@@ -40,8 +37,7 @@ export const handleWebSearchToolCall = async (params: {
         payload: { kind: "Text", value: query },
       },
       {
-        inputName:
-          "numberOfSearchResults" satisfies InputNameForAiFlowAction<"webSearch">,
+        inputName: "numberOfSearchResults" satisfies InputNameForAiFlowAction<"webSearch">,
         payload: { kind: "Number", value: 5 },
       },
     ],
@@ -82,15 +78,12 @@ export const handleWebSearchToolCall = async (params: {
         const webPageSummaryResponse = await getWebPageSummaryAction({
           inputs: [
             {
-              inputName:
-                "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
+              inputName: "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
               payload: { kind: "Text", value: url },
             },
             ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
               ({ name, default: defaultValue }) =>
-                !defaultValue || name === "url"
-                  ? []
-                  : [{ inputName: name, payload: defaultValue }],
+                !defaultValue || name === "url" ? [] : [{ inputName: name, payload: defaultValue }],
             ),
           ],
         });
@@ -107,8 +100,7 @@ export const handleWebSearchToolCall = async (params: {
 
         const summaryOutput = webPageSummaryOutputs?.find(
           ({ outputName }) =>
-            outputName ===
-            ("summary" satisfies OutputNameForAiFlowAction<"getWebPageSummary">),
+            outputName === ("summary" satisfies OutputNameForAiFlowAction<"getWebPageSummary">),
         );
 
         if (!summaryOutput) {

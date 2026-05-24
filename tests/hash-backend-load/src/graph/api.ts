@@ -22,10 +22,7 @@ export const getGraphApiClient = (): GraphApi => {
       host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
       port: Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
       requestInterceptor: (request) => {
-        opentelemetry.propagation.inject(
-          opentelemetry.context.active(),
-          request,
-        );
+        opentelemetry.propagation.inject(opentelemetry.context.active(), request);
         return request;
       },
     },

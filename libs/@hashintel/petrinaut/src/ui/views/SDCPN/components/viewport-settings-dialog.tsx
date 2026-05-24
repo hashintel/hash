@@ -114,19 +114,13 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               label="Animations"
               description="Animate panel transitions and UI interactions"
             >
-              <Switch
-                checked={showAnimations}
-                onCheckedChange={setShowAnimations}
-              />
+              <Switch checked={showAnimations} onCheckedChange={setShowAnimations} />
             </SettingRow>
             <SettingRow
               label="Keep panels mounted"
               description="Keep hidden panels loaded in the background for faster switching"
             >
-              <Switch
-                checked={keepPanelsMounted}
-                onCheckedChange={setKeepPanelsMounted}
-              />
+              <Switch checked={keepPanelsMounted} onCheckedChange={setKeepPanelsMounted} />
             </SettingRow>
             <SettingRow
               label="Minimap"
@@ -141,41 +135,29 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               <Switch checked={snapToGrid} onCheckedChange={setSnapToGrid} />
             </SettingRow>
             <SettingRow label="Compact nodes">
-              <Switch
-                checked={compactNodes}
-                onCheckedChange={setCompactNodes}
-              />
+              <Switch checked={compactNodes} onCheckedChange={setCompactNodes} />
             </SettingRow>
             <SettingRow
               label="Partial selection"
               description="Select nodes that are only partially inside the selection box"
             >
-              <Switch
-                checked={partialSelection}
-                onCheckedChange={setPartialSelection}
-              />
+              <Switch checked={partialSelection} onCheckedChange={setPartialSelection} />
             </SettingRow>
             <SettingRow
               label={
                 <>
-                  Entities tree view{" "}
-                  <span className={badgeStyle}>Experimental</span>
+                  Entities tree view <span className={badgeStyle}>Experimental</span>
                 </>
               }
               description="Show a unified tree of all entities in the left sidebar"
             >
-              <Switch
-                checked={useEntitiesTreeView}
-                onCheckedChange={setUseEntitiesTreeView}
-              />
+              <Switch checked={useEntitiesTreeView} onCheckedChange={setUseEntitiesTreeView} />
             </SettingRow>
             <SettingRow label="Arcs rendering">
               <Select
                 className={selectStyle}
                 value={arcRendering}
-                onValueChange={(value) =>
-                  setArcRendering(value as ArcRendering)
-                }
+                onValueChange={(value) => setArcRendering(value as ArcRendering)}
                 options={[
                   { value: "smoothstep", label: "Square" },
                   { value: "bezier", label: "Bezier" },

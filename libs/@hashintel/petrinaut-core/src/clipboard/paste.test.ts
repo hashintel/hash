@@ -271,9 +271,7 @@ describe("paste — name deduplication", () => {
     });
 
     const payload = makePayload({
-      differentialEquations: [
-        { id: "de1", name: "Eq1", colorId: "c1", code: "" },
-      ],
+      differentialEquations: [{ id: "de1", name: "Eq1", colorId: "c1", code: "" }],
     });
 
     pastePayloadIntoSDCPN(sdcpn, payload);
@@ -421,9 +419,7 @@ describe("paste — arc remapping", () => {
         {
           id: "transition__old-t1",
           name: "T1",
-          inputArcs: [
-            { placeId: "place__old-p1", weight: 3, type: "standard" },
-          ],
+          inputArcs: [{ placeId: "place__old-p1", weight: 3, type: "standard" }],
           outputArcs: [{ placeId: "place__old-p1", weight: 1 }],
           lambdaType: "predicate",
           lambdaCode: "",
@@ -452,9 +448,7 @@ describe("paste — arc remapping", () => {
         {
           id: "transition__old",
           name: "T1",
-          inputArcs: [
-            { placeId: "place__missing", weight: 1, type: "standard" },
-          ],
+          inputArcs: [{ placeId: "place__missing", weight: 1, type: "standard" }],
           outputArcs: [{ placeId: "place__missing", weight: 1 }],
           lambdaType: "predicate",
           lambdaCode: "",
@@ -590,9 +584,7 @@ describe("paste — reference remapping", () => {
   it("remaps place.differentialEquationId when the equation was also pasted", () => {
     const sdcpn = emptyNet();
     const payload = makePayload({
-      differentialEquations: [
-        { id: "old-de", name: "Eq1", colorId: "c1", code: "dx = 1;" },
-      ],
+      differentialEquations: [{ id: "old-de", name: "Eq1", colorId: "c1", code: "dx = 1;" }],
       places: [
         {
           id: "place__p1",
@@ -644,9 +636,7 @@ describe("paste — reference remapping", () => {
           elements: [],
         },
       ],
-      differentialEquations: [
-        { id: "old-de", name: "Eq1", colorId: "old-type", code: "" },
-      ],
+      differentialEquations: [{ id: "old-de", name: "Eq1", colorId: "old-type", code: "" }],
     });
 
     pastePayloadIntoSDCPN(sdcpn, payload);
@@ -738,9 +728,7 @@ describe("paste — newItemIds return value", () => {
           elements: [],
         },
       ],
-      differentialEquations: [
-        { id: "de1", name: "Eq1", colorId: "c1", code: "" },
-      ],
+      differentialEquations: [{ id: "de1", name: "Eq1", colorId: "c1", code: "" }],
       parameters: [
         {
           id: "param1",
@@ -883,9 +871,7 @@ describe("paste — data preservation", () => {
   it("preserves differential equation code", () => {
     const sdcpn = emptyNet();
     const payload = makePayload({
-      differentialEquations: [
-        { id: "de1", name: "Eq1", colorId: "c1", code: "dx = -k * x;" },
-      ],
+      differentialEquations: [{ id: "de1", name: "Eq1", colorId: "c1", code: "dx = -k * x;" }],
     });
 
     pastePayloadIntoSDCPN(sdcpn, payload);

@@ -1,10 +1,5 @@
 import type { AuthenticationContext } from "../authentication-context.js";
-import type {
-  Team,
-  TeamId,
-  TeamRole,
-  TeamRoleId,
-} from "@blockprotocol/type-system";
+import type { Team, TeamId, TeamRole, TeamRoleId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 
 /**

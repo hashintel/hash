@@ -22,8 +22,7 @@ const TypeId: unique symbol = Symbol(
 
 export type TypeId = typeof TypeId;
 
-export interface ResponseBegin
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface ResponseBegin extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly kind: ResponseKind.ResponseKind;
@@ -74,10 +73,8 @@ const ResponseBeginProto: Omit<ResponseBegin, "kind" | "payload"> = {
   },
 };
 
-export const make = (
-  kind: ResponseKind.ResponseKind,
-  payload: Payload.Payload,
-): ResponseBegin => createProto(ResponseBeginProto, { kind, payload });
+export const make = (kind: ResponseKind.ResponseKind, payload: Payload.Payload): ResponseBegin =>
+  createProto(ResponseBeginProto, { kind, payload });
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 

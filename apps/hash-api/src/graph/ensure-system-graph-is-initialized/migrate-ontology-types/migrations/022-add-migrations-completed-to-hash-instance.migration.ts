@@ -23,25 +23,23 @@ import type { MigrationFunction } from "../types";
  * Together these allow subsequent startups to skip already-completed migrations
  * while still having access to the correct type version information.
  */
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /**
    * Step 1: Create the property types for tracking migration state.
    */
-  const migrationsCompletedPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const migrationsCompletedPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Migrations Completed",
-        description:
-          "The migrations that have been completed for this instance",
+        description: "The migrations that have been completed for this instance",
         possibleValues: [{ primitiveDataType: "text", array: true }],
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   const migrationStatePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -66,19 +64,13 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const hashInstanceEntityType = await getEntityTypeById(
-    context.graphApi,
-    authentication,
-    {
-      entityTypeId: currentHashInstanceEntityTypeId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  );
+  const hashInstanceEntityType = await getEntityTypeById(context.graphApi, authentication, {
+    entityTypeId: currentHashInstanceEntityTypeId,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!hashInstanceEntityType) {
-    throw new Error(
-      `Could not find entity type with ID ${currentHashInstanceEntityTypeId}`,
-    );
+    throw new Error(`Could not find entity type with ID ${currentHashInstanceEntityTypeId}`);
   }
 
   const newHashInstanceEntityTypeSchema: EntityType = {
@@ -94,15 +86,11 @@ const migrate: MigrationFunction = async ({
     },
   };
 
-  const { updatedEntityTypeId } = await updateSystemEntityType(
-    context,
-    authentication,
-    {
-      currentEntityTypeId: currentHashInstanceEntityTypeId,
-      migrationState,
-      newSchema: newHashInstanceEntityTypeSchema,
-    },
-  );
+  const { updatedEntityTypeId } = await updateSystemEntityType(context, authentication, {
+    currentEntityTypeId: currentHashInstanceEntityTypeId,
+    migrationState,
+    newSchema: newHashInstanceEntityTypeSchema,
+  });
 
   /**
    * Step 3: Create temporary policies and upgrade HASH Instance entities.
@@ -113,30 +101,27 @@ const migrate: MigrationFunction = async ({
     webId: hashWebId,
   }).then((maybeMachineId) => {
     if (!maybeMachineId) {
-      throw new Error(
-        `Failed to get web bot account ID for web ID: ${hashWebId}`,
-      );
+      throw new Error(`Failed to get web bot account ID for web ID: ${hashWebId}`);
     }
     return maybeMachineId;
   });
 
   const instantiationPolicies = await Promise.all(
-    [updatedEntityTypeId, currentHashInstanceEntityTypeId].map(
-      async (entityTypeId) =>
-        createPolicy(context.graphApi, authentication, {
-          name: `tmp-hash-instance-instantiate-hash-instance-v${extractVersion(entityTypeId)}`,
-          effect: "permit",
-          principal: {
-            type: "actor",
-            actorType: "machine",
-            id: hashWebBotAccountId,
-          },
-          actions: ["instantiate"],
-          resource: {
-            type: "entityType",
-            id: entityTypeId,
-          },
-        }),
+    [updatedEntityTypeId, currentHashInstanceEntityTypeId].map(async (entityTypeId) =>
+      createPolicy(context.graphApi, authentication, {
+        name: `tmp-hash-instance-instantiate-hash-instance-v${extractVersion(entityTypeId)}`,
+        effect: "permit",
+        principal: {
+          type: "actor",
+          actorType: "machine",
+          id: hashWebBotAccountId,
+        },
+        actions: ["instantiate"],
+        resource: {
+          type: "entityType",
+          id: entityTypeId,
+        },
+      }),
     ),
   );
 

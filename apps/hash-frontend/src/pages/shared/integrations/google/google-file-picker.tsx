@@ -6,10 +6,7 @@ type GoogleFilePickerProps = {
   onUserChoice: (selectedFile: google.picker.DocumentObject | null) => void;
 };
 
-export const GoogleFilePicker = ({
-  accessToken,
-  onUserChoice,
-}: GoogleFilePickerProps) => {
+export const GoogleFilePicker = ({ accessToken, onUserChoice }: GoogleFilePickerProps) => {
   const [ready, setReady] = useState(typeof gapi !== "undefined");
 
   useEffect(() => {
@@ -33,11 +30,6 @@ export const GoogleFilePicker = ({
   }, [accessToken, onUserChoice, ready]);
 
   return (
-    <Script
-      async
-      defer
-      src="https://apis.google.com/js/api.js"
-      onReady={() => setReady(true)}
-    />
+    <Script async defer src="https://apis.google.com/js/api.js" onReady={() => setReady(true)} />
   );
 };

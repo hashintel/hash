@@ -89,10 +89,7 @@ export const ScenariosView = () => {
         onSelect={(id) => setDrawer({ type: "view-scenario", scenarioId: id })}
       />
 
-      <CreateScenarioDrawer
-        open={drawer.type === "create-scenario"}
-        onClose={closeDrawer}
-      />
+      <CreateScenarioDrawer open={drawer.type === "create-scenario"} onClose={closeDrawer} />
 
       <ViewScenarioDrawer
         open={!!selectedScenario}

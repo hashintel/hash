@@ -68,11 +68,7 @@ const StepContainer = ({
         >
           {title}
         </Typography>
-        {done && (
-          <CheckIcon
-            sx={({ palette }) => ({ fill: palette.common.white, fontSize: 18 })}
-          />
-        )}
+        {done && <CheckIcon sx={({ palette }) => ({ fill: palette.common.white, fontSize: 18 })} />}
       </Stack>
 
       <Collapse in={expanded}>
@@ -117,10 +113,9 @@ export const CreateOrEditSheetsSync = ({
     audience: "user",
   });
 
-  const [createEntity] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation);
+  const [createEntity] = useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
+    createEntityMutation,
+  );
 
   const { propertyTypes } = usePropertyTypes({ latestOnly: true });
   const { latestEntityTypes } = useLatestEntityTypesOptional();
@@ -167,8 +162,7 @@ export const CreateOrEditSheetsSync = ({
               "https://blockprotocol.org/@hash/types/property-type/query/": {
                 value: integrationData.query,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
                 },
               },
             } as Query["propertiesWithMetadata"]["value"],
@@ -182,9 +176,7 @@ export const CreateOrEditSheetsSync = ({
       }
     }
 
-    throw new Error(
-      `Google Sheets sync not creatable here yet – requires updating for Flows.`,
-    );
+    throw new Error(`Google Sheets sync not creatable here yet – requires updating for Flows.`);
 
     // onComplete();
   };
@@ -206,9 +198,7 @@ export const CreateOrEditSheetsSync = ({
         </StepContainer>
         <StepContainer
           disabled={!integrationData.googleAccountId}
-          done={
-            !!integrationData.newFileName || !!integrationData.spreadsheetId
-          }
+          done={!!integrationData.newFileName || !!integrationData.spreadsheetId}
           title="2. Choose or create a spreadsheet"
         >
           <SelectOrNameGoogleSheet
@@ -233,10 +223,7 @@ export const CreateOrEditSheetsSync = ({
             }}
           />
         </StepContainer>
-        <StepContainer
-          done={!!integrationData.query}
-          title="3. Select data to sync"
-        >
+        <StepContainer done={!!integrationData.query} title="3. Select data to sync">
           <Box>
             <Typography mb={2}>
               Specify the entities that will be synced to the spreadsheet
@@ -261,10 +248,7 @@ export const CreateOrEditSheetsSync = ({
             />
           </Box>
         </StepContainer>
-        <StepContainer
-          done={!!integrationData.audience}
-          title="4. Select formatting"
-        >
+        <StepContainer done={!!integrationData.audience} title="4. Select formatting">
           <Box>
             <select
               value={integrationData.audience}

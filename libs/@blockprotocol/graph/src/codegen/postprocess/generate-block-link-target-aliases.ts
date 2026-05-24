@@ -4,14 +4,10 @@ import { entityDefinitionNameForEntityType } from "../shared.js";
 
 import type { PostprocessContext } from "../context/postprocess.js";
 
-export const generateBlockLinkTargetAliases = (
-  context: PostprocessContext,
-): void => {
+export const generateBlockLinkTargetAliases = (context: PostprocessContext): void => {
   context.logDebug("Generating block entity types to generated files");
 
-  for (const [fileName, { blockEntity }] of typedEntries(
-    context.parameters.targets,
-  )) {
+  for (const [fileName, { blockEntity }] of typedEntries(context.parameters.targets)) {
     if (blockEntity) {
       const type = mustBeDefined(context.allTypes[blockEntity]);
       const typeName = entityDefinitionNameForEntityType(type.title);
@@ -20,9 +16,8 @@ export const generateBlockLinkTargetAliases = (
       const entityLinkAndTargetsIdentifier = `${typeName}OutgoingLinkAndTarget`;
 
       if (
-        typedValues(context.filesToDefinedIdentifiers).find(
-          (definedIdentifier) =>
-            definedIdentifier.has(entityLinkAndTargetsIdentifier),
+        typedValues(context.filesToDefinedIdentifiers).find((definedIdentifier) =>
+          definedIdentifier.has(entityLinkAndTargetsIdentifier),
         )
       ) {
         context.logDebug(

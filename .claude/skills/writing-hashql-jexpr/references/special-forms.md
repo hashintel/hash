@@ -386,12 +386,7 @@ Create sum types by combining newtypes with union types:
         "let",
         "value",
         ["Some", { "#literal": 42 }],
-        [
-          "if",
-          ["==", "value", ["None"]],
-          { "#literal": "empty" },
-          { "#literal": "has value" },
-        ],
+        ["if", ["==", "value", ["None"]], { "#literal": "empty" }, { "#literal": "has value" }],
       ],
     ],
   ],

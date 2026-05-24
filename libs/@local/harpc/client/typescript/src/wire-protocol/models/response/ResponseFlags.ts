@@ -28,8 +28,7 @@ export type Flag =
   // Controlled Flags
   | "endOfResponse";
 
-export interface ResponseFlags
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface ResponseFlags extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly flags: HashSet.HashSet<Flag>;
 }
@@ -43,11 +42,7 @@ const ResponseFlagsProto: Omit<ResponseFlags, "flags"> = {
   },
 
   [Hash.symbol](this: ResponseFlags) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.flags)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.flags)), Hash.cached(this));
   },
 
   toString(this: ResponseFlags) {
@@ -134,8 +129,7 @@ export const isResponseFlags = (value: unknown): value is ResponseFlags =>
 export const isBeginOfResponse = (flags: ResponseFlags) =>
   HashSet.has(flags.flags, "beginOfResponse");
 
-export const isEndOfResponse = (flags: ResponseFlags) =>
-  HashSet.has(flags.flags, "endOfResponse");
+export const isEndOfResponse = (flags: ResponseFlags) => HashSet.has(flags.flags, "endOfResponse");
 
 export const arbitrary = (fc: typeof FastCheck) => {
   return fc

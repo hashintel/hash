@@ -30,12 +30,7 @@ const INDETERMINATE_ICON = (
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
   >
-    <path
-      d="M3 6H9"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
+    <path d="M3 6H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
 
@@ -172,18 +167,13 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         </BaseCheckbox.Indicator>
 
         {/* Indeterminate indicator */}
-        <BaseCheckbox.Indicator
-          indeterminate
-          className={checkboxIndicatorStyles}
-        >
+        <BaseCheckbox.Indicator indeterminate className={checkboxIndicatorStyles}>
           {INDETERMINATE_ICON}
         </BaseCheckbox.Indicator>
       </BaseCheckbox.Control>
 
       {label && (
-        <BaseCheckbox.Label className={checkboxLabelStyles(disabled)}>
-          {label}
-        </BaseCheckbox.Label>
+        <BaseCheckbox.Label className={checkboxLabelStyles(disabled)}>{label}</BaseCheckbox.Label>
       )}
 
       <BaseCheckbox.HiddenInput />

@@ -48,18 +48,14 @@ export const generateMetadataSchemaIdentifiers = ({
  * Generate a schema for a data type with metadata, which is an object with two properties:
  * { value: SomeLeafValue, metadata: { provenance?: PropertyProvenance, confidence?: number, dataTypeId: VersionedUrl }
  */
-export const generateDataTypeWithMetadataSchema = (
-  dataTypeSchema: DataType,
-): JsonSchema => {
-  const { valueWithMetadata$id, metadata$id } =
-    generateMetadataSchemaIdentifiers({
-      $id: dataTypeSchema.$id,
-    });
+export const generateDataTypeWithMetadataSchema = (dataTypeSchema: DataType): JsonSchema => {
+  const { valueWithMetadata$id, metadata$id } = generateMetadataSchemaIdentifiers({
+    $id: dataTypeSchema.$id,
+  });
 
-  const { valueWithMetadataTitle, metadataTitle } =
-    generateMetadataSchemaTitles({
-      title: `${dataTypeSchema.title} ${generatedTypeSuffix.dataType}`,
-    });
+  const { valueWithMetadataTitle, metadataTitle } = generateMetadataSchemaTitles({
+    title: `${dataTypeSchema.title} ${generatedTypeSuffix.dataType}`,
+  });
 
   return {
     $id: valueWithMetadata$id,
@@ -203,8 +199,7 @@ const generatePropertyValueWithMetadataTree = (
      * which can contain no further references to other schemas.
      */
     return {
-      $ref: generateMetadataSchemaIdentifiers({ $id: propertyValue.$ref })
-        .valueWithMetadata$id,
+      $ref: generateMetadataSchemaIdentifiers({ $id: propertyValue.$ref }).valueWithMetadata$id,
     };
   }
 
@@ -250,8 +245,6 @@ export const generatePropertyTypeWithMetadataSchema = (
     $id: valueWithMetadata$id,
     title: valueWithMetadataTitle,
     kind,
-    oneOf: propertyTypeSchema.oneOf.map((entry) =>
-      generatePropertyValueWithMetadataTree(entry),
-    ),
+    oneOf: propertyTypeSchema.oneOf.map((entry) => generatePropertyValueWithMetadataTree(entry)),
   };
 };

@@ -10,10 +10,7 @@ import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 
 import type { LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type {
-  LlmParams,
-  LlmToolDefinition,
-} from "../../../shared/get-llm-response/types.js";
+import type { LlmParams, LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import type { Claim } from "../../shared/claims.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Link } from "./choose-relevant-links-from-content.js";
@@ -61,16 +58,9 @@ type GetLinkFollowerNextToolCallsParams = {
   possibleNextLinks: Link[];
 };
 
-const generateUserMessage = (
-  params: GetLinkFollowerNextToolCallsParams,
-): LlmUserMessage => {
-  const {
-    goal,
-    entitySummaries,
-    claimsGathered,
-    previouslyVisitedLinks,
-    possibleNextLinks,
-  } = params;
+const generateUserMessage = (params: GetLinkFollowerNextToolCallsParams): LlmUserMessage => {
+  const { goal, entitySummaries, claimsGathered, previouslyVisitedLinks, possibleNextLinks } =
+    params;
 
   return {
     role: "user",
@@ -94,9 +84,7 @@ ${JSON.stringify(
       name,
       summary,
       entityTypes: entityTypeIds,
-      claims: JSON.stringify(
-        claimsAboutEntity.map(simplifyClaimForLlmConsumption),
-      ),
+      claims: JSON.stringify(claimsAboutEntity.map(simplifyClaimForLlmConsumption)),
     };
   }),
   undefined,
@@ -172,12 +160,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
                 `),
               },
             },
-            required: [
-              "url",
-              "reason",
-              "descriptionOfExpectedContent",
-              "exampleOfExpectedContent",
-            ],
+            required: ["url", "reason", "descriptionOfExpectedContent", "exampleOfExpectedContent"],
           },
         },
       },
@@ -195,8 +178,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
         suggestionForNextSteps: suggestionForNextStepsDefinition,
         explanation: {
           type: "string",
-          description:
-            "The reason the task is complete based on the claims gathered.",
+          description: "The reason the task is complete based on the claims gathered.",
         },
       },
       required: ["explanation", "suggestionForNextSteps"],
@@ -217,8 +199,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
         suggestionForNextSteps: suggestionForNextStepsDefinition,
         explanation: {
           type: "string",
-          description:
-            "The reason the task cannot be progressed with the provided tools",
+          description: "The reason the task cannot be progressed with the provided tools",
         },
       },
       required: ["explanation", "suggestionForNextSteps"],
@@ -279,8 +260,7 @@ export const getLinkFollowerNextToolCalls = async (
 
   const userMessage = generateUserMessage(params);
 
-  const { dataSources, userAuthentication, flowEntityId, webId, stepId } =
-    await getFlowContext();
+  const { dataSources, userAuthentication, flowEntityId, webId, stepId } = await getFlowContext();
 
   const availableTools = dataSources.internetAccess.enabled
     ? tools
@@ -288,8 +268,7 @@ export const getLinkFollowerNextToolCalls = async (
 
   const response = await getLlmResponse(
     {
-      systemPrompt:
-        testingParams?.systemPrompt ?? getLinkFollowerNextToolCallsSystemPrompt,
+      systemPrompt: testingParams?.systemPrompt ?? getLinkFollowerNextToolCallsSystemPrompt,
       messages: [userMessage],
       model: testingParams?.model ?? defaultModel,
       toolChoice: "required",
@@ -314,8 +293,7 @@ export const getLinkFollowerNextToolCalls = async (
 
       for (const toolCall of toolCalls) {
         if (toolCall.name === "exploreLinks") {
-          for (const link of (toolCall.input as ToolCallInputs["exploreLinks"])
-            .links) {
+          for (const link of (toolCall.input as ToolCallInputs["exploreLinks"]).links) {
             returnInput.links.push(link);
           }
         } else {

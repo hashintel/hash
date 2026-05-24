@@ -14,12 +14,7 @@ const ScrollToTrigger = () => {
   const carousel = useCarouselContext();
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      alignSelf="start"
-      onClick={() => carousel.scrollTo(3)}
-    >
+    <Button variant="outline" size="sm" alignSelf="start" onClick={() => carousel.scrollTo(3)}>
       Go to slide 4
     </Button>
   );
@@ -35,11 +30,7 @@ export const App = () => {
         {Array.from({ length: slides }, (_, index) => (
           <Carousel.Item key={index} index={index}>
             <Center bg="colorPalette.subtle.bg" height="40" borderRadius="l2">
-              <Text
-                textStyle="3xl"
-                fontWeight="semibold"
-                color="colorPalette.subtle.fg"
-              >
+              <Text textStyle="3xl" fontWeight="semibold" color="colorPalette.subtle.fg">
                 {index + 1}
               </Text>
             </Center>

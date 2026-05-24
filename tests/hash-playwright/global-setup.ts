@@ -36,16 +36,8 @@ export default async function globalSetup() {
 
   const browser = await chromium.launch();
   try {
-    await signInAndSaveState(
-      browser,
-      "alice@example.com",
-      "tests/.auth/alice.json",
-    );
-    await signInAndSaveState(
-      browser,
-      "bob@example.com",
-      "tests/.auth/bob.json",
-    );
+    await signInAndSaveState(browser, "alice@example.com", "tests/.auth/alice.json");
+    await signInAndSaveState(browser, "bob@example.com", "tests/.auth/bob.json");
   } finally {
     await browser.close();
   }

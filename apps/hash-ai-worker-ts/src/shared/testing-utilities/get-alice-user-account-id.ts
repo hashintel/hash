@@ -1,7 +1,4 @@
-import {
-  extractBaseUrl,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
@@ -26,17 +23,13 @@ export const getAliceUserAccountId = async () => {
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
+          generateVersionedUrlMatchingFilter(systemEntityTypes.user.entityTypeId, {
+            ignoreParents: true,
+          }),
           {
             equal: [
               {
-                path: [
-                  "properties",
-                  extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId),
-                ],
+                path: ["properties", extractBaseUrl(systemPropertyTypes.shortname.propertyTypeId)],
               },
               { parameter: "alice" },
             ],
@@ -53,9 +46,7 @@ export const getAliceUserAccountId = async () => {
     throw new Error("Could not find a user entity with shortname 'alice'");
   }
 
-  const aliceUserAccountId = extractWebIdFromEntityId(
-    aliceUserEntity.metadata.recordId.entityId,
-  );
+  const aliceUserAccountId = extractWebIdFromEntityId(aliceUserEntity.metadata.recordId.entityId);
 
   return aliceUserAccountId as UserId;
 };

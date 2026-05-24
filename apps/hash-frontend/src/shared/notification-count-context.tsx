@@ -40,25 +40,18 @@ import type { FunctionComponent, PropsWithChildren } from "react";
 export type NotificationCountContextValues = {
   numberOfUnreadNotifications?: number;
   loading: boolean;
-  markNotificationAsRead: (params: {
-    notificationEntityId: EntityId;
-  }) => Promise<void>;
+  markNotificationAsRead: (params: { notificationEntityId: EntityId }) => Promise<void>;
   /**
    * Mark notifications as read if they link to a specific entity
    */
-  markNotificationsAsReadForEntity: (params: {
-    targetEntityId: EntityId;
-  }) => Promise<void>;
+  markNotificationsAsReadForEntity: (params: { targetEntityId: EntityId }) => Promise<void>;
   /**
    * Archive notifications if they link to a specific entity
    */
-  archiveNotificationsForEntity: (params: {
-    targetEntityId: EntityId;
-  }) => Promise<void>;
+  archiveNotificationsForEntity: (params: { targetEntityId: EntityId }) => Promise<void>;
 };
 
-export const NotificationCountContext =
-  createContext<null | NotificationCountContextValues>(null);
+export const NotificationCountContext = createContext<null | NotificationCountContextValues>(null);
 
 export const useNotificationCount = () => {
   const notificationCountContext = useContext(NotificationCountContext);
@@ -79,9 +72,9 @@ export const useNotificationCount = () => {
  *
  * The notifications page has separate context which requests all notification data.
  */
-export const NotificationCountContextProvider: FunctionComponent<
-  PropsWithChildren
-> = ({ children }) => {
+export const NotificationCountContextProvider: FunctionComponent<PropsWithChildren> = ({
+  children,
+}) => {
   const { authenticatedUser } = useAuthInfo();
 
   const pollInterval = usePollInterval();
@@ -90,56 +83,49 @@ export const NotificationCountContextProvider: FunctionComponent<
     data: notificationCountData,
     loading: loadingNotificationCount,
     refetch: refetchNotificationCount,
-  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
-    countEntitiesQuery,
-    {
-      pollInterval,
-      variables: {
-        request: {
-          filter: {
-            all: [
-              {
-                equal: [
-                  { path: ["webId"] },
-                  { parameter: authenticatedUser?.accountId },
-                ],
-              },
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.notification.entityTypeId,
-                { ignoreParents: false },
-              ),
-              pageOrNotificationNotArchivedFilter,
-            ],
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: false,
+  } = useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(countEntitiesQuery, {
+    pollInterval,
+    variables: {
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["webId"] }, { parameter: authenticatedUser?.accountId }],
+            },
+            generateVersionedUrlMatchingFilter(systemEntityTypes.notification.entityTypeId, {
+              ignoreParents: false,
+            }),
+            pageOrNotificationNotArchivedFilter,
+          ],
         },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
       },
-      skip: !authenticatedUser?.accountSignupComplete,
+    },
+    skip: !authenticatedUser?.accountSignupComplete,
+    fetchPolicy: "network-only",
+  });
+
+  const [queryEntities] = useLazyQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
+    {
       fetchPolicy: "network-only",
     },
   );
 
-  const [queryEntities] = useLazyQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
-    fetchPolicy: "network-only",
-  });
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+    {
+      onCompleted: () => refetchNotificationCount(),
+    },
+  );
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation, {
-    onCompleted: () => refetchNotificationCount(),
-  });
-
-  const [updateEntities] = useMutation<
-    UpdateEntitiesMutation,
-    UpdateEntitiesMutationVariables
-  >(updateEntitiesMutation, {
-    onCompleted: () => refetchNotificationCount(),
-  });
+  const [updateEntities] = useMutation<UpdateEntitiesMutation, UpdateEntitiesMutationVariables>(
+    updateEntitiesMutation,
+    {
+      onCompleted: () => refetchNotificationCount(),
+    },
+  );
 
   const getNotificationsLinkingToEntity = useCallback(
     async ({ targetEntityId }: { targetEntityId: EntityId }) => {
@@ -149,15 +135,11 @@ export const NotificationCountContextProvider: FunctionComponent<
             filter: {
               all: [
                 {
-                  equal: [
-                    { path: ["webId"] },
-                    { parameter: authenticatedUser?.accountId },
-                  ],
+                  equal: [{ path: ["webId"] }, { parameter: authenticatedUser?.accountId }],
                 },
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.notification.entityTypeId,
-                  { ignoreParents: false },
-                ),
+                generateVersionedUrlMatchingFilter(systemEntityTypes.notification.entityTypeId, {
+                  ignoreParents: false,
+                }),
                 {
                   equal: [
                     { path: ["outgoingLinks", "rightEntity", "uuid"] },
@@ -179,9 +161,7 @@ export const NotificationCountContextProvider: FunctionComponent<
         return [];
       }
 
-      return deserializeQueryEntitiesResponse(
-        relatedNotificationData.data.queryEntities,
-      ).entities;
+      return deserializeQueryEntitiesResponse(relatedNotificationData.data.queryEntities).entities;
     },
     [authenticatedUser?.accountId, queryEntities],
   );
@@ -207,8 +187,7 @@ export const NotificationCountContextProvider: FunctionComponent<
                 property: {
                   value: now.toISOString(),
                   metadata: {
-                    dataTypeId:
-                      "https://hash.ai/@h/types/data-type/datetime/v/1",
+                    dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
                   },
                 } satisfies ReadAtPropertyValueWithMetadata,
               },
@@ -246,8 +225,7 @@ export const NotificationCountContextProvider: FunctionComponent<
                   property: {
                     value: now.toISOString(),
                     metadata: {
-                      dataTypeId:
-                        "https://hash.ai/@h/types/data-type/datetime/v/1",
+                      dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
                     },
                   } satisfies ReadAtPropertyValueWithMetadata,
                 },
@@ -304,8 +282,7 @@ export const NotificationCountContextProvider: FunctionComponent<
       loading: loadingNotificationCount,
       markNotificationAsRead,
       markNotificationsAsReadForEntity,
-      numberOfUnreadNotifications:
-        notificationCountData?.countEntities ?? undefined,
+      numberOfUnreadNotifications: notificationCountData?.countEntities ?? undefined,
     }),
     [
       archiveNotificationsForEntity,
@@ -317,8 +294,6 @@ export const NotificationCountContextProvider: FunctionComponent<
   );
 
   return (
-    <NotificationCountContext.Provider value={value}>
-      {children}
-    </NotificationCountContext.Provider>
+    <NotificationCountContext.Provider value={value}>{children}</NotificationCountContext.Provider>
   );
 };

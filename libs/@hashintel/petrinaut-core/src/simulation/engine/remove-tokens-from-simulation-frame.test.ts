@@ -41,13 +41,9 @@ function makePlace(id: string, dimensions: number): Place {
 }
 
 function makeFrame(snapshot: EngineFrameSnapshot): TestFrame {
-  const dimensions = new Set(
-    Object.values(snapshot.places).map((place) => place.dimensions),
-  );
+  const dimensions = new Set(Object.values(snapshot.places).map((place) => place.dimensions));
   const layout = createEngineFrameLayout({
-    places: Object.entries(snapshot.places).map(([id, place]) =>
-      makePlace(id, place.dimensions),
-    ),
+    places: Object.entries(snapshot.places).map(([id, place]) => makePlace(id, place.dimensions)),
     transitions: [],
     types: [...dimensions]
       .filter((dimension) => dimension > 0)
@@ -62,11 +58,7 @@ function removeTokensFromSimulationFrame(
   frame: TestFrame,
   tokensToRemove: Map<string, Set<number> | number>,
 ): EngineFrameSnapshot {
-  const result = removeTokensFromEngineFrame(
-    frame,
-    tokensToRemove,
-    frame.layout,
-  );
+  const result = removeTokensFromEngineFrame(frame, tokensToRemove, frame.layout);
   if (result === frame) {
     return frame as unknown as EngineFrameSnapshot;
   }
@@ -82,10 +74,7 @@ describe("removeTokensFromSimulationFrame", () => {
     });
 
     expect(() => {
-      removeTokensFromSimulationFrame(
-        frame,
-        new Map([["nonexistent", new Set([0])]]),
-      );
+      removeTokensFromSimulationFrame(frame, new Map([["nonexistent", new Set([0])]]));
     }).toThrow("Place with ID nonexistent not found");
   });
 
@@ -138,10 +127,7 @@ describe("removeTokensFromSimulationFrame", () => {
       buffer: new Float64Array([1.0, 2.0, 3.0]),
     });
 
-    const result = removeTokensFromSimulationFrame(
-      frame,
-      new Map([["p1", new Set()]]),
-    );
+    const result = removeTokensFromSimulationFrame(frame, new Map([["p1", new Set()]]));
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0]));
     expect(result.places.p1?.count).toBe(3);
@@ -160,10 +146,7 @@ describe("removeTokensFromSimulationFrame", () => {
       buffer: new Float64Array([1.0, 2.0, 3.0]),
     });
 
-    const result = removeTokensFromSimulationFrame(
-      frame,
-      new Map([["p1", new Set([1])]]),
-    );
+    const result = removeTokensFromSimulationFrame(frame, new Map([["p1", new Set([1])]]));
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 3.0]));
     expect(result.places.p1?.count).toBe(2);
@@ -183,10 +166,7 @@ describe("removeTokensFromSimulationFrame", () => {
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0]),
     });
 
-    const result = removeTokensFromSimulationFrame(
-      frame,
-      new Map([["p1", new Set([0, 2])]]),
-    );
+    const result = removeTokensFromSimulationFrame(frame, new Map([["p1", new Set([0, 2])]]));
 
     expect(result.buffer).toEqual(new Float64Array([2.0, 4.0]));
     expect(result.places.p1?.count).toBe(2);
@@ -208,14 +188,9 @@ describe("removeTokensFromSimulationFrame", () => {
     });
 
     // Remove token at index 1 (middle token: [4,5,6])
-    const result = removeTokensFromSimulationFrame(
-      frame,
-      new Map([["p1", new Set([1])]]),
-    );
+    const result = removeTokensFromSimulationFrame(frame, new Map([["p1", new Set([1])]]));
 
-    expect(result.buffer).toEqual(
-      new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0]),
-    );
+    expect(result.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0]));
     expect(result.places.p1?.count).toBe(2);
     expect(result.places.p1?.offset).toBe(0);
   });
@@ -240,10 +215,7 @@ describe("removeTokensFromSimulationFrame", () => {
     });
 
     // Remove one token from p1
-    const result = removeTokensFromSimulationFrame(
-      frame,
-      new Map([["p1", new Set([0])]]),
-    );
+    const result = removeTokensFromSimulationFrame(frame, new Map([["p1", new Set([0])]]));
 
     // Expected: p1: [3,4]  |  p2: [5], [6], [7]
     expect(result.buffer).toEqual(new Float64Array([3.0, 4.0, 5.0, 6.0, 7.0]));
@@ -272,10 +244,7 @@ describe("removeTokensFromSimulationFrame", () => {
       buffer: new Float64Array([1.0, 2.0, 3.0, 4.0]),
     });
 
-    const result = removeTokensFromSimulationFrame(
-      frame,
-      new Map([["p1", new Set([0, 1])]]),
-    );
+    const result = removeTokensFromSimulationFrame(frame, new Map([["p1", new Set([0, 1])]]));
 
     expect(result.buffer).toEqual(new Float64Array([3.0, 4.0]));
     expect(result.places.p1?.count).toBe(0);
@@ -309,15 +278,10 @@ describe("removeTokensFromSimulationFrame", () => {
     });
 
     // Remove one token from p2 (middle place)
-    const result = removeTokensFromSimulationFrame(
-      frame,
-      new Map([["p2", new Set([1])]]),
-    );
+    const result = removeTokensFromSimulationFrame(frame, new Map([["p2", new Set([1])]]));
 
     // Expected: p1: [1, 2] | p2: [3, 5] | p3: [6, 7]
-    expect(result.buffer).toEqual(
-      new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0]),
-    );
+    expect(result.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0]));
     expect(result.places.p1?.offset).toBe(0);
     expect(result.places.p1?.count).toBe(2);
     expect(result.places.p2?.offset).toBe(2);

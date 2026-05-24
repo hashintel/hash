@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  filePathToUri,
-  getDocumentUri,
-  parseDocumentUri,
-  uriToFilePath,
-} from "./document-uris";
+import { filePathToUri, getDocumentUri, parseDocumentUri, uriToFilePath } from "./document-uris";
 
 describe("getDocumentUri", () => {
   it("builds a transition-lambda URI", () => {
@@ -29,21 +24,24 @@ describe("getDocumentUri", () => {
 
 describe("parseDocumentUri", () => {
   it("parses a transition-lambda URI", () => {
-    expect(
-      parseDocumentUri("inmemory://sdcpn/transitions/t1/lambda.ts"),
-    ).toEqual({ itemType: "transition-lambda", itemId: "t1" });
+    expect(parseDocumentUri("inmemory://sdcpn/transitions/t1/lambda.ts")).toEqual({
+      itemType: "transition-lambda",
+      itemId: "t1",
+    });
   });
 
   it("parses a transition-kernel URI", () => {
-    expect(
-      parseDocumentUri("inmemory://sdcpn/transitions/t1/kernel.ts"),
-    ).toEqual({ itemType: "transition-kernel", itemId: "t1" });
+    expect(parseDocumentUri("inmemory://sdcpn/transitions/t1/kernel.ts")).toEqual({
+      itemType: "transition-kernel",
+      itemId: "t1",
+    });
   });
 
   it("parses a differential-equation URI", () => {
-    expect(
-      parseDocumentUri("inmemory://sdcpn/differential-equations/de1.ts"),
-    ).toEqual({ itemType: "differential-equation", itemId: "de1" });
+    expect(parseDocumentUri("inmemory://sdcpn/differential-equations/de1.ts")).toEqual({
+      itemType: "differential-equation",
+      itemId: "de1",
+    });
   });
 
   it("returns null for an unknown URI", () => {
@@ -69,9 +67,9 @@ describe("uriToFilePath", () => {
   });
 
   it("converts a differential-equation URI to a file path", () => {
-    expect(
-      uriToFilePath("inmemory://sdcpn/differential-equations/de1.ts"),
-    ).toBe("/differential_equations/de1/code.ts");
+    expect(uriToFilePath("inmemory://sdcpn/differential-equations/de1.ts")).toBe(
+      "/differential_equations/de1/code.ts",
+    );
   });
 
   it("returns null for an unknown URI", () => {
@@ -110,23 +108,17 @@ describe("roundtrip", () => {
     { itemType: "differential-equation" as const, itemId: "de1" },
   ];
 
-  it.for(cases)(
-    "URI → filePath → URI roundtrips for $itemType",
-    ({ itemType, itemId }) => {
-      const uri = getDocumentUri(itemType, itemId);
-      const filePath = uriToFilePath(uri);
-      expect(filePath).not.toBeNull();
-      expect(filePathToUri(filePath!)).toBe(uri);
-    },
-  );
+  it.for(cases)("URI → filePath → URI roundtrips for $itemType", ({ itemType, itemId }) => {
+    const uri = getDocumentUri(itemType, itemId);
+    const filePath = uriToFilePath(uri);
+    expect(filePath).not.toBeNull();
+    expect(filePathToUri(filePath!)).toBe(uri);
+  });
 
-  it.for(cases)(
-    "URI → parse → rebuild roundtrips for $itemType",
-    ({ itemType, itemId }) => {
-      const uri = getDocumentUri(itemType, itemId);
-      const parsed = parseDocumentUri(uri);
-      expect(parsed).not.toBeNull();
-      expect(getDocumentUri(parsed!.itemType, parsed!.itemId)).toBe(uri);
-    },
-  );
+  it.for(cases)("URI → parse → rebuild roundtrips for $itemType", ({ itemType, itemId }) => {
+    const uri = getDocumentUri(itemType, itemId);
+    const parsed = parseDocumentUri(uri);
+    expect(parsed).not.toBeNull();
+    expect(getDocumentUri(parsed!.itemType, parsed!.itemId)).toBe(uri);
+  });
 });

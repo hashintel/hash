@@ -1,16 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  createEngineFrame,
-  createEngineFrameLayout,
-} from "../frames/internal-frame";
+import { createEngineFrame, createEngineFrameLayout } from "../frames/internal-frame";
 import { createSimulation } from "./simulation";
 
-import type {
-  AbortSignalLike,
-  WorkerMessageEnvelope,
-  WorkerLike,
-} from "../../environment";
+import type { AbortSignalLike, WorkerMessageEnvelope, WorkerLike } from "../../environment";
 import type { SDCPN } from "../../types/sdcpn";
 import type { SimulationFrameSummary, SimulationTransport } from "../api";
 import type { SimulationFramePayload } from "../worker/frame-payload";
@@ -268,9 +261,7 @@ describe("createSimulation (transport flavour)", () => {
 describe("createSimulation (createWorker flavour)", () => {
   it("builds a transport from the factory and routes messages through it", async () => {
     // Stand-in Worker — captures postMessage and lets us trigger 'message' events.
-    type WorkerMessageHandler = (
-      event: WorkerMessageEnvelope<ToMainMessage>,
-    ) => void;
+    type WorkerMessageHandler = (event: WorkerMessageEnvelope<ToMainMessage>) => void;
 
     const sentToWorker: ToWorkerMessage[] = [];
     let messageHandler: WorkerMessageHandler | null = null;

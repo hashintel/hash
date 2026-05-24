@@ -103,10 +103,7 @@ export interface SimulationFrameReader {
 
   getPlaceTokenCount(placeId: string): number;
   getPlaceTokenValues(placeId: string): SimulationPlaceTokenValues | null;
-  getPlaceTokens(
-    place: Place,
-    color: Color | null | undefined,
-  ): Record<string, number>[];
+  getPlaceTokens(place: Place, color: Color | null | undefined): Record<string, number>[];
   getTransitionState(transitionId: string): {
     /**
      * Time elapsed since this transition last fired, in milliseconds.

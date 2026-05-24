@@ -1,8 +1,5 @@
 import { generateVersionedUrlMatchingFilter } from "./graph-queries.js";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "./ontology-type-ids.js";
+import { systemEntityTypes, systemLinkEntityTypes } from "./ontology-type-ids.js";
 
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
@@ -24,9 +21,7 @@ export const pageEntityTypeIds: VersionedUrl[] = [
  * be able to create their own page types which showed where we list 'Pages'.
  */
 export const includesPageEntityTypeId = (entityTypeIds: VersionedUrl[]) =>
-  entityTypeIds.some((entityTypeId) =>
-    pageEntityTypeIds.includes(entityTypeId),
-  );
+  entityTypeIds.some((entityTypeId) => pageEntityTypeIds.includes(entityTypeId));
 
 /**
  * A structural query filter to match against any of the system-defined Page types.

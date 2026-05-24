@@ -14,24 +14,19 @@ const systemActorId = "00000000-0000-0000-0000-000000000000";
  * this.
  */
 export const deleteUserByEmail = async (email: string): Promise<void> => {
-  const response = await fetch(
-    `http://127.0.0.1:${graphAdminPort}/users/delete`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Authenticated-User-Actor-Id": systemActorId,
-      },
-      body: JSON.stringify({ email }),
+  const response = await fetch(`http://127.0.0.1:${graphAdminPort}/users/delete`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Authenticated-User-Actor-Id": systemActorId,
     },
-  );
+    body: JSON.stringify({ email }),
+  });
 
   if (response.ok || response.status === 404) {
     return;
   }
 
   const body = await response.text();
-  throw new Error(
-    `Failed to delete user ${email}: HTTP ${response.status} ${body}`,
-  );
+  throw new Error(`Failed to delete user ${email}: HTTP ${response.status} ${body}`);
 };

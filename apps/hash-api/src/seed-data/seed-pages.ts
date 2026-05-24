@@ -1,7 +1,4 @@
-import {
-  createPage,
-  setPageParentPage,
-} from "../graph/knowledge/system-types/page";
+import { createPage, setPageParentPage } from "../graph/knowledge/system-types/page";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { Page } from "../graph/knowledge/system-types/page";
@@ -48,13 +45,7 @@ export const seedPages = async (
     prevFractionalIndex = newPage.fractionalIndex;
 
     if (pageDefinition.nestedPages) {
-      await seedPages(
-        authentication,
-        pageDefinition.nestedPages,
-        webId,
-        sharedParams,
-        newPage,
-      );
+      await seedPages(authentication, pageDefinition.nestedPages, webId, sharedParams, newPage);
     }
   }
 };

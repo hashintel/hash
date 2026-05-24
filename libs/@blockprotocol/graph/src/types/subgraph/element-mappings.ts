@@ -29,18 +29,12 @@ import type {
 export type GraphElementIdentifiers =
   | {
       identifier: VersionedUrl | OntologyTypeVertexId | OntologyTypeRecordId;
-      element:
-        | DataTypeWithMetadata
-        | PropertyTypeWithMetadata
-        | EntityTypeWithMetadata;
+      element: DataTypeWithMetadata | PropertyTypeWithMetadata | EntityTypeWithMetadata;
       vertex: DataTypeVertex | PropertyTypeVertex | EntityTypeVertex;
     }
   | {
       identifier: BaseUrl;
-      element:
-        | DataTypeWithMetadata[]
-        | PropertyTypeWithMetadata[]
-        | EntityTypeWithMetadata[];
+      element: DataTypeWithMetadata[] | PropertyTypeWithMetadata[] | EntityTypeWithMetadata[];
       vertex: DataTypeVertex[] | PropertyTypeVertex[] | EntityTypeVertex[];
     }
   | {
@@ -79,9 +73,7 @@ type RecursiveSelect<T, U, Reversed extends boolean = false> = T extends U
  * Helper type which returns the potential ways of identifying a given element of the graph by looking up the associated
  * mapping in {@link GraphElementIdentifiers}.
  */
-export type IdentifierForGraphElement<
-  Element extends GraphElementIdentifiers["element"],
-> =
+export type IdentifierForGraphElement<Element extends GraphElementIdentifiers["element"]> =
   // This extends keyof check is strange, and seems to be a limitation of typescript..
   "identifier" extends keyof RecursiveSelect<
     GraphElementIdentifiers,
@@ -101,9 +93,7 @@ export type IdentifierForGraphElement<
  * Helper type which returns the elements of the graph identified by the given identifier type, by looking up the
  * associated mapping in {@link GraphElementIdentifiers}.
  */
-export type GraphElementForIdentifier<
-  Identifier extends GraphElementIdentifiers["identifier"],
-> =
+export type GraphElementForIdentifier<Identifier extends GraphElementIdentifiers["identifier"]> =
   // This extends keyof check is strange, and seems to be a limitation of typescript..
   "element" extends keyof RecursiveSelect<
     GraphElementIdentifiers,

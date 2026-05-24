@@ -3,12 +3,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { bindDialog } from "material-ui-popup-state/hooks";
 import { Fragment } from "react";
 
-import {
-  Button,
-  FontAwesomeIcon,
-  IconButton,
-  Modal,
-} from "@hashintel/design-system";
+import { Button, FontAwesomeIcon, IconButton, Modal } from "@hashintel/design-system";
 
 import type { PopupState } from "material-ui-popup-state/hooks";
 
@@ -92,27 +87,16 @@ export const DeleteExpectedValueModal = ({
               : `Revert changes made to ${expectedValueType}`}
           </Typography>
 
-          <IconButton
-            sx={{ position: "absolute", top: 16, right: 16 }}
-            onClick={onClose}
-          >
+          <IconButton sx={{ position: "absolute", top: 16, right: 16 }} onClick={onClose}>
             <FontAwesomeIcon icon={faClose} />
           </IconButton>
         </Box>
         <Box sx={{ padding: 3 }}>
           <Box sx={{ marginBottom: 2, fontSize: 14, lineHeight: "18px" }}>
-            <Typography
-              variant="smallTextLabels"
-              sx={{ color: ({ palette }) => palette.gray[80] }}
-            >
-              This {expectedValueType} contains{" "}
-              <CountGroup items={countArray} />{" "}
+            <Typography variant="smallTextLabels" sx={{ color: ({ palette }) => palette.gray[80] }}>
+              This {expectedValueType} contains <CountGroup items={countArray} />{" "}
               {!editing
-                ? `${
-                    dataTypeCount + propertyObjectCount + arrayCount > 1
-                      ? "These "
-                      : "This "
-                  }
+                ? `${dataTypeCount + propertyObjectCount + arrayCount > 1 ? "These " : "This "}
                 will be removed from your expected value definition if you continue and will need to be individually re-added should
                 you wish to restore them.`
                 : "Changes made while editing will be reverted if you continue."}{" "}

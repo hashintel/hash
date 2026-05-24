@@ -3,11 +3,7 @@ import { Box, iconButtonClasses, Tooltip } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useState } from "react";
 
-import {
-  FontAwesomeIcon,
-  fontAwesomeIconClasses,
-  IconButton,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, fontAwesomeIconClasses, IconButton } from "@hashintel/design-system";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
 import { EmojiPicker } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
@@ -22,10 +18,7 @@ import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
 
 export type SizeVariant = "small" | "medium";
 
-export const iconVariantSizes: Record<
-  SizeVariant,
-  { container: number; font: number }
-> = {
+export const iconVariantSizes: Record<SizeVariant, { container: number; font: number }> = {
   small: { container: 20, font: 14 },
   medium: { container: 44, font: 36 },
 };
@@ -42,9 +35,7 @@ interface EditEmojiIconButtonProps {
   sx?: SxProps<Theme>;
 }
 
-export const EditEmojiIconButton: FunctionComponent<
-  EditEmojiIconButtonProps
-> = ({
+export const EditEmojiIconButton: FunctionComponent<EditEmojiIconButtonProps> = ({
   icon: iconFromProps,
   disabled = false,
   defaultIcon,

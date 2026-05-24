@@ -8,11 +8,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type {
-  Entity,
-  Property,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { Entity, Property, VersionedUrl } from "@blockprotocol/type-system";
 import type { Issue, LinearDocument, Organization, User } from "@linear/sdk";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 
@@ -38,8 +34,7 @@ export type SupportedLinearUpdateInput = {
 export type SupportedLinearTypeNames = keyof SupportedLinearTypes;
 
 const getLinearIdFromEntity = (entity: Entity): string => {
-  const linearId =
-    entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
+  const linearId = entity.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
 
   if (!linearId) {
     throw new Error(
@@ -70,9 +65,7 @@ type PropertyMapping<
   ) => HashPropertyValue | undefined;
 };
 
-type OutgoingLinkMapping<
-  LinearType extends SupportedLinearTypeNames = SupportedLinearTypeNames,
-> = {
+type OutgoingLinkMapping<LinearType extends SupportedLinearTypeNames = SupportedLinearTypeNames> = {
   getLinkDestinationLinearIds: (
     linearData: SupportedLinearTypes[LinearType],
   ) => Promise<{ destinationLinearIds: string[] }>;
@@ -86,9 +79,7 @@ type OutgoingLinkMapping<
   linkEntityTypeId: VersionedUrl;
 };
 
-type LinearMapping<
-  T extends SupportedLinearTypeNames = SupportedLinearTypeNames,
-> = {
+type LinearMapping<T extends SupportedLinearTypeNames = SupportedLinearTypeNames> = {
   linearType: T;
   hashEntityTypeId: VersionedUrl;
   propertyMappings: PropertyMapping<T, keyof SupportedLinearTypes[T]>[];
@@ -137,18 +128,15 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "createdAt",
         hashPropertyTypeId: linearPropertyTypes.createdAt.propertyTypeId,
-        mapLinearValueToHashValue: (linearValue) =>
-          mapLinearDateToIsoString(linearValue),
+        mapLinearValueToHashValue: (linearValue) => mapLinearDateToIsoString(linearValue),
       } satisfies PropertyMapping<"Issue", "createdAt">,
       {
         linearPropertyKey: "customerTicketCount",
-        hashPropertyTypeId:
-          linearPropertyTypes.customerTicketCount.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.customerTicketCount.propertyTypeId,
       } satisfies PropertyMapping<"Issue", "customerTicketCount">,
       {
         linearPropertyKey: "description",
-        hashPropertyTypeId:
-          linearPropertyTypes.markdownDescription.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.markdownDescription.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.description = hashValue as string;
           return updateInput;
@@ -184,8 +172,7 @@ export const linearTypeMappings = [
       } satisfies PropertyMapping<"Issue", "number">,
       {
         linearPropertyKey: "previousIdentifiers",
-        hashPropertyTypeId:
-          linearPropertyTypes.previousIdentifier.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.previousIdentifier.propertyTypeId,
       } satisfies PropertyMapping<"Issue", "previousIdentifiers">,
       {
         linearPropertyKey: "priority",
@@ -232,8 +219,7 @@ export const linearTypeMappings = [
       } satisfies PropertyMapping<"Issue", "startedTriageAt">,
       {
         linearPropertyKey: "subIssueSortOrder",
-        hashPropertyTypeId:
-          linearPropertyTypes.subIssueSortOrder.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.subIssueSortOrder.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.subIssueSortOrder = hashValue as number;
           return updateInput;
@@ -264,8 +250,7 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "updatedAt",
         hashPropertyTypeId: linearPropertyTypes.updatedAt.propertyTypeId,
-        mapLinearValueToHashValue: (linearValue) =>
-          mapLinearDateToIsoString(linearValue),
+        mapLinearValueToHashValue: (linearValue) => mapLinearDateToIsoString(linearValue),
       } satisfies PropertyMapping<"Issue", "updatedAt">,
       {
         linearPropertyKey: "url",
@@ -282,9 +267,7 @@ export const linearTypeMappings = [
           const [matchingOutgoingLink] = matchingOutgoingLinks;
 
           if (matchingOutgoingLink) {
-            const linearId = getLinearIdFromEntity(
-              matchingOutgoingLink.rightEntity,
-            );
+            const linearId = getLinearIdFromEntity(matchingOutgoingLink.rightEntity);
 
             updateInput.assigneeId = linearId;
           } else {
@@ -311,9 +294,7 @@ export const linearTypeMappings = [
           const [matchingOutgoingLink] = matchingOutgoingLinks;
 
           if (matchingOutgoingLink) {
-            const linearId = getLinearIdFromEntity(
-              matchingOutgoingLink.rightEntity,
-            );
+            const linearId = getLinearIdFromEntity(matchingOutgoingLink.rightEntity);
 
             updateInput.parentId = linearId;
           } else {
@@ -333,9 +314,7 @@ export const linearTypeMappings = [
           const [matchingOutgoingLink] = matchingOutgoingLinks;
 
           if (matchingOutgoingLink) {
-            const linearId = getLinearIdFromEntity(
-              matchingOutgoingLink.rightEntity,
-            );
+            const linearId = getLinearIdFromEntity(matchingOutgoingLink.rightEntity);
 
             updateInput.snoozedById = linearId;
           } else {
@@ -362,8 +341,8 @@ export const linearTypeMappings = [
           return { destinationLinearIds };
         },
         addToLinearUpdateInput: (updateInput, matchingOutgoingLinks) => {
-          updateInput.subscriberIds = matchingOutgoingLinks.map(
-            ({ rightEntity }) => getLinearIdFromEntity(rightEntity),
+          updateInput.subscriberIds = matchingOutgoingLinks.map(({ rightEntity }) =>
+            getLinearIdFromEntity(rightEntity),
           );
 
           return updateInput;
@@ -411,18 +390,15 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "createdAt",
         hashPropertyTypeId: linearPropertyTypes.createdAt.propertyTypeId,
-        mapLinearValueToHashValue: (linearValue) =>
-          mapLinearDateToIsoString(linearValue),
+        mapLinearValueToHashValue: (linearValue) => mapLinearDateToIsoString(linearValue),
       } satisfies PropertyMapping<"User", "createdAt">,
       {
         linearPropertyKey: "createdIssueCount",
-        hashPropertyTypeId:
-          linearPropertyTypes.createdIssueCount.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.createdIssueCount.propertyTypeId,
       } satisfies PropertyMapping<"User", "createdIssueCount">,
       {
         linearPropertyKey: "description",
-        hashPropertyTypeId:
-          blockProtocolPropertyTypes.description.propertyTypeId,
+        hashPropertyTypeId: blockProtocolPropertyTypes.description.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.description = hashValue as string;
           return updateInput;
@@ -503,8 +479,7 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "updatedAt",
         hashPropertyTypeId: linearPropertyTypes.updatedAt.propertyTypeId,
-        mapLinearValueToHashValue: (linearValue) =>
-          mapLinearDateToIsoString(linearValue),
+        mapLinearValueToHashValue: (linearValue) => mapLinearDateToIsoString(linearValue),
       } satisfies PropertyMapping<"User", "updatedAt">,
       {
         linearPropertyKey: "url",
@@ -517,8 +492,7 @@ export const linearTypeMappings = [
           const organization = await user.organization;
           return { destinationLinearIds: [organization.id] };
         },
-        linkEntityTypeId:
-          linearLinkEntityTypes.belongsToOrganization.linkEntityTypeId,
+        linkEntityTypeId: linearLinkEntityTypes.belongsToOrganization.linkEntityTypeId,
       },
     ] satisfies LinearMapping<"User">["outgoingLinkMappings"],
   },
@@ -528,8 +502,7 @@ export const linearTypeMappings = [
     propertyMappings: [
       {
         linearPropertyKey: "allowedAuthServices",
-        hashPropertyTypeId:
-          linearPropertyTypes.allowedAuthService.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.allowedAuthService.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.allowedAuthServices = hashValue as string[];
           return updateInput;
@@ -544,18 +517,15 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "createdAt",
         hashPropertyTypeId: linearPropertyTypes.createdAt.propertyTypeId,
-        mapLinearValueToHashValue: (linearValue) =>
-          mapLinearDateToIsoString(linearValue),
+        mapLinearValueToHashValue: (linearValue) => mapLinearDateToIsoString(linearValue),
       } satisfies PropertyMapping<"Organization", "createdAt">,
       {
         linearPropertyKey: "createdIssueCount",
-        hashPropertyTypeId:
-          linearPropertyTypes.createdIssueCount.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.createdIssueCount.propertyTypeId,
       } satisfies PropertyMapping<"Organization", "createdIssueCount">,
       {
         linearPropertyKey: "deletionRequestedAt",
-        hashPropertyTypeId:
-          linearPropertyTypes.deletionRequestedAt.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.deletionRequestedAt.propertyTypeId,
         mapLinearValueToHashValue: (linearValue) =>
           linearValue ? mapLinearDateToIsoString(linearValue) : undefined,
       } satisfies PropertyMapping<"Organization", "deletionRequestedAt">,
@@ -569,8 +539,7 @@ export const linearTypeMappings = [
       } satisfies PropertyMapping<"Organization", "gitBranchFormat">,
       {
         linearPropertyKey: "gitLinkbackMessagesEnabled",
-        hashPropertyTypeId:
-          linearPropertyTypes.gitLinkbackMessagesEnabled.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.gitLinkbackMessagesEnabled.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.gitLinkbackMessagesEnabled = hashValue as boolean;
           return updateInput;
@@ -578,16 +547,12 @@ export const linearTypeMappings = [
       } satisfies PropertyMapping<"Organization", "gitLinkbackMessagesEnabled">,
       {
         linearPropertyKey: "gitPublicLinkbackMessagesEnabled",
-        hashPropertyTypeId:
-          linearPropertyTypes.gitPublicLinkbackMessagesEnabled.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.gitPublicLinkbackMessagesEnabled.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.gitPublicLinkbackMessagesEnabled = hashValue as boolean;
           return updateInput;
         },
-      } satisfies PropertyMapping<
-        "Organization",
-        "gitPublicLinkbackMessagesEnabled"
-      >,
+      } satisfies PropertyMapping<"Organization", "gitPublicLinkbackMessagesEnabled">,
       {
         linearPropertyKey: "id",
         hashPropertyTypeId: linearPropertyTypes.id.propertyTypeId,
@@ -610,8 +575,7 @@ export const linearTypeMappings = [
       } satisfies PropertyMapping<"Organization", "name">,
       {
         linearPropertyKey: "periodUploadVolume",
-        hashPropertyTypeId:
-          linearPropertyTypes.periodUploadVolume.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.periodUploadVolume.propertyTypeId,
       } satisfies PropertyMapping<"Organization", "periodUploadVolume">,
       {
         linearPropertyKey: "previousUrlKeys",
@@ -619,8 +583,7 @@ export const linearTypeMappings = [
       } satisfies PropertyMapping<"Organization", "previousUrlKeys">,
       {
         linearPropertyKey: "projectUpdateRemindersHour",
-        hashPropertyTypeId:
-          linearPropertyTypes.projectUpdateRemindersHour.propertyTypeId,
+        hashPropertyTypeId: linearPropertyTypes.projectUpdateRemindersHour.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.projectUpdateRemindersHour = hashValue as number;
           return updateInput;
@@ -651,8 +614,7 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "updatedAt",
         hashPropertyTypeId: linearPropertyTypes.updatedAt.propertyTypeId,
-        mapLinearValueToHashValue: (linearValue) =>
-          mapLinearDateToIsoString(linearValue),
+        mapLinearValueToHashValue: (linearValue) => mapLinearDateToIsoString(linearValue),
       } satisfies PropertyMapping<"Organization", "updatedAt">,
       {
         linearPropertyKey: "urlKey",
@@ -692,14 +654,12 @@ export const getLinearMappingByLinearType = <
 >(params: {
   linearType: T;
 }): LinearMapping<T> => {
-  const mapping = linearTypeMappings.find(
-    ({ linearType }) => linearType === params.linearType,
-  ) as LinearMapping<T> | undefined;
+  const mapping = linearTypeMappings.find(({ linearType }) => linearType === params.linearType) as
+    | LinearMapping<T>
+    | undefined;
 
   if (!mapping) {
-    throw new Error(
-      `Could not find mapping for linear type ${params.linearType}`,
-    );
+    throw new Error(`Could not find mapping for linear type ${params.linearType}`);
   }
 
   return mapping;

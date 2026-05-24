@@ -29,19 +29,10 @@ const createValueText = (value: PropertyValue, metadata: PropertyMetadata) => {
   return stringifyPropertyValue(value);
 };
 
-export const EventDetail = ({
-  event,
-  subgraph,
-}: {
-  event: HistoryEvent;
-  subgraph: Subgraph;
-}) => {
+export const EventDetail = ({ event, subgraph }: { event: HistoryEvent; subgraph: Subgraph }) => {
   switch (event.type) {
     case "created": {
-      const entityLabel = generateEntityLabel(
-        subgraph as Subgraph<EntityRootType>,
-        event.entity,
-      );
+      const entityLabel = generateEntityLabel(subgraph as Subgraph<EntityRootType>, event.entity);
       return (
         <>
           <ValueChip>{entityLabel}</ValueChip>
@@ -124,8 +115,7 @@ export const EventDetail = ({
           </Box>
           {event.op === "upgraded" && (
             <Box ml={0.5}>
-              from v{entityType.oldVersion?.toString()} to v
-              {entityType.version.toString()}
+              from v{entityType.oldVersion?.toString()} to v{entityType.version.toString()}
             </Box>
           )}
         </>
@@ -134,17 +124,11 @@ export const EventDetail = ({
     case "draft-status-change":
       return (
         <span>
-          {event.newDraftStatus
-            ? "Edition created as draft"
-            : "Live edition created from draft"}
+          {event.newDraftStatus ? "Edition created as draft" : "Live edition created from draft"}
         </span>
       );
     case "archive-status-change":
-      return (
-        <span>
-          {event.newArchiveStatus ? "Entity archived" : "Entity unarchived"}
-        </span>
-      );
+      return <span>{event.newArchiveStatus ? "Entity archived" : "Entity unarchived"}</span>;
     default: {
       throw new Error("Unhandled history event type");
     }

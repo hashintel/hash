@@ -20,10 +20,9 @@ export const useBlockProtocolUpdateEntity = (
 ): {
   updateEntity: UpdateEntityMessageCallback;
 } => {
-  const [updateFn] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateFn] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+  );
 
   const updateEntity = useCallback<UpdateEntityMessageCallback>(
     async ({ data }) => {

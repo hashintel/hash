@@ -12,10 +12,7 @@ import { Modal, TextField } from "@hashintel/design-system";
 import { Button } from "../../shared/ui";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { formatKratosMessage } from "../shared/format-kratos-message";
-import {
-  mustGetCsrfTokenFromFlow,
-  oryKratosClient,
-} from "../shared/ory-kratos";
+import { mustGetCsrfTokenFromFlow, oryKratosClient } from "../shared/ory-kratos";
 import { getSettingsLayout } from "../shared/settings-layout";
 import { useKratosErrorHandler } from "../shared/use-kratos-flow-error-handler";
 import { SettingsPageContainer } from "./shared/settings-page-container";
@@ -94,8 +91,7 @@ const SecurityPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { flow: flowId } = router.query;
   const { authenticatedUser } = useAuthInfo();
-  const usernameForPasswordManagers =
-    authenticatedUser?.emails[0]?.address ?? "";
+  const usernameForPasswordManagers = authenticatedUser?.emails[0]?.address ?? "";
 
   const [flow, setFlow] = useState<SettingsFlow>();
   const [password, setPassword] = useState("");
@@ -206,9 +202,7 @@ const SecurityPage: NextPageWithLayout = () => {
   const totpCodeUiNode = useMemo(
     () =>
       totpNodes.find(
-        ({ attributes }) =>
-          isUiNodeInputAttributes(attributes) &&
-          attributes.name === "totp_code",
+        ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "totp_code",
       ),
     [totpNodes],
   );
@@ -217,8 +211,7 @@ const SecurityPage: NextPageWithLayout = () => {
     () =>
       totpNodes.some(
         ({ attributes }) =>
-          isUiNodeInputAttributes(attributes) &&
-          attributes.name === "totp_unlink",
+          isUiNodeInputAttributes(attributes) && attributes.name === "totp_unlink",
       ),
     [totpNodes],
   );
@@ -279,10 +272,7 @@ const SecurityPage: NextPageWithLayout = () => {
 
   const totpQrCodeDataUri = useMemo(() => {
     for (const { attributes } of totpNodes) {
-      if (
-        isUiNodeImageAttributes(attributes) &&
-        typeof attributes.src === "string"
-      ) {
+      if (isUiNodeImageAttributes(attributes) && typeof attributes.src === "string") {
         return attributes.src;
       }
     }
@@ -292,10 +282,7 @@ const SecurityPage: NextPageWithLayout = () => {
 
   const totpSecretKey = useMemo<string | undefined>(() => {
     for (const { attributes } of totpNodes) {
-      if (
-        isUiNodeTextAttributes(attributes) &&
-        attributes.id === "totp_secret_key"
-      ) {
+      if (isUiNodeTextAttributes(attributes) && attributes.id === "totp_secret_key") {
         const text = getUiTextValue(attributes.text);
 
         if (text) {
@@ -365,14 +352,11 @@ const SecurityPage: NextPageWithLayout = () => {
         setShowTotpSetupForm(false);
         setTotpCode("");
 
-        const flowWithBackupCodes = await submitSettingsUpdate(
-          totpEnabledFlow,
-          {
-            method: "lookup_secret",
-            lookup_secret_regenerate: true,
-            csrf_token: mustGetCsrfTokenFromFlow(totpEnabledFlow),
-          },
-        );
+        const flowWithBackupCodes = await submitSettingsUpdate(totpEnabledFlow, {
+          method: "lookup_secret",
+          lookup_secret_regenerate: true,
+          csrf_token: mustGetCsrfTokenFromFlow(totpEnabledFlow),
+        });
 
         if (!flowWithBackupCodes) {
           // Step 2 of enrolment failed. TOTP is active but there are no
@@ -386,8 +370,7 @@ const SecurityPage: NextPageWithLayout = () => {
           return;
         }
 
-        const regeneratedCodes =
-          extractBackupCodesFromFlow(flowWithBackupCodes);
+        const regeneratedCodes = extractBackupCodesFromFlow(flowWithBackupCodes);
 
         if (regeneratedCodes.length === 0) {
           setErrorMessage(
@@ -403,9 +386,7 @@ const SecurityPage: NextPageWithLayout = () => {
       .finally(() => setEnablingTotp(false));
   };
 
-  const handleDisableTotpSubmit: FormEventHandler<HTMLFormElement> = (
-    event,
-  ) => {
+  const handleDisableTotpSubmit: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
 
     if (!flow) {
@@ -483,11 +464,7 @@ const SecurityPage: NextPageWithLayout = () => {
         heading="Security"
         subHeading="Manage your password and two-factor authentication"
       >
-        <Box
-          px={5}
-          py={4}
-          sx={{ display: "flex", flexDirection: "column", gap: 5 }}
-        >
+        <Box px={5} py={4} sx={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <Box component="form" onSubmit={handlePasswordSubmit}>
             <input
               type="text"
@@ -509,10 +486,7 @@ const SecurityPage: NextPageWithLayout = () => {
                 whiteSpace: "nowrap",
               }}
             />
-            <Typography
-              variant="regularTextLabels"
-              sx={{ mb: 1.5, display: "block" }}
-            >
+            <Typography variant="regularTextLabels" sx={{ mb: 1.5, display: "block" }}>
               Password
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -523,24 +497,15 @@ const SecurityPage: NextPageWithLayout = () => {
                 placeholder="Enter your new password"
                 value={password}
                 onChange={({ target }) => setPassword(target.value)}
-                error={
-                  !!passwordInputUiNode?.messages.find(
-                    ({ type }) => type === "error",
-                  )
-                }
-                helperText={passwordInputUiNode?.messages.map(
-                  ({ id, text }) => (
-                    <Typography key={id}>{text}</Typography>
-                  ),
-                )}
+                error={!!passwordInputUiNode?.messages.find(({ type }) => type === "error")}
+                helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
+                  <Typography key={id}>{text}</Typography>
+                ))}
                 required
               />
             </Box>
             <Box mt={1.5}>
-              <Button
-                type="submit"
-                disabled={!flow || !password || updatingPassword}
-              >
+              <Button type="submit" disabled={!flow || !password || updatingPassword}>
                 {updatingPassword ? "Updating password..." : "Update password"}
               </Button>
             </Box>
@@ -568,12 +533,9 @@ const SecurityPage: NextPageWithLayout = () => {
                       gap: 1.5,
                     }}
                   >
-                    <Typography
-                      sx={{ color: ({ palette }) => palette.gray[80] }}
-                    >
-                      Disabling TOTP will also remove your backup codes. You
-                      will sign in with just your password until you enable a
-                      second factor again.
+                    <Typography sx={{ color: ({ palette }) => palette.gray[80] }}>
+                      Disabling TOTP will also remove your backup codes. You will sign in with just
+                      your password until you enable a second factor again.
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
                       <Button
@@ -582,9 +544,7 @@ const SecurityPage: NextPageWithLayout = () => {
                         data-testid="confirm-disable-totp-button"
                         disabled={disablingTotp}
                       >
-                        {disablingTotp
-                          ? "Disabling..."
-                          : "Yes, disable two-factor authentication"}
+                        {disablingTotp ? "Disabling..." : "Yes, disable two-factor authentication"}
                       </Button>
                       <Button
                         type="button"
@@ -635,8 +595,8 @@ const SecurityPage: NextPageWithLayout = () => {
                   variant="smallTextParagraphs"
                   sx={{ color: ({ palette }) => palette.gray[80] }}
                 >
-                  Scan the QR code with your authenticator app, then enter the
-                  6-digit code to enable TOTP.
+                  Scan the QR code with your authenticator app, then enter the 6-digit code to
+                  enable TOTP.
                 </Typography>
                 {totpQrCodeDataUri ? (
                   <Box
@@ -689,11 +649,7 @@ const SecurityPage: NextPageWithLayout = () => {
                   placeholder="Enter your 6-digit code"
                   value={totpCode}
                   onChange={({ target }) => setTotpCode(target.value)}
-                  error={
-                    !!totpCodeUiNode?.messages.find(
-                      ({ type }) => type === "error",
-                    )
-                  }
+                  error={!!totpCodeUiNode?.messages.find(({ type }) => type === "error")}
                   helperText={totpCodeUiNode?.messages.map(({ id, text }) => (
                     <Typography key={id}>{text}</Typography>
                   ))}
@@ -744,18 +700,13 @@ const SecurityPage: NextPageWithLayout = () => {
           </Box>
 
           {flow?.ui.messages?.map((message) => (
-            <Typography key={message.id}>
-              {formatKratosMessage(message)}
-            </Typography>
+            <Typography key={message.id}>{formatKratosMessage(message)}</Typography>
           ))}
           {errorMessage ? <Typography>{errorMessage}</Typography> : null}
         </Box>
       </SettingsPageContainer>
 
-      <Modal
-        open={showBackupCodesModal}
-        onClose={() => setShowBackupCodesModal(false)}
-      >
+      <Modal open={showBackupCodesModal} onClose={() => setShowBackupCodesModal(false)}>
         <Box sx={{ p: 4 }} data-testid="backup-codes-modal">
           <Typography variant="h3" sx={{ mb: 1.5 }}>
             Backup codes
@@ -788,17 +739,15 @@ const SecurityPage: NextPageWithLayout = () => {
               variant="secondary"
               data-testid="copy-backup-codes-button"
               onClick={() => {
-                navigator.clipboard
-                  .writeText(backupCodes.join("\n"))
-                  .catch(() => {
-                    // Surface the failure rather than silently swallowing
-                    // it — losing backup codes leads to account lockout if
-                    // the user later loses their authenticator.
-                    setErrorMessage(
-                      "We couldn't copy your backup codes to the clipboard. " +
-                        "Please copy them manually before closing this dialog.",
-                    );
-                  });
+                navigator.clipboard.writeText(backupCodes.join("\n")).catch(() => {
+                  // Surface the failure rather than silently swallowing
+                  // it — losing backup codes leads to account lockout if
+                  // the user later loses their authenticator.
+                  setErrorMessage(
+                    "We couldn't copy your backup codes to the clipboard. " +
+                      "Please copy them manually before closing this dialog.",
+                  );
+                });
               }}
               disabled={backupCodes.length === 0}
             >

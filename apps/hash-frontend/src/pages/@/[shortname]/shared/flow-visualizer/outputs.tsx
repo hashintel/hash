@@ -3,10 +3,7 @@ import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
-import {
-  currentTimestamp,
-  generateTimestamp,
-} from "@blockprotocol/type-system";
+import { currentTimestamp, generateTimestamp } from "@blockprotocol/type-system";
 import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
@@ -72,10 +69,7 @@ export const getDeliverables = (
       }
     }
 
-    if (
-      payload.kind === "PersistedEntityMetadata" &&
-      !Array.isArray(payload.value)
-    ) {
+    if (payload.kind === "PersistedEntityMetadata" && !Array.isArray(payload.value)) {
       const persistedEntityId = payload.value.entityId;
       if (!persistedEntityId) {
         continue;
@@ -89,9 +83,7 @@ export const getDeliverables = (
         continue;
       }
 
-      const { displayName, fileName, fileUrl } = getFileProperties(
-        entity.properties,
-      );
+      const { displayName, fileName, fileUrl } = getFileProperties(entity.properties);
 
       if (fileUrl) {
         deliverables.push({
@@ -224,11 +216,7 @@ const SectionTabButton = ({
         </Typography>
       </IconButton>
       {additionalControlElements && (
-        <Collapse
-          orientation="horizontal"
-          in={active}
-          timeout={{ enter: 200, exit: 0 }}
-        >
+        <Collapse orientation="horizontal" in={active} timeout={{ enter: 200, exit: 0 }}>
           {additionalControlElements}
         </Collapse>
       )}
@@ -236,9 +224,7 @@ const SectionTabButton = ({
   );
 };
 
-const mockEntityFromProposedEntity = (
-  proposedEntity: ProposedEntityOutput,
-): HashEntity => {
+const mockEntityFromProposedEntity = (proposedEntity: ProposedEntityOutput): HashEntity => {
   const editionId = new Date().toISOString() as EntityEditionId;
 
   const temporalInterval: LeftClosedTemporalInterval = {
@@ -253,13 +239,9 @@ const mockEntityFromProposedEntity = (
       sourceEntityId && targetEntityId
         ? {
             leftEntityId:
-              "localId" in sourceEntityId
-                ? sourceEntityId.localId
-                : sourceEntityId.entityId,
+              "localId" in sourceEntityId ? sourceEntityId.localId : sourceEntityId.entityId,
             rightEntityId:
-              "localId" in targetEntityId
-                ? targetEntityId.localId
-                : targetEntityId.entityId,
+              "localId" in targetEntityId ? targetEntityId.localId : targetEntityId.entityId,
           }
         : undefined,
     metadata: {
@@ -321,12 +303,9 @@ export const Outputs = ({
 
   const hasClaims =
     !!selectedFlowRun &&
-    goalFlowDefinitionIds.includes(
-      selectedFlowRun.flowDefinitionId as EntityUuid,
-    );
+    goalFlowDefinitionIds.includes(selectedFlowRun.flowDefinitionId as EntityUuid);
 
-  const hasEntities =
-    persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;
+  const hasEntities = persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;
 
   const deliverables = useMemo(
     () => getDeliverables(selectedFlowRun?.outputs, persistedEntities),
@@ -339,10 +318,7 @@ export const Outputs = ({
    */
   const persistedEntitiesWithOperation = useMemo(() => {
     const metadataByEntityId = new Map(
-      persistedEntitiesMetadata.map((metadata) => [
-        metadata.entityId,
-        metadata.operation,
-      ]),
+      persistedEntitiesMetadata.map((metadata) => [metadata.entityId, metadata.operation]),
     );
 
     return persistedEntities.map((entity) => {
@@ -359,13 +335,11 @@ export const Outputs = ({
     });
   }, [persistedEntities, persistedEntitiesMetadata]);
 
-  const [entityDisplay, setEntityDisplay] = useState<"table" | "graph">(
-    "table",
-  );
+  const [entityDisplay, setEntityDisplay] = useState<"table" | "graph">("table");
 
-  const [visibleSection, setVisibleSection] = useState<
-    "claims" | "entities" | "deliverables"
-  >(hasEntities ? "entities" : "claims");
+  const [visibleSection, setVisibleSection] = useState<"claims" | "entities" | "deliverables">(
+    hasEntities ? "entities" : "claims",
+  );
 
   const uniqueProposedEntityTypeSets = useMemo(() => {
     /**
@@ -383,48 +357,39 @@ export const Outputs = ({
     }
 
     return Array.from(uniqueTypeIdSets).map(
-      (typeIdSetKey) =>
-        typeIdSetKey.split(",").filter((id) => id.length > 0) as VersionedUrl[],
+      (typeIdSetKey) => typeIdSetKey.split(",").filter((id) => id.length > 0) as VersionedUrl[],
     );
   }, [proposedEntities]);
 
-  const {
-    data: proposedEntitiesTypesData,
-    previousData: previousProposedEntitiesTypesData,
-  } = useQuery<
-    GetClosedMultiEntityTypesQuery,
-    GetClosedMultiEntityTypesQueryVariables
-  >(getClosedMultiEntityTypesQuery, {
-    fetchPolicy: "cache-and-network",
-    variables: {
-      request: {
-        entityTypeIds: uniqueProposedEntityTypeSets,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeResolved: "resolvedWithDataTypeChildren",
+  const { data: proposedEntitiesTypesData, previousData: previousProposedEntitiesTypesData } =
+    useQuery<GetClosedMultiEntityTypesQuery, GetClosedMultiEntityTypesQueryVariables>(
+      getClosedMultiEntityTypesQuery,
+      {
+        fetchPolicy: "cache-and-network",
+        variables: {
+          request: {
+            entityTypeIds: uniqueProposedEntityTypeSets,
+            temporalAxes: currentTimeInstantTemporalAxes,
+            includeResolved: "resolvedWithDataTypeChildren",
+          },
+        },
+        skip: proposedEntities.length === 0,
       },
-    },
-    skip: proposedEntities.length === 0,
-  });
+    );
 
   const proposedEntitiesTypesInfo = useMemo(() => {
     if (!proposedEntitiesTypesData) {
       return previousProposedEntitiesTypesData
         ? {
-            entityTypes:
-              previousProposedEntitiesTypesData.getClosedMultiEntityTypes
-                .entityTypes,
-            definitions:
-              previousProposedEntitiesTypesData.getClosedMultiEntityTypes
-                .definitions,
+            entityTypes: previousProposedEntitiesTypesData.getClosedMultiEntityTypes.entityTypes,
+            definitions: previousProposedEntitiesTypesData.getClosedMultiEntityTypes.definitions,
           }
         : undefined;
     }
 
     return {
-      entityTypes:
-        proposedEntitiesTypesData.getClosedMultiEntityTypes.entityTypes,
-      definitions:
-        proposedEntitiesTypesData.getClosedMultiEntityTypes.definitions,
+      entityTypes: proposedEntitiesTypesData.getClosedMultiEntityTypes.entityTypes,
+      definitions: proposedEntitiesTypesData.getClosedMultiEntityTypes.definitions,
     };
   }, [proposedEntitiesTypesData, previousProposedEntitiesTypesData]);
 
@@ -525,13 +490,8 @@ export const Outputs = ({
     }
 
     return proposedEntities.map((proposedEntity) => {
-      const {
-        entityTypeIds,
-        localEntityId,
-        properties,
-        sourceEntityId,
-        targetEntityId,
-      } = proposedEntity;
+      const { entityTypeIds, localEntityId, properties, sourceEntityId, targetEntityId } =
+        proposedEntity;
 
       const editionId = new Date().toISOString() as EntityEditionId;
 
@@ -540,13 +500,9 @@ export const Outputs = ({
           sourceEntityId && targetEntityId
             ? {
                 leftEntityId:
-                  "localId" in sourceEntityId
-                    ? sourceEntityId.localId
-                    : sourceEntityId.entityId,
+                  "localId" in sourceEntityId ? sourceEntityId.localId : sourceEntityId.entityId,
                 rightEntityId:
-                  "localId" in targetEntityId
-                    ? targetEntityId.localId
-                    : targetEntityId.entityId,
+                  "localId" in targetEntityId ? targetEntityId.localId : targetEntityId.entityId,
               }
             : undefined,
         metadata: {
@@ -596,11 +552,7 @@ export const Outputs = ({
                           key={option}
                           label={option}
                           active={entityDisplay === option}
-                          Icon={
-                            entityDisplay === option
-                              ? CheckRegularIcon
-                              : outputIcons[option]
-                          }
+                          Icon={entityDisplay === option ? CheckRegularIcon : outputIcons[option]}
                           onClick={() => setEntityDisplay(option)}
                         />
                       ))}
@@ -631,9 +583,7 @@ export const Outputs = ({
           (entityDisplay === "table" ? (
             <EntityResultTable
               dataIsLoading={
-                hasEntities &&
-                !persistedEntitiesSubgraph &&
-                !proposedEntitiesTypesInfo
+                hasEntities && !persistedEntitiesSubgraph && !proposedEntitiesTypesInfo
               }
               persistedEntitiesWithOperation={persistedEntitiesWithOperation}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
@@ -645,18 +595,13 @@ export const Outputs = ({
           ) : (
             <EntityResultGraph
               closedMultiEntityTypesRootMap={
-                persistedEntitiesTypesInfo?.entityTypes ??
-                proposedEntitiesTypesInfo?.entityTypes
+                persistedEntitiesTypesInfo?.entityTypes ?? proposedEntitiesTypesInfo?.entityTypes
               }
               entities={entitiesForGraph}
             />
           ))}
-        {visibleSection === "claims" && (
-          <ClaimsOutput proposedEntities={proposedEntities} />
-        )}
-        {visibleSection === "deliverables" && (
-          <Deliverables deliverables={deliverables} />
-        )}
+        {visibleSection === "claims" && <ClaimsOutput proposedEntities={proposedEntities} />}
+        {visibleSection === "deliverables" && <Deliverables deliverables={deliverables} />}
       </Stack>
     </SlideStackProvider>
   );

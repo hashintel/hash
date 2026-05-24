@@ -97,8 +97,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
   const shortnameWatcher = watch("shortname", "");
   const displayNameWatcher = watch("displayName", "");
 
-  const { validateShortname, parseShortnameInput, getShortnameError } =
-    useShortnameInput();
+  const { validateShortname, parseShortnameInput, getShortnameError } = useShortnameInput();
 
   const onSubmit = handleSubmit(({ shortname, displayName }) => {
     setupAccount({
@@ -204,8 +203,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             }
             description={
               <>
-                Your own personal graph will exist under this username. e.g.{" "}
-                {frontendUrl}/
+                Your own personal graph will exist under this username. e.g. {frontendUrl}/
                 <Box
                   component="strong"
                   sx={{
@@ -229,9 +227,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                   {...field}
                   onChange={(evt) => {
                     const newEvt = { ...evt };
-                    newEvt.target.value = parseShortnameInput(
-                      newEvt.target.value,
-                    );
+                    newEvt.target.value = parseShortnameInput(newEvt.target.value);
                     field.onChange(newEvt);
                   }}
                   placeholder="example"
@@ -265,9 +261,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                 alignItems: "center",
                 columnGap: 1.5,
                 borderRadius: "8px",
-                borderColor: shortnameError
-                  ? "#FCA5A5"
-                  : "rgba(36, 130, 255, 0.40)",
+                borderColor: shortnameError ? "#FCA5A5" : "rgba(36, 130, 255, 0.40)",
                 borderWidth: 1,
                 borderStyle: "solid",
                 maxWidth: 350,
@@ -301,8 +295,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
               >
                 {shortnameError ?? (
                   <>
-                    If you’re using HASH for work or a team, you’ll be able to
-                    create a separate org{" "}
+                    If you’re using HASH for work or a team, you’ll be able to create a separate org{" "}
                     <Link openInNew href="https://hash.ai/guide/webs">
                       web
                     </Link>{" "}

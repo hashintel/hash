@@ -47,10 +47,7 @@ export class GraphBlockHandler
   implements
     Omit<
       GraphBlockMessages,
-      | "createEntityType"
-      | "updateEntityType"
-      | "createPropertyType"
-      | "updatePropertyType"
+      "createEntityType" | "updateEntityType" | "createPropertyType" | "updatePropertyType"
     >
 {
   constructor({
@@ -156,10 +153,7 @@ export class GraphBlockHandler
   }
 
   getEntity({ data }: { data?: GetEntityData }) {
-    return this.sendMessage<
-      Subgraph<EntityRootType>,
-      ReadOrModifyResourceError
-    >({
+    return this.sendMessage<Subgraph<EntityRootType>, ReadOrModifyResourceError>({
       message: {
         messageName: "getEntity",
         data,
@@ -214,10 +208,7 @@ export class GraphBlockHandler
   // }
 
   getEntityType({ data }: { data?: GetEntityTypeData }) {
-    return this.sendMessage<
-      Subgraph<EntityTypeRootType>,
-      ReadOrModifyResourceError
-    >({
+    return this.sendMessage<Subgraph<EntityTypeRootType>, ReadOrModifyResourceError>({
       message: {
         messageName: "getEntityType",
         data,
@@ -240,10 +231,7 @@ export class GraphBlockHandler
   }
 
   getPropertyType({ data }: { data?: GetPropertyTypeData }) {
-    return this.sendMessage<
-      Subgraph<PropertyTypeRootType>,
-      ReadOrModifyResourceError
-    >({
+    return this.sendMessage<Subgraph<PropertyTypeRootType>, ReadOrModifyResourceError>({
       message: {
         messageName: "getPropertyType",
         data,
@@ -266,10 +254,7 @@ export class GraphBlockHandler
   }
 
   getDataType({ data }: { data?: GetDataTypeData }) {
-    return this.sendMessage<
-      Subgraph<DataTypeRootType>,
-      ReadOrModifyResourceError
-    >({
+    return this.sendMessage<Subgraph<DataTypeRootType>, ReadOrModifyResourceError>({
       message: {
         messageName: "getDataType",
         data,

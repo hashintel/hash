@@ -16,12 +16,12 @@ import type { QueryEntitiesMessageCallback } from "./knowledge-shim";
 export const useBlockProtocolQueryEntities = (): {
   queryEntities: QueryEntitiesMessageCallback;
 } => {
-  const [queryFn] = useLazyQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    fetchPolicy: "cache-and-network",
-  });
+  const [queryFn] = useLazyQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
+    {
+      fetchPolicy: "cache-and-network",
+    },
+  );
 
   const queryEntities = useCallback<QueryEntitiesMessageCallback>(
     async ({ data }) => {
@@ -39,9 +39,7 @@ export const useBlockProtocolQueryEntities = (): {
       const { operation, ...additionalParams } = data;
 
       if (operation.multiSort !== undefined && operation.multiSort !== null) {
-        throw new Error(
-          "Sorting on queryEntities results is not currently supported",
-        );
+        throw new Error("Sorting on queryEntities results is not currently supported");
       }
 
       /**

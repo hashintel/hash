@@ -39,11 +39,7 @@ export type LlmMessageToolResultContent = {
 
 export type LlmUserMessage = {
   role: "user";
-  content: (
-    | LlmMessageTextContent
-    | LlmMessageToolResultContent
-    | LlmFileMessageContent
-  )[];
+  content: (LlmMessageTextContent | LlmMessageToolResultContent | LlmFileMessageContent)[];
 };
 
 export type LlmMessage = LlmAssistantMessage | LlmUserMessage;
@@ -93,9 +89,7 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                 throw new Error("Image content not supported");
               } else if (content.type === "tool_result") {
                 throw new Error(
-                  `Anthropic assistant message contains a tool result: ${JSON.stringify(
-                    content,
-                  )}`,
+                  `Anthropic assistant message contains a tool result: ${JSON.stringify(content)}`,
                 );
               } else if (content.type === "tool_use") {
                 return {
@@ -108,9 +102,7 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                 return content;
               }
 
-              throw new Error(
-                `Unexpected content type: ${JSON.stringify(content)}`,
-              );
+              throw new Error(`Unexpected content type: ${JSON.stringify(content)}`);
             }),
     };
   }
@@ -149,9 +141,7 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                   return content;
                 }
 
-                throw new Error(
-                  `Unexpected content type in tool result: ${content.type}`,
-                );
+                throw new Error(`Unexpected content type in tool result: ${content.type}`);
               });
 
               return {
@@ -165,21 +155,16 @@ export const mapAnthropicMessageToLlmMessage = (params: {
               return block;
             }
 
-            throw new Error(
-              `Unexpected content type: ${JSON.stringify(block)}`,
-            );
+            throw new Error(`Unexpected content type: ${JSON.stringify(block)}`);
           }),
   };
 };
 
-export const getToolCallsFromLlmAssistantMessage = <
-  ToolName extends string = string,
->(params: {
+export const getToolCallsFromLlmAssistantMessage = <ToolName extends string = string>(params: {
   message: LlmAssistantMessage<ToolName>;
 }): LlmMessageToolUseContent<ToolName>[] =>
   params.message.content.filter(
-    (content): content is LlmMessageToolUseContent<ToolName> =>
-      content.type === "tool_use",
+    (content): content is LlmMessageToolUseContent<ToolName> => content.type === "tool_use",
   );
 
 export const getTextContentFromLlmMessage = (params: {
@@ -255,129 +240,112 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
 }): LlmMessage[] => {
   const { messages } = params;
 
-  return messages.reduce<LlmMessage[]>(
-    (previousLlmMessages, currentMessage) => {
-      if (currentMessage.role === "assistant") {
-        const toolCalls =
-          currentMessage.tool_calls?.map<LlmMessageToolUseContent>(
-            (toolCall) => {
-              const rawInput =
-                toolCall.type === "function"
-                  ? toolCall.function.arguments
-                  : toolCall.custom.input;
+  return messages.reduce<LlmMessage[]>((previousLlmMessages, currentMessage) => {
+    if (currentMessage.role === "assistant") {
+      const toolCalls = currentMessage.tool_calls?.map<LlmMessageToolUseContent>((toolCall) => {
+        const rawInput =
+          toolCall.type === "function" ? toolCall.function.arguments : toolCall.custom.input;
 
-              const rawName =
-                toolCall.type === "function"
-                  ? toolCall.function.name
-                  : toolCall.custom.name;
+        const rawName =
+          toolCall.type === "function" ? toolCall.function.name : toolCall.custom.name;
 
-              let jsonInput: object;
-              try {
-                jsonInput = JSON.parse(rawInput) as object;
-              } catch {
-                // model's input could not be parsed, this is likely a retry of a failed tool call
-                jsonInput = { unparseableInput: rawInput };
-              }
+        let jsonInput: object;
+        try {
+          jsonInput = JSON.parse(rawInput) as object;
+        } catch {
+          // model's input could not be parsed, this is likely a retry of a failed tool call
+          jsonInput = { unparseableInput: rawInput };
+        }
 
-              return {
-                type: "tool_use" as const,
-                id: toolCall.id,
-                name: sanitizeToolCallName(rawName),
-                input: jsonInput,
-              };
-            },
-          );
+        return {
+          type: "tool_use" as const,
+          id: toolCall.id,
+          name: sanitizeToolCallName(rawName),
+          input: jsonInput,
+        };
+      });
 
-        return [
-          ...previousLlmMessages,
-          {
-            role: "assistant",
-            content: [
-              ...(currentMessage.content &&
-              typeof currentMessage.content === "string"
-                ? [
-                    {
+      return [
+        ...previousLlmMessages,
+        {
+          role: "assistant",
+          content: [
+            ...(currentMessage.content && typeof currentMessage.content === "string"
+              ? [
+                  {
+                    type: "text" as const,
+                    text: currentMessage.content,
+                  },
+                ]
+              : []),
+            ...(toolCalls ?? []),
+          ],
+        } satisfies LlmAssistantMessage,
+      ];
+    } else if (currentMessage.role === "user") {
+      return [
+        ...previousLlmMessages,
+        {
+          role: "user",
+          content: currentMessage.content
+            ? typeof currentMessage.content === "string"
+              ? [
+                  {
+                    type: "text" as const,
+                    text: currentMessage.content,
+                  },
+                ]
+              : currentMessage.content.map<LlmUserMessage["content"][number]>((content) => {
+                  if (content.type === "text") {
+                    return {
                       type: "text" as const,
-                      text: currentMessage.content,
-                    },
-                  ]
-                : []),
-              ...(toolCalls ?? []),
-            ],
-          } satisfies LlmAssistantMessage,
-        ];
-      } else if (currentMessage.role === "user") {
+                      text: content.text,
+                    };
+                  }
+                  throw new Error(`Unexpected content type: ${content.type}`);
+                })
+            : [],
+        } satisfies LlmUserMessage,
+      ];
+    } else if (currentMessage.role === "tool") {
+      const textualContent =
+        typeof currentMessage.content === "string"
+          ? currentMessage.content
+          : currentMessage.content.map((contentPart) => contentPart.text).join("\n");
+
+      const toolResultContent: LlmMessageToolResultContent = {
+        type: "tool_result",
+        tool_use_id: currentMessage.tool_call_id,
+        content: textualContent,
+      };
+
+      const previousLlmMessage = previousLlmMessages.slice(-1)[0];
+
+      if (!previousLlmMessage || previousLlmMessage.role !== "user") {
+        /**
+         * If there is no previous message, or the previous message
+         * is not a `user` message, then create a new `user` message
+         * with the tool result content.
+         */
         return [
           ...previousLlmMessages,
           {
             role: "user",
-            content: currentMessage.content
-              ? typeof currentMessage.content === "string"
-                ? [
-                    {
-                      type: "text" as const,
-                      text: currentMessage.content,
-                    },
-                  ]
-                : currentMessage.content.map<LlmUserMessage["content"][number]>(
-                    (content) => {
-                      if (content.type === "text") {
-                        return {
-                          type: "text" as const,
-                          text: content.text,
-                        };
-                      }
-                      throw new Error(
-                        `Unexpected content type: ${content.type}`,
-                      );
-                    },
-                  )
-              : [],
-          } satisfies LlmUserMessage,
+            content: [toolResultContent],
+          } as LlmUserMessage,
         ];
-      } else if (currentMessage.role === "tool") {
-        const textualContent =
-          typeof currentMessage.content === "string"
-            ? currentMessage.content
-            : currentMessage.content
-                .map((contentPart) => contentPart.text)
-                .join("\n");
-
-        const toolResultContent: LlmMessageToolResultContent = {
-          type: "tool_result",
-          tool_use_id: currentMessage.tool_call_id,
-          content: textualContent,
-        };
-
-        const previousLlmMessage = previousLlmMessages.slice(-1)[0];
-
-        if (!previousLlmMessage || previousLlmMessage.role !== "user") {
-          /**
-           * If there is no previous message, or the previous message
-           * is not a `user` message, then create a new `user` message
-           * with the tool result content.
-           */
-          return [
-            ...previousLlmMessages,
-            {
-              role: "user",
-              content: [toolResultContent],
-            } as LlmUserMessage,
-          ];
-        }
-
-        /**
-         * If the previous message is a `user` message, then append
-         * the tool result content to the previous message to avoid
-         * consecutive `user` messages.
-         */
-        previousLlmMessage.content.push(toolResultContent);
-
-        return previousLlmMessages;
       }
 
+      /**
+       * If the previous message is a `user` message, then append
+       * the tool result content to the previous message to avoid
+       * consecutive `user` messages.
+       */
+      previousLlmMessage.content.push(toolResultContent);
+
       return previousLlmMessages;
-    },
-    [] as LlmMessage[],
-  );
+    }
+
+    return previousLlmMessages;
+  }, [] as LlmMessage[]);
 };

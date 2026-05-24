@@ -9,8 +9,7 @@ const pageNameFallback = "Untitled";
 const listOfPagesSelector = '[data-testid="pages-tree"]';
 const pageTitleInputSelector = '[placeholder="Untitled"]';
 const createPageButtonSelector = '[data-testid="create-page-btn"]';
-const placeholderSelector =
-  "text=Type / to browse blocks, or @ to browse entities";
+const placeholderSelector = "text=Type / to browse blocks, or @ to browse entities";
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
 
 // @todo fix this test
@@ -30,9 +29,7 @@ test.skip("user can create page", async ({ page }) => {
 
   // Wait for ProseMirror to load
   // TODO: investigate why page renaming before block loading is unstable
-  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(
-    1,
-  );
+  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(1);
   await expect(listOfPages).toContainText(pageNameFallback);
 
   // Type in a paragraph block
@@ -85,20 +82,14 @@ test.skip("user can create page", async ({ page }) => {
   );
 
   // Check number of blocks
-  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(
-    3,
-  );
+  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(3);
 
   await page.keyboard.press("Enter");
   await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
-  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(
-    4,
-  );
+  await expect(blockRegion.locator('[data-testid="block-handle"]')).toHaveCount(4);
 
-  const blockChanger = blockRegion
-    .locator('[data-testid="block-changer"]')
-    .nth(2);
+  const blockChanger = blockRegion.locator('[data-testid="block-changer"]').nth(2);
   await blockChanger.click();
 
   /** @todo-0.3 - re-enable this once HASH and BP are in sync again and the code block is fixed */
@@ -141,10 +132,9 @@ test.skip("user can create page", async ({ page }) => {
 
   await expect(blocks.nth(0).locator("em")).toContainText("italics");
 
-  await expect(blocks.nth(1)).toContainText(
-    "Second paragraph\n\nwith\nline breaks",
-    { useInnerText: true },
-  );
+  await expect(blocks.nth(1)).toContainText("Second paragraph\n\nwith\nline breaks", {
+    useInnerText: true,
+  });
 
   await expect(blockRegion.locator("hr")).toBeVisible();
 

@@ -42,14 +42,10 @@ type AccountEntitiesListProps = {
   webId: WebId;
 };
 
-export const AccountEntitiesList: FunctionComponent<
-  AccountEntitiesListProps
-> = ({ webId }) => {
+export const AccountEntitiesList: FunctionComponent<AccountEntitiesListProps> = ({ webId }) => {
   const preferences = useUserPreferences();
 
-  const [expanded, setExpanded] = useState<boolean>(
-    preferences.sidebarSections.entities.expanded,
-  );
+  const [expanded, setExpanded] = useState<boolean>(preferences.sidebarSections.entities.expanded);
 
   const [updateUser] = useUpdateAuthenticatedUser();
 
@@ -110,11 +106,8 @@ export const AccountEntitiesList: FunctionComponent<
     if (latestEntityTypes) {
       return latestEntityTypes.filter(
         (root) =>
-          ((isOwnedOntologyElementMetadata(root.metadata) &&
-            root.metadata.webId === webId) ||
-            Object.keys(userEntitiesData?.queryEntities.typeIds ?? {}).includes(
-              root.schema.$id,
-            )) &&
+          ((isOwnedOntologyElementMetadata(root.metadata) && root.metadata.webId === webId) ||
+            Object.keys(userEntitiesData?.queryEntities.typeIds ?? {}).includes(root.schema.$id)) &&
           // Filter out external types from blockprotocol.org, except the Address type.
           (!root.schema.$id.startsWith(blockProtocolHubOrigin) ||
             root.schema.$id.includes("/address/")) &&
@@ -166,11 +159,7 @@ export const AccountEntitiesList: FunctionComponent<
                     },
                   })}
                 >
-                  {sortType === "asc" ? (
-                    <ArrowDownAZRegularIcon />
-                  ) : (
-                    <ArrowUpZARegularIcon />
-                  )}
+                  {sortType === "asc" ? <ArrowDownAZRegularIcon /> : <ArrowUpZARegularIcon />}
                 </IconButton>
               </Tooltip>
             </Fade>
@@ -207,9 +196,7 @@ export const AccountEntitiesList: FunctionComponent<
                 <Collapse key={root.schema.$id}>
                   <EntityOrTypeSidebarItem
                     entityType={root.schema}
-                    href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
-                      root.schema.$id,
-                    )}`}
+                    href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(root.schema.$id)}`}
                     variant="entity"
                   />
                 </Collapse>

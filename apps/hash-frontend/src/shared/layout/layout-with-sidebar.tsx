@@ -8,11 +8,7 @@ import { ArrowRightToLineIcon } from "../icons";
 import { useIsReadonlyModeForApp } from "../readonly-mode";
 import { LayoutWithHeader } from "./layout-with-header";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
-import {
-  PageSidebar,
-  SIDEBAR_WIDTH,
-  useSidebarContext,
-} from "./layout-with-sidebar/page-sidebar";
+import { PageSidebar, SIDEBAR_WIDTH, useSidebarContext } from "./layout-with-sidebar/page-sidebar";
 
 import type { FunctionComponent, ReactNode } from "react";
 
@@ -73,11 +69,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             }),
           })}
         >
-          <Collapse
-            orientation="horizontal"
-            timeout={100}
-            in={!isReadonlyMode && !sidebarOpen}
-          >
+          <Collapse orientation="horizontal" timeout={100} in={!isReadonlyMode && !sidebarOpen}>
             <Stack
               alignItems="center"
               sx={({ palette, zIndex }) => ({
@@ -110,9 +102,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
 
           <Box
             sx={({ palette }) => ({
-              backgroundColor: grayBackground
-                ? palette.gray[10]
-                : palette.common.white,
+              backgroundColor: grayBackground ? palette.gray[10] : palette.common.white,
               display: "flex",
               minHeight: `calc(100vh - ${HEADER_HEIGHT}px)`,
               flex: 1,
@@ -129,9 +119,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
               })}
             >
               {/* Enables EditBar to make the page scroll as it animates in */}
-              <EditBarScroller scrollingNode={scrollingNode}>
-                {children}
-              </EditBarScroller>
+              <EditBarScroller scrollingNode={scrollingNode}>{children}</EditBarScroller>
             </Main>
           </Box>
         </Stack>

@@ -63,55 +63,37 @@ export const archiveEntitiesMutation = gql`
 `;
 
 export const addEntityOwnerMutation = gql`
-  mutation addEntityOwner(
-    $entityId: EntityId!
-    $owner: AuthorizationSubjectId!
-  ) {
+  mutation addEntityOwner($entityId: EntityId!, $owner: AuthorizationSubjectId!) {
     addEntityOwner(entityId: $entityId, owner: $owner)
   }
 `;
 
 export const removeEntityOwnerMutation = gql`
-  mutation removeEntityOwner(
-    $entityId: EntityId!
-    $owner: AuthorizationSubjectId!
-  ) {
+  mutation removeEntityOwner($entityId: EntityId!, $owner: AuthorizationSubjectId!) {
     removeEntityOwner(entityId: $entityId, owner: $owner)
   }
 `;
 
 export const addEntityEditorMutation = gql`
-  mutation addEntityEditor(
-    $entityId: EntityId!
-    $editor: AuthorizationSubjectId!
-  ) {
+  mutation addEntityEditor($entityId: EntityId!, $editor: AuthorizationSubjectId!) {
     addEntityEditor(entityId: $entityId, editor: $editor)
   }
 `;
 
 export const removeEntityEditorMutation = gql`
-  mutation removeEntityEditor(
-    $entityId: EntityId!
-    $editor: AuthorizationSubjectId!
-  ) {
+  mutation removeEntityEditor($entityId: EntityId!, $editor: AuthorizationSubjectId!) {
     removeEntityEditor(entityId: $entityId, editor: $editor)
   }
 `;
 
 export const addEntityViewerMutation = gql`
-  mutation addEntityViewer(
-    $entityId: EntityId!
-    $viewer: AuthorizationViewerInput!
-  ) {
+  mutation addEntityViewer($entityId: EntityId!, $viewer: AuthorizationViewerInput!) {
     addEntityViewer(entityId: $entityId, viewer: $viewer)
   }
 `;
 
 export const removeEntityViewerMutation = gql`
-  mutation removeEntityViewer(
-    $entityId: EntityId!
-    $viewer: AuthorizationViewerInput!
-  ) {
+  mutation removeEntityViewer($entityId: EntityId!, $viewer: AuthorizationViewerInput!) {
     removeEntityViewer(entityId: $entityId, viewer: $viewer)
   }
 `;
@@ -160,10 +142,6 @@ export const validateEntityQuery = gql`
     $entityTypes: [VersionedUrl!]!
     $properties: PropertyObjectWithMetadata!
   ) {
-    validateEntity(
-      components: $components
-      entityTypes: $entityTypes
-      properties: $properties
-    )
+    validateEntity(components: $components, entityTypes: $entityTypes, properties: $properties)
   }
 `;

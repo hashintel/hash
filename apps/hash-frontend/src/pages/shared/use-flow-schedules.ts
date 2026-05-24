@@ -87,9 +87,9 @@ export const useFlowSchedules = (): UseFlowSchedulesResult => {
       return new Map();
     }
 
-    const subgraph = deserializeSubgraph<
-      EntityRootType<HashEntity<FlowSchedule>>
-    >(data.queryEntitySubgraph.subgraph);
+    const subgraph = deserializeSubgraph<EntityRootType<HashEntity<FlowSchedule>>>(
+      data.queryEntitySubgraph.subgraph,
+    );
 
     const entities = getRoots(subgraph);
     const byUuid = new Map<EntityUuid, Simplified<HashEntity<FlowSchedule>>>();

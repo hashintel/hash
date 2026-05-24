@@ -103,9 +103,7 @@ function createRefractiveComponent<
           ref={elementRef}
           style={{
             ...componentProps.style,
-            ...(hasMeasuredElement
-              ? { backdropFilter: `url(#${filterId})` }
-              : undefined),
+            ...(hasMeasuredElement ? { backdropFilter: `url(#${filterId})` } : undefined),
             borderRadius: refraction.radius,
           }}
         />
@@ -115,9 +113,7 @@ function createRefractiveComponent<
 }
 
 type HTMLElements = {
-  [K in keyof JSX.IntrinsicElements]: ComponentType<
-    JSX.IntrinsicElements[K] & RefractionProps
-  >;
+  [K in keyof JSX.IntrinsicElements]: ComponentType<JSX.IntrinsicElements[K] & RefractionProps>;
 };
 
 type RefractiveFunction = (<P extends object>(
@@ -170,8 +166,8 @@ export const refractive = new Proxy(createRefractiveComponent, {
     if (CACHE.has(elementName)) {
       return CACHE.get(elementName);
     }
-    const refractiveComponent = createRefractiveComponent(
-      ({ children, ...props }) => createElement(elementName, props, children),
+    const refractiveComponent = createRefractiveComponent(({ children, ...props }) =>
+      createElement(elementName, props, children),
     );
     CACHE.set(elementName, refractiveComponent);
     return refractiveComponent;

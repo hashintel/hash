@@ -150,10 +150,7 @@ function renderPlaybackProvider(simulationContext: SimulationContextValue): {
   };
 
   const renderResult = render(
-    <TestWrapper
-      simContext={simulationContext}
-      onContextValue={captureValue}
-    />,
+    <TestWrapper simContext={simulationContext} onContextValue={captureValue} />,
   );
 
   return {
@@ -161,10 +158,7 @@ function renderPlaybackProvider(simulationContext: SimulationContextValue): {
     renderResult,
     rerender: (newSimulationContext: SimulationContextValue) => {
       renderResult.rerender(
-        <TestWrapper
-          simContext={newSimulationContext}
-          onContextValue={captureValue}
-        />,
+        <TestWrapper simContext={newSimulationContext} onContextValue={captureValue} />,
       );
     },
   };
@@ -184,13 +178,11 @@ describe("PlaybackProvider", () => {
     rafId = 0;
 
     // Mock requestAnimationFrame
-    globalThis.requestAnimationFrame = vi.fn(
-      (callback: FrameRequestCallback) => {
-        const id = ++rafId;
-        rafCallbacks.push(callback);
-        return id;
-      },
-    );
+    globalThis.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
+      const id = ++rafId;
+      rafCallbacks.push(callback);
+      return id;
+    });
 
     globalThis.cancelAnimationFrame = vi.fn((_id) => {
       // Simple mock - doesn't actually cancel but that's fine for tests
@@ -273,8 +265,7 @@ describe("PlaybackProvider", () => {
         },
         10,
       );
-      const { getPlaybackValue, rerender } =
-        renderPlaybackProvider(simulationContext);
+      const { getPlaybackValue, rerender } = renderPlaybackProvider(simulationContext);
 
       // Initially in computeMax mode
       expect(getPlaybackValue().playMode).toBe("computeMax");
@@ -303,8 +294,7 @@ describe("PlaybackProvider", () => {
         },
         10,
       );
-      const { getPlaybackValue, rerender } =
-        renderPlaybackProvider(simulationContext);
+      const { getPlaybackValue, rerender } = renderPlaybackProvider(simulationContext);
 
       // Manually advance frame index
       act(() => {
@@ -835,8 +825,7 @@ describe("PlaybackProvider", () => {
         },
         10,
       );
-      const { getPlaybackValue, rerender } =
-        renderPlaybackProvider(simulationContext);
+      const { getPlaybackValue, rerender } = renderPlaybackProvider(simulationContext);
 
       expect(getPlaybackValue().playbackState).toBe("Stopped");
 

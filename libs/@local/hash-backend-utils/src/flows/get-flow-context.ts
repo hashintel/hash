@@ -75,34 +75,26 @@ export const getFlowEntityInfo = async (params: {
     async () => {
       const {
         entities: [entity],
-      } = await queryEntities<FlowRunEntity>(
-        { graphApi: graphApiClient },
-        userAuthentication,
-        {
-          filter: {
-            all: [
-              {
-                equal: [
-                  {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.workflowId.propertyTypeBaseUrl,
-                    ],
-                  },
-                  { parameter: workflowId },
-                ],
-              },
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.flowRun.entityTypeId,
-                { ignoreParents: true },
-              ),
-            ],
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: false,
-          includePermissions: false,
+      } = await queryEntities<FlowRunEntity>({ graphApi: graphApiClient }, userAuthentication, {
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["properties", systemPropertyTypes.workflowId.propertyTypeBaseUrl],
+                },
+                { parameter: workflowId },
+              ],
+            },
+            generateVersionedUrlMatchingFilter(systemEntityTypes.flowRun.entityTypeId, {
+              ignoreParents: true,
+            }),
+          ],
         },
-      );
+        temporalAxes: currentTimeInstantTemporalAxes,
+        includeDrafts: false,
+        includePermissions: false,
+      });
 
       if (!entity) {
         throw new Error(
@@ -177,9 +169,7 @@ export const getBaseWorkflowParams = async (params: {
     );
   }
 
-  const inputs = parseHistoryItemPayload(
-    workflowExecutionStartedEventAttributes.input,
-  );
+  const inputs = parseHistoryItemPayload(workflowExecutionStartedEventAttributes.input);
 
   if (!inputs) {
     throw new Error(
@@ -190,9 +180,7 @@ export const getBaseWorkflowParams = async (params: {
   const [runFlowWorkflowParams] = inputs as RunAiFlowWorkflowParams[];
 
   if (!runFlowWorkflowParams) {
-    throw new Error(
-      `No parameters of the "runFlow" workflow found for workflowId ${workflowId}`,
-    );
+    throw new Error(`No parameters of the "runFlow" workflow found for workflowId ${workflowId}`);
   }
 
   const baseParams: BaseWorkflowParams = {

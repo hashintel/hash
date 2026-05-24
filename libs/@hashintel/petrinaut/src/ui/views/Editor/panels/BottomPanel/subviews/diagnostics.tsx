@@ -139,28 +139,18 @@ interface GroupedDiagnostics {
  * DiagnosticsContent shows the full list of diagnostics grouped by entity.
  */
 const DiagnosticsContent: React.FC = () => {
-  const { diagnosticsByUri, totalDiagnosticsCount } = use(
-    LanguageClientContext,
-  );
+  const { diagnosticsByUri, totalDiagnosticsCount } = use(LanguageClientContext);
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
   const { selectItem, setGlobalMode } = use(EditorContext);
-  const {
-    state: simulationState,
-    error: simulationError,
-    errorItemId,
-  } = use(SimulationContext);
+  const { state: simulationState, error: simulationError, errorItemId } = use(SimulationContext);
   // Track collapsed entities (all expanded by default)
-  const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
-    new Set(),
-  );
+  const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(new Set());
 
   // Handler to select an entity when clicking on a diagnostic
   const handleSelectEntity = useCallback(
     (entityId: string, entityType: EntityType) => {
       const selectionType: SelectionItemType =
-        entityType === "differential-equation"
-          ? "differentialEquation"
-          : "transition";
+        entityType === "differential-equation" ? "differentialEquation" : "transition";
       selectItem({ type: selectionType, id: entityId });
     },
     [selectItem],
@@ -190,9 +180,7 @@ const DiagnosticsContent: React.FC = () => {
         subType = null;
       } else {
         entityType = "transition";
-        const transition = petriNetDefinition.transitions.find(
-          (tr) => tr.id === entityId,
-        );
+        const transition = petriNetDefinition.transitions.find((tr) => tr.id === entityId);
         entityName = transition?.name ?? entityId;
         subType = parsed.itemType === "transition-lambda" ? "lambda" : "kernel";
       }
@@ -234,9 +222,7 @@ const DiagnosticsContent: React.FC = () => {
   const hasSimulationError = simulationState === "Error" && !!simulationError;
 
   if (totalDiagnosticsCount === 0 && !hasSimulationError) {
-    return (
-      <div className={emptyMessageStyle}>No errors detected in your model</div>
-    );
+    return <div className={emptyMessageStyle}>No errors detected in your model</div>;
   }
 
   return (
@@ -319,12 +305,7 @@ const DiagnosticsContent: React.FC = () => {
                         >
                           <button
                             type="button"
-                            onClick={() =>
-                              handleSelectEntity(
-                                group.entityId,
-                                group.entityType,
-                              )
-                            }
+                            onClick={() => handleSelectEntity(group.entityId, group.entityType)}
                             className={diagnosticButtonStyle}
                           >
                             <span className={bulletStyle}>•</span>

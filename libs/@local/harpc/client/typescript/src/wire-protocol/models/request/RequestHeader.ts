@@ -24,8 +24,7 @@ const TypeId: unique symbol = Symbol(
 
 export type TypeId = typeof TypeId;
 
-export interface RequestHeader
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface RequestHeader extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly protocol: Protocol.Protocol;
@@ -33,10 +32,7 @@ export interface RequestHeader
   readonly flags: RequestFlags.RequestFlags;
 }
 
-const RequestHeaderProto: Omit<
-  RequestHeader,
-  "protocol" | "requestId" | "flags"
-> = {
+const RequestHeaderProto: Omit<RequestHeader, "protocol" | "requestId" | "flags"> = {
   [TypeId]: TypeId,
 
   [Equal.symbol](this: RequestHeader, that: Equal.Equal) {
@@ -86,18 +82,10 @@ export const make = (
   protocol: Protocol.Protocol,
   requestId: RequestId.RequestId,
   flags: RequestFlags.RequestFlags,
-): RequestHeader =>
-  createProto(RequestHeaderProto, { protocol, requestId, flags });
+): RequestHeader => createProto(RequestHeaderProto, { protocol, requestId, flags });
 
-export const applyBodyVariant = (
-  header: RequestHeader,
-  variant: RequestBody.RequestBodyVariant,
-) =>
-  make(
-    header.protocol,
-    header.requestId,
-    RequestFlags.applyBodyVariant(header.flags, variant),
-  );
+export const applyBodyVariant = (header: RequestHeader, variant: RequestBody.RequestBodyVariant) =>
+  make(header.protocol, header.requestId, RequestFlags.applyBodyVariant(header.flags, variant));
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 
@@ -127,9 +115,5 @@ export const isRequestHeader = (value: unknown): value is RequestHeader =>
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc
-    .tuple(
-      Protocol.arbitrary(fc),
-      RequestId.arbitrary(fc),
-      RequestFlags.arbitrary(fc),
-    )
+    .tuple(Protocol.arbitrary(fc), RequestId.arbitrary(fc), RequestFlags.arbitrary(fc))
     .map(Function.tupled(make));

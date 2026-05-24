@@ -12,13 +12,7 @@
 import * as http from "node:http";
 import { createRequire } from "node:module";
 
-import {
-  DefaultLogger,
-  defaultSinks,
-  NativeConnection,
-  Runtime,
-  Worker,
-} from "@temporalio/worker";
+import { DefaultLogger, defaultSinks, NativeConnection, Runtime, Worker } from "@temporalio/worker";
 
 import {
   OpenTelemetryActivityInboundInterceptor,
@@ -75,9 +69,7 @@ const createTemporalSdkLogger = (logger: Logger): DefaultLogger =>
 const TEMPORAL_DEFAULT_PORT = 7233;
 
 const getTemporalAddress = (): string => {
-  const host = new URL(
-    process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost",
-  ).hostname;
+  const host = new URL(process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost").hostname;
   const port = process.env.HASH_TEMPORAL_SERVER_PORT
     ? parseInt(process.env.HASH_TEMPORAL_SERVER_PORT, 10)
     : TEMPORAL_DEFAULT_PORT;
@@ -118,10 +110,7 @@ export type WorkflowSource =
  * Per-worker tuning passed straight through to `Worker.create`. Add
  * keys here as needed; helper-owned wiring stays inaccessible.
  */
-export type ExtraWorkerOptions = Pick<
-  WorkerOptions,
-  "maxHeartbeatThrottleInterval"
->;
+export type ExtraWorkerOptions = Pick<WorkerOptions, "maxHeartbeatThrottleInterval">;
 
 export interface RunWorkerOptions {
   /**
@@ -155,10 +144,7 @@ export interface RunWorkerOptions {
 
 const expandWorkflowSource = (
   source: WorkflowSource,
-): Pick<
-  WorkerOptions,
-  "workflowBundle" | "workflowsPath" | "bundlerOptions"
-> => {
+): Pick<WorkerOptions, "workflowBundle" | "workflowsPath" | "bundlerOptions"> => {
   switch (source.kind) {
     case "bundle":
       return { workflowBundle: source.bundle };
@@ -280,9 +266,7 @@ export async function runWorker(opts: RunWorkerOptions): Promise<void> {
   });
 
   const httpServer = createHealthCheckServer();
-  httpServer.on("error", (error) =>
-    logger.error("Health-check server error", { error }),
-  );
+  httpServer.on("error", (error) => logger.error("Health-check server error", { error }));
   await new Promise<void>((resolve, reject) => {
     const onError = (error: Error) => {
       httpServer.removeListener("error", onError);

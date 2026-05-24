@@ -54,10 +54,7 @@ interface LegacyReadableSpan {
  * intersection inherits v2's required `instrumentationScope` typing
  * and TypeScript flags every defensive `?? fallback` as "always truthy".
  */
-type FlexibleSpan = Omit<
-  ReadableSpan,
-  "instrumentationScope" | "parentSpanContext"
-> &
+type FlexibleSpan = Omit<ReadableSpan, "instrumentationScope" | "parentSpanContext"> &
   LegacyReadableSpan;
 
 const normaliseSpan = (span: ReadableSpan): ReadableSpan => {
@@ -94,9 +91,7 @@ const normaliseSpan = (span: ReadableSpan): ReadableSpan => {
   return { ...span, instrumentationScope, parentSpanContext } as ReadableSpan;
 };
 
-export const wrapWorkflowSpanExporter = (
-  inner: SpanExporter,
-): SpanExporter => ({
+export const wrapWorkflowSpanExporter = (inner: SpanExporter): SpanExporter => ({
   export(spans, resultCallback): void {
     const adapted = spans.map(normaliseSpan);
     inner.export(adapted, (result: ExportResult) => resultCallback(result));

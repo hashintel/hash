@@ -21,11 +21,7 @@ import { blankCell } from "../../../components/grid/utils";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import { findDataTypeConversionTargetsQuery } from "../../../graphql/queries/ontology/data-type.queries";
 import { Button } from "../../../shared/ui/button";
-import {
-  isAiMachineActor,
-  type MinimalActor,
-  useActors,
-} from "../../../shared/use-actors";
+import { isAiMachineActor, type MinimalActor, useActors } from "../../../shared/use-actors";
 import { useMemoCompare } from "../../../shared/use-memo-compare";
 import { createRenderChipCell } from "../chip-cell";
 import { createRenderUrlCell } from "../url-cell";
@@ -35,10 +31,7 @@ import {
 } from "./entities-table/entities-table-value-cell";
 import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 
-import type {
-  ConversionTargetsByColumnKey,
-  GridSort,
-} from "../../../components/grid/grid";
+import type { ConversionTargetsByColumnKey, GridSort } from "../../../components/grid/grid";
 import type { BlankCell } from "../../../components/grid/utils";
 import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../../components/grid/utils/filtering";
@@ -186,20 +179,19 @@ export const EntitiesTable: FunctionComponent<
     accountIds: editorActorIds,
   });
 
-  const actorsByAccountId: Record<ActorEntityUuid, MinimalActor | null> =
-    useMemo(() => {
-      if (!actors) {
-        return {};
-      }
+  const actorsByAccountId: Record<ActorEntityUuid, MinimalActor | null> = useMemo(() => {
+    if (!actors) {
+      return {};
+    }
 
-      const actorsByAccount: Record<ActorEntityUuid, MinimalActor | null> = {};
+    const actorsByAccount: Record<ActorEntityUuid, MinimalActor | null> = {};
 
-      for (const actor of actors) {
-        actorsByAccount[actor.accountId] = actor;
-      }
+    for (const actor of actors) {
+      actorsByAccount[actor.accountId] = actor;
+    }
 
-      return actorsByAccount;
-    }, [actors]);
+    return actorsByAccount;
+  }, [actors]);
 
   const webNameByWebId = useMemo(() => {
     if (!webIds) {
@@ -252,96 +244,92 @@ export const EntitiesTable: FunctionComponent<
   const [conversionTargetsByColumnKey, setConversionTargetsByColumnKey] =
     useState<ConversionTargetsByColumnKey>({});
 
-  useQuery<
-    FindDataTypeConversionTargetsQuery,
-    FindDataTypeConversionTargetsQueryVariables
-  >(findDataTypeConversionTargetsQuery, {
-    fetchPolicy: "cache-first",
-    variables: {
-      dataTypeIds: visibleDataTypeIds,
-    },
-    skip: visibleDataTypeIds.length === 0,
-    onCompleted: (data) => {
-      const conversionMap = data.findDataTypeConversionTargets;
+  useQuery<FindDataTypeConversionTargetsQuery, FindDataTypeConversionTargetsQueryVariables>(
+    findDataTypeConversionTargetsQuery,
+    {
+      fetchPolicy: "cache-first",
+      variables: {
+        dataTypeIds: visibleDataTypeIds,
+      },
+      skip: visibleDataTypeIds.length === 0,
+      onCompleted: (data) => {
+        const conversionMap = data.findDataTypeConversionTargets;
 
-      const conversionData: ConversionTargetsByColumnKey = {};
+        const conversionData: ConversionTargetsByColumnKey = {};
 
-      /**
-       * For each property, we need to find the conversion targets which are valid across all of the possible data types.
-       *
-       * A conversion target which isn't present for one of the dataTypeIds cannot be included.
-       */
-      for (const [propertyBaseUrl, [...dataTypes]] of typedEntries(
-        visibleDataTypeIdsByPropertyBaseUrl,
-      )) {
-        const targetsByTargetTypeId: Record<
-          VersionedUrl,
-          {
-            title: string;
-            dataTypeId: VersionedUrl;
-            guessedAsCanonical?: boolean;
-          }[]
-        > = {};
+        /**
+         * For each property, we need to find the conversion targets which are valid across all of the possible data types.
+         *
+         * A conversion target which isn't present for one of the dataTypeIds cannot be included.
+         */
+        for (const [propertyBaseUrl, [...dataTypes]] of typedEntries(
+          visibleDataTypeIdsByPropertyBaseUrl,
+        )) {
+          const targetsByTargetTypeId: Record<
+            VersionedUrl,
+            {
+              title: string;
+              dataTypeId: VersionedUrl;
+              guessedAsCanonical?: boolean;
+            }[]
+          > = {};
 
-        for (const [index, sourceDataType] of dataTypes.entries()) {
-          const sourceDataTypeId = sourceDataType.schema.$id;
+          for (const [index, sourceDataType] of dataTypes.entries()) {
+            const sourceDataTypeId = sourceDataType.schema.$id;
 
-          const conversionsByTargetId = conversionMap[sourceDataTypeId];
+            const conversionsByTargetId = conversionMap[sourceDataTypeId];
 
-          if (!conversionsByTargetId) {
-            /**
-             * We don't have any conversion targets for this dataTypeId, so there can't be any shared conversion targets across all of the data types.
-             */
-            continue;
-          }
-
-          for (const [targetTypeId, { title, conversions }] of typedEntries(
-            conversionsByTargetId,
-          )) {
-            if (index === 0) {
-              targetsByTargetTypeId[targetTypeId] ??= [];
-              targetsByTargetTypeId[targetTypeId].push({
-                dataTypeId: targetTypeId,
-                title,
-                guessedAsCanonical: conversions.length === 1,
-              });
-            } else if (
-              !targetsByTargetTypeId[targetTypeId] &&
-              !dataTypes.some(
-                (dataType) => dataType.schema.$id === targetTypeId,
-              )
-            ) {
+            if (!conversionsByTargetId) {
               /**
-               * If we haven't seen this target before, and we already have some targets, it is not a shared target.
-               * If the target is in the source dataTypeIds, we retain it because we assume conversion is reciprocal.
-               * This may not always hold.
+               * We don't have any conversion targets for this dataTypeId, so there can't be any shared conversion targets across all of the data types.
                */
               continue;
             }
-          }
 
-          /**
-           * Any target which is present from previous sources but not for this source is not a shared target.
-           * We exempt this source dataTypeId from deletion because we assume conversion is reciprocal.
-           * This may not always hold.
-           */
-          for (const existingTarget of typedKeys(targetsByTargetTypeId)) {
-            if (
-              !typedKeys(conversionsByTargetId).includes(existingTarget) &&
-              existingTarget !== sourceDataTypeId
-            ) {
-              delete targetsByTargetTypeId[existingTarget];
+            for (const [targetTypeId, { title, conversions }] of typedEntries(
+              conversionsByTargetId,
+            )) {
+              if (index === 0) {
+                targetsByTargetTypeId[targetTypeId] ??= [];
+                targetsByTargetTypeId[targetTypeId].push({
+                  dataTypeId: targetTypeId,
+                  title,
+                  guessedAsCanonical: conversions.length === 1,
+                });
+              } else if (
+                !targetsByTargetTypeId[targetTypeId] &&
+                !dataTypes.some((dataType) => dataType.schema.$id === targetTypeId)
+              ) {
+                /**
+                 * If we haven't seen this target before, and we already have some targets, it is not a shared target.
+                 * If the target is in the source dataTypeIds, we retain it because we assume conversion is reciprocal.
+                 * This may not always hold.
+                 */
+                continue;
+              }
+            }
+
+            /**
+             * Any target which is present from previous sources but not for this source is not a shared target.
+             * We exempt this source dataTypeId from deletion because we assume conversion is reciprocal.
+             * This may not always hold.
+             */
+            for (const existingTarget of typedKeys(targetsByTargetTypeId)) {
+              if (
+                !typedKeys(conversionsByTargetId).includes(existingTarget) &&
+                existingTarget !== sourceDataTypeId
+              ) {
+                delete targetsByTargetTypeId[existingTarget];
+              }
             }
           }
-        }
-        conversionData[propertyBaseUrl] = Object.values(
-          targetsByTargetTypeId,
-        ).flat();
+          conversionData[propertyBaseUrl] = Object.values(targetsByTargetTypeId).flat();
 
-        setConversionTargetsByColumnKey(conversionData);
-      }
+          setConversionTargetsByColumnKey(conversionData);
+        }
+      },
     },
-  });
+  );
 
   // eslint-disable-next-line no-param-reassign
   currentlyDisplayedColumnsRef.current = columns;
@@ -456,17 +444,13 @@ export const EntitiesTable: FunctionComponent<
                     icon: row.entityIcon
                       ? { entityTypeIcon: row.entityIcon }
                       : {
-                          inbuiltIcon: row.sourceEntity
-                            ? "bpLink"
-                            : "bpAsterisk",
+                          inbuiltIcon: row.sourceEntity ? "bpLink" : "bpAsterisk",
                         },
                     iconFill: theme.palette.gray[50],
                     onClick: () => {
                       if (isViewingOnlyPages) {
                         void router.push(
-                          `/${row.webId}/${extractEntityUuidFromEntityId(
-                            row.entityId,
-                          )}`,
+                          `/${row.webId}/${extractEntityUuidFromEntityId(row.entityId)}`,
                         );
                       } else {
                         handleEntityClick(row.entityId);
@@ -493,9 +477,7 @@ export const EntitiesTable: FunctionComponent<
                     ? { entityTypeIcon: value.icon }
                     : { inbuiltIcon: value.isLink ? "bpLink" : "bpAsterisk" },
                   iconFill: theme.palette.blue[70],
-                  suffix: entityTypesWithMultipleVersionsPresent.has(
-                    value.entityTypeId,
-                  )
+                  suffix: entityTypesWithMultipleVersionsPresent.has(value.entityTypeId)
                     ? `v${value.version.toString()}`
                     : undefined,
                   onClick: disableTypeClick
@@ -530,10 +512,7 @@ export const EntitiesTable: FunctionComponent<
                   : undefined,
               },
             };
-          } else if (
-            columnId === "sourceEntity" ||
-            columnId === "targetEntity"
-          ) {
+          } else if (columnId === "sourceEntity" || columnId === "targetEntity") {
             const entity = row[columnId] as EntitiesTableRow["sourceEntity"];
             if (!entity) {
               const data = "Does not apply";
@@ -603,10 +582,7 @@ export const EntitiesTable: FunctionComponent<
               data: row.lastEdited,
             };
           } else {
-            const actorId =
-              columnId === "lastEditedById"
-                ? row.lastEditedById
-                : row.createdById;
+            const actorId = columnId === "lastEditedById" ? row.lastEditedById : row.createdById;
 
             const actor = actorsByAccountId[actorId];
 
@@ -667,106 +643,95 @@ export const EntitiesTable: FunctionComponent<
     ],
   );
 
-  const { createdByActors, entityTypeFilters, lastEditedByActors, webs } =
-    useMemo<{
-      createdByActors: ActorTableFilterData[];
-      lastEditedByActors: ActorTableFilterData[];
-      entityTypeFilters: EntityTypeTableFilterData[];
-      webs: WebTableFilterData[];
-    }>(() => {
-      const createdBy: ActorTableFilterData[] = [];
-      for (const [actorId, count] of typedEntries(createdByIds ?? {})) {
-        const actor = actorsByAccountId[actorId];
-        createdBy.push({
-          actorId,
-          count,
-          displayName: actor?.displayName ?? actorId,
-        });
+  const { createdByActors, entityTypeFilters, lastEditedByActors, webs } = useMemo<{
+    createdByActors: ActorTableFilterData[];
+    lastEditedByActors: ActorTableFilterData[];
+    entityTypeFilters: EntityTypeTableFilterData[];
+    webs: WebTableFilterData[];
+  }>(() => {
+    const createdBy: ActorTableFilterData[] = [];
+    for (const [actorId, count] of typedEntries(createdByIds ?? {})) {
+      const actor = actorsByAccountId[actorId];
+      createdBy.push({
+        actorId,
+        count,
+        displayName: actor?.displayName ?? actorId,
+      });
+    }
+
+    const editedBy: ActorTableFilterData[] = [];
+    for (const [actorId, count] of typedEntries(editionCreatedByIds ?? {})) {
+      const actor = actorsByAccountId[actorId];
+      editedBy.push({
+        actorId,
+        count,
+        displayName: actor?.displayName ?? actorId,
+      });
+    }
+
+    const types: EntityTypeTableFilterData[] = [];
+    for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
+      const title = typeTitles?.[entityTypeId];
+
+      if (!title) {
+        throw new Error(`Could not find title for entity type ${entityTypeId}`);
       }
 
-      const editedBy: ActorTableFilterData[] = [];
-      for (const [actorId, count] of typedEntries(editionCreatedByIds ?? {})) {
-        const actor = actorsByAccountId[actorId];
-        editedBy.push({
-          actorId,
-          count,
-          displayName: actor?.displayName ?? actorId,
-        });
-      }
+      types.push({
+        count,
+        entityTypeId,
+        title,
+      });
+    }
 
-      const types: EntityTypeTableFilterData[] = [];
-      for (const [entityTypeId, count] of typedEntries(typeIds ?? {})) {
-        const title = typeTitles?.[entityTypeId];
+    const webCounts: WebTableFilterData[] = [];
+    for (const [webId, count] of typedEntries(webIds ?? {})) {
+      const webname = webNameByWebId[webId] ?? webId;
+      webCounts.push({
+        count,
+        shortname: `@${webname}`,
+        webId,
+      });
+    }
 
-        if (!title) {
-          throw new Error(
-            `Could not find title for entity type ${entityTypeId}`,
-          );
-        }
+    return {
+      createdByActors: createdBy,
+      entityTypeFilters: types,
+      lastEditedByActors: editedBy,
+      webs: webCounts,
+    };
+  }, [
+    actorsByAccountId,
+    createdByIds,
+    editionCreatedByIds,
+    typeIds,
+    typeTitles,
+    webIds,
+    webNameByWebId,
+  ]);
 
-        types.push({
-          count,
-          entityTypeId,
-          title,
-        });
-      }
-
-      const webCounts: WebTableFilterData[] = [];
-      for (const [webId, count] of typedEntries(webIds ?? {})) {
-        const webname = webNameByWebId[webId] ?? webId;
-        webCounts.push({
-          count,
-          shortname: `@${webname}`,
-          webId,
-        });
-      }
-
-      return {
-        createdByActors: createdBy,
-        entityTypeFilters: types,
-        lastEditedByActors: editedBy,
-        webs: webCounts,
-      };
-    }, [
-      actorsByAccountId,
-      createdByIds,
-      editionCreatedByIds,
-      typeIds,
-      typeTitles,
-      webIds,
-      webNameByWebId,
-    ]);
-
-  const [selectedEntityTypeIds, setSelectedEntityTypeIds] = useState<
-    Set<string>
-  >(new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)));
+  const [selectedEntityTypeIds, setSelectedEntityTypeIds] = useState<Set<string>>(
+    new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)),
+  );
 
   useEffect(() => {
-    setSelectedEntityTypeIds(
-      new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)),
-    );
+    setSelectedEntityTypeIds(new Set(entityTypeFilters.map(({ entityTypeId }) => entityTypeId)));
   }, [entityTypeFilters]);
 
-  const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
-    useState<Set<string>>(
-      new Set(lastEditedByActors.map(({ actorId }) => actorId)),
-    );
+  const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] = useState<Set<string>>(
+    new Set(lastEditedByActors.map(({ actorId }) => actorId)),
+  );
 
-  const [selectedCreatedByAccountIds, setSelectedCreatedByAccountIds] =
-    useState<Set<string>>(
-      new Set(createdByActors.map(({ actorId }) => actorId)),
-    );
+  const [selectedCreatedByAccountIds, setSelectedCreatedByAccountIds] = useState<Set<string>>(
+    new Set(createdByActors.map(({ actorId }) => actorId)),
+  );
 
   useEffect(() => {
-    setSelectedLastEditedByAccountIds(
-      new Set(lastEditedByActors.map(({ actorId }) => actorId)),
-    );
+    setSelectedLastEditedByAccountIds(new Set(lastEditedByActors.map(({ actorId }) => actorId)));
   }, [lastEditedByActors]);
 
   useEffect(() => {
-    setSelectedCreatedByAccountIds(
-      new Set(createdByActors.map(({ actorId }) => actorId)),
-    );
+    setSelectedCreatedByAccountIds(new Set(createdByActors.map(({ actorId }) => actorId)));
   }, [createdByActors]);
 
   const [selectedWebs, setSelectedWebs] = useState<Set<string>>(
@@ -777,9 +742,7 @@ export const EntitiesTable: FunctionComponent<
     setSelectedWebs(new Set(webs.map(({ webId }) => webId)));
   }, [webs]);
 
-  const columnFilters = useMemo<
-    ColumnFilter<EntitiesTableColumnKey, EntitiesTableRow>[]
-  >(
+  const columnFilters = useMemo<ColumnFilter<EntitiesTableColumnKey, EntitiesTableRow>[]>(
     () => [
       {
         columnKey: "webId",
@@ -791,24 +754,19 @@ export const EntitiesTable: FunctionComponent<
         })),
         selectedFilterItemIds: selectedWebs,
         setSelectedFilterItemIds: setSelectedWebs,
-        isRowFiltered: (row) =>
-          !selectedWebs.has(extractWebIdFromEntityId(row.entityId)),
+        isRowFiltered: (row) => !selectedWebs.has(extractWebIdFromEntityId(row.entityId)),
       },
       {
         columnKey: "entityTypes",
-        filterItems: entityTypeFilters.map(
-          ({ entityTypeId, count: _count, title }) => ({
-            id: entityTypeId,
-            label: title,
-            // @todo H-3841 –- rethink filtering
-            // count,
-            labelSuffix: entityTypesWithMultipleVersionsPresent.has(
-              entityTypeId,
-            )
-              ? `v${extractVersion(entityTypeId).toString()}`
-              : undefined,
-          }),
-        ),
+        filterItems: entityTypeFilters.map(({ entityTypeId, count: _count, title }) => ({
+          id: entityTypeId,
+          label: title,
+          // @todo H-3841 –- rethink filtering
+          // count,
+          labelSuffix: entityTypesWithMultipleVersionsPresent.has(entityTypeId)
+            ? `v${extractVersion(entityTypeId).toString()}`
+            : undefined,
+        })),
         selectedFilterItemIds: selectedEntityTypeIds,
         setSelectedFilterItemIds: setSelectedEntityTypeIds,
         isRowFiltered: (row) => {
@@ -870,13 +828,7 @@ export const EntitiesTable: FunctionComponent<
   }, [columns]);
 
   const onConversionTargetSelected = useCallback(
-    ({
-      columnKey,
-      dataTypeId,
-    }: {
-      columnKey: BaseUrl;
-      dataTypeId: VersionedUrl | null;
-    }) => {
+    ({ columnKey, dataTypeId }: { columnKey: BaseUrl; dataTypeId: VersionedUrl | null }) => {
       if (!dataTypeId) {
         if (!activeConversions) {
           return;
@@ -920,9 +872,7 @@ export const EntitiesTable: FunctionComponent<
     (newSort: GridSort<SortableEntitiesTableColumnKey>) => {
       const targetConversions = conversionTargetsByColumnKey[newSort.columnKey];
 
-      const canonical = targetConversions?.find(
-        (conversion) => conversion.guessedAsCanonical,
-      );
+      const canonical = targetConversions?.find((conversion) => conversion.guessedAsCanonical);
 
       if (canonical) {
         setSort({
@@ -936,10 +886,7 @@ export const EntitiesTable: FunctionComponent<
     [conversionTargetsByColumnKey, setSort],
   );
 
-  const [
-    { horizontalScrollbarHeight, verticalScrollbarWidth },
-    setScrollbarSizes,
-  ] = useState({
+  const [{ horizontalScrollbarHeight, verticalScrollbarWidth }, setScrollbarSizes] = useState({
     horizontalScrollbarHeight: 0,
     verticalScrollbarWidth: 0,
   });
@@ -960,8 +907,7 @@ export const EntitiesTable: FunctionComponent<
     });
   }, [rows.length]);
 
-  const hasMoreRowsAvailable =
-    totalResultCount && totalResultCount > rows.length;
+  const hasMoreRowsAvailable = totalResultCount && totalResultCount > rows.length;
   const loadMoreRowHeight = 60;
 
   return (
@@ -984,9 +930,7 @@ export const EntitiesTable: FunctionComponent<
         height={`min(${maxHeight}, 600px)`}
         onConversionTargetSelected={onConversionTargetSelected}
         onSearchClose={() => setShowSearch(false)}
-        onSelectedRowsChange={(updatedSelectedRows) =>
-          setSelectedRows(updatedSelectedRows)
-        }
+        onSelectedRowsChange={(updatedSelectedRows) => setSelectedRows(updatedSelectedRows)}
         rows={rows}
         selectedRows={selectedRows}
         showSearch={showSearch}
@@ -1045,10 +989,7 @@ export const EntitiesTable: FunctionComponent<
             ) : (
               <>
                 Show more entities
-                <Box
-                  component="span"
-                  sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}
-                >
+                <Box component="span" sx={{ color: ({ palette }) => palette.gray[50], ml: 0.5 }}>
                   - {formatNumber(totalResultCount - rows.length)} remaining
                 </Box>
                 <ArrowDownRegularIcon

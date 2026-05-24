@@ -130,9 +130,7 @@ export const CreateExperimentDrawer = ({
   const { createExperiment } = use(ExperimentsContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
-  const [selectedScenarioId, setSelectedScenarioId] = useState(
-    DEFAULT_SCENARIO_VALUE,
-  );
+  const [selectedScenarioId, setSelectedScenarioId] = useState(DEFAULT_SCENARIO_VALUE);
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
   const [seed, setSeed] = useState(DEFAULT_SEED);
@@ -180,10 +178,7 @@ export const CreateExperimentDrawer = ({
     try {
       const experimentId = await createExperiment({
         name,
-        scenarioId:
-          selectedScenarioId === DEFAULT_SCENARIO_VALUE
-            ? null
-            : selectedScenarioId,
+        scenarioId: selectedScenarioId === DEFAULT_SCENARIO_VALUE ? null : selectedScenarioId,
         scenarioParameterValues: paramValues,
         runCount: Number(runCount),
         seed: Number(seed),
@@ -194,11 +189,7 @@ export const CreateExperimentDrawer = ({
       onCreated?.(experimentId);
     } catch (submitError) {
       setIsSubmitting(false);
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : String(submitError),
-      );
+      setError(submitError instanceof Error ? submitError.message : String(submitError));
     }
   };
 
@@ -262,12 +253,7 @@ export const CreateExperimentDrawer = ({
               </div>
             </Section>
 
-            <Section
-              title="Scenario"
-              collapsible
-              defaultOpen
-              className={scenarioSectionStyle}
-            >
+            <Section title="Scenario" collapsible defaultOpen className={scenarioSectionStyle}>
               <div className={fieldStyle}>
                 <span className={labelStyle}>Scenario</span>
                 <Select
@@ -304,13 +290,7 @@ export const CreateExperimentDrawer = ({
       </Drawer.Card>
       <Drawer.Footer>
         {error ? <span className={errorStyle}>{error}</span> : null}
-        <Button
-          variant="subtle"
-          tone="neutral"
-          size="sm"
-          disabled={isSubmitting}
-          onClick={onClose}
-        >
+        <Button variant="subtle" tone="neutral" size="sm" disabled={isSubmitting} onClick={onClose}>
           Cancel
         </Button>
         <Button

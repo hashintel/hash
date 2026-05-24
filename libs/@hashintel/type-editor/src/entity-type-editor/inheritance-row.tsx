@@ -86,8 +86,7 @@ export const InheritanceRow = ({
     const parents = typesArray.filter(
       (type) =>
         // We intentionally hide the special Block Protocol Link entity from being displayed as a parent
-        type.$id !== linkEntityTypeUrl &&
-        directParentEntityTypeIds.includes(type.$id),
+        type.$id !== linkEntityTypeUrl && directParentEntityTypeIds.includes(type.$id),
     );
 
     return { entityTypesArray: typesArray, directParents: parents };
@@ -95,11 +94,7 @@ export const InheritanceRow = ({
 
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,
-    typesToExclude: [
-      ...directParents,
-      { $id: entityTypeId },
-      { $id: linkEntityTypeUrl },
-    ],
+    typesToExclude: [...directParents, { $id: entityTypeId }, { $id: linkEntityTypeUrl }],
   });
 
   const isReadonly = useIsReadonly();
@@ -132,8 +127,7 @@ export const InheritanceRow = ({
         confirmButtonText: "Add anyway",
         header: (
           <>
-            Cannot set <strong>{parent.title}</strong> as a parent of{" "}
-            <strong>{typeTitle}</strong>
+            Cannot set <strong>{parent.title}</strong> as a parent of <strong>{typeTitle}</strong>
           </>
         ),
         type: "warning",
@@ -156,8 +150,7 @@ export const InheritanceRow = ({
         confirmButtonText: "Add this link type as a parent",
         header: (
           <>
-            Add <strong>{parent.title}</strong> as a parent of{" "}
-            <strong>{typeTitle}</strong>
+            Add <strong>{parent.title}</strong> as a parent of <strong>{typeTitle}</strong>
           </>
         ),
         type: "info",
@@ -169,18 +162,13 @@ export const InheritanceRow = ({
   };
 
   const removeParent = (parent: EntityType) => {
-    const proposedNewParents = directParentEntityTypeIds.filter(
-      (id) => id !== parent.$id,
-    );
+    const proposedNewParents = directParentEntityTypeIds.filter((id) => id !== parent.$id);
 
     const setNewParents = () => {
       setValue("allOf", proposedNewParents, { shouldDirty: true });
     };
 
-    if (
-      proposedNewParents.length === 0 &&
-      directParentEntityTypeIds.find((id) => linkTypes[id])
-    ) {
+    if (proposedNewParents.length === 0 && directParentEntityTypeIds.find((id) => linkTypes[id])) {
       setModalData({
         callback: setNewParents,
         calloutMessage:
@@ -188,8 +176,7 @@ export const InheritanceRow = ({
         confirmButtonText: "Remove link type as a parent",
         header: (
           <>
-            Remove <strong>{parent.title}</strong> as a parent of{" "}
-            <strong>{typeTitle}</strong>
+            Remove <strong>{parent.title}</strong> as a parent of <strong>{typeTitle}</strong>
           </>
         ),
         type: "info",
@@ -202,19 +189,12 @@ export const InheritanceRow = ({
 
   return (
     <>
-      <Stack
-        direction="row"
-        alignItems="center"
-        sx={{ height: TYPE_SELECTOR_HEIGHT }}
-      >
+      <Stack direction="row" alignItems="center" sx={{ height: TYPE_SELECTOR_HEIGHT }}>
         {directParents.length > 0 ? (
           directParents.map((type) => {
             return (
               <Box key={type.$id} sx={{ mr: 2 }}>
-                <InheritedTypeCard
-                  entityType={type}
-                  onRemove={() => removeParent(type)}
-                />
+                <InheritedTypeCard entityType={type} onRemove={() => removeParent(type)} />
               </Box>
             );
           })
@@ -249,11 +229,7 @@ export const InheritanceRow = ({
             variant="entity type"
           />
         ) : (
-          <Button
-            onClick={() => setSelectorVisibility(true)}
-            size="xs"
-            variant="secondary_quiet"
-          >
+          <Button onClick={() => setSelectorVisibility(true)} size="xs" variant="secondary_quiet">
             ADD TYPE{" "}
             <FontAwesomeIcon
               icon={faPlus}
@@ -268,9 +244,7 @@ export const InheritanceRow = ({
           </Button>
         )}
       </Stack>
-      {modalData && (
-        <AlertModal close={() => setModalData(null)} {...modalData} />
-      )}
+      {modalData && <AlertModal close={() => setModalData(null)} {...modalData} />}
     </>
   );
 };

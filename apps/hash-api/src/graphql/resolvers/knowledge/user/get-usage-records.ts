@@ -1,7 +1,4 @@
-import {
-  type ActorEntityUuid,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
+import { type ActorEntityUuid, extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { getWebServiceUsage } from "@local/hash-backend-utils/service-usage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
@@ -15,11 +12,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
-import type {
-  Query,
-  ResolverFn,
-  UserUsageRecords,
-} from "../../../api-types.gen";
+import type { Query, ResolverFn, UserUsageRecords } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
@@ -46,10 +39,9 @@ export const getUsageRecordsResolver: ResolverFn<
     {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
+          generateVersionedUrlMatchingFilter(systemEntityTypes.user.entityTypeId, {
+            ignoreParents: true,
+          }),
         ],
       },
       temporalAxes: currentTimeInstantTemporalAxes,
@@ -63,9 +55,7 @@ export const getUsageRecordsResolver: ResolverFn<
   for (const user of users) {
     const { shortname } = simplifyProperties(user.properties as UserProperties);
 
-    const userAccountId = extractWebIdFromEntityId(
-      user.metadata.recordId.entityId,
-    );
+    const userAccountId = extractWebIdFromEntityId(user.metadata.recordId.entityId);
 
     const usageRecords = await getWebServiceUsage(
       { graphApi: dataSources.graphApi },

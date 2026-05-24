@@ -23,10 +23,7 @@ export const App = () => {
       </Menu.Trigger>
       <Menu.Positioner>
         <Menu.Content>
-          <Menu.RadioItemGroup
-            value={value}
-            onValueChange={(e) => setValue(e.value)}
-          >
+          <Menu.RadioItemGroup value={value} onValueChange={(e) => setValue(e.value)}>
             {items.map((item) => (
               <Menu.RadioItem key={item.value} value={item.value}>
                 {item.label}

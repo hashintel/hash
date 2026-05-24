@@ -30,11 +30,7 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
 
     if ([...delimiters, "Enter"].includes(evt.key)) {
       evt.preventDefault();
-      if (
-        text &&
-        (isValid === undefined || isValid(text)) &&
-        !tags.includes(text)
-      ) {
+      if (text && (isValid === undefined || isValid(text)) && !tags.includes(text)) {
         setTags([...tags, text]);
         inputRef.current.value = "";
       }

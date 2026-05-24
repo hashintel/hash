@@ -1,9 +1,5 @@
 import type { QueryOperationInput } from "../entity.js";
-import type {
-  DataTypeRootType,
-  GraphResolveDepths,
-  Subgraph,
-} from "../subgraph.js";
+import type { DataTypeRootType, GraphResolveDepths, Subgraph } from "../subgraph.js";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 export type QueryDataTypesData = {

@@ -68,9 +68,7 @@ Checked.args = {
 /**
  * Checkbox in indeterminate state (partial selection)
  */
-export const Indeterminate: Story<CheckboxProps> = (args) => (
-  <Checkbox {...args} />
-);
+export const Indeterminate: Story<CheckboxProps> = (args) => <Checkbox {...args} />;
 Indeterminate.args = {
   checked: "indeterminate",
 };
@@ -108,11 +106,7 @@ export const Interactive: Story<CheckboxProps> = () => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      <Checkbox
-        label="Interactive Checkbox"
-        checked={checked}
-        onCheckedChange={setChecked}
-      />
+      <Checkbox label="Interactive Checkbox" checked={checked} onCheckedChange={setChecked} />
 
       <div style={{ display: "flex", gap: "8px" }}>
         <button

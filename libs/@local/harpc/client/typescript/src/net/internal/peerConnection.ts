@@ -9,9 +9,7 @@ import { Equal, Hash, Inspectable, pipe, Pipeable, Predicate } from "effect";
 
 import { createProto } from "../../utils.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/net/internal/PeerConnection",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/net/internal/PeerConnection");
 
 type TypeId = typeof TypeId;
 
@@ -105,11 +103,7 @@ const PeerConnectionProto: Omit<PeerConnection, "inner"> = {
     // eslint-disable-next-line fsecond/no-inline-interfaces
     options: boolean | { capture?: boolean } | undefined,
   ) {
-    (this as PeerConnection).inner.removeEventListener(
-      event,
-      listener,
-      options,
-    );
+    (this as PeerConnection).inner.removeEventListener(event, listener, options);
   },
 
   dispatchEvent(event) {
@@ -126,11 +120,7 @@ const PeerConnectionProto: Omit<PeerConnection, "inner"> = {
   },
 
   [Hash.symbol](this: PeerConnection): number {
-    return pipe(
-      Hash.hash(TypeId),
-      Hash.combine(Hash.string(this.id)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(TypeId), Hash.combine(Hash.string(this.id)), Hash.cached(this));
   },
 
   toString(this: PeerConnection) {

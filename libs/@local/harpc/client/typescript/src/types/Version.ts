@@ -15,14 +15,11 @@ import { MutableBuffer } from "../binary/index.js";
 import { U8_MAX, U8_MIN } from "../constants.js";
 import { createProto, implDecode, implEncode } from "../utils.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/types/Version",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/types/Version");
 
 export type TypeId = typeof TypeId;
 
-export interface Version
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface Version extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly major: number;
@@ -97,13 +94,9 @@ export const decode = implDecode((buffer) =>
   }),
 );
 
-export const isVersion = (value: unknown): value is Version =>
-  Predicate.hasProperty(value, TypeId);
+export const isVersion = (value: unknown): value is Version => Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc
-    .tuple(
-      fc.integer({ min: U8_MIN, max: U8_MAX }),
-      fc.integer({ min: U8_MIN, max: U8_MAX }),
-    )
+    .tuple(fc.integer({ min: U8_MIN, max: U8_MAX }), fc.integer({ min: U8_MIN, max: U8_MAX }))
     .map(Function.tupled(make));

@@ -107,9 +107,7 @@ const useInheritedConstraintsValue = (): InheritedConstraints => {
       if (parentMetadata.conversions) {
         narrowedConstraints.conversions ??= {};
 
-        for (const [targetBaseUrl, conversions] of typedEntries(
-          parentMetadata.conversions,
-        )) {
+        for (const [targetBaseUrl, conversions] of typedEntries(parentMetadata.conversions)) {
           /**
            * We only want to set this if it hasn't already been set.
            * If a child (which we'll encounter sooner) has set a conversion for a given target,
@@ -161,8 +159,7 @@ const useInheritedConstraintsValue = (): InheritedConstraints => {
                * e.g. a lower minLength or a higher maxLength, so we don't need to check for that.
                */
               (!narrowedConstraints[constraint] ||
-                narrowedConstraints[constraint].value ===
-                  parentSchema[constraint])
+                narrowedConstraints[constraint].value === parentSchema[constraint])
             ) {
               narrowedConstraints[constraint] = {
                 value: parentSchema[constraint],
@@ -264,15 +261,9 @@ const useInheritedConstraintsValue = (): InheritedConstraints => {
   }, [dataTypes, allOf]);
 };
 
-const InheritedConstraintsContext = createContext<InheritedConstraints | null>(
-  null,
-);
+const InheritedConstraintsContext = createContext<InheritedConstraints | null>(null);
 
-export const InheritedConstraintsProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const InheritedConstraintsProvider = ({ children }: { children: React.ReactNode }) => {
   const inheritedConstraints = useInheritedConstraintsValue();
 
   return (

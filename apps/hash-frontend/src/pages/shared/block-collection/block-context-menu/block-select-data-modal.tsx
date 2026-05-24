@@ -2,10 +2,7 @@ import { useMutation } from "@apollo/client";
 import { Box, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import { IconButton, Modal, XMarkRegularIcon } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import {
@@ -27,12 +24,7 @@ import type {
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import type { MultiFilter } from "@blockprotocol/graph";
-import type {
-  BaseUrl,
-  EntityId,
-  PropertyObject,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, EntityId, PropertyObject, WebId } from "@blockprotocol/type-system";
 import type { ModalProps } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -64,10 +56,7 @@ export const BlockSelectDataModal: FunctionComponent<
     }
     const { recordId, entityTypeIds } = blockDataEntity.metadata;
 
-    const { subgraph } = await fetchBlockSubgraph(
-      entityTypeIds,
-      recordId.entityId,
-    );
+    const { subgraph } = await fetchBlockSubgraph(entityTypeIds, recordId.entityId);
 
     setBlockSubgraph(subgraph);
   }, [blockDataEntity, fetchBlockSubgraph, setBlockSubgraph]);
@@ -99,14 +88,11 @@ export const BlockSelectDataModal: FunctionComponent<
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const { createEntity } = useBlockProtocolCreateEntity(
-    authenticatedUser.accountId as WebId,
-  );
+  const { createEntity } = useBlockProtocolCreateEntity(authenticatedUser.accountId as WebId);
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+  );
 
   const handleSave = useCallback(
     async (query: MultiFilter) => {
@@ -142,8 +128,7 @@ export const BlockSelectDataModal: FunctionComponent<
           data: {
             entityTypeIds: [blockProtocolEntityTypes.query.entityTypeId],
             properties: {
-              "https://blockprotocol.org/@hash/types/property-type/query/":
-                query,
+              "https://blockprotocol.org/@hash/types/property-type/query/": query,
             } satisfies QueryProperties as PropertyObject,
           },
         });
@@ -155,9 +140,7 @@ export const BlockSelectDataModal: FunctionComponent<
 
         await createEntity({
           data: {
-            entityTypeIds: [
-              blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
-            ],
+            entityTypeIds: [blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId],
             linkData: {
               leftEntityId: blockDataEntity.metadata.recordId.entityId,
               rightEntityId: queryEntity.metadata.recordId.entityId,
@@ -171,14 +154,7 @@ export const BlockSelectDataModal: FunctionComponent<
 
       onClose();
     },
-    [
-      updateEntity,
-      refetchBlockSubgraph,
-      blockDataEntity,
-      existingQuery,
-      createEntity,
-      onClose,
-    ],
+    [updateEntity, refetchBlockSubgraph, blockDataEntity, existingQuery, createEntity, onClose],
   );
 
   /** @todo: consider bringing back ability to query entities */
@@ -235,17 +211,12 @@ export const BlockSelectDataModal: FunctionComponent<
             >
               Select display data
             </Typography>
-            <Typography
-              sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}
-            >
+            <Typography sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}>
               Define a query to select the data for the block
             </Typography>
           </Box>
           <Box>
-            <IconButton
-              onClick={onClose}
-              sx={{ marginRight: -2, marginTop: -1 }}
-            >
+            <IconButton onClick={onClose} sx={{ marginRight: -2, marginTop: -1 }}>
               <XMarkRegularIcon />
             </IconButton>
           </Box>
@@ -261,8 +232,7 @@ export const BlockSelectDataModal: FunctionComponent<
           key={initialQueryEntityId ?? "new-query"}
           defaultValue={
             existingQuery
-              ? (simplifyProperties(existingQuery.properties)
-                  .query as MultiFilter)
+              ? (simplifyProperties(existingQuery.properties).query as MultiFilter)
               : undefined
           }
           onSave={handleSave}

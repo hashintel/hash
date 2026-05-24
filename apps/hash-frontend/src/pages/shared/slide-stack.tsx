@@ -9,12 +9,7 @@ import { EntityTypeSlide } from "./slide-stack/entity-type-slide";
 import { SlideBackForwardCloseBar } from "./slide-stack/slide-back-forward-close-bar";
 
 import type { SlideItem } from "./slide-stack/types";
-import type {
-  Dispatch,
-  FunctionComponent,
-  RefObject,
-  SetStateAction,
-} from "react";
+import type { Dispatch, FunctionComponent, RefObject, SetStateAction } from "react";
 
 export { useSlideStack } from "./slide-stack/context";
 
@@ -215,10 +210,7 @@ export const SlideStackProvider = ({
       setItems((prev) => {
         return {
           currentIndex: Math.min(prev.currentIndex + 1, prev.items.length),
-          items: [
-            ...prev.items.slice(0, prev.currentIndex + 1),
-            { item, ref: createRef() },
-          ],
+          items: [...prev.items.slice(0, prev.currentIndex + 1), { item, ref: createRef() }],
         };
       });
     },

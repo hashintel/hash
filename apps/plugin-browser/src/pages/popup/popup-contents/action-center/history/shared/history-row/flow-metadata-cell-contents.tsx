@@ -50,41 +50,36 @@ type TotalUsage = {
 };
 
 const getTotalUsage = ({ flowRunId }: { flowRunId: string }) =>
-  queryGraphQlApi<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
-    queryEntitiesQuery,
-    {
-      request: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.usageRecord.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                { path: ["outgoingLinks", "rightEntity", "uuid"] },
-                {
-                  parameter: flowRunId,
-                },
-              ],
-            },
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
+  queryGraphQlApi<QueryEntitiesQuery, QueryEntitiesQueryVariables>(queryEntitiesQuery, {
+    request: {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(systemEntityTypes.usageRecord.entityTypeId, {
+            ignoreParents: true,
+          }),
+          {
+            equal: [
+              { path: ["outgoingLinks", "rightEntity", "uuid"] },
+              {
+                parameter: flowRunId,
+              },
+            ],
+          },
+        ],
       },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     },
-  ).then(({ data }) => {
-    const usageRecords = deserializeQueryEntitiesResponse(
-      data.queryEntities,
-    ).entities;
+  }).then(({ data }) => {
+    const usageRecords = deserializeQueryEntitiesResponse(data.queryEntities).entities;
 
     let inputTokens = 0;
     let outputTokens = 0;
     for (const record of usageRecords) {
-      const { inputUnitCount, outputUnitCount } =
-        simplifyProperties<UsageRecordProperties>(record.properties);
+      const { inputUnitCount, outputUnitCount } = simplifyProperties<UsageRecordProperties>(
+        record.properties,
+      );
       inputTokens += inputUnitCount ?? 0;
       outputTokens += outputUnitCount ?? 0;
     }
@@ -122,9 +117,7 @@ export const FlowMetadataCellContents = ({
   const { executedAt, closedAt } = flowRun;
 
   const [timeElapsed, setTimeElapsed] = useState(() =>
-    executedAt
-      ? generateDurationString({ executedAt, closedAt })
-      : "Pending...",
+    executedAt ? generateDurationString({ executedAt, closedAt }) : "Pending...",
   );
 
   useEffect(() => {});
@@ -187,21 +180,11 @@ export const FlowMetadataCellContents = ({
         },
       })}
     >
-      <MetadataItem
-        marginRight={0.8}
-        text={timeElapsed}
-        Icon={ClockRegularIcon}
-      />
+      <MetadataItem marginRight={0.8} text={timeElapsed} Icon={ClockRegularIcon} />
       {usage && (
         <>
-          <MetadataItem
-            text={`${usage.inputTokens} input tokens`}
-            Icon={ArrowDownRegularIcon}
-          />
-          <MetadataItem
-            text={`${usage.outputTokens} output tokens`}
-            Icon={ArrowRightRegularIcon}
-          />
+          <MetadataItem text={`${usage.inputTokens} input tokens`} Icon={ArrowDownRegularIcon} />
+          <MetadataItem text={`${usage.outputTokens} output tokens`} Icon={ArrowRightRegularIcon} />
         </>
       )}
       {flowRun.persistedEntities.length > 0 && (

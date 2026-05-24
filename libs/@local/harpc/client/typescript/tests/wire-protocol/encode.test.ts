@@ -53,11 +53,7 @@ interface RequestBeginData {
   payload: number[];
 }
 
-const assertRequestBegin = (
-  cx: TestContext,
-  a: RequestBegin.RequestBegin,
-  b: RequestBeginData,
-) => {
+const assertRequestBegin = (cx: TestContext, a: RequestBegin.RequestBegin, b: RequestBeginData) => {
   cx.expect(a.subsystem.id.value).toBe(b.subsystem.id);
   cx.expect(a.subsystem.version.major).toBe(b.subsystem.version.major);
   cx.expect(a.subsystem.version.minor).toBe(b.subsystem.version.minor);
@@ -73,11 +69,7 @@ interface RequestFrameData {
   payload: number[];
 }
 
-const assertRequestFrame = (
-  cx: TestContext,
-  a: RequestFrame.RequestFrame,
-  b: RequestFrameData,
-) => {
+const assertRequestFrame = (cx: TestContext, a: RequestFrame.RequestFrame, b: RequestFrameData) => {
   cx.expect([...a.payload.buffer]).toEqual(b.payload);
 };
 
@@ -99,91 +91,62 @@ const assertRequest = (cx: TestContext, a: Request.Request, b: RequestData) => {
   );
 
   if (Predicate.hasProperty(b.body, "Begin")) {
-    assertRequestBegin(
-      cx,
-      a.body.pipe(RequestBody.getBegin, Option.getOrThrow),
-      b.body.Begin,
-    );
+    assertRequestBegin(cx, a.body.pipe(RequestBody.getBegin, Option.getOrThrow), b.body.Begin);
   } else {
-    assertRequestFrame(
-      cx,
-      a.body.pipe(RequestBody.getFrame, Option.getOrThrow),
-      b.body.Frame,
-    );
+    assertRequestFrame(cx, a.body.pipe(RequestBody.getFrame, Option.getOrThrow), b.body.Frame);
   }
 };
 
 describe.concurrent("encode", () => {
-  it.effect.prop(
-    "encode request-header",
-    { header: RequestHeaderFromSelf },
-    ({ header }, cx) =>
-      Effect.gen(function* () {
-        const buffer = MutableBuffer.makeWrite();
+  it.effect.prop("encode request-header", { header: RequestHeaderFromSelf }, ({ header }, cx) =>
+    Effect.gen(function* () {
+      const buffer = MutableBuffer.makeWrite();
 
-        yield* RequestHeader.encode(buffer, header);
+      yield* RequestHeader.encode(buffer, header);
 
-        const array = MutableBuffer.take(buffer);
-        const received = yield* callEncode(
-          "request-header",
-          new Uint8Array(array),
-        );
+      const array = MutableBuffer.take(buffer);
+      const received = yield* callEncode("request-header", new Uint8Array(array));
 
-        assertRequestHeader(cx, header, received as RequestHeaderData);
-      }).pipe(Effect.provide(NodeContext.layer)),
+      assertRequestHeader(cx, header, received as RequestHeaderData);
+    }).pipe(Effect.provide(NodeContext.layer)),
   );
 
-  it.effect.prop(
-    "encode request-begin",
-    { begin: RequestBeginFromSelf },
-    ({ begin }, cx) =>
-      Effect.gen(function* () {
-        const buffer = MutableBuffer.makeWrite();
+  it.effect.prop("encode request-begin", { begin: RequestBeginFromSelf }, ({ begin }, cx) =>
+    Effect.gen(function* () {
+      const buffer = MutableBuffer.makeWrite();
 
-        yield* RequestBegin.encode(buffer, begin);
+      yield* RequestBegin.encode(buffer, begin);
 
-        const array = MutableBuffer.take(buffer);
-        const received = yield* callEncode(
-          "request-begin",
-          new Uint8Array(array),
-        );
+      const array = MutableBuffer.take(buffer);
+      const received = yield* callEncode("request-begin", new Uint8Array(array));
 
-        assertRequestBegin(cx, begin, received as RequestBeginData);
-      }).pipe(Effect.provide(NodeContext.layer)),
+      assertRequestBegin(cx, begin, received as RequestBeginData);
+    }).pipe(Effect.provide(NodeContext.layer)),
   );
 
-  it.effect.prop(
-    "encode request-frame",
-    { frame: RequestFrameFromSelf },
-    ({ frame }, cx) =>
-      Effect.gen(function* () {
-        const buffer = MutableBuffer.makeWrite();
+  it.effect.prop("encode request-frame", { frame: RequestFrameFromSelf }, ({ frame }, cx) =>
+    Effect.gen(function* () {
+      const buffer = MutableBuffer.makeWrite();
 
-        yield* RequestFrame.encode(buffer, frame);
+      yield* RequestFrame.encode(buffer, frame);
 
-        const array = MutableBuffer.take(buffer);
-        const received = yield* callEncode(
-          "request-frame",
-          new Uint8Array(array),
-        );
+      const array = MutableBuffer.take(buffer);
+      const received = yield* callEncode("request-frame", new Uint8Array(array));
 
-        assertRequestFrame(cx, frame, received as RequestFrameData);
-      }).pipe(Effect.provide(NodeContext.layer)),
+      assertRequestFrame(cx, frame, received as RequestFrameData);
+    }).pipe(Effect.provide(NodeContext.layer)),
   );
 
-  it.effect.prop(
-    "encode request",
-    { request: RequestFromSelf },
-    ({ request }, cx) =>
-      Effect.gen(function* () {
-        const buffer = MutableBuffer.makeWrite();
+  it.effect.prop("encode request", { request: RequestFromSelf }, ({ request }, cx) =>
+    Effect.gen(function* () {
+      const buffer = MutableBuffer.makeWrite();
 
-        yield* Request.encode(buffer, request);
+      yield* Request.encode(buffer, request);
 
-        const array = MutableBuffer.take(buffer);
-        const received = yield* callEncode("request", new Uint8Array(array));
+      const array = MutableBuffer.take(buffer);
+      const received = yield* callEncode("request", new Uint8Array(array));
 
-        assertRequest(cx, request, received as RequestData);
-      }).pipe(Effect.provide(NodeContext.layer)),
+      assertRequest(cx, request, received as RequestData);
+    }).pipe(Effect.provide(NodeContext.layer)),
   );
 });

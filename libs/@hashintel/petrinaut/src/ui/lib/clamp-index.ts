@@ -3,10 +3,7 @@
  * or an empty list; otherwise returns the smaller of `index` and the last
  * valid position.
  */
-export const clampIndex = (
-  index: number | null,
-  itemCount: number,
-): number | null => {
+export const clampIndex = (index: number | null, itemCount: number): number | null => {
   if (index === null || itemCount === 0) {
     return null;
   }

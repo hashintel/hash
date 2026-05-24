@@ -11,14 +11,10 @@ import type {
 
 export type { DynamicNodeSizing, GraphVizConfig, StaticNodeSizing };
 export type { GraphVizFilters } from "./graph-visualizer/graph-container/shared/filter-control";
-export type {
-  GraphVizEdge,
-  GraphVizNode,
-} from "./graph-visualizer/graph-container/shared/types";
+export type { GraphVizEdge, GraphVizNode } from "./graph-visualizer/graph-container/shared/types";
 
-export type GraphVisualizerProps<
-  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
-> = GraphContainerProps<NodeSizing>;
+export type GraphVisualizerProps<NodeSizing extends DynamicNodeSizing | StaticNodeSizing> =
+  GraphContainerProps<NodeSizing>;
 
 export const GraphVisualizer = memo(
   <NodeSizing extends DynamicNodeSizing | StaticNodeSizing>(
@@ -29,9 +25,7 @@ export const GraphVisualizer = memo(
        * WebGL APIs aren't available in the server, so we need to dynamically load any module which uses Sigma/graphology.
        */
       const GraphContainer = dynamic(
-        import("./graph-visualizer/graph-container").then(
-          (module) => module.GraphContainer,
-        ),
+        import("./graph-visualizer/graph-container").then((module) => module.GraphContainer),
         { ssr: false },
       );
 

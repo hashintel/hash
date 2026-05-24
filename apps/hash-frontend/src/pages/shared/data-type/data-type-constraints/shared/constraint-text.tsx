@@ -2,13 +2,7 @@ import { Box, Tooltip } from "@mui/material";
 
 import type { DataType } from "@blockprotocol/type-system";
 
-export const ConstraintText = ({
-  text,
-  from,
-}: {
-  text: string;
-  from?: DataType;
-}) => {
+export const ConstraintText = ({ text, from }: { text: string; from?: DataType }) => {
   if (from) {
     return (
       <Tooltip title={<Box>Inherited from {from.title}</Box>}>

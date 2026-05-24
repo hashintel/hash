@@ -20,11 +20,7 @@ interface TextDecodeOptions {
   readonly stream: boolean;
 }
 
-const textDecode = (
-  decoder: TextDecoder,
-  buffer: ArrayBuffer,
-  options: TextDecodeOptions,
-) =>
+const textDecode = (decoder: TextDecoder, buffer: ArrayBuffer, options: TextDecodeOptions) =>
   Effect.try({
     try: () => {
       return decoder.decode(buffer, options);
@@ -57,8 +53,7 @@ const processArrayBuffer = Effect.fn("processArrayBuffer")(function* <T, E, R>(
     );
 
     if (Option.isNone(separatorPosition)) {
-      fragment =
-        fragment + (yield* textDecode(decoder, slice, { stream: true }));
+      fragment = fragment + (yield* textDecode(decoder, slice, { stream: true }));
 
       return [fragment, items] as const;
     }
@@ -125,7 +120,4 @@ export const layer = Layer.succeed(Decoder.Decoder, make({ schema: true }));
  * Like `layer`, but won't invoke the schema decoder, therefore neither transforming or validating the input.
  * `layerUnchecked` simply uses `JSON.parse` on the input.
  */
-export const layerUnchecked = Layer.succeed(
-  Decoder.Decoder,
-  make({ schema: false }),
-);
+export const layerUnchecked = Layer.succeed(Decoder.Decoder, make({ schema: false }));

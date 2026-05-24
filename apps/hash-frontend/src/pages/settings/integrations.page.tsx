@@ -24,12 +24,7 @@ type IntegrationCardProps = {
   icon: ReactNode;
 };
 
-const IntegrationCard = ({
-  href,
-  name,
-  description,
-  icon,
-}: IntegrationCardProps) => {
+const IntegrationCard = ({ href, name, description, icon }: IntegrationCardProps) => {
   return (
     <Paper
       sx={{
@@ -38,12 +33,7 @@ const IntegrationCard = ({
         minWidth: 250,
       }}
     >
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={1}
-      >
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
         {icon}
         <Button openInNewTab={false} variant="tertiary" size="xs" href={href}>
           Connect
@@ -72,9 +62,7 @@ const AddNewIntegrations: FunctionComponent = () => {
       <Stack direction="row" gap={2}>
         {enabledIntegrations.linear && (
           <IntegrationCard
-            href={`${apiOrigin}/oauth/linear?webId=${extractWebId(
-              activeWorkspace,
-            )}`}
+            href={`${apiOrigin}/oauth/linear?webId=${extractWebId(activeWorkspace)}`}
             name="Linear"
             description="2-way sync Linear activity and data with HASH"
             icon={<LinearLogo />}
@@ -96,9 +84,7 @@ const AddNewIntegrations: FunctionComponent = () => {
 const IntegrationsPage: NextPageWithLayout = () => {
   const { enabledIntegrations } = useHashInstance();
 
-  const noIntegrations = Object.values(enabledIntegrations).every(
-    (integration) => !integration,
-  );
+  const noIntegrations = Object.values(enabledIntegrations).every((integration) => !integration);
 
   return (
     <SettingsPageContainer
@@ -112,9 +98,8 @@ const IntegrationsPage: NextPageWithLayout = () => {
             No integrations are currently available to your account.
           </Typography>
           <Typography>
-            Please <Link href="https://hash.ai/contact">contact us</Link> if
-            you'd like to suggest a new integration, or request access to an
-            existing one.
+            Please <Link href="https://hash.ai/contact">contact us</Link> if you'd like to suggest a
+            new integration, or request access to an existing one.
           </Typography>
         </>
       ) : (

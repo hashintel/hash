@@ -1,17 +1,11 @@
 import { lookup } from "node:dns/promises";
 import { isIPv4, isIPv6 } from "node:net";
 
-export type UrlValidationResult =
-  | { valid: true; url: URL }
-  | { valid: false; reason: string };
+export type UrlValidationResult = { valid: true; url: URL } | { valid: false; reason: string };
 
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
 
-const BLOCKED_HOSTNAMES = new Set([
-  "localhost",
-  "localhost.localdomain",
-  "broadcasthost",
-]);
+const BLOCKED_HOSTNAMES = new Set(["localhost", "localhost.localdomain", "broadcasthost"]);
 
 /**
  * Returns `true` if the hostname ends with a suffix that indicates a
@@ -175,12 +169,7 @@ export const validateExternalUrl = (
   }
 
   // --- Port check ---
-  if (
-    !options?.allowArbitraryPorts &&
-    url.port !== "" &&
-    url.port !== "80" &&
-    url.port !== "443"
-  ) {
+  if (!options?.allowArbitraryPorts && url.port !== "" && url.port !== "80" && url.port !== "443") {
     return {
       valid: false,
       reason: `Non-standard port "${url.port}" is not permitted`,
@@ -193,9 +182,10 @@ export const validateExternalUrl = (
   // Strip IPv6 brackets if present (URL parser keeps them in .hostname for
   // bracket-enclosed literals, but net.isIPv6 expects bare addresses).
   // Also strip any zone ID (e.g. %25eth0) which could bypass suffix/IP checks.
-  const bareHostname = (
-    hostname.startsWith("[") ? hostname.slice(1, -1) : hostname
-  ).replace(/%25.*$/, "");
+  const bareHostname = (hostname.startsWith("[") ? hostname.slice(1, -1) : hostname).replace(
+    /%25.*$/,
+    "",
+  );
 
   if (BLOCKED_HOSTNAMES.has(bareHostname)) {
     return {

@@ -20,15 +20,11 @@ describe("deduplicateName", () => {
   });
 
   it("skips over existing suffixes to find the next available number", () => {
-    expect(
-      deduplicateName("Place1", new Set(["Place1", "Place2", "Place3"])),
-    ).toBe("Place4");
+    expect(deduplicateName("Place1", new Set(["Place1", "Place2", "Place3"]))).toBe("Place4");
   });
 
   it("handles gaps in the numeric sequence", () => {
-    expect(
-      deduplicateName("Place1", new Set(["Place1", "Place2", "Place4"])),
-    ).toBe("Place3");
+    expect(deduplicateName("Place1", new Set(["Place1", "Place2", "Place4"]))).toBe("Place3");
   });
 
   it("handles a name that ends with a large number", () => {
@@ -36,17 +32,12 @@ describe("deduplicateName", () => {
   });
 
   it("appends suffix to a name without trailing digits when conflicting", () => {
-    expect(deduplicateName("MyTransition", new Set(["MyTransition"]))).toBe(
-      "MyTransition2",
-    );
+    expect(deduplicateName("MyTransition", new Set(["MyTransition"]))).toBe("MyTransition2");
   });
 
   it("skips existing suffixed names for non-numeric base names", () => {
     expect(
-      deduplicateName(
-        "MyTransition",
-        new Set(["MyTransition", "MyTransition2", "MyTransition3"]),
-      ),
+      deduplicateName("MyTransition", new Set(["MyTransition", "MyTransition2", "MyTransition3"])),
     ).toBe("MyTransition4");
   });
 
@@ -71,8 +62,6 @@ describe("deduplicateName", () => {
 
   it("does not confuse numbers in the middle of a name", () => {
     // "Type2Color" ends with "olor" not a digit, so suffix starts at 2
-    expect(deduplicateName("Type2Color", new Set(["Type2Color"]))).toBe(
-      "Type2Color2",
-    );
+    expect(deduplicateName("Type2Color", new Set(["Type2Color"]))).toBe("Type2Color2");
   });
 });

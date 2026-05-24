@@ -18,35 +18,32 @@ export const mapLlmContentToGooglePartAndUploadFiles = async (
     case "file": {
       const { fileEntity } = content;
 
-      return await useFileSystemPathFromEntity(
-        fileEntity,
-        async ({ fileSystemPath }) => {
-          const { gcpStorageUri } = await uploadFileToGcpStorage({
-            fileEntity,
-            fileSystemPath,
-          });
+      return await useFileSystemPathFromEntity(fileEntity, async ({ fileSystemPath }) => {
+        const { gcpStorageUri } = await uploadFileToGcpStorage({
+          fileEntity,
+          fileSystemPath,
+        });
 
-          const mimeType =
-            fileEntity.properties[
-              "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"
-            ];
+        const mimeType =
+          fileEntity.properties[
+            "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/"
+          ];
 
-          if (!mimeType) {
-            throw new Error(
-              `File entity with entityId ${fileEntity.entityId} does not have a mimeType property`,
-            );
-          }
+        if (!mimeType) {
+          throw new Error(
+            `File entity with entityId ${fileEntity.entityId} does not have a mimeType property`,
+          );
+        }
 
-          const uploadedFileData = {
-            fileData: {
-              fileUri: gcpStorageUri,
-              mimeType,
-            },
-          } satisfies FileDataPart;
+        const uploadedFileData = {
+          fileData: {
+            fileUri: gcpStorageUri,
+            mimeType,
+          },
+        } satisfies FileDataPart;
 
-          return uploadedFileData;
-        },
-      );
+        return uploadedFileData;
+      });
     }
     case "text": {
       return {
@@ -68,9 +65,7 @@ export const mapLlmContentToGooglePartAndUploadFiles = async (
           },
         } satisfies FunctionResponsePart;
       } catch {
-        throw new Error(
-          `Failed to parse tool result content: ${content.content}`,
-        );
+        throw new Error(`Failed to parse tool result content: ${content.content}`);
       }
     }
     case "tool_use": {

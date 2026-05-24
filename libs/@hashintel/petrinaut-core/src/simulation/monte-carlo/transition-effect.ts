@@ -5,16 +5,9 @@ import { sampleDistribution } from "../engine/sample-distribution";
 import { nextRandom } from "../engine/seeded-rng";
 import { getPlaceIndex, getTransitionIndex } from "./layout";
 
-import type {
-  CompiledTransition,
-  TransitionTokenValues,
-} from "../engine/types";
+import type { CompiledTransition, TransitionTokenValues } from "../engine/types";
 import type { MonteCarloFrameBuffer } from "./frame-buffer";
-import type {
-  MonteCarloRunState,
-  PlaceID,
-  TransitionEffect,
-} from "./internal-types";
+import type { MonteCarloRunState, PlaceID, TransitionEffect } from "./internal-types";
 
 /**
  * Computes the effect of one transition against a candidate frame.
@@ -63,17 +56,12 @@ export function computeTransitionEffect(
     (place) => place.dimensions === 0 && place.arcType !== "inhibitor",
   );
 
-  const tokenCombinations = enumerateWeightedMarkingIndicesGenerator(
-    inputPlacesWithValues,
-  );
+  const tokenCombinations = enumerateWeightedMarkingIndicesGenerator(inputPlacesWithValues);
 
   for (const tokenCombinationIndices of tokenCombinations) {
     const tokenValues: TransitionTokenValues = {};
 
-    for (const [
-      placeIndex,
-      tokenIndices,
-    ] of tokenCombinationIndices.entries()) {
+    for (const [placeIndex, tokenIndices] of tokenCombinationIndices.entries()) {
       const inputPlace = inputPlacesWithValues[placeIndex]!;
       const { dimensions, offset } = inputPlace;
       if (!inputPlace.elementNames) {
@@ -88,8 +76,7 @@ export function computeTransitionEffect(
         const tokenOffset = offset + tokenIndex * dimensions;
         const token: Record<string, number> = {};
         for (let dimension = 0; dimension < dimensions; dimension++) {
-          token[elementNames[dimension]!] =
-            frame.tokenValues[tokenOffset + dimension]!;
+          token[elementNames[dimension]!] = frame.tokenValues[tokenOffset + dimension]!;
         }
         return token;
       });
@@ -137,10 +124,7 @@ export function computeTransitionEffect(
       const dimensions = frameLayout.placeDimensions[outputPlaceIndex] ?? 0;
 
       if (!outputPlace.elementNames) {
-        add[outputPlace.placeId] = Array.from(
-          { length: outputPlace.weight },
-          () => [],
-        );
+        add[outputPlace.placeId] = Array.from({ length: outputPlace.weight }, () => []);
         continue;
       }
 
@@ -158,10 +142,7 @@ export function computeTransitionEffect(
         for (const elementName of outputPlace.elementNames) {
           const rawValue = token[elementName]!;
           if (isDistribution(rawValue)) {
-            const [sampled, nextRngState] = sampleDistribution(
-              rawValue,
-              currentRngState,
-            );
+            const [sampled, nextRngState] = sampleDistribution(rawValue, currentRngState);
             currentRngState = nextRngState;
             values.push(sampled);
           } else {

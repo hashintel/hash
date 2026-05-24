@@ -28,9 +28,7 @@ export const generatePrimaryKey = {
 
     return `flight-${input.flightNumber}-${input.flightDate}`;
   },
-  aircraft: (input: {
-    registrationNumber: string | null | undefined;
-  }): string | null => {
+  aircraft: (input: { registrationNumber: string | null | undefined }): string | null => {
     if (!input.registrationNumber) {
       return null;
     }
@@ -74,32 +72,20 @@ export const generateEntityMatcher = {
         {
           equal: [
             {
-              path: [
-                "properties",
-                systemPropertyTypes.flightNumber.propertyTypeBaseUrl,
-              ],
+              path: ["properties", systemPropertyTypes.flightNumber.propertyTypeBaseUrl],
             },
             {
-              parameter:
-                input.properties[
-                  systemPropertyTypes.flightNumber.propertyTypeBaseUrl
-                ],
+              parameter: input.properties[systemPropertyTypes.flightNumber.propertyTypeBaseUrl],
             },
           ],
         },
         {
           equal: [
             {
-              path: [
-                "properties",
-                systemPropertyTypes.flightDate.propertyTypeBaseUrl,
-              ],
+              path: ["properties", systemPropertyTypes.flightDate.propertyTypeBaseUrl],
             },
             {
-              parameter:
-                input.properties[
-                  systemPropertyTypes.flightDate.propertyTypeBaseUrl
-                ],
+              parameter: input.properties[systemPropertyTypes.flightDate.propertyTypeBaseUrl],
             },
           ],
         },
@@ -112,16 +98,11 @@ export const generateEntityMatcher = {
         {
           equal: [
             {
-              path: [
-                "properties",
-                systemPropertyTypes.registrationNumber.propertyTypeBaseUrl,
-              ],
+              path: ["properties", systemPropertyTypes.registrationNumber.propertyTypeBaseUrl],
             },
             {
               parameter:
-                input.properties[
-                  systemPropertyTypes.registrationNumber.propertyTypeBaseUrl
-                ],
+                input.properties[systemPropertyTypes.registrationNumber.propertyTypeBaseUrl],
             },
           ],
         },
@@ -134,16 +115,10 @@ export const generateEntityMatcher = {
         {
           equal: [
             {
-              path: [
-                "properties",
-                systemPropertyTypes.icaoCode.propertyTypeBaseUrl,
-              ],
+              path: ["properties", systemPropertyTypes.icaoCode.propertyTypeBaseUrl],
             },
             {
-              parameter:
-                input.properties[
-                  systemPropertyTypes.icaoCode.propertyTypeBaseUrl
-                ],
+              parameter: input.properties[systemPropertyTypes.icaoCode.propertyTypeBaseUrl],
             },
           ],
         },
@@ -156,16 +131,10 @@ export const generateEntityMatcher = {
         {
           equal: [
             {
-              path: [
-                "properties",
-                systemPropertyTypes.icaoCode.propertyTypeBaseUrl,
-              ],
+              path: ["properties", systemPropertyTypes.icaoCode.propertyTypeBaseUrl],
             },
             {
-              parameter:
-                input.properties[
-                  systemPropertyTypes.icaoCode.propertyTypeBaseUrl
-                ],
+              parameter: input.properties[systemPropertyTypes.icaoCode.propertyTypeBaseUrl],
             },
           ],
         },
@@ -188,16 +157,10 @@ export const generateLinkMatcher = {
     return {
       all: [
         {
-          equal: [
-            { path: ["leftEntity", "uuid"] },
-            { parameter: leftEntityUuid },
-          ],
+          equal: [{ path: ["leftEntity", "uuid"] }, { parameter: leftEntityUuid }],
         },
         {
-          equal: [
-            { path: ["rightEntity", "uuid"] },
-            { parameter: rightEntityUuid },
-          ],
+          equal: [{ path: ["rightEntity", "uuid"] }, { parameter: rightEntityUuid }],
         },
       ],
     };
@@ -212,16 +175,10 @@ export const generateLinkMatcher = {
     return {
       all: [
         {
-          equal: [
-            { path: ["leftEntity", "uuid"] },
-            { parameter: leftEntityUuid },
-          ],
+          equal: [{ path: ["leftEntity", "uuid"] }, { parameter: leftEntityUuid }],
         },
         {
-          equal: [
-            { path: ["rightEntity", "uuid"] },
-            { parameter: rightEntityUuid },
-          ],
+          equal: [{ path: ["rightEntity", "uuid"] }, { parameter: rightEntityUuid }],
         },
       ],
     };
@@ -236,16 +193,10 @@ export const generateLinkMatcher = {
     return {
       all: [
         {
-          equal: [
-            { path: ["leftEntity", "uuid"] },
-            { parameter: leftEntityUuid },
-          ],
+          equal: [{ path: ["leftEntity", "uuid"] }, { parameter: leftEntityUuid }],
         },
         {
-          equal: [
-            { path: ["rightEntity", "uuid"] },
-            { parameter: rightEntityUuid },
-          ],
+          equal: [{ path: ["rightEntity", "uuid"] }, { parameter: rightEntityUuid }],
         },
       ],
     };
@@ -260,16 +211,10 @@ export const generateLinkMatcher = {
     return {
       all: [
         {
-          equal: [
-            { path: ["leftEntity", "uuid"] },
-            { parameter: leftEntityUuid },
-          ],
+          equal: [{ path: ["leftEntity", "uuid"] }, { parameter: leftEntityUuid }],
         },
         {
-          equal: [
-            { path: ["rightEntity", "uuid"] },
-            { parameter: rightEntityUuid },
-          ],
+          equal: [{ path: ["rightEntity", "uuid"] }, { parameter: rightEntityUuid }],
         },
       ],
     };

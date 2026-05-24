@@ -11,19 +11,14 @@ import type { ParseError } from "effect/ParseResult";
 import type { ReadonlyRecord } from "effect/Record";
 import type * as vitest from "vitest";
 
-const decode = Effect.fn("decode")(function* (
-  cx: vitest.TestContext,
-  text: readonly string[],
-) {
+const decode = Effect.fn("decode")(function* (cx: vitest.TestContext, text: readonly string[]) {
   const decoder = yield* Decoder.Decoder;
   const textEncoder = new TextEncoder();
 
   const schema = Schema.Record({ key: Schema.String, value: Schema.String });
 
   const effect = Stream.fromChunk(Chunk.fromIterable(text)).pipe(
-    Stream.map((input) =>
-      expectArrayBuffer(cx, textEncoder.encode(input).buffer),
-    ),
+    Stream.map((input) => expectArrayBuffer(cx, textEncoder.encode(input).buffer)),
     decoder.decode(schema),
     Stream.runCollect,
     Effect.map(Chunk.toReadonlyArray),
@@ -74,16 +69,14 @@ describe.concurrent("JsonDecoder", () => {
     }).pipe(Effect.provide(JsonDecoder.layer)),
   );
 
-  it.effect(
-    "partial record completed in next chunk with another record in the same chunk",
-    (cx) =>
-      Effect.gen(function* () {
-        const textPayload = ['{"key": "val', 'ue1"}\x1E{"key": "value2"}\x1E'];
+  it.effect("partial record completed in next chunk with another record in the same chunk", (cx) =>
+    Effect.gen(function* () {
+      const textPayload = ['{"key": "val', 'ue1"}\x1E{"key": "value2"}\x1E'];
 
-        const items = yield* decode(cx, textPayload);
+      const items = yield* decode(cx, textPayload);
 
-        cx.expect(items).toMatchObject([{ key: "value1" }, { key: "value2" }]);
-      }).pipe(Effect.provide(JsonDecoder.layer)),
+      cx.expect(items).toMatchObject([{ key: "value1" }, { key: "value2" }]);
+    }).pipe(Effect.provide(JsonDecoder.layer)),
   );
 
   it.effect("invalid json", (cx) =>
@@ -91,14 +84,9 @@ describe.concurrent("JsonDecoder", () => {
       const textPayload = '{"key": "valu\x1E';
 
       // explicit type annotation needed for eslint
-      const error: DecodingError | ParseError = yield* pipe(
-        decode(cx, [textPayload]),
-        Effect.flip,
-      );
+      const error: DecodingError | ParseError = yield* pipe(decode(cx, [textPayload]), Effect.flip);
 
-      cx.expect(error.toString()).toMatch(
-        /Unterminated string in JSON at position 13/,
-      );
+      cx.expect(error.toString()).toMatch(/Unterminated string in JSON at position 13/);
     }).pipe(Effect.provide(JsonDecoder.layer)),
   );
 });

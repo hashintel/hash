@@ -40,40 +40,34 @@ const createNotification = async ({
         "https://hash.ai/@h/types/property-type/title/": {
           value: targetEntityTitle,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
         "https://hash.ai/@h/types/property-type/fractional-index/": {
           value: "a0",
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
       },
     },
   });
 
-  const notificationEntity = await createEntity<GraphChangeNotification>(
-    requestContext,
-    {
-      draft: false,
-      entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
-      webId,
-      properties: {
-        value: {
-          "https://hash.ai/@h/types/property-type/graph-change-type/": {
-            value: "create",
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
+  const notificationEntity = await createEntity<GraphChangeNotification>(requestContext, {
+    draft: false,
+    entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
+    webId,
+    properties: {
+      value: {
+        "https://hash.ai/@h/types/property-type/graph-change-type/": {
+          value: "create",
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
       },
     },
-  );
+  });
 
   await createEntity<OccurredInEntity>(requestContext, {
     draft,
@@ -86,11 +80,9 @@ const createNotification = async ({
     properties: {
       value: {
         "https://hash.ai/@h/types/property-type/entity-edition-id/": {
-          value:
-            targetEntity.metadata.temporalVersioning.decisionTime.start.limit,
+          value: targetEntity.metadata.temporalVersioning.decisionTime.start.limit,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
       },
@@ -112,9 +104,7 @@ test("new notifications are shown on notifications page", async ({ page }) => {
 
   const draftNotificationTitle = new Date().toISOString();
 
-  await expect(
-    page.locator(`text=${draftNotificationTitle}`),
-  ).not.toBeVisible();
+  await expect(page.locator(`text=${draftNotificationTitle}`)).not.toBeVisible();
 
   /** Check notifications linked to draft entities */
   await createNotification({
@@ -130,9 +120,7 @@ test("new notifications are shown on notifications page", async ({ page }) => {
 
   const nonDraftNotificationTitle = new Date().toISOString();
 
-  await expect(
-    page.locator(`text=${nonDraftNotificationTitle}`),
-  ).not.toBeVisible();
+  await expect(page.locator(`text=${nonDraftNotificationTitle}`)).not.toBeVisible();
 
   /** Check notifications linked to non-draft entities */
   await createNotification({

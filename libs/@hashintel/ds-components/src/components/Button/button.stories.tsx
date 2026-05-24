@@ -171,9 +171,7 @@ export const Sizes: Story<ButtonElementProps> = (args) => (
                 {size}
               </Button>
             </div>
-            <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-              {size}
-            </span>
+            <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>{size}</span>
           </div>
         ))}
       </div>
@@ -201,12 +199,7 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
         {formInputSizes.map((size) => (
           <Fragment key={size}>
             {/* eslint-disable -- spreading union-typed Ladle args triggers false TS errors from RequireAtLeastOne/ExclusifyUnion distribution */}
-            <Button
-              {...(args as any)}
-              variant={variant}
-              iconName="plus"
-              size={size}
-            >
+            <Button {...(args as any)} variant={variant} iconName="plus" size={size}>
               Icon Left
             </Button>
             <Button
@@ -228,13 +221,7 @@ export const WithIcon: Story<ButtonElementProps> = (args) => (
             >
               Both Icons
             </ButtonComponent>
-            <Button
-              {...(args as any)}
-              variant={variant}
-              iconName="star"
-              size={size}
-              tooltip="Star"
-            >
+            <Button {...(args as any)} variant={variant} iconName="star" size={size} tooltip="Star">
               {undefined}
             </Button>
             <ButtonComponent

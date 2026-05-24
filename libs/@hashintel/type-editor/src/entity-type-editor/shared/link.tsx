@@ -1,17 +1,9 @@
 import { useCustomizationSettings } from "../../shared/customization-context";
 
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  HTMLProps,
-  KeyboardEvent,
-  MouseEvent,
-  PropsWithChildren,
-} from "react";
+import type { HTMLProps, KeyboardEvent, MouseEvent, PropsWithChildren } from "react";
 
-export const Link = ({
-  children,
-  ...props
-}: PropsWithChildren<HTMLProps<HTMLAnchorElement>>) => {
+export const Link = ({ children, ...props }: PropsWithChildren<HTMLProps<HTMLAnchorElement>>) => {
   const { onNavigateToType } = useCustomizationSettings();
 
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {

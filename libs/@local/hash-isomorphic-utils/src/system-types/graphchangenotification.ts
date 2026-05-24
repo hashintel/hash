@@ -67,9 +67,7 @@ export type {
  * A notification of a change to a graph
  */
 export type GraphChangeNotification = {
-  entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/graph-change-notification/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/graph-change-notification/v/1"];
   properties: GraphChangeNotificationProperties;
   propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;
 };
@@ -93,13 +91,12 @@ export type GraphChangeNotificationProperties = NotificationProperties & {
   "https://hash.ai/@h/types/property-type/graph-change-type/": GraphChangeTypePropertyValue;
 };
 
-export type GraphChangeNotificationPropertiesWithMetadata =
-  NotificationPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {
-      "https://hash.ai/@h/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;
-    };
+export type GraphChangeNotificationPropertiesWithMetadata = NotificationPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;
   };
+};
 
 /**
  * The type of change that occurred (e.g. create, update, archive)

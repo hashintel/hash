@@ -14,9 +14,10 @@ const TypeId = Symbol("@local/harpc-client/net/Response");
 
 export type TypeId = typeof TypeId;
 
-export class UnexpectedResponseTypeError extends Data.TaggedError(
-  "UnexpectedResponseTypeError",
-)<{ expected: "Begin" | "Frame"; received: "Begin" | "Frame" }> {
+export class UnexpectedResponseTypeError extends Data.TaggedError("UnexpectedResponseTypeError")<{
+  expected: "Begin" | "Frame";
+  received: "Begin" | "Frame";
+}> {
   get message() {
     return `Expected response type '${this.expected}', but received '${this.received}'`;
   }
@@ -68,14 +69,10 @@ type ResponseSegment = Data.TaggedEnum<{
 
 const ResponseSegment = Data.taggedEnum<ResponseSegment>();
 
-const flattenResponseStream = <E, R>(
-  stream: Stream.Stream<Response.Response, E, R>,
-) =>
+const flattenResponseStream = <E, R>(stream: Stream.Stream<Response.Response, E, R>) =>
   pipe(
     stream,
-    Stream.takeUntil((response) =>
-      ResponseFlags.isEndOfResponse(response.header.flags),
-    ),
+    Stream.takeUntil((response) => ResponseFlags.isEndOfResponse(response.header.flags)),
     Stream.mapConcat((response) => {
       const output: ResponseSegment[] = [];
 
@@ -99,9 +96,7 @@ const flattenResponseStream = <E, R>(
     }),
   );
 
-const processResponseStream = <E, R>(
-  stream: Stream.Stream<ResponseSegment, E, R>,
-) => {
+const processResponseStream = <E, R>(stream: Stream.Stream<ResponseSegment, E, R>) => {
   let partialError: Option.Option<NetworkError> = Option.none();
 
   return pipe(

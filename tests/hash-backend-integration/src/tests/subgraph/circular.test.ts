@@ -2,10 +2,7 @@ import path from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import {
-  getEntities as getEntitiesSubgraph,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getEntities as getEntitiesSubgraph, getRoots } from "@blockprotocol/graph/stdlib";
 import { ENTITY_ID_DELIMITER } from "@blockprotocol/type-system";
 import {
   queryEntities,
@@ -24,11 +21,7 @@ import type {
   KnowledgeGraphRootedEdges,
   Subgraph,
 } from "@blockprotocol/graph";
-import type {
-  ActorEntityUuid,
-  Entity,
-  Timestamp,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, Entity, Timestamp } from "@blockprotocol/type-system";
 import type { TraversalPath } from "@rust/hash-graph-store/types";
 
 const createRequest = ({
@@ -139,16 +132,11 @@ afterAll(async () => {
   await resetGraph();
 });
 
-const verticesEquals = (
-  subgraph: Subgraph<EntityRootType>,
-  entities: Entity[],
-): boolean => {
+const verticesEquals = (subgraph: Subgraph<EntityRootType>, entities: Entity[]): boolean => {
   const vertexIds = getEntitiesSubgraph(subgraph, true)
     .map((vertex) => vertex.metadata.recordId.entityId)
     .sort();
-  const entityIds = entities
-    .map((entity) => entity.metadata.recordId.entityId)
-    .sort();
+  const entityIds = entities.map((entity) => entity.metadata.recordId.entityId).sort();
 
   return (
     vertexIds.length === entityIds.length &&
@@ -232,9 +220,7 @@ describe("Single linked list", () => {
       edgesEquals(subgraph, [
         {
           source: entity_a,
-          edges: [
-            { kind: "HAS_LEFT_ENTITY", target: link_ab, direction: "backward" },
-          ],
+          edges: [{ kind: "HAS_LEFT_ENTITY", target: link_ab, direction: "backward" }],
         },
       ]),
     ).toBe(true);
@@ -269,9 +255,7 @@ describe("Single linked list", () => {
       edgesEquals(subgraph, [
         {
           source: entity_a,
-          edges: [
-            { kind: "HAS_LEFT_ENTITY", target: link_ab, direction: "backward" },
-          ],
+          edges: [{ kind: "HAS_LEFT_ENTITY", target: link_ab, direction: "backward" }],
         },
         {
           source: link_ab,
@@ -316,9 +300,7 @@ describe("Single linked list", () => {
       edgesEquals(subgraph, [
         {
           source: entity_a,
-          edges: [
-            { kind: "HAS_LEFT_ENTITY", target: link_ab, direction: "backward" },
-          ],
+          edges: [{ kind: "HAS_LEFT_ENTITY", target: link_ab, direction: "backward" }],
         },
         {
           source: link_ab,
@@ -449,15 +431,7 @@ describe("Single linked list", () => {
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
     expect(
-      verticesEquals(subgraph, [
-        entity_a,
-        link_ab,
-        entity_b,
-        link_bc,
-        entity_c,
-        link_cd,
-        entity_d,
-      ]),
+      verticesEquals(subgraph, [entity_a, link_ab, entity_b, link_bc, entity_c, link_cd, entity_d]),
     ).toBe(true);
     expect(
       edgesEquals(subgraph, [
@@ -664,15 +638,7 @@ describe("Double linked list", () => {
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
-    expect(
-      verticesEquals(subgraph, [
-        entity_a,
-        link_ab,
-        entity_b,
-        link_ad,
-        entity_d,
-      ]),
-    ).toBe(true);
+    expect(verticesEquals(subgraph, [entity_a, link_ab, entity_b, link_ad, entity_d])).toBe(true);
     expect(
       edgesEquals(subgraph, [
         {

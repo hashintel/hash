@@ -37,10 +37,7 @@ export const createPropertyType: ImpureGraphFunction<
     webId: WebId;
     schema: ConstructPropertyTypeParams;
     webShortname?: string;
-    provenance?: Omit<
-      ProvidedOntologyEditionProvenance,
-      "origin" | "actorType"
-    >;
+    provenance?: Omit<ProvidedOntologyEditionProvenance, "origin" | "actorType">;
   },
   Promise<PropertyTypeWithMetadata>
 > = async (ctx, authentication, params) => {
@@ -67,16 +64,13 @@ export const createPropertyType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi.createPropertyType(
-    authentication.actorId,
-    {
-      schema,
-      provenance: {
-        ...ctx.provenance,
-        ...params.provenance,
-      },
+  const { data: metadata } = await graphApi.createPropertyType(authentication.actorId, {
+    schema,
+    provenance: {
+      ...ctx.provenance,
+      ...params.provenance,
     },
-  );
+  });
 
   // TODO: Avoid casting through `unknown` when new codegen is in place
   //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
@@ -112,10 +106,7 @@ export const updatePropertyType: ImpureGraphFunction<
     },
   };
 
-  const { data: metadata } = await ctx.graphApi.updatePropertyType(
-    actorId,
-    updateArguments,
-  );
+  const { data: metadata } = await ctx.graphApi.updatePropertyType(actorId, updateArguments);
 
   const { recordId } = metadata;
 
@@ -146,10 +137,7 @@ export const archivePropertyType: ImpureGraphFunction<
   ArchivePropertyTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.archivePropertyType(
-    actorId,
-    params,
-  );
+  const { data: temporalMetadata } = await graphApi.archivePropertyType(actorId, params);
 
   return temporalMetadata as OntologyTemporalMetadata;
 };
@@ -164,10 +152,10 @@ export const unarchivePropertyType: ImpureGraphFunction<
   Omit<UnarchivePropertyTypeParams, "provenance">,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi, provenance }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.unarchivePropertyType(
-    actorId,
-    { ...params, provenance },
-  );
+  const { data: temporalMetadata } = await graphApi.unarchivePropertyType(actorId, {
+    ...params,
+    provenance,
+  });
 
   return temporalMetadata as OntologyTemporalMetadata;
 };

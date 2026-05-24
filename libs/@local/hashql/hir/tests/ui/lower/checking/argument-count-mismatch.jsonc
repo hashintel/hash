@@ -3,13 +3,7 @@
 [
   "let",
   "foo",
-  [
-    "fn",
-    { "#tuple": ["T", "U"] },
-    { "#struct": { "a": "T", "b": "U" } },
-    "T",
-    "a"
-  ],
+  ["fn", { "#tuple": ["T", "U"] }, { "#struct": { "a": "T", "b": "U" } }, "T", "a"],
   [
     "foo<Integer>",
     //~^ ERROR This closure requires exactly 2 generic arguments

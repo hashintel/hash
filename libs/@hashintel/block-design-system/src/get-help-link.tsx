@@ -9,11 +9,7 @@ export type GetHelpProps = {
   href: string;
 } & LinkProps;
 
-export const GetHelpLink: FunctionComponent<GetHelpProps> = ({
-  href,
-  sx,
-  ...props
-}) => {
+export const GetHelpLink: FunctionComponent<GetHelpProps> = ({ href, sx, ...props }) => {
   return (
     <Link
       {...props}
@@ -46,8 +42,7 @@ export const GetHelpLink: FunctionComponent<GetHelpProps> = ({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      Get help{" "}
-      <CircleQuestionIcon sx={{ fontSize: 16, ml: 1, fill: "inherit" }} />
+      Get help <CircleQuestionIcon sx={{ fontSize: 16, ml: 1, fill: "inherit" }} />
     </Link>
   );
 };

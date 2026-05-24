@@ -20,10 +20,7 @@ export const useCreateOnCellEdited = () => {
 
   const createOnCellEdited = useCallback(
     (rows: PropertyRow[]) => {
-      const onCellEdited = (
-        [colIndex, rowIndex]: Item,
-        newValueCellOldType: EditableGridCell,
-      ) => {
+      const onCellEdited = ([colIndex, rowIndex]: Item, newValueCellOldType: EditableGridCell) => {
         if (newValueCellOldType.kind !== GridCellKind.Custom) {
           return;
         }
@@ -59,11 +56,7 @@ export const useCreateOnCellEdited = () => {
          * so we can update the deeply nested properties,
          * by using keys pathing to specific property called `propertyKeyChain`
          */
-        set(
-          updatedProperties,
-          propertyKeyChain,
-          newValueCell.data.propertyRow.value,
-        );
+        set(updatedProperties, propertyKeyChain, newValueCell.data.propertyRow.value);
 
         const metadataKeyChain: (string | number)[] = [];
         for (let i = 0; i < propertyKeyChain.length; i++) {

@@ -44,19 +44,11 @@ export const createProto = <
 /**
  * This is more strictly typed than necessary, but this allows us to give better type hints.
  */
-export const implEncode: <
-  U,
-  E extends MutableBuffer.UnexpectedEndOfBufferError,
->(
-  closure: (
-    buffer: MutableBuffer.WriteBuffer,
-    self: U,
-  ) => MutableBuffer.WriteResult<E>,
+export const implEncode: <U, E extends MutableBuffer.UnexpectedEndOfBufferError>(
+  closure: (buffer: MutableBuffer.WriteBuffer, self: U) => MutableBuffer.WriteResult<E>,
   // eslint-disable-next-line fsecond/no-inline-interfaces
 ) => {
-  (
-    self: U,
-  ): (buffer: MutableBuffer.WriteBuffer) => MutableBuffer.WriteResult<E>;
+  (self: U): (buffer: MutableBuffer.WriteBuffer) => MutableBuffer.WriteResult<E>;
   (buffer: MutableBuffer.WriteBuffer, self: U): MutableBuffer.WriteResult<E>;
 } = (closure) => Function.dual(2, closure as (...args: unknown[]) => unknown);
 
@@ -65,9 +57,7 @@ export const implEncode: <
  */
 export const implDecode: <U, E>(
   closure: (buffer: MutableBuffer.ReadBuffer) => MutableBuffer.ReadResult<U, E>,
-) => (buffer: MutableBuffer.ReadBuffer) => MutableBuffer.ReadResult<U, E> = (
-  closure,
-) => closure;
+) => (buffer: MutableBuffer.ReadBuffer) => MutableBuffer.ReadResult<U, E> = (closure) => closure;
 
 export const hashUint8Array = (array: Uint8Array) => {
   // same as array, so initial state is the same

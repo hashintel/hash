@@ -7,11 +7,7 @@ export const App = () => {
   return (
     <Stack gap="4">
       {sizes.map((size) => (
-        <TagsInput.Root
-          key={size}
-          size={size}
-          defaultValue={["React", "Solid", "Vue"]}
-        >
+        <TagsInput.Root key={size} size={size} defaultValue={["React", "Solid", "Vue"]}>
           <TagsInput.Label>Tags</TagsInput.Label>
           <TagsInput.Control>
             <TagsInput.Items />

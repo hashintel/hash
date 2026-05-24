@@ -73,8 +73,7 @@ const ftse350Metric: MetricDefinition = {
     ];
 
     const correctLinks = expectedLinks.reduce(
-      (acc, expectedLink) =>
-        acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+      (acc, expectedLink) => acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 
@@ -154,8 +153,7 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
     ];
 
     const correctLinks = expectedLinks.reduce(
-      (acc, expectedLink) =>
-        acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+      (acc, expectedLink) => acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 
@@ -229,13 +227,10 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
       };
     }
 
-    const expectedLinks = [
-      "https://www.techpowerup.com/gpu-specs/geforce-rtx-4090.c3889",
-    ];
+    const expectedLinks = ["https://www.techpowerup.com/gpu-specs/geforce-rtx-4090.c3889"];
 
     const correctLinks = expectedLinks.reduce(
-      (acc, expectedLink) =>
-        acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
+      (acc, expectedLink) => acc + (response.links.some(({ url }) => url === expectedLink) ? 1 : 0),
       0,
     );
 
@@ -270,10 +265,7 @@ const metrics: MetricDefinition[] = [
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const baseDirectoryPath = path.join(
-  __dirname,
-  "/var/extract-links-from-text-testing",
-);
+const baseDirectoryPath = path.join(__dirname, "/var/extract-links-from-text-testing");
 
 test(
   "Extract links form text system prompt test",

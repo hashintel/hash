@@ -38,13 +38,9 @@ describe("resolveDsComponentsBuildInfoPath", () => {
 
 describe("createPetrinautPandaConfig", () => {
   it("includes the shipped build-info file instead of ds-components source globs", () => {
-    const config = createPetrinautPandaConfig(
-      "/virtual/ds-components/panda.buildinfo.json",
-    );
+    const config = createPetrinautPandaConfig("/virtual/ds-components/panda.buildinfo.json");
 
-    expect(config.include).toContain(
-      "/virtual/ds-components/panda.buildinfo.json",
-    );
+    expect(config.include).toContain("/virtual/ds-components/panda.buildinfo.json");
     expect(config.include).not.toContain("../ds-components/src/**/*.{ts,tsx}");
   });
 });

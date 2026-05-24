@@ -12,15 +12,7 @@ export const getEntityTypeFromFormData = (
   data: EntityTypeEditorFormData,
 ): {
   schema: Required<Pick<EntityType, "description" | "links" | "properties">> &
-    Pick<
-      EntityType,
-      | "allOf"
-      | "required"
-      | "labelProperty"
-      | "icon"
-      | "titlePlural"
-      | "inverse"
-    >;
+    Pick<EntityType, "allOf" | "required" | "labelProperty" | "icon" | "titlePlural" | "inverse">;
 } => {
   const allOf = atLeastOne<EntityTypeReference>(
     data.allOf.map((versionedUrl) => ({ $ref: versionedUrl })),
@@ -28,19 +20,13 @@ export const getEntityTypeFromFormData = (
 
   const properties = data.properties;
 
-  const schemaProperties: Record<
-    string,
-    ValueOrArray<PropertyTypeReference>
-  > = {};
+  const schemaProperties: Record<string, ValueOrArray<PropertyTypeReference>> = {};
   const required = [];
 
   for (const property of properties) {
     const propertyKey = extractBaseUrl(property.$id);
 
-    if (
-      typeof property.minValue === "string" ||
-      typeof property.maxValue === "string"
-    ) {
+    if (typeof property.minValue === "string" || typeof property.maxValue === "string") {
       throw new Error("Invalid property constraint");
     }
 
@@ -63,10 +49,7 @@ export const getEntityTypeFromFormData = (
   const links: NonNullable<EntityType["links"]> = {};
 
   for (const link of data.links) {
-    if (
-      typeof link.minValue === "string" ||
-      typeof link.maxValue === "string"
-    ) {
+    if (typeof link.minValue === "string" || typeof link.maxValue === "string") {
       throw new Error("Invalid property constraint");
     }
 

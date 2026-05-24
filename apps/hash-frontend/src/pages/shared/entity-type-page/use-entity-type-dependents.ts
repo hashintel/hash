@@ -33,10 +33,7 @@ export type EntityTypeDependent = {
    * - "external-web" – the type is owned by an external web: the user cannot upgrade it
    * - "external-type-host" – the type is hosted on an external type host: the user cannot upgrade it
    */
-  noFurtherTraversalBecause?:
-    | "user-excluded"
-    | "external-web"
-    | "external-type-host";
+  noFurtherTraversalBecause?: "user-excluded" | "external-web" | "external-type-host";
   /**
    * The types that this type depends on that were encountered during traversal.
    * These will all be either among the dependents returned from the hook, or the initially-provided type.
@@ -55,10 +52,7 @@ export type EntityTypeDependent = {
 const generateDependentsFilter = (entityTypeBaseUrl: BaseUrl) => ({
   any: [
     {
-      equal: [
-        { path: ["links", "*", "baseUrl"] },
-        { parameter: entityTypeBaseUrl },
-      ],
+      equal: [{ path: ["links", "*", "baseUrl"] }, { parameter: entityTypeBaseUrl }],
     },
     {
       equal: [
@@ -158,16 +152,15 @@ export const useGetEntityTypeDependents = (): {
           }),
         );
 
-        const currentDependentsByDependencyBaseUrl =
-          dependentsAndBaseUrl.reduce<
-            Record<BaseUrl, EntityTypeWithMetadata[]>
-          >(
-            (acc, { baseUrl, dependentTypesAtLatestVersion }) => {
-              acc[baseUrl] = dependentTypesAtLatestVersion;
-              return acc;
-            },
-            {} as Record<BaseUrl, EntityTypeWithMetadata[]>,
-          );
+        const currentDependentsByDependencyBaseUrl = dependentsAndBaseUrl.reduce<
+          Record<BaseUrl, EntityTypeWithMetadata[]>
+        >(
+          (acc, { baseUrl, dependentTypesAtLatestVersion }) => {
+            acc[baseUrl] = dependentTypesAtLatestVersion;
+            return acc;
+          },
+          {} as Record<BaseUrl, EntityTypeWithMetadata[]>,
+        );
 
         const nextLayer: VersionedUrl[] = [];
 
@@ -180,19 +173,14 @@ export const useGetEntityTypeDependents = (): {
              * and we don't need to report it as a dependent of itself or of any other types.
              * We assume that the caller will be rewriting its schema along with the others returned.
              */
-            if (
-              dependent.metadata.recordId.baseUrl ===
-              extractBaseUrl(rootEntityTypeId)
-            ) {
+            if (dependent.metadata.recordId.baseUrl === extractBaseUrl(rootEntityTypeId)) {
               continue;
             }
 
             const dependentBaseUrl = dependent.metadata.recordId.baseUrl;
 
             if (dependentsByBaseUrl[dependentBaseUrl]) {
-              dependentsByBaseUrl[dependentBaseUrl].dependentOn.add(
-                dependencyBaseUrl,
-              );
+              dependentsByBaseUrl[dependentBaseUrl].dependentOn.add(dependencyBaseUrl);
               continue;
             }
 
@@ -214,8 +202,7 @@ export const useGetEntityTypeDependents = (): {
               continue;
             }
 
-            const excludedByUser =
-              !!excludeBaseUrls?.includes(dependentBaseUrl);
+            const excludedByUser = !!excludeBaseUrls?.includes(dependentBaseUrl);
 
             if (!excludedByUser) {
               nextLayer.push(dependent.schema.$id);
@@ -223,9 +210,7 @@ export const useGetEntityTypeDependents = (): {
 
             dependentsByBaseUrl[dependentBaseUrl] = {
               entityType: dependent.schema,
-              noFurtherTraversalBecause: excludedByUser
-                ? "user-excluded"
-                : undefined,
+              noFurtherTraversalBecause: excludedByUser ? "user-excluded" : undefined,
               dependentOn: new Set([dependencyBaseUrl]),
             };
           }

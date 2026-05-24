@@ -122,13 +122,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeType>) => {
-  const {
-    globalMode,
-    isSelected,
-    isNotSelectedConnection,
-    isNotHoveredConnection,
-    hoveredItem,
-  } = use(EditorContext);
+  const { globalMode, isSelected, isNotSelectedConnection, isNotHoveredConnection, hoveredItem } =
+    use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
   const { initialMarking } = use(SimulationContext);
   const { currentViewedFrame } = use(PlaybackContext);
@@ -152,8 +147,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
+      : isNotHoveredConnection(id) || (!hoveredItem && isNotSelectedConnection(id))
         ? "notSelectedConnection"
         : "none";
 
@@ -171,9 +165,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           borderColor: data.typeColor
             ? hexToHsl(data.typeColor).lighten(-10).saturate(-30).css(1)
             : undefined,
-          backgroundColor: data.typeColor
-            ? hexToHsl(data.typeColor).lighten(35).css(1)
-            : undefined,
+          backgroundColor: data.typeColor ? hexToHsl(data.typeColor).lighten(35).css(1) : undefined,
         }}
       >
         {data.dynamicsEnabled && (
@@ -182,9 +174,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
           </div>
         )}
         <div className={labelContainerStyle}>{label}</div>
-        {tokenCount !== null && (
-          <div className={tokenCountBadgeStyle}>{tokenCount}</div>
-        )}
+        {tokenCount !== null && <div className={tokenCountBadgeStyle}>{tokenCount}</div>}
       </div>
       <Handle
         type="source"

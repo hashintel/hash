@@ -32,11 +32,7 @@ import type {
 import type { EntityEditorProps } from "../entity-editor";
 import type { EntityTypeChangeDetails } from "./types-section/entity-type-change-modal";
 import type { EntityTypeRootType } from "@blockprotocol/graph";
-import type {
-  Entity,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { Entity, OntologyTypeVersion, VersionedUrl } from "@blockprotocol/type-system";
 
 type MinimalTypeData = {
   entityTypeId: VersionedUrl;
@@ -61,8 +57,7 @@ export const TypeButton = ({
 
   const newVersion = newerEntityType?.version;
 
-  const [changeDetails, setChangeDetails] =
-    useState<EntityTypeChangeDetails | null>(null);
+  const [changeDetails, setChangeDetails] = useState<EntityTypeChangeDetails | null>(null);
 
   const [updatingTypes, setUpdatingTypes] = useState(false);
 
@@ -90,24 +85,18 @@ export const TypeButton = ({
       throw new Error(`No newer entity type to upgrade to`);
     }
 
-    const newEntityTypeIds = entity.metadata.entityTypeIds.map(
-      (entityTypeId) => {
-        if (entityTypeId === currentEntityType.entityTypeId) {
-          return newerEntityType.entityTypeId;
-        }
+    const newEntityTypeIds = entity.metadata.entityTypeIds.map((entityTypeId) => {
+      if (entityTypeId === currentEntityType.entityTypeId) {
+        return newerEntityType.entityTypeId;
+      }
 
-        return entityTypeId;
-      },
-    );
+      return entityTypeId;
+    });
 
-    const { linkChanges, propertyChanges } =
-      await getTypeDetails(newEntityTypeIds);
+    const { linkChanges, propertyChanges } = await getTypeDetails(newEntityTypeIds);
 
     setChangeDetails({
-      onAccept: async ({
-        removedLinkTypesBaseUrls,
-        removedPropertiesBaseUrls,
-      }) => {
+      onAccept: async ({ removedLinkTypesBaseUrls, removedPropertiesBaseUrls }) => {
         await handleUpdateTypes({
           entityTypeIds: mustHaveAtLeastOne(newEntityTypeIds),
           removedPropertiesBaseUrls,
@@ -130,8 +119,7 @@ export const TypeButton = ({
       (entityTypeId) => entityTypeId !== currentEntityType.entityTypeId,
     );
 
-    const { linkChanges, propertyChanges } =
-      await getTypeDetails(newEntityTypeIds);
+    const { linkChanges, propertyChanges } = await getTypeDetails(newEntityTypeIds);
 
     setChangeDetails({
       onAccept: ({ removedLinkTypesBaseUrls, removedPropertiesBaseUrls }) =>
@@ -189,8 +177,7 @@ export const TypeButton = ({
 };
 
 export const TypesSection = () => {
-  const { entity, closedMultiEntityType, readonly, handleTypesChange } =
-    useEntityEditor();
+  const { entity, closedMultiEntityType, readonly, handleTypesChange } = useEntityEditor();
 
   const { data: latestEntityTypesData } = useQuery<
     QueryEntityTypeSubgraphQuery,
@@ -219,25 +206,19 @@ export const TypesSection = () => {
     }[]
   >(() => {
     const typedSubgraph = latestEntityTypesData
-      ? deserializeQueryEntityTypeSubgraphResponse(
-          latestEntityTypesData.queryEntityTypeSubgraph,
-        ).subgraph
+      ? deserializeQueryEntityTypeSubgraphResponse(latestEntityTypesData.queryEntityTypeSubgraph)
+          .subgraph
       : null;
 
-    const latestEntityTypes = typedSubgraph
-      ? getRoots<EntityTypeRootType>(typedSubgraph)
-      : [];
+    const latestEntityTypes = typedSubgraph ? getRoots<EntityTypeRootType>(typedSubgraph) : [];
 
     return closedMultiEntityType.allOf.map((currentTypeMetadata) => {
-      const { baseUrl, version } = componentsFromVersionedUrl(
-        currentTypeMetadata.$id,
-      );
+      const { baseUrl, version } = componentsFromVersionedUrl(currentTypeMetadata.$id);
 
       const newerEntityType = latestEntityTypes.find(
         (type) =>
           type.metadata.recordId.baseUrl === baseUrl &&
-          compareOntologyTypeVersions(type.metadata.recordId.version, version) >
-            0,
+          compareOntologyTypeVersions(type.metadata.recordId.version, version) > 0,
       );
 
       const { icon } = getDisplayFieldsForClosedEntityType(currentTypeMetadata);
@@ -246,9 +227,7 @@ export const TypesSection = () => {
         entityTypeId: currentTypeMetadata.$id,
         entityTypeTitle: currentTypeMetadata.title,
         icon,
-        isLink: !!currentTypeMetadata.allOf.some(
-          (parent) => parent.$id === linkEntityTypeUrl,
-        ),
+        isLink: !!currentTypeMetadata.allOf.some((parent) => parent.$id === linkEntityTypeUrl),
         version,
       };
 
@@ -267,10 +246,7 @@ export const TypesSection = () => {
   const [addingType, setAddingType] = useState(false);
 
   const onNewTypeSelected = async (entityTypeId: VersionedUrl) => {
-    const newEntityTypeIds = mustHaveAtLeastOne([
-      ...entity.metadata.entityTypeIds,
-      entityTypeId,
-    ]);
+    const newEntityTypeIds = mustHaveAtLeastOne([...entity.metadata.entityTypeIds, entityTypeId]);
 
     try {
       setAddingType(true);
@@ -305,12 +281,8 @@ export const TypesSection = () => {
             <Box component="form" sx={{ flexGrow: 1 }}>
               <EntityTypeSelector
                 excludeEntityTypeIds={[
-                  ...entityTypes.flatMap(
-                    ({ currentEntityType, newerEntityType }) =>
-                      [
-                        currentEntityType.entityTypeId,
-                        newerEntityType?.entityTypeId ?? [],
-                      ].flat(),
+                  ...entityTypes.flatMap(({ currentEntityType, newerEntityType }) =>
+                    [currentEntityType.entityTypeId, newerEntityType?.entityTypeId ?? []].flat(),
                   ),
                   ...nonAssignableTypes,
                 ]}

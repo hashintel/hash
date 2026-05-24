@@ -66,18 +66,12 @@ export const DataTypeLabels = ({ isReadOnly }: { isReadOnly: boolean }) => {
             color: ({ palette }) => palette.gray[80],
           }}
         >
-          <Box component="span">
-            {"A value of 100 for this data type would be displayed as: "}
-          </Box>
+          <Box component="span">{"A value of 100 for this data type would be displayed as: "}</Box>
           {createFormattedValueParts({
             inner: "100",
             schema: { label: { left, right } },
           }).map((part) => (
-            <Box
-              component="span"
-              key={part.text}
-              sx={{ color: part.color, fontWeight: 400 }}
-            >
+            <Box component="span" key={part.text} sx={{ color: part.color, fontWeight: 400 }}>
               {part.text}
             </Box>
           ))}

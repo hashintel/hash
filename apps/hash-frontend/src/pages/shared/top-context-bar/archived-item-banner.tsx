@@ -30,11 +30,7 @@ import type {
 import type { FunctionComponent } from "react";
 
 type ArchivedItemBannerProps = {
-  item:
-    | Entity
-    | EntityTypeWithMetadata
-    | DataTypeWithMetadata
-    | PropertyTypeWithMetadata;
+  item: Entity | EntityTypeWithMetadata | DataTypeWithMetadata | PropertyTypeWithMetadata;
   onUnarchived: () => void;
 };
 
@@ -86,15 +82,13 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
     }
   }, [isEntityType, item]);
 
-  const archivedByUser =
-    users && users.find(({ accountId }) => archivedByAccountId === accountId);
+  const archivedByUser = users && users.find(({ accountId }) => archivedByAccountId === accountId);
 
   const archivedAt = useMemo(
     () =>
       new Date(
         isEntityType
-          ? item.metadata.temporalVersioning.transactionTime.end.kind ===
-            "exclusive"
+          ? item.metadata.temporalVersioning.transactionTime.end.kind === "exclusive"
             ? item.metadata.temporalVersioning.transactionTime.end.limit
             : 0
           : item.metadata.temporalVersioning.decisionTime.start.limit,
@@ -102,10 +96,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
     [isEntityType, item],
   );
 
-  const timeSinceArchived = useMemo(
-    () => formatDistance(archivedAt, new Date()),
-    [archivedAt],
-  );
+  const timeSinceArchived = useMemo(() => formatDistance(archivedAt, new Date()), [archivedAt]);
 
   const archivedAtTimestamp = useMemo(() => {
     const year = archivedAt.getUTCFullYear();
@@ -145,10 +136,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
               color: ({ palette }) => palette.gray[60],
             }}
           />
-          <strong>
-            This {isEntityType ? "type" : isPage ? "page" : "entity"} was
-            archived
-          </strong>
+          <strong>This {isEntityType ? "type" : isPage ? "page" : "entity"} was archived</strong>
           {archivedByUser ? (
             <>
               {" by "}

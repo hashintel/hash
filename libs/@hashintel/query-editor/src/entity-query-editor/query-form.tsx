@@ -60,10 +60,7 @@ export const QueryForm = ({ entityTypes, propertyTypes }: QueryFormProps) => {
             variant="tertiary_quiet"
             size="xs"
             startIcon={
-              <FontAwesomeIcon
-                icon={faPlus}
-                sx={{ color: ({ palette }) => palette.gray[80] }}
-              />
+              <FontAwesomeIcon icon={faPlus} sx={{ color: ({ palette }) => palette.gray[80] }} />
             }
             sx={{
               color: ({ palette }) => palette.gray[80],
@@ -77,9 +74,7 @@ export const QueryForm = ({ entityTypes, propertyTypes }: QueryFormProps) => {
       )}
 
       {!!filtersError && (
-        <Typography sx={{ color: ({ palette }) => palette.red[70] }}>
-          {filtersError}
-        </Typography>
+        <Typography sx={{ color: ({ palette }) => palette.red[70] }}>{filtersError}</Typography>
       )}
     </>
   );

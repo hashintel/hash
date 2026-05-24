@@ -11,10 +11,7 @@ import {
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import {
-  findDataTypeConversionTargets,
-  getDataTypeById,
-} from "@local/hash-graph-sdk/data-type";
+import { findDataTypeConversionTargets, getDataTypeById } from "@local/hash-graph-sdk/data-type";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import {
   currentTimeInstantTemporalAxes,
@@ -118,14 +115,10 @@ describe("Data type CRU", () => {
   it("can read a data type", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const fetchedDataType = await getDataTypeById(
-      graphContext.graphApi,
-      authentication,
-      {
-        dataTypeId: textDataTypeId,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    );
+    const fetchedDataType = await getDataTypeById(graphContext.graphApi, authentication, {
+      dataTypeId: textDataTypeId,
+      temporalAxes: currentTimeInstantTemporalAxes,
+    });
     expect(fetchedDataType).not.toBeNull();
     expect(fetchedDataType!.schema.$id).toEqual(textDataTypeId);
   });
@@ -171,14 +164,10 @@ describe("Data type CRU", () => {
       dataTypeId: createdDataType.schema.$id,
     });
 
-    const archivedDataType = await getDataTypeById(
-      graphContext.graphApi,
-      authentication,
-      {
-        dataTypeId: createdDataType.schema.$id,
-        temporalAxes: fullTransactionTimeAxis,
-      },
-    );
+    const archivedDataType = await getDataTypeById(graphContext.graphApi, authentication, {
+      dataTypeId: createdDataType.schema.$id,
+      temporalAxes: fullTransactionTimeAxis,
+    });
 
     expect(
       await getDataTypeById(graphContext.graphApi, authentication, {
@@ -187,26 +176,22 @@ describe("Data type CRU", () => {
       }),
     ).toBeNull();
 
-    expect(
-      archivedDataType?.metadata.temporalVersioning.transactionTime.end.kind,
-    ).toBe("exclusive");
+    expect(archivedDataType?.metadata.temporalVersioning.transactionTime.end.kind).toBe(
+      "exclusive",
+    );
 
     await unarchiveDataType(graphContext, authentication, {
       dataTypeId: createdDataType.schema.$id,
     });
 
-    const unarchivedDataType = await getDataTypeById(
-      graphContext.graphApi,
-      authentication,
-      {
-        dataTypeId: createdDataType.schema.$id,
-        temporalAxes: fullTransactionTimeAxis,
-      },
-    );
+    const unarchivedDataType = await getDataTypeById(graphContext.graphApi, authentication, {
+      dataTypeId: createdDataType.schema.$id,
+      temporalAxes: fullTransactionTimeAxis,
+    });
 
-    expect(
-      unarchivedDataType?.metadata.temporalVersioning.transactionTime.end.kind,
-    ).toBe("unbounded");
+    expect(unarchivedDataType?.metadata.temporalVersioning.transactionTime.end.kind).toBe(
+      "unbounded",
+    );
   });
 
   it("can convert data types", async () => {
@@ -216,29 +201,22 @@ describe("Data type CRU", () => {
       graphContext.graphApi,
       authentication,
       {
-        dataTypeIds: [
-          systemDataTypes.centimeters.dataTypeId,
-          systemDataTypes.meters.dataTypeId,
-        ],
+        dataTypeIds: [systemDataTypes.centimeters.dataTypeId, systemDataTypes.meters.dataTypeId],
       },
     ).then((conversion_map) =>
       Object.fromEntries(
-        Object.entries(conversion_map).map(
-          ([sourceDataTypeId, conversions]) => [
-            sourceDataTypeId,
-            Object.fromEntries(
-              Object.entries(conversions).map(
-                ([targetDataTypeId, conversion]) => [
-                  targetDataTypeId,
-                  {
-                    convert: createConversionFunction(conversion.conversions),
-                    title: conversion.title,
-                  },
-                ],
-              ),
-            ),
-          ],
-        ),
+        Object.entries(conversion_map).map(([sourceDataTypeId, conversions]) => [
+          sourceDataTypeId,
+          Object.fromEntries(
+            Object.entries(conversions).map(([targetDataTypeId, conversion]) => [
+              targetDataTypeId,
+              {
+                convert: createConversionFunction(conversion.conversions),
+                title: conversion.title,
+              },
+            ]),
+          ),
+        ]),
       ),
     );
 
@@ -270,9 +248,8 @@ describe("Data type CRU", () => {
       ]!.convert(100000),
     ).toBe(1);
     expect(
-      conversionMap[systemDataTypes.centimeters.dataTypeId]![
-        systemDataTypes.kilometers.dataTypeId
-      ]!.title,
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![systemDataTypes.kilometers.dataTypeId]!
+        .title,
     ).toBe(systemDataTypes.kilometers.title);
 
     expect(
@@ -292,9 +269,8 @@ describe("Data type CRU", () => {
       ]!.convert(1000),
     ).toBe(1);
     expect(
-      conversionMap[systemDataTypes.centimeters.dataTypeId]![
-        systemDataTypes.kilometers.dataTypeId
-      ]!.title,
+      conversionMap[systemDataTypes.centimeters.dataTypeId]![systemDataTypes.kilometers.dataTypeId]!
+        .title,
     ).toBe(systemDataTypes.kilometers.title);
   });
 });

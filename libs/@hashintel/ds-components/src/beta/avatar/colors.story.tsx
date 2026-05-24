@@ -2,14 +2,7 @@ import { Wrap } from "@hashintel/ds-helpers/jsx";
 
 import * as Avatar from "../avatar";
 
-const colorPalette = [
-  "red",
-  "blue",
-  "green",
-  "yellow",
-  "purple",
-  "orange",
-] as const;
+const colorPalette = ["red", "blue", "green", "yellow", "purple", "orange"] as const;
 
 const pickPalette = (name: string) => {
   const index = name.charCodeAt(0) % colorPalette.length;

@@ -41,6 +41,4 @@ const tooltipSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const tooltipSlotRecipe = sva(tooltipSlotRecipeDefinition);
 
-export type TooltipSlotRecipeProps = RecipeVariantProps<
-  typeof tooltipSlotRecipe
->;
+export type TooltipSlotRecipeProps = RecipeVariantProps<typeof tooltipSlotRecipe>;

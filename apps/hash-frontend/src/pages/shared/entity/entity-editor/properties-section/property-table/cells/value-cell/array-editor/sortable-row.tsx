@@ -1,19 +1,11 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  faCheck,
-  faClose,
-  faPencil,
-  faTrash,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faClose, faPencil, faTrash } from "@fortawesome/free-solid-svg-icons";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { useRef, useState } from "react";
 
-import {
-  formatDataValue,
-  getMergedDataTypeSchema,
-} from "@local/hash-isomorphic-utils/data-types";
+import { formatDataValue, getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 
 import { NumberOrTextInput } from "../../../../../../../number-or-text-input";
 import { getEditorSpecs } from "../editor-specs";
@@ -53,23 +45,15 @@ export const SortableRow = ({
   readonly,
 }: SortableRowProps) => {
   const { id, value, index, dataType } = item;
-  const {
-    attributes,
-    isDragging,
-    isSorting,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({
-    id,
-    animateLayoutChanges: undefined,
-  });
+  const { attributes, isDragging, isSorting, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id,
+      animateLayoutChanges: undefined,
+    });
 
   const schema = getMergedDataTypeSchema(dataType);
 
-  const editorSpec =
-    "anyOf" in schema ? undefined : getEditorSpecs(dataType, schema);
+  const editorSpec = "anyOf" in schema ? undefined : getEditorSpecs(dataType, schema);
 
   const [hovered, setHovered] = useState(false);
   const [draftValue, setDraftValue] = useState(
@@ -111,13 +95,7 @@ export const SortableRow = ({
 
   const renderEditor = () => {
     if (schema.type === "boolean") {
-      return (
-        <BooleanInput
-          showChange
-          value={!!draftValue}
-          onChange={setDraftValue}
-        />
-      );
+      return <BooleanInput showChange value={!!draftValue} onChange={setDraftValue} />;
     }
 
     if (schema.type === "object") {
@@ -258,11 +236,7 @@ export const SortableRow = ({
             {editing ? (
               arrayEditException !== "no-save-and-discard-buttons" && (
                 <>
-                  <RowAction
-                    tooltip="Save Changes"
-                    icon={faCheck}
-                    onClick={saveChanges}
-                  />
+                  <RowAction tooltip="Save Changes" icon={faCheck} onClick={saveChanges} />
                   <Divider orientation="vertical" />
                   <RowAction
                     tooltip="Discard Changes"
@@ -275,19 +249,11 @@ export const SortableRow = ({
               <>
                 {arrayEditException !== "no-edit-mode" && (
                   <>
-                    <RowAction
-                      tooltip="Edit"
-                      icon={faPencil}
-                      onClick={() => onEditClicked?.(id)}
-                    />
+                    <RowAction tooltip="Edit" icon={faPencil} onClick={() => onEditClicked?.(id)} />
                     <Divider orientation="vertical" />
                   </>
                 )}
-                <RowAction
-                  tooltip="Delete"
-                  icon={faTrash}
-                  onClick={() => onRemove?.(index)}
-                />
+                <RowAction tooltip="Delete" icon={faTrash} onClick={() => onRemove?.(index)} />
               </>
             )}
           </Box>

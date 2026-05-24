@@ -18,16 +18,8 @@ export const acceptOrgInvitationMutation = gql`
 `;
 
 export const inviteUserToOrgMutation = gql`
-  mutation inviteUserToOrg(
-    $orgWebId: WebId!
-    $userEmail: String
-    $userShortname: String
-  ) {
-    inviteUserToOrg(
-      orgWebId: $orgWebId
-      userEmail: $userEmail
-      userShortname: $userShortname
-    )
+  mutation inviteUserToOrg($orgWebId: WebId!, $userEmail: String, $userShortname: String) {
+    inviteUserToOrg(orgWebId: $orgWebId, userEmail: $userEmail, userShortname: $userShortname)
   }
 `;
 

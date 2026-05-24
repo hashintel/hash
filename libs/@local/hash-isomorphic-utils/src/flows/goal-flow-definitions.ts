@@ -18,21 +18,16 @@ import type {
 import type { FlowDefinition } from "./types.js";
 import type { EntityUuid } from "@blockprotocol/type-system";
 
-export type GoalFlowTriggerInput =
-  | "Research guidance"
-  | "Entity Types"
-  | "Create as draft";
+export type GoalFlowTriggerInput = "Research guidance" | "Entity Types" | "Create as draft";
 
 export const goalFlowDefinition = {
   name: "Research and save to HASH",
   type: "ai",
   flowDefinitionId: "research-goal" as EntityUuid,
-  description:
-    "Discover entities according to a research brief, save them to HASH",
+  description: "Discover entities according to a research brief, save them to HASH",
   trigger: {
     triggerDefinitionId: "userTrigger",
-    description:
-      "User provides research specification and entity types to discover",
+    description: "User provides research specification and entity types to discover",
     kind: "trigger",
     outputs: [
       {
@@ -71,16 +66,13 @@ export const goalFlowDefinition = {
         "Discover entities according to research specification, using public web sources",
       inputSources: [
         {
-          inputName:
-            "prompt" satisfies InputNameForAiFlowAction<"researchEntities">,
+          inputName: "prompt" satisfies InputNameForAiFlowAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName:
-            "Research guidance" satisfies GoalFlowTriggerInput,
+          sourceStepOutputName: "Research guidance" satisfies GoalFlowTriggerInput,
         },
         {
-          inputName:
-            "entityTypeIds" satisfies InputNameForAiFlowAction<"researchEntities">,
+          inputName: "entityTypeIds" satisfies InputNameForAiFlowAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Entity Types" satisfies GoalFlowTriggerInput,
@@ -95,20 +87,17 @@ export const goalFlowDefinition = {
       actionDefinitionId: "persistEntities",
       inputSources: [
         {
-          inputName:
-            "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
+          inputName: "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "1",
           sourceStepOutputName:
             "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
         },
         {
-          inputName:
-            "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
+          inputName: "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
-          sourceStepOutputName:
-            "Create as draft" satisfies GoalFlowTriggerInput,
+          sourceStepOutputName: "Create as draft" satisfies GoalFlowTriggerInput,
         },
       ],
     },
@@ -136,10 +125,7 @@ export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition<AiFlow
     ],
     trigger: {
       ...goalFlowDefinition.trigger,
-      outputs: [
-        ...goalFlowDefinition.trigger.outputs,
-        ...googleSheetTriggerInputs,
-      ],
+      outputs: [...goalFlowDefinition.trigger.outputs, ...googleSheetTriggerInputs],
     },
     steps: [
       ...goalFlowDefinition.steps,
@@ -157,52 +143,48 @@ export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition<AiFlow
     ],
   };
 
-export const goalFlowDefinitionWithReportDeliverable: FlowDefinition<AiFlowActionDefinitionId> =
-  {
-    ...goalFlowDefinition,
-    type: "ai",
-    name: "Research and write a report",
-    flowDefinitionId: "goal-with-report" as EntityUuid,
-    description: "Write a report based on a research specification",
-    groups: [
-      {
-        groupId: 1,
-        description: "Research and persist entities",
-      },
-      {
-        groupId: 2,
-        description: "Write report",
-      },
-    ],
-    trigger: {
-      ...goalFlowDefinition.trigger,
-      outputs: [
-        ...goalFlowDefinition.trigger.outputs,
-        ...markdownReportTriggerInputs,
+export const goalFlowDefinitionWithReportDeliverable: FlowDefinition<AiFlowActionDefinitionId> = {
+  ...goalFlowDefinition,
+  type: "ai",
+  name: "Research and write a report",
+  flowDefinitionId: "goal-with-report" as EntityUuid,
+  description: "Write a report based on a research specification",
+  groups: [
+    {
+      groupId: 1,
+      description: "Research and persist entities",
+    },
+    {
+      groupId: 2,
+      description: "Write report",
+    },
+  ],
+  trigger: {
+    ...goalFlowDefinition.trigger,
+    outputs: [...goalFlowDefinition.trigger.outputs, ...markdownReportTriggerInputs],
+  },
+  steps: [
+    {
+      ...goalFlowDefinition.steps[0]!,
+      inputSources: [
+        ...goalFlowDefinition.steps[0]!.inputSources,
+        markdownReportResearchEntitiesStepInput,
       ],
     },
-    steps: [
-      {
-        ...goalFlowDefinition.steps[0]!,
-        inputSources: [
-          ...goalFlowDefinition.steps[0]!.inputSources,
-          markdownReportResearchEntitiesStepInput,
-        ],
-      },
-      goalFlowDefinition.steps[1]!,
-      {
-        ...markdownReportStep,
-        groupId: 2,
-        stepId: "3",
-      },
-    ],
-    outputs: [
-      {
-        ...markdownReportDeliverable,
-        stepId: "3",
-      },
-    ],
-  };
+    goalFlowDefinition.steps[1]!,
+    {
+      ...markdownReportStep,
+      groupId: 2,
+      stepId: "3",
+    },
+  ],
+  outputs: [
+    {
+      ...markdownReportDeliverable,
+      stepId: "3",
+    },
+  ],
+};
 
 export const goalFlowDefinitionWithReportAndSpreadsheetDeliverable: FlowDefinition<AiFlowActionDefinitionId> =
   {

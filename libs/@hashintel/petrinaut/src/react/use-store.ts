@@ -9,10 +9,7 @@ export function useStore<T>(store: ReadableStore<T>): T {
   );
 }
 
-export function useStoreSelector<T, U>(
-  store: ReadableStore<T>,
-  selector: (value: T) => U,
-): U {
+export function useStoreSelector<T, U>(store: ReadableStore<T>, selector: (value: T) => U): U {
   return useSyncExternalStore(
     (onStoreChange) => store.subscribe(() => onStoreChange()),
     () => selector(store.get()),

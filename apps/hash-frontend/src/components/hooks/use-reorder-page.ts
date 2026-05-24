@@ -25,9 +25,7 @@ export const useReorderPage = () => {
             {
               query: queryEntitySubgraphQuery,
               variables: getAccountPagesVariables({
-                webId: extractWebIdFromEntityId(
-                  data.setParentPage.metadata.recordId.entityId,
-                ),
+                webId: extractWebIdFromEntityId(data.setParentPage.metadata.recordId.entityId),
               }),
             },
           ]

@@ -26,9 +26,7 @@ export default {
   },
 } satisfies StoryDefault<RadioGroupProps>;
 
-export const Default: Story<RadioGroupProps> = (args) => (
-  <RadioGroup {...args} />
-);
+export const Default: Story<RadioGroupProps> = (args) => <RadioGroup {...args} />;
 Default.args = {
   variant: "default",
   options: [
@@ -96,9 +94,7 @@ Card.args = {
   defaultValue: "basic",
 };
 
-export const Disabled: Story<RadioGroupProps> = (args) => (
-  <RadioGroup {...args} />
-);
+export const Disabled: Story<RadioGroupProps> = (args) => <RadioGroup {...args} />;
 Disabled.args = {
   variant: "default",
   options: [
@@ -110,9 +106,7 @@ Disabled.args = {
   defaultValue: "option1",
 };
 
-export const DisabledOption: Story<RadioGroupProps> = (args) => (
-  <RadioGroup {...args} />
-);
+export const DisabledOption: Story<RadioGroupProps> = (args) => <RadioGroup {...args} />;
 DisabledOption.args = {
   variant: "default",
   options: [
@@ -128,14 +122,8 @@ export const Controlled: Story<RadioGroupProps> = (args) => {
 
   return (
     <div>
-      <RadioGroup
-        {...args}
-        value={value}
-        onValueChange={(newValue) => setValue(newValue)}
-      />
-      <p style={{ marginTop: "1rem", fontSize: "14px", color: "#737373" }}>
-        Selected: {value}
-      </p>
+      <RadioGroup {...args} value={value} onValueChange={(newValue) => setValue(newValue)} />
+      <p style={{ marginTop: "1rem", fontSize: "14px", color: "#737373" }}>Selected: {value}</p>
     </div>
   );
 };
@@ -149,9 +137,7 @@ Controlled.args = {
   ],
 };
 
-export const CardWithManyOptions: Story<RadioGroupProps> = (args) => (
-  <RadioGroup {...args} />
-);
+export const CardWithManyOptions: Story<RadioGroupProps> = (args) => <RadioGroup {...args} />;
 CardWithManyOptions.args = {
   variant: "card",
   options: [

@@ -5,11 +5,7 @@ import { coreConfig } from "./panda.config";
 export default defineConfig({
   ...coreConfig,
   outdir: "../ds-helpers/styled-system",
-  include: [
-    ...(coreConfig.include ?? []),
-    "./src/tokens/**/*.{ts,tsx}",
-    "./.ladle/**/*.{ts,tsx}",
-  ],
+  include: [...(coreConfig.include ?? []), "./src/tokens/**/*.{ts,tsx}", "./.ladle/**/*.{ts,tsx}"],
   staticCss: {
     css: [
       {

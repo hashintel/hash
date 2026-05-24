@@ -89,14 +89,10 @@ export const QueryEditor = (props: QueryEditorProps) => {
         isInSlide={isInSlide}
         isLocalDraft={false}
         onDraftArchived={() => {
-          throw new Error(
-            "Unexpected call to onDraftArchived from query editor",
-          );
+          throw new Error("Unexpected call to onDraftArchived from query editor");
         }}
         onDraftPublished={() => {
-          throw new Error(
-            "Unexpected call to onDraftPublished from query editor",
-          );
+          throw new Error("Unexpected call to onDraftPublished from query editor");
         }}
         onUnarchived={() => {
           throw new Error("Unexpected call to onUnarchived from query editor");
@@ -121,17 +117,15 @@ export const QueryEditor = (props: QueryEditorProps) => {
                 }}
               >
                 <Stack gap={1}>
-                  <Typography sx={{ fontWeight: 500 }}>
-                    QUERY FOR ENTITIES
-                  </Typography>
+                  <Typography sx={{ fontWeight: 500 }}>QUERY FOR ENTITIES</Typography>
                   <Typography
                     sx={{
                       color: ({ palette }) => palette.gray[70],
                       fontSize: 14,
                     }}
                   >
-                    Queries return entities matching specified parameters and
-                    display them in the table
+                    Queries return entities matching specified parameters and display them in the
+                    table
                   </Typography>
                 </Stack>
                 <EntityQueryEditor
@@ -154,9 +148,7 @@ export const QueryEditor = (props: QueryEditorProps) => {
                      */
                     setQueryEditorKey((key) => key + 1);
                   }}
-                  discardTitle={
-                    mode.type === "edit" ? "Discard changes" : undefined
-                  }
+                  discardTitle={mode.type === "edit" ? "Discard changes" : undefined}
                   saveTitle={mode.type === "edit" ? "Save changes" : undefined}
                   onSave={handleSaveQuery}
                 />

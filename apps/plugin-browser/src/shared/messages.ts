@@ -22,10 +22,7 @@ export type GetTabContentRequest = {
 
 export type GetTabContentReturn = WebPage;
 
-export type Message =
-  | InferEntitiesRequest
-  | CancelInferEntitiesRequest
-  | GetTabContentRequest;
+export type Message = InferEntitiesRequest | CancelInferEntitiesRequest | GetTabContentRequest;
 
 export const isWellFormattedMessage = (message: unknown): message is Message =>
   typeof message === "object" &&

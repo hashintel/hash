@@ -1,24 +1,14 @@
 import { useQuery } from "@apollo/client";
 import { useHotkeys } from "@mantine/hooks";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import {
-  extractBaseUrl,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
 import {
   deserializeQueryEntitySubgraphResponse,
@@ -54,10 +44,7 @@ import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
-import type {
-  SortOrder,
-  SubMenuItem,
-} from "./mention-suggester/mention-suggester-entity";
+import type { SortOrder, SubMenuItem } from "./mention-suggester/mention-suggester-entity";
 import type {
   BaseUrl,
   EntityId,
@@ -121,21 +108,17 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
   const [selectedEntityIndex, setSelectedEntityIndex] = useState(0);
 
-  const [expandedEntityTypes, setExpandedEntityTypes] = useState<
-    VersionedUrl[]
-  >([]);
+  const [expandedEntityTypes, setExpandedEntityTypes] = useState<VersionedUrl[]>([]);
 
   const selectedEntityRef = useRef<HTMLDivElement>(null);
 
   const [displayEntitySubMenu, setDisplayEntitySubMenu] = useState(false);
 
-  const [entitySubMenuSortOrder, setEntitySubMenuSortOrder] =
-    useState<SortOrder>("asc");
+  const [entitySubMenuSortOrder, setEntitySubMenuSortOrder] = useState<SortOrder>("asc");
 
   useScrollLock(displayEntitySubMenu, wrapperRef.current ?? undefined);
 
-  const [entitySelectedSubMenuIndex, setEntitySelectedSubMenuIndex] =
-    useState(0);
+  const [entitySelectedSubMenuIndex, setEntitySelectedSubMenuIndex] = useState(0);
 
   // scroll the selected option into view
   useEffect(
@@ -154,22 +137,17 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             {
               any: [
                 {
-                  equal: [
-                    { path: ["webId"] },
-                    { parameter: authenticatedUser.accountId },
-                  ],
+                  equal: [{ path: ["webId"] }, { parameter: authenticatedUser.accountId }],
                 },
                 ...authenticatedUser.memberOf.map(({ org: { webId } }) => ({
                   equal: [{ path: ["webId"] }, { parameter: webId }],
                 })),
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.user.entityTypeId,
-                  { ignoreParents: true },
-                ),
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.organization.entityTypeId,
-                  { ignoreParents: true },
-                ),
+                generateVersionedUrlMatchingFilter(systemEntityTypes.user.entityTypeId, {
+                  ignoreParents: true,
+                }),
+                generateVersionedUrlMatchingFilter(systemEntityTypes.organization.entityTypeId, {
+                  ignoreParents: true,
+                }),
               ],
             },
             {
@@ -222,12 +200,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       searchedEntities
         ?.sort(
           (a, b) =>
-            new Date(
-              b.metadata.temporalVersioning.decisionTime.start.limit,
-            ).getTime() -
-            new Date(
-              a.metadata.temporalVersioning.decisionTime.start.limit,
-            ).getTime(),
+            new Date(b.metadata.temporalVersioning.decisionTime.start.limit).getTime() -
+            new Date(a.metadata.temporalVersioning.decisionTime.start.limit).getTime(),
         )
         .slice(0, 5),
     [searchedEntities],
@@ -240,33 +214,24 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
             ?.reduce(
               (prev, currentEntity) => {
                 if (
-                  (isEntityPageEntity(currentEntity) &&
-                    isPageArchived(currentEntity)) ||
+                  (isEntityPageEntity(currentEntity) && isPageArchived(currentEntity)) ||
                   hiddenEntityTypeIds.some((hiddenTypeId) =>
                     currentEntity.metadata.entityTypeIds.includes(hiddenTypeId),
                   ) ||
-                  Object.values(systemLinkEntityTypes).some(
-                    ({ linkEntityTypeId }) =>
-                      currentEntity.metadata.entityTypeIds.includes(
-                        linkEntityTypeId,
-                      ),
+                  Object.values(systemLinkEntityTypes).some(({ linkEntityTypeId }) =>
+                    currentEntity.metadata.entityTypeIds.includes(linkEntityTypeId),
                   )
                 ) {
                   return prev;
                 }
 
                 const existingIndex = prev.findIndex(({ entityType }) =>
-                  currentEntity.metadata.entityTypeIds.includes(
-                    entityType.schema.$id,
-                  ),
+                  currentEntity.metadata.entityTypeIds.includes(entityType.schema.$id),
                 );
 
                 const entityType =
                   prev[existingIndex]?.entityType ??
-                  getEntityTypeById(
-                    entitiesSubgraph,
-                    currentEntity.metadata.entityTypeIds[0],
-                  );
+                  getEntityTypeById(entitiesSubgraph, currentEntity.metadata.entityTypeIds[0]);
 
                 if (!entityType) {
                   throw new Error("Entity type could not be found in subgraph");
@@ -312,9 +277,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 return 0;
               });
 
-              const isEntityTypeExpanded = expandedEntityTypes.includes(
-                entityType.schema.$id,
-              );
+              const isEntityTypeExpanded = expandedEntityTypes.includes(entityType.schema.$id);
 
               const displayedEntities = isEntityTypeExpanded
                 ? sortedEntities
@@ -346,34 +309,25 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               );
             })
         : undefined,
-    [
-      searchedEntities,
-      entitiesSubgraph,
-      expandedEntityTypes,
-      authenticatedUser,
-    ],
+    [searchedEntities, entitiesSubgraph, expandedEntityTypes, authenticatedUser],
   );
 
   const selectedEntity = useMemo(
     () =>
       [
         ...(recentlyUsedEntities ?? []),
-        ...(entitiesByType?.map(({ displayedEntities }) => displayedEntities) ??
-          []),
+        ...(entitiesByType?.map(({ displayedEntities }) => displayedEntities) ?? []),
       ].flat()[selectedEntityIndex],
     [recentlyUsedEntities, entitiesByType, selectedEntityIndex],
   );
 
-  const entitiesSubMenuItems = useMemo<
-    Record<EntityId, SubMenuItem[]> | undefined
-  >(() => {
+  const entitiesSubMenuItems = useMemo<Record<EntityId, SubMenuItem[]> | undefined>(() => {
     if (propertyTypes && searchedEntities && entitiesSubgraph) {
       return searchedEntities.reduce((prev, entity) => {
         const properties = Object.entries(entity.properties).map(
           ([propertyTypeBaseUrl, propertyValue]) => {
             const propertyType = Object.values(propertyTypes).find(
-              ({ metadata }) =>
-                metadata.recordId.baseUrl === propertyTypeBaseUrl,
+              ({ metadata }) => metadata.recordId.baseUrl === propertyTypeBaseUrl,
             );
 
             if (!propertyType) {
@@ -392,10 +346,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           entitiesSubgraph,
           entity.metadata.recordId.entityId,
         ).map<Extract<SubMenuItem, { kind: "outgoing-link" }>>(
-          ({
-            linkEntity: linkEntityRevisions,
-            rightEntity: rightEntityRevisions,
-          }) => {
+          ({ linkEntity: linkEntityRevisions, rightEntity: rightEntityRevisions }) => {
             const [linkEntity] = linkEntityRevisions;
             const [rightEntity] = rightEntityRevisions;
 
@@ -422,10 +373,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
         return {
           ...prev,
-          [entity.metadata.recordId.entityId]: [
-            ...properties,
-            ...outgoingLinks,
-          ].sort((a, b) => {
+          [entity.metadata.recordId.entityId]: [...properties, ...outgoingLinks].sort((a, b) => {
             const aItemLabel =
               a.kind === "outgoing-link"
                 ? a.linkEntityType.schema.title
@@ -438,21 +386,14 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
             return entitySubMenuSortOrder === "asc"
               ? aItemLabel.toLowerCase().localeCompare(bItemLabel.toLowerCase())
-              : bItemLabel
-                  .toLowerCase()
-                  .localeCompare(aItemLabel.toLowerCase());
+              : bItemLabel.toLowerCase().localeCompare(aItemLabel.toLowerCase());
           }),
         };
       }, {});
     }
 
     return undefined;
-  }, [
-    propertyTypes,
-    searchedEntities,
-    entitiesSubgraph,
-    entitySubMenuSortOrder,
-  ]);
+  }, [propertyTypes, searchedEntities, entitiesSubgraph, entitySubMenuSortOrder]);
 
   const selectedEntitySubMenuItems = useMemo<SubMenuItem[] | undefined>(() => {
     if (selectedEntity && entitiesSubMenuItems) {
@@ -468,8 +409,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       }
 
       if (displayEntitySubMenu && selectedEntitySubMenuItems) {
-        let index =
-          entitySelectedSubMenuIndex + (event.key === "ArrowUp" ? -1 : 1);
+        let index = entitySelectedSubMenuIndex + (event.key === "ArrowUp" ? -1 : 1);
         index += selectedEntitySubMenuItems.length;
         index %= selectedEntitySubMenuItems.length;
 
@@ -510,9 +450,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         } = entity.metadata;
 
         const selectedSubMenuItem = displayEntitySubMenu
-          ? selectedEntitySubMenuItems?.[
-              subMenuIndex ?? entitySelectedSubMenuIndex
-            ]
+          ? selectedEntitySubMenuItems?.[subMenuIndex ?? entitySelectedSubMenuIndex]
           : undefined;
         if (selectedSubMenuItem) {
           if (selectedSubMenuItem.kind === "outgoing-link") {
@@ -526,9 +464,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               linkEntityTypeBaseUrl,
             });
           } else {
-            const propertyTypeBaseUrl = extractBaseUrl(
-              selectedSubMenuItem.propertyType.schema.$id,
-            );
+            const propertyTypeBaseUrl = extractBaseUrl(selectedSubMenuItem.propertyType.schema.$id);
 
             onChange({
               kind: "property-value",
@@ -538,9 +474,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
           }
         } else if (includesPageEntityTypeId(entityTypeIds)) {
           onChange({ kind: "page", entityId });
-        } else if (
-          entityTypeIds.includes(systemEntityTypes.user.entityTypeId)
-        ) {
+        } else if (entityTypeIds.includes(systemEntityTypes.user.entityTypeId)) {
           onChange({ kind: "user", entityId });
         } else {
           onChange({ kind: "entity", entityId });
@@ -566,8 +500,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         if (
           !displayEntitySubMenu &&
           selectedEntity &&
-          entitiesSubMenuItems?.[selectedEntity.metadata.recordId.entityId]
-            ?.length
+          entitiesSubMenuItems?.[selectedEntity.metadata.recordId.entityId]?.length
         ) {
           setDisplayEntitySubMenu(true);
           setEntitySelectedSubMenuIndex(0);
@@ -609,18 +542,14 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                 <MentionSuggesterEntity
                   key={entity.metadata.recordId.entityId}
                   entityTypes={entity.metadata.entityTypeIds.map(
-                    (entityTypeId) =>
-                      getEntityTypeById(entitiesSubgraph, entityTypeId)!,
+                    (entityTypeId) => getEntityTypeById(entitiesSubgraph, entityTypeId)!,
                   )}
                   ref={selected ? selectedEntityRef : undefined}
                   selected={selected}
                   displaySubMenu={selected && displayEntitySubMenu}
                   disabled={!selected && displayEntitySubMenu}
                   subMenuIndex={entitySelectedSubMenuIndex}
-                  subMenuItems={
-                    entitiesSubMenuItems?.[entity.metadata.recordId.entityId] ??
-                    []
-                  }
+                  subMenuItems={entitiesSubMenuItems?.[entity.metadata.recordId.entityId] ?? []}
                   displayTypeTitle
                   setDisplaySubMenu={(displaySubMenu) => {
                     if (displaySubMenu) {
@@ -632,9 +561,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                   }}
                   entitiesSubgraph={entitiesSubgraph}
                   entity={entity}
-                  onSubMenuClick={(subMenuIndex) =>
-                    handleSubmit({ subMenuIndex })
-                  }
+                  onSubMenuClick={(subMenuIndex) => handleSubmit({ subMenuIndex })}
                   sortOrder={entitySubMenuSortOrder}
                   setSortOrder={setEntitySubMenuSortOrder}
                   onClick={() => handleSubmit({ entity })}
@@ -677,12 +604,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                         allTypeSections
                           .slice(0, typeSectionIndex)
                           .reduce(
-                            (
-                              prev,
-                              {
-                                displayedEntities: previousTypeSectionEntities,
-                              },
-                            ) => prev + previousTypeSectionEntities.length,
+                            (prev, { displayedEntities: previousTypeSectionEntities }) =>
+                              prev + previousTypeSectionEntities.length,
                             0,
                           ) +
                         entityIndex;
@@ -701,9 +624,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                             disabled={!selected && displayEntitySubMenu}
                             subMenuIndex={entitySelectedSubMenuIndex}
                             subMenuItems={
-                              entitiesSubMenuItems?.[
-                                entity.metadata.recordId.entityId
-                              ] ?? []
+                              entitiesSubMenuItems?.[entity.metadata.recordId.entityId] ?? []
                             }
                             setDisplaySubMenu={(displaySubMenu) => {
                               if (displaySubMenu) {
@@ -713,9 +634,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                                 setDisplayEntitySubMenu(false);
                               }
                             }}
-                            onSubMenuClick={(subMenuIndex) =>
-                              handleSubmit({ subMenuIndex })
-                            }
+                            onSubMenuClick={(subMenuIndex) => handleSubmit({ subMenuIndex })}
                             sortOrder={entitySubMenuSortOrder}
                             setSortOrder={setEntitySubMenuSortOrder}
                             onClick={() => handleSubmit({ entity })}

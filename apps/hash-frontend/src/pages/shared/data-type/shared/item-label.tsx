@@ -4,11 +4,7 @@ import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 
 import type { PropsWithChildren, ReactElement } from "react";
 
-export const InfoIconTooltip = ({
-  tooltip,
-}: {
-  tooltip: string | ReactElement;
-}) => {
+export const InfoIconTooltip = ({ tooltip }: { tooltip: string | ReactElement }) => {
   return (
     <Tooltip title={tooltip} placement="top">
       <Box

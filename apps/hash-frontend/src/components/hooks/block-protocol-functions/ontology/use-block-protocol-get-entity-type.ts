@@ -18,19 +18,19 @@ import type { GetEntityTypeMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolGetEntityType = (): {
   getEntityType: GetEntityTypeMessageCallback;
 } => {
-  const [getFn] = useLazyQuery<
-    QueryEntityTypeSubgraphQuery,
-    QueryEntityTypeSubgraphQueryVariables
-  >(queryEntityTypeSubgraphQuery, {
-    /**
-     * Entity types are immutable, any request for an entityTypeId should always return the same value.
-     * However, currently requests for non-existent entity types currently return an empty subgraph, so
-     * we can't rely on this.
-     *
-     * @todo revert this back to cache-first once that's fixed
-     */
-    fetchPolicy: "network-only",
-  });
+  const [getFn] = useLazyQuery<QueryEntityTypeSubgraphQuery, QueryEntityTypeSubgraphQueryVariables>(
+    queryEntityTypeSubgraphQuery,
+    {
+      /**
+       * Entity types are immutable, any request for an entityTypeId should always return the same value.
+       * However, currently requests for non-existent entity types currently return an empty subgraph, so
+       * we can't rely on this.
+       *
+       * @todo revert this back to cache-first once that's fixed
+       */
+      fetchPolicy: "network-only",
+    },
+  );
 
   const getEntityType = useCallback<GetEntityTypeMessageCallback>(
     async ({ data }) => {
@@ -76,9 +76,8 @@ export const useBlockProtocolGetEntityType = (): {
       }
 
       return {
-        data: deserializeQueryEntityTypeSubgraphResponse(
-          response.data.queryEntityTypeSubgraph,
-        ).subgraph,
+        data: deserializeQueryEntityTypeSubgraphResponse(response.data.queryEntityTypeSubgraph)
+          .subgraph,
       };
     },
     [getFn],

@@ -14,10 +14,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 
 import { useUsers } from "../components/hooks/use-users";
 
-import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../graphql/api-types.gen";
+import type { QueryEntitiesQuery, QueryEntitiesQueryVariables } from "../graphql/api-types.gen";
 import type { MinimalUser } from "../lib/user-and-org";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
@@ -52,22 +49,16 @@ export const useActors = (params: {
     variables: {
       request: {
         filter: {
-          any: (params.accountIds ? [...new Set(params.accountIds)] : []).map(
-            (accountId) => ({
-              all: [
-                {
-                  equal: [
-                    { path: ["editionProvenance", "createdById"] },
-                    { parameter: accountId },
-                  ],
-                },
-                generateVersionedUrlMatchingFilter(
-                  systemEntityTypes.machine.entityTypeId,
-                  { ignoreParents: true },
-                ),
-              ],
-            }),
-          ),
+          any: (params.accountIds ? [...new Set(params.accountIds)] : []).map((accountId) => ({
+            all: [
+              {
+                equal: [{ path: ["editionProvenance", "createdById"] }, { parameter: accountId }],
+              },
+              generateVersionedUrlMatchingFilter(systemEntityTypes.machine.entityTypeId, {
+                ignoreParents: true,
+              }),
+            ],
+          })),
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,

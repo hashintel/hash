@@ -12,8 +12,7 @@ const scrollAreaSlotRecipeDefinition = {
       position: "relative",
       overflow: "hidden",
       "--scrollbar-margin": "0px",
-      "--scrollbar-size":
-        "calc(var(--thumb-size) + calc(var(--scrollbar-margin) * 2))",
+      "--scrollbar-size": "calc(var(--thumb-size) + calc(var(--scrollbar-margin) * 2))",
     },
     viewport: {
       display: "flex",
@@ -121,6 +120,4 @@ const scrollAreaSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const scrollAreaSlotRecipe = sva(scrollAreaSlotRecipeDefinition);
 
-export type ScrollAreaSlotRecipeProps = RecipeVariantProps<
-  typeof scrollAreaSlotRecipe
->;
+export type ScrollAreaSlotRecipeProps = RecipeVariantProps<typeof scrollAreaSlotRecipe>;

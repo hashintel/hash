@@ -19,10 +19,7 @@ import type {
   LlmMessageToolResultContent,
   LlmUserMessage,
 } from "../../../shared/get-llm-response/llm-message.js";
-import type {
-  LlmParams,
-  LlmToolDefinition,
-} from "../../../shared/get-llm-response/types.js";
+import type { LlmParams, LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import type { Claim } from "../claims.js";
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 import type {
@@ -38,10 +35,7 @@ const toolNames = ["submitClaims"] as const;
 
 type ToolName = (typeof toolNames)[number];
 
-type SubmittedClaim = Omit<
-  Claim,
-  "subjectEntityLocalId" | "claimId" | "sources"
-> & {
+type SubmittedClaim = Omit<Claim, "subjectEntityLocalId" | "claimId" | "sources"> & {
   subjectEntityLocalId: EntityId | null;
   valueNotFound: boolean;
 };
@@ -66,8 +60,7 @@ const generateToolDefinitions = (params: {
             properties: {
               subjectEntityLocalId: {
                 oneOf: [{ type: "string" }, { type: "null" }],
-                description:
-                  dedent(`The localId of the subject entity of the claim.
+                description: dedent(`The localId of the subject entity of the claim.
                   If you don't have a relevant subject entity, you may either omit the claim (PREFERRED), or pass 'null' here.`),
               },
               valueNotFound: {
@@ -298,9 +291,7 @@ summary: ${summary}</SubjectEntity>`),
           Please now submit claims, remembering these key points:
             - Each claim MUST start with and be about one of the subject entities: ${subjectEntities
               .map(({ name }) => name)
-              .join(
-                ", ",
-              )}. If it does NOT, omit the claim or pass 'null' for the subjectEntityId
+              .join(", ")}. If it does NOT, omit the claim or pass 'null' for the subjectEntityId
             - We are particularly interested in claims related to the following properties: ${relevantProperties
               .map((property) => property.title)
               .join(
@@ -393,9 +384,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     retryContext,
     workerIdentifiers,
   } = params;
-  const subjectEntitiesStringList = subjectEntities
-    .map(({ name }) => name)
-    .join(", ");
+  const subjectEntitiesStringList = subjectEntities.map(({ name }) => name).join(", ");
 
   /**
    * Check if we should stop before proceeding with any work.
@@ -407,17 +396,10 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     return { claims: retryContext?.previousValidClaims ?? [] };
   }
 
-  logger.debug(
-    `Inferring claims from text for entities ${subjectEntitiesStringList}`,
-  );
+  logger.debug(`Inferring claims from text for entities ${subjectEntitiesStringList}`);
 
-  const {
-    createEntitiesAsDraft,
-    userAuthentication,
-    flowEntityId,
-    stepId,
-    webId,
-  } = await getFlowContext();
+  const { createEntitiesAsDraft, userAuthentication, flowEntityId, stepId, webId } =
+    await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -457,8 +439,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     allInvalidClaims: Claim[];
     retryMessages: LlmMessage[];
   }) => {
-    const { allValidInferredClaims, allInvalidClaims, retryMessages } =
-      retryParams;
+    const { allValidInferredClaims, allInvalidClaims, retryMessages } = retryParams;
 
     const { retryCount = 0 } = retryContext ?? {};
 
@@ -581,12 +562,8 @@ export const inferEntityClaimsFromTextAgent = async (params: {
       };
 
       const subjectEntity =
-        subjectEntities.find(
-          ({ localId }) => localId === claim.subjectEntityLocalId,
-        ) ??
-        potentialObjectEntities.find(
-          ({ localId }) => localId === claim.subjectEntityLocalId,
-        );
+        subjectEntities.find(({ localId }) => localId === claim.subjectEntityLocalId) ??
+        potentialObjectEntities.find(({ localId }) => localId === claim.subjectEntityLocalId);
 
       if (!subjectEntity) {
         potentiallyRepeatedInvalidClaims.push({
@@ -599,12 +576,8 @@ export const inferEntityClaimsFromTextAgent = async (params: {
       }
 
       const objectEntity =
-        potentialObjectEntities.find(
-          ({ localId }) => localId === claim.objectEntityLocalId,
-        ) ??
-        subjectEntities.find(
-          ({ localId }) => localId === claim.objectEntityLocalId,
-        );
+        potentialObjectEntities.find(({ localId }) => localId === claim.objectEntityLocalId) ??
+        subjectEntities.find(({ localId }) => localId === claim.objectEntityLocalId);
 
       if (claim.objectEntityLocalId && !objectEntity) {
         potentiallyRepeatedInvalidClaims.push({
@@ -616,9 +589,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
         continue;
       }
 
-      if (
-        !claim.text.toLowerCase().includes(subjectEntity.name.toLowerCase())
-      ) {
+      if (!claim.text.toLowerCase().includes(subjectEntity.name.toLowerCase())) {
         potentiallyRepeatedInvalidClaims.push({
           ...claim,
           invalidReason: `The claim specifies subjectEntityId "${claim.subjectEntityLocalId}", but that entity's name "${subjectEntity.name}" does not appear in the claim. Claims must start with the name of the subject. If you described the entity slightly different, resubmit the claim beginning with "${subjectEntity.name}" instead, as long as you are sure the claim relates to this same entity. If you don't have an appropriate subject for the claim, don't include the claim. Review the subject entities in my previous message for valid subjects.`,
@@ -675,25 +646,22 @@ export const inferEntityClaimsFromTextAgent = async (params: {
             provenance,
             properties: {
               value: {
-                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-                  {
-                    metadata: {
-                      dataTypeId:
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                      provenance: {
-                        sources: provenance.sources,
-                      },
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": {
+                  metadata: {
+                    dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    provenance: {
+                      sources: provenance.sources,
                     },
-                    value: `${claim.text}${
-                      claim.prepositionalPhrases.length
-                        ? `– ${claim.prepositionalPhrases.join(", ")}`
-                        : ""
-                    }`,
                   },
+                  value: `${claim.text}${
+                    claim.prepositionalPhrases.length
+                      ? `– ${claim.prepositionalPhrases.join(", ")}`
+                      : ""
+                  }`,
+                },
                 "https://hash.ai/@h/types/property-type/subject/": {
                   metadata: {
-                    dataTypeId:
-                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                     provenance: {
                       sources: provenance.sources,
                     },
@@ -736,8 +704,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
       /**
        * The LLM may submit the same valid claim across multiple retries attempting to correct invalid claims
        */
-      (claim) =>
-        !validClaims.some((validClaim) => validClaim.text === claim.text),
+      (claim) => !validClaims.some((validClaim) => validClaim.text === claim.text),
     ),
   ];
 
@@ -754,24 +721,23 @@ export const inferEntityClaimsFromTextAgent = async (params: {
   /** @todo: check if there are subject entities for which no claims have been provided */
 
   if (invalidClaims.length > 0) {
-    const toolCallResponses = toolCalls.map<LlmMessageToolResultContent>(
-      (toolCall) => {
-        const invalidClaimsProvidedInToolCall = invalidClaims.filter(
-          ({ toolCallId }) => toolCallId === toolCall.id,
-        );
+    const toolCallResponses = toolCalls.map<LlmMessageToolResultContent>((toolCall) => {
+      const invalidClaimsProvidedInToolCall = invalidClaims.filter(
+        ({ toolCallId }) => toolCallId === toolCall.id,
+      );
 
-        if (invalidClaims.length === 0) {
-          return {
-            type: "tool_result",
-            tool_use_id: toolCall.id,
-            content: "There were no invalid claims provided by this tool call.",
-          };
-        }
-
+      if (invalidClaims.length === 0) {
         return {
           type: "tool_result",
           tool_use_id: toolCall.id,
-          content: dedent(`
+          content: "There were no invalid claims provided by this tool call.",
+        };
+      }
+
+      return {
+        type: "tool_result",
+        tool_use_id: toolCall.id,
+        content: dedent(`
             The following claims are invalid:
             ${invalidClaimsProvidedInToolCall
               .map(
@@ -780,9 +746,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
             text: ${invalidClaim.text}
             subjectEntityId: ${invalidClaim.subjectEntityLocalId}
             objectEntityId: ${invalidClaim.objectEntityLocalId}
-            prepositionalPhrases: ${stringify(
-              invalidClaim.prepositionalPhrases,
-            )}
+            prepositionalPhrases: ${stringify(invalidClaim.prepositionalPhrases)}
 
             Invalid because: ${invalidClaim.invalidReason}
             Please correct this!
@@ -792,10 +756,9 @@ export const inferEntityClaimsFromTextAgent = async (params: {
 
             You must now make another "submitClaims" tool call, correcting each of the errors identified above.
           `),
-          is_error: true,
-        };
-      },
-    );
+        is_error: true,
+      };
+    });
 
     logger.debug(
       `Retrying inferring claims from text for subject entities ${subjectEntitiesStringList} with the following tool call responses: ${stringify(
@@ -804,10 +767,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     );
 
     return retry({
-      allInvalidClaims: [
-        ...invalidClaims,
-        ...(retryContext?.previousInvalidClaims ?? []),
-      ],
+      allInvalidClaims: [...invalidClaims, ...(retryContext?.previousInvalidClaims ?? [])],
       allValidInferredClaims,
       retryMessages: [
         llmResponse.message,

@@ -6,8 +6,7 @@ import { scopedThemeConfig } from "@hashintel/ds-components/preset";
 
 import { CODE_FONT_FAMILY } from "./src/ui/constants/fonts";
 
-export const DS_COMPONENTS_BUILD_INFO_SUBPATH =
-  "@hashintel/ds-components/panda.buildinfo.json";
+export const DS_COMPONENTS_BUILD_INFO_SUBPATH = "@hashintel/ds-components/panda.buildinfo.json";
 
 export const createNodeSpecifierResolver = (moduleLocation: string | URL) => {
   const require = createRequire(moduleLocation);
@@ -15,9 +14,8 @@ export const createNodeSpecifierResolver = (moduleLocation: string | URL) => {
   return (specifier: string) => require.resolve(specifier);
 };
 
-export const resolveDsComponentsBuildInfoPath = (
-  resolve: (specifier: string) => string,
-) => resolve(DS_COMPONENTS_BUILD_INFO_SUBPATH);
+export const resolveDsComponentsBuildInfoPath = (resolve: (specifier: string) => string) =>
+  resolve(DS_COMPONENTS_BUILD_INFO_SUBPATH);
 
 export const createPetrinautPandaConfig = (dsComponentsBuildInfoPath: string) =>
   defineConfig({

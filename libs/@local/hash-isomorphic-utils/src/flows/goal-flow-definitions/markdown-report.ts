@@ -18,8 +18,7 @@ export const markdownReportTriggerInputs = [
 ] satisfies FlowDefinition<AiFlowActionDefinitionId>["trigger"]["outputs"];
 
 export const markdownReportResearchEntitiesStepInput = {
-  inputName:
-    "reportSpecification" satisfies InputNameForAiFlowAction<"researchEntities">,
+  inputName: "reportSpecification" satisfies InputNameForAiFlowAction<"researchEntities">,
   kind: "step-output",
   sourceStepId: "trigger",
   sourceStepOutputName: "Report specification" satisfies ReportTriggerInput,
@@ -31,15 +30,13 @@ export const markdownReportStep = {
   description: "Write report based on the research specification",
   inputSources: [
     {
-      inputName:
-        "question" satisfies InputNameForAiFlowAction<"answerQuestion">,
+      inputName: "question" satisfies InputNameForAiFlowAction<"answerQuestion">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Report specification",
     },
     {
-      inputName:
-        "entities" satisfies InputNameForAiFlowAction<"answerQuestion">,
+      inputName: "entities" satisfies InputNameForAiFlowAction<"answerQuestion">,
       kind: "step-output",
       sourceStepId: "2",
       sourceStepOutputName:
@@ -52,13 +49,9 @@ export const markdownReportStep = {
 >;
 
 export const markdownReportDeliverable = {
-  stepOutputName:
-    "answer" satisfies OutputNameForAiFlowAction<"answerQuestion">,
+  stepOutputName: "answer" satisfies OutputNameForAiFlowAction<"answerQuestion">,
   payloadKind: "Text",
   name: "report" as const,
   array: false,
   required: true,
-} satisfies Omit<
-  FlowDefinition<AiFlowActionDefinitionId>["outputs"][number],
-  "stepId"
->;
+} satisfies Omit<FlowDefinition<AiFlowActionDefinitionId>["outputs"][number], "stepId">;

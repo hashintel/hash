@@ -1,11 +1,7 @@
 import { Effect, Function, Option, pipe, Predicate, Ref, Stream } from "effect";
 
 import { createProto } from "../utils.js";
-import {
-  Payload,
-  Protocol,
-  ProtocolVersion,
-} from "../wire-protocol/models/index.js";
+import { Payload, Protocol, ProtocolVersion } from "../wire-protocol/models/index.js";
 import {
   type RequestId,
   Request,
@@ -17,10 +13,7 @@ import {
 } from "../wire-protocol/models/request/index.js";
 import * as RequestIdProducer from "../wire-protocol/RequestIdProducer.js";
 
-import type {
-  ProcedureDescriptor,
-  SubsystemDescriptor,
-} from "../types/index.js";
+import type { ProcedureDescriptor, SubsystemDescriptor } from "../types/index.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Request");
 
@@ -37,10 +30,7 @@ export interface Request<E, R> {
   readonly body: Stream.Stream<ArrayBuffer, E, R>;
 }
 
-const RequestProto: Omit<
-  Request<unknown, unknown>,
-  "id" | "subsystem" | "procedure" | "body"
-> = {
+const RequestProto: Omit<Request<unknown, unknown>, "id" | "subsystem" | "procedure" | "body"> = {
   [TypeId]: TypeId,
 };
 
@@ -112,10 +102,7 @@ interface PackOptions {
   readonly noDelay?: boolean;
 }
 
-const pack = <E, R>(
-  stream: Stream.Stream<ArrayBuffer, E, R>,
-  options?: PackOptions,
-) =>
+const pack = <E, R>(stream: Stream.Stream<ArrayBuffer, E, R>, options?: PackOptions) =>
   Effect.gen(function* () {
     const noDelay = options?.noDelay ?? false;
 
@@ -140,10 +127,7 @@ const pack = <E, R>(
       stream,
       Stream.mapConcatEffect((buffer) =>
         Effect.gen(function* () {
-          const [newScratch, output] = splitBuffer(
-            yield* Ref.get(scratch),
-            buffer,
-          );
+          const [newScratch, output] = splitBuffer(yield* Ref.get(scratch), buffer);
 
           yield* Ref.set(scratch, newScratch);
 
@@ -156,9 +140,7 @@ const pack = <E, R>(
             Effect.gen(function* () {
               const current = yield* Ref.get(scratch);
 
-              return current.length > 0
-                ? [current.buffer.slice(0, current.length)]
-                : [];
+              return current.length > 0 ? [current.buffer.slice(0, current.length)] : [];
             }),
           ),
         ),
@@ -198,18 +180,12 @@ const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
             isEnd ? RequestFlags.withEndOfRequest : Function.identity,
           );
 
-          const header = RequestHeader.make(
-            Protocol.make(ProtocolVersion.V1),
-            requestId,
-            flags,
-          );
+          const header = RequestHeader.make(Protocol.make(ProtocolVersion.V1), requestId, flags);
 
           const payload = yield* Payload.makeAssert(new Uint8Array(buffer));
 
           const body = isFirst
-            ? RequestBegin.make(self.subsystem, self.procedure, payload).pipe(
-                RequestBody.makeBegin,
-              )
+            ? RequestBegin.make(self.subsystem, self.procedure, payload).pipe(RequestBody.makeBegin)
             : RequestFrame.make(payload).pipe(RequestBody.makeFrame);
 
           return Request.make(header, body);
@@ -250,14 +226,9 @@ export const isRequest = (value: unknown): value is Request<unknown, unknown> =>
 
 // eslint-disable-next-line fsecond/no-inline-interfaces
 export const encode: {
-  <E, R>(
-    self: Request<E, R>,
-    options?: EncodeOptions,
-  ): Stream.Stream<Request.Request, E, R>;
+  <E, R>(self: Request<E, R>, options?: EncodeOptions): Stream.Stream<Request.Request, E, R>;
 
-  (
-    options?: EncodeOptions,
-  ): <E, R>(self: Request<E, R>) => Stream.Stream<Request.Request, E, R>;
+  (options?: EncodeOptions): <E, R>(self: Request<E, R>) => Stream.Stream<Request.Request, E, R>;
 } = Function.dual(
   /**
    * Function is `DataFirst` (will be executed immediately), if...

@@ -10,11 +10,7 @@ import { ImageWithCheckedBackground } from "../image-with-checked-background";
 import { OntologyChip } from "../ontology-chip";
 import { parseUrlForOntologyChip } from "../parse-url-for-ontology-chip";
 
-import type {
-  BaseUrl,
-  PropertyObject,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, PropertyObject, VersionedUrl } from "@blockprotocol/type-system";
 import type { HTMLAttributes, ReactElement } from "react";
 
 const descriptionPropertyKey =
@@ -53,12 +49,9 @@ export const SelectorAutocompleteOption = ({
   const [showPreviewPane, setShowPreviewPane] = useState(false);
 
   const subtitle =
-    description ??
-    (entityProperties?.[descriptionPropertyKey] as string | undefined);
+    description ?? (entityProperties?.[descriptionPropertyKey] as string | undefined);
 
-  const mimeType = entityProperties?.[mimeTypePropertyKey] as
-    | string
-    | undefined;
+  const mimeType = entityProperties?.[mimeTypePropertyKey] as string | undefined;
 
   const imageUrl = mimeType?.startsWith("image/")
     ? (entityProperties?.[fileUrlPropertyKey] as string | undefined)
@@ -101,11 +94,7 @@ export const SelectorAutocompleteOption = ({
                 pb: 1,
               }}
             >
-              <ImageWithCheckedBackground
-                alt={subtitle ?? title}
-                src={imageUrl}
-                sx={{ mb: 1 }}
-              />
+              <ImageWithCheckedBackground alt={subtitle ?? title} src={imageUrl} sx={{ mb: 1 }} />
               <Typography
                 sx={{
                   fontWeight: 500,
@@ -151,17 +140,10 @@ export const SelectorAutocompleteOption = ({
       <Stack direction="row" justifyContent="space-between" width="100%">
         <Stack
           spacing={0.8}
-          width={
-            imageUrl ? `calc(100% - ${imageThumbnailWidth + 10}px)` : "100%"
-          }
+          width={imageUrl ? `calc(100% - ${imageThumbnailWidth + 10}px)` : "100%"}
         >
           <Box display="flex" alignItems="center" whiteSpace="nowrap">
-            <Box
-              component="span"
-              display="flex"
-              alignItems="center"
-              maxWidth="60%"
-            >
+            <Box component="span" display="flex" alignItems="center" maxWidth="60%">
               <Stack
                 direction="row"
                 sx={({ palette }) => ({
@@ -226,8 +208,7 @@ export const SelectorAutocompleteOption = ({
                         fontSize: 12,
                         px: 1,
                         py: 0.5,
-                        border: ({ palette }) =>
-                          `1px solid ${palette.gray[30]}`,
+                        border: ({ palette }) => `1px solid ${palette.gray[30]}`,
                         borderRadius: 4,
                       }}
                     >

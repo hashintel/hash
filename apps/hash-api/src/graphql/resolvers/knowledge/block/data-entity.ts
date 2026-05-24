@@ -1,7 +1,4 @@
-import {
-  getBlockById,
-  getBlockData,
-} from "../../../../graph/knowledge/system-types/block";
+import { getBlockById, getBlockData } from "../../../../graph/knowledge/system-types/block";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 import type { ResolverFn } from "../../../api-types.gen";
@@ -22,7 +19,5 @@ export const blockChildEntityResolver: ResolverFn<
     entityId: metadata.recordId.entityId,
   });
 
-  return getBlockData(context, authentication, { block }).then((blockData) =>
-    blockData.toJSON(),
-  );
+  return getBlockData(context, authentication, { block }).then((blockData) => blockData.toJSON());
 };

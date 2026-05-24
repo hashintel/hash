@@ -1,20 +1,9 @@
 import { useEffect, useState } from "react";
 
-import {
-  defaultUserSettings,
-  UserSettingsContext,
-} from "./user-settings-context";
+import { defaultUserSettings, UserSettingsContext } from "./user-settings-context";
 
-import type {
-  BottomPanelTab,
-  CursorMode,
-  TimelineChartType,
-} from "./editor-context";
-import type {
-  ArcRendering,
-  SubViewSectionSettings,
-  UserSettings,
-} from "./user-settings-context";
+import type { BottomPanelTab, CursorMode, TimelineChartType } from "./editor-context";
+import type { ArcRendering, SubViewSectionSettings, UserSettings } from "./user-settings-context";
 
 const STORAGE_KEY = "petrinaut:user-settings";
 
@@ -31,9 +20,7 @@ const loadSettings = (): UserSettings => {
   return defaultUserSettings;
 };
 
-export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
-  children,
-}) => {
+export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [state, setState] = useState<UserSettings>(loadSettings);
 
   useEffect(() => {
@@ -46,16 +33,13 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
 
   const contextValue = {
     ...state,
-    setShowAnimations: (value: boolean) =>
-      setState((prev) => ({ ...prev, showAnimations: value })),
+    setShowAnimations: (value: boolean) => setState((prev) => ({ ...prev, showAnimations: value })),
     setKeepPanelsMounted: (value: boolean) =>
       setState((prev) => ({ ...prev, keepPanelsMounted: value })),
-    setCompactNodes: (value: boolean) =>
-      setState((prev) => ({ ...prev, compactNodes: value })),
+    setCompactNodes: (value: boolean) => setState((prev) => ({ ...prev, compactNodes: value })),
     setArcRendering: (value: ArcRendering) =>
       setState((prev) => ({ ...prev, arcRendering: value })),
-    setCursorMode: (value: CursorMode) =>
-      setState((prev) => ({ ...prev, cursorMode: value })),
+    setCursorMode: (value: CursorMode) => setState((prev) => ({ ...prev, cursorMode: value })),
     setIsLeftSidebarOpen: (value: boolean) =>
       setState((prev) => ({ ...prev, isLeftSidebarOpen: value })),
     setLeftSidebarWidth: (value: number) =>
@@ -70,10 +54,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, activeBottomPanelTab: value })),
     setTimelineChartType: (value: TimelineChartType) =>
       setState((prev) => ({ ...prev, timelineChartType: value })),
-    setShowMinimap: (value: boolean) =>
-      setState((prev) => ({ ...prev, showMinimap: value })),
-    setSnapToGrid: (value: boolean) =>
-      setState((prev) => ({ ...prev, snapToGrid: value })),
+    setShowMinimap: (value: boolean) => setState((prev) => ({ ...prev, showMinimap: value })),
+    setSnapToGrid: (value: boolean) => setState((prev) => ({ ...prev, snapToGrid: value })),
     setPartialSelection: (value: boolean) =>
       setState((prev) => ({ ...prev, partialSelection: value })),
     setUseEntitiesTreeView: (value: boolean) =>
@@ -102,7 +84,5 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       }),
   };
 
-  return (
-    <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>
-  );
+  return <UserSettingsContext value={contextValue}>{children}</UserSettingsContext>;
 };

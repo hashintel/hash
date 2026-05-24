@@ -24,9 +24,7 @@ export function usePetrinautDefinition(): SDCPN {
  * Subscribe to a derived slice of the SDCPN. Re-renders only when the selected
  * value changes (`Object.is` comparison).
  */
-export function usePetrinautDefinitionSelector<T>(
-  selector: (sdcpn: SDCPN) => T,
-): T {
+export function usePetrinautDefinitionSelector<T>(selector: (sdcpn: SDCPN) => T): T {
   return selector(usePetrinautDefinition());
 }
 
@@ -76,9 +74,7 @@ export function useIsDocumentReady(): boolean {
  * invoked once per `change()` (skipping no-ops). The returned `void` is
  * intentional — there is no current value, only a stream of events.
  */
-export function usePetrinautPatches(
-  handler: (patches: PetrinautPatch[]) => void,
-): void {
+export function usePetrinautPatches(handler: (patches: PetrinautPatch[]) => void): void {
   const instance = usePetrinautInstance();
   const handlerRef = useRef(handler);
 

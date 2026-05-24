@@ -23,9 +23,7 @@ export const App = () => {
       <Checkbox.Root
         checked={indeterminate ? "indeterminate" : allChecked}
         onCheckedChange={(e) => {
-          setValues((current) =>
-            current.map((value) => ({ ...value, checked: !!e.checked })),
-          );
+          setValues((current) => current.map((value) => ({ ...value, checked: !!e.checked })));
         }}
       >
         <Checkbox.HiddenInput />

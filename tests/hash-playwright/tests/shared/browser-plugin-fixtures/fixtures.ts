@@ -14,10 +14,7 @@ export const test = base.extend<{
 }>({
   // eslint-disable-next-line no-empty-pattern
   context: async ({}, use) => {
-    const pathToExtension = path.join(
-      monorepoRootDir,
-      "apps/plugin-browser/build",
-    );
+    const pathToExtension = path.join(monorepoRootDir, "apps/plugin-browser/build");
     const context = await chromium.launchPersistentContext("", {
       headless: false,
       args: [

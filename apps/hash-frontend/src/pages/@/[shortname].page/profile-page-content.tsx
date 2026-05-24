@@ -21,11 +21,7 @@ export const ProfilePageContent: FunctionComponent<{
   setDisplayEditUserProfileInfoModal: (display: boolean) => void;
   refetchProfile: () => Promise<void>;
   currentTab: ProfilePageTab;
-  webTypes: (
-    | PropertyTypeWithMetadata
-    | EntityTypeWithMetadata
-    | DataTypeWithMetadata
-  )[];
+  webTypes: (PropertyTypeWithMetadata | EntityTypeWithMetadata | DataTypeWithMetadata)[];
   webTypesLoading: boolean;
 }> = ({
   profile,
@@ -43,9 +39,7 @@ export const ProfilePageContent: FunctionComponent<{
           <ProfilePageInfo
             profile={profile}
             isEditable={isEditable}
-            setDisplayEditUserProfileInfoModal={
-              setDisplayEditUserProfileInfoModal
-            }
+            setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
             currentTab={currentTab}
           />
         </Box>

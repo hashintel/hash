@@ -102,10 +102,7 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
   }> = [];
 
   // Pair ICAO and IATA codeshares (they should be in matching order)
-  const maxCodeshares = Math.max(
-    input.codeshares.length,
-    input.codeshares_iata.length,
-  );
+  const maxCodeshares = Math.max(input.codeshares.length, input.codeshares_iata.length);
   for (let i = 0; i < maxCodeshares; i++) {
     const icaoCode = input.codeshares[i];
     const iataCode = input.codeshares_iata[i];
@@ -116,8 +113,7 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
           "https://hash.ai/@h/types/property-type/icao-code/": {
             value: icaoCode,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               provenance,
             },
           },
@@ -126,8 +122,7 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
           "https://hash.ai/@h/types/property-type/iata-code/": {
             value: iataCode,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               provenance,
             },
           },
@@ -141,8 +136,7 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
       "https://hash.ai/@h/types/property-type/flight-number/": {
         value: flightNumber,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           provenance,
         },
       },
@@ -150,8 +144,7 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
         "https://hash.ai/@h/types/property-type/icao-code/": {
           value: input.ident_icao,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },
@@ -160,8 +153,7 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
         "https://hash.ai/@h/types/property-type/iata-code/": {
           value: input.ident_iata,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },
@@ -170,8 +162,7 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
         "https://hash.ai/@h/types/property-type/flight-type/": {
           value: input.type,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },

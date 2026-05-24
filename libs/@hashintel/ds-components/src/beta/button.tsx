@@ -38,71 +38,49 @@ interface ButtonCompositionProps {
 }
 
 const BaseButton = styled(ark.button, buttonRecipe);
-type BaseButtonProps = HTMLStyledProps<"button"> &
-  NonNullable<ButtonRecipeProps>;
+type BaseButtonProps = HTMLStyledProps<"button"> & NonNullable<ButtonRecipeProps>;
 
-export interface ButtonProps
-  extends BaseButtonProps, ButtonCompositionProps, ButtonLoadingProps {}
+export interface ButtonProps extends BaseButtonProps, ButtonCompositionProps, ButtonLoadingProps {}
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (props, ref) => {
-    const propsContext = useButtonPropsContext();
-    const buttonProps = useMemo(
-      () => mergeProps<ButtonProps>(propsContext, props),
-      [propsContext, props],
-    );
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
+  const propsContext = useButtonPropsContext();
+  const buttonProps = useMemo(
+    () => mergeProps<ButtonProps>(propsContext, props),
+    [propsContext, props],
+  );
 
-    const {
-      loading,
-      loadingText,
-      children,
-      spinner,
-      spinnerPlacement,
-      ...rest
-    } = buttonProps;
-    return (
-      <BaseButton
-        type="button"
-        ref={ref}
-        {...rest}
-        data-loading={loading ? "" : undefined}
-        disabled={loading || rest.disabled}
-      >
-        {!props.asChild && loading ? (
-          <Loader
-            spinner={spinner}
-            text={loadingText}
-            spinnerPlacement={spinnerPlacement}
-          >
-            {children}
-          </Loader>
-        ) : (
-          children
-        )}
-      </BaseButton>
-    );
-  },
-);
+  const { loading, loadingText, children, spinner, spinnerPlacement, ...rest } = buttonProps;
+  return (
+    <BaseButton
+      type="button"
+      ref={ref}
+      {...rest}
+      data-loading={loading ? "" : undefined}
+      disabled={loading || rest.disabled}
+    >
+      {!props.asChild && loading ? (
+        <Loader spinner={spinner} text={loadingText} spinnerPlacement={spinnerPlacement}>
+          {children}
+        </Loader>
+      ) : (
+        children
+      )}
+    </BaseButton>
+  );
+});
 
 export type ButtonGroupProps = GroupProps & NonNullable<ButtonRecipeProps>;
 
-export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(
-  (props, ref) => {
-    const [variantProps, otherProps] = useMemo(
-      () => buttonRecipe.splitVariantProps(props),
-      [props],
-    );
-    return (
-      <ButtonPropsProvider value={variantProps}>
-        <Group ref={ref} {...otherProps} />
-      </ButtonPropsProvider>
-    );
-  },
-);
+export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>((props, ref) => {
+  const [variantProps, otherProps] = useMemo(() => buttonRecipe.splitVariantProps(props), [props]);
+  return (
+    <ButtonPropsProvider value={variantProps}>
+      <Group ref={ref} {...otherProps} />
+    </ButtonPropsProvider>
+  );
+});
 
-const [ButtonPropsProvider, useButtonPropsContext] = createContext<
-  NonNullable<ButtonRecipeProps>
->({
+const [ButtonPropsProvider, useButtonPropsContext] = createContext<NonNullable<ButtonRecipeProps>>({
   name: "ButtonPropsContext",
   hookName: "useButtonPropsContext",
   providerName: "<PropsProvider />",

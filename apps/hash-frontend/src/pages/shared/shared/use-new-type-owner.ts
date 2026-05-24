@@ -23,9 +23,7 @@ export const useNewTypeOwner = (startingTypeId: VersionedUrl) => {
     const matchingWeb =
       startingTypeWebId &&
       (authenticatedUser?.accountId === startingTypeWebId ||
-        authenticatedUser?.memberOf.some(
-          (memberOf) => memberOf.org.webId === startingTypeWebId,
-        ));
+        authenticatedUser?.memberOf.some((memberOf) => memberOf.org.webId === startingTypeWebId));
 
     /**
      * If the type we're creating another type from is in a web the user belongs to, use that web.

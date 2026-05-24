@@ -14,8 +14,9 @@ import type {
 import type { Entity } from "@blockprotocol/type-system";
 import type { FunctionComponent, RefObject } from "react";
 
-export type BlockComponent<RootEntity extends Entity = Entity> =
-  FunctionComponent<BlockGraphProperties<RootEntity>>;
+export type BlockComponent<RootEntity extends Entity = Entity> = FunctionComponent<
+  BlockGraphProperties<RootEntity>
+>;
 
 /**
  * Create a GraphBlockHandler instance, using a reference to an element in the block.
@@ -25,10 +26,7 @@ export type BlockComponent<RootEntity extends Entity = Entity> =
  */
 export const useGraphBlockModule = (
   ref: RefObject<HTMLElement | null>,
-  constructorArgs?: Omit<
-    ConstructorParameters<typeof GraphBlockHandler>[0],
-    "element"
-  >,
+  constructorArgs?: Omit<ConstructorParameters<typeof GraphBlockHandler>[0], "element">,
 ): { graphModule: GraphBlockHandler } => ({
   graphModule: useModuleConstructor({
     Handler: GraphBlockHandler,
@@ -47,10 +45,7 @@ export const useGraphBlockModule = (
  */
 export const useGraphEmbedderModule = (
   ref: RefObject<HTMLElement | null>,
-  constructorArgs: Omit<
-    ConstructorParameters<typeof GraphEmbedderHandler>[0],
-    "element"
-  >,
+  constructorArgs: Omit<ConstructorParameters<typeof GraphEmbedderHandler>[0], "element">,
 ): { graphModule: GraphEmbedderHandler } => ({
   graphModule: useModuleConstructor({
     Handler: GraphEmbedderHandler as { new (): GraphEmbedderHandler },
@@ -74,11 +69,10 @@ export const useEntitySubgraph = <
       throw new Error("Root entity not present in subgraph");
     }
 
-    const linkedEntities =
-      getOutgoingLinkAndTargetEntities<RootEntityLinkedEntities>(
-        entitySubgraph,
-        rootEntity.metadata.recordId.entityId,
-      );
+    const linkedEntities = getOutgoingLinkAndTargetEntities<RootEntityLinkedEntities>(
+      entitySubgraph,
+      rootEntity.metadata.recordId.entityId,
+    );
 
     return {
       rootEntity,

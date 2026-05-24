@@ -15,10 +15,7 @@ import {
 
 import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type { ParsedCoordinatorToolCall } from "../shared/coordinator-tools.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "../shared/coordinators.js";
+import type { CoordinatingAgentInput, CoordinatingAgentState } from "../shared/coordinators.js";
 
 /**
  * Given the current state of the coordinating agent, request the next actions to be taken.
@@ -39,20 +36,17 @@ export const requestCoordinatorActions = async (params: {
       Make as many tool calls as are required to progress towards completing the task.
     `);
 
-  const llmMessagesFromPreviousToolCalls =
-    mapPreviousCoordinatorCallsToLlmMessages({
-      includeErrorsOnly: true,
-      previousCalls: state.lastCompletedToolCalls,
-    });
+  const llmMessagesFromPreviousToolCalls = mapPreviousCoordinatorCallsToLlmMessages({
+    includeErrorsOnly: true,
+    previousCalls: state.lastCompletedToolCalls,
+  });
 
   const initialUserMessage = generateInitialUserMessage({
     input,
     questionsAndAnswers: state.questionsAndAnswers,
   });
 
-  const messages: LlmMessage[] = [
-    { role: "user", content: [initialUserMessage] },
-  ];
+  const messages: LlmMessage[] = [{ role: "user", content: [initialUserMessage] }];
 
   messages.push(...llmMessagesFromPreviousToolCalls);
 
@@ -63,16 +57,13 @@ export const requestCoordinatorActions = async (params: {
     content: [progressReport],
   });
 
-  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { dataSources, userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const tools = Object.values(
     generateToolDefinitions({
       dataSources,
       omitTools: [
-        ...(input.humanInputCanBeRequested
-          ? []
-          : ["requestHumanInput" as const]),
+        ...(input.humanInputCanBeRequested ? [] : ["requestHumanInput" as const]),
         ...(state.proposedEntities.length > 0 ? [] : ["complete" as const]),
       ],
       state,
@@ -100,9 +91,7 @@ export const requestCoordinatorActions = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
-    );
+    throw new Error(`Failed to get LLM response: ${JSON.stringify(llmResponse)}`);
   }
 
   const { message } = llmResponse;

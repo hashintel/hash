@@ -17,9 +17,7 @@ export const ManuallyTriggered = ({
   const manuallyTriggeredFlows = useMemo(
     () =>
       unfilteredFlowRuns.filter(
-        (flow) =>
-          flow.flowDefinitionId ===
-          manualBrowserInferenceFlowDefinition.flowDefinitionId,
+        (flow) => flow.flowDefinitionId === manualBrowserInferenceFlowDefinition.flowDefinitionId,
       ),
     [unfilteredFlowRuns],
   );
@@ -31,8 +29,7 @@ export const ManuallyTriggered = ({
         {manuallyTriggeredFlows.length === 0 ? (
           <TableRow>
             <TableCell colSpan={3}>
-              The status of flows you trigger manually from the plugin will
-              appear here.
+              The status of flows you trigger manually from the plugin will appear here.
             </TableCell>
           </TableRow>
         ) : (

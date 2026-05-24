@@ -18,11 +18,7 @@ import {
 import type { MigrationFunction } from "../types";
 import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /**
    * Step 1: Create the 'Invitation Via Email' and 'Invitation Via Shortname' link types,
    * and the 'Has Issued Invitation' link type which will link these from an Organization
@@ -42,24 +38,20 @@ const migrate: MigrationFunction = async ({
     propertyTypeKey: "shortname",
   });
 
-  const invitationEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Invitation",
-        description: "A request or offer to join or attend something.",
-        properties: [
-          {
-            propertyType: expiredAtPropertyTypeId,
-            required: true,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const invitationEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Invitation",
+      description: "A request or offer to join or attend something.",
+      properties: [
+        {
+          propertyType: expiredAtPropertyTypeId,
+          required: true,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const invitationViaEmailEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -81,8 +73,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const invitationViaShortnameEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const invitationViaShortnameEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         title: "Invitation Via Shortname",
         description: "An invitation issued to a user via their shortname.",
@@ -96,7 +90,8 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const hasIssuedInvitationLinkType = await createSystemEntityTypeIfNotExists(
     context,
@@ -121,14 +116,10 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const organizationEntityType = await getEntityTypeById(
-    context.graphApi,
-    authentication,
-    {
-      entityTypeId: currentOrganizationEntityTypeId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  );
+  const organizationEntityType = await getEntityTypeById(context.graphApi, authentication, {
+    entityTypeId: currentOrganizationEntityTypeId,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!organizationEntityType) {
     throw new NotFoundError(
@@ -156,12 +147,15 @@ const migrate: MigrationFunction = async ({
     },
   };
 
-  const { updatedEntityTypeId: updatedOrganizationEntityTypeId } =
-    await updateSystemEntityType(context, authentication, {
+  const { updatedEntityTypeId: updatedOrganizationEntityTypeId } = await updateSystemEntityType(
+    context,
+    authentication,
+    {
       currentEntityTypeId: currentOrganizationEntityTypeId,
       migrationState,
       newSchema: newOrganizationEntityTypeSchema,
-    });
+    },
+  );
 
   /**
    * Step 3: Update the dependencies of the `Organization` entity type

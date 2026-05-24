@@ -15,14 +15,12 @@ export const useStateCallback = <T>(initialValue: T) => {
   const [state, setState] = useState(initialValue);
 
   const callbacksRef = useRef<(() => void)[]>([]);
-  const updateRef = useRef(
-    (nextState: T | SetStateAction<T>, callback?: () => unknown) => {
-      if (callback) {
-        callbacksRef.current.push(callback);
-      }
-      setState(nextState);
-    },
-  );
+  const updateRef = useRef((nextState: T | SetStateAction<T>, callback?: () => unknown) => {
+    if (callback) {
+      callbacksRef.current.push(callback);
+    }
+    setState(nextState);
+  });
 
   useLayoutEffect(() => {
     for (const callback of callbacksRef.current) {

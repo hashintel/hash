@@ -26,9 +26,7 @@ export const App = () => {
     <Stack gap="4" alignItems="start">
       <Button
         onClick={() =>
-          splitter.isPanelCollapsed("a")
-            ? splitter.expandPanel("a")
-            : splitter.collapsePanel("a")
+          splitter.isPanelCollapsed("a") ? splitter.expandPanel("a") : splitter.collapsePanel("a")
         }
         size="xs"
         variant="surface"

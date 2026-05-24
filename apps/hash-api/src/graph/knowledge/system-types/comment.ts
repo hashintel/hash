@@ -14,26 +14,17 @@ import {
   getLatestEntityById,
   updateEntity,
 } from "../primitive/entity";
-import {
-  getLinkEntityLeftEntity,
-  getLinkEntityRightEntity,
-} from "../primitive/link-entity";
+import { getLinkEntityLeftEntity, getLinkEntityRightEntity } from "../primitive/link-entity";
 import { getBlockFromEntity } from "./block";
 import { getTextFromEntity } from "./text";
 import { getUserFromEntity } from "./user";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type { Block } from "./block";
 import type { Text } from "./text";
 import type { User } from "./user";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
-import type {
-  CreateEntityParameters,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import type { CreateEntityParameters, HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   Comment as CommentEntity,
   CommentPropertiesWithMetadata,
@@ -53,14 +44,8 @@ export type Comment = {
   entity: HashEntity<CommentEntity>;
 };
 
-function assertCommentEntity(
-  entity: HashEntity,
-): asserts entity is HashEntity<CommentEntity> {
-  if (
-    !entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.comment.entityTypeId,
-    )
-  ) {
+function assertCommentEntity(entity: HashEntity): asserts entity is HashEntity<CommentEntity> {
+  if (!entity.metadata.entityTypeIds.includes(systemEntityTypes.comment.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.comment.entityTypeId,
@@ -69,17 +54,14 @@ function assertCommentEntity(
   }
 }
 
-export const getCommentFromEntity: PureGraphFunction<
-  { entity: HashEntity },
-  Comment
-> = ({ entity }) => {
+export const getCommentFromEntity: PureGraphFunction<{ entity: HashEntity }, Comment> = ({
+  entity,
+}) => {
   assertCommentEntity(entity);
 
   return {
-    resolvedAt:
-      entity.properties["https://hash.ai/@h/types/property-type/resolved-at/"],
-    deletedAt:
-      entity.properties["https://hash.ai/@h/types/property-type/deleted-at/"],
+    resolvedAt: entity.properties["https://hash.ai/@h/types/property-type/resolved-at/"],
+    deletedAt: entity.properties["https://hash.ai/@h/types/property-type/deleted-at/"],
     entity,
   };
 };
@@ -89,10 +71,11 @@ export const getCommentFromEntity: PureGraphFunction<
  *
  * @param params.entityId - the entity id of the comment
  */
-export const getCommentById: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<Comment>
-> = async (ctx, authentication, { entityId }) => {
+export const getCommentById: ImpureGraphFunction<{ entityId: EntityId }, Promise<Comment>> = async (
+  ctx,
+  authentication,
+  { entityId },
+) => {
   const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getCommentFromEntity({ entity });
@@ -160,16 +143,14 @@ export const createComment: ImpureGraphFunction<
     entityUuid: textEntityEntityUuid,
     properties: {
       value: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-          {
-            value: textualContent.map((text) => ({
-              value: text,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-              },
-            })),
-          },
+        "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": {
+          value: textualContent.map((text) => ({
+            value: text,
+            metadata: {
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            },
+          })),
+        },
       },
     },
     entityTypeIds: [systemEntityTypes.text.entityTypeId],
@@ -259,8 +240,7 @@ export const updateCommentText: ImpureGraphFunction<
           value: textualContent.map((textToken) => ({
             value: textToken,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
             },
           })),
         } satisfies TextPropertiesWithMetadata["value"]["https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"],
@@ -315,8 +295,7 @@ export const getCommentParent: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const parentLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityTypeVersionedUrl:
-      systemLinkEntityTypes.hasParent.linkEntityTypeId,
+    linkEntityTypeVersionedUrl: systemLinkEntityTypes.hasParent.linkEntityTypeId,
   });
 
   const [parentLink, ...unexpectedParentLinks] = parentLinks;
@@ -349,8 +328,7 @@ export const getCommentAuthor: ImpureGraphFunction<
 > = async (ctx, authentication, { commentEntityId }) => {
   const authorLinks = await getEntityOutgoingLinks(ctx, authentication, {
     entityId: commentEntityId,
-    linkEntityTypeVersionedUrl:
-      systemLinkEntityTypes.authoredBy.linkEntityTypeId,
+    linkEntityTypeVersionedUrl: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
   });
 
   const [authorLink, ...unexpectedAuthorLinks] = authorLinks;
@@ -391,12 +369,8 @@ export const getCommentReplies: ImpureGraphFunction<
   });
 
   return Promise.all(
-    replyLinks.map((linkEntity) =>
-      getLinkEntityLeftEntity(ctx, authentication, { linkEntity }),
-    ),
-  ).then((entities) =>
-    entities.map((entity) => getCommentFromEntity({ entity })),
-  );
+    replyLinks.map((linkEntity) => getLinkEntityLeftEntity(ctx, authentication, { linkEntity })),
+  ).then((entities) => entities.map((entity) => getCommentFromEntity({ entity })));
 };
 
 /**
@@ -447,11 +421,7 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
     commentEntityId,
   });
 
-  if (
-    parentEntity.metadata.entityTypeIds.includes(
-      systemEntityTypes.block.entityTypeId,
-    )
-  ) {
+  if (parentEntity.metadata.entityTypeIds.includes(systemEntityTypes.block.entityTypeId)) {
     // @todo - make sure the entity is really a block
     return getBlockFromEntity({ entity: parentEntity as Block["entity"] });
   } else {

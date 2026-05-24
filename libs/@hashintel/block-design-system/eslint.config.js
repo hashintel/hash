@@ -2,9 +2,7 @@ import { createBase, disableRules } from "@local/eslint/deprecated";
 
 export default [
   ...createBase(import.meta.dirname),
-  ...disableRules([
-    /* 2022-11-29:  14 */ "@typescript-eslint/no-unsafe-assignment",
-  ]),
+  ...disableRules([/* 2022-11-29:  14 */ "@typescript-eslint/no-unsafe-assignment"]),
   {
     rules: {
       "jsx-a11y/label-has-associated-control": "off",
@@ -15,8 +13,7 @@ export default [
           patterns: [
             {
               group: ["*/main"],
-              message:
-                "Please import from the component file directly, not main.ts",
+              message: "Please import from the component file directly, not main.ts",
             },
             {
               group: ["@mui/material/*"],
@@ -24,8 +21,7 @@ export default [
             },
             {
               group: ["@local/*"],
-              message:
-                "You cannot use unpublished local packages in a published package.",
+              message: "You cannot use unpublished local packages in a published package.",
             },
           ],
         },

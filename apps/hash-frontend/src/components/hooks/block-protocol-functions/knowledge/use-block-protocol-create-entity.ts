@@ -1,10 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
 
-import {
-  HashEntity,
-  mergePropertyObjectAndMetadata,
-} from "@local/hash-graph-sdk/entity";
+import { HashEntity, mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
 
 import {
   createEntityMutation,
@@ -28,26 +25,26 @@ export const useBlockProtocolCreateEntity = (
 } => {
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
-  const [createFn] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation, {
-    refetchQueries: activeWorkspaceWebId
-      ? [
-          /**
-           * This refetch query accounts for the "Entities" section
-           * in the sidebar being updated when the first instance of
-           * a type is created by a user that is from a different web.
-           */
-          {
-            query: queryEntitySubgraphQuery,
-            variables: generateSidebarEntityTypeEntitiesQueryVariables({
-              webId: activeWorkspaceWebId,
-            }),
-          },
-        ]
-      : [],
-  });
+  const [createFn] = useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
+    createEntityMutation,
+    {
+      refetchQueries: activeWorkspaceWebId
+        ? [
+            /**
+             * This refetch query accounts for the "Entities" section
+             * in the sidebar being updated when the first instance of
+             * a type is created by a user that is from a different web.
+             */
+            {
+              query: queryEntitySubgraphQuery,
+              variables: generateSidebarEntityTypeEntitiesQueryVariables({
+                webId: activeWorkspaceWebId,
+              }),
+            },
+          ]
+        : [],
+    },
+  );
 
   const createEntity: CreateEntityMessageCallback = useCallback(
     async ({ data }) => {

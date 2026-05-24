@@ -143,10 +143,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   const { Editor } = use(use(MonacoContext));
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
-  const handleMount = (
-    editorInstance: editor.IStandaloneCodeEditor,
-    monacoInstance: Monaco,
-  ) => {
+  const handleMount = (editorInstance: editor.IStandaloneCodeEditor, monacoInstance: Monaco) => {
     editorRef.current = editorInstance;
 
     if (singleLine) {
@@ -235,9 +232,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
 
   return (
     <>
-      {singleLine && placeholder && !value && (
-        <div className={placeholderStyle}>{placeholder}</div>
-      )}
+      {singleLine && placeholder && !value && <div className={placeholderStyle}>{placeholder}</div>}
       <Editor
         theme="vs-light"
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
@@ -276,12 +271,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const editorElement = (
     <div className={containerClass} style={singleLine ? undefined : { height }}>
       <Suspense fallback={fallback}>
-        <CodeEditorInner
-          options={options}
-          height={height}
-          singleLine={singleLine}
-          {...props}
-        />
+        <CodeEditorInner options={options} height={height} singleLine={singleLine} {...props} />
       </Suspense>
     </div>
   );

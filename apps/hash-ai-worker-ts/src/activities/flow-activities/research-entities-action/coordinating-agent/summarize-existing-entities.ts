@@ -28,9 +28,7 @@ const systemPrompt = dedent(`
 
 const toolName = "submitEntitySummaries";
 
-const registerEntitySummariesToolDefinition: LlmToolDefinition<
-  typeof toolName
-> = {
+const registerEntitySummariesToolDefinition: LlmToolDefinition<typeof toolName> = {
   name: toolName,
   description: "Register entity summaries",
   inputSchema: {
@@ -75,8 +73,7 @@ export const summarizeExistingEntities = async (params: {
 }): Promise<{ existingEntitySummaries: ExistingEntitySummary[] }> => {
   const { existingEntities } = params;
 
-  const { flowEntityId, userAuthentication, stepId, webId } =
-    await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -89,9 +86,7 @@ export const summarizeExistingEntities = async (params: {
           content: [
             {
               type: "text",
-              text: `Entities: ${JSON.stringify(
-                existingEntities.map(simplifyEntity),
-              )}`,
+              text: `Entities: ${JSON.stringify(existingEntities.map(simplifyEntity))}`,
             },
           ],
         },
@@ -111,9 +106,7 @@ export const summarizeExistingEntities = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
-    );
+    throw new Error(`Failed to get LLM response: ${JSON.stringify(llmResponse)}`);
   }
 
   const { message } = llmResponse;
@@ -135,9 +128,7 @@ export const summarizeExistingEntities = async (params: {
 
       if (!existingEntity) {
         /** @todo: add retry logic */
-        throw new Error(
-          `Entity with entityId ${entityId} not found in the existing entities.`,
-        );
+        throw new Error(`Entity with entityId ${entityId} not found in the existing entities.`);
       }
 
       validEntitySummaries.push({

@@ -1,10 +1,4 @@
-import {
-  Box,
-  outlinedInputClasses,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, outlinedInputClasses, Stack, Tooltip, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
@@ -200,8 +194,7 @@ const ConversionFormulaEditor = ({
       <ItemLabel
         tooltip={
           <Box>
-            The calculation to convert{" "}
-            {direction === "from" ? self.title : target.schema.title} to{" "}
+            The calculation to convert {direction === "from" ? self.title : target.schema.title} to{" "}
             {direction === "from" ? target.schema.title : self.title}.
             {inheritedFrom ? (
               <>
@@ -243,11 +236,7 @@ const ConversionFormulaEditor = ({
               [target.metadata.recordId.baseUrl]: {
                 ...(conversions?.[target.metadata.recordId.baseUrl] ?? {}),
                 [direction]: {
-                  expression: [
-                    operator,
-                    left,
-                    { const: newRightConst ?? 1, type: "number" },
-                  ],
+                  expression: [operator, left, { const: newRightConst ?? 1, type: "number" }],
                 } satisfies ConversionDefinition,
               },
             });

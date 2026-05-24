@@ -15,9 +15,7 @@ const deleteRecords = async (endpoint: string) => {
   }).then(async (response) => {
     const status = (await response.json()) as GraphStatus;
     if (status.code !== StatusCode.Ok) {
-      throw new Error(
-        `Could not remove ${endpoint}: ${JSON.stringify(status)}`,
-      );
+      throw new Error(`Could not remove ${endpoint}: ${JSON.stringify(status)}`);
     }
   });
 };
@@ -114,9 +112,7 @@ export const restoreSnapshot = async (snapshotPath: string) => {
  *
  * Accepts either a user ID or an email address.
  */
-export const deleteUser = async (
-  params: { userId: string } | { email: string },
-) => {
+export const deleteUser = async (params: { userId: string } | { email: string }) => {
   const response = await fetch(`http://127.0.0.1:${port}/users/delete`, {
     method: "POST",
     headers: {

@@ -90,9 +90,7 @@ const typographySchema = z.object({
   family: z.record(z.string(), fontFamilyValueSchema).optional(),
   weight: z.record(z.string(), z.union([fontWeightValueSchema, z.any()])),
   size: z.record(z.string(), fontSizeValueSchema).optional(),
-  leading: z
-    .record(z.string(), z.record(z.string(), lineHeightValueSchema))
-    .optional(),
+  leading: z.record(z.string(), z.record(z.string(), lineHeightValueSchema)).optional(),
 });
 
 function generateTypographyTokens(): void {

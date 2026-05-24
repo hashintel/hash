@@ -10,12 +10,7 @@ export const App = () => {
   return (
     <Stack gap="4">
       {sizes.map((size) => (
-        <InputGroup
-          key={size}
-          size={size}
-          startElement={<EuroIcon />}
-          endElement={<InfoIcon />}
-        >
+        <InputGroup key={size} size={size} startElement={<EuroIcon />} endElement={<InfoIcon />}>
           <Input placeholder="0.00" size={size} />
         </InputGroup>
       ))}

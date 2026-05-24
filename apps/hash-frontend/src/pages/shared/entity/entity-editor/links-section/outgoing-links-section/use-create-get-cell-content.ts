@@ -19,11 +19,7 @@ export const useCreateGetCellContent = () => {
 
   const createGetCellContent = useCallback(
     (rows: LinkRow[]) =>
-      ([colIndex, rowIndex]: Item):
-        | LinkCell
-        | SummaryChipCell
-        | LinkedWithCell
-        | ChipCell => {
+      ([colIndex, rowIndex]: Item): LinkCell | SummaryChipCell | LinkedWithCell | ChipCell => {
         const row = rows[rowIndex];
 
         if (!row) {
@@ -65,9 +61,7 @@ export const useCreateGetCellContent = () => {
               },
             };
           case "expectedEntityTypes": {
-            const expectedEntityTypeTitles = row.expectedEntityTypes.map(
-              (type) => type.title,
-            );
+            const expectedEntityTypeTitles = row.expectedEntityTypes.map((type) => type.title);
             return {
               kind: GridCellKind.Custom,
               readonly: true,

@@ -21,10 +21,7 @@ import {
 
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 
-import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
+import type { QueryEntitiesQuery, QueryEntitiesQueryVariables } from "../../graphql/api-types.gen";
 import type { EntityId, EntityType } from "@blockprotocol/type-system";
 import type {
   SelectorAutocompleteProps,
@@ -64,37 +61,36 @@ export const EntitySelector = <Multiple extends boolean>({
 }: EntitySelectorProps<Multiple>) => {
   const [query, setQuery] = useState("");
 
-  const { data: entitiesData, loading } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
-    variables: {
-      request: {
-        filter:
-          !expectedEntityTypes || expectedEntityTypes.length === 0
-            ? { all: [] }
-            : {
-                any: expectedEntityTypes.map(({ $id }) =>
-                  generateVersionedUrlMatchingFilter($id, {
-                    ignoreParents: false,
-                  }),
-                ),
-              },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts,
-        includeEntityTypes: "resolved",
-        includePermissions: false,
+  const { data: entitiesData, loading } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
+    {
+      variables: {
+        request: {
+          filter:
+            !expectedEntityTypes || expectedEntityTypes.length === 0
+              ? { all: [] }
+              : {
+                  any: expectedEntityTypes.map(({ $id }) =>
+                    generateVersionedUrlMatchingFilter($id, {
+                      ignoreParents: false,
+                    }),
+                  ),
+                },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts,
+          includeEntityTypes: "resolved",
+          includePermissions: false,
+        },
       },
+      fetchPolicy: "cache-and-network",
     },
-    fetchPolicy: "cache-and-network",
-  });
+  );
 
   const entities = entitiesData
     ? deserializeQueryEntitiesResponse(entitiesData.queryEntities).entities
     : undefined;
 
-  const closedMultiEntityTypesRootMap =
-    entitiesData?.queryEntities.closedMultiEntityTypes;
+  const closedMultiEntityTypesRootMap = entitiesData?.queryEntities.closedMultiEntityTypes;
 
   const sortedAndFilteredEntities = useMemo(() => {
     if (!entities) {
@@ -168,9 +164,7 @@ export const EntitySelector = <Multiple extends boolean>({
       loading={loading}
       onChange={(_, option) => {
         if (!closedMultiEntityTypesRootMap) {
-          throw new Error(
-            "Cannot select an entity without a closed multi entity types map",
-          );
+          throw new Error("Cannot select an entity without a closed multi entity types map");
         }
 
         onSelect(option, closedMultiEntityTypesRootMap);
@@ -185,18 +179,12 @@ export const EntitySelector = <Multiple extends boolean>({
         const typesMap = entitiesData?.queryEntities.closedMultiEntityTypes;
 
         if (!typesMap) {
-          throw new Error(
-            "Cannot render an entity without a closed multi entity types map",
-          );
+          throw new Error("Cannot render an entity without a closed multi entity types map");
         }
 
-        const closedType = getClosedMultiEntityTypeFromMap(
-          typesMap,
-          entity.metadata.entityTypeIds,
-        );
+        const closedType = getClosedMultiEntityTypeFromMap(typesMap, entity.metadata.entityTypeIds);
 
-        const { icon: entityIcon } =
-          getDisplayFieldsForClosedEntityType(closedType);
+        const { icon: entityIcon } = getDisplayFieldsForClosedEntityType(closedType);
 
         return {
           entityProperties: entity.properties,
@@ -207,8 +195,7 @@ export const EntitySelector = <Multiple extends boolean>({
            * */
           types: mustHaveAtLeastOne(
             closedType.allOf.map((type) => {
-              const { icon: typeIcon } =
-                getDisplayFieldsForClosedEntityType(type);
+              const { icon: typeIcon } = getDisplayFieldsForClosedEntityType(type);
 
               return {
                 $id: type.$id,
@@ -218,9 +205,7 @@ export const EntitySelector = <Multiple extends boolean>({
             }),
           ),
           title: generateEntityLabel(closedType, entity),
-          draft: !!extractDraftIdFromEntityId(
-            entity.metadata.recordId.entityId,
-          ),
+          draft: !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
         };
       }}
       inputPlaceholder="Search for an entity"
@@ -229,9 +214,7 @@ export const EntitySelector = <Multiple extends boolean>({
           const typesMap = entitiesData?.queryEntities.closedMultiEntityTypes;
 
           if (!typesMap) {
-            throw new Error(
-              "Cannot render an entity without a closed multi entity types map",
-            );
+            throw new Error("Cannot render an entity without a closed multi entity types map");
           }
 
           const closedType = getClosedMultiEntityTypeFromMap(

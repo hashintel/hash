@@ -14,10 +14,9 @@ export const useBlockProtocolUpdatePropertyType = (
 ): {
   updatePropertyType: UpdatePropertyTypeMessageCallback;
 } => {
-  const [updateFn] = useMutation<
-    UpdatePropertyTypeMutation,
-    UpdatePropertyTypeMutationVariables
-  >(updatePropertyTypeMutation);
+  const [updateFn] = useMutation<UpdatePropertyTypeMutation, UpdatePropertyTypeMutationVariables>(
+    updatePropertyTypeMutation,
+  );
 
   const updatePropertyType: UpdatePropertyTypeMessageCallback = useCallback(
     async ({ data }) => {

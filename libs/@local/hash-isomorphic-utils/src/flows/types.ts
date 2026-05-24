@@ -23,9 +23,7 @@ import type { Status } from "@local/status";
 
 export const flowRunsQueryMaxLimit = 100;
 
-export type FlowActionDefinitionId =
-  | AiFlowActionDefinitionId
-  | IntegrationFlowActionDefinitionId;
+export type FlowActionDefinitionId = AiFlowActionDefinitionId | IntegrationFlowActionDefinitionId;
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
@@ -159,26 +157,21 @@ export type StoredPayloadRef<
 /**
  * A stored payload reference to a singular value.
  */
-export type SingularStoredPayloadRef<
-  K extends StoredPayloadKind = StoredPayloadKind,
-> = StoredPayloadRef<K, false>;
+export type SingularStoredPayloadRef<K extends StoredPayloadKind = StoredPayloadKind> =
+  StoredPayloadRef<K, false>;
 
 /**
  * A stored payload reference to an array of values.
  */
-export type ArrayStoredPayloadRef<
-  K extends StoredPayloadKind = StoredPayloadKind,
-> = StoredPayloadRef<K, true>;
+export type ArrayStoredPayloadRef<K extends StoredPayloadKind = StoredPayloadKind> =
+  StoredPayloadRef<K, true>;
 
 /** Type guard to check if a value is a stored payload reference */
 export const isStoredPayloadRef = (
   value: unknown,
 ): value is StoredPayloadRef<StoredPayloadKind, boolean> => {
   return (
-    typeof value === "object" &&
-    value !== null &&
-    "__stored" in value &&
-    value.__stored === true
+    typeof value === "object" && value !== null && "__stored" in value && value.__stored === true
   );
 };
 
@@ -207,9 +200,7 @@ export type StoredPayloadKind = (typeof storedPayloadKinds)[number];
 /**
  * Check if a payload kind is always stored in S3.
  */
-export const isStoredPayloadKind = (
-  kind: PayloadKind,
-): kind is StoredPayloadKind =>
+export const isStoredPayloadKind = (kind: PayloadKind): kind is StoredPayloadKind =>
   storedPayloadKinds.includes(kind as StoredPayloadKind);
 
 /**
@@ -290,10 +281,7 @@ export type InputDefinition = {
   default?: Payload;
 };
 
-export type OutputDefinition<
-  A extends boolean = boolean,
-  K extends PayloadKind = PayloadKind,
-> = {
+export type OutputDefinition<A extends boolean = boolean, K extends PayloadKind = PayloadKind> = {
   name: string;
   description?: string;
   payloadKind: K;
@@ -308,9 +296,7 @@ export type TriggerDefinition = {
   outputs?: OutputDefinition[];
 };
 
-export type ActionDefinition<
-  ActionDefinitionId extends FlowActionDefinitionId,
-> = {
+export type ActionDefinition<ActionDefinitionId extends FlowActionDefinitionId> = {
   kind: "action";
   actionDefinitionId: ActionDefinitionId;
   name: string;
@@ -439,29 +425,26 @@ export type StepGroup = {
   description: string;
 };
 
-export type FlowDefinition<ActionDefinitionId extends FlowActionDefinitionId> =
-  {
-    type: ActionDefinitionId extends AiFlowActionDefinitionId
-      ? "ai"
-      : "integration";
-    name: string;
-    description: string;
-    flowDefinitionId: EntityUuid;
-    trigger: FlowDefinitionTrigger;
-    groups?: StepGroup[];
-    steps: StepDefinition<ActionDefinitionId>[];
-    outputs: (OutputDefinition & {
-      /**
-       * The step ID for the step in the flow that will produce the
-       * output.
-       */
-      stepId: string;
-      /**
-       * The name of the output in the step
-       */
-      stepOutputName: string;
-    })[];
-  };
+export type FlowDefinition<ActionDefinitionId extends FlowActionDefinitionId> = {
+  type: ActionDefinitionId extends AiFlowActionDefinitionId ? "ai" : "integration";
+  name: string;
+  description: string;
+  flowDefinitionId: EntityUuid;
+  trigger: FlowDefinitionTrigger;
+  groups?: StepGroup[];
+  steps: StepDefinition<ActionDefinitionId>[];
+  outputs: (OutputDefinition & {
+    /**
+     * The step ID for the step in the flow that will produce the
+     * output.
+     */
+    stepId: string;
+    /**
+     * The name of the output in the step
+     */
+    stepOutputName: string;
+  })[];
+};
 
 export type StepInput<P extends Payload = Payload> = {
   inputName: string;
@@ -482,9 +465,7 @@ export type ResolvedStepOutput = {
   payload: ResolvedPayload;
 };
 
-export type StepRunOutput = Status<
-  Required<Pick<ActionStep<FlowActionDefinitionId>, "outputs">>
->;
+export type StepRunOutput = Status<Required<Pick<ActionStep<FlowActionDefinitionId>, "outputs">>>;
 
 /**
  * StepRunOutput with resolved payloads - used in frontend/GraphQL contexts.
@@ -493,16 +474,15 @@ export type ResolvedStepRunOutput = Status<{
   outputs: ResolvedStepOutput[];
 }>;
 
-export type ActionStep<
-  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
-> = {
-  stepId: string;
-  kind: "action";
-  actionDefinitionId: ActionDefinitionId;
-  retries?: number;
-  inputs?: StepInput[];
-  outputs?: StepOutput[];
-};
+export type ActionStep<ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId> =
+  {
+    stepId: string;
+    kind: "action";
+    actionDefinitionId: ActionDefinitionId;
+    retries?: number;
+    inputs?: StepInput[];
+    outputs?: StepOutput[];
+  };
 
 export type ParallelGroupStep<
   ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
@@ -514,9 +494,9 @@ export type ParallelGroupStep<
   aggregateOutput?: StepOutput<ArrayPayload>;
 };
 
-export type FlowStep<
-  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
-> = ActionStep<ActionDefinitionId> | ParallelGroupStep<ActionDefinitionId>;
+export type FlowStep<ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId> =
+  | ActionStep<ActionDefinitionId>
+  | ParallelGroupStep<ActionDefinitionId>;
 
 export type FlowTrigger = {
   triggerDefinitionId: TriggerDefinitionId;
@@ -561,11 +541,7 @@ export type ProgressLogBase = {
   stepId: string;
 };
 
-export type WorkerType =
-  | "Coordinator"
-  | "Sub-coordinator"
-  | "Link explorer"
-  | "Document analyzer";
+export type WorkerType = "Coordinator" | "Sub-coordinator" | "Link explorer" | "Document analyzer";
 
 /**
  * Identifiers for a 'worker' within the flow, which corresponds to an agent.

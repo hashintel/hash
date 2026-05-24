@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { compileSimulationFrameReader } from "./frame-reader";
-import {
-  createEngineFrame,
-  createEngineFrameLayout,
-  type EngineFrame,
-} from "./internal-frame";
+import { createEngineFrame, createEngineFrameLayout, type EngineFrame } from "./internal-frame";
 
 import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
 
@@ -105,8 +101,6 @@ describe("SimulationFrameReader", () => {
     expect(values).not.toBeNull();
     values!.values[0] = 42;
 
-    expect(reader.getPlaceTokenValues(place.id)?.values).toEqual(
-      new Float64Array([1, 2, 3, 4]),
-    );
+    expect(reader.getPlaceTokenValues(place.id)?.values).toEqual(new Float64Array([1, 2, 3, 4]));
   });
 });

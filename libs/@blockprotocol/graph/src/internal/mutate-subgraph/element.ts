@@ -45,8 +45,7 @@ export const addDataTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] =
-      dataTypeVertex;
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] = dataTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version });
   }
@@ -82,8 +81,7 @@ export const addPropertyTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] =
-      propertyTypeVertex;
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] = propertyTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version });
   }
@@ -119,8 +117,7 @@ export const addEntityTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] =
-      entityTypeVertex;
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] = entityTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version });
   }
@@ -155,9 +152,7 @@ export const addEntityVerticesToSubgraphByMutation = (
         entities should too
       */
     const entityInterval: EntityIdWithInterval["interval"] =
-      entity.metadata.temporalVersioning[
-        subgraph.temporalAxes.resolved.variable.axis
-      ];
+      entity.metadata.temporalVersioning[subgraph.temporalAxes.resolved.variable.axis];
 
     const entityVertex: EntityVertex = {
       kind: "entity",
@@ -169,9 +164,8 @@ export const addEntityVerticesToSubgraphByMutation = (
         [entityInterval.start.limit]: entityVertex,
       };
     } else {
-      (subgraph.vertices as KnowledgeGraphVertices)[entityId]![
-        entityInterval.start.limit
-      ] = entityVertex;
+      (subgraph.vertices as KnowledgeGraphVertices)[entityId]![entityInterval.start.limit] =
+        entityVertex;
     }
 
     vertexIds.push({

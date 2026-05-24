@@ -89,13 +89,7 @@ From `libs/@local/hashql/hir/tests/ui/lower/graph-hoisting/hoist.jsonc`:
       [
         "::graph::body::filter",
         ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
-        [
-          "fn",
-          { "#tuple": [] },
-          { "#struct": { "vertex": "_" } },
-          "_",
-          ["==", "a", "b"],
-        ],
+        ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_", ["==", "a", "b"]],
       ],
     ],
   ],

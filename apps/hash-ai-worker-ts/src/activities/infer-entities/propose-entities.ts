@@ -19,14 +19,8 @@ import { extractErrorMessage } from "./shared/extract-validation-failure-details
 import { generateProposeEntitiesTools } from "./shared/generate-propose-entities-tools.js";
 import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties.js";
 
-import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../shared/get-llm-response/llm-message.js";
-import type {
-  DereferencedEntityTypesByTypeId,
-  InferenceState,
-} from "./inference-types.js";
+import type { LlmMessage, LlmUserMessage } from "../shared/get-llm-response/llm-message.js";
+import type { DereferencedEntityTypesByTypeId, InferenceState } from "./inference-types.js";
 import type { ProposedEntityToolCreationsByType } from "./shared/generate-propose-entities-tools.js";
 import type { EntityUuid, VersionedUrl } from "@blockprotocol/type-system";
 import type { DeprecatedProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -43,13 +37,7 @@ export const proposeEntities = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
 }): Promise<Status<InferenceState>> => {
-  const {
-    maxTokens,
-    previousMessages,
-    entityTypes,
-    inferenceState,
-    firstUserMessage,
-  } = params;
+  const { maxTokens, previousMessages, entityTypes, inferenceState, firstUserMessage } = params;
 
   const {
     iterationCount,
@@ -60,9 +48,7 @@ export const proposeEntities = async (params: {
 
   if (iterationCount > 30) {
     logger.info(
-      `Model reached maximum number of iterations. Messages: ${stringify(
-        previousMessages,
-      )}`,
+      `Model reached maximum number of iterations. Messages: ${stringify(previousMessages)}`,
     );
 
     return {
@@ -95,9 +81,7 @@ export const proposeEntities = async (params: {
    */
   const spaceInQueue = 10 - inProgressEntityIds.length;
   for (let i = 0; i < spaceInQueue; i++) {
-    const nextProposedEntity = proposedEntitySummaries.find(
-      (entity) => !entity.takenFromQueue,
-    );
+    const nextProposedEntity = proposedEntitySummaries.find((entity) => !entity.takenFromQueue);
     if (!nextProposedEntity) {
       break;
     }
@@ -111,15 +95,13 @@ export const proposeEntities = async (params: {
     )}.`,
   );
 
-  const { tools, simplifiedEntityTypeIdMappings } =
-    generateProposeEntitiesTools({
-      entityTypes: Object.values(entityTypes),
-    });
+  const { tools, simplifiedEntityTypeIdMappings } = generateProposeEntitiesTools({
+    entityTypes: Object.values(entityTypes),
+  });
 
   const entitiesToUpdate = inProgressEntityIds.filter(
     (inProgressEntityId) =>
-      inferenceState.resultsByTemporaryId[inProgressEntityId]?.status ===
-      "update-candidate",
+      inferenceState.resultsByTemporaryId[inProgressEntityId]?.status === "update-candidate",
   );
 
   const entitiesToCreate = inProgressEntityIds.filter(
@@ -134,9 +116,7 @@ export const proposeEntities = async (params: {
     entitiesToUpdate.length > 0
       ? `update_entities with temporary ids ${entitiesToUpdate.join(", ")}`
       : null;
-  const innerMessage = [createMessage, updateMessage]
-    .filter(Boolean)
-    .join(" and ");
+  const innerMessage = [createMessage, updateMessage].filter(Boolean).join(" and ");
 
   const instructions = dedent(`
     Please make calls to ${innerMessage}.
@@ -177,8 +157,7 @@ export const proposeEntities = async (params: {
 
   logger.debug("Next messages to model", { messages });
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -225,9 +204,7 @@ export const proposeEntities = async (params: {
     retryMessageContent: LlmUserMessage["content"];
     requiresOriginalContext: boolean;
   }) => {
-    logger.debug(
-      `Retrying with additional message: ${stringify(retryMessageContent)}`,
-    );
+    logger.debug(`Retrying with additional message: ${stringify(retryMessageContent)}`);
 
     const newMessages: LlmMessage[] = [
       requiresOriginalContext
@@ -285,9 +262,7 @@ export const proposeEntities = async (params: {
     }
 
     case "length": {
-      logger.error(
-        `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
-      );
+      logger.error(`AI Model returned 'length' finish reason on attempt ${iterationCount}.`);
 
       const toolCallId = toolCalls[0]?.id;
 
@@ -351,8 +326,7 @@ export const proposeEntities = async (params: {
 
             retryMessageContent.push({
               type: "tool_result",
-              content:
-                "You provided an invalid argument to abandon_entities. Please try again",
+              content: "You provided an invalid argument to abandon_entities. Please try again",
               requiresOriginalContext: true,
               tool_use_id: toolCall.id,
             });
@@ -360,16 +334,13 @@ export const proposeEntities = async (params: {
           }
 
           // Remove the abandoned entities from the list of entities in progress
-          inferenceState.inProgressEntityIds =
-            inferenceState.inProgressEntityIds.filter(
-              (inProgressEntityId) =>
-                !abandonedEntityIds.includes(inProgressEntityId),
-            );
+          inferenceState.inProgressEntityIds = inferenceState.inProgressEntityIds.filter(
+            (inProgressEntityId) => !abandonedEntityIds.includes(inProgressEntityId),
+          );
         }
 
         if (toolCall.name === "create_entities") {
-          const proposedEntitiesByType =
-            toolCall.input as ProposedEntityToolCreationsByType;
+          const proposedEntitiesByType = toolCall.input as ProposedEntityToolCreationsByType;
 
           try {
             validateProposedEntitiesByType(proposedEntitiesByType, false);
@@ -382,8 +353,7 @@ export const proposeEntities = async (params: {
 
             retryMessageContent.push({
               type: "tool_result",
-              content:
-                "You provided an invalid argument to create_entities. Please try again",
+              content: "You provided an invalid argument to create_entities. Please try again",
               requiresOriginalContext: true,
               tool_use_id: toolCall.id,
             });
@@ -403,8 +373,7 @@ export const proposeEntities = async (params: {
                 const invalidProposedEntitiesOfType = await Promise.all(
                   proposedEntitiesOfType.map(async (proposedEntityOfType) => {
                     try {
-                      const entityTypeId =
-                        simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+                      const entityTypeId = simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
 
                       if (!entityTypeId) {
                         throw new Error(
@@ -412,8 +381,7 @@ export const proposeEntities = async (params: {
                         );
                       }
 
-                      const { simplifiedPropertyTypeMappings } =
-                        entityTypes[entityTypeId] ?? {};
+                      const { simplifiedPropertyTypeMappings } = entityTypes[entityTypeId] ?? {};
 
                       if (!simplifiedPropertyTypeMappings) {
                         throw new Error(
@@ -421,8 +389,7 @@ export const proposeEntities = async (params: {
                         );
                       }
 
-                      const { properties: simplifiedProperties } =
-                        proposedEntityOfType;
+                      const { properties: simplifiedProperties } = proposedEntityOfType;
 
                       const properties = mergePropertyObjectAndMetadata(
                         simplifiedProperties
@@ -434,18 +401,15 @@ export const proposeEntities = async (params: {
                         undefined,
                       );
 
-                      await graphApiClient.validateEntity(
-                        userAuthentication.actorId,
-                        {
-                          entityTypes: [entityTypeId],
-                          components: {
-                            linkData: false,
-                            numItems: false,
-                            requiredProperties: false,
-                          },
-                          properties,
+                      await graphApiClient.validateEntity(userAuthentication.actorId, {
+                        entityTypes: [entityTypeId],
+                        components: {
+                          linkData: false,
+                          numItems: false,
+                          requiredProperties: false,
                         },
-                      );
+                        properties,
+                      });
 
                       return [];
                     } catch (error) {
@@ -481,44 +445,33 @@ export const proposeEntities = async (params: {
           }
 
           const validProposedEntitiesByType = Object.fromEntries(
-            typedEntries(proposedEntitiesByType).map<
-              [VersionedUrl, DeprecatedProposedEntity[]]
-            >(([simplifiedEntityTypeId, entities]) => {
-              const entityTypeId =
-                simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
+            typedEntries(proposedEntitiesByType).map<[VersionedUrl, DeprecatedProposedEntity[]]>(
+              ([simplifiedEntityTypeId, entities]) => {
+                const entityTypeId = simplifiedEntityTypeIdMappings[simplifiedEntityTypeId];
 
-              if (!entityTypeId) {
-                throw new Error(
-                  `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
-                );
-              }
+                if (!entityTypeId) {
+                  throw new Error(
+                    `Could not find entity type id for simplified entity type id ${simplifiedEntityTypeId}`,
+                  );
+                }
 
-              return [
-                entityTypeId,
-                entities
-                  .filter(
-                    ({ entityId }) =>
-                      // Don't include invalid entities
-                      !invalidProposedEntities.some(
-                        ({
-                          invalidProposedEntity: { entityId: invalidEntityId },
-                        }) => invalidEntityId === entityId,
-                      ) &&
-                      // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
-                      !inferenceState.proposedEntityCreationsByType[
-                        entityTypeId
-                      ]?.some(
-                        (existingEntity) =>
-                          existingEntity.entityId === entityId,
-                      ),
-                  )
-                  .map(
-                    ({
-                      properties: simplifiedProperties,
-                      ...proposedEntity
-                    }) => {
-                      const { simplifiedPropertyTypeMappings } =
-                        entityTypes[entityTypeId] ?? {};
+                return [
+                  entityTypeId,
+                  entities
+                    .filter(
+                      ({ entityId }) =>
+                        // Don't include invalid entities
+                        !invalidProposedEntities.some(
+                          ({ invalidProposedEntity: { entityId: invalidEntityId } }) =>
+                            invalidEntityId === entityId,
+                        ) &&
+                        // Ignore entities we've inferred in a previous iteration, otherwise we'll get duplicates
+                        !inferenceState.proposedEntityCreationsByType[entityTypeId]?.some(
+                          (existingEntity) => existingEntity.entityId === entityId,
+                        ),
+                    )
+                    .map(({ properties: simplifiedProperties, ...proposedEntity }) => {
+                      const { simplifiedPropertyTypeMappings } = entityTypes[entityTypeId] ?? {};
 
                       if (!simplifiedPropertyTypeMappings) {
                         throw new Error(
@@ -537,117 +490,105 @@ export const proposeEntities = async (params: {
                         ...proposedEntity,
                         properties,
                       };
-                    },
-                  ),
-              ];
-            }),
+                    }),
+                ];
+              },
+            ),
           );
 
-          const validProposedEntities = Object.values(
-            validProposedEntitiesByType,
-          ).flat();
+          const validProposedEntities = Object.values(validProposedEntitiesByType).flat();
 
           const now = new Date().toISOString();
 
           if (validProposedEntities.length > 0) {
             logProgress(
-              typedEntries(validProposedEntitiesByType).flatMap(
-                ([entityTypeId, entities]) =>
-                  entities.map((entity) => ({
-                    isUpdateToExistingProposal: false,
-                    proposedEntity: {
-                      ...entity,
-                      claims: {
-                        isSubjectOf: [],
-                        isObjectOf: [],
-                      },
-                      localEntityId: entityIdFromComponents(
-                        webId,
-                        /**
-                         * @todo H-3163: this is not a valid UUID, but it's only used in a progress log so won't be used
-                         *    as the entity's UUID when persisting it. this file in its entirety will be removed as part of H-3163
-                         *    when we migrate the browser plugin flows to use the same claims -> entity process as other flows.
-                         *    The same applies to the sourceEntityId and targetEntityId below.
-                         */
-                        entity.entityId.toString() as EntityUuid,
-                      ),
-                      entityTypeIds: [entityTypeId as VersionedUrl],
-                      properties: entity.properties ?? {},
-                      propertyMetadata: { value: {} },
-                      sourceEntityId:
-                        "sourceEntityId" in entity
-                          ? {
-                              kind: "proposed-entity",
-                              localId: entityIdFromComponents(
-                                webId,
-                                entity.sourceEntityId.toString() as EntityUuid,
-                              ),
-                            }
-                          : undefined,
-                      targetEntityId:
-                        "targetEntityId" in entity
-                          ? {
-                              kind: "proposed-entity",
-                              localId: entityIdFromComponents(
-                                webId,
-                                entity.targetEntityId.toString() as EntityUuid,
-                              ),
-                            }
-                          : undefined,
+              typedEntries(validProposedEntitiesByType).flatMap(([entityTypeId, entities]) =>
+                entities.map((entity) => ({
+                  isUpdateToExistingProposal: false,
+                  proposedEntity: {
+                    ...entity,
+                    claims: {
+                      isSubjectOf: [],
+                      isObjectOf: [],
                     },
-                    recordedAt: now,
-                    type: "ProposedEntity",
-                    stepId: Context.current().info.activityId,
-                    workerType: "Link explorer",
-                    parentInstanceId: null,
-                    workerInstanceId: "browser-plugin-flow",
-                    toolCallId: null,
-                  })),
+                    localEntityId: entityIdFromComponents(
+                      webId,
+                      /**
+                       * @todo H-3163: this is not a valid UUID, but it's only used in a progress log so won't be used
+                       *    as the entity's UUID when persisting it. this file in its entirety will be removed as part of H-3163
+                       *    when we migrate the browser plugin flows to use the same claims -> entity process as other flows.
+                       *    The same applies to the sourceEntityId and targetEntityId below.
+                       */
+                      entity.entityId.toString() as EntityUuid,
+                    ),
+                    entityTypeIds: [entityTypeId as VersionedUrl],
+                    properties: entity.properties ?? {},
+                    propertyMetadata: { value: {} },
+                    sourceEntityId:
+                      "sourceEntityId" in entity
+                        ? {
+                            kind: "proposed-entity",
+                            localId: entityIdFromComponents(
+                              webId,
+                              entity.sourceEntityId.toString() as EntityUuid,
+                            ),
+                          }
+                        : undefined,
+                    targetEntityId:
+                      "targetEntityId" in entity
+                        ? {
+                            kind: "proposed-entity",
+                            localId: entityIdFromComponents(
+                              webId,
+                              entity.targetEntityId.toString() as EntityUuid,
+                            ),
+                          }
+                        : undefined,
+                  },
+                  recordedAt: now,
+                  type: "ProposedEntity",
+                  stepId: Context.current().info.activityId,
+                  workerType: "Link explorer",
+                  parentInstanceId: null,
+                  workerInstanceId: "browser-plugin-flow",
+                  toolCallId: null,
+                })),
               ),
             );
           }
 
-          logger.info(
-            `Proposed ${validProposedEntities.length} valid additional entities.`,
-          );
-          logger.info(
-            `Proposed ${invalidProposedEntities.length} invalid additional entities.`,
-          );
+          logger.info(`Proposed ${validProposedEntities.length} valid additional entities.`);
+          logger.info(`Proposed ${invalidProposedEntities.length} invalid additional entities.`);
 
           /**
            * Remove the valid entities from the list of entities in progress.
            */
-          inferenceState.inProgressEntityIds =
-            inferenceState.inProgressEntityIds.filter(
-              (inProgressEntityId) =>
-                !validProposedEntities.some(
-                  ({ entityId }) => entityId === inProgressEntityId,
-                ),
-            );
+          inferenceState.inProgressEntityIds = inferenceState.inProgressEntityIds.filter(
+            (inProgressEntityId) =>
+              !validProposedEntities.some(({ entityId }) => entityId === inProgressEntityId),
+          );
 
           /**
            * The agent may have inferred valid entities that we didn't yet ask it for,
            * in which case we need to mark them as taken from the queue so we don't
            * ask for them again.
            */
-          inferenceState.proposedEntitySummaries =
-            inferenceState.proposedEntitySummaries.map(
-              (proposedEntitySummary) => {
-                if (
-                  !proposedEntitySummary.takenFromQueue &&
-                  validProposedEntities.some(
-                    ({ entityId }) =>
-                      entityId === proposedEntitySummary.entityId,
-                  )
-                ) {
-                  return {
-                    ...proposedEntitySummary,
-                    takenFromQueue: true,
-                  };
-                }
-                return proposedEntitySummary;
-              },
-            );
+          inferenceState.proposedEntitySummaries = inferenceState.proposedEntitySummaries.map(
+            (proposedEntitySummary) => {
+              if (
+                !proposedEntitySummary.takenFromQueue &&
+                validProposedEntities.some(
+                  ({ entityId }) => entityId === proposedEntitySummary.entityId,
+                )
+              ) {
+                return {
+                  ...proposedEntitySummary,
+                  takenFromQueue: true,
+                };
+              }
+              return proposedEntitySummary;
+            },
+          );
 
           inferenceState.proposedEntityCreationsByType = Object.entries(
             validProposedEntitiesByType,
@@ -673,14 +614,11 @@ export const proposeEntities = async (params: {
       }
 
       const remainingEntitySummaries =
-        inferenceState.proposedEntitySummaries.filter(
-          (entity) => !entity.takenFromQueue,
-        ).length + inferenceState.inProgressEntityIds.length;
+        inferenceState.proposedEntitySummaries.filter((entity) => !entity.takenFromQueue).length +
+        inferenceState.inProgressEntityIds.length;
 
       if (remainingEntitySummaries > 0) {
-        logger.info(
-          `${remainingEntitySummaries} entities remain to be inferred, continuing.`,
-        );
+        logger.info(`${remainingEntitySummaries} entities remain to be inferred, continuing.`);
         retryMessageContent.push({
           type: "text",
           text: "There are other entities you haven't yet provided details for",
@@ -690,9 +628,7 @@ export const proposeEntities = async (params: {
 
       if (retryMessageContent.length === 0) {
         logger.info(
-          `Returning proposed entities: ${stringify(
-            inferenceState.proposedEntityCreationsByType,
-          )}`,
+          `Returning proposed entities: ${stringify(inferenceState.proposedEntityCreationsByType)}`,
         );
 
         return {

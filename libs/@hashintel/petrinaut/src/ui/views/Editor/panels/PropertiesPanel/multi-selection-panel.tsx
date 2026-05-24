@@ -38,9 +38,7 @@ const MultiSelectionContext = createContext<MultiSelectionData | null>(null);
 function useMultiSelectionContext() {
   const ctx = use(MultiSelectionContext);
   if (!ctx) {
-    throw new Error(
-      "useMultiSelectionContext must be used within MultiSelectionPanel",
-    );
+    throw new Error("useMultiSelectionContext must be used within MultiSelectionPanel");
   }
   return ctx;
 }

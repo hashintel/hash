@@ -1,11 +1,5 @@
 import "../../../shared/testing-utilities/mock-get-flow-context.js";
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,10 +15,7 @@ import type { SubCoordinatingAgentState } from "./sub-coordinating-agent/state.j
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const baseDirectoryPath = path.join(
-  __dirname,
-  "/var/sub-coordinating-agent/persisted-state",
-);
+const baseDirectoryPath = path.join(__dirname, "/var/sub-coordinating-agent/persisted-state");
 
 export const retrievePreviousState = (params: {
   testName: string;
@@ -50,10 +41,7 @@ export const retrievePreviousState = (params: {
   return JSON.parse(latestFileContent) as SubCoordinatingAgentState;
 };
 
-const persistState = (params: {
-  state: SubCoordinatingAgentState;
-  testName: string;
-}) => {
+const persistState = (params: { state: SubCoordinatingAgentState; testName: string }) => {
   const { state, testName } = params;
 
   const directoryPath = `${baseDirectoryPath}/${testName}`;
@@ -77,9 +65,7 @@ test(
       graphApiClient,
     });
 
-    const entityTypes = Object.values(dereferencedEntityTypes).map(
-      ({ schema }) => schema,
-    );
+    const entityTypes = Object.values(dereferencedEntityTypes).map(({ schema }) => schema);
 
     const status = await runSubCoordinatingAgent({
       input: {
@@ -89,8 +75,7 @@ test(
         entityTypes,
       },
       testingParams: {
-        persistState: (state) =>
-          persistState({ state, testName: "github-url" }),
+        persistState: (state) => persistState({ state, testName: "github-url" }),
         resumeFromState: retrievePreviousState({
           testName: "github-url",
         }),

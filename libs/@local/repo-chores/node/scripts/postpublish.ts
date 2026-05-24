@@ -7,10 +7,7 @@ import fs from "fs-extra";
 import { UserFriendlyError } from "./shared/errors";
 import { checkIfDirHasUncommittedChanges } from "./shared/git";
 import { monorepoRootDirPath } from "./shared/monorepo";
-import {
-  derivePackageInfoFromEnv,
-  outputPackageInfo,
-} from "./shared/package-infos";
+import { derivePackageInfoFromEnv, outputPackageInfo } from "./shared/package-infos";
 
 const script = async () => {
   console.log(chalk.bold("Cleaning up after publishing..."));
@@ -19,16 +16,12 @@ const script = async () => {
   outputPackageInfo(packageInfo);
 
   if (!(await checkIfDirHasUncommittedChanges(packageInfo.path))) {
-    console.log(
-      "No uncommitted changes detected. Did you forget to run the prepublish script?",
-    );
+    console.log("No uncommitted changes detected. Did you forget to run the prepublish script?");
     return;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const packageJson = await fs.readJson(
-    path.join(packageInfo.path, "package.json"),
-  );
+  const packageJson = await fs.readJson(path.join(packageInfo.path, "package.json"));
 
   if (
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
@@ -49,14 +42,7 @@ const script = async () => {
   // Restore files to their original state
   await execa(
     "git",
-    [
-      "restore",
-      "--source=HEAD",
-      "--staged",
-      "--worktree",
-      "--",
-      packageInfo.path,
-    ],
+    ["restore", "--source=HEAD", "--staged", "--worktree", "--", packageInfo.path],
     {
       cwd: monorepoRootDirPath,
       reject: false,

@@ -8,10 +8,7 @@ import type { Metric } from "@hashintel/petrinaut-core";
  * @param id - the metric id (use a new UUID for new metrics, the existing
  *   metric's id when updating)
  */
-export function buildMetricFromFormState(
-  state: MetricFormState,
-  id: string,
-): Metric {
+export function buildMetricFromFormState(state: MetricFormState, id: string): Metric {
   return {
     id,
     name: state.name.trim(),

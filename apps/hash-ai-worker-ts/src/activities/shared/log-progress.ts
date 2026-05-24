@@ -41,11 +41,7 @@ const sendLogSignal = debounce(
        * Likely the workflow doesn't exist because it has been cancelled
        * @todo H-2545: Graceful workflow cancellation
        */
-      logger.error(
-        `Could not send logs for workflowId ${workflowId}: ${
-          (err as Error).message
-        }`,
-      );
+      logger.error(`Could not send logs for workflowId ${workflowId}: ${(err as Error).message}`);
     }
   },
   1_000,

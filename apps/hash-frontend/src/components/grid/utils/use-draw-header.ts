@@ -6,26 +6,15 @@ import { InteractableManager } from "./interactable-manager";
 
 import type { ColumnKey, ConversionTargetsByColumnKey } from "../grid";
 import type { ColumnFilter } from "./filtering";
-import type {
-  Interactable,
-  InteractablePosition,
-} from "./interactable-manager/types";
+import type { Interactable, InteractablePosition } from "./interactable-manager/types";
 import type { ColumnSort } from "./sorting";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
-import type {
-  DrawHeaderCallback,
-  SizedGridColumn,
-} from "@glideapps/glide-data-grid";
+import type { DrawHeaderCallback, SizedGridColumn } from "@glideapps/glide-data-grid";
 
-export const generateInteractableId = (
-  type: "filter" | "sort" | "convert",
-  columnKey: string,
-) => `column-${type}-${columnKey}`;
+export const generateInteractableId = (type: "filter" | "sort" | "convert", columnKey: string) =>
+  `column-${type}-${columnKey}`;
 
-export const useDrawHeader = <
-  C extends SizedGridColumn,
-  S extends C["id"],
->(props: {
+export const useDrawHeader = <C extends SizedGridColumn, S extends C["id"]>(props: {
   activeConversions?: {
     [columnBaseUrl: BaseUrl]: { dataTypeId: VersionedUrl; title: string };
   } | null;
@@ -34,14 +23,8 @@ export const useDrawHeader = <
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filters?: ColumnFilter<ColumnKey<C>, any>[];
   firstColumnLeftPadding?: number;
-  onConvertClicked?: (
-    columnKey: ColumnKey<C>,
-    interactablePosition: InteractablePosition,
-  ) => void;
-  onFilterClick?: (
-    columnKey: ColumnKey<C>,
-    interactablePosition: InteractablePosition,
-  ) => void;
+  onConvertClicked?: (columnKey: ColumnKey<C>, interactablePosition: InteractablePosition) => void;
+  onFilterClick?: (columnKey: ColumnKey<C>, interactablePosition: InteractablePosition) => void;
   onSortClick?: (columnKey: S) => void;
   sort?: ColumnSort<S>;
   sortableColumns: S[];
@@ -99,8 +82,7 @@ export const useDrawHeader = <
 
       if (isSortable) {
         const sortIconStartX =
-          columnHeaderStartX +
-          (columnHeaderWidth - sortIconSize - paddingRight);
+          columnHeaderStartX + (columnHeaderWidth - sortIconSize - paddingRight);
 
         const isSortActive = sort.columnKey === columnKey;
 
@@ -116,9 +98,7 @@ export const useDrawHeader = <
           sortIconSize,
           {
             ...theme,
-            fgIconHeader: isSortActive
-              ? muiTheme.palette.blue[70]
-              : muiTheme.palette.gray[50],
+            fgIconHeader: isSortActive ? muiTheme.palette.blue[70] : muiTheme.palette.gray[50],
           },
           1,
         );
@@ -140,9 +120,7 @@ export const useDrawHeader = <
         );
       }
 
-      const columnFilter = filters?.find(
-        (filter) => filter.columnKey === columnKey,
-      );
+      const columnFilter = filters?.find((filter) => filter.columnKey === columnKey);
 
       const filterIconSize = 15;
 
@@ -155,8 +133,7 @@ export const useDrawHeader = <
             filterIconSize);
 
         const isFilterModified =
-          columnFilter.selectedFilterItemIds.size !==
-          columnFilter.filterItems.length;
+          columnFilter.selectedFilterItemIds.size !== columnFilter.filterItems.length;
 
         args.spriteManager.drawSprite(
           "filterLight",
@@ -167,9 +144,7 @@ export const useDrawHeader = <
           filterIconSize,
           {
             ...theme,
-            fgIconHeader: isFilterModified
-              ? muiTheme.palette.blue[70]
-              : muiTheme.palette.gray[50],
+            fgIconHeader: isFilterModified ? muiTheme.palette.blue[70] : muiTheme.palette.gray[50],
           },
           1,
         );
@@ -186,10 +161,7 @@ export const useDrawHeader = <
                 bottom: centerY + filterIconSize / 2,
               },
               onClick: (interactable) =>
-                onFilterClick?.(
-                  columnKey,
-                  interactable.posRelativeToVisibleGridArea,
-                ),
+                onFilterClick?.(columnKey, interactable.posRelativeToVisibleGridArea),
             },
           ),
         );
@@ -239,20 +211,14 @@ export const useDrawHeader = <
                 bottom: centerY + calculatorIconSize / 2,
               },
               onClick: (interactable) =>
-                onConvertClicked?.(
-                  columnKey,
-                  interactable.posRelativeToVisibleGridArea,
-                ),
+                onConvertClicked?.(columnKey, interactable.posRelativeToVisibleGridArea),
             },
           ),
         );
       }
 
       if (interactables.length > 0) {
-        InteractableManager.setInteractablesForColumnHeader(
-          { ...args, tableId },
-          interactables,
-        );
+        InteractableManager.setInteractablesForColumnHeader({ ...args, tableId }, interactables);
       }
 
       return true;

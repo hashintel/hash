@@ -5,9 +5,7 @@ import { Encoder, JsonEncoder } from "../../src/codec/index.js";
 
 import type { ReadonlyRecord } from "effect/Record";
 
-const encode = Effect.fn("encode")(function* (
-  items: readonly ReadonlyRecord<string, string>[],
-) {
+const encode = Effect.fn("encode")(function* (items: readonly ReadonlyRecord<string, string>[]) {
   const encoder = yield* Encoder.Encoder;
   const textDecoder = new TextDecoder();
 
@@ -39,10 +37,7 @@ describe.concurrent("JsonEncoder", () => {
 
       const items = yield* encode(payload);
 
-      cx.expect(items).toMatchObject([
-        '{"key":"value1"}\x1E',
-        '{"key":"value2"}\x1E',
-      ]);
+      cx.expect(items).toMatchObject(['{"key":"value1"}\x1E', '{"key":"value2"}\x1E']);
     }).pipe(Effect.provide(JsonEncoder.layer)),
   );
 });

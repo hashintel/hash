@@ -1,12 +1,7 @@
 import { Icon, type IconName, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import type {
-  CSSProperties,
-  KeyboardEvent,
-  MouseEvent,
-  ReactNode,
-} from "react";
+import type { CSSProperties, KeyboardEvent, MouseEvent, ReactNode } from "react";
 
 type TableCellTone = "emphasis" | "subtle";
 
@@ -184,18 +179,13 @@ const getColumnStyle = <Row,>(column: TableColumn<Row>): CSSProperties => ({
   width: column.width,
 });
 
-const renderCellContent = (
-  content: ReactNode,
-  tone: TableCellTone = "emphasis",
-) => {
+const renderCellContent = (content: ReactNode, tone: TableCellTone = "emphasis") => {
   if (typeof content === "string" || typeof content === "number") {
     return (
       <span
         className={cx(
           tableCellTextStyle,
-          tone === "emphasis"
-            ? tableCellTextEmphasisStyle
-            : tableCellTextSubtleStyle,
+          tone === "emphasis" ? tableCellTextEmphasisStyle : tableCellTextSubtleStyle,
         )}
       >
         {content}
@@ -230,10 +220,7 @@ function handleSelectableRowClick<Row>(
 ) {
   const target = event.target;
 
-  if (
-    target instanceof Element &&
-    target.closest("[data-table-action-cell]") !== null
-  ) {
+  if (target instanceof Element && target.closest("[data-table-action-cell]") !== null) {
     return;
   }
 
@@ -257,11 +244,7 @@ export const TableStatusBadge = ({
     )}
   >
     {loading ? (
-      <LoadingSpinner
-        className={tableStatusSpinnerStyle}
-        size="xs"
-        variant="bars"
-      />
+      <LoadingSpinner className={tableStatusSpinnerStyle} size="xs" variant="bars" />
     ) : iconName ? (
       <Icon name={iconName} size="xs" />
     ) : null}
@@ -351,8 +334,7 @@ export function Table<Row>({
               }
               onKeyDown={
                 onRowSelect
-                  ? (event) =>
-                      handleSelectableRowKeyDown(event, row, onRowSelect)
+                  ? (event) => handleSelectableRowKeyDown(event, row, onRowSelect)
                   : undefined
               }
             >

@@ -56,10 +56,8 @@ export const HeaderContent = <
               background: palette.common.white,
               paddingRight: hasButtons ? "8px !important" : "initial",
               width: column.width,
-              minWidth:
-                typeof column.width === "number" ? column.width : undefined,
-              maxWidth:
-                typeof column.width === "number" ? column.width : undefined,
+              minWidth: typeof column.width === "number" ? column.width : undefined,
+              maxWidth: typeof column.width === "number" ? column.width : undefined,
               ...(isFixed
                 ? {
                     position: "sticky",
@@ -69,18 +67,11 @@ export const HeaderContent = <
                 : {}),
             })}
           >
-            <Stack
-              direction="row"
-              alignItems="center"
-              gap={0.5}
-              justifyContent="space-between"
-            >
+            <Stack direction="row" alignItems="center" gap={0.5} justifyContent="space-between">
               <Typography
                 sx={[
                   { fontSize: 14, fontWeight: 500 },
-                  ...(Array.isArray(column.textSx)
-                    ? column.textSx
-                    : [column.textSx]),
+                  ...(Array.isArray(column.textSx) ? column.textSx : [column.textSx]),
                 ]}
               >
                 {column.label}
@@ -95,11 +86,7 @@ export const HeaderContent = <
                   />
                 )}
                 {column.sortable && (
-                  <SortButton
-                    columnId={column.id}
-                    setSort={setSort}
-                    sort={sort}
-                  />
+                  <SortButton columnId={column.id} setSort={setSort} sort={sort} />
                 )}
               </Stack>
             </Stack>

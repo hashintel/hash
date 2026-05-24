@@ -42,20 +42,10 @@ import type {
   ParsedCoordinatorToolCall,
   ParsedCoordinatorToolCallMap,
 } from "./shared/coordinator-tools.js";
-import type {
-  CoordinatingAgentInput,
-  CoordinatingAgentState,
-} from "./shared/coordinators.js";
-import type {
-  EntityUuid,
-  OriginProvenance,
-  Url,
-} from "@blockprotocol/type-system";
+import type { CoordinatingAgentInput, CoordinatingAgentState } from "./shared/coordinators.js";
+import type { EntityUuid, OriginProvenance, Url } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
-import type {
-  ProposedEntity,
-  StepInput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { ProposedEntity, StepInput } from "@local/hash-isomorphic-utils/flows/types";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 
 /**
@@ -117,22 +107,17 @@ const parseAndResolveCoordinatorInputs = async (params: {
     graphApiClient,
     entityTypeIds: [
       ...entityTypeIds!,
-      ...(existingEntities?.flatMap(({ metadata }) => metadata.entityTypeIds) ??
-        []),
+      ...(existingEntities?.flatMap(({ metadata }) => metadata.entityTypeIds) ?? []),
     ].filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index),
     actorId: userAuthentication.actorId,
   });
 
   const entityTypes = Object.values(dereferencedEntityTypes)
-    .filter(
-      ({ isLink, schema }) => entityTypeIds!.includes(schema.$id) && !isLink,
-    )
+    .filter(({ isLink, schema }) => entityTypeIds!.includes(schema.$id) && !isLink)
     .map(({ schema }) => schema);
 
   const linkEntityTypes = Object.values(dereferencedEntityTypes)
-    .filter(
-      ({ isLink, schema }) => entityTypeIds!.includes(schema.$id) && isLink,
-    )
+    .filter(({ isLink, schema }) => entityTypeIds!.includes(schema.$id) && isLink)
     .map(({ schema }) => schema);
 
   return {
@@ -175,13 +160,12 @@ export const runCoordinatingAgent: AiFlowActionActivity<
     testingParams,
   });
 
-  const { flowEntityId, runId, stepId, webId, workflowId } =
-    await getFlowContext();
+  const { flowEntityId, runId, stepId, webId, workflowId } = await getFlowContext();
 
   const providedFileEntities = await getProvidedFiles();
 
-  const providedFiles: CoordinatingAgentState["resourcesNotVisited"] =
-    providedFileEntities.map((entity) => {
+  const providedFiles: CoordinatingAgentState["resourcesNotVisited"] = providedFileEntities.map(
+    (entity) => {
       const {
         fileUrl: unsignedUrl,
         description,
@@ -195,7 +179,8 @@ export const runCoordinatingAgent: AiFlowActionActivity<
         summary: description ?? "",
         fromSearchQuery: "User-provided resource",
       };
-    });
+    },
+  );
 
   if (!state.plan) {
     /**
@@ -261,14 +246,10 @@ export const runCoordinatingAgent: AiFlowActionActivity<
   /**
    * The recursive function that processes tool calls from the coordinator until a successful 'complete' call is made.
    */
-  const processToolCalls = async (params: {
-    toolCalls: ParsedCoordinatorToolCall[];
-  }) => {
+  const processToolCalls = async (params: { toolCalls: ParsedCoordinatorToolCall[] }) => {
     const { toolCalls } = params;
 
-    const isTerminated = toolCalls.some(
-      (toolCall) => toolCall.name === "terminate",
-    );
+    const isTerminated = toolCalls.some((toolCall) => toolCall.name === "terminate");
 
     if (isTerminated) {
       return;
@@ -284,9 +265,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
         toolCall.name !== "waitForOutstandingTasks",
     );
 
-    const completeToolCall = toolCalls.find(
-      (toolCall) => toolCall.name === "complete",
-    );
+    const completeToolCall = toolCalls.find((toolCall) => toolCall.name === "complete");
 
     const waitForTasksToolCall = toolCalls.find(
       (toolCall) => toolCall.name === "waitForOutstandingTasks",
@@ -312,11 +291,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
       ]);
     }
 
-    if (
-      completeToolCall &&
-      state.outstandingTasks.length > 0 &&
-      !requestMakingToolCalls.length
-    ) {
+    if (completeToolCall && state.outstandingTasks.length > 0 && !requestMakingToolCalls.length) {
       /**
        * If the coordinator has called complete but there are still outstanding tasks,
        * we let them wrap up so that any claims and entities they've proposed to date are captured.
@@ -360,9 +335,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
       state,
     });
 
-    const updatedPlan = toolCallResults.find(
-      (call) => !!call.updatedPlan,
-    )?.updatedPlan;
+    const updatedPlan = toolCallResults.find((call) => !!call.updatedPlan)?.updatedPlan;
 
     if (updatedPlan) {
       // eslint-disable-next-line no-param-reassign
@@ -380,9 +353,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
     }
 
     state.delegatedTasksCompleted.push(
-      ...toolCallResults.flatMap(
-        ({ delegatedTasksCompleted }) => delegatedTasksCompleted ?? [],
-      ),
+      ...toolCallResults.flatMap(({ delegatedTasksCompleted }) => delegatedTasksCompleted ?? []),
     );
 
     state.suggestionsForNextStepsMade.push(
@@ -394,9 +365,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
     const newEntitySummaries = toolCallResults.flatMap(
       ({ entitySummaries }) => entitySummaries ?? [],
     );
-    const newClaims = toolCallResults.flatMap(
-      ({ inferredClaims }) => inferredClaims ?? [],
-    );
+    const newClaims = toolCallResults.flatMap(({ inferredClaims }) => inferredClaims ?? []);
 
     /**
      * Update the state with the new claims and entity summaries inferred from the tool calls,
@@ -527,10 +496,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
         return [];
       });
     })
-    .filter(
-      ({ url }, index, all) =>
-        all.findIndex((file) => file.url === url) === index,
-    );
+    .filter(({ url }, index, all) => all.findIndex((file) => file.url === url) === index);
 
   const fileEditionProvenance: ProposedEntity["provenance"] = {
     actorType: "ai",
@@ -560,13 +526,9 @@ export const runCoordinatingAgent: AiFlowActionActivity<
       propertyMetadata: { value: {} },
       provenance: fileEditionProvenance,
       entityTypeIds: [entityTypeId],
-      localEntityId: entityIdFromComponents(
-        webId,
-        generateUuid() as EntityUuid,
-      ),
+      localEntityId: entityIdFromComponents(webId, generateUuid() as EntityUuid),
       properties: {
-        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
-          url,
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": url,
       } satisfies FileProperties,
     }),
   );
@@ -602,10 +564,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
   ]);
 
   // Store the proposed entities in S3 to avoid passing large payloads through Temporal
-  const allProposedEntitiesForOutput = [
-    ...allProposedEntities,
-    ...fileEntityProposals,
-  ];
+  const allProposedEntitiesForOutput = [...allProposedEntities, ...fileEntityProposals];
   const storedRef = await storePayload({
     storageProvider: getStorageProvider(),
     workflowId,
@@ -632,9 +591,7 @@ export const runCoordinatingAgent: AiFlowActionActivity<
             outputName: "highlightedEntities",
             payload: {
               kind: "EntityId",
-              value: submittedEntities.map(
-                ({ localEntityId }) => localEntityId,
-              ),
+              value: submittedEntities.map(({ localEntityId }) => localEntityId),
             },
           },
         ],

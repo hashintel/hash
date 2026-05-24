@@ -1,8 +1,4 @@
-import {
-  isArrayMetadata,
-  isObjectMetadata,
-  isValueMetadata,
-} from "@blockprotocol/type-system";
+import { isArrayMetadata, isObjectMetadata, isValueMetadata } from "@blockprotocol/type-system";
 import { customColors } from "@hashintel/design-system/theme";
 import {
   createFormattedValueParts,
@@ -21,9 +17,7 @@ import type {
 export const formatValue = (
   value: unknown,
   valueMetadata: PropertyMetadata,
-  dataTypePool:
-    | ClosedDataTypeDefinition[]
-    | ClosedMultiEntityTypesDefinitions["dataTypes"],
+  dataTypePool: ClosedDataTypeDefinition[] | ClosedMultiEntityTypesDefinitions["dataTypes"],
 ): FormattedValuePart[] => {
   const valueParts: FormattedValuePart[] = [];
   if (Array.isArray(value)) {
@@ -44,9 +38,7 @@ export const formatValue = (
 
       if (!isValueMetadata(arrayItemMetadata)) {
         if (isArrayMetadata(arrayItemMetadata)) {
-          throw new Error(
-            `Nested arrays are not currently supported in this display`,
-          );
+          throw new Error(`Nested arrays are not currently supported in this display`);
         }
 
         if (!isObjectMetadata(arrayItemMetadata)) {
@@ -68,9 +60,7 @@ export const formatValue = (
       const dataTypeId = arrayItemMetadata.metadata.dataTypeId;
 
       if (!dataTypeId) {
-        throw new Error(
-          "Expected a dataTypeId to be set on the value metadata",
-        );
+        throw new Error("Expected a dataTypeId to be set on the value metadata");
       }
 
       const dataType = Array.isArray(dataTypePool)

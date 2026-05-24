@@ -57,10 +57,7 @@ describe("buildSimulation", () => {
 
     const simulationInstance = buildSimulation(input);
     const engineFrame = simulationInstance.frames[0]!;
-    const frame = materializeEngineFrame(
-      simulationInstance.frameLayout,
-      engineFrame,
-    );
+    const frame = materializeEngineFrame(simulationInstance.frameLayout, engineFrame);
 
     // Verify simulation instance properties
     expect(simulationInstance.dt).toBe(0.1);
@@ -236,9 +233,7 @@ describe("buildSimulation", () => {
     expect(p3TypeDef?.elements.length).toBe(1);
 
     // Verify buffer layout: [p1: 10, 20, 30 | p2: 1, 2]
-    expect(frame.buffer).toEqual(
-      new Float64Array([10.0, 20.0, 30.0, 1.0, 2.0]),
-    );
+    expect(frame.buffer).toEqual(new Float64Array([10.0, 20.0, 30.0, 1.0, 2.0]));
 
     // Verify transitions exist with initial state
     expect(Object.keys(frame.transitions).length).toBe(2);

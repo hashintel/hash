@@ -75,11 +75,7 @@ const generateSystemTypeTypes = async () => {
   await generateTypes(systemEntityTypes, "system");
   await generateTypes(linearEntityTypes, "linear", "linear");
   await generateTypes(googleEntityTypes, "google", "google");
-  await generateTypes(
-    blockProtocolEntityTypes,
-    "Block Protocol",
-    "blockprotocol",
-  );
+  await generateTypes(blockProtocolEntityTypes, "Block Protocol", "blockprotocol");
 };
 
 void generateSystemTypeTypes();

@@ -10,9 +10,7 @@ export type BlockContextType = {
   blockSelectDataModalIsOpen: boolean;
   setBlockSelectDataModalIsOpen: (isOpen: boolean) => void;
   blockSubgraph: Subgraph<EntityRootType> | undefined;
-  setBlockSubgraph: Dispatch<
-    SetStateAction<Subgraph<EntityRootType> | undefined>
-  >;
+  setBlockSubgraph: Dispatch<SetStateAction<Subgraph<EntityRootType> | undefined>>;
   userPermissions: EntityPermissionsMap | undefined;
   setUserPermissions: (permissions: EntityPermissionsMap) => void;
 };
@@ -31,14 +29,9 @@ export const useBlockContext = () => {
 
 export const BlockContextProvider = ({ children }: PropsWithChildren) => {
   const [error, setError] = useState(false);
-  const [blockSubgraph, setBlockSubgraph] = useState<
-    Subgraph<EntityRootType> | undefined
-  >();
-  const [userPermissions, setUserPermissions] = useState<
-    EntityPermissionsMap | undefined
-  >();
-  const [blockSelectDataModalIsOpen, setBlockSelectDataModalIsOpen] =
-    useState(false);
+  const [blockSubgraph, setBlockSubgraph] = useState<Subgraph<EntityRootType> | undefined>();
+  const [userPermissions, setUserPermissions] = useState<EntityPermissionsMap | undefined>();
+  const [blockSelectDataModalIsOpen, setBlockSelectDataModalIsOpen] = useState(false);
 
   const context = useMemo<BlockContextType>(
     () => ({
@@ -63,7 +56,5 @@ export const BlockContextProvider = ({ children }: PropsWithChildren) => {
     ],
   );
 
-  return (
-    <BlockContext.Provider value={context}>{children}</BlockContext.Provider>
-  );
+  return <BlockContext.Provider value={context}>{children}</BlockContext.Provider>;
 };

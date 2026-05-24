@@ -1,9 +1,6 @@
 import opentelemetry, { ROOT_CONTEXT, SpanKind } from "@opentelemetry/api";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
-import {
-  defaultResource,
-  resourceFromAttributes,
-} from "@opentelemetry/resources";
+import { defaultResource, resourceFromAttributes } from "@opentelemetry/resources";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
@@ -89,23 +86,21 @@ export const startSpan = async <
   context: Context<Partial<Vars>, Partial<Scenario>>,
   fn: () => Promise<void>,
 ) =>
-  opentelemetry.trace
-    .getTracer("@tests/hash-backend-load/tracing/sdk")
-    .startActiveSpan(
-      name,
-      {
-        kind: SpanKind.CLIENT,
-        attributes: {
-          "vu.uuid": context.vars.$uuid,
-          test_id: context.vars.$testId,
-        },
+  opentelemetry.trace.getTracer("@tests/hash-backend-load/tracing/sdk").startActiveSpan(
+    name,
+    {
+      kind: SpanKind.CLIENT,
+      attributes: {
+        "vu.uuid": context.vars.$uuid,
+        test_id: context.vars.$testId,
       },
-      context.scenario.tracing?.context ?? opentelemetry.context.active(),
-      async (span) => {
-        await fn();
-        span.end();
-      },
-    );
+    },
+    context.scenario.tracing?.context ?? opentelemetry.context.active(),
+    async (span) => {
+      await fn();
+      span.end();
+    },
+  );
 
 let sdkShutdown: (() => Promise<void>) | undefined;
 
@@ -142,10 +137,7 @@ export const initializeTracing: ActionFn<
   };
 };
 
-export const tearDownTracing: ActionFn<
-  Record<string, never>,
-  TracingContext
-> = async () => {
+export const tearDownTracing: ActionFn<Record<string, never>, TracingContext> = async () => {
   if (sdkShutdown) {
     await sdkShutdown();
     sdkShutdown = undefined;

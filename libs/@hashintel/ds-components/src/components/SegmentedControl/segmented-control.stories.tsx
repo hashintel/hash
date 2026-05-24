@@ -1,9 +1,6 @@
 import { useState } from "react";
 
-import {
-  SegmentedControl,
-  type SegmentedControlProps,
-} from "./segmented-control";
+import { SegmentedControl, type SegmentedControlProps } from "./segmented-control";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
@@ -34,9 +31,7 @@ export default {
  * and shows how the optical properties create realistic lighting effects.
  */
 export const Interactive: Story<SegmentedControlProps> = (args) => {
-  const [selectedValue, setSelectedValue] = useState(
-    args.defaultValue ?? "option1",
-  );
+  const [selectedValue, setSelectedValue] = useState(args.defaultValue ?? "option1");
 
   return (
     <div

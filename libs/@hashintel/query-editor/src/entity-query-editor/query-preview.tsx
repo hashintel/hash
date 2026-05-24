@@ -37,22 +37,16 @@ export const QueryPreview = ({ query, queryEntities }: QueryPreviewProps) => {
 
   return (
     <div>
-      <Typography
-        sx={{ fontSize: 32, color: ({ palette }) => palette.gray[70] }}
-      >
+      <Typography sx={{ fontSize: 32, color: ({ palette }) => palette.gray[70] }}>
         Query results are ready
       </Typography>
       <Typography sx={{ color: ({ palette }) => palette.gray[70] }}>
-        This query returned{" "}
-        <span style={{ fontWeight: "bold" }}>{entities.length}</span> entities.
+        This query returned <span style={{ fontWeight: "bold" }}>{entities.length}</span> entities.
         {hasEntities && "See below."}
       </Typography>
 
       {hasEntities && (
-        <Card
-          sx={{ my: 2, background: ({ palette }) => palette.gray[10] }}
-          elevation={2}
-        >
+        <Card sx={{ my: 2, background: ({ palette }) => palette.gray[10] }} elevation={2}>
           <List
             sx={{
               maxHeight: 300,
@@ -60,8 +54,7 @@ export const QueryPreview = ({ query, queryEntities }: QueryPreviewProps) => {
             }}
           >
             {entities.map((entity, index) => {
-              const entityUuid =
-                entity.metadata.recordId.entityId.split("%")[1];
+              const entityUuid = entity.metadata.recordId.entityId.split("%")[1];
 
               return (
                 <ListItem key={entity.metadata.recordId.entityId}>

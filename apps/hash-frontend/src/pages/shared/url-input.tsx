@@ -94,8 +94,7 @@ export const UrlInput = ({
           /**
            * Account for users entering the protocol into the rest field, e.g. by pasting a full URL
            */
-          const [_, maybeProtocol, maybeRest] =
-            event.target.value.match("^(https?)://(.*)$") ?? [];
+          const [_, maybeProtocol, maybeRest] = event.target.value.match("^(https?)://(.*)$") ?? [];
 
           if (maybeProtocol) {
             setProtocol(maybeProtocol as Protocol);
@@ -110,9 +109,7 @@ export const UrlInput = ({
              */
             onChange("");
           } else {
-            const newProtocol = maybeProtocol
-              ? (maybeProtocol as Protocol)
-              : protocol;
+            const newProtocol = maybeProtocol ? (maybeProtocol as Protocol) : protocol;
             onChange(`${newProtocol}://${domain}`);
           }
         }}

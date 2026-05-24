@@ -24,12 +24,7 @@ interface FilterRowProps {
   propertyTypes: PropertyType[];
 }
 
-export const FilterRow = ({
-  onRemove,
-  index,
-  entityTypes,
-  propertyTypes,
-}: FilterRowProps) => {
+export const FilterRow = ({ onRemove, index, entityTypes, propertyTypes }: FilterRowProps) => {
   const readonly = useReadonlyContext();
   const { watch } = useFormContext<FormValues>();
 
@@ -47,19 +42,9 @@ export const FilterRow = ({
   )?.hasValue;
 
   return (
-    <Stack
-      direction="row"
-      gap={1.5}
-      sx={{ alignItems: "center", fontSize: 14, maxWidth: "100%" }}
-    >
+    <Stack direction="row" gap={1.5} sx={{ alignItems: "center", fontSize: 14, maxWidth: "100%" }}>
       <Box>
-        {isFirstOne ? (
-          "Where"
-        ) : isSecondOne ? (
-          <ChainOperatorSelector />
-        ) : (
-          chainOperatorText
-        )}
+        {isFirstOne ? "Where" : isSecondOne ? <ChainOperatorSelector /> : chainOperatorText}
       </Box>
 
       <SelectorGroupWrapper>

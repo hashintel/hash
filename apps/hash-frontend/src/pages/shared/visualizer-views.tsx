@@ -8,10 +8,7 @@ import type { ReactElement } from "react";
 
 export type VisualizerView = "Table" | "Graph" | "Grid";
 
-export const visualizerViewIcons: Record<
-  VisualizerView,
-  ReactElement<SvgIconProps>
-> = {
+export const visualizerViewIcons: Record<VisualizerView, ReactElement<SvgIconProps>> = {
   Table: (
     <ListRegularIcon
       sx={{

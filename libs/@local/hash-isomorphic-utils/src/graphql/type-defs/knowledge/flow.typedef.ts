@@ -274,10 +274,7 @@ export const flowTypedef = gql`
     """
     Update an existing flow schedule
     """
-    updateFlowSchedule(
-      scheduleEntityId: EntityId!
-      input: UpdateFlowScheduleInput!
-    ): Boolean!
+    updateFlowSchedule(scheduleEntityId: EntityId!, input: UpdateFlowScheduleInput!): Boolean!
 
     """
     Pause a flow schedule, stopping future executions until resumed

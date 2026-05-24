@@ -1,7 +1,4 @@
-import {
-  getIncomingLinkAndSourceEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getIncomingLinkAndSourceEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type EntityId,
   entityIdFromComponents,
@@ -17,26 +14,17 @@ import {
   isInvitationByShortname,
 } from "@local/hash-isomorphic-utils/organization";
 
-import {
-  getUser,
-  type User,
-} from "../../../../graph/knowledge/system-types/user";
+import { getUser, type User } from "../../../../graph/knowledge/system-types/user";
 
 import type { ImpureGraphContext } from "../../../../graph/context-types";
-import type {
-  EntityRootType,
-  LinkEntityAndLeftEntity,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, LinkEntityAndLeftEntity, Subgraph } from "@blockprotocol/graph";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const isOrgEntity = (entity: HashEntity): entity is HashEntity<Organization> =>
-  entity.metadata.entityTypeIds.includes(
-    systemEntityTypes.organization.entityTypeId,
-  );
+  entity.metadata.entityTypeIds.includes(systemEntityTypes.organization.entityTypeId);
 
 export const getPendingOrgInvitationsFromSubgraph = async (
   context: ImpureGraphContext,
@@ -65,9 +53,7 @@ export const getPendingOrgInvitationsFromSubgraph = async (
     const linkEntity = linkAndOrgEntities[0]?.linkEntity[0];
 
     if (!linkEntity) {
-      throw new Error(
-        `Pending invitation with entityId ${root.entityId} has no incoming link.`,
-      );
+      throw new Error(`Pending invitation with entityId ${root.entityId} has no incoming link.`);
     }
 
     if (
@@ -100,10 +86,7 @@ export const getPendingOrgInvitationsFromSubgraph = async (
 
     const creatorId = linkEntity.metadata.provenance.createdById;
 
-    const invitingUserEntityId = entityIdFromComponents(
-      creatorId as WebId,
-      creatorId,
-    );
+    const invitingUserEntityId = entityIdFromComponents(creatorId as WebId, creatorId);
 
     const creator =
       creatorCache[invitingUserEntityId] ??
@@ -134,13 +117,8 @@ export const getPendingOrgInvitationsFromSubgraph = async (
       org: {
         webId: extractWebIdFromEntityId(orgEntity.metadata.recordId.entityId),
         displayName:
-          orgEntity.properties[
-            "https://hash.ai/@h/types/property-type/organization-name/"
-          ],
-        shortname:
-          orgEntity.properties[
-            "https://hash.ai/@h/types/property-type/shortname/"
-          ],
+          orgEntity.properties["https://hash.ai/@h/types/property-type/organization-name/"],
+        shortname: orgEntity.properties["https://hash.ai/@h/types/property-type/shortname/"],
       },
       invitationEntityId: root.entityId,
       orgToInvitationLinkEntityId: linkEntity.metadata.recordId.entityId,
@@ -152,17 +130,14 @@ export const getPendingOrgInvitationsFromSubgraph = async (
       pendingInvitations.push({
         ...invitationBase,
         email: root.properties["https://hash.ai/@h/types/property-type/email/"],
-        expiresAt:
-          root.properties["https://hash.ai/@h/types/property-type/expired-at/"],
+        expiresAt: root.properties["https://hash.ai/@h/types/property-type/expired-at/"],
         invitedAt: root.metadata.provenance.createdAtDecisionTime,
       });
     } else if (isInvitationByShortname(root)) {
       pendingInvitations.push({
         ...invitationBase,
-        shortname:
-          root.properties["https://hash.ai/@h/types/property-type/shortname/"],
-        expiresAt:
-          root.properties["https://hash.ai/@h/types/property-type/expired-at/"],
+        shortname: root.properties["https://hash.ai/@h/types/property-type/shortname/"],
+        expiresAt: root.properties["https://hash.ai/@h/types/property-type/expired-at/"],
         invitedAt: root.metadata.provenance.createdAtDecisionTime,
       });
     } else {

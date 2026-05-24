@@ -129,17 +129,10 @@ const maxTimeInputStyle = css({
 });
 
 // Split speeds into two rows of 4
-const speedRows: PlaybackSpeed[][] = [
-  PLAYBACK_SPEEDS.slice(0, 4),
-  PLAYBACK_SPEEDS.slice(4),
-];
+const speedRows: PlaybackSpeed[][] = [PLAYBACK_SPEEDS.slice(0, 4), PLAYBACK_SPEEDS.slice(4)];
 
 export const PlaybackSettingsMenu = () => {
-  const {
-    state: simulationState,
-    maxTime,
-    setMaxTime,
-  } = use(SimulationContext);
+  const { state: simulationState, maxTime, setMaxTime } = use(SimulationContext);
 
   const {
     playbackSpeed,
@@ -153,12 +146,9 @@ export const PlaybackSettingsMenu = () => {
   const hasSimulation = simulationState !== "NotRun";
 
   // Derive stopping condition from maxTime
-  const stoppingCondition: "indefinitely" | "fixed" =
-    maxTime === null ? "indefinitely" : "fixed";
+  const stoppingCondition: "indefinitely" | "fixed" = maxTime === null ? "indefinitely" : "fixed";
 
-  const handleStoppingConditionChange = (
-    condition: "indefinitely" | "fixed",
-  ) => {
+  const handleStoppingConditionChange = (condition: "indefinitely" | "fixed") => {
     if (condition === "indefinitely") {
       setMaxTime(null);
     } else {
@@ -168,17 +158,10 @@ export const PlaybackSettingsMenu = () => {
   };
 
   return (
-    <Popover.Root
-      positioning={{ placement: "top", gutter: 8 }}
-      lazyMount
-      unmountOnExit
-    >
+    <Popover.Root positioning={{ placement: "top", gutter: 8 }} lazyMount unmountOnExit>
       <Popover.Trigger asChild>
         <span style={{ display: "inline-flex" }}>
-          <ToolbarButton
-            tooltip="Playback settings"
-            ariaLabel="Playback settings"
-          >
+          <ToolbarButton tooltip="Playback settings" ariaLabel="Playback settings">
             <Icon name="gear" />
           </ToolbarButton>
         </span>
@@ -201,15 +184,11 @@ export const PlaybackSettingsMenu = () => {
               onClick={() => isViewOnlyAvailable && setPlayMode("viewOnly")}
               aria-disabled={!isViewOnlyAvailable}
               tooltip={
-                !isViewOnlyAvailable
-                  ? "Available when there are computed frames"
-                  : undefined
+                !isViewOnlyAvailable ? "Available when there are computed frames" : undefined
               }
             >
               <Icon name="play" className={menuItemIconStyle} size="sm" />
-              <span className={menuItemTextStyle}>
-                Play computed steps only
-              </span>
+              <span className={menuItemTextStyle}>Play computed steps only</span>
               {playMode === "viewOnly" && (
                 <Icon name="check" className={checkIconStyle} size="sm" />
               )}
@@ -224,9 +203,7 @@ export const PlaybackSettingsMenu = () => {
               onClick={() => isComputeAvailable && setPlayMode("computeBuffer")}
               aria-disabled={!isComputeAvailable}
               tooltip={
-                !isComputeAvailable
-                  ? "Not available when simulation is complete"
-                  : undefined
+                !isComputeAvailable ? "Not available when simulation is complete" : undefined
               }
             >
               <Icon name="chartLine" className={menuItemIconStyle} size="sm" />
@@ -245,16 +222,10 @@ export const PlaybackSettingsMenu = () => {
               onClick={() => isComputeAvailable && setPlayMode("computeMax")}
               aria-disabled={!isComputeAvailable}
               tooltip={
-                !isComputeAvailable
-                  ? "Not available when simulation is complete"
-                  : undefined
+                !isComputeAvailable ? "Not available when simulation is complete" : undefined
               }
             >
-              <Icon
-                name="rightToLine"
-                className={menuItemIconStyle}
-                size="sm"
-              />
+              <Icon name="rightToLine" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>Play + compute max</span>
               {playMode === "computeMax" && (
                 <Icon name="check" className={checkIconStyle} size="sm" />
@@ -300,15 +271,9 @@ export const PlaybackSettingsMenu = () => {
                 selected: stoppingCondition === "indefinitely",
                 disabled: hasSimulation,
               })}
-              onClick={() =>
-                !hasSimulation && handleStoppingConditionChange("indefinitely")
-              }
+              onClick={() => !hasSimulation && handleStoppingConditionChange("indefinitely")}
               aria-disabled={hasSimulation}
-              tooltip={
-                hasSimulation
-                  ? "Reset simulation to change stopping conditions"
-                  : undefined
-              }
+              tooltip={hasSimulation ? "Reset simulation to change stopping conditions" : undefined}
             >
               <Icon name="infinity" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>Run indefinitely</span>
@@ -323,15 +288,9 @@ export const PlaybackSettingsMenu = () => {
                 selected: stoppingCondition === "fixed",
                 disabled: hasSimulation,
               })}
-              onClick={() =>
-                !hasSimulation && handleStoppingConditionChange("fixed")
-              }
+              onClick={() => !hasSimulation && handleStoppingConditionChange("fixed")}
               aria-disabled={hasSimulation}
-              tooltip={
-                hasSimulation
-                  ? "Reset simulation to change stopping conditions"
-                  : undefined
-              }
+              tooltip={hasSimulation ? "Reset simulation to change stopping conditions" : undefined}
             >
               <Icon name="clock" className={menuItemIconStyle} size="sm" />
               <span className={menuItemTextStyle}>End at fixed time</span>
@@ -344,9 +303,7 @@ export const PlaybackSettingsMenu = () => {
                     value={maxTime ?? 10}
                     disabled={hasSimulation}
                     onChange={(event) => {
-                      const value = Number.parseFloat(
-                        (event.target as HTMLInputElement).value,
-                      );
+                      const value = Number.parseFloat((event.target as HTMLInputElement).value);
                       if (!Number.isNaN(value) && value > 0) {
                         setMaxTime(value);
                       }

@@ -2,11 +2,7 @@ import { backOff } from "exponential-backoff";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import {
-  HashEntity,
-  queryEntities,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntities, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -49,10 +45,7 @@ export const getWebServiceUsage = async (
     webId,
   }: {
     userAccountId: ActorEntityUuid;
-    decisionTimeInterval?: TemporalInterval<
-      ClosedTemporalBound,
-      ClosedTemporalBound
-    >;
+    decisionTimeInterval?: TemporalInterval<ClosedTemporalBound, ClosedTemporalBound>;
     webId: WebId;
   },
 ): Promise<AggregatedUsageRecord[]> => {
@@ -76,10 +69,9 @@ export const getWebServiceUsage = async (
         {
           filter: {
             all: [
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.usageRecord.entityTypeId,
-                { ignoreParents: true },
-              ),
+              generateVersionedUrlMatchingFilter(systemEntityTypes.usageRecord.entityTypeId, {
+                ignoreParents: true,
+              }),
               {
                 equal: [
                   {
@@ -171,8 +163,7 @@ export const createUsageRecord = async (
             "https://hash.ai/@h/types/property-type/input-unit-count/": {
               value: inputUnitCount,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
               },
             },
           }
@@ -182,8 +173,7 @@ export const createUsageRecord = async (
             "https://hash.ai/@h/types/property-type/output-unit-count/": {
               value: outputUnitCount,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
               },
             },
           }
@@ -193,8 +183,7 @@ export const createUsageRecord = async (
             "https://hash.ai/@h/types/property-type/custom-metadata/": {
               value: customMetadata,
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
               },
             },
           }
@@ -210,45 +199,34 @@ export const createUsageRecord = async (
    */
   const authentication = { actorId: userAccountId };
 
-  const { entities: serviceFeatureEntities } = await queryEntities(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.serviceFeature.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.serviceName.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: serviceName },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.featureName.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: featureName },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
+  const { entities: serviceFeatureEntities } = await queryEntities(context, authentication, {
+    filter: {
+      all: [
+        generateVersionedUrlMatchingFilter(systemEntityTypes.serviceFeature.entityTypeId, {
+          ignoreParents: true,
+        }),
+        {
+          equal: [
+            {
+              path: ["properties", systemPropertyTypes.serviceName.propertyTypeBaseUrl],
+            },
+            { parameter: serviceName },
+          ],
+        },
+        {
+          equal: [
+            {
+              path: ["properties", systemPropertyTypes.featureName.propertyTypeBaseUrl],
+            },
+            { parameter: featureName },
+          ],
+        },
+      ],
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   if (serviceFeatureEntities.length !== 1) {
     throw new Error(
@@ -260,10 +238,7 @@ export const createUsageRecord = async (
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
   const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
 
-  const usageRecordEntityId = entityIdFromComponents(
-    assignUsageToWebId,
-    usageRecordEntityUuid,
-  );
+  const usageRecordEntityId = entityIdFromComponents(assignUsageToWebId, usageRecordEntityUuid);
 
   const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
@@ -272,54 +247,56 @@ export const createUsageRecord = async (
     },
   };
 
-  const [usageRecord] = await HashEntity.createMultiple<
-    [UsageRecord, RecordsUsageOf]
-  >(context.graphApi, authentication, [
-    {
-      webId: assignUsageToWebId,
-      draft: false,
-      entityUuid: usageRecordEntityUuid,
-      properties,
-      provenance,
-      entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
-      policies: [
-        {
-          name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
-          principal: {
-            type: "actor",
-            actorType: "ai",
-            id: aiAssistantAccountId,
+  const [usageRecord] = await HashEntity.createMultiple<[UsageRecord, RecordsUsageOf]>(
+    context.graphApi,
+    authentication,
+    [
+      {
+        webId: assignUsageToWebId,
+        draft: false,
+        entityUuid: usageRecordEntityUuid,
+        properties,
+        provenance,
+        entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
+        policies: [
+          {
+            name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
+            principal: {
+              type: "actor",
+              actorType: "ai",
+              id: aiAssistantAccountId,
+            },
+            effect: "permit",
+            actions: ["viewEntity"],
           },
-          effect: "permit",
-          actions: ["viewEntity"],
-        },
-      ],
-    },
-    {
-      webId: assignUsageToWebId,
-      draft: false,
-      entityUuid: recordsUsageOfEntityUuid,
-      properties: { value: {} },
-      provenance,
-      linkData: {
-        leftEntityId: usageRecordEntityId,
-        rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
+        ],
       },
-      entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
-      policies: [
-        {
-          name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
-          principal: {
-            type: "actor",
-            actorType: "ai",
-            id: aiAssistantAccountId,
-          },
-          effect: "permit",
-          actions: ["viewEntity"],
+      {
+        webId: assignUsageToWebId,
+        draft: false,
+        entityUuid: recordsUsageOfEntityUuid,
+        properties: { value: {} },
+        provenance,
+        linkData: {
+          leftEntityId: usageRecordEntityId,
+          rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
         },
-      ],
-    },
-  ]);
+        entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
+        policies: [
+          {
+            name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
+            principal: {
+              type: "actor",
+              actorType: "ai",
+              id: aiAssistantAccountId,
+            },
+            effect: "permit",
+            actions: ["viewEntity"],
+          },
+        ],
+      },
+    ],
+  );
 
   return usageRecord;
 };

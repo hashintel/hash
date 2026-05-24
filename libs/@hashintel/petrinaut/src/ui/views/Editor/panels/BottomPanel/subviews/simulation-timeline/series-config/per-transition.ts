@@ -95,8 +95,7 @@ export function buildPerTransitionSeriesConfig(args: {
 
       const rawDelta = interpolated - prev;
       const smoothed =
-        OUTPUT_EWMA_ALPHA * rawDelta +
-        (1 - OUTPUT_EWMA_ALPHA) * smoothedOutputs[seriesIdx]!;
+        OUTPUT_EWMA_ALPHA * rawDelta + (1 - OUTPUT_EWMA_ALPHA) * smoothedOutputs[seriesIdx]!;
       smoothedOutputs[seriesIdx] = smoothed;
       return smoothed;
     },

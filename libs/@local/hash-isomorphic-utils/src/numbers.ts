@@ -11,9 +11,7 @@ export const divide = (numerator: Big, denominator: Big): Big => {
 
     return numerator.div(denominator);
   } catch (error: unknown) {
-    throw new Error(
-      `Division error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    throw new Error(`Division error: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -21,9 +19,7 @@ export const add = (a: Big, b: Big): Big => {
   try {
     return a.plus(b);
   } catch (error: unknown) {
-    throw new Error(
-      `Addition error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    throw new Error(`Addition error: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -31,9 +27,7 @@ export const subtract = (a: Big, b: Big): Big => {
   try {
     return a.minus(b);
   } catch (error: unknown) {
-    throw new Error(
-      `Subtraction error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    throw new Error(`Subtraction error: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 

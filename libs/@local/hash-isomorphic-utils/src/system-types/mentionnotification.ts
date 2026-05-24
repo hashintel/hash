@@ -587,9 +587,7 @@ export type {
  * A notification that a user was mentioned somewhere.
  */
 export type MentionNotification = {
-  entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/mention-notification/v/7",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/mention-notification/v/7"];
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
 };
@@ -634,11 +632,10 @@ export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
  */
 export type MentionNotificationProperties = NotificationProperties & {};
 
-export type MentionNotificationPropertiesWithMetadata =
-  NotificationPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type MentionNotificationPropertiesWithMetadata = NotificationPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 export type MentionNotificationTriggeredByUserLink = {
   linkEntity: TriggeredByUser;
@@ -649,9 +646,7 @@ export type MentionNotificationTriggeredByUserLink = {
  * A comment that something occurred in.
  */
 export type OccurredInComment = {
-  entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/occurred-in-comment/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/occurred-in-comment/v/1"];
   properties: OccurredInCommentProperties;
   propertiesWithMetadata: OccurredInCommentPropertiesWithMetadata;
 };
@@ -665,11 +660,10 @@ export type OccurredInCommentOutgoingLinksByLinkEntityTypeId = {};
  */
 export type OccurredInCommentProperties = LinkProperties & {};
 
-export type OccurredInCommentPropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type OccurredInCommentPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
 
 /**
  * Text that something occurred in.
@@ -689,8 +683,7 @@ export type OccurredInTextOutgoingLinksByLinkEntityTypeId = {};
  */
 export type OccurredInTextProperties = LinkProperties & {};
 
-export type OccurredInTextPropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type OccurredInTextPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

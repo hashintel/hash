@@ -17,39 +17,34 @@ const config = {
   tsconfig: path.resolve(__dirname, "../../../tsconfig.json"),
 };
 
-const { $ref: queryEntitiesRequestRef, definitions: queryEntitiesRequestDefs } =
-  generator.createGenerator(config).createSchema("GptQueryEntitiesRequestBody");
+const { $ref: queryEntitiesRequestRef, definitions: queryEntitiesRequestDefs } = generator
+  .createGenerator(config)
+  .createSchema("GptQueryEntitiesRequestBody");
 
-const {
-  $ref: queryEntitiesResponseRef,
-  definitions: queryEntitiesResponseDefs,
-} = generator
+const { $ref: queryEntitiesResponseRef, definitions: queryEntitiesResponseDefs } = generator
   .createGenerator(config)
   .createSchema("GptQueryEntitiesResponseBody");
 
-const { $ref: queryTypesRequestRef, definitions: queryTypesRequestDefs } =
-  generator
-    .createGenerator({
-      ...config,
-      path: path.resolve(__dirname, "gpt-query-types.ts"),
-    })
-    .createSchema("GptQueryTypesRequestBody");
+const { $ref: queryTypesRequestRef, definitions: queryTypesRequestDefs } = generator
+  .createGenerator({
+    ...config,
+    path: path.resolve(__dirname, "gpt-query-types.ts"),
+  })
+  .createSchema("GptQueryTypesRequestBody");
 
-const { $ref: queryTypesResponseRef, definitions: queryTypesResponseDefs } =
-  generator
-    .createGenerator({
-      ...config,
-      path: path.resolve(__dirname, "gpt-query-types.ts"),
-    })
-    .createSchema("GptQueryTypesResponseBody");
+const { $ref: queryTypesResponseRef, definitions: queryTypesResponseDefs } = generator
+  .createGenerator({
+    ...config,
+    path: path.resolve(__dirname, "gpt-query-types.ts"),
+  })
+  .createSchema("GptQueryTypesResponseBody");
 
-const { $ref: getUserWebsResponseRef, definitions: getUserWebsResponseDefs } =
-  generator
-    .createGenerator({
-      ...config,
-      path: path.resolve(__dirname, "gpt-get-user-webs.ts"),
-    })
-    .createSchema("GptGetUserWebsResponseBody");
+const { $ref: getUserWebsResponseRef, definitions: getUserWebsResponseDefs } = generator
+  .createGenerator({
+    ...config,
+    path: path.resolve(__dirname, "gpt-get-user-webs.ts"),
+  })
+  .createSchema("GptGetUserWebsResponseBody");
 
 const components = {
   schemas: {
@@ -154,7 +149,4 @@ const rewrittenSchema = JSON.stringify(openApiSchema, null, 2).replaceAll(
   "#/components/schemas/",
 );
 
-writeFileSync(
-  path.resolve(__dirname, "openapi-schema.gen.json"),
-  rewrittenSchema,
-);
+writeFileSync(path.resolve(__dirname, "openapi-schema.gen.json"), rewrittenSchema);

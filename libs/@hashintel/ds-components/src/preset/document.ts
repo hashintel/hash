@@ -16,8 +16,7 @@
  * so the `@font-face` rules exist.
  */
 export const fontPipelineCssVars = {
-  "--font-inter":
-    '"Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif',
+  "--font-inter": '"Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif',
   "--font-inter-tight":
     '"Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif',
   "--global-font-body": "var(--fonts-body)",

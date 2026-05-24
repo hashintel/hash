@@ -4,10 +4,7 @@ import { LinearClient } from "@linear/sdk";
 
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
-import {
-  apiOrigin,
-  frontendUrl,
-} from "@local/hash-isomorphic-utils/environment";
+import { apiOrigin, frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -20,13 +17,7 @@ import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 
 import type { LinearIntegration } from "../../graph/knowledge/system-types/linear-integration-entity";
-import type {
-  Entity,
-  EntityId,
-  EntityUuid,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { Entity, EntityId, EntityUuid, UserId, WebId } from "@blockprotocol/type-system";
 import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { RequestHandler } from "express";
 
@@ -70,11 +61,7 @@ export const oAuthLinear: RequestHandler<
   }
 > = async (req, res) => {
   if (!linearClientId) {
-    res
-      .status(501)
-      .send(
-        "Linear integration is not configured – set a client id and secret.",
-      );
+    res.status(501).send("Linear integration is not configured – set a client id and secret.");
     return;
   }
 
@@ -100,11 +87,7 @@ export const oAuthLinear: RequestHandler<
       orgEntityUuid: webId as EntityUuid,
     }))
   ) {
-    res
-      .status(403)
-      .send(
-        "webId must represent the user or an organization they are a member of.",
-      );
+    res.status(403).send("webId must represent the user or an organization they are a member of.");
     return;
   }
 
@@ -177,10 +160,7 @@ export const oAuthLinearCallback: RequestHandler<
     headers: {
       "content-type": "application/x-www-form-urlencoded",
     },
-  }).then(
-    (resp) =>
-      resp.json() as Promise<{ access_token: string; expires_in: number }>,
-  );
+  }).then((resp) => resp.json() as Promise<{ access_token: string; expires_in: number }>);
 
   const { access_token, expires_in } = response;
 
@@ -202,11 +182,9 @@ export const oAuthLinearCallback: RequestHandler<
   /**
    * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret
    */
-  const linearBotAccountId = await getMachineIdByIdentifier(
-    req.context,
-    authentication,
-    { identifier: "linear" },
-  ).then((maybeMachineId) => {
+  const linearBotAccountId = await getMachineIdByIdentifier(req.context, authentication, {
+    identifier: "linear",
+  }).then((maybeMachineId) => {
     if (!maybeMachineId) {
       throw new Error("Failed to get linear bot");
     }
@@ -226,31 +204,25 @@ export const oAuthLinearCallback: RequestHandler<
   if (existingLinearIntegration) {
     linearIntegration = existingLinearIntegration;
   } else {
-    const linearIntegrationProperties: LinearIntegrationPropertiesWithMetadata =
-      {
-        value: {
-          "https://hash.ai/@h/types/property-type/linear-org-id/": {
-            value: linearOrgId,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
+    const linearIntegrationProperties: LinearIntegrationPropertiesWithMetadata = {
+      value: {
+        "https://hash.ai/@h/types/property-type/linear-org-id/": {
+          value: linearOrgId,
+          metadata: {
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
-      };
+      },
+    };
 
     // Create the Linear integration entity, which any web member can view and edit
     const entityUuid = generateUuid() as EntityUuid;
-    const linearIntegrationEntity = await createEntity(
-      req.context,
-      authentication,
-      {
-        entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
-        webId: userAccountId as WebId,
-        entityUuid,
-        properties: linearIntegrationProperties,
-      },
-    );
+    const linearIntegrationEntity = await createEntity(req.context, authentication, {
+      entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
+      webId: userAccountId as WebId,
+      entityUuid,
+      properties: linearIntegrationProperties,
+    });
 
     linearIntegration = getLinearIntegrationFromEntity({
       entity: linearIntegrationEntity,
@@ -269,8 +241,7 @@ export const oAuthLinearCallback: RequestHandler<
     restOfPath: `workspace/${linearOrgId}`,
     secretData: { value: access_token },
     service: "linear",
-    sourceIntegrationEntityId:
-      linearIntegration.entity.metadata.recordId.entityId,
+    sourceIntegrationEntityId: linearIntegration.entity.metadata.recordId.entityId,
     userAccountId: req.user.accountId,
     vaultClient: req.context.vaultClient,
   });

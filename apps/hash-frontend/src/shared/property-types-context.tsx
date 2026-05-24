@@ -5,11 +5,7 @@ import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { isTypeArchived } from "./is-archived";
 import { usePropertyTypesContextValue } from "./latest-property-types-context/use-property-types-context-value";
 
-import type {
-  BaseUrl,
-  PropertyTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, PropertyTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type { FunctionComponent, PropsWithChildren } from "react";
 
 export type PropertyTypesContextValues = {
@@ -17,13 +13,9 @@ export type PropertyTypesContextValues = {
   refetch: () => Promise<void>;
 };
 
-export const PropertyTypesContext =
-  createContext<null | PropertyTypesContextValues>(null);
+export const PropertyTypesContext = createContext<null | PropertyTypesContextValues>(null);
 
-export const usePropertyTypes = (params?: {
-  includeArchived?: boolean;
-  latestOnly?: boolean;
-}) => {
+export const usePropertyTypes = (params?: { includeArchived?: boolean; latestOnly?: boolean }) => {
   const { includeArchived = false, latestOnly = false } = params ?? {};
   const propertyTypesContext = useContext(PropertyTypesContext);
 
@@ -32,13 +24,8 @@ export const usePropertyTypes = (params?: {
   }
 
   return useMemo(() => {
-    const filteredPropertyTypeVersionsByBaseUrl: Record<
-      BaseUrl,
-      PropertyTypeWithMetadata[]
-    > = {};
-    for (const propertyType of Object.values(
-      propertyTypesContext.propertyTypes ?? [],
-    )) {
+    const filteredPropertyTypeVersionsByBaseUrl: Record<BaseUrl, PropertyTypeWithMetadata[]> = {};
+    for (const propertyType of Object.values(propertyTypesContext.propertyTypes ?? [])) {
       if (!includeArchived && isTypeArchived(propertyType)) {
         continue;
       }
@@ -50,14 +37,10 @@ export const usePropertyTypes = (params?: {
       } = propertyType;
 
       if (latestOnly) {
-        const firstVersionHeld =
-          filteredPropertyTypeVersionsByBaseUrl[baseUrl]?.[0];
+        const firstVersionHeld = filteredPropertyTypeVersionsByBaseUrl[baseUrl]?.[0];
         if (
           firstVersionHeld &&
-          compareOntologyTypeVersions(
-            firstVersionHeld.metadata.recordId.version,
-            version,
-          ) > 0
+          compareOntologyTypeVersions(firstVersionHeld.metadata.recordId.version, version) > 0
         ) {
           continue;
         }
@@ -69,9 +52,7 @@ export const usePropertyTypes = (params?: {
     }
 
     const propertyTypes: PropertyTypesContextValues["propertyTypes"] = {};
-    for (const propertyTypeVersions of Object.values(
-      filteredPropertyTypeVersionsByBaseUrl,
-    )) {
+    for (const propertyTypeVersions of Object.values(filteredPropertyTypeVersionsByBaseUrl)) {
       for (const propertyType of propertyTypeVersions) {
         propertyTypes[propertyType.schema.$id] = propertyType;
       }
@@ -93,9 +74,5 @@ export const PropertyTypesContextProvider: FunctionComponent<
 > = ({ children, includeArchived }) => {
   const value = usePropertyTypesContextValue({ includeArchived });
 
-  return (
-    <PropertyTypesContext.Provider value={value}>
-      {children}
-    </PropertyTypesContext.Provider>
-  );
+  return <PropertyTypesContext.Provider value={value}>{children}</PropertyTypesContext.Provider>;
 };

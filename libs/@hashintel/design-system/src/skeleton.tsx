@@ -9,11 +9,5 @@ export const Skeleton = ({
   highlightColor = "rgba(0, 0, 0, 0.04)",
   ...rest
 }: SkeletonProps) => {
-  return (
-    <LibSkeleton
-      baseColor={baseColor}
-      highlightColor={highlightColor}
-      {...rest}
-    />
-  );
+  return <LibSkeleton baseColor={baseColor} highlightColor={highlightColor} {...rest} />;
 };

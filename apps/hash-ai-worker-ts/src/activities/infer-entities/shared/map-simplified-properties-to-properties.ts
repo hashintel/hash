@@ -1,8 +1,4 @@
-import type {
-  BaseUrl,
-  PropertyObject,
-  PropertyValue,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, PropertyObject, PropertyValue } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export type PropertyValueWithSimplifiedProperties =
@@ -19,10 +15,7 @@ const mapSimplifiedPropertyValueToPropertyValue = (params: {
 }): HashEntity["properties"][BaseUrl] => {
   const { simplifiedPropertyValue, simplifiedPropertyTypeMappings } = params;
 
-  if (
-    typeof simplifiedPropertyValue !== "object" ||
-    simplifiedPropertyValue === null
-  ) {
+  if (typeof simplifiedPropertyValue !== "object" || simplifiedPropertyValue === null) {
     return simplifiedPropertyValue;
   }
 

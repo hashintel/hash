@@ -6,20 +6,12 @@ import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 
 export type MappingResult<OutputType extends TypeIdsAndPropertiesForEntity> = {
   primaryKey: string;
-  typeIdsAndProperties: Pick<
-    CreateEntityParameters<OutputType>,
-    "entityTypeIds" | "properties"
-  >;
+  typeIdsAndProperties: Pick<CreateEntityParameters<OutputType>, "entityTypeIds" | "properties">;
 };
 
-export type LinkMappingResult<
-  OutputType extends TypeIdsAndPropertiesForEntity,
-> = {
+export type LinkMappingResult<OutputType extends TypeIdsAndPropertiesForEntity> = {
   primaryKey: null;
-  typeIdsAndProperties: Pick<
-    CreateEntityParameters<OutputType>,
-    "entityTypeIds" | "properties"
-  >;
+  typeIdsAndProperties: Pick<CreateEntityParameters<OutputType>, "entityTypeIds" | "properties">;
 };
 
 /**
@@ -33,6 +25,4 @@ export type MappingFunction<
 > = (
   input: InputType,
   provenance: Pick<ProvidedEntityEditionProvenance, "sources">,
-) => IsLinkType extends true
-  ? LinkMappingResult<OutputType>
-  : MappingResult<OutputType> | null;
+) => IsLinkType extends true ? LinkMappingResult<OutputType> : MappingResult<OutputType> | null;

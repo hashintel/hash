@@ -5,23 +5,12 @@ import { act, renderHook } from "@testing-library/react";
 import { type ReactNode, use } from "react";
 import { describe, expect, test, vi } from "vitest";
 
-import {
-  createPetrinautActions,
-  type Petrinaut,
-  type SDCPN,
-} from "@hashintel/petrinaut-core";
+import { createPetrinautActions, type Petrinaut, type SDCPN } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "./instance-context";
 import { MutationProvider } from "./mutation-provider";
-import {
-  SimulationContext,
-  type SimulationContextValue,
-} from "./simulation/context";
-import {
-  EditorContext,
-  type EditorContextValue,
-  initialEditorState,
-} from "./state/editor-context";
+import { SimulationContext, type SimulationContextValue } from "./simulation/context";
+import { EditorContext, type EditorContextValue, initialEditorState } from "./state/editor-context";
 import { MutationContext } from "./state/mutation-context";
 import { SDCPNContext, type SDCPNContextValue } from "./state/sdcpn-context";
 import {
@@ -425,9 +414,7 @@ describe("MutationProvider (instance bridge)", () => {
 
       act(() => {
         result.current.commitNodePositions({
-          commits: [
-            { id: "p1", itemType: "place", position: { x: 100, y: 200 } },
-          ],
+          commits: [{ id: "p1", itemType: "place", position: { x: 100, y: 200 } }],
         });
       });
 
@@ -530,9 +517,7 @@ describe("MutationProvider (instance bridge)", () => {
 
     test("removeDifferentialEquation cascades to clear differentialEquationId on places", () => {
       const sdcpn = makeSDCPN({
-        differentialEquations: [
-          { id: "eq-1", name: "Eq1", colorId: null, code: "" },
-        ],
+        differentialEquations: [{ id: "eq-1", name: "Eq1", colorId: null, code: "" }],
         places: [
           {
             id: "p1",

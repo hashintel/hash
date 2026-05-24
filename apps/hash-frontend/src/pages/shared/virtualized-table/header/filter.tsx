@@ -28,12 +28,9 @@ const ellipsisOverflow = {
   whiteSpace: "nowrap",
 };
 
-const createLabelSlotProps = (
-  valueIsMissing: boolean,
-): FormControlLabelProps["slotProps"] => ({
+const createLabelSlotProps = (valueIsMissing: boolean): FormControlLabelProps["slotProps"] => ({
   typography: {
-    color: ({ palette }) =>
-      valueIsMissing ? palette.gray[60] : palette.gray[80],
+    color: ({ palette }) => (valueIsMissing ? palette.gray[60] : palette.gray[80]),
     ...ellipsisOverflow,
     fontSize: 14,
     fontWeight: valueIsMissing ? 400 : 500,
@@ -171,9 +168,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
             <Box
               component="button"
               onClick={() => {
-                setFilter(
-                  type === "checkboxes" ? new Set(initialValue) : initialValue,
-                );
+                setFilter(type === "checkboxes" ? new Set(initialValue) : initialValue);
                 onClose();
               }}
               sx={blueFilterButtonSx}
@@ -205,9 +200,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
                           }
                           setFilter(newValue);
                         }}
-                        checked={(currentValue as Set<string | null>).has(
-                          value,
-                        )}
+                        checked={(currentValue as Set<string | null>).has(value)}
                         sx={{ mr: 1.5, "& .MuiSvgIcon-root": { fontSize: 18 } }}
                       />
                     }
@@ -256,19 +249,20 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
   );
 };
 
-export type VirtualizedTableFilterDefinitionsByFieldId<
-  Id extends string = string,
-> = Record<Id, VirtualizedTableFilterDefinition>;
+export type VirtualizedTableFilterDefinitionsByFieldId<Id extends string = string> = Record<
+  Id,
+  VirtualizedTableFilterDefinition
+>;
 
-export type VirtualizedTableFilterValuesByFieldId<Id extends string = string> =
-  Record<Id, VirtualizedTableFilterValue>;
+export type VirtualizedTableFilterValuesByFieldId<Id extends string = string> = Record<
+  Id,
+  VirtualizedTableFilterValue
+>;
 
 export type TableFilterProps<FieldId extends string> = {
   filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
   filterValues: VirtualizedTableFilterValuesByFieldId<FieldId>;
-  setFilterValues: (
-    filters: VirtualizedTableFilterValuesByFieldId<FieldId>,
-  ) => void;
+  setFilterValues: (filters: VirtualizedTableFilterValuesByFieldId<FieldId>) => void;
 };
 
 export const isValueIncludedInFilter = ({
@@ -292,10 +286,7 @@ export const isValueIncludedInFilter = ({
   return valueToCheck.some((value) => currentValue.has(value));
 };
 
-export const FilterButton = <
-  ColumnId extends string,
-  FilteredId extends ColumnId,
->({
+export const FilterButton = <ColumnId extends string, FilteredId extends ColumnId>({
   columnId,
   filterDefinitions,
   filterValues,
@@ -328,19 +319,14 @@ export const FilterButton = <
   if (type === "radio-group") {
     isFiltered = filterValue !== initialValue;
   } else if (typeof filterValue === "string") {
-    throw new Error(
-      `Got string filterValue '${filterValue}, expected Set for checkboxes`,
-    );
+    throw new Error(`Got string filterValue '${filterValue}, expected Set for checkboxes`);
   } else {
     isFiltered = initialValue.difference(filterValue).size > 0;
   }
 
   return (
     <>
-      <Tooltip
-        title={hasOnlyOneOption ? "Only one filter option present" : ""}
-        placement="top"
-      >
+      <Tooltip title={hasOnlyOneOption ? "Only one filter option present" : ""} placement="top">
         <IconButton
           onClick={() => setShowFilterPopover(!showFilterPopover)}
           ref={buttonRef}
@@ -348,8 +334,7 @@ export const FilterButton = <
         >
           <FilterLightIcon
             sx={{
-              fill: ({ palette }) =>
-                isFiltered ? palette.blue[70] : palette.gray[50],
+              fill: ({ palette }) => (isFiltered ? palette.blue[70] : palette.gray[50]),
               transition: ({ transitions }) => transitions.create("fill"),
             }}
           />
@@ -360,9 +345,7 @@ export const FilterButton = <
         filterDefinition={filterDefinition}
         filterValue={filterValue as (typeof filterDefinition)["initialValue"]}
         isFiltered={isFiltered}
-        setFilter={(newFilter) =>
-          setFilterValues({ ...filterValues, [columnId]: newFilter })
-        }
+        setFilter={(newFilter) => setFilterValues({ ...filterValues, [columnId]: newFilter })}
         open={showFilterPopover}
         onClose={() => setShowFilterPopover(false)}
       />

@@ -15,9 +15,7 @@ import type { ToMainMessage, ToWorkerMessage } from "./messages";
 let postedMessages: ToMainMessage[] = [];
 
 // Store the message handler
-let messageHandler:
-  | ((event: WorkerMessageEnvelope<ToWorkerMessage>) => void)
-  | null = null;
+let messageHandler: ((event: WorkerMessageEnvelope<ToWorkerMessage>) => void) | null = null;
 
 // Mock self.postMessage and message subscriptions.
 const mockSelf = {

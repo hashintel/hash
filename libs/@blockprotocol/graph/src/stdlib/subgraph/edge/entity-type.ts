@@ -13,11 +13,7 @@ import type {
   OntologyTypeVertexId,
   Subgraph,
 } from "../../../types/subgraph.js";
-import type {
-  BaseUrl,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, OntologyTypeVersion, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Gets identifiers for all `PropertyType`s referenced within a given `EntityType` schema by searching for
@@ -31,11 +27,7 @@ export const getPropertyTypesReferencedByEntityType = (
   subgraph: Subgraph,
   entityTypeId: OntologyTypeVertexId | VersionedUrl,
 ): OntologyTypeVertexId[] =>
-  getOntologyEndpointsForOntologyOutwardEdge(
-    subgraph,
-    entityTypeId,
-    isConstrainsPropertiesOnEdge,
-  );
+  getOntologyEndpointsForOntologyOutwardEdge(subgraph, entityTypeId, isConstrainsPropertiesOnEdge);
 
 type EntityTypeReferences = {
   inheritsFrom: OntologyTypeVertexId[];
@@ -66,9 +58,7 @@ export const getEntityTypesReferencedByEntityType = (
     revisionId = entityTypeId.revisionId;
   }
 
-  const outwardEdges = (subgraph.edges as OntologyRootedEdges)[baseUrl]?.[
-    revisionId
-  ];
+  const outwardEdges = (subgraph.edges as OntologyRootedEdges)[baseUrl]?.[revisionId];
 
   const ontologyVertexIds = {
     inheritsFrom: [],

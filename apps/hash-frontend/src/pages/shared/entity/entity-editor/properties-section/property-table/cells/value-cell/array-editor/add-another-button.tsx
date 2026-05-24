@@ -4,13 +4,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { Button } from "../../../../../../../../../shared/ui";
 
-export const AddAnotherButton = ({
-  onClick,
-  title,
-}: {
-  onClick: () => void;
-  title: string;
-}) => {
+export const AddAnotherButton = ({ onClick, title }: { onClick: () => void; title: string }) => {
   return (
     <Button
       onClick={onClick}

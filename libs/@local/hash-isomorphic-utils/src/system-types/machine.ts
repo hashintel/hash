@@ -41,8 +41,7 @@ export type Machine = {
  */
 export type MachineIdentifierPropertyValue = TextDataType;
 
-export type MachineIdentifierPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type MachineIdentifierPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 export type MachineOutgoingLinkAndTarget = never;
 

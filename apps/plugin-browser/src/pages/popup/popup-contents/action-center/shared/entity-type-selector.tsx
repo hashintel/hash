@@ -25,12 +25,9 @@ import type { PopperProps } from "@mui/material";
 // This assumes a VersionedURL in the hash.ai/blockprotocol.org format
 const getChipLabelFromId = (id: VersionedUrl) => {
   const url = new URL(id);
-  const [_emptyString, namespace, _types, _entityType, typeSlug] =
-    url.pathname.split("/");
+  const [_emptyString, namespace, _types, _entityType, typeSlug] = url.pathname.split("/");
 
-  return `${
-    url.origin !== FRONTEND_ORIGIN ? `${url.host} / ` : ""
-  }${namespace} / ${typeSlug}`;
+  return `${url.origin !== FRONTEND_ORIGIN ? `${url.host} / ` : ""}${namespace} / ${typeSlug}`;
 };
 
 type SelectTypesAndInferProps = {
@@ -58,9 +55,7 @@ export const EntityTypeSelector = ({
   const selectedEntityTypes = useMemo(
     () =>
       allEntityTypes.filter((type) =>
-        targetEntityTypeIds?.some(
-          (targetTypeId) => targetTypeId === type.schema.$id,
-        ),
+        targetEntityTypeIds?.some((targetTypeId) => targetTypeId === type.schema.$id),
       ),
     [allEntityTypes, targetEntityTypeIds],
   );
@@ -70,15 +65,12 @@ export const EntityTypeSelector = ({
    * and add the already-selected entity types (if not the latest – they may have been selected in an earlier session)
    */
   const optionsInDropdown = useMemo(() => {
-    const latestEntityTypesByBaseUrl: Record<BaseUrl, EntityTypeWithMetadata> =
-      {};
+    const latestEntityTypesByBaseUrl: Record<BaseUrl, EntityTypeWithMetadata> = {};
 
     for (const type of allEntityTypes) {
       const baseUrl = type.metadata.recordId.baseUrl;
       if (
-        !selectedEntityTypes.some(
-          (selectedType) => selectedType.schema.$id === type.schema.$id,
-        ) &&
+        !selectedEntityTypes.some((selectedType) => selectedType.schema.$id === type.schema.$id) &&
         (!latestEntityTypesByBaseUrl[baseUrl] ||
           compareOntologyTypeVersions(
             latestEntityTypesByBaseUrl[baseUrl].metadata.recordId.version,
@@ -89,10 +81,9 @@ export const EntityTypeSelector = ({
       }
     }
 
-    return [
-      ...Object.values(latestEntityTypesByBaseUrl),
-      ...selectedEntityTypes,
-    ].sort((a, b) => a.schema.title.localeCompare(b.schema.title));
+    return [...Object.values(latestEntityTypesByBaseUrl), ...selectedEntityTypes].sort((a, b) =>
+      a.schema.title.localeCompare(b.schema.title),
+    );
   }, [allEntityTypes, selectedEntityTypes]);
 
   const getLinkedEntityTypeIds = (entityTypes: EntityTypeWithMetadata[]) => {
@@ -107,15 +98,11 @@ export const EntityTypeSelector = ({
      */
     const addedEntityTypes = entityTypes.filter(
       (type) =>
-        !selectedEntityTypes.some(
-          (selectedType) => selectedType.schema.$id === type.schema.$id,
-        ),
+        !selectedEntityTypes.some((selectedType) => selectedType.schema.$id === type.schema.$id),
     );
 
     for (const type of addedEntityTypes) {
-      for (const [linkEntityTypeId, linkConstraints] of typedEntries(
-        type.schema.links ?? {},
-      )) {
+      for (const [linkEntityTypeId, linkConstraints] of typedEntries(type.schema.links ?? {})) {
         linkedEntityTypeIds.add(linkEntityTypeId);
 
         const destinationEntityTypeRefs: EntityTypeReference[] =
@@ -155,8 +142,7 @@ export const EntityTypeSelector = ({
       inputHeight={inputHeight}
       inputProps={{
         endAdornment: <div />,
-        placeholder:
-          selectedEntityTypes.length > 0 ? "" : "Search for types...",
+        placeholder: selectedEntityTypes.length > 0 ? "" : "Search for types...",
         sx: () => ({
           [`&.${outlinedInputClasses.root}`]: {
             py: 0.3,
@@ -180,9 +166,7 @@ export const EntityTypeSelector = ({
           },
         }),
       }}
-      isOptionEqualToValue={(option, value) =>
-        option.schema.$id === value.schema.$id
-      }
+      isOptionEqualToValue={(option, value) => option.schema.$id === value.schema.$id}
       ListboxProps={{
         sx: {
           maxHeight: 240,
@@ -198,24 +182,16 @@ export const EntityTypeSelector = ({
       onChange={(_event, value) => {
         const newTargetEntityTypes = Array.isArray(value) ? value : [value];
 
-        const linkedEntityTypeIds =
-          getLinkedEntityTypeIds(newTargetEntityTypes);
+        const linkedEntityTypeIds = getLinkedEntityTypeIds(newTargetEntityTypes);
 
         setTargetEntityTypeIds({
-          selectedEntityTypeIds: newTargetEntityTypes.map(
-            (type) => type.schema.$id,
-          ),
+          selectedEntityTypeIds: newTargetEntityTypes.map((type) => type.schema.$id),
           linkedEntityTypeIds,
         });
       }}
       options={optionsInDropdown}
       renderOption={(props, type) => (
-        <MenuItem
-          {...props}
-          key={type.schema.$id}
-          value={type.schema.$id}
-          sx={menuItemSx}
-        >
+        <MenuItem {...props} key={type.schema.$id} value={type.schema.$id} sx={menuItemSx}>
           <Typography
             sx={{
               fontSize: 14,
@@ -245,9 +221,7 @@ export const EntityTypeSelector = ({
         ))
       }
       value={
-        multiple
-          ? selectedEntityTypes
-          : (selectedEntityTypes[0] ?? (null as unknown as undefined))
+        multiple ? selectedEntityTypes : (selectedEntityTypes[0] ?? (null as unknown as undefined))
       }
     />
   );

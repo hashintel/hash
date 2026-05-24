@@ -26,8 +26,7 @@ export const useLogoutFlow = () => {
          * @todo: verify that the page is publicly viewable when pages aren't
          * publicly viewable by default
          */
-        const isPubliclyViewablePage =
-          router.pathname === "/[shortname]/[page-slug]";
+        const isPubliclyViewablePage = router.pathname === "/[shortname]/[page-slug]";
 
         if (!isPubliclyViewablePage) {
           /**

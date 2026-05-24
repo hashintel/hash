@@ -28,15 +28,10 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import type { DataTypeFormData } from "../data-type-form";
 
-export const ConversionTargetEditor = ({
-  dataType,
-}: {
-  dataType: DataType;
-}) => {
+export const ConversionTargetEditor = ({ dataType }: { dataType: DataType }) => {
   const { dataTypes, latestDataTypes } = useDataTypesContext();
 
-  const [selectingConversionTarget, setSelectingConversionTarget] =
-    useState(false);
+  const [selectingConversionTarget, setSelectingConversionTarget] = useState(false);
 
   const { control, setValue } = useFormContext<DataTypeFormData>();
 
@@ -75,8 +70,7 @@ export const ConversionTargetEditor = ({
    * we don't want to declare it the canonical conversion target for all children of Number.
    */
   const nonNumberParentIds = directParentDataTypeIds.filter(
-    (id) =>
-      blockProtocolDataTypes.number.dataTypeBaseUrl !== extractBaseUrl(id),
+    (id) => blockProtocolDataTypes.number.dataTypeBaseUrl !== extractBaseUrl(id),
   );
 
   const { data: siblingDataTypesData } = useQuery<
@@ -117,9 +111,7 @@ export const ConversionTargetEditor = ({
      * If we find one, it is the only conversion target we will allow the user to select.
      */
     const siblings = getRoots(
-      deserializeQueryDataTypeSubgraphResponse(
-        siblingDataTypesData.queryDataTypeSubgraph,
-      ).subgraph,
+      deserializeQueryDataTypeSubgraphResponse(siblingDataTypesData.queryDataTypeSubgraph).subgraph,
     );
 
     for (const sibling of siblings) {
@@ -191,8 +183,7 @@ export const ConversionTargetEditor = ({
              * Don't include 'Number' itself as a conversion target.
              * These are already numbers.
              */
-            type.metadata.recordId.baseUrl !==
-              blockProtocolDataTypes.number.dataTypeBaseUrl &&
+            type.metadata.recordId.baseUrl !== blockProtocolDataTypes.number.dataTypeBaseUrl &&
             /**
              * Don't include anything which itself defines a conversion target.
              * There should be another data type in its group which can be converted to.
@@ -201,24 +192,21 @@ export const ConversionTargetEditor = ({
             !Object.keys(type.metadata.conversions ?? {}).length,
         )
         .map((type) => type.schema),
-      dataTypePoolById: dataTypesArray.reduce<Record<VersionedUrl, DataType>>(
-        (acc, type) => {
-          if (
-            type.metadata.recordId.baseUrl === baseUrl /**
-             * Don't include anything which itself defines a conversion target.
-             * There should be another data type in its group which can be converted to.
-             * @todo this does not hold for data types which have defined conversions to targets in other groups.
-             */ ||
-            !Object.keys(type.metadata.conversions ?? {}).length
-          ) {
-            return acc;
-          }
-
-          acc[type.schema.$id] = type.schema;
+      dataTypePoolById: dataTypesArray.reduce<Record<VersionedUrl, DataType>>((acc, type) => {
+        if (
+          type.metadata.recordId.baseUrl === baseUrl /**
+           * Don't include anything which itself defines a conversion target.
+           * There should be another data type in its group which can be converted to.
+           * @todo this does not hold for data types which have defined conversions to targets in other groups.
+           */ ||
+          !Object.keys(type.metadata.conversions ?? {}).length
+        ) {
           return acc;
-        },
-        {},
-      ),
+        }
+
+        acc[type.schema.$id] = type.schema;
+        return acc;
+      }, {}),
     });
   }, [dataTypes, dataType.$id]);
 
@@ -239,8 +227,7 @@ export const ConversionTargetEditor = ({
         </Typography>
         {targetFromSiblings && (
           <Typography variant="smallTextParagraphs" component="p">
-            In this data type group, conversions are defined via{" "}
-            {targetFromSiblings.schema.title}.
+            In this data type group, conversions are defined via {targetFromSiblings.schema.title}.
           </Typography>
         )}
       </Stack>

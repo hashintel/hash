@@ -2,16 +2,10 @@ import { Context } from "@temporalio/activity";
 
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
 
-import {
-  getTemporalClient,
-  isActivityCancelled,
-} from "../../../shared/get-flow-context.js";
+import { getTemporalClient, isActivityCancelled } from "../../../shared/get-flow-context.js";
 
 import type { FlowSignal } from "../../../../shared/signals.js";
-import type {
-  FlowSignalType,
-  WorkerIdentifiers,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowSignalType, WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 /**
  * Check if a HASH worker should stop what it is doing and return early.
@@ -60,9 +54,7 @@ export const checkIfWorkerShouldStop = async (
     ) {
       const signalData = event.workflowExecutionSignaledEventAttributes.input;
 
-      const inputData = parseHistoryItemPayload(signalData)?.[0] as
-        | FlowSignal
-        | undefined;
+      const inputData = parseHistoryItemPayload(signalData)?.[0] as FlowSignal | undefined;
 
       if (
         inputData &&

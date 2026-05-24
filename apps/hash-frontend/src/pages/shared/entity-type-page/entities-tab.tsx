@@ -9,11 +9,7 @@ import { useEntityType } from "./shared/entity-type-context";
 
 import type { BaseUrl } from "@blockprotocol/type-system";
 
-export const EntitiesTab = ({
-  entityTypeBaseUrl,
-}: {
-  entityTypeBaseUrl: BaseUrl;
-}) => {
+export const EntitiesTab = ({ entityTypeBaseUrl }: { entityTypeBaseUrl: BaseUrl }) => {
   const entityType = useEntityType();
 
   return (
@@ -21,9 +17,7 @@ export const EntitiesTab = ({
       <SectionWrapper
         title="Entities"
         titleTooltip={`This table lists all entities with the ‘${entityType.title}’ type that are accessible to you`}
-        tooltipIcon={
-          <FontAwesomeIcon icon={faCircleQuestion} sx={{ fontSize: 14 }} />
-        }
+        tooltipIcon={<FontAwesomeIcon icon={faCircleQuestion} sx={{ fontSize: 14 }} />}
       >
         <EntitiesVisualizer entityTypeBaseUrl={entityTypeBaseUrl} />
       </SectionWrapper>

@@ -18,10 +18,7 @@ export const CreateOrgForm = () => {
   const { refetch: refetchUser } = useAuthenticatedUser();
   const { refetch: refetchOrgs } = useOrgs();
 
-  const [createOrg] = useMutation<
-    CreateOrgMutation,
-    CreateOrgMutationVariables
-  >(createOrgMutation);
+  const [createOrg] = useMutation<CreateOrgMutation, CreateOrgMutationVariables>(createOrgMutation);
 
   const onSubmit = async (orgData: OrgFormData) => {
     const { errors } = await createOrg({

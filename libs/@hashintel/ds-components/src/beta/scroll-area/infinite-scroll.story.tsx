@@ -9,9 +9,7 @@ import * as ScrollArea from "../scroll-area";
 
 export const App = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [items, setItems] = useState(() =>
-    Array.from({ length: 20 }, (_, i) => `Item #${i + 1}`),
-  );
+  const [items, setItems] = useState(() => Array.from({ length: 20 }, (_, i) => `Item #${i + 1}`));
   const [isLoading, setIsLoading] = useState(false);
 
   const hasMore = items.length < 200;
@@ -38,10 +36,7 @@ export const App = () => {
       setTimeout(() => {
         setItems((prev) => [
           ...prev,
-          ...Array.from(
-            { length: 20 },
-            (_, i) => `Item #${prev.length + i + 1}`,
-          ),
+          ...Array.from({ length: 20 }, (_, i) => `Item #${prev.length + i + 1}`),
         ]);
         setIsLoading(false);
       }, 750);
@@ -72,11 +67,7 @@ export const App = () => {
                     transform: `translateY(${virtualItem.start}px)`,
                   }}
                 >
-                  {isLoaderRow
-                    ? hasMore
-                      ? "Loading more..."
-                      : "Nothing more to load"
-                    : item}
+                  {isLoaderRow ? (hasMore ? "Loading more..." : "Nothing more to load") : item}
                 </Center>
               );
             })}

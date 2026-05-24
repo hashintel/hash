@@ -40,10 +40,7 @@ interface DrawerErrorDisplayProps {
  * Compact error summary for drawer footers: a red badge showing the count
  * and the first error message truncated with ellipsis.
  */
-export const DrawerErrorDisplay = ({
-  count,
-  firstMessage,
-}: DrawerErrorDisplayProps) => {
+export const DrawerErrorDisplay = ({ count, firstMessage }: DrawerErrorDisplayProps) => {
   if (count === 0) {
     return null;
   }

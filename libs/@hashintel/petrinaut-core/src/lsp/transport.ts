@@ -22,9 +22,7 @@ export type LspWorkerFactory = WorkerFactoryLike<ClientMessage, ServerMessage>;
  * Wrap a `Worker` factory in an {@link LspTransport}. Messages sent before the
  * worker is ready are queued and flushed once it boots.
  */
-export function createWorkerLspTransport(
-  createWorker: LspWorkerFactory,
-): LspTransport {
+export function createWorkerLspTransport(createWorker: LspWorkerFactory): LspTransport {
   const listeners = new Set<(message: ServerMessage) => void>();
   let worker: WorkerLike<ClientMessage, ServerMessage> | null = null;
   let terminated = false;

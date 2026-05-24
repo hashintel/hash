@@ -50,13 +50,9 @@ function indexCombinations(n: number, k: number): number[][] {
  *     [1,2,0,1], [1,2,0,2], [1,2,1,2]
  *   ]
  */
-export function enumerateWeightedMarkingIndices(
-  places: PlaceSpec[],
-): number[][] {
+export function enumerateWeightedMarkingIndices(places: PlaceSpec[]): number[][] {
   // 1. combinations per place (of indices)
-  const perPlaceCombos = places.map((p) =>
-    indexCombinations(p.count, p.weight),
-  );
+  const perPlaceCombos = places.map((p) => indexCombinations(p.count, p.weight));
 
   // 2. check for invalid places
   if (perPlaceCombos.some((set) => set.length === 0)) {
@@ -81,9 +77,7 @@ export function enumerateWeightedMarkingIndices(
 export function* enumerateWeightedMarkingIndicesGenerator(
   places: PlaceSpec[],
 ): Generator<number[][], void, undefined> {
-  const perPlaceCombos = places.map((p) =>
-    indexCombinations(p.count, p.weight),
-  );
+  const perPlaceCombos = places.map((p) => indexCombinations(p.count, p.weight));
 
   if (perPlaceCombos.some((set) => set.length === 0)) {
     return;

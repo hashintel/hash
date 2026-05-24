@@ -20,9 +20,7 @@ export function buildPerTypeSeriesConfig(args: {
   const groups: { series: TimelineSeriesMeta; placeIds: string[] }[] = [];
 
   for (const type of types) {
-    const placeIds = places
-      .filter((place) => place.colorId === type.id)
-      .map((place) => place.id);
+    const placeIds = places.filter((place) => place.colorId === type.id).map((place) => place.id);
 
     if (placeIds.length === 0) {
       continue;
@@ -38,9 +36,7 @@ export function buildPerTypeSeriesConfig(args: {
     });
   }
 
-  const untypedIds = places
-    .filter((place) => place.colorId === null)
-    .map((place) => place.id);
+  const untypedIds = places.filter((place) => place.colorId === null).map((place) => place.id);
 
   if (untypedIds.length > 0) {
     groups.push({

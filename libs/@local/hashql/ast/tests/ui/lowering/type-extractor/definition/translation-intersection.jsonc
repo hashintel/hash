@@ -3,10 +3,6 @@
 [
   "type",
   "Combined",
-  [
-    "&",
-    { "#struct": { "name": "String" } },
-    { "#struct": { "age": "Number" } }
-  ],
+  ["&", { "#struct": { "name": "String" } }, { "#struct": { "age": "Number" } }],
   "_"
 ]

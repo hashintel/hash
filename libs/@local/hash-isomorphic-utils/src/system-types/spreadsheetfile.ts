@@ -133,8 +133,7 @@ export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
  */
 export type SpreadsheetFileProperties = FileProperties & {};
 
-export type SpreadsheetFilePropertiesWithMetadata =
-  FilePropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type SpreadsheetFilePropertiesWithMetadata = FilePropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

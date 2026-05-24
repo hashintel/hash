@@ -7,9 +7,7 @@ import { useBlockProtocolQueryPropertyTypes } from "../../components/hooks/block
 import type { PropertyTypesContextValues } from "../property-types-context";
 import type { PropertyTypeRootType } from "@blockprotocol/graph";
 
-export const usePropertyTypesContextValue = (params?: {
-  includeArchived?: boolean;
-}) => {
+export const usePropertyTypesContextValue = (params?: { includeArchived?: boolean }) => {
   const { includeArchived = false } = params ?? {};
 
   const [propertyTypes, setPropertyTypes] = useState<
@@ -25,11 +23,9 @@ export const usePropertyTypesContextValue = (params?: {
         setPropertyTypes((existingPropertyTypes) => ({
           ...(existingPropertyTypes ?? {}),
           ...Object.fromEntries(
-            getRoots<PropertyTypeRootType>(propertyTypesSubgraph).map(
-              (propertyType) => {
-                return [propertyType.schema.$id, propertyType];
-              },
-            ),
+            getRoots<PropertyTypeRootType>(propertyTypesSubgraph).map((propertyType) => {
+              return [propertyType.schema.$id, propertyType];
+            }),
           ),
         }));
       }
@@ -40,10 +36,7 @@ export const usePropertyTypesContextValue = (params?: {
     void fetch();
   }, [fetch]);
 
-  const result = useMemo(
-    () => ({ refetch: fetch, propertyTypes }),
-    [fetch, propertyTypes],
-  );
+  const result = useMemo(() => ({ refetch: fetch, propertyTypes }), [fetch, propertyTypes]);
 
   return result;
 };

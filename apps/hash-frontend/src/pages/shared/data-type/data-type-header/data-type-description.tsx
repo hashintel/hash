@@ -8,9 +8,7 @@ interface DataTypeDescriptionProps {
   isReadOnly: boolean;
 }
 
-export const DataTypeDescription = ({
-  isReadOnly,
-}: DataTypeDescriptionProps) => {
+export const DataTypeDescription = ({ isReadOnly }: DataTypeDescriptionProps) => {
   const { control } = useFormContext<DataTypeFormData>();
 
   const descriptionController = useController({

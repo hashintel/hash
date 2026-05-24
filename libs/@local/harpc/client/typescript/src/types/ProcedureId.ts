@@ -15,30 +15,27 @@ import { MutableBuffer } from "../binary/index.js";
 import { U16_MAX, U16_MIN } from "../constants.js";
 import { createProto, implDecode, implEncode } from "../utils.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/types/ProcedureId",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/types/ProcedureId");
 
 export type TypeId = typeof TypeId;
 
-export class ProcedureIdTooLargeError extends Data.TaggedError(
-  "ProcedureIdTooLargeError",
-)<{ received: number }> {
+export class ProcedureIdTooLargeError extends Data.TaggedError("ProcedureIdTooLargeError")<{
+  received: number;
+}> {
   get message() {
     return `Procedure ID too large: ${this.received}, expected between ${U16_MIN} and ${U16_MAX}`;
   }
 }
 
-export class ProcedureIdTooSmallError extends Data.TaggedError(
-  "ProcedureIdTooSmallError",
-)<{ received: number }> {
+export class ProcedureIdTooSmallError extends Data.TaggedError("ProcedureIdTooSmallError")<{
+  received: number;
+}> {
   get message() {
     return `Procedure ID too small: ${this.received}, expected between ${U16_MIN} and ${U16_MAX}`;
   }
 }
 
-export interface ProcedureId
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface ProcedureId extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly value: number;
@@ -55,11 +52,7 @@ const ProcedureIdProto: Omit<ProcedureId, "value"> = {
   },
 
   [Hash.symbol](this: ProcedureId) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.value)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.value)), Hash.cached(this));
   },
 
   toString(this: ProcedureId) {
@@ -89,10 +82,7 @@ export const makeUnchecked = (value: number): ProcedureId =>
 
 export const make = (
   id: number,
-): Effect.Effect<
-  ProcedureId,
-  ProcedureIdTooSmallError | ProcedureIdTooLargeError
-> => {
+): Effect.Effect<ProcedureId, ProcedureIdTooSmallError | ProcedureIdTooLargeError> => {
   if (id < U16_MIN) {
     return Effect.fail(new ProcedureIdTooSmallError({ received: id }));
   }
@@ -118,8 +108,7 @@ export const decode = implDecode((buffer) =>
 export const isProcedureId = (value: unknown): value is ProcedureId =>
   Predicate.hasProperty(value, TypeId);
 
-export const isReserved = (value: ProcedureId) =>
-  (value.value & 0xf0_00) === 0xf0_00;
+export const isReserved = (value: ProcedureId) => (value.value & 0xf0_00) === 0xf0_00;
 
 export const arbitrary = (fc: typeof FastCheck) =>
   fc.integer({ min: U16_MIN, max: U16_MAX }).map(makeUnchecked);

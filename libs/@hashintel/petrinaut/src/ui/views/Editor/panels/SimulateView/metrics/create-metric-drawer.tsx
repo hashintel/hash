@@ -38,16 +38,15 @@ const CreateMetricFooter = ({
   const formErrors = useStore(form.store, (state) => state.errors);
 
   const { diagnosticsByUri } = use(LanguageClientContext);
-  const { count: lspErrorCount, firstMessage: firstLspMessage } =
-    summarizeMetricLspErrors(diagnosticsByUri, metricSessionId);
+  const { count: lspErrorCount, firstMessage: firstLspMessage } = summarizeMetricLspErrors(
+    diagnosticsByUri,
+    metricSessionId,
+  );
   const hasLspErrors = lspErrorCount > 0;
 
-  const formError = formErrors.find((e) => typeof e === "string") as
-    | string
-    | undefined;
+  const formError = formErrors.find((e) => typeof e === "string") as string | undefined;
   const hasErrors = !!formError || hasLspErrors || !!compileError;
-  const totalErrorCount =
-    (formError ? 1 : 0) + lspErrorCount + (compileError ? 1 : 0);
+  const totalErrorCount = (formError ? 1 : 0) + lspErrorCount + (compileError ? 1 : 0);
   const firstError = formError ?? firstLspMessage ?? compileError ?? undefined;
   const canSave = canSubmit && !hasErrors && !isSubmitting && !isDefaultValue;
 
@@ -66,10 +65,7 @@ const CreateMetricFooter = ({
           formError ??
           (hasLspErrors
             ? "Fix the errors in the metric code before saving."
-            : (compileError ??
-              (isDefaultValue
-                ? "Make changes to enable creation."
-                : undefined)))
+            : (compileError ?? (isDefaultValue ? "Make changes to enable creation." : undefined)))
         }
         onClick={() => {
           void form.handleSubmit();
@@ -88,16 +84,11 @@ interface CreateMetricDrawerProps {
   onClose: () => void;
 }
 
-export const CreateMetricDrawer = ({
-  open,
-  onClose,
-}: CreateMetricDrawerProps) => {
+export const CreateMetricDrawer = ({ open, onClose }: CreateMetricDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { addMetric } = use(MutationContext);
 
-  const existingMetricNames = new Set(
-    (petriNetDefinition.metrics ?? []).map((m) => m.name),
-  );
+  const existingMetricNames = new Set((petriNetDefinition.metrics ?? []).map((m) => m.name));
 
   const form = useMetricForm(
     EMPTY_METRIC_FORM_STATE,
@@ -124,8 +115,7 @@ export const CreateMetricDrawer = ({
           name: values.name || "metric",
           code: values.code,
         });
-  const compileError =
-    compileOutcome && !compileOutcome.ok ? compileOutcome.error : null;
+  const compileError = compileOutcome && !compileOutcome.ok ? compileOutcome.error : null;
 
   // Owned here (not in MetricFormBody) so the footer can scope its LSP
   // diagnostics summary to the same session.
@@ -138,11 +128,7 @@ export const CreateMetricDrawer = ({
           Create a metric
         </Drawer.Header>
         <Drawer.Body>
-          <MetricFormBody
-            form={form}
-            idPrefix="create-"
-            metricSessionId={metricSessionId}
-          />
+          <MetricFormBody form={form} idPrefix="create-" metricSessionId={metricSessionId} />
         </Drawer.Body>
       </Drawer.Card>
       <CreateMetricFooter

@@ -6,8 +6,7 @@ const PORT = process.env.PORT;
 export const isTestEnv = process.env.NODE_ENV === "test";
 
 /** Whether the backend is running in the development environment. */
-export const isDevEnv =
-  process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
+export const isDevEnv = process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
 
 /** Whether the backend is running in the production environment. */
 export const isProdEnv = process.env.NODE_ENV === "production";

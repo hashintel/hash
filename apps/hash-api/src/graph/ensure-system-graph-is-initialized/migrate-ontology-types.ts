@@ -11,10 +11,7 @@ import { isProdEnv } from "../../lib/env-config";
 import { systemAccountId } from "../system-account";
 
 import type { ImpureGraphContext } from "../context-types";
-import type {
-  MigrationFunction,
-  MigrationState,
-} from "./migrate-ontology-types/types";
+import type { MigrationFunction, MigrationState } from "./migrate-ontology-types/types";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { MigrationsCompletedPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/hashinstance";
@@ -44,8 +41,7 @@ const saveMigrationState = async (params: {
           value: migrationsCompleted.map((migration) => ({
             value: migration,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           })),
         } satisfies MigrationsCompletedPropertyValueWithMetadata,
@@ -56,8 +52,7 @@ const saveMigrationState = async (params: {
         property: {
           value: migrationState,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
           },
         },
       },
@@ -80,10 +75,7 @@ export const migrateOntologyTypes = async (params: {
 }) => {
   const authentication = { actorId: systemAccountId };
 
-  const migrationDirectory = path.join(
-    __dirname,
-    "migrate-ontology-types/migrations",
-  );
+  const migrationDirectory = path.join(__dirname, "migrate-ontology-types/migrations");
 
   const migrationFileNames = (await readdir(migrationDirectory))
     .filter((fileName) => fileName.endsWith(".migration.ts"))
@@ -106,9 +98,7 @@ export const migrateOntologyTypes = async (params: {
     const hashInstance = await getHashInstance(params.context, authentication);
 
     const storedMigrationsCompleted = hashInstance.migrationsCompleted;
-    const storedMigrationState = hashInstance.migrationState as
-      | MigrationState
-      | undefined;
+    const storedMigrationState = hashInstance.migrationState as MigrationState | undefined;
 
     if (storedMigrationsCompleted && storedMigrationState) {
       migrationsCompleted.push(...storedMigrationsCompleted);
@@ -179,14 +169,9 @@ export const migrateOntologyTypes = async (params: {
        * This ensures we can resume from the correct state if the process is interrupted.
        */
       try {
-        const hashInstance = await getHashInstance(
-          params.context,
-          authentication,
-        );
+        const hashInstance = await getHashInstance(params.context, authentication);
 
-        const hashInstanceVersion = extractVersion(
-          hashInstance.entity.metadata.entityTypeIds[0],
-        );
+        const hashInstanceVersion = extractVersion(hashInstance.entity.metadata.entityTypeIds[0]);
 
         if (parseInt(hashInstanceVersion, 10) < 2) {
           params.logger.debug(

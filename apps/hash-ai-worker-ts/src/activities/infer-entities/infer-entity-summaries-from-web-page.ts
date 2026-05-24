@@ -3,10 +3,7 @@ import dedent from "dedent";
 import { inferEntitySummaries } from "./infer-entity-summaries.js";
 
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";
-import type {
-  DereferencedEntityTypesByTypeId,
-  InferenceState,
-} from "./inference-types.js";
+import type { DereferencedEntityTypesByTypeId, InferenceState } from "./inference-types.js";
 import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
@@ -59,9 +56,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
   }
   For entities that link other entities together, the sourceEntityId must correspond to an entityId of an entity you provide, as must the targetEntityId.
   I'm about to provide you with the content of a website${
-    typeof webPage === "string"
-      ? ""
-      : ` hosted at ${webPage.url}, titled ${webPage.title}`
+    typeof webPage === "string" ? "" : ` hosted at ${webPage.url}, titled ${webPage.title}`
   }.
   ${
     relevantEntitiesPrompt

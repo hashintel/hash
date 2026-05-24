@@ -44,27 +44,18 @@ export const make = Effect.fn("make")(function* (config?: ClientConfig) {
   }) satisfies ClientImpl as Client;
 });
 
-export const layer = (config?: ClientConfig) =>
-  Layer.scoped(Client, make(config));
+export const layer = (config?: ClientConfig) => Layer.scoped(Client, make(config));
 
 export const connect = Function.dual<
   (
     address: Transport.Address,
   ) => (
     self: Client,
-  ) => Effect.Effect<
-    Connection.Connection,
-    Transport.TransportError,
-    Scope.Scope
-  >,
+  ) => Effect.Effect<Connection.Connection, Transport.TransportError, Scope.Scope>,
   (
     self: Client,
     address: Transport.Address,
-  ) => Effect.Effect<
-    Connection.Connection,
-    Transport.TransportError,
-    Scope.Scope
-  >
+  ) => Effect.Effect<Connection.Connection, Transport.TransportError, Scope.Scope>
 >(
   2,
   Effect.fn("connect")((self, address) =>

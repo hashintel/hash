@@ -107,17 +107,11 @@ function meanFromBins(
   }
 
   return (
-    bins.reduce(
-      (sum, [tokenCount, frequency]) => sum + tokenCount * frequency,
-      0,
-    ) / sampleCount
+    bins.reduce((sum, [tokenCount, frequency]) => sum + tokenCount * frequency, 0) / sampleCount
   );
 }
 
-function buildTimelineData(
-  experiment: ExperimentRecord,
-  placeId: string,
-): uPlot.AlignedData {
+function buildTimelineData(experiment: ExperimentRecord, placeId: string): uPlot.AlignedData {
   const time: number[] = [];
   const median: (number | null)[] = [];
   const mean: (number | null)[] = [];
@@ -125,9 +119,7 @@ function buildTimelineData(
   const p90: (number | null)[] = [];
 
   for (const frame of experiment.distributionFrames) {
-    const place = frame.places.find(
-      (candidate) => candidate.placeId === placeId,
-    );
+    const place = frame.places.find((candidate) => candidate.placeId === placeId);
     if (!place) {
       continue;
     }
@@ -234,18 +226,13 @@ export const ExperimentTimeline = ({
   const distributionPlaceOptions =
     experiment.distributionFrames[0]?.places.map((place) => ({
       value: place.placeId,
-      label:
-        places.find((candidate) => candidate.id === place.placeId)?.name ??
-        place.placeName,
+      label: places.find((candidate) => candidate.id === place.placeId)?.name ?? place.placeName,
     })) ?? [];
   const selectedPlaceId =
-    placeId &&
-    distributionPlaceOptions.some((option) => option.value === placeId)
+    placeId && distributionPlaceOptions.some((option) => option.value === placeId)
       ? placeId
       : (distributionPlaceOptions[0]?.value ?? null);
-  const data = selectedPlaceId
-    ? buildTimelineData(experiment, selectedPlaceId)
-    : null;
+  const data = selectedPlaceId ? buildTimelineData(experiment, selectedPlaceId) : null;
   const hasData = data ? data[0]!.length > 0 : false;
 
   useEffect(() => {

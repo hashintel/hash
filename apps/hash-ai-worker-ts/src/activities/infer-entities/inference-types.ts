@@ -45,15 +45,9 @@ export type InferenceState = {
   /** A list of entities that can be inferred from the input, in summary form (no properties) */
   proposedEntitySummaries: ProposedEntitySummary[];
   /** A map of entity type IDs to a set of proposed entities, in entity form (with properties) */
-  proposedEntityCreationsByType: Record<
-    VersionedUrl,
-    DeprecatedProposedEntity[]
-  >;
+  proposedEntityCreationsByType: Record<VersionedUrl, DeprecatedProposedEntity[]>;
   /** The results of attempting to persist entities inferred from the input */
-  resultsByTemporaryId: Record<
-    number,
-    InferredEntityChangeResult | UpdateCandidate
-  >;
+  resultsByTemporaryId: Record<number, InferredEntityChangeResult | UpdateCandidate>;
   /** The token usage for each iteration, in order */
   usage: LlmUsage[];
 };

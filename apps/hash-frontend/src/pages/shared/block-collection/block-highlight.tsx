@@ -14,12 +14,7 @@ const Highlight = ({ onAnimationComplete }: HighlightProps) => {
   useEffect(() => setVisible(false), []);
 
   return (
-    <Fade
-      in={visible}
-      appear={false}
-      timeout={5000}
-      onExited={onAnimationComplete}
-    >
+    <Fade in={visible} appear={false} timeout={5000} onExited={onAnimationComplete}>
       <Box
         sx={(theme) => ({
           position: "absolute",
@@ -47,7 +42,5 @@ export const BlockHighlight = ({ blockEntityId }: BlockHighlightProps) => {
     return null;
   }
 
-  return (
-    <Highlight onAnimationComplete={() => setHighlightedBlockId(undefined)} />
-  );
+  return <Highlight onAnimationComplete={() => setHighlightedBlockId(undefined)} />;
 };

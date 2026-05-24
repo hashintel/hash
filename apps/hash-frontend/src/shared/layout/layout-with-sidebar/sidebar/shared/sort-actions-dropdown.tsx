@@ -1,12 +1,5 @@
 import { faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, ListItemIcon, ListItemText, Menu, Tooltip, Typography } from "@mui/material";
 import { bindMenu } from "material-ui-popup-state/hooks";
 
 import { FontAwesomeIcon } from "@hashintel/design-system";
@@ -60,9 +53,11 @@ const menuItems: {
   // },
 ];
 
-export const SortActionsDropdown: FunctionComponent<
-  SortActionsDropdownProps
-> = ({ setSortType, activeSortType, popupState }) => {
+export const SortActionsDropdown: FunctionComponent<SortActionsDropdownProps> = ({
+  setSortType,
+  activeSortType,
+  popupState,
+}) => {
   return (
     <Menu {...bindMenu(popupState)}>
       <Box

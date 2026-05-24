@@ -27,11 +27,7 @@ import { isTypeArchived } from "../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
-import {
-  isAiMachineActor,
-  type MinimalActor,
-  useActors,
-} from "../../shared/use-actors";
+import { isAiMachineActor, type MinimalActor, useActors } from "../../shared/use-actors";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { createRenderChipCell } from "./chip-cell";
 import { createRenderTextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
@@ -46,11 +42,7 @@ import type { FilterState } from "../../shared/table-header";
 import type { ChipCell } from "./chip-cell";
 import type { TextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
 import type { VisualizerView } from "./visualizer-views";
-import type {
-  Item,
-  SizedGridColumn,
-  TextCell,
-} from "@glideapps/glide-data-grid";
+import type { Item, SizedGridColumn, TextCell } from "@glideapps/glide-data-grid";
 import type { FunctionComponent } from "react";
 
 export type TypesTableColumnId =
@@ -85,12 +77,7 @@ const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   return `${domain}/${firstPathSegment}`;
 };
 
-type TypeTableKind =
-  | "all"
-  | "entity-type"
-  | "link-type"
-  | "property-type"
-  | "data-type";
+type TypeTableKind = "all" | "entity-type" | "link-type" | "property-type" | "data-type";
 
 const typesTablesToTitle: Record<TypeTableKind, string> = {
   all: "Types",
@@ -105,11 +92,7 @@ const firstColumnLeftPadding = 16;
 export const TypesTable: FunctionComponent<{
   loading?: boolean;
   onlyOneWeb?: boolean;
-  types?: (
-    | EntityTypeWithMetadata
-    | PropertyTypeWithMetadata
-    | DataTypeWithMetadata
-  )[];
+  types?: (EntityTypeWithMetadata | PropertyTypeWithMetadata | DataTypeWithMetadata)[];
   kind: TypeTableKind;
 }> = ({ types, kind, onlyOneWeb, loading = false }) => {
   const router = useRouter();
@@ -184,10 +167,7 @@ export const TypesTable: FunctionComponent<{
   const { orgs } = useOrgs();
 
   const editorActorIds = useMemo(
-    () =>
-      types?.flatMap(({ metadata }) => [
-        metadata.provenance.edition.createdById,
-      ]),
+    () => types?.flatMap(({ metadata }) => [metadata.provenance.edition.createdById]),
     [types],
   );
 
@@ -201,19 +181,15 @@ export const TypesTable: FunctionComponent<{
   const { authenticatedUser } = useAuthenticatedUser();
 
   const internalWebIds = useMemo(() => {
-    return [
-      authenticatedUser.accountId,
-      ...authenticatedUser.memberOf.map(({ org }) => org.webId),
-    ];
+    return [authenticatedUser.accountId, ...authenticatedUser.memberOf.map(({ org }) => org.webId)];
   }, [authenticatedUser]);
 
   const filteredTypes = useMemo(() => {
-    const filtered: ((
-      | EntityTypeWithMetadata
-      | PropertyTypeWithMetadata
-      | DataTypeWithMetadata
-    ) & { isExternal: boolean; webShortname?: string; archived: boolean })[] =
-      [];
+    const filtered: ((EntityTypeWithMetadata | PropertyTypeWithMetadata | DataTypeWithMetadata) & {
+      isExternal: boolean;
+      webShortname?: string;
+      archived: boolean;
+    })[] = [];
 
     for (const type of types ?? []) {
       const isExternal = isExternalOntologyElementMetadata(type.metadata)
@@ -253,15 +229,12 @@ export const TypesTable: FunctionComponent<{
     () =>
       filteredTypes.map((type) => {
         const lastEdited = format(
-          new Date(
-            type.metadata.temporalVersioning.transactionTime.start.limit,
-          ),
+          new Date(type.metadata.temporalVersioning.transactionTime.start.limit),
           "yyyy-MM-dd HH:mm",
         );
 
         const lastEditedBy = actors?.find(
-          ({ accountId }) =>
-            accountId === type.metadata.provenance.edition.createdById,
+          ({ accountId }) => accountId === type.metadata.provenance.edition.createdById,
         );
 
         return {
@@ -288,9 +261,7 @@ export const TypesTable: FunctionComponent<{
   );
 
   const sortRows = useCallback<
-    NonNullable<
-      GridProps<TypesTableRow, TypesTableColumn, TypesTableColumnId>["sortRows"]
-    >
+    NonNullable<GridProps<TypesTableRow, TypesTableColumn, TypesTableColumnId>["sortRows"]>
   >((unsortedRows, sort) => {
     return unsortedRows.toSorted((a, b) => {
       const isActorSort = (key: string): key is "lastEditedBy" | "createdBy" =>
@@ -337,9 +308,7 @@ export const TypesTable: FunctionComponent<{
         switch (column.id) {
           case "title": {
             const isClickable =
-              row.kind === "entity-type" ||
-              row.kind === "link-type" ||
-              row.kind === "data-type";
+              row.kind === "entity-type" || row.kind === "link-type" || row.kind === "data-type";
 
             return {
               kind: GridCellKind.Custom,
@@ -354,17 +323,13 @@ export const TypesTable: FunctionComponent<{
                     icon: row.icon
                       ? { entityTypeIcon: row.icon }
                       : {
-                          inbuiltIcon:
-                            row.kind === "link-type" ? "bpLink" : "bpAsterisk",
+                          inbuiltIcon: row.kind === "link-type" ? "bpLink" : "bpAsterisk",
                         },
                     text: row.title,
                     onClick: isClickable
                       ? () => {
                           pushToSlideStack({
-                            kind:
-                              row.kind === "data-type"
-                                ? "dataType"
-                                : "entityType",
+                            kind: row.kind === "data-type" ? "dataType" : "entityType",
                             itemId: row.typeId,
                           });
                         }
@@ -453,9 +418,7 @@ export const TypesTable: FunctionComponent<{
                   ? [
                       {
                         text: actorName,
-                        icon: actorIcon
-                          ? { inbuiltIcon: actorIcon }
-                          : undefined,
+                        icon: actorIcon ? { inbuiltIcon: actorIcon } : undefined,
                       },
                     ]
                   : [],
@@ -507,13 +470,13 @@ export const TypesTable: FunctionComponent<{
           <TableHeaderToggle
             value={view}
             setValue={setView}
-            options={(
-              ["Table", "Graph"] as const satisfies VisualizerView[]
-            ).map((optionValue) => ({
-              icon: visualizerViewIcons[optionValue],
-              label: `${optionValue} view`,
-              value: optionValue,
-            }))}
+            options={(["Table", "Graph"] as const satisfies VisualizerView[]).map(
+              (optionValue) => ({
+                icon: visualizerViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }),
+            )}
           />
         }
         itemLabelPlural="types"
@@ -554,9 +517,7 @@ export const TypesTable: FunctionComponent<{
                 )
               )`}
             onSearchClose={() => setShowSearch(false)}
-            onSelectedRowsChange={(updatedSelectedRows) =>
-              setSelectedRows(updatedSelectedRows)
-            }
+            onSelectedRowsChange={(updatedSelectedRows) => setSelectedRows(updatedSelectedRows)}
             rows={filteredRows}
             selectedRows={selectedRows}
             showSearch={showSearch}
@@ -573,10 +534,7 @@ export const TypesTable: FunctionComponent<{
         </Box>
       ) : (
         <Box height={maxTableHeight} sx={tableContentSx}>
-          <TypeGraphVisualizer
-            onTypeClick={onTypeClick}
-            types={filteredTypes}
-          />
+          <TypeGraphVisualizer onTypeClick={onTypeClick} types={filteredTypes} />
         </Box>
       )}
     </Box>

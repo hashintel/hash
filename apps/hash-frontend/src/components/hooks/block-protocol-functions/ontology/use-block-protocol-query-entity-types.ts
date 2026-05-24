@@ -77,9 +77,8 @@ export const useBlockProtocolQueryEntityTypes = (): {
       }
 
       return {
-        data: deserializeQueryEntityTypeSubgraphResponse(
-          response.data.queryEntityTypeSubgraph,
-        ).subgraph,
+        data: deserializeQueryEntityTypeSubgraphResponse(response.data.queryEntityTypeSubgraph)
+          .subgraph,
       };
     },
     [queryFn],

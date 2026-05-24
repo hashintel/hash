@@ -34,17 +34,12 @@ const linkEntityTypeSelectorDropdownProps = {
   variant: "entity type" as const,
 };
 
-export const DestinationEntityTypeSelector = ({
-  linkIndex,
-}: {
-  linkIndex: number;
-}) => {
+export const DestinationEntityTypeSelector = ({ linkIndex }: { linkIndex: number }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
 
   const isReadonly = useIsReadonly();
 
-  const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] =
-    useState(false);
+  const [entityTypeSelectorPopupOpen, setEntityTypeSelectorPopupOpen] = useState(false);
 
   const entityTypeSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -66,9 +61,7 @@ export const DestinationEntityTypeSelector = ({
     name: `links.${linkIndex}.entityTypes`,
   });
 
-  const entityTypesArray = Object.values(entityTypes).map(
-    (type) => type.schema,
-  );
+  const entityTypesArray = Object.values(entityTypes).map((type) => type.schema);
 
   /**
    * An entity type may link to a link (via API, migration or AI inference),
@@ -153,13 +146,10 @@ export const DestinationEntityTypeSelector = ({
              * so we need to account for one of the chosen destination types being a link,
              * even though we don't currently support selecting links as destination types in the UI.
              */
-            const entityType =
-              entityTypes[entityTypeId] ?? linkTypes[entityTypeId];
+            const entityType = entityTypes[entityTypeId] ?? linkTypes[entityTypeId];
 
             if (!entityType) {
-              throw new Error(
-                `Destination entity type ${entityTypeId} not found in options`,
-              );
+              throw new Error(`Destination entity type ${entityTypeId} not found in options`);
             }
 
             return (
@@ -169,9 +159,7 @@ export const DestinationEntityTypeSelector = ({
                 updateVersion={(newVersion: VersionedUrl) =>
                   setValue(
                     `links.${linkIndex}.entityTypes`,
-                    chosenEntityTypeIds.map((id) =>
-                      id === entityTypeId ? newVersion : id,
-                    ),
+                    chosenEntityTypeIds.map((id) => (id === entityTypeId ? newVersion : id)),
                     { shouldDirty: true },
                   )
                 }
@@ -180,9 +168,7 @@ export const DestinationEntityTypeSelector = ({
                       onDelete: () => {
                         setValue(
                           `links.${linkIndex}.entityTypes`,
-                          chosenEntityTypeIds.filter(
-                            (id) => id !== entityTypeId,
-                          ),
+                          chosenEntityTypeIds.filter((id) => id !== entityTypeId),
                           { shouldDirty: true },
                         );
                       },
@@ -267,9 +253,7 @@ export const DestinationEntityTypeSelector = ({
                   case "removeOption":
                     setValue(
                       `links.${linkIndex}.entityTypes`,
-                      chosenEntityTypeIds.filter(
-                        (id) => id !== details.option.$id,
-                      ),
+                      chosenEntityTypeIds.filter((id) => id !== details.option.$id),
                       { shouldDirty: true },
                     );
                     break;

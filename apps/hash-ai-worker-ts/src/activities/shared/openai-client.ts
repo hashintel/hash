@@ -11,9 +11,7 @@ const permittedOpenAiModels = [
 
 export type PermittedOpenAiModel = (typeof permittedOpenAiModels)[number];
 
-export const isPermittedOpenAiModel = (
-  model: string,
-): model is PermittedOpenAiModel =>
+export const isPermittedOpenAiModel = (model: string): model is PermittedOpenAiModel =>
   permittedOpenAiModels.includes(model as PermittedOpenAiModel);
 
 /** @see https://platform.openai.com/docs/models */
@@ -28,8 +26,7 @@ export const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
 
 export const isPermittedModel = (
   model: OpenAI.ChatCompletionCreateParams["model"],
-): model is PermittedOpenAiModel =>
-  Object.keys(modelToContextWindow).includes(model);
+): model is PermittedOpenAiModel => Object.keys(modelToContextWindow).includes(model);
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY environment variable not set.");

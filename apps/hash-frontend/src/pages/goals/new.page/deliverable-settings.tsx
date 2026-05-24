@@ -1,18 +1,7 @@
-import {
-  Box,
-  Checkbox,
-  Collapse,
-  outlinedInputClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Checkbox, Collapse, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import {
-  CaretDownSolidIcon,
-  IconButton,
-  TextField,
-} from "@hashintel/design-system";
+import { CaretDownSolidIcon, IconButton, TextField } from "@hashintel/design-system";
 
 import { GoogleAccountSelect } from "../../shared/integrations/google/google-account-select";
 import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-context";
@@ -62,11 +51,7 @@ const DeliverableSetting = ({
           }}
           sx={{ "& .MuiSvgIcon-root": { fontSize: 18 }, mr: 1 }}
         />
-        <Box
-          component="label"
-          htmlFor={checkboxId}
-          sx={{ fontSize: 14, cursor: "pointer" }}
-        >
+        <Box component="label" htmlFor={checkboxId} sx={{ fontSize: 14, cursor: "pointer" }}>
           {label}
         </Box>
         <IconButton
@@ -116,9 +101,7 @@ const SpreadsheetSettings = ({
     <DeliverableSetting
       checked={!!spreadsheetSettings}
       onChangeChecked={() =>
-        spreadsheetSettings
-          ? setSpreadsheetSettings(null)
-          : setSpreadsheetSettings({})
+        spreadsheetSettings ? setSpreadsheetSettings(null) : setSpreadsheetSettings({})
       }
       label="Spreadsheet"
       subLabel="Sync entities to a Google Sheet"
@@ -202,10 +185,7 @@ type DeliverableSettingsProps = {
   setSettings: Dispatch<SetStateAction<DeliverableSettingsState>>;
 };
 
-export const DeliverableSettings = ({
-  settings,
-  setSettings,
-}: DeliverableSettingsProps) => {
+export const DeliverableSettings = ({ settings, setSettings }: DeliverableSettingsProps) => {
   return (
     <Box>
       <SpreadsheetSettings

@@ -1,11 +1,4 @@
-import {
-  Box,
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Checkbox, FormControl, FormControlLabel, Stack, Typography } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
 
 import { useGraphContext } from "../graph-context";
@@ -115,13 +108,10 @@ export const NodeTypeFilters = ({ typesInData }: CheckboxListProps) => {
                         /**
                          * Disable visibility for all types currently in the graph.
                          */
-                        ...typesInData.reduce<Record<string, boolean>>(
-                          (acc, type) => {
-                            acc[type.nodeTypeId] = false;
-                            return acc;
-                          },
-                          {},
-                        ),
+                        ...typesInData.reduce<Record<string, boolean>>((acc, type) => {
+                          acc[type.nodeTypeId] = false;
+                          return acc;
+                        }, {}),
                         [nodeTypeId]: true,
                       },
                     });

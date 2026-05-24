@@ -25,11 +25,7 @@ export const gptGetUserWebs: RequestHandler<
     return;
   }
 
-  const userWebs = await getUserSimpleWebs(
-    req.context,
-    { actorId: user.accountId },
-    { user },
-  );
+  const userWebs = await getUserSimpleWebs(req.context, { actorId: user.accountId }, { user });
 
   res.status(200).json({ userWebs });
 };

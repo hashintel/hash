@@ -204,11 +204,7 @@ const judgeTool: LlmToolDefinition = {
             jsonPath: { type: "array", items: { type: "string" } },
             correctionType: {
               type: "string",
-              enum: [
-                "correct-missing",
-                "correct-incorrect",
-                "delete-unfounded",
-              ],
+              enum: ["correct-missing", "correct-incorrect", "delete-unfounded"],
             },
             correctValue: {
               anyOf: [
@@ -257,9 +253,7 @@ export const judgeAiOutputs = async ({
 
   if (fileMessages.length > 0) {
     if (!isPermittedGoogleAiModel(judgeModel)) {
-      throw new Error(
-        "Judge must be Google AI model in order to provide files to it.",
-      );
+      throw new Error("Judge must be Google AI model in order to provide files to it.");
     }
 
     judgePrompt.content.push(...fileMessages);
@@ -275,8 +269,7 @@ export const judgeAiOutputs = async ({
     throw new Error("Last message must be from the AI");
   }
 
-  const { flowEntityId, stepId, userAuthentication, webId } =
-    await getFlowContext();
+  const { flowEntityId, stepId, userAuthentication, webId } = await getFlowContext();
 
   const judgeResponse = await getLlmResponse(
     {
@@ -341,23 +334,15 @@ export const judgeAiOutputs = async ({
 
   const errors: string[] = [];
   for (const correction of toolCall.input.corrections) {
-    const existingValue = get(lastAiMessage, correction.jsonPath) as
-      | PropertyValue
-      | undefined;
+    const existingValue = get(lastAiMessage, correction.jsonPath) as PropertyValue | undefined;
 
-    if (
-      correction.correctionType !== "correct-missing" &&
-      existingValue === undefined
-    ) {
+    if (correction.correctionType !== "correct-missing" && existingValue === undefined) {
       errors.push(
         `You provided a correction of type ${correction.correctionType} at path ${correction.jsonPath.join(
           ".",
         )} but there is no value at that path. Value must exist to be corrected or deleted. If you are providing a value that was missed, used the 'correct-missing' correction type.`,
       );
-    } else if (
-      correction.correctionType === "correct-missing" &&
-      existingValue !== undefined
-    ) {
+    } else if (correction.correctionType === "correct-missing" && existingValue !== undefined) {
       errors.push(
         `You provided a correction of type ${correction.correctionType} at path ${correction.jsonPath.join(
           ".",

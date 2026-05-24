@@ -12,11 +12,7 @@ import { create as handlebarsCreate } from "express-handlebars";
 import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
-import {
-  createProxyMiddleware,
-  fixRequestBody,
-  responseInterceptor,
-} from "http-proxy-middleware";
+import { createProxyMiddleware, fixRequestBody, responseInterceptor } from "http-proxy-middleware";
 import httpTerminator from "http-terminator";
 import Keyv from "keyv";
 import { customAlphabet } from "nanoid";
@@ -72,25 +68,11 @@ import { googleOAuthCallback } from "./integrations/google/oauth-callback";
 import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
 import { linearWebhook } from "./integrations/linear/webhook";
 import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
-import {
-  CORS_CONFIG,
-  getEnvStorageType,
-  GRAPHQL_PATH,
-  LOCAL_FILE_UPLOAD_PATH,
-} from "./lib/config";
-import {
-  isDevEnv,
-  isProdEnv,
-  isStatsDEnabled,
-  isTestEnv,
-  port,
-} from "./lib/env-config";
+import { CORS_CONFIG, getEnvStorageType, GRAPHQL_PATH, LOCAL_FILE_UPLOAD_PATH } from "./lib/config";
+import { isDevEnv, isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
-import {
-  setupFileDownloadProxyHandler,
-  setupStorageProviders,
-} from "./storage";
+import { setupFileDownloadProxyHandler, setupStorageProviders } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
@@ -253,9 +235,7 @@ const redactAuthQueryParams = (value: string): string =>
     .replace(/\?[^#\s]*/g, "?[REDACTED_QUERY]");
 
 const sanitizeProxyLogArgs = (args: unknown[]): unknown[] =>
-  args.map((arg) =>
-    typeof arg === "string" ? redactAuthQueryParams(arg) : arg,
-  );
+  args.map((arg) => (typeof arg === "string" ? redactAuthQueryParams(arg) : arg));
 
 /**
  * Forward a `http-proxy-middleware` variadic log call to the
@@ -321,9 +301,7 @@ const kratosProxy = createProxyMiddleware<Request, Response>({
      * in modern browsers.
      */
     proxyRes: (proxyRes, req, res) => {
-      const expectedAccessControlAllowOriginHeader = res.getHeader(
-        "access-control-allow-origin",
-      );
+      const expectedAccessControlAllowOriginHeader = res.getHeader("access-control-allow-origin");
 
       return responseInterceptor((responseBuffer, _, __, inflightRes) => {
         if (typeof expectedAccessControlAllowOriginHeader === "string") {
@@ -408,9 +386,7 @@ const main = async () => {
         origin: req.headers.origin,
         ip: req.ip,
         userAgent: req.headers["user-agent"],
-        graphqlClient:
-          req.headers[hashClientHeaderKey] ??
-          req.headers["apollographql-client-name"],
+        graphqlClient: req.headers[hashClientHeaderKey] ?? req.headers["apollographql-client-name"],
       });
     }
 
@@ -419,15 +395,11 @@ const main = async () => {
 
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = Number.parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
-  const redisEncryptedTransit =
-    process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
+  const redisEncryptedTransit = process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true";
   const redisUrl = `redis${redisEncryptedTransit ? "s" : ""}://${redisHost}:${redisPort}`;
 
   const graphApiHost = getRequiredEnv("HASH_GRAPH_HTTP_HOST");
-  const graphApiPort = Number.parseInt(
-    getRequiredEnv("HASH_GRAPH_HTTP_PORT"),
-    10,
-  );
+  const graphApiPort = Number.parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10);
 
   await Promise.all([
     waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
@@ -526,11 +498,7 @@ const main = async () => {
           "https://apollo-server-landing-page.cdn.apollographql.com",
         ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: [
-          "'self'",
-          "data:",
-          "https://apollo-server-landing-page.cdn.apollographql.com",
-        ],
+        imgSrc: ["'self'", "data:", "https://apollo-server-landing-page.cdn.apollographql.com"],
         connectSrc: [
           "'self'",
           "https://apollo-server-landing-page.cdn.apollographql.com",
@@ -538,10 +506,7 @@ const main = async () => {
         ],
         frameSrc: ["'self'", "https://sandbox.embed.apollographql.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        manifestSrc: [
-          "'self'",
-          "https://apollo-server-landing-page.cdn.apollographql.com",
-        ],
+        manifestSrc: ["'self'", "https://apollo-server-landing-page.cdn.apollographql.com"],
         ...cspHardeningDirectives,
       },
     },
@@ -596,10 +561,7 @@ const main = async () => {
 
   /** Body parsing middleware */
   app.use((req, res, next) => {
-    if (
-      req.path.startsWith("/webhooks/") ||
-      req.path === LOCAL_FILE_UPLOAD_PATH
-    ) {
+    if (req.path.startsWith("/webhooks/") || req.path === LOCAL_FILE_UPLOAD_PATH) {
       // webhooks typically need the raw body for signature verification
       return rawParser(req, res, next);
     }
@@ -666,11 +628,7 @@ const main = async () => {
 
   /** OAuth2 consent flow */
   app.get("/oauth2/consent", authRouteRateLimiter, oauthConsentRequestHandler);
-  app.post(
-    "/oauth2/consent",
-    authRouteRateLimiter,
-    oauthConsentSubmissionHandler,
-  );
+  app.post("/oauth2/consent", authRouteRateLimiter, oauthConsentSubmissionHandler);
 
   const hbs = handlebarsCreate({ defaultLayout: "main", extname: ".hbs" });
   app.engine(
@@ -766,10 +724,7 @@ const main = async () => {
     shutdown.addCleanup("ManagedRuntime", () => runtime.dispose());
 
     const rpcHost = getRequiredEnv("HASH_GRAPH_RPC_HOST");
-    const rpcPort = Number.parseInt(
-      process.env.HASH_GRAPH_RPC_PORT ?? "4002",
-      10,
-    );
+    const rpcPort = Number.parseInt(process.env.HASH_GRAPH_RPC_PORT ?? "4002", 10);
 
     // print out (temporary) DNS diagnostics
     // see: https://linear.app/hash/issue/H-3813/remove-dns-logging-durring-hash-api-start
@@ -801,18 +756,14 @@ const main = async () => {
       const effect = Effect.gen(function* () {
         const textQueryParam = req.query.text;
         if (typeof textQueryParam !== "string") {
-          return yield* new RuntimeException(
-            "text query parameter is required",
-          );
+          return yield* new RuntimeException("text query parameter is required");
         }
 
         const response = yield* EchoSubsystem.echo(textQueryParam);
         res.status(200).send(response);
       }).pipe(
         Effect.provide(
-          RpcClient.connectLayer(
-            Transport.multiaddr(`/dns/${rpcHost}/tcp/${rpcPort}`),
-          ),
+          RpcClient.connectLayer(Transport.multiaddr(`/dns/${rpcHost}/tcp/${rpcPort}`)),
         ),
         Logger.withMinimumLogLevel(LogLevel.Trace),
       );
@@ -850,21 +801,13 @@ const main = async () => {
 
   app.post("/oauth/google/callback", authRouteRateLimiter, googleOAuthCallback);
   app.post("/oauth/google/token", authRouteRateLimiter, getGoogleAccessToken);
-  app.post(
-    "/oauth/google/check-token",
-    authRouteRateLimiter,
-    checkGoogleAccessToken,
-  );
+  app.post("/oauth/google/check-token", authRouteRateLimiter, checkGoogleAccessToken);
 
   // Endpoints used by HashGPT or in support of it
   app.post("/gpt/entities/query", gptRateLimiter, gptQueryEntities);
   app.post("/gpt/entities/query-types", gptRateLimiter, gptQueryTypes);
   app.get("/gpt/user-webs", gptRateLimiter, gptGetUserWebs);
-  app.post(
-    "/gpt/upsert-gpt-oauth-client",
-    gptRateLimiter,
-    upsertGptOauthClient,
-  );
+  app.post("/gpt/upsert-gpt-oauth-client", gptRateLimiter, upsertGptOauthClient);
 
   /**
    * This middleware MUST:
@@ -958,10 +901,7 @@ const main = async () => {
 
     void integrationSyncBackWatcher.start();
 
-    shutdown.addCleanup(
-      "Integration sync back watcher",
-      integrationSyncBackWatcher.stop,
-    );
+    shutdown.addCleanup("Integration sync back watcher", integrationSyncBackWatcher.stop);
   }
 };
 

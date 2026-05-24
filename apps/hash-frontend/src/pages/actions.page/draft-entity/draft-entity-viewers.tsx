@@ -32,42 +32,30 @@ export const DraftEntityViewers: FunctionComponent<{
   const { orgs: orgViewers } = useOrgsWithLinks({
     orgAccountGroupIds: authorizationRelationships
       ?.map(({ subject }) =>
-        subject.__typename === "AccountGroupAuthorizationSubject"
-          ? subject.accountGroupId
-          : [],
+        subject.__typename === "AccountGroupAuthorizationSubject" ? subject.accountGroupId : [],
       )
       .flat(),
   });
 
   const orgMemberViewers = useMemo(() => {
     if (orgViewers) {
-      return orgViewers
-        .map(({ memberships }) => memberships.map(({ user }) => user))
-        .flat();
+      return orgViewers.map(({ memberships }) => memberships.map(({ user }) => user)).flat();
     }
   }, [orgViewers]);
 
   const userViewers = useMemo(() => {
     if (authorizationRelationships && users) {
-      return authorizationRelationships.reduce<MinimalUser[]>(
-        (prev, { subject }) => {
-          if (subject.__typename === "AccountAuthorizationSubject") {
-            const user = users.find(
-              ({ accountId }) => accountId === subject.accountId,
-            );
+      return authorizationRelationships.reduce<MinimalUser[]>((prev, { subject }) => {
+        if (subject.__typename === "AccountAuthorizationSubject") {
+          const user = users.find(({ accountId }) => accountId === subject.accountId);
 
-            if (
-              user &&
-              !prev.some(({ accountId }) => accountId === user.accountId)
-            ) {
-              return [...prev, user];
-            }
+          if (user && !prev.some(({ accountId }) => accountId === user.accountId)) {
+            return [...prev, user];
           }
+        }
 
-          return prev;
-        },
-        [],
-      );
+        return prev;
+      }, []);
     }
   }, [authorizationRelationships, users]);
 
@@ -96,8 +84,7 @@ export const DraftEntityViewers: FunctionComponent<{
       if (userViewers && orgMemberViewers) {
         const viewers = [...userViewers, ...orgMemberViewers].filter(
           (viewer, index, all) =>
-            all.findIndex(({ accountId }) => accountId === viewer.accountId) ===
-            index,
+            all.findIndex(({ accountId }) => accountId === viewer.accountId) === index,
         );
 
         return (

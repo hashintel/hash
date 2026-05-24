@@ -14,7 +14,6 @@ export const prependBannerComments = (context: PostprocessContext) => {
 
   for (const file of typedKeys(context.filesToDependentIdentifiers)) {
     context.logTrace(`Prepending banner comment for ${file}`);
-    context.filesToContents[file] =
-      bannerComment() + mustBeDefined(context.filesToContents[file]);
+    context.filesToContents[file] = bannerComment() + mustBeDefined(context.filesToContents[file]);
   }
 };

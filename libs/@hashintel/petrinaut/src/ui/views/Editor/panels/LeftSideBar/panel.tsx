@@ -6,10 +6,7 @@ import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { GlassPanel } from "../../../../components/glass-panel";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
-import {
-  MAX_LEFT_SIDEBAR_WIDTH,
-  MIN_LEFT_SIDEBAR_WIDTH,
-} from "../../../../constants/ui";
+import { MAX_LEFT_SIDEBAR_WIDTH, MIN_LEFT_SIDEBAR_WIDTH } from "../../../../constants/ui";
 import {
   LEFT_SIDEBAR_SUBVIEWS,
   LEFT_SIDEBAR_TREE_SUBVIEWS,
@@ -110,9 +107,7 @@ export const LeftSideBar: React.FC = () => {
   // The sidebar is visible when explicitly opened OR when search is active
   const isVisible = isOpen || isSearchOpen;
 
-  const sidebarSubViews = useEntitiesTreeView
-    ? LEFT_SIDEBAR_TREE_SUBVIEWS
-    : LEFT_SIDEBAR_SUBVIEWS;
+  const sidebarSubViews = useEntitiesTreeView ? LEFT_SIDEBAR_TREE_SUBVIEWS : LEFT_SIDEBAR_SUBVIEWS;
 
   const searchSubViews = useMemo(() => [searchSubView], []);
 
@@ -142,10 +137,7 @@ export const LeftSideBar: React.FC = () => {
             direction: "forward",
           })}
         >
-          <VerticalSubViewsContainer
-            name="left-sidebar"
-            subViews={sidebarSubViews}
-          />
+          <VerticalSubViewsContainer name="left-sidebar" subViews={sidebarSubViews} />
         </div>
         <div
           className={contentLayerStyle({
@@ -153,10 +145,7 @@ export const LeftSideBar: React.FC = () => {
             direction: "backward",
           })}
         >
-          <VerticalSubViewsContainer
-            name="left-sidebar-search"
-            subViews={searchSubViews}
-          />
+          <VerticalSubViewsContainer name="left-sidebar-search" subViews={searchSubViews} />
         </div>
       </div>
     </GlassPanel>

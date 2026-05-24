@@ -1,20 +1,9 @@
-import {
-  Box,
-  buttonClasses,
-  Container,
-  Fade,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, buttonClasses, Container, Fade, Stack, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 import { useRouter } from "next/router";
 import { useCallback, useMemo } from "react";
 
-import {
-  extractBaseUrl,
-  extractVersion,
-  isBaseUrl,
-} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion, isBaseUrl } from "@blockprotocol/type-system";
 import {
   AsteriskRegularIcon,
   EntityOrTypeIcon,
@@ -51,10 +40,7 @@ import { useActiveWorkspace } from "./shared/workspace-context";
 
 import type { NextPageWithLayout } from "../shared/layout";
 import type { Breadcrumb } from "./shared/breadcrumbs";
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type { SxProps, Theme } from "@mui/material";
 import type { FunctionComponent } from "react";
 
@@ -83,9 +69,7 @@ export const CreateButtons: FunctionComponent<{
       entityType
         ? (isSpecialEntityTypeLookup?.[entityType.schema.$id] ?? {
             isFile: false,
-            isLink:
-              entityType.schema.$id ===
-              blockProtocolEntityTypes.link.entityTypeId,
+            isLink: entityType.schema.$id === blockProtocolEntityTypes.link.entityTypeId,
           })
         : { isFile: false, isLink: false },
     [isSpecialEntityTypeLookup, entityType],
@@ -109,9 +93,7 @@ export const CreateButtons: FunctionComponent<{
       entityType && isFile
         ? `${generateLinkParameters(entityType.schema.$id).href}?tab=upload`
         : `/new/entity${
-            entityType
-              ? `?entity-type-id=${encodeURIComponent(entityType.schema.$id)}`
-              : ""
+            entityType ? `?entity-type-id=${encodeURIComponent(entityType.schema.$id)}` : ""
           }`,
     );
   }, [entityType, isFile, router]);
@@ -134,9 +116,7 @@ export const CreateButtons: FunctionComponent<{
     return null;
   }
 
-  return isViewAllPagesPage ||
-    isViewAllDocumentsPage ||
-    isViewAllCanvasesPage ? (
+  return isViewAllPagesPage || isViewAllDocumentsPage || isViewAllCanvasesPage ? (
     <Box display="flex" gap={3}>
       {(isViewAllPagesPage || isViewAllDocumentsPage) &&
       enabledFeatureFlags.pages &&
@@ -167,13 +147,8 @@ export const CreateButtons: FunctionComponent<{
       ) : null}
     </Box>
   ) : (
-    <CreateButton
-      onClick={createEntity}
-      variant="tertiary_quiet"
-      endIcon={<PlusRegularIcon />}
-    >
-      {isFile ? "Add" : "Create"} new{" "}
-      {entityType?.schema.title.toLowerCase() ?? "entity"}
+    <CreateButton onClick={createEntity} variant="tertiary_quiet" endIcon={<PlusRegularIcon />}>
+      {isFile ? "Add" : "Create"} new {entityType?.schema.title.toLowerCase() ?? "entity"}
       {isFile ? "(s)" : ""}
     </CreateButton>
   );
@@ -224,8 +199,9 @@ const EntitiesPage: NextPageWithLayout = () => {
     [latestEntityTypes, entityTypeId, entityTypeBaseUrl],
   );
 
-  const { userPermissions, loading: userPermissionsLoading } =
-    useUserPermissionsOnEntityType(entityType?.schema.$id);
+  const { userPermissions, loading: userPermissionsLoading } = useUserPermissionsOnEntityType(
+    entityType?.schema.$id,
+  );
 
   const isViewAllPagesPage =
     entityType && entityType.schema.$id === systemEntityTypes.page.entityTypeId;
@@ -251,12 +227,7 @@ const EntitiesPage: NextPageWithLayout = () => {
     }
 
     return true;
-  }, [
-    isViewAllPagesPage,
-    hashInstance,
-    userPermissions,
-    userPermissionsLoading,
-  ]);
+  }, [isViewAllPagesPage, hashInstance, userPermissions, userPermissionsLoading]);
 
   const breadcrumbs = useMemo(() => {
     const rootCrumb = {
@@ -283,11 +254,9 @@ const EntitiesPage: NextPageWithLayout = () => {
               /**
                * @todo H-3363 use closed schema to take account of indirectly inherited link status
                */
-              entityType.schema.$id ===
-                blockProtocolEntityTypes.link.entityTypeId ||
+              entityType.schema.$id === blockProtocolEntityTypes.link.entityTypeId ||
               !!entityType.schema.allOf?.some(
-                (allOf) =>
-                  allOf.$ref === blockProtocolEntityTypes.link.entityTypeId,
+                (allOf) => allOf.$ref === blockProtocolEntityTypes.link.entityTypeId,
               )
             }
           />
@@ -303,11 +272,7 @@ const EntitiesPage: NextPageWithLayout = () => {
   return (
     <>
       <NextSeo title={pageTitle} />
-      <TopContextBar
-        defaultCrumbIcon={null}
-        crumbs={breadcrumbs}
-        scrollToTop={() => {}}
-      />
+      <TopContextBar defaultCrumbIcon={null} crumbs={breadcrumbs} scrollToTop={() => {}} />
       <Box
         sx={{
           borderBottom: 1,
@@ -331,12 +296,9 @@ const EntitiesPage: NextPageWithLayout = () => {
                     /**
                      * @todo H-3363 use closed schema to take account of indirectly inherited link status
                      */
-                    entityType?.schema.$id ===
-                      blockProtocolEntityTypes.link.entityTypeId ||
+                    entityType?.schema.$id === blockProtocolEntityTypes.link.entityTypeId ||
                     !!entityType?.schema.allOf?.some(
-                      (allOf) =>
-                        allOf.$ref ===
-                        blockProtocolEntityTypes.link.entityTypeId,
+                      (allOf) => allOf.$ref === blockProtocolEntityTypes.link.entityTypeId,
                     )
                   }
                 />

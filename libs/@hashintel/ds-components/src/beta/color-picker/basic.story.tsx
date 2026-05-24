@@ -19,9 +19,7 @@ export const App = () => {
       </ColorPicker.Control>
       <ColorPicker.Positioner>
         <ColorPicker.Content>
-          <ColorPicker.FormatTrigger>
-            Toggle ColorFormat
-          </ColorPicker.FormatTrigger>
+          <ColorPicker.FormatTrigger>Toggle ColorFormat</ColorPicker.FormatTrigger>
           <ColorPicker.FormatSelect />
           <ColorPicker.Area>
             <ColorPicker.AreaBackground />
@@ -62,9 +60,7 @@ export const App = () => {
             <ColorPicker.ChannelInput channel="saturation" />
             <ColorPicker.ChannelInput channel="lightness" />
           </ColorPicker.View>
-          <ColorPicker.EyeDropperTrigger>
-            Pick color
-          </ColorPicker.EyeDropperTrigger>
+          <ColorPicker.EyeDropperTrigger>Pick color</ColorPicker.EyeDropperTrigger>
         </ColorPicker.Content>
       </ColorPicker.Positioner>
       <ColorPicker.HiddenInput />

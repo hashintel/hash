@@ -49,8 +49,7 @@ export type GitHubAccountOutgoingLinksByLinkEntityTypeId = {};
  */
 export type GitHubAccountProperties = ServiceAccountProperties & {};
 
-export type GitHubAccountPropertiesWithMetadata =
-  ServiceAccountPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type GitHubAccountPropertiesWithMetadata = ServiceAccountPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

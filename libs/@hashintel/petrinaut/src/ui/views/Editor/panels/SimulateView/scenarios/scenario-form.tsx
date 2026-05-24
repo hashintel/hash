@@ -15,12 +15,7 @@ import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getScenarioDocumentUri } from "../../../../../monaco/editor-paths";
 
 import type { SpreadsheetColumn } from "../../../../../components/spreadsheet";
-import type {
-  Color,
-  Parameter,
-  Place,
-  ScenarioParameter,
-} from "@hashintel/petrinaut-core";
+import type { Color, Parameter, Place, ScenarioParameter } from "@hashintel/petrinaut-core";
 
 // -- Form styles --------------------------------------------------------------
 
@@ -241,17 +236,10 @@ const PlaceInitialStateRow = ({
     return (
       <div className={placeBlockStyle}>
         <div className={placeLabelStyle}>
-          <div
-            className={placeDotStyle}
-            style={{ backgroundColor: dotColor }}
-          />
+          <div className={placeDotStyle} style={{ backgroundColor: dotColor }} />
           <span className={placeNameStyle}>{place.name}</span>
         </div>
-        <Spreadsheet
-          columns={columns}
-          data={tokenData}
-          onChange={onTokenDataChange}
-        />
+        <Spreadsheet columns={columns} data={tokenData} onChange={onTokenDataChange} />
       </div>
     );
   }
@@ -260,10 +248,7 @@ const PlaceInitialStateRow = ({
     <div>
       <div className={placeRowStyle}>
         <div className={placeLabelStyle}>
-          <div
-            className={placeDotStyle}
-            style={{ backgroundColor: dotColor }}
-          />
+          <div className={placeDotStyle} style={{ backgroundColor: dotColor }} />
           <span className={placeNameStyle}>{place.name}</span>
         </div>
         <CodeEditor
@@ -341,9 +326,7 @@ function snakify(value: string): string {
  * Validate scenario parameters: identifiers must be snake_case and unique.
  * Returns a human-readable error string or `undefined` when all valid.
  */
-function validateScenarioParams(
-  params: ScenarioParameterDraft[],
-): string | undefined {
+function validateScenarioParams(params: ScenarioParameterDraft[]): string | undefined {
   const seen = new Set<string>();
   for (const param of params) {
     const id = param.identifier;
@@ -451,11 +434,8 @@ function useScenarioLspSession({
   places: Place[];
   typesById: Map<string, Color>;
 }): string {
-  const {
-    initializeScenarioSession,
-    updateScenarioSession,
-    killScenarioSession,
-  } = use(LanguageClientContext);
+  const { initializeScenarioSession, updateScenarioSession, killScenarioSession } =
+    use(LanguageClientContext);
   // useState (not useRef/useMemo) — needed for a stable per-mount value.
   // React Compiler doesn't replace useState; it only memoizes derived values.
   const [sessionId] = useState(() => crypto.randomUUID());
@@ -469,9 +449,7 @@ function useScenarioLspSession({
 
     const allInitialState: Record<string, string> = {};
     for (const place of places) {
-      const placeType = place.colorId
-        ? typesById.get(place.colorId)
-        : undefined;
+      const placeType = place.colorId ? typesById.get(place.colorId) : undefined;
       if (!placeType || placeType.elements.length === 0) {
         allInitialState[place.id] = initialTokenCounts[place.id] ?? "";
       }
@@ -580,19 +558,14 @@ const ScenarioFormSections = ({
     ]);
   };
 
-  const updateScenarioParam = (
-    key: number,
-    updates: Partial<ScenarioParameterDraft>,
-  ) => {
+  const updateScenarioParam = (key: number, updates: Partial<ScenarioParameterDraft>) => {
     callbacks.onScenarioParamsChange((prev) =>
       prev.map((p) => (p._key === key ? { ...p, ...updates } : p)),
     );
   };
 
   const removeScenarioParam = (key: number) => {
-    callbacks.onScenarioParamsChange((prev) =>
-      prev.filter((p) => p._key !== key),
-    );
+    callbacks.onScenarioParamsChange((prev) => prev.filter((p) => p._key !== key));
   };
 
   return (
@@ -613,10 +586,7 @@ const ScenarioFormSections = ({
         </div>
 
         <div className={fieldStyle}>
-          <label
-            className={labelStyle}
-            htmlFor={`${idPrefix}scenario-description`}
-          >
+          <label className={labelStyle} htmlFor={`${idPrefix}scenario-description`}>
             Description
           </label>
           <textarea
@@ -646,8 +616,7 @@ const ScenarioFormSections = ({
         )}
       >
         <span className={hintStyle}>
-          Variables specific to this scenario that can be adjusted when creating
-          an experiment.
+          Variables specific to this scenario that can be adjusted when creating an experiment.
         </span>
         {state.scenarioParams.length === 0 ? (
           <span className={emptyStyle}>No scenario parameters</span>
@@ -712,8 +681,7 @@ const ScenarioFormSections = ({
                     step={param.type === "integer" ? 1 : 0.001}
                     value={String(param.default)}
                     onChange={(e) => {
-                      let val =
-                        Number((e.target as HTMLInputElement).value) || 0;
+                      let val = Number((e.target as HTMLInputElement).value) || 0;
                       if (param.type === "ratio") {
                         val = Math.max(0, Math.min(1, val));
                       }
@@ -747,20 +715,14 @@ const ScenarioFormSections = ({
         ) : (
           parameters.map((param) => {
             const uri = scenarioSessionId
-              ? getScenarioDocumentUri(
-                  "scenario-param-override",
-                  scenarioSessionId,
-                  param.id,
-                )
+              ? getScenarioDocumentUri("scenario-param-override", scenarioSessionId, param.id)
               : undefined;
             const error = getError(uri);
             return (
               <div key={param.id} className={overrideRowStyle}>
                 <div className={overrideLabelStyle}>
                   <div className={overrideNameStyle}>{param.name}</div>
-                  <div className={overrideVarNameStyle}>
-                    {param.variableName}
-                  </div>
+                  <div className={overrideVarNameStyle}>{param.variableName}</div>
                 </div>
                 <CodeEditor
                   singleLine
@@ -815,11 +777,7 @@ const ScenarioFormSections = ({
             language="typescript"
             path={
               scenarioSessionId
-                ? getScenarioDocumentUri(
-                    "scenario-initial-state-full-code",
-                    scenarioSessionId,
-                    "",
-                  )
+                ? getScenarioDocumentUri("scenario-initial-state-full-code", scenarioSessionId, "")
                 : undefined
             }
             value={state.initialStateCode}
@@ -828,12 +786,10 @@ const ScenarioFormSections = ({
           />
         ) : places.length === 0 ? (
           <span className={emptyStyle}>No places defined in the net</span>
-        ) : !state.showAllPlaces &&
-          !places.some((place) => place.showAsInitialState) ? (
+        ) : !state.showAllPlaces && !places.some((place) => place.showAsInitialState) ? (
           <span className={emptyStyle}>
-            No places marked as &ldquo;Default starting place&rdquo;. Enable
-            that flag on a place in the Properties panel, or toggle &ldquo;Show
-            all places&rdquo; above.
+            No places marked as &ldquo;Default starting place&rdquo;. Enable that flag on a place in
+            the Properties panel, or toggle &ldquo;Show all places&rdquo; above.
           </span>
         ) : (
           [...places]
@@ -845,19 +801,13 @@ const ScenarioFormSections = ({
             })
             .map((place) => {
               const uri = scenarioSessionId
-                ? getScenarioDocumentUri(
-                    "scenario-initial-state",
-                    scenarioSessionId,
-                    place.id,
-                  )
+                ? getScenarioDocumentUri("scenario-initial-state", scenarioSessionId, place.id)
                 : undefined;
               return (
                 <PlaceInitialStateRow
                   key={place.id}
                   place={place}
-                  placeType={
-                    place.colorId ? typesById.get(place.colorId) : undefined
-                  }
+                  placeType={place.colorId ? typesById.get(place.colorId) : undefined}
                   tokenCount={state.initialTokenCounts[place.id] ?? ""}
                   onTokenCountChange={(value) =>
                     callbacks.onInitialTokenCountsChange((prev) => ({
@@ -929,22 +879,14 @@ export const ScenarioFormBody = ({
       state={values}
       callbacks={{
         onNameChange: (value) => form.setFieldValue("name", value),
-        onDescriptionChange: (value) =>
-          form.setFieldValue("description", value),
-        onScenarioParamsChange: (updater) =>
-          form.setFieldValue("scenarioParams", updater),
-        onParameterOverridesChange: (updater) =>
-          form.setFieldValue("parameterOverrides", updater),
-        onInitialTokenCountsChange: (updater) =>
-          form.setFieldValue("initialTokenCounts", updater),
-        onInitialTokenDataChange: (updater) =>
-          form.setFieldValue("initialTokenData", updater),
-        onShowAllPlacesChange: (value) =>
-          form.setFieldValue("showAllPlaces", value),
-        onInitialStateAsCodeChange: (value) =>
-          form.setFieldValue("initialStateAsCode", value),
-        onInitialStateCodeChange: (value) =>
-          form.setFieldValue("initialStateCode", value),
+        onDescriptionChange: (value) => form.setFieldValue("description", value),
+        onScenarioParamsChange: (updater) => form.setFieldValue("scenarioParams", updater),
+        onParameterOverridesChange: (updater) => form.setFieldValue("parameterOverrides", updater),
+        onInitialTokenCountsChange: (updater) => form.setFieldValue("initialTokenCounts", updater),
+        onInitialTokenDataChange: (updater) => form.setFieldValue("initialTokenData", updater),
+        onShowAllPlacesChange: (value) => form.setFieldValue("showAllPlaces", value),
+        onInitialStateAsCodeChange: (value) => form.setFieldValue("initialStateAsCode", value),
+        onInitialStateCodeChange: (value) => form.setFieldValue("initialStateCode", value),
       }}
       parameters={parameters}
       places={places}

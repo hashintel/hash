@@ -16,61 +16,45 @@ import {
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /** Data types */
-  const phaseDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
-        title: "Trial Phase",
-        description:
-          "The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.",
-        type: "string",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const phaseDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+      title: "Trial Phase",
+      description:
+        "The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.",
+      type: "string",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const nctIdDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
-        title: "NCT ID",
-        description:
-          "National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.",
-        type: "string",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const nctIdDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+      title: "NCT ID",
+      description:
+        "National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.",
+      type: "string",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
   /** Property types */
 
-  const objectivePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Objective",
-        description: "The goal or aim of something.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const objectivePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Objective",
+      description: "The goal or aim of something.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const trialPhasePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -78,8 +62,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Trial Phase",
-        description:
-          "The stage of a clinical trial studying a drug or biological product.",
+        description: "The stage of a clinical trial studying a drug or biological product.",
         possibleValues: [{ dataTypeId: phaseDataType.schema.$id }],
       },
       migrationState,
@@ -92,8 +75,10 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const actualEnrollmentPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const actualEnrollmentPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Actual Enrollment",
         description: "The actual number of participants enrolled in something.",
@@ -101,15 +86,18 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   const dateDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "date",
     migrationState,
   });
 
-  const actualStudyStartDatePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const actualStudyStartDatePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Actual Study Start Date",
         description:
@@ -118,10 +106,13 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const actualPrimaryCompletionDatePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const actualPrimaryCompletionDatePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Actual Study Primary Completion Date",
         description:
@@ -130,10 +121,13 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const actualStudyCompletionDatePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const actualStudyCompletionDatePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Actual Study Completion Date",
         description:
@@ -142,22 +136,27 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const estimatedEnrollmentPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const estimatedEnrollmentPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Estimated Enrollment",
-        description:
-          "The estimated number of participants that will be enrolled in something.",
+        description: "The estimated number of participants that will be enrolled in something.",
         possibleValues: [{ dataTypeId: integerDataTypeId }],
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const estimatedStudyStartDatePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const estimatedStudyStartDatePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Estimated Study Start Date",
         description:
@@ -166,10 +165,13 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const estimatedPrimaryCompletionDatePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const estimatedPrimaryCompletionDatePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Estimated Primary Completion Date",
         description:
@@ -178,10 +180,13 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const estimatedStudyCompletionDatePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const estimatedStudyCompletionDatePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Estimated Study Completion Date",
         description:
@@ -190,71 +195,57 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
-
-  const nctIdPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "NCT ID",
-        description:
-          "The National Clinical Trial (NCT) Identifier Number for a study registered with ClinicalTrials.gov",
-        possibleValues: [{ dataTypeId: nctIdDataType.schema.$id }],
-      },
-      migrationState,
-      webShortname: "h",
     },
   );
 
-  const isrctnIdDataType = await createSystemDataTypeIfNotExists(
+  const nctIdPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "NCT ID",
+      description:
+        "The National Clinical Trial (NCT) Identifier Number for a study registered with ClinicalTrials.gov",
+      possibleValues: [{ dataTypeId: nctIdDataType.schema.$id }],
+    },
+    migrationState,
+    webShortname: "h",
+  });
+
+  const isrctnIdDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+      title: "ISRCTN",
+      description: "The unique id for a study registered with the ISRCTN Registry.",
+      type: "string",
+    },
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
+
+  const isrctnIdPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "ISRCTN",
+      description: "The ISRCTN Registry identifier for something.",
+      possibleValues: [{ dataTypeId: isrctnIdDataType.schema.$id }],
+    },
+    migrationState,
+    webShortname: "h",
+  });
+
+  const studyTypePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Study Type",
+      description:
+        "Describes the nature of a clinical study. Study types include interventional studies, which aim to find out more about a particular intervention by assigning people to different treatment groups, and observational studies, where the researchers do not influence what treatment the participants receive.",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    migrationState,
+    webShortname: "h",
+  });
+
+  const medicalConditionPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
-        title: "ISRCTN",
-        description:
-          "The unique id for a study registered with the ISRCTN Registry.",
-        type: "string",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const isrctnIdPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "ISRCTN",
-        description: "The ISRCTN Registry identifier for something.",
-        possibleValues: [{ dataTypeId: isrctnIdDataType.schema.$id }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const studyTypePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Study Type",
-        description:
-          "Describes the nature of a clinical study. Study types include interventional studies, which aim to find out more about a particular intervention by assigning people to different treatment groups, and observational studies, where the researchers do not influence what treatment the participants receive.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const medicalConditionPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Medical Condition",
         description:
@@ -263,22 +254,18 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
-
-  const timeFramePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Time Frame",
-        description:
-          "The time period over which something occurs or is measured.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
     },
   );
+
+  const timeFramePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Time Frame",
+      description: "The time period over which something occurs or is measured.",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    migrationState,
+    webShortname: "h",
+  });
 
   const outcomeMeasurePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -326,43 +313,41 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const studyArmPropertyType = await createSystemPropertyTypeIfNotExists(
+  const studyArmPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Study Arm",
+      description:
+        "A specific treatment group in a clinical trial. Each arm represents a unique intervention strategy or control group, allowing researchers to compare outcomes between different approaches.",
+      possibleValues: [
+        {
+          propertyTypeObjectProperties: {
+            [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
+              $ref: blockProtocolPropertyTypes.name.propertyTypeId,
+            },
+            [interventionPropertyType.metadata.recordId.baseUrl]: {
+              $ref: interventionPropertyType.schema.$id,
+            },
+            [systemPropertyTypes.methodology.propertyTypeBaseUrl]: {
+              $ref: getCurrentHashPropertyTypeId({
+                propertyTypeKey: "methodology",
+                migrationState,
+              }),
+            },
+          },
+          propertyTypeObjectRequiredProperties: [
+            blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+          ],
+        },
+      ],
+    },
+    migrationState,
+    webShortname: "h",
+  });
+
+  const inclusionCriteriaPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Study Arm",
-        description:
-          "A specific treatment group in a clinical trial. Each arm represents a unique intervention strategy or control group, allowing researchers to compare outcomes between different approaches.",
-        possibleValues: [
-          {
-            propertyTypeObjectProperties: {
-              [blockProtocolPropertyTypes.name.propertyTypeBaseUrl]: {
-                $ref: blockProtocolPropertyTypes.name.propertyTypeId,
-              },
-              [interventionPropertyType.metadata.recordId.baseUrl]: {
-                $ref: interventionPropertyType.schema.$id,
-              },
-              [systemPropertyTypes.methodology.propertyTypeBaseUrl]: {
-                $ref: getCurrentHashPropertyTypeId({
-                  propertyTypeKey: "methodology",
-                  migrationState,
-                }),
-              },
-            },
-            propertyTypeObjectRequiredProperties: [
-              blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
-            ],
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
-  const inclusionCriteriaPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Inclusion Criteria",
         description:
@@ -371,10 +356,13 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
-  const exclusionCriteriaPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const exclusionCriteriaPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Exclusion Criteria",
         description:
@@ -383,35 +371,28 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
-
-  const statusPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Status",
-        description: "The status of something.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
     },
   );
 
-  const contactLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Has Contact",
-        description: "A contact for something (an organization, project, etc.)",
-      },
-      migrationState,
-      webShortname: "h",
+  const statusPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Status",
+      description: "The status of something.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
+
+  const contactLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Has Contact",
+      description: "A contact for something (an organization, project, etc.)",
+    },
+    migrationState,
+    webShortname: "h",
+  });
 
   const sponsoredByLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -465,8 +446,10 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const _clinicalTrialRecordEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const _clinicalTrialRecordEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [docEntityTypeId],
         title: "Study Record",
@@ -567,10 +550,7 @@ const migrate: MigrationFunction = async ({
         ],
         outgoingLinks: [
           {
-            destinationEntityTypes: [
-              personEntityTypeId,
-              institutionEntityTypeId,
-            ],
+            destinationEntityTypes: [personEntityTypeId, institutionEntityTypeId],
             linkEntityType: sponsoredByLinkEntityType.schema.$id,
           },
           {
@@ -585,7 +565,8 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-    });
+    },
+  );
 
   return migrationState;
 };

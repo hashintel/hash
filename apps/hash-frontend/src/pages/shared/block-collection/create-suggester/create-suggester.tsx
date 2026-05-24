@@ -12,11 +12,7 @@ import type { BlockVariant } from "@blockprotocol/core";
 import type { WebId } from "@blockprotocol/type-system";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import type {
-  EditorState,
-  TextSelection,
-  Transaction,
-} from "prosemirror-state";
+import type { EditorState, TextSelection, Transaction } from "prosemirror-state";
 import type { ReactElement } from "react";
 
 interface Trigger {
@@ -111,11 +107,8 @@ interface SuggesterState {
 export const suggesterPluginKey = new PluginKey<SuggesterState>("suggester");
 
 const docChangedInTransaction = (tr: Transaction) => {
-  const appendedTransaction: Transaction | undefined = tr.getMeta(
-    "appendedTransaction",
-  );
-  const meta: SuggesterAction | undefined =
-    appendedTransaction?.getMeta(suggesterPluginKey);
+  const appendedTransaction: Transaction | undefined = tr.getMeta("appendedTransaction");
+  const meta: SuggesterAction | undefined = appendedTransaction?.getMeta(suggesterPluginKey);
 
   return tr.docChanged && meta?.type !== "suggestedBlock";
 };
@@ -154,8 +147,7 @@ export const createSuggester = (
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
       apply(tr, state, _prevEditorState, nextEditorState) {
-        const action: SuggesterAction | undefined =
-          tr.getMeta(suggesterPluginKey);
+        const action: SuggesterAction | undefined = tr.getMeta(suggesterPluginKey);
 
         let decorations = state.decorations;
 
@@ -255,9 +247,7 @@ export const createSuggester = (
          *       helps deal with unknown unknowns/
          */
         const suggestedBlockPosition =
-          state.suggestedBlockPosition === null ||
-          tr.selectionSet ||
-          docChangedInTransaction(tr)
+          state.suggestedBlockPosition === null || tr.selectionSet || docChangedInTransaction(tr)
             ? null
             : tr.mapping.map(state.suggestedBlockPosition);
 
@@ -319,13 +309,9 @@ export const createSuggester = (
           const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
           const { node } = view.domAtPos(from);
-          const anchorNode =
-            node instanceof HTMLElement ? node : node.parentElement;
+          const anchorNode = node instanceof HTMLElement ? node : node.parentElement;
 
-          const onBlockSuggesterChange = (
-            variant: BlockVariant,
-            blockConfig: HashBlockMeta,
-          ) => {
+          const onBlockSuggesterChange = (variant: BlockVariant, blockConfig: HashBlockMeta) => {
             getManager?.()
               .replaceRange(blockConfig.componentId, variant, from, to)
               .then(({ tr, componentPosition }) => {
@@ -351,13 +337,9 @@ export const createSuggester = (
               mentionType: mention.kind,
               entityId,
               propertyTypeBaseUrl:
-                mention.kind === "property-value"
-                  ? mention.propertyTypeBaseUrl
-                  : undefined,
+                mention.kind === "property-value" ? mention.propertyTypeBaseUrl : undefined,
               linkEntityTypeBaseUrl:
-                mention.kind === "outgoing-link"
-                  ? mention.linkEntityTypeBaseUrl
-                  : "",
+                mention.kind === "outgoing-link" ? mention.linkEntityTypeBaseUrl : "",
             });
 
             tr.replaceWith(from, to, mentionNode);
@@ -370,22 +352,11 @@ export const createSuggester = (
           switch (triggerChar) {
             case "/":
               if (getManager) {
-                jsx = (
-                  <BlockSuggester
-                    search={search}
-                    onChange={onBlockSuggesterChange}
-                  />
-                );
+                jsx = <BlockSuggester search={search} onChange={onBlockSuggesterChange} />;
               }
               break;
             case "@":
-              jsx = (
-                <MentionSuggester
-                  search={search}
-                  onChange={onMentionChange}
-                  webId={webId}
-                />
-              );
+              jsx = <MentionSuggester search={search} onChange={onMentionChange} webId={webId} />;
           }
 
           if (anchorNode && jsx) {

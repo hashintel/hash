@@ -52,30 +52,20 @@ const allocateEntityDefinitionToFile = (
  *
  * @param context
  */
-export const generateEntityDefinitions = (
-  context: PostprocessContext,
-): void => {
+export const generateEntityDefinitions = (context: PostprocessContext): void => {
   context.logDebug("Adding entity definitions");
 
   const entityTypeIdentifiersToIds = Object.fromEntries(
-    typedEntries(context.entityTypes).map(([entityTypeId, { title }]) => [
-      title,
-      entityTypeId,
-    ]),
+    typedEntries(context.entityTypes).map(([entityTypeId, { title }]) => [title, entityTypeId]),
   );
 
   const entityTypeIdsToEntityDefinitions = Object.fromEntries(
     typedEntries(context.entityTypes).map(([entityTypeId, { title }]) => {
-      return [
-        entityTypeId,
-        generateEntityDefinitionForEntityType(entityTypeId, title, context),
-      ];
+      return [entityTypeId, generateEntityDefinitionForEntityType(entityTypeId, title, context)];
     }),
   );
 
-  for (const [file, dependentIdentifiers] of typedEntries(
-    context.filesToDependentIdentifiers,
-  )) {
+  for (const [file, dependentIdentifiers] of typedEntries(context.filesToDependentIdentifiers)) {
     for (const identifier of dependentIdentifiers) {
       const entityTypeId = entityTypeIdentifiersToIds[identifier];
       if (entityTypeId) {
@@ -84,12 +74,7 @@ export const generateEntityDefinitions = (
         );
 
         if (context.filesToDefinedIdentifiers[file]?.has(identifier)) {
-          allocateEntityDefinitionToFile(
-            file,
-            entityName,
-            compiledContents,
-            context,
-          );
+          allocateEntityDefinitionToFile(file, entityName, compiledContents, context);
         } else {
           context.addDependentIdentifierInFile(entityName, file);
         }

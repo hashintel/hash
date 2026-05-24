@@ -7,19 +7,12 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useLocalStorage } from "@mantine/hooks";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import {
-  extractEntityUuidFromEntityId,
-  isEntityId,
-} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId, isEntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
@@ -75,9 +68,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const preferences = useUserPreferences();
 
-  const [expanded, setExpanded] = useState<boolean>(
-    preferences.sidebarSections.pages.expanded,
-  );
+  const [expanded, setExpanded] = useState<boolean>(preferences.sidebarSections.pages.expanded);
 
   const [updateUser] = useUpdateAuthenticatedUser();
 
@@ -102,8 +93,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     webId,
   });
 
-  const [createUntitledPage, { loading: createUntitledPageLoading }] =
-    useCreatePage({ webId, shortname: ownerShortname });
+  const [createUntitledPage, { loading: createUntitledPageLoading }] = useCreatePage({
+    webId,
+    shortname: ownerShortname,
+  });
 
   const [createSubPage, { loading: createSubpageLoading }] = useCreateSubPage({
     webId,
@@ -168,9 +161,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
   const collapsedPageIds = useMemo(
     () =>
       treeItems
-        .filter((item) =>
-          isPageCollapsed(item, treeItems, expandedPageIds, activeId),
-        )
+        .filter((item) => isPageCollapsed(item, treeItems, expandedPageIds, activeId))
         .map(({ page }) => page.metadata.recordId.entityId),
     [treeItems, expandedPageIds, activeId],
   );
@@ -188,10 +179,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     }),
   );
 
-  const dragDepth = useMemo(
-    () => Math.round(offsetLeft / IDENTATION_WIDTH),
-    [offsetLeft],
-  );
+  const dragDepth = useMemo(() => Math.round(offsetLeft / IDENTATION_WIDTH), [offsetLeft]);
 
   const projected =
     activeId && overId
@@ -216,9 +204,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     setOffsetLeft(0);
   };
 
-  const handleDragStart = ({
-    active: { id: activeItemId },
-  }: DragStartEvent) => {
+  const handleDragStart = ({ active: { id: activeItemId } }: DragStartEvent) => {
     setActiveId(activeItemId);
     setOverId(activeItemId);
   };
@@ -243,9 +229,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       );
 
       // The page that's being dragged "over"
-      const overPage = treeItems.find(
-        ({ page }) => page.metadata.recordId.entityId === over.id,
-      );
+      const overPage = treeItems.find(({ page }) => page.metadata.recordId.entityId === over.id);
 
       if (activePage && (activePage.depth !== depth || active.id !== over.id)) {
         const activePageIndex = treeItems.findIndex(
@@ -265,8 +249,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         // The new sibling pages of the active page (i.e. all other pages with the same parent)
         const siblingPages = pagesWithParent.filter(
           ({ page }) =>
-            page.metadata.recordId.entityId !==
-            activePage.page.metadata.recordId.entityId,
+            page.metadata.recordId.entityId !== activePage.page.metadata.recordId.entityId,
         );
 
         const overPageLocalIndex = pagesWithParent.findIndex(
@@ -283,11 +266,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             ? overPageLocalIndex
             : overPageLocalIndex - 1;
 
-        const beforeFractionalIndex =
-          siblingPages[newIndex]?.page.fractionalIndex ?? null;
+        const beforeFractionalIndex = siblingPages[newIndex]?.page.fractionalIndex ?? null;
 
-        const afterFractionalIndex =
-          siblingPages[newIndex + 1]?.page.fractionalIndex ?? null;
+        const afterFractionalIndex = siblingPages[newIndex + 1]?.page.fractionalIndex ?? null;
 
         if (typeof active.id !== "string" || !isEntityId(active.id)) {
           throw new Error("Expected draggable element ID to be an `EntityId`");
@@ -308,11 +289,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           depth,
         };
 
-        const sortedTreeItems = arrayMove(
-          clonedTreeItems,
-          activePageIndex,
-          overPageIndex,
-        );
+        const sortedTreeItems = arrayMove(clonedTreeItems, activePageIndex, overPageIndex);
 
         setTreeItems(sortedTreeItems);
 
@@ -330,21 +307,15 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     resetState();
   };
 
-  const renderPageTree = (
-    treeItemList: TreeItem[],
-    parentId: string | null = null,
-  ) => {
+  const renderPageTree = (treeItemList: TreeItem[], parentId: string | null = null) => {
     return treeItemList
       .filter(({ page: { parentPage } }) =>
-        parentId
-          ? parentPage?.metadata.recordId.entityId === parentId
-          : !parentPage,
+        parentId ? parentPage?.metadata.recordId.entityId === parentId : !parentPage,
       )
       .map(({ page: { icon, metadata, title, type }, depth }) => {
         const { entityId } = metadata.recordId;
 
-        const isPageExpanded =
-          expandedPageIds.includes(entityId) && activeId !== entityId;
+        const isPageExpanded = expandedPageIds.includes(entityId) && activeId !== entityId;
         const children = renderPageTree(treeItemList, entityId);
 
         const collapsed = collapsedPageIds.includes(entityId);
@@ -368,9 +339,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             }
             depth={entityId === activeId && projected ? projected.depth : depth}
             onCollapse={() => handleToggle(entityId)}
-            selected={
-              currentPageEntityUuid === extractEntityUuidFromEntityId(entityId)
-            }
+            selected={currentPageEntityUuid === extractEntityUuidFromEntityId(entityId)}
             expanded={isPageExpanded}
             collapsed={collapsed}
             createSubPage={async () => {
@@ -430,10 +399,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       onDragCancel={handleDragCancel}
       measuring={measuringConfig}
     >
-      <SortableContext
-        items={pagesFlatIdList}
-        strategy={verticalListSortingStrategy}
-      >
+      <SortableContext items={pagesFlatIdList} strategy={verticalListSortingStrategy}>
         <NavLink
           expanded={expanded}
           toggleExpanded={togglePagesExpanded}

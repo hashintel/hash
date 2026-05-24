@@ -18,6 +18,4 @@ export const collapsibleSlotRecipe = sva({
   },
 });
 
-export type CollapsibleSlotRecipeProps = RecipeVariantProps<
-  typeof collapsibleSlotRecipe
->;
+export type CollapsibleSlotRecipeProps = RecipeVariantProps<typeof collapsibleSlotRecipe>;

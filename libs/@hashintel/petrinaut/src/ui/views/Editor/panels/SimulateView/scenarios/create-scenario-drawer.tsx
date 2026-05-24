@@ -9,11 +9,7 @@ import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
 import { DrawerErrorDisplay } from "../drawer-error-display";
-import {
-  ScenarioFormBody,
-  type ScenarioFormInstance,
-  useScenarioForm,
-} from "./scenario-form";
+import { ScenarioFormBody, type ScenarioFormInstance, useScenarioForm } from "./scenario-form";
 import { EMPTY_SCENARIO_FORM_STATE } from "./scenario-form-defaults";
 import { summarizeScenarioLspErrors } from "./scenario-lsp";
 import { buildScenarioFromFormState } from "./scenario-mapping";
@@ -37,9 +33,7 @@ const CreateScenarioFooter = ({
     summarizeScenarioLspErrors(diagnosticsByUri);
   const hasLspErrors = lspErrorCount > 0;
 
-  const formError = formErrors.find((e) => typeof e === "string") as
-    | string
-    | undefined;
+  const formError = formErrors.find((e) => typeof e === "string") as string | undefined;
   const hasErrors = !!formError || hasLspErrors;
   const totalErrorCount = (formError ? 1 : 0) + lspErrorCount;
   const firstError = formError ?? firstLspMessage;
@@ -104,16 +98,11 @@ interface CreateScenarioDrawerProps {
   onClose: () => void;
 }
 
-export const CreateScenarioDrawer = ({
-  open,
-  onClose,
-}: CreateScenarioDrawerProps) => {
+export const CreateScenarioDrawer = ({ open, onClose }: CreateScenarioDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { addScenario } = use(MutationContext);
 
-  const existingScenarioNames = new Set(
-    (petriNetDefinition.scenarios ?? []).map((s) => s.name),
-  );
+  const existingScenarioNames = new Set((petriNetDefinition.scenarios ?? []).map((s) => s.name));
 
   const form = useScenarioForm(
     EMPTY_SCENARIO_FORM_STATE,
@@ -151,9 +140,7 @@ export const CreateScenarioDrawer = ({
 
 export const CreateScenarioForm = () => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const existingScenarioNames = new Set(
-    (petriNetDefinition.scenarios ?? []).map((s) => s.name),
-  );
+  const existingScenarioNames = new Set((petriNetDefinition.scenarios ?? []).map((s) => s.name));
 
   const form = useScenarioForm(EMPTY_SCENARIO_FORM_STATE, () => {}, {
     existingScenarioNames,

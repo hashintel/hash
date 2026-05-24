@@ -22,24 +22,8 @@ type BlockPromptInputProps = {
   onSubmit?: () => void;
 } & TextFieldProps;
 
-export const BlockPromptInput = forwardRef<
-  HTMLInputElement,
-  BlockPromptInputProps
->(
-  (
-    {
-      error,
-      apiName,
-      buttonLabel,
-      sx,
-      buttonSx,
-      onSubmit,
-      onChange,
-      disabled,
-      ...props
-    },
-    ref,
-  ) => {
+export const BlockPromptInput = forwardRef<HTMLInputElement, BlockPromptInputProps>(
+  ({ error, apiName, buttonLabel, sx, buttonSx, onSubmit, onChange, disabled, ...props }, ref) => {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const [hasMultipleLines, setHasMultipleLines] = useState(false);
 
@@ -47,18 +31,9 @@ export const BlockPromptInput = forwardRef<
       if (inputRef.current) {
         const computedStyles = window.getComputedStyle(inputRef.current, null);
 
-        const lineHeight = parseInt(
-          computedStyles.getPropertyValue("line-height"),
-          10,
-        );
-        const paddingLeft = parseInt(
-          computedStyles.getPropertyValue("padding-left"),
-          10,
-        );
-        const paddingRight = parseInt(
-          computedStyles.getPropertyValue("padding-right"),
-          10,
-        );
+        const lineHeight = parseInt(computedStyles.getPropertyValue("line-height"), 10);
+        const paddingLeft = parseInt(computedStyles.getPropertyValue("padding-left"), 10);
+        const paddingRight = parseInt(computedStyles.getPropertyValue("padding-right"), 10);
 
         const width = inputRef.current.offsetWidth;
 
@@ -77,12 +52,7 @@ export const BlockPromptInput = forwardRef<
         document.body.removeChild(temp);
 
         const firstLineOverflowsButton =
-          width -
-            paddingLeft -
-            paddingRight -
-            textWidth -
-            (hasMultipleLines ? 170 : 0) <
-          0;
+          width - paddingLeft - paddingRight - textWidth - (hasMultipleLines ? 170 : 0) < 0;
 
         const multipleLines = textHeight / lineHeight > 1;
 
@@ -141,10 +111,9 @@ export const BlockPromptInput = forwardRef<
                   background: palette.gray[10],
                   color: palette.gray[70],
                 },
-                [`&.${inputBaseClasses.focused}, &.${inputBaseClasses.disabled}`]:
-                  {
-                    boxShadow: "0px 1px 5px rgba(27, 33, 40, 0)",
-                  },
+                [`&.${inputBaseClasses.focused}, &.${inputBaseClasses.disabled}`]: {
+                  boxShadow: "0px 1px 5px rgba(27, 33, 40, 0)",
+                },
                 [`& .${outlinedInputClasses.notchedOutline}`]: {
                   border: `1px solid ${palette.gray[20]}`,
                   transition: transitions.create("border-color"),
@@ -152,10 +121,9 @@ export const BlockPromptInput = forwardRef<
                 [`:hover .${outlinedInputClasses.notchedOutline}`]: {
                   borderColor: palette.gray[40],
                 },
-                [`&.${inputBaseClasses.disabled} .${outlinedInputClasses.notchedOutline}`]:
-                  {
-                    borderColor: palette.gray[20],
-                  },
+                [`&.${inputBaseClasses.disabled} .${outlinedInputClasses.notchedOutline}`]: {
+                  borderColor: palette.gray[20],
+                },
                 [`&.${inputBaseClasses.focused} .${outlinedInputClasses.notchedOutline}, &.${inputBaseClasses.focused}:hover .${outlinedInputClasses.notchedOutline}`]:
                   {
                     borderWidth: "1px",
@@ -176,8 +144,7 @@ export const BlockPromptInput = forwardRef<
                     background: "transparent",
                     borderRadius: 0,
                     borderTopLeftRadius: hasMultipleLines ? 10 : 0,
-                    transition: ({ transitions }) =>
-                      transitions.create("border-top-left-radius"),
+                    transition: ({ transitions }) => transitions.create("border-top-left-radius"),
                     alignSelf: "flex-end",
                     fontSize: 13,
                     fontWeight: 700,

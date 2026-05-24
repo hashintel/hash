@@ -64,37 +64,29 @@ export const NumberOrTextInput = ({
   }
 
   let step =
-    "multipleOf" in schema && schema.multipleOf?.[0] !== undefined
-      ? schema.multipleOf[0]
-      : 0.001;
+    "multipleOf" in schema && schema.multipleOf?.[0] !== undefined ? schema.multipleOf[0] : 0.001;
 
   // Get the effective minimum value, considering both minimum and exclusiveMinimum
   const minimum =
-    "minimum" in schema && typeof schema.minimum === "number"
-      ? schema.minimum
-      : undefined;
+    "minimum" in schema && typeof schema.minimum === "number" ? schema.minimum : undefined;
 
   const exclusiveMinimum =
     "exclusiveMinimum" in schema && typeof schema.exclusiveMinimum === "number"
       ? schema.exclusiveMinimum
       : undefined;
 
-  const effectiveMinimum =
-    typeof exclusiveMinimum === "number" ? exclusiveMinimum + step : minimum;
+  const effectiveMinimum = typeof exclusiveMinimum === "number" ? exclusiveMinimum + step : minimum;
 
   // Get the effective maximum value, considering both maximum and exclusiveMaximum
   const maximum =
-    "maximum" in schema && typeof schema.maximum === "number"
-      ? schema.maximum
-      : undefined;
+    "maximum" in schema && typeof schema.maximum === "number" ? schema.maximum : undefined;
 
   const exclusiveMaximum =
     "exclusiveMaximum" in schema && typeof schema.exclusiveMaximum === "number"
       ? schema.exclusiveMaximum
       : undefined;
 
-  const effectiveMaximum =
-    typeof exclusiveMaximum === "number" ? exclusiveMaximum - step : maximum;
+  const effectiveMaximum = typeof exclusiveMaximum === "number" ? exclusiveMaximum - step : maximum;
 
   const jsonStringFormat = "format" in schema ? schema.format : undefined;
 
@@ -162,8 +154,7 @@ export const NumberOrTextInput = ({
       onChange={({ target }) => {
         const isEmptyString = target.value === "";
 
-        let newValue =
-          isNumber && !isEmptyString ? Number(target.value) : target.value;
+        let newValue = isNumber && !isEmptyString ? Number(target.value) : target.value;
 
         if (newValue && jsonStringFormat === "date-time") {
           newValue = convertDateTimeToLocalRFC3339(target.value);

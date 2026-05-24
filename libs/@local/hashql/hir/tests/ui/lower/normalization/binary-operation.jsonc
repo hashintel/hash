@@ -1,7 +1,3 @@
 //@ run: pass
 //@ description: Binary operations with nested complex expressions
-[
-  "==",
-  [">=", { "#literal": 4 }, { "#literal": 3 }],
-  ["<=", { "#literal": 4 }, { "#literal": 5 }]
-]
+["==", [">=", { "#literal": 4 }, { "#literal": 3 }], ["<=", { "#literal": 4 }, { "#literal": 5 }]]

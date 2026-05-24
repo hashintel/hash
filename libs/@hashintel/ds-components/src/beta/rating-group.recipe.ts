@@ -86,6 +86,4 @@ const ratingGroupSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const ratingGroupSlotRecipe = sva(ratingGroupSlotRecipeDefinition);
 
-export type RatingGroupSlotRecipeProps = RecipeVariantProps<
-  typeof ratingGroupSlotRecipe
->;
+export type RatingGroupSlotRecipeProps = RecipeVariantProps<typeof ratingGroupSlotRecipe>;

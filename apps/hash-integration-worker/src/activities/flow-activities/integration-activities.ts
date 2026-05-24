@@ -2,11 +2,7 @@ import { createPersistIntegrationEntitiesAction } from "./integration-activities
 
 import type { GraphApi } from "@local/hash-graph-client";
 
-export const createIntegrationActivities = ({
-  graphApiClient,
-}: {
-  graphApiClient: GraphApi;
-}) => ({
+export const createIntegrationActivities = ({ graphApiClient }: { graphApiClient: GraphApi }) => ({
   persistIntegrationEntitiesAction: createPersistIntegrationEntitiesAction({
     graphApiClient,
   }),

@@ -8,11 +8,7 @@ import { OutputContainer } from "./shared/output-container";
 
 import type { DeliverableData } from "./deliverables/shared/types";
 
-export const Deliverables = ({
-  deliverables,
-}: {
-  deliverables: DeliverableData[];
-}) => {
+export const Deliverables = ({ deliverables }: { deliverables: DeliverableData[] }) => {
   const hasDeliverables = deliverables.length > 0;
   return (
     <OutputContainer

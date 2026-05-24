@@ -37,8 +37,7 @@ const transitionBoxStyle = cva({
     transition: "[outline 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
-      borderColor:
-        "[color-mix(in oklab, var(--colors-neutral-s80), black 15%)]",
+      borderColor: "[color-mix(in oklab, var(--colors-neutral-s80), black 15%)]",
       outline: "[4px solid rgba(75, 126, 156, 0.08)]",
     },
     _after: {
@@ -173,12 +172,8 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const {
-    isSelected,
-    isNotSelectedConnection,
-    isNotHoveredConnection,
-    hoveredItem,
-  } = use(EditorContext);
+  const { isSelected, isNotSelectedConnection, isNotHoveredConnection, hoveredItem } =
+    use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -195,8 +190,7 @@ export const ClassicTransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
+      : isNotHoveredConnection(id) || (!hoveredItem && isNotSelectedConnection(id))
         ? "notSelectedConnection"
         : "none";
 

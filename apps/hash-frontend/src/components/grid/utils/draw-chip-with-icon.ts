@@ -4,10 +4,7 @@ import { getChipColors } from "../../../pages/shared/chip-cell";
 import { getYCenter } from "../utils";
 import { drawChip } from "./draw-chip";
 
-import type {
-  ChipCellColor,
-  ChipCellVariant,
-} from "../../../pages/shared/chip-cell";
+import type { ChipCellColor, ChipCellVariant } from "../../../pages/shared/chip-cell";
 import type { CustomIcon } from "./custom-grid-icons";
 import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
@@ -55,12 +52,7 @@ const getFilledCanvas = ({
 
   offScreenContext.globalCompositeOperation = "source-in";
   offScreenContext.fillStyle = fill;
-  offScreenContext.fillRect(
-    0,
-    0,
-    offScreenCanvas.width,
-    offScreenCanvas.height,
-  );
+  offScreenContext.fillRect(0, 0, offScreenCanvas.width, offScreenCanvas.height);
 
   filledIconCanvasCache[iconUrl] ??= {};
   filledIconCanvasCache[iconUrl][fill] = offScreenCanvas;
@@ -96,11 +88,7 @@ const drawClippedImage = ({
   ctx.beginPath();
   ctx.moveTo(...topLeftCorner);
   ctx.lineTo(topRightCorner[0] - borderRadius, topRightCorner[1]);
-  ctx.quadraticCurveTo(
-    ...topRightCorner,
-    topRightCorner[0],
-    topRightCorner[1] + borderRadius,
-  );
+  ctx.quadraticCurveTo(...topRightCorner, topRightCorner[0], topRightCorner[1] + borderRadius);
   ctx.lineTo(bottomRightCorner[0], bottomRightCorner[1] - borderRadius);
   ctx.quadraticCurveTo(
     ...bottomRightCorner,
@@ -114,11 +102,7 @@ const drawClippedImage = ({
     bottomLeftCorner[1] - borderRadius,
   );
   ctx.lineTo(topLeftCorner[0], topLeftCorner[1] + borderRadius);
-  ctx.quadraticCurveTo(
-    ...topLeftCorner,
-    topLeftCorner[0] + borderRadius,
-    topLeftCorner[1],
-  );
+  ctx.quadraticCurveTo(...topLeftCorner, topLeftCorner[0] + borderRadius, topLeftCorner[1]);
   ctx.closePath();
   ctx.clip();
 
@@ -191,8 +175,7 @@ export const drawChipWithIcon = ({
 
   const iconColor = iconFill ?? defaultColor;
 
-  let chipWidth =
-    iconHeight + gap + textWidth + suffixWidth + suffixPaddingX + 2 * paddingX;
+  let chipWidth = iconHeight + gap + textWidth + suffixWidth + suffixPaddingX + 2 * paddingX;
 
   let chipHeight;
   let chipTop;
@@ -209,8 +192,7 @@ export const drawChipWithIcon = ({
       const imageHeight = (image.height / image.width) * width;
       const imageTop = iconTop + (iconHeight - imageHeight) / 2;
 
-      chipWidth =
-        width + gap + textWidth + suffixWidth + suffixPaddingX + 2 * paddingX;
+      chipWidth = width + gap + textWidth + suffixWidth + suffixPaddingX + 2 * paddingX;
 
       ({ height: chipHeight, top: chipTop } = drawChip(
         args,
@@ -237,13 +219,7 @@ export const drawChipWithIcon = ({
       chipHeight = iconHeight;
     }
   } else {
-    ({ height: chipHeight, top: chipTop } = drawChip(
-      args,
-      left,
-      chipWidth,
-      bgColor,
-      borderColor,
-    ));
+    ({ height: chipHeight, top: chipTop } = drawChip(args, left, chipWidth, bgColor, borderColor));
 
     if (icon && "inbuiltIcon" in icon) {
       args.spriteManager.drawSprite(
@@ -285,10 +261,8 @@ export const drawChipWithIcon = ({
 
             const aspectRatio = image.width / image.height;
 
-            const width =
-              aspectRatio > 1 ? iconHeight : iconHeight * aspectRatio;
-            const height =
-              aspectRatio > 1 ? iconHeight / aspectRatio : iconHeight;
+            const width = aspectRatio > 1 ? iconHeight : iconHeight * aspectRatio;
+            const height = aspectRatio > 1 ? iconHeight / aspectRatio : iconHeight;
 
             ctx.drawImage(
               canvasWithFill,
@@ -303,8 +277,7 @@ export const drawChipWithIcon = ({
     }
   }
 
-  const textLeft =
-    left + chipWidth - paddingX - textWidth - suffixWidth - suffixPaddingX;
+  const textLeft = left + chipWidth - paddingX - textWidth - suffixWidth - suffixPaddingX;
 
   ctx.fillStyle = textColor;
   ctx.fillText(text, textLeft, yCenter);

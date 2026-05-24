@@ -130,9 +130,7 @@ const PlaceMainContent: React.FC = () => {
             hasError={!!nameField.error}
             tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           />
-          {nameField.error && (
-            <div className={errorMessageStyle}>{nameField.error}</div>
-          )}
+          {nameField.error && <div className={errorMessageStyle}>{nameField.error}</div>}
         </Section>
 
         <Section
@@ -152,9 +150,7 @@ const PlaceMainContent: React.FC = () => {
                 update: {
                   colorId: newType,
                   dynamicsEnabled:
-                    newType === null && place.dynamicsEnabled
-                      ? false
-                      : place.dynamicsEnabled,
+                    newType === null && place.dynamicsEnabled ? false : place.dynamicsEnabled,
                 },
               });
             }}
@@ -172,26 +168,18 @@ const PlaceMainContent: React.FC = () => {
               return (
                 <>
                   {selectedColor && (
-                    <div
-                      className={typeColorDotStyle}
-                      style={{ backgroundColor: selectedColor }}
-                    />
+                    <div className={typeColorDotStyle} style={{ backgroundColor: selectedColor }} />
                   )}
                   <span>{selectedOption?.label ?? "None"}</span>
                 </>
               );
             }}
             renderItem={(item: SelectOption) => {
-              const typeColor = types.find(
-                (tp) => tp.id === item.value,
-              )?.displayColor;
+              const typeColor = types.find((tp) => tp.id === item.value)?.displayColor;
               return (
                 <>
                   {typeColor && (
-                    <div
-                      className={typeColorDotStyle}
-                      style={{ backgroundColor: typeColor }}
-                    />
+                    <div className={typeColorDotStyle} style={{ backgroundColor: typeColor }} />
                   )}
                   {item.label}
                 </>
@@ -229,11 +217,7 @@ const PlaceMainContent: React.FC = () => {
           renderHeaderAction={() => (
             <Switch
               checked={!!place.colorId && place.dynamicsEnabled}
-              disabled={
-                isReadOnly ||
-                place.colorId === null ||
-                availableDiffEqs.length === 0
-              }
+              disabled={isReadOnly || place.colorId === null || availableDiffEqs.length === 0}
               tooltip={
                 isReadOnly
                   ? UI_MESSAGES.READ_ONLY_MODE
@@ -275,8 +259,7 @@ const PlaceMainContent: React.FC = () => {
             </div>
           ) : availableDiffEqs.length === 0 ? (
             <div className={hintTextStyle}>
-              Create a differential equation for the selected type in the
-              left-hand sidebar first
+              Create a differential equation for the selected type in the left-hand sidebar first
             </div>
           ) : (
             place.dynamicsEnabled && (

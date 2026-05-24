@@ -1,11 +1,5 @@
-import {
-  extractBaseUrl,
-  type OriginProvenance,
-} from "@blockprotocol/type-system";
-import {
-  getStorageProvider,
-  storePayload,
-} from "@local/hash-backend-utils/flows/payload-storage";
+import { extractBaseUrl, type OriginProvenance } from "@blockprotocol/type-system";
+import { getStorageProvider, storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { getHistoricalArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -27,9 +21,7 @@ const validateEndDate = (endDate: string): void => {
   today.setUTCHours(0, 0, 0, 0);
 
   if (endDateObj >= today) {
-    throw new Error(
-      `End date must be yesterday or earlier. Received: ${endDate}`,
-    );
+    throw new Error(`End date must be yesterday or earlier. Received: ${endDate}`);
   }
 };
 
@@ -41,9 +33,7 @@ const validateDateRange = (startDate: string, endDate: string): void => {
   const endDateObj = new Date(endDate);
 
   if (startDateObj > endDateObj) {
-    throw new Error(
-      `Start date (${startDate}) cannot be after end date (${endDate})`,
-    );
+    throw new Error(`Start date (${startDate}) cannot be after end date (${endDate})`);
   }
 };
 
@@ -55,11 +45,10 @@ export const getHistoricalFlightArrivalsAction: IntegrationFlowActionActivity<
   "getHistoricalFlightArrivals"
 > = async ({ inputs }) => {
   try {
-    const { airportIcao, startDate, endDate } =
-      getSimplifiedIntegrationFlowActionInputs({
-        inputs,
-        actionType: "getHistoricalFlightArrivals",
-      });
+    const { airportIcao, startDate, endDate } = getSimplifiedIntegrationFlowActionInputs({
+      inputs,
+      actionType: "getHistoricalFlightArrivals",
+    });
 
     // Validate inputs
     validateEndDate(endDate);
@@ -87,16 +76,13 @@ export const getHistoricalFlightArrivalsAction: IntegrationFlowActionActivity<
       if (
         entity.entityTypeIds.some(
           (entityTypeId) =>
-            extractBaseUrl(entityTypeId) ===
-            systemEntityTypes.flight.entityTypeBaseUrl,
+            extractBaseUrl(entityTypeId) === systemEntityTypes.flight.entityTypeBaseUrl,
         )
       ) {
         flightCount++;
       }
 
-      proposedEntities.push(
-        aviationProposedEntityToFlowProposedEntity(entity, fullProvenance),
-      );
+      proposedEntities.push(aviationProposedEntityToFlowProposedEntity(entity, fullProvenance));
     }
 
     // Store the proposed entities in S3 to avoid passing large payloads through Temporal
@@ -130,8 +116,7 @@ export const getHistoricalFlightArrivalsAction: IntegrationFlowActionActivity<
       ],
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
     return {
       code: StatusCode.Internal,

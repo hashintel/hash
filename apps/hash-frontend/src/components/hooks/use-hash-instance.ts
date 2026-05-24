@@ -29,9 +29,7 @@ export const useHashInstance = (): {
 
   const { hashInstanceSettings } = data ?? {};
 
-  const hashInstance = useMemo<
-    Simplified<HashEntity<HASHInstance>> | undefined
-  >(() => {
+  const hashInstance = useMemo<Simplified<HashEntity<HASHInstance>> | undefined>(() => {
     if (!hashInstanceSettings) {
       return undefined;
     }

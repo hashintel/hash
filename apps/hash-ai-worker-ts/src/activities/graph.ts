@@ -79,15 +79,8 @@ export type EntityQueryResponse = {
   cursor?: EntityQueryCursor | null;
 };
 
-export const createGraphActivities = ({
-  graphApiClient,
-}: {
-  graphApiClient: GraphApi;
-}) => ({
-  async getSystemMachineIds(params: {
-    cursor?: EntityQueryCursor;
-    limit?: number;
-  }): Promise<{
+export const createGraphActivities = ({ graphApiClient }: { graphApiClient: GraphApi }) => ({
+  async getSystemMachineIds(params: { cursor?: EntityQueryCursor; limit?: number }): Promise<{
     machineIds: EntityId[];
     cursor?: EntityQueryCursor | null;
   }> {
@@ -115,10 +108,7 @@ export const createGraphActivities = ({
             {
               startsWith: [
                 {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
-                  ],
+                  path: ["properties", systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl],
                 },
                 { parameter: "system-" },
               ],
@@ -143,66 +133,48 @@ export const createGraphActivities = ({
     authentication: AuthenticationContext;
     request: QueryDataTypesParams;
   }): Promise<QueryDataTypesResponse> {
-    return queryDataTypes(
-      graphApiClient,
-      params.authentication,
-      params.request,
-    );
+    return queryDataTypes(graphApiClient, params.authentication, params.request);
   },
 
   async queryDataTypeSubgraph(params: {
     authentication: AuthenticationContext;
     request: QueryDataTypeSubgraphParams;
   }): Promise<SerializedQueryDataTypeSubgraphResponse> {
-    return queryDataTypeSubgraph(
-      graphApiClient,
-      params.authentication,
-      params.request,
-    ).then(serializeQueryDataTypeSubgraphResponse);
+    return queryDataTypeSubgraph(graphApiClient, params.authentication, params.request).then(
+      serializeQueryDataTypeSubgraphResponse,
+    );
   },
 
   async queryPropertyTypes(params: {
     authentication: AuthenticationContext;
     request: QueryPropertyTypesParams;
   }): Promise<QueryPropertyTypesResponse> {
-    return queryPropertyTypes(
-      graphApiClient,
-      params.authentication,
-      params.request,
-    );
+    return queryPropertyTypes(graphApiClient, params.authentication, params.request);
   },
 
   async queryPropertyTypeSubgraph(params: {
     authentication: AuthenticationContext;
     request: QueryPropertyTypeSubgraphParams;
   }): Promise<SerializedQueryPropertyTypeSubgraphResponse> {
-    return queryPropertyTypeSubgraph(
-      graphApiClient,
-      params.authentication,
-      params.request,
-    ).then(serializeQueryPropertyTypeSubgraphResponse);
+    return queryPropertyTypeSubgraph(graphApiClient, params.authentication, params.request).then(
+      serializeQueryPropertyTypeSubgraphResponse,
+    );
   },
 
   async queryEntityTypes(params: {
     authentication: AuthenticationContext;
     request: QueryEntityTypesParams;
   }): Promise<QueryEntityTypesResponse> {
-    return queryEntityTypes(
-      graphApiClient,
-      params.authentication,
-      params.request,
-    );
+    return queryEntityTypes(graphApiClient, params.authentication, params.request);
   },
 
   async queryEntityTypeSubgraph(params: {
     authentication: AuthenticationContext;
     request: QueryEntityTypeSubgraphParams;
   }): Promise<SerializedQueryEntityTypeSubgraphResponse> {
-    return queryEntityTypeSubgraph(
-      graphApiClient,
-      params.authentication,
-      params.request,
-    ).then(serializeQueryEntityTypeSubgraphResponse);
+    return queryEntityTypeSubgraph(graphApiClient, params.authentication, params.request).then(
+      serializeQueryEntityTypeSubgraphResponse,
+    );
   },
 
   async queryEntities(params: {
@@ -211,11 +183,9 @@ export const createGraphActivities = ({
     };
     request: QueryEntitiesRequest;
   }): Promise<SerializedQueryEntitiesResponse> {
-    return queryEntities(
-      { graphApi: graphApiClient },
-      params.authentication,
-      params.request,
-    ).then(serializeQueryEntitiesResponse);
+    return queryEntities({ graphApi: graphApiClient }, params.authentication, params.request).then(
+      serializeQueryEntitiesResponse,
+    );
   },
 
   async queryEntitySubgraph(params: {
@@ -304,27 +274,17 @@ export const createGraphActivities = ({
   },
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  async getSubgraphEntities(params: {
-    subgraph: SerializedSubgraph;
-  }): Promise<SerializedEntity[]> {
-    return getEntities(deserializeSubgraph(params.subgraph), false).map(
-      (entity) => entity.toJSON(),
+  async getSubgraphEntities(params: { subgraph: SerializedSubgraph }): Promise<SerializedEntity[]> {
+    return getEntities(deserializeSubgraph(params.subgraph), false).map((entity) =>
+      entity.toJSON(),
     );
   },
 
-  async createEntity(
-    authentication: AuthenticationContext,
-    params: CreateEntityParameters,
-  ) {
+  async createEntity(authentication: AuthenticationContext, params: CreateEntityParameters) {
     return HashEntity.create(graphApiClient, authentication, params);
   },
 
-  async getHashInstanceAdminAccountGroupId(authentication: {
-    actorId: ActorEntityUuid;
-  }) {
-    return getInstanceAdminsTeam(
-      { graphApi: graphApiClient },
-      authentication,
-    ).then(({ id }) => id);
+  async getHashInstanceAdminAccountGroupId(authentication: { actorId: ActorEntityUuid }) {
+    return getInstanceAdminsTeam({ graphApi: graphApiClient }, authentication).then(({ id }) => id);
   },
 });

@@ -77,8 +77,8 @@ export const ErrorFallback: FallbackRender = ({
         Something went wrong...
       </Typography>
       <Typography mb={2}>
-        We've been notified and will investigate — please click the button below
-        to reset the page to its initial state.
+        We've been notified and will investigate — please click the button below to reset the page
+        to its initial state.
       </Typography>
       <Box sx={{ textAlign: "center" }}>
         <Button onClick={resetError} size="small">
@@ -86,8 +86,8 @@ export const ErrorFallback: FallbackRender = ({
         </Button>
       </Box>
       <Typography mt={2}>
-        You can also <Link href="https://hash.ai/contact">contact us</Link>. If
-        you do, please include the details below.
+        You can also <Link href="https://hash.ai/contact">contact us</Link>. If you do, please
+        include the details below.
       </Typography>
       <Button
         onClick={() => setShowMessage(!showMessage)}
@@ -105,16 +105,12 @@ export const ErrorFallback: FallbackRender = ({
           </Box>
           <Box mt={2}>
             <Typography variant="smallCaps">Error message</Typography>
-            <CopyableMonospace
-              text={error instanceof Error ? error.message : String(error)}
-            />
+            <CopyableMonospace text={error instanceof Error ? error.message : String(error)} />
           </Box>
           <Box mt={2}>
             <Typography variant="smallCaps">Stack trace</Typography>
             <CopyableMonospace
-              text={
-                error instanceof Error ? (error.stack ?? "") : String(error)
-              }
+              text={error instanceof Error ? (error.stack ?? "") : String(error)}
             />
           </Box>
         </Box>

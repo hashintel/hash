@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-import {
-  mutationActionInputSchemas,
-  type MutationActionName,
-} from "./action-schemas";
+import { mutationActionInputSchemas, type MutationActionName } from "./action-schemas";
 import { probabilisticSatellitesSDCPN } from "./examples/satellites-launcher";
 import { typedKeys } from "./lib/typed-entries";
 
@@ -79,9 +76,7 @@ export const petrinautAiToolInputSchemas = {
   [getLatestNetDefinitionToolName]: getLatestNetDefinitionToolInputSchema,
 };
 
-export const petrinautAiMutationTools = createToolBundle(
-  mutationActionInputSchemas,
-);
+export const petrinautAiMutationTools = createToolBundle(mutationActionInputSchemas);
 
 export const petrinautAiTools = {
   ...petrinautAiMutationTools,
@@ -97,10 +92,7 @@ export type PetrinautAiToolInput<Name extends PetrinautAiToolName> = z.input<
   (typeof petrinautAiTools)[Name]["inputSchema"]
 >;
 
-export type PetrinautMutationAiToolCallbacks = Pick<
-  Petrinaut,
-  MutationActionName
->;
+export type PetrinautMutationAiToolCallbacks = Pick<Petrinaut, MutationActionName>;
 
 export function createPetrinautMutationAiToolCallbacks(
   instance: Petrinaut,

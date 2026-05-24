@@ -16,9 +16,7 @@
  *
  * @param {string} input
  */
-export const stringIsNonNegativeInteger = (
-  input: string,
-): input is `${number}` => {
+export const stringIsNonNegativeInteger = (input: string): input is `${number}` => {
   const asInteger = Number.parseInt(input, 10);
   return asInteger.toString() === input && asInteger >= 0;
 };

@@ -6,10 +6,7 @@ import { paragraphBlockComponentId } from "./blocks-constants.js";
 
 import type { Node, NodeSpec, NodeType } from "prosemirror-model";
 
-type NodeWithAttrs<Attrs extends Record<string, unknown>> = Omit<
-  Node,
-  "attrs"
-> & {
+type NodeWithAttrs<Attrs extends Record<string, unknown>> = Omit<Node, "attrs"> & {
   attrs: Attrs;
 };
 
@@ -55,12 +52,7 @@ export const mentionNode: NodeSpec = {
     linkEntityTypeBaseUrl: { default: null },
   },
   toDOM: (node) => {
-    const {
-      mentionType,
-      entityId,
-      propertyTypeBaseUrl,
-      linkEntityTypeBaseUrl,
-    } = node.attrs;
+    const { mentionType, entityId, propertyTypeBaseUrl, linkEntityTypeBaseUrl } = node.attrs;
     return [
       "span",
       {
@@ -79,12 +71,8 @@ export const mentionNode: NodeSpec = {
         return {
           mentionType: (dom as Element).getAttribute("data-mention-type"),
           entityId: (dom as Element).getAttribute("data-entity-id"),
-          propertyTypeBaseUrl: (dom as Element).getAttribute(
-            "data-property-type-base-url",
-          ),
-          linkEntityTypeBaseUrl: (dom as Element).getAttribute(
-            "data-link-entity-type-base-url",
-          ),
+          propertyTypeBaseUrl: (dom as Element).getAttribute("data-property-type-base-url"),
+          linkEntityTypeBaseUrl: (dom as Element).getAttribute("data-link-entity-type-base-url"),
         };
       },
     },
@@ -246,11 +234,7 @@ export const createSchema = (nodes: NodeSpecs) =>
         inclusive: false,
         toDOM(node) {
           const { href } = node.attrs;
-          return [
-            "a",
-            { href, style: "color: blue; text-decoration: underline" },
-            0,
-          ];
+          return ["a", { href, style: "color: blue; text-decoration: underline" }, 0];
         },
         parseDOM: [
           {
@@ -345,10 +329,7 @@ export const mutateSchema = (
       delete loadingType.spec.group;
     }
 
-    loadingType.groups!.splice(
-      loadingType.groups!.indexOf(componentNodeGroupName),
-      1,
-    );
+    loadingType.groups!.splice(loadingType.groups!.indexOf(componentNodeGroupName), 1);
   }
 
   // eslint-disable-next-line no-new
@@ -404,11 +385,7 @@ export const formatKeymap = (schema: Schema) =>
     "Ctrl-u": toggleMark(schema.marks.underlined!),
 
     "Shift-Enter": (state, dispatch) => {
-      dispatch?.(
-        state.tr
-          .replaceSelectionWith(schema.nodes.hardBreak!.create())
-          .scrollIntoView(),
-      );
+      dispatch?.(state.tr.replaceSelectionWith(schema.nodes.hardBreak!.create()).scrollIntoView());
       return true;
     },
     // execCommand is flagged as depecrated but it seems that there isn't a viable alternative

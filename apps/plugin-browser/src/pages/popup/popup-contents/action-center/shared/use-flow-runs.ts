@@ -35,8 +35,7 @@ const mapFlowRunToMinimalFlowRun = (
   const persistedEntities = (flowRun.outputs ?? []).flatMap((output) =>
     (output.contents[0]?.outputs ?? []).flatMap(({ outputName, payload }) => {
       if (
-        outputName ===
-        ("persistedEntities" satisfies (typeof browserInferenceFlowOutput)["name"])
+        outputName === ("persistedEntities" satisfies (typeof browserInferenceFlowOutput)["name"])
       ) {
         /**
          * The GraphQL layer resolves StoredPayloadRef values before returning them to clients,
@@ -58,8 +57,7 @@ const mapFlowRunToMinimalFlowRun = (
       outputName ===
       ("visitedWebPage" satisfies AutomaticInferenceTriggerInputName &
         ManualInferenceTriggerInputName),
-  )?.payload
-    .value as PayloadKindValues[AutomaticInferenceTriggerInputs["visitedWebPage"]["kind"]];
+  )?.payload.value as PayloadKindValues[AutomaticInferenceTriggerInputs["visitedWebPage"]["kind"]];
 
   return {
     persistedEntities,
@@ -92,10 +90,8 @@ const getFlowRuns = async ({
 
       for (const flowRun of unfilteredFlowRuns) {
         if (
-          flowRun.flowDefinitionId ===
-            manualBrowserInferenceFlowDefinition.flowDefinitionId ||
-          flowRun.flowDefinitionId ===
-            automaticBrowserInferenceFlowDefinition.flowDefinitionId
+          flowRun.flowDefinitionId === manualBrowserInferenceFlowDefinition.flowDefinitionId ||
+          flowRun.flowDefinitionId === automaticBrowserInferenceFlowDefinition.flowDefinitionId
         ) {
           flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }
@@ -134,9 +130,7 @@ export const useFlowRuns = (): {
     if (!user) {
       return null;
     }
-    return extractWebIdFromEntityId(
-      user.metadata.recordId.entityId,
-    ) as ActorEntityUuid;
+    return extractWebIdFromEntityId(user.metadata.recordId.entityId) as ActorEntityUuid;
   }, [user]);
 
   useEffect(() => {
@@ -164,10 +158,7 @@ export const useFlowRuns = (): {
     setApiChecked(true);
   }, [apiChecked, setValue, userAccountId]);
 
-  const [localPendingRuns, setLocalPendingRuns] = useStorageSync(
-    "localPendingFlowRuns",
-    [],
-  );
+  const [localPendingRuns, setLocalPendingRuns] = useStorageSync("localPendingFlowRuns", []);
 
   /**
    * Merge in any local pending runs that are not already in the API response,
@@ -201,9 +192,7 @@ export const useFlowRuns = (): {
   useEffect(() => {
     if (redundantLocalRunIds.length > 0 && !!localPendingRuns?.length) {
       setLocalPendingRuns(
-        localPendingRuns.filter(
-          (run) => !redundantLocalRunIds.includes(run.flowRunId),
-        ),
+        localPendingRuns.filter((run) => !redundantLocalRunIds.includes(run.flowRunId)),
       );
     }
   }, [localPendingRuns, setLocalPendingRuns, redundantLocalRunIds]);

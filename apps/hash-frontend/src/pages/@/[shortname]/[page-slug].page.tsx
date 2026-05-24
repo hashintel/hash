@@ -40,10 +40,7 @@ import { CommentThread } from "../../shared/block-collection/comments/comment-th
 import { PageContextProvider } from "../../shared/block-collection/page-context";
 import { PageTitle } from "../../shared/block-collection/page-title/page-title";
 import { NotFound } from "../../shared/not-found";
-import {
-  TOP_CONTEXT_BAR_HEIGHT,
-  TopContextBar,
-} from "../../shared/top-context-bar";
+import { TOP_CONTEXT_BAR_HEIGHT, TopContextBar } from "../../shared/top-context-bar";
 import { useEnabledFeatureFlags } from "../../shared/use-enabled-feature-flags";
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
@@ -66,8 +63,7 @@ import type { PropsWithChildren } from "react";
  * Use to check if current browser is Safari or not
  */
 export const isSafariBrowser = () =>
-  navigator.userAgent.indexOf("Safari") > -1 &&
-  navigator.userAgent.indexOf("Chrome") <= -1;
+  navigator.userAgent.indexOf("Safari") > -1 && navigator.userAgent.indexOf("Chrome") <= -1;
 
 export const pageContentWidth = 696;
 export const commentsWidth = 320;
@@ -140,9 +136,7 @@ const generateCrumbsFromPages = ({
   pages: AccountPagesInfo["data"];
   ownerShortname: string;
 }) => {
-  const pageMap = new Map(
-    pages.map((page) => [page.metadata.recordId.entityId, page]),
-  );
+  const pageMap = new Map(pages.map((page) => [page.metadata.recordId.entityId, page]));
 
   let currentPage = pageMap.get(pageEntityId);
   let arr = [];
@@ -170,9 +164,7 @@ const generateCrumbsFromPages = ({
     });
 
     if (currentPage.parentPage) {
-      currentPage = pageMap.get(
-        currentPage.parentPage.metadata.recordId.entityId,
-      );
+      currentPage = pageMap.get(currentPage.parentPage.metadata.recordId.entityId);
     } else {
       break;
     }
@@ -188,16 +180,12 @@ const Page: NextPageWithLayout<PageProps> = () => {
 
   const routeHash = asPath.split("#")[1] ?? "";
 
-  const [pageState, setPageState] = useState<"normal" | "transferring">(
-    "normal",
-  );
+  const [pageState, setPageState] = useState<"normal" | "transferring">("normal");
 
   const enabledFeatureFlags = useEnabledFeatureFlags();
 
   if (!isPageParsedUrlQuery(query)) {
-    throw new Error(
-      `Invalid page URL query parameters: ${JSON.stringify(query)}.`,
-    );
+    throw new Error(`Invalid page URL query parameters: ${JSON.stringify(query)}.`);
   }
 
   const { workspaceShortname, pageEntityUuid } = parsePageUrlQueryParams(query);
@@ -206,8 +194,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
-    variables:
-      getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
+    variables: getBlockCollectionContentsStructuralQueryVariables(pageEntityUuid),
     fetchPolicy: "cache-and-network",
   });
 
@@ -247,9 +234,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
   const page = pageSubgraph ? getRoots(pageSubgraph)[0] : undefined;
 
   const pageEntityId = page?.metadata.recordId.entityId;
-  const pageWebId = pageEntityId
-    ? extractWebIdFromEntityId(pageEntityId)
-    : undefined;
+  const pageWebId = pageEntityId ? extractWebIdFromEntityId(pageEntityId) : undefined;
 
   const { data: pageComments } = usePageComments(pageEntityId);
 
@@ -291,14 +276,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
     return <NotFound />;
   }
 
-  if (
-    !page ||
-    !pageSubgraph ||
-    !pageEntityId ||
-    !pageWebId ||
-    !entityPermissions ||
-    !contents
-  ) {
+  if (!page || !pageSubgraph || !pageEntityId || !pageWebId || !entityPermissions || !contents) {
     return (
       <PageSectionContainer {...pageSectionContainerProps}>
         <h1>No page data loaded.</h1>
@@ -306,13 +284,9 @@ const Page: NextPageWithLayout<PageProps> = () => {
     );
   }
 
-  const { archived, icon, title } = simplifyProperties(
-    page.properties as PageProperties,
-  );
+  const { archived, icon, title } = simplifyProperties(page.properties as PageProperties);
 
-  const isCanvasPage = page.metadata.entityTypeIds.includes(
-    systemEntityTypes.canvas.entityTypeId,
-  );
+  const isCanvasPage = page.metadata.entityTypeIds.includes(systemEntityTypes.canvas.entityTypeId);
 
   const isDocumentPage = page.metadata.entityTypeIds.includes(
     systemEntityTypes.document.entityTypeId,
@@ -380,10 +354,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
         </Box>
 
         {!isCanvasPage && (
-          <PageSectionContainer
-            {...pageSectionContainerProps}
-            readonly={!canUserEdit}
-          >
+          <PageSectionContainer {...pageSectionContainerProps} readonly={!canUserEdit}>
             <Box position="relative">
               <PageIconButton
                 entityId={pageEntityId}
@@ -404,16 +375,10 @@ const Page: NextPageWithLayout<PageProps> = () => {
                 ref={pageHeaderRef}
                 sx={{
                   scrollMarginTop:
-                    HEADER_HEIGHT +
-                    TOP_CONTEXT_BAR_HEIGHT +
-                    iconVariantSizes.medium.container,
+                    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + iconVariantSizes.medium.container,
                 }}
               >
-                <PageTitle
-                  value={title}
-                  pageEntityId={pageEntityId}
-                  readonly={readonly}
-                />
+                <PageTitle value={title} pageEntityId={pageEntityId} readonly={readonly} />
                 {/*
             Commented out Version Dropdown and Transfer Page buttons.
             They will most likely be added back when new designs

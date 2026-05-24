@@ -48,11 +48,7 @@ type SimulateSubviewFrameProps = {
   title: string;
 };
 
-export const SimulateSubviewFrame = ({
-  action,
-  children,
-  title,
-}: SimulateSubviewFrameProps) => (
+export const SimulateSubviewFrame = ({ action, children, title }: SimulateSubviewFrameProps) => (
   <Stack className={mainContainerStyle}>
     <div className={headerStyle}>
       <span className={headerTitleStyle}>{title}</span>

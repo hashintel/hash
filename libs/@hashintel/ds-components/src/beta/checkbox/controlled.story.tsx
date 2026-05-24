@@ -8,10 +8,7 @@ export const App = () => {
   const [checked, setChecked] = useState<Checkbox.CheckedState>(false);
 
   return (
-    <Checkbox.Root
-      checked={checked}
-      onCheckedChange={(e) => setChecked(e.checked)}
-    >
+    <Checkbox.Root checked={checked} onCheckedChange={(e) => setChecked(e.checked)}>
       <Checkbox.HiddenInput />
       <Checkbox.Control>
         <Checkbox.Indicator />

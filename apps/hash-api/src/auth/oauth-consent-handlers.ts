@@ -12,10 +12,7 @@ const CSRF_COOKIE_NAME = "_csrf_consent";
 /**
  * Parse a single cookie value from a raw Cookie header string.
  */
-function parseCookieValue(
-  cookieHeader: string | undefined,
-  name: string,
-): string | undefined {
+function parseCookieValue(cookieHeader: string | undefined, name: string): string | undefined {
   if (!cookieHeader) {
     return undefined;
   }
@@ -73,9 +70,7 @@ export const oauthConsentRequestHandler: RequestHandler<
   // The challenge is used to fetch information about the consent request from ORY hydraAdmin.
   const consentChallenge = query.consent_challenge;
   if (!consentChallenge) {
-    next(
-      new Error("Expected a consent_challenge to be set but received none."),
-    );
+    next(new Error("Expected a consent_challenge to be set but received none."));
     return;
   }
 
@@ -92,8 +87,7 @@ export const oauthConsentRequestHandler: RequestHandler<
               grant_scope: consentRequest.requested_scope,
 
               // Hydra checks if requested audiences are allowed by the client, so we can simply echo this.
-              grant_access_token_audience:
-                consentRequest.requested_access_token_audience,
+              grant_access_token_audience: consentRequest.requested_access_token_audience,
             },
           })
           .then(({ data: redirectTo }) => {
@@ -107,9 +101,7 @@ export const oauthConsentRequestHandler: RequestHandler<
       }
 
       if (consentRequest.subject !== req.user.kratosIdentityId) {
-        res
-          .status(403)
-          .send("Consent request subject does not match request user.");
+        res.status(403).send("Consent request subject does not match request user.");
         return;
       }
 
@@ -130,11 +122,7 @@ export const oauthConsentRequestHandler: RequestHandler<
   // The consent request has now either been accepted automatically or rendered.
 };
 
-export const oauthConsentSubmissionHandler: RequestHandler = (
-  req,
-  res,
-  next,
-) => {
+export const oauthConsentSubmissionHandler: RequestHandler = (req, res, next) => {
   if (!req.user) {
     res.status(401).send("Authentication required to grant consent.");
     return;
@@ -142,10 +130,7 @@ export const oauthConsentSubmissionHandler: RequestHandler = (
 
   // Validate CSRF token (double-submit cookie pattern)
   const csrfTokenFromBody: unknown = req.body.csrfToken;
-  const csrfTokenFromCookie = parseCookieValue(
-    req.headers.cookie,
-    CSRF_COOKIE_NAME,
-  );
+  const csrfTokenFromCookie = parseCookieValue(req.headers.cookie, CSRF_COOKIE_NAME);
 
   if (
     typeof csrfTokenFromBody !== "string" ||
@@ -187,9 +172,7 @@ export const oauthConsentSubmissionHandler: RequestHandler = (
     .then(({ data: body }) => {
       // Verify the consent request subject matches the authenticated user
       if (body.subject !== req.user?.kratosIdentityId) {
-        res
-          .status(403)
-          .send("Consent request subject does not match authenticated user.");
+        res.status(403).send("Consent request subject does not match authenticated user.");
         return;
       }
 

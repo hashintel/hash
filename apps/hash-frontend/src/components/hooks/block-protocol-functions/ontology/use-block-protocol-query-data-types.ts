@@ -18,12 +18,12 @@ import type { QueryDataTypesMessageCallback } from "./ontology-types-shim";
 export const useBlockProtocolQueryDataTypes = (): {
   queryDataTypes: QueryDataTypesMessageCallback;
 } => {
-  const [queryFn] = useLazyQuery<
-    QueryDataTypeSubgraphQuery,
-    QueryDataTypeSubgraphQueryVariables
-  >(queryDataTypeSubgraphQuery, {
-    fetchPolicy: "cache-and-network",
-  });
+  const [queryFn] = useLazyQuery<QueryDataTypeSubgraphQuery, QueryDataTypeSubgraphQueryVariables>(
+    queryDataTypeSubgraphQuery,
+    {
+      fetchPolicy: "cache-and-network",
+    },
+  );
 
   const queryDataTypes = useCallback<QueryDataTypesMessageCallback>(
     async ({ data }) => {
@@ -69,9 +69,8 @@ export const useBlockProtocolQueryDataTypes = (): {
       }
 
       return {
-        data: deserializeQueryDataTypeSubgraphResponse(
-          response.data.queryDataTypeSubgraph,
-        ).subgraph,
+        data: deserializeQueryDataTypeSubgraphResponse(response.data.queryDataTypeSubgraph)
+          .subgraph,
       };
     },
     [queryFn],

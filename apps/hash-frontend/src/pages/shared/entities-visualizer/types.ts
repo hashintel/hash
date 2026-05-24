@@ -11,10 +11,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { EntityQueryCursor } from "@local/hash-graph-client/api";
-import type {
-  SerializedEntity,
-  SerializedSubgraph,
-} from "@local/hash-graph-sdk/entity";
+import type { SerializedEntity, SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
@@ -63,10 +60,7 @@ export interface EntitiesTableRow {
 }
 
 export type EntitiesTableColumnKey =
-  | Exclude<
-      keyof EntitiesTableRow,
-      "rowId" | "entityId" | "entityIcon" | "applicableProperties"
-    >
+  | Exclude<keyof EntitiesTableRow, "rowId" | "entityId" | "entityIcon" | "applicableProperties">
   | BaseUrl;
 
 export type SortableEntitiesTableColumnKey =
@@ -75,11 +69,7 @@ export type SortableEntitiesTableColumnKey =
       /**
        * @todo H-3908 allow sorting by these fields
        */
-      | "createdById"
-      | "lastEditedById"
-      | "sourceEntity"
-      | "targetEntity"
-      | "webId"
+      "createdById" | "lastEditedById" | "sourceEntity" | "targetEntity" | "webId"
     >
   | BaseUrl;
 
@@ -90,8 +80,7 @@ export const filterableEntitiesTableColumnKeys: EntitiesTableColumnKey[] = [
   "lastEditedById",
 ] as const;
 
-export type FilterableEntitiesColumnKey =
-  (typeof filterableEntitiesTableColumnKeys)[number];
+export type FilterableEntitiesColumnKey = (typeof filterableEntitiesTableColumnKeys)[number];
 
 export interface EntitiesTableColumn extends SizedGridColumn {
   id: EntitiesTableColumnKey;
@@ -139,10 +128,7 @@ export type EntitiesTableFilterDataFromVisibleRows = {
   targets: SourceOrTargetFilterData;
 };
 
-export type VisibleDataTypeIdsByPropertyBaseUrl = Record<
-  BaseUrl,
-  Set<ClosedDataTypeDefinition>
->;
+export type VisibleDataTypeIdsByPropertyBaseUrl = Record<BaseUrl, Set<ClosedDataTypeDefinition>>;
 
 export type EntitiesTableData = {
   columns: EntitiesTableColumn[];
@@ -153,10 +139,7 @@ export type EntitiesTableData = {
 };
 
 export type UpdateTableDataFn = (
-  params: Pick<
-    EntitiesVisualizerData,
-    "definitions" | "entities" | "subgraph"
-  > & {
+  params: Pick<EntitiesVisualizerData, "definitions" | "entities" | "subgraph"> & {
     appliedPaginationCursor: EntityQueryCursor | null;
     closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
   },

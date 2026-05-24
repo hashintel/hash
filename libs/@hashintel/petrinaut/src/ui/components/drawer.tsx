@@ -83,10 +83,7 @@ const AnimatedOverlay = ({
   }, [open, onExited]);
 
   return (
-    <div
-      ref={ref}
-      className={cx(overlayStyle, open ? enteringStyle : exitingStyle)}
-    >
+    <div ref={ref} className={cx(overlayStyle, open ? enteringStyle : exitingStyle)}>
       {children}
     </div>
   );
@@ -105,16 +102,9 @@ interface DrawerRootProps {
   className?: string;
 }
 
-const Root = ({
-  open,
-  onClose: _onClose,
-  children,
-  className,
-}: DrawerRootProps) => {
+const Root = ({ open, onClose: _onClose, children, className }: DrawerRootProps) => {
   const portalContainerRef = use(PortalContainerContext);
-  const [portalContainerStore] = useState(() =>
-    createValueStore<HTMLElement | null>(null),
-  );
+  const [portalContainerStore] = useState(() => createValueStore<HTMLElement | null>(null));
   const portalContainer = useSyncExternalStore(
     (listener) => portalContainerStore.subscribe(listener),
     () => portalContainerStore.getSnapshot(),
@@ -147,9 +137,7 @@ const Root = ({
 
   return createPortal(
     <AnimatedOverlay open={open} onExited={handleExited}>
-      <div className={cx(outerStyle, drawerOuterStyle, className)}>
-        {children}
-      </div>
+      <div className={cx(outerStyle, drawerOuterStyle, className)}>{children}</div>
     </AnimatedOverlay>,
     portalContainer,
   );
@@ -157,13 +145,7 @@ const Root = ({
 
 // -- Card with close button ---------------------------------------------------
 
-const Card = ({
-  children,
-  onClose,
-}: {
-  children: ReactNode;
-  onClose: () => void;
-}) => (
+const Card = ({ children, onClose }: { children: ReactNode; onClose: () => void }) => (
   <PanelCard
     closeButton={
       <Button
@@ -184,13 +166,9 @@ const Card = ({
 
 // -- Header -------------------------------------------------------------------
 
-const Header = ({
-  children,
-  description,
-}: {
-  children: ReactNode;
-  description?: ReactNode;
-}) => <PanelHeader description={description}>{children}</PanelHeader>;
+const Header = ({ children, description }: { children: ReactNode; description?: ReactNode }) => (
+  <PanelHeader description={description}>{children}</PanelHeader>
+);
 
 // -- Compound export ----------------------------------------------------------
 

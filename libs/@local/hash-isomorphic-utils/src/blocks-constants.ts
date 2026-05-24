@@ -3,8 +3,7 @@
  */
 export const blockProtocolHubOrigin =
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either
-  process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST ||
-  "https://blockprotocol.org";
+  process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST || "https://blockprotocol.org";
 
 /**
  * the componentId is the location of the block source code, which will be in one of two R2 buckets depending on environment
@@ -51,8 +50,7 @@ export const defaultBlockComponentIds = [
  * which is used to know if the block is compatible for switching from one
  * text block to another
  */
-export const isHashTextBlock = (componentId: string) =>
-  richTextBlockComponentIds.has(componentId);
+export const isHashTextBlock = (componentId: string) => richTextBlockComponentIds.has(componentId);
 
 export const isBlockWithTextualContentProperty = (componentId: string) =>
   componentIdsWithTextualContentProperty.has(componentId);

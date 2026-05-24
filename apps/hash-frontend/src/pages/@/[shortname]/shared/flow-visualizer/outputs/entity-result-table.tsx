@@ -2,11 +2,7 @@ import { Box, TableCell } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import {
-  typedEntries,
-  typedKeys,
-  typedValues,
-} from "@local/advanced-types/typed-entries";
+import { typedEntries, typedKeys, typedValues } from "@local/advanced-types/typed-entries";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
@@ -65,12 +61,7 @@ import type {
 } from "@local/hash-graph-sdk/ontology";
 import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 
-const fixedFieldIds = [
-  "relevance",
-  "status",
-  "entityTypeIds",
-  "entityLabel",
-] as const;
+const fixedFieldIds = ["relevance", "status", "entityTypeIds", "entityLabel"] as const;
 
 type FixedFieldId = (typeof fixedFieldIds)[number];
 
@@ -128,15 +119,12 @@ const generateColumns = ({
       const entityTypeIds = closedMultiEntityType.allOf.map((type) => type.$id);
 
       for (const schema of typedValues(closedMultiEntityType.properties)) {
-        const propertyTypeId =
-          "$ref" in schema ? schema.$ref : schema.items.$ref;
+        const propertyTypeId = "$ref" in schema ? schema.$ref : schema.items.$ref;
 
         const propertyType = definitions.propertyTypes[propertyTypeId];
 
         if (!propertyType) {
-          throw new Error(
-            `Property type ${propertyTypeId} not found in definitions`,
-          );
+          throw new Error(`Property type ${propertyTypeId} not found in definitions`);
         }
 
         propertyTypesByVersionedUrl[propertyTypeId] ??= {
@@ -145,9 +133,7 @@ const generateColumns = ({
         };
 
         for (const entityTypeId of entityTypeIds) {
-          propertyTypesByVersionedUrl[
-            propertyTypeId
-          ].appliesToEntityTypeIds.add(entityTypeId);
+          propertyTypesByVersionedUrl[propertyTypeId].appliesToEntityTypeIds.add(entityTypeId);
         }
       }
 
@@ -164,9 +150,7 @@ const generateColumns = ({
         };
 
         for (const entityTypeId of entityTypeIds) {
-          linkEntityTypesByVersionedUrl[linkTypeId].appliesToEntityTypeIds.add(
-            entityTypeId,
-          );
+          linkEntityTypesByVersionedUrl[linkTypeId].appliesToEntityTypeIds.add(entityTypeId);
         }
       }
     }
@@ -254,15 +238,12 @@ const TableRow = memo(
     row: EntityResultRow;
   }) => {
     const { pushToSlideStack } = useSlideStack();
-    const hasRelevanceColumn =
-      columns[0]?.id === ("relevance" satisfies FixedFieldId);
+    const hasRelevanceColumn = columns[0]?.id === ("relevance" satisfies FixedFieldId);
 
     const firstColumnLeftPosition = 0;
     const secondColumnLeftPosition = columns[0]!.width as number;
-    const thirdColumnLeftPosition =
-      secondColumnLeftPosition + (columns[1]!.width as number);
-    const fourthColumnLeftPosition =
-      thirdColumnLeftPosition + (columns[2]!.width as number);
+    const thirdColumnLeftPosition = secondColumnLeftPosition + (columns[1]!.width as number);
+    const fourthColumnLeftPosition = thirdColumnLeftPosition + (columns[2]!.width as number);
 
     return (
       <>
@@ -282,9 +263,7 @@ const TableRow = memo(
           sx={{
             ...cellSx,
             position: "sticky",
-            left: hasRelevanceColumn
-              ? secondColumnLeftPosition
-              : firstColumnLeftPosition,
+            left: hasRelevanceColumn ? secondColumnLeftPosition : firstColumnLeftPosition,
             zIndex: 1,
           }}
         >
@@ -295,9 +274,7 @@ const TableRow = memo(
             ...cellSx,
             position: "sticky",
             zIndex: 1,
-            left: hasRelevanceColumn
-              ? thirdColumnLeftPosition
-              : secondColumnLeftPosition,
+            left: hasRelevanceColumn ? thirdColumnLeftPosition : secondColumnLeftPosition,
             px: 0.5,
           }}
         >
@@ -332,9 +309,7 @@ const TableRow = memo(
           sx={{
             ...cellSx,
             position: "sticky",
-            left: hasRelevanceColumn
-              ? fourthColumnLeftPosition
-              : thirdColumnLeftPosition,
+            left: hasRelevanceColumn ? fourthColumnLeftPosition : thirdColumnLeftPosition,
             zIndex: 1,
           }}
         >
@@ -352,11 +327,7 @@ const TableRow = memo(
           />
         </TableCell>
         {columns
-          .slice(
-            hasRelevanceColumn
-              ? fixedFieldIds.length
-              : fixedFieldIds.length - 1,
-          )
+          .slice(hasRelevanceColumn ? fixedFieldIds.length : fixedFieldIds.length - 1)
           .map((column) => {
             const appliesToEntity = row.entityTypeIds.some((id) =>
               column.metadata?.appliesToEntityTypeIds.has(id),
@@ -382,8 +353,7 @@ const TableRow = memo(
                * This is a link entity type
                */
 
-              const linkedEntities =
-                row.outgoingLinksByLinkTypeId[column.id as VersionedUrl];
+              const linkedEntities = row.outgoingLinksByLinkTypeId[column.id as VersionedUrl];
 
               if (!linkedEntities?.length) {
                 return (
@@ -409,8 +379,7 @@ const TableRow = memo(
               );
             }
 
-            const propertyValue =
-              row.properties[extractBaseUrl(column.id as VersionedUrl)];
+            const propertyValue = row.properties[extractBaseUrl(column.id as VersionedUrl)];
 
             if (propertyValue === undefined || propertyValue === "") {
               return (
@@ -423,9 +392,7 @@ const TableRow = memo(
             }
 
             const metadata =
-              row.propertiesMetadata.value[
-                extractBaseUrl(column.id as VersionedUrl)
-              ]?.metadata;
+              row.propertiesMetadata.value[extractBaseUrl(column.id as VersionedUrl)]?.metadata;
 
             return (
               <PropertyValueCell
@@ -444,9 +411,7 @@ const createRowContent: CreateVirtualizedRowContentFn<
   EntityResultRow,
   FieldId,
   EntityColumnMetadata
-> = (_index, row, context) => (
-  <TableRow columns={context.columns} row={row.data} />
-);
+> = (_index, row, context) => <TableRow columns={context.columns} row={row.data} />;
 
 type EntityResultTableProps = {
   dataIsLoading: boolean;
@@ -479,9 +444,7 @@ export const EntityResultTable = memo(
       direction: "asc",
     });
 
-    const hasEntities = !!(
-      persistedEntitiesWithOperation.length || proposedEntities.length
-    );
+    const hasEntities = !!(persistedEntitiesWithOperation.length || proposedEntities.length);
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -541,12 +504,9 @@ export const EntityResultTable = memo(
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-      } satisfies VirtualizedTableFilterDefinitionsByFieldId<
-        Exclude<FieldId, VersionedUrl>
-      >;
+      } satisfies VirtualizedTableFilterDefinitionsByFieldId<Exclude<FieldId, VersionedUrl>>;
 
-      const dynamicFilterDefs: VirtualizedTableFilterDefinitionsByFieldId<VersionedUrl> =
-        {};
+      const dynamicFilterDefs: VirtualizedTableFilterDefinitionsByFieldId<VersionedUrl> = {};
 
       const entityRecords = persistedEntitiesWithOperation.length
         ? persistedEntitiesWithOperation
@@ -578,9 +538,7 @@ export const EntityResultTable = memo(
           researchOngoing: boolean;
           closedMultiEntityType: ClosedMultiEntityType;
           entityLabel: string;
-          entity:
-            | ProposedEntityOutput
-            | HashEntity<TypeIdsAndPropertiesForEntity>;
+          entity: ProposedEntityOutput | HashEntity<TypeIdsAndPropertiesForEntity>;
         }
       > = {};
 
@@ -596,10 +554,7 @@ export const EntityResultTable = memo(
 
         const entity = isProposed ? record : record.entity;
 
-        const entityId =
-          "localEntityId" in record
-            ? record.localEntityId
-            : record.entity.entityId;
+        const entityId = "localEntityId" in record ? record.localEntityId : record.entity.entityId;
 
         const linkData =
           "linkData" in entity && !!entity.linkData
@@ -631,11 +586,8 @@ export const EntityResultTable = memo(
           outgoingLinksBySourceEntityId[sourceEntityId] ??= {};
 
           for (const linkEntityTypeId of linkData.linkEntityTypeIds) {
-            outgoingLinksBySourceEntityId[sourceEntityId][linkEntityTypeId] ??=
-              [];
-            outgoingLinksBySourceEntityId[sourceEntityId][
-              linkEntityTypeId
-            ].push({
+            outgoingLinksBySourceEntityId[sourceEntityId][linkEntityTypeId] ??= [];
+            outgoingLinksBySourceEntityId[sourceEntityId][linkEntityTypeId].push({
               targetEntityId: linkData.targetEntityId,
               linkEntityId: entityId,
             });
@@ -651,13 +603,9 @@ export const EntityResultTable = memo(
         }
 
         const entityTypeIds =
-          "entityTypeIds" in entity
-            ? entity.entityTypeIds
-            : entity.metadata.entityTypeIds;
+          "entityTypeIds" in entity ? entity.entityTypeIds : entity.metadata.entityTypeIds;
 
-        const typeInfo = isProposed
-          ? proposedEntitiesTypesInfo
-          : persistedEntitiesTypesInfo;
+        const typeInfo = isProposed ? proposedEntitiesTypesInfo : persistedEntitiesTypesInfo;
 
         if (!typeInfo) {
           continue;
@@ -698,45 +646,30 @@ export const EntityResultTable = memo(
 
       for (const [
         entityId,
-        {
-          closedMultiEntityType,
-          entity,
-          entityLabel,
-          operation,
-          researchOngoing,
-        },
+        { closedMultiEntityType, entity, entityLabel, operation, researchOngoing },
       ] of typedEntries(entitiesByEntityId)) {
         const isProposed = operation === "proposed";
 
-        const typeInfo = isProposed
-          ? proposedEntitiesTypesInfo
-          : persistedEntitiesTypesInfo;
+        const typeInfo = isProposed ? proposedEntitiesTypesInfo : persistedEntitiesTypesInfo;
 
         if (!typeInfo) {
           continue;
         }
 
         const entityTypeIds =
-          "entityTypeIds" in entity
-            ? entity.entityTypeIds
-            : entity.metadata.entityTypeIds;
+          "entityTypeIds" in entity ? entity.entityTypeIds : entity.metadata.entityTypeIds;
 
         if (!isProposed && !persistedEntitiesSubgraph) {
           continue;
         }
 
-        const outgoingLinksByLinkTypeId: EntityResultRow["outgoingLinksByLinkTypeId"] =
-          {};
+        const outgoingLinksByLinkTypeId: EntityResultRow["outgoingLinksByLinkTypeId"] = {};
 
-        for (const {
-          $id: entityTypeId,
-          title,
-        } of closedMultiEntityType.allOf) {
+        for (const { $id: entityTypeId, title } of closedMultiEntityType.allOf) {
           entityTypesRecord[entityTypeId] ??= {
             entitiesCount: 0,
-            propertyTypeIds: typedValues(closedMultiEntityType.properties).map(
-              (property) =>
-                "$ref" in property ? property.$ref : property.items.$ref,
+            propertyTypeIds: typedValues(closedMultiEntityType.properties).map((property) =>
+              "$ref" in property ? property.$ref : property.items.$ref,
             ),
             linkTypeIds: typedKeys(closedMultiEntityType.links ?? {}),
           };
@@ -753,9 +686,7 @@ export const EntityResultTable = memo(
 
           const outgoingLinks = outgoingLinksBySourceEntityId[entityId];
           if (outgoingLinks) {
-            for (const [linkEntityTypeId, linksAndTargets] of typedEntries(
-              outgoingLinks,
-            )) {
+            for (const [linkEntityTypeId, linksAndTargets] of typedEntries(outgoingLinks)) {
               outgoingLinksByLinkTypeId[linkEntityTypeId] = [];
 
               for (const { targetEntityId, linkEntityId } of linksAndTargets) {
@@ -775,15 +706,11 @@ export const EntityResultTable = memo(
             }
           }
 
-          for (const linkTypeId of typedKeys(
-            closedMultiEntityType.links ?? {},
-          )) {
+          for (const linkTypeId of typedKeys(closedMultiEntityType.links ?? {})) {
             const linkType = typeInfo.definitions?.entityTypes[linkTypeId];
 
             if (!linkType) {
-              throw new Error(
-                `Link type ${linkTypeId} not found in definitions`,
-              );
+              throw new Error(`Link type ${linkTypeId} not found in definitions`);
             }
 
             dynamicFilterDefs[linkTypeId] ??= {
@@ -793,28 +720,22 @@ export const EntityResultTable = memo(
               type: "checkboxes",
             } as const;
 
-            const linkedEntities =
-              outgoingLinksByLinkTypeId[linkType.$id] ?? [];
+            const linkedEntities = outgoingLinksByLinkTypeId[linkType.$id] ?? [];
 
             if (linkedEntities.length) {
               /**
                * For each possible link from the entity, account for each target entity
                */
-              for (const {
-                targetEntityId,
-                targetEntityLabel,
-              } of linkedEntities) {
+              for (const { targetEntityId, targetEntityLabel } of linkedEntities) {
                 dynamicFilterDefs[linkTypeId].options[targetEntityId] ??= {
                   label: targetEntityLabel,
                   count: 0,
                   value: targetEntityId,
                 };
                 dynamicFilterDefs[linkTypeId].options[targetEntityId].count++;
-                (
-                  dynamicFilterDefs[linkTypeId].initialValue as Set<
-                    string | null
-                  >
-                ).add(targetEntityId);
+                (dynamicFilterDefs[linkTypeId].initialValue as Set<string | null>).add(
+                  targetEntityId,
+                );
               }
             } else {
               /**
@@ -825,25 +746,18 @@ export const EntityResultTable = memo(
                 count: 0,
                 value: null,
               };
-              dynamicFilterDefs[linkTypeId].options[missingValueString]!
-                .count++;
-              (
-                dynamicFilterDefs[linkTypeId].initialValue as Set<string | null>
-              ).add(null);
+              dynamicFilterDefs[linkTypeId].options[missingValueString]!.count++;
+              (dynamicFilterDefs[linkTypeId].initialValue as Set<string | null>).add(null);
             }
           }
 
           for (const schema of typedValues(closedMultiEntityType.properties)) {
-            const propertyTypeId =
-              "$ref" in schema ? schema.$ref : schema.items.$ref;
+            const propertyTypeId = "$ref" in schema ? schema.$ref : schema.items.$ref;
 
-            const propertyType =
-              typeInfo.definitions?.propertyTypes[propertyTypeId];
+            const propertyType = typeInfo.definitions?.propertyTypes[propertyTypeId];
 
             if (!propertyType) {
-              throw new Error(
-                `Property type ${propertyTypeId} not found in definitions`,
-              );
+              throw new Error(`Property type ${propertyTypeId} not found in definitions`);
             }
 
             const baseUrl = extractBaseUrl(propertyTypeId);
@@ -869,11 +783,7 @@ export const EntityResultTable = memo(
             };
 
             dynamicFilterDefs[propertyTypeId].options[optionsKey].count++;
-            (
-              dynamicFilterDefs[propertyTypeId].initialValue as Set<
-                string | null
-              >
-            ).add(value);
+            (dynamicFilterDefs[propertyTypeId].initialValue as Set<string | null>).add(value);
           }
         }
 
@@ -933,9 +843,7 @@ export const EntityResultTable = memo(
             proposedEntityId: isProposed ? entityId : undefined,
             properties: entity.properties,
             propertiesMetadata:
-              "propertiesMetadata" in entity
-                ? entity.propertiesMetadata
-                : entity.propertyMetadata,
+              "propertiesMetadata" in entity ? entity.propertiesMetadata : entity.propertyMetadata,
             relevance,
             researchOngoing,
             status,
@@ -966,13 +874,8 @@ export const EntityResultTable = memo(
               count: 0,
               value: null,
             };
-            dynamicFilterDefs[dynamicDefId]!.options[optionsKey].count +=
-              entityType.entitiesCount;
-            (
-              dynamicFilterDefs[dynamicDefId]!.initialValue as Set<
-                string | null
-              >
-            ).add(null);
+            dynamicFilterDefs[dynamicDefId]!.options[optionsKey].count += entityType.entitiesCount;
+            (dynamicFilterDefs[dynamicDefId]!.initialValue as Set<string | null>).add(null);
           }
         }
       }
@@ -988,10 +891,7 @@ export const EntityResultTable = memo(
         initialFilterValues: Object.fromEntries(
           typedEntries(filterDefs).map(
             ([columnId, filterDef]) =>
-              [columnId, filterDef.initialValue] satisfies [
-                FieldId,
-                VirtualizedTableFilterValue,
-              ],
+              [columnId, filterDef.initialValue] satisfies [FieldId, VirtualizedTableFilterValue],
           ),
         ) as VirtualizedTableFilterValuesByFieldId<FieldId>,
         unsortedRows: rowData,
@@ -1028,22 +928,14 @@ export const EntityResultTable = memo(
                     );
                   }
                   if (typeof currentValue === "string") {
-                    throw new Error(
-                      `Expected Set for entityTypeIds filter, got ${currentValue}`,
-                    );
+                    throw new Error(`Expected Set for entityTypeIds filter, got ${currentValue}`);
                   }
-                  if (
-                    !valueToCheck.some((entityTypeId) =>
-                      currentValue.has(entityTypeId),
-                    )
-                  ) {
+                  if (!valueToCheck.some((entityTypeId) => currentValue.has(entityTypeId))) {
                     return false;
                   }
                 } else {
                   if (Array.isArray(valueToCheck)) {
-                    throw new Error(
-                      `Expected string for row value, got ${valueToCheck}`,
-                    );
+                    throw new Error(`Expected string for row value, got ${valueToCheck}`);
                   }
                   if (
                     !isValueIncludedInFilter({
@@ -1056,9 +948,7 @@ export const EntityResultTable = memo(
                 }
               } else if (fieldId.includes("/entity-type/")) {
                 if (typeof currentValue === "string") {
-                  throw new Error(
-                    `Expected Set for entity type filter, got ${currentValue}`,
-                  );
+                  throw new Error(`Expected Set for entity type filter, got ${currentValue}`);
                 }
 
                 const linkTargets = row.data.outgoingLinksByLinkTypeId[fieldId];
@@ -1072,9 +962,7 @@ export const EntityResultTable = memo(
                   }
                 } else if (
                   currentValue.isDisjointFrom(
-                    new Set(
-                      linkTargets.map(({ targetEntityId }) => targetEntityId),
-                    ),
+                    new Set(linkTargets.map(({ targetEntityId }) => targetEntityId)),
                   )
                 ) {
                   return false;
@@ -1119,17 +1007,13 @@ export const EntityResultTable = memo(
               }
 
               return (
-                stringifyPropertyValue(valueA).localeCompare(
-                  stringifyPropertyValue(valueB),
-                ) * direction
+                stringifyPropertyValue(valueA).localeCompare(stringifyPropertyValue(valueB)) *
+                direction
               );
             }
 
             if (field === "entityTypeIds") {
-              return (
-                a.data[field].join(",").localeCompare(b.data[field].join(",")) *
-                direction
-              );
+              return a.data[field].join(",").localeCompare(b.data[field].join(",")) * direction;
             }
 
             return a.data[field].localeCompare(b.data[field]) * direction;
@@ -1172,10 +1056,7 @@ export const EntityResultTable = memo(
       >
         {hasEntities ? (
           dataIsLoading ? (
-            <TableSkeleton
-              cellHeight={43}
-              tableHeight={outputContainerHeight}
-            />
+            <TableSkeleton cellHeight={43} tableHeight={outputContainerHeight} />
           ) : (
             <VirtualizedTable
               columns={columns}

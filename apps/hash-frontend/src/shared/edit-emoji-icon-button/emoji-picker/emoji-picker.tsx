@@ -8,11 +8,7 @@ import type { PopupState } from "material-ui-popup-state/hooks";
 
 export type EmojiPickerPopoverProps = Omit<
   PopoverProps,
-  | keyof ReturnType<typeof bindPopover>
-  | "anchorOrigin"
-  | "transformOrigin"
-  | "elevation"
-  | "sx"
+  keyof ReturnType<typeof bindPopover> | "anchorOrigin" | "transformOrigin" | "elevation" | "sx"
 >;
 
 // extracted from https://github.com/missive/emoji-mart/blob/16978d04a766eec6455e2e8bb21cd8dc0b3c7436/packages/emoji-mart/src/utils.ts#L18
@@ -68,11 +64,7 @@ interface EmojiPickerProps {
   popoverProps?: EmojiPickerPopoverProps;
 }
 
-export const EmojiPicker = ({
-  onEmojiSelect,
-  popupState,
-  popoverProps,
-}: EmojiPickerProps) => {
+export const EmojiPicker = ({ onEmojiSelect, popupState, popoverProps }: EmojiPickerProps) => {
   return (
     <Popover
       {...bindPopover(popupState)}

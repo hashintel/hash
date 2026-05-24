@@ -58,10 +58,8 @@ export function getMetricDocumentUri(sessionId: string): string {
 // URI regex patterns
 // ---------------------------------------------------------------------------
 
-const TRANSITION_LAMBDA_URI_RE =
-  /^inmemory:\/\/sdcpn\/transitions\/([^/]+)\/lambda\.ts$/;
-const TRANSITION_KERNEL_URI_RE =
-  /^inmemory:\/\/sdcpn\/transitions\/([^/]+)\/kernel\.ts$/;
+const TRANSITION_LAMBDA_URI_RE = /^inmemory:\/\/sdcpn\/transitions\/([^/]+)\/lambda\.ts$/;
+const TRANSITION_KERNEL_URI_RE = /^inmemory:\/\/sdcpn\/transitions\/([^/]+)\/kernel\.ts$/;
 const DE_URI_RE = /^inmemory:\/\/sdcpn\/differential-equations\/([^/]+)\.ts$/;
 
 const SCENARIO_PARAM_OVERRIDE_URI_RE =
@@ -95,9 +93,7 @@ const METRIC_PATH_RE = /^\/_temp\/metrics\/([^/]+)\/code\.ts$/;
 // ---------------------------------------------------------------------------
 
 /** Extract `(itemType, itemId)` from a document URI string. */
-export function parseDocumentUri(
-  uri: string,
-): { itemType: ItemType; itemId: string } | null {
+export function parseDocumentUri(uri: string): { itemType: ItemType; itemId: string } | null {
   let match = TRANSITION_LAMBDA_URI_RE.exec(uri);
   if (match) {
     return { itemType: "transition-lambda", itemId: match[1]! };
@@ -151,9 +147,7 @@ export function parseScenarioDocumentUri(
 }
 
 /** Extract the session id from a metric document URI string. */
-export function parseMetricDocumentUri(
-  uri: string,
-): { sessionId: string } | null {
+export function parseMetricDocumentUri(uri: string): { sessionId: string } | null {
   const match = METRIC_URI_RE.exec(uri);
   return match ? { sessionId: match[1]! } : null;
 }
@@ -239,29 +233,17 @@ export function filePathToUri(filePath: string): string | null {
   // Scenario file paths
   match = SCENARIO_PARAM_OVERRIDE_PATH_RE.exec(filePath);
   if (match) {
-    return getScenarioDocumentUri(
-      "scenario-param-override",
-      match[1]!,
-      match[2]!,
-    );
+    return getScenarioDocumentUri("scenario-param-override", match[1]!, match[2]!);
   }
 
   match = SCENARIO_INITIAL_STATE_PATH_RE.exec(filePath);
   if (match) {
-    return getScenarioDocumentUri(
-      "scenario-initial-state",
-      match[1]!,
-      match[2]!,
-    );
+    return getScenarioDocumentUri("scenario-initial-state", match[1]!, match[2]!);
   }
 
   match = SCENARIO_INITIAL_STATE_FULL_CODE_PATH_RE.exec(filePath);
   if (match) {
-    return getScenarioDocumentUri(
-      "scenario-initial-state-full-code",
-      match[1]!,
-      "",
-    );
+    return getScenarioDocumentUri("scenario-initial-state-full-code", match[1]!, "");
   }
 
   match = METRIC_PATH_RE.exec(filePath);

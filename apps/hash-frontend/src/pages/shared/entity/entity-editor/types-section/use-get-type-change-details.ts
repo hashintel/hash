@@ -30,38 +30,28 @@ export const useGetTypeChangeDetails = () => {
   return useCallback(
     async (
       newEntityTypeIds: VersionedUrl[],
-    ): Promise<
-      Pick<EntityTypeChangeDetails, "linkChanges" | "propertyChanges">
-    > => {
-      const {
-        closedMultiEntityTypes,
-        closedMultiEntityTypesDefinitions: proposedDefinitions,
-      } = await getClosedMultiEntityTypes([newEntityTypeIds]);
+    ): Promise<Pick<EntityTypeChangeDetails, "linkChanges" | "propertyChanges">> => {
+      const { closedMultiEntityTypes, closedMultiEntityTypesDefinitions: proposedDefinitions } =
+        await getClosedMultiEntityTypes([newEntityTypeIds]);
 
       const proposedClosedMultiType = getClosedMultiEntityTypeFromMap(
         closedMultiEntityTypes,
         mustHaveAtLeastOne(newEntityTypeIds),
       );
 
-      const changeDetails: Pick<
-        EntityTypeChangeDetails,
-        "linkChanges" | "propertyChanges"
-      > = {
+      const changeDetails: Pick<EntityTypeChangeDetails, "linkChanges" | "propertyChanges"> = {
         linkChanges: [],
         propertyChanges: [],
       };
 
-      for (const [newPropertyBaseUrl, schema] of typedEntries(
-        proposedClosedMultiType.properties,
-      )) {
+      for (const [newPropertyBaseUrl, schema] of typedEntries(proposedClosedMultiType.properties)) {
         const newDetails = getPropertyTypeForClosedEntityType({
           closedMultiEntityType: proposedClosedMultiType,
           definitions: proposedDefinitions,
           propertyTypeBaseUrl: newPropertyBaseUrl,
         });
 
-        const required =
-          proposedClosedMultiType.required?.includes(newPropertyBaseUrl);
+        const required = proposedClosedMultiType.required?.includes(newPropertyBaseUrl);
         const newListSchema = "items" in schema ? schema : undefined;
 
         const propertyTitle = newDetails.propertyType.title;
@@ -81,8 +71,7 @@ export const useGetTypeChangeDetails = () => {
           propertyTypeBaseUrl: newPropertyBaseUrl,
         });
 
-        const wasRequired =
-          currentClosedType.required?.includes(newPropertyBaseUrl);
+        const wasRequired = currentClosedType.required?.includes(newPropertyBaseUrl);
 
         if (required && !wasRequired) {
           changeDetails.propertyChanges.push({
@@ -93,9 +82,7 @@ export const useGetTypeChangeDetails = () => {
         }
 
         const oldListSchema =
-          "items" in existingDetails.schema
-            ? existingDetails.schema
-            : undefined;
+          "items" in existingDetails.schema ? existingDetails.schema : undefined;
 
         if (oldListSchema && !newListSchema) {
           changeDetails.propertyChanges.push({
@@ -146,9 +133,7 @@ export const useGetTypeChangeDetails = () => {
         for (const newValueOption of newExpectedValues) {
           const matchingOldOption = oldExpectedValues.some((oldOption) => {
             if ("$ref" in newValueOption) {
-              return (
-                "$ref" in oldOption && newValueOption.$ref === oldOption.$ref
-              );
+              return "$ref" in oldOption && newValueOption.$ref === oldOption.$ref;
             }
 
             // @todo handle expected values of arrays and objects properly
@@ -165,9 +150,7 @@ export const useGetTypeChangeDetails = () => {
         }
       }
 
-      for (const oldPropertyBaseUrl of typedKeys(
-        currentClosedType.properties,
-      )) {
+      for (const oldPropertyBaseUrl of typedKeys(currentClosedType.properties)) {
         if (!proposedClosedMultiType.properties[oldPropertyBaseUrl]) {
           const oldDetails = getPropertyTypeForClosedEntityType({
             closedMultiEntityType: currentClosedType,
@@ -218,14 +201,9 @@ export const useGetTypeChangeDetails = () => {
           continue;
         }
 
-        const oldLinkVersion = oldLinkTypeId
-          ? extractVersion(oldLinkTypeId)
-          : undefined;
+        const oldLinkVersion = oldLinkTypeId ? extractVersion(oldLinkTypeId) : undefined;
 
-        if (
-          oldLinkVersion &&
-          compareOntologyTypeVersions(oldLinkVersion, newLinkTypeVersion) < 0
-        ) {
+        if (oldLinkVersion && compareOntologyTypeVersions(oldLinkVersion, newLinkTypeVersion) < 0) {
           changeDetails.linkChanges.push({
             change: "Link version changed",
             linkTypeBaseUrl: newLinkTypeBaseUrl,
@@ -265,12 +243,7 @@ export const useGetTypeChangeDetails = () => {
             ? new Set(newLinkSchema.items.oneOf.map((item) => item.$ref))
             : new Set();
 
-        if (
-          !(
-            oldTargets.size === newTargets.size &&
-            oldTargets.isSupersetOf(newTargets)
-          )
-        ) {
+        if (!(oldTargets.size === newTargets.size && oldTargets.isSupersetOf(newTargets))) {
           changeDetails.linkChanges.push({
             change: "Target type(s) changed",
             linkTypeBaseUrl: newLinkTypeBaseUrl,

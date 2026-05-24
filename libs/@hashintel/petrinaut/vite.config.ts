@@ -55,12 +55,7 @@ export default defineConfig(({ command }) => ({
 
   plugins: [
     esmExternalRequirePlugin({
-      external: [
-        "elkjs",
-        "react/compiler-runtime",
-        "react/jsx-runtime",
-        "react/jsx-dev-runtime",
-      ],
+      external: ["elkjs", "react/compiler-runtime", "react/jsx-runtime", "react/jsx-dev-runtime"],
     }),
 
     react(),
@@ -87,9 +82,7 @@ export default defineConfig(({ command }) => ({
     command === "build" &&
       dts({ tsgo: true }).map((plugin) =>
         // Ensure runs before Vite's native TypeScript transform
-        plugin.name.endsWith("fake-js")
-          ? { ...plugin, enforce: "pre" }
-          : plugin,
+        plugin.name.endsWith("fake-js") ? { ...plugin, enforce: "pre" } : plugin,
       ),
   ],
 

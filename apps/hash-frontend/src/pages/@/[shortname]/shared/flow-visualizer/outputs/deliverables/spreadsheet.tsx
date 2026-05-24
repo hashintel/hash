@@ -1,9 +1,6 @@
 import { Box, Stack, Typography } from "@mui/material";
 
-import {
-  SpreadsheetFileRegularIcon,
-  SpreadsheetFileSolidIcon,
-} from "@hashintel/design-system";
+import { SpreadsheetFileRegularIcon, SpreadsheetFileSolidIcon } from "@hashintel/design-system";
 import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { Link } from "../../../../../../../shared/ui/link";
@@ -18,16 +15,10 @@ export const SpreadsheetDeliverable = ({
   const { displayName, entityTypeId, fileName, fileUrl } = deliverable;
 
   const appName =
-    entityTypeId === googleEntityTypes.googleSheetsFile.entityTypeId
-      ? "Google Sheets"
-      : "Unknown";
+    entityTypeId === googleEntityTypes.googleSheetsFile.entityTypeId ? "Google Sheets" : "Unknown";
 
   return (
-    <Stack
-      direction="row"
-      gap={1.5}
-      sx={{ alignItems: "flex-start", textAlign: "left" }}
-    >
+    <Stack direction="row" gap={1.5} sx={{ alignItems: "flex-start", textAlign: "left" }}>
       <SpreadsheetFileSolidIcon
         sx={{
           fill: ({ palette }) => palette.gray[30],

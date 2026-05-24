@@ -1,16 +1,9 @@
 import { useQuery } from "@apollo/client";
 import { Box, Divider, Popover, Typography } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useMemo } from "react";
 
-import {
-  type Entity,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
+import { type Entity, extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 
 import { EntityAuthorizationRelation } from "../../../graphql/api-types.gen";
 import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queries/knowledge/entity.queries";
@@ -29,9 +22,7 @@ import type {
 import type { EntityAuthorizationStatus } from "./share-dropdown-menu/edit-authorization-status-menu";
 import type { FunctionComponent } from "react";
 
-export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
-  entity,
-}) => {
+export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({ entity }) => {
   const { entityId } = entity.metadata.recordId;
 
   const entityUuid = extractEntityUuidFromEntityId(entityId);

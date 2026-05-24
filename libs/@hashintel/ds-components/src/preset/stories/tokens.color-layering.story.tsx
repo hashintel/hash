@@ -18,13 +18,7 @@ const COLOR_PALETTES: readonly PaletteName[] = [
 type BgLevel = "min" | "surface" | "subtle" | "shaded" | "solid";
 type BdLevel = "subtle" | "solid" | "strong";
 
-const BG_LEVELS: readonly BgLevel[] = [
-  "min",
-  "surface",
-  "subtle",
-  "shaded",
-  "solid",
-];
+const BG_LEVELS: readonly BgLevel[] = ["min", "surface", "subtle", "shaded", "solid"];
 
 const BD_LEVELS: readonly BdLevel[] = ["subtle", "solid", "strong"];
 
@@ -106,9 +100,7 @@ const BordersOnBackgrounds = ({ palette }: { palette: PaletteName }) => (
                 py="2"
                 borderRadius="sm"
                 border="[1px solid]"
-                borderColor={
-                  `colorPalette.bd.${bd}` as "colorPalette.bd.subtle"
-                }
+                borderColor={`colorPalette.bd.${bd}` as "colorPalette.bd.subtle"}
               >
                 <span className={mono}>bd.{bd}</span>
               </Box>
@@ -183,20 +175,17 @@ export const ColorLayering: Story = () => {
             maxWidth: "[700px]",
           })}
         >
-          The first four <code className={mono}>bg.*</code> levels (min,
-          surface, subtle, shaded) and all <code className={mono}>bd.*</code>{" "}
-          tokens use alpha transparency, allowing them to layer over any
-          surface. Nesting the same level produces progressively darker shading.{" "}
+          The first four <code className={mono}>bg.*</code> levels (min, surface, subtle, shaded)
+          and all <code className={mono}>bd.*</code> tokens use alpha transparency, allowing them to
+          layer over any surface. Nesting the same level produces progressively darker shading.{" "}
           <code className={mono}>bg.solid</code> is an opaque accent fill. Use{" "}
-          <code className={mono}>bgSolid.*</code> for opaque surfaces (popovers,
-          dialogs) that must not blend.
+          <code className={mono}>bgSolid.*</code> for opaque surfaces (popovers, dialogs) that must
+          not blend.
         </p>
       </VStack>
 
       <HStack gap="2" alignItems="center">
-        <span className={css({ textStyle: "sm", fontWeight: "medium" })}>
-          Palette:
-        </span>
+        <span className={css({ textStyle: "sm", fontWeight: "medium" })}>Palette:</span>
         {COLOR_PALETTES.map((p) => (
           <button
             key={p}

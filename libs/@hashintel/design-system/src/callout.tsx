@@ -1,8 +1,4 @@
-import {
-  faCircleInfo,
-  faTriangleExclamation,
-  faWarning,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCircleInfo, faTriangleExclamation, faWarning } from "@fortawesome/free-solid-svg-icons";
 import { Stack, Typography } from "@mui/material";
 
 import { FontAwesomeIcon } from "./fontawesome-icon";
@@ -16,11 +12,7 @@ type CalloutProps = {
   sx?: SxProps<Theme>;
 };
 
-export const Callout = ({
-  children,
-  type,
-  sx,
-}: PropsWithChildren<CalloutProps>) => {
+export const Callout = ({ children, type, sx }: PropsWithChildren<CalloutProps>) => {
   return (
     <Stack
       alignItems="center"
@@ -49,11 +41,7 @@ export const Callout = ({
     >
       <FontAwesomeIcon
         icon={
-          type === "warning"
-            ? faWarning
-            : type === "error"
-              ? faTriangleExclamation
-              : faCircleInfo
+          type === "warning" ? faWarning : type === "error" ? faTriangleExclamation : faCircleInfo
         }
         sx={({ palette }) => ({
           color:
@@ -66,10 +54,7 @@ export const Callout = ({
           mr: 3,
         })}
       />
-      <Typography
-        variant="smallTextLabels"
-        sx={({ palette }) => ({ color: palette.gray[80] })}
-      >
+      <Typography variant="smallTextLabels" sx={({ palette }) => ({ color: palette.gray[80] })}>
         {children}
       </Typography>
     </Stack>

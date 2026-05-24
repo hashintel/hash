@@ -29,43 +29,28 @@ export {
   positionSchema,
   transitionSchema,
 } from "./schemas/entity-schemas";
-export {
-  metricSchema as simulationMetricSchema,
-  type MetricSchema,
-} from "./schemas/metric-schema";
+export { metricSchema as simulationMetricSchema, type MetricSchema } from "./schemas/metric-schema";
 export {
   scenarioParameterSchema,
   scenarioSchema as simulationScenarioSchema,
   type ScenarioSchema,
 } from "./schemas/scenario-schema";
-export {
-  simulationMetricSchema as metricSchema,
-  simulationScenarioSchema as scenarioSchema,
-};
+export { simulationMetricSchema as metricSchema, simulationScenarioSchema as scenarioSchema };
 
-export const placeUpdateSchema = placeSchema
-  .omit({ id: true, x: true, y: true })
-  .partial()
-  .meta({
-    description:
-      "Fields to assign to an existing place. Omitted fields are left unchanged.",
-  });
+export const placeUpdateSchema = placeSchema.omit({ id: true, x: true, y: true }).partial().meta({
+  description: "Fields to assign to an existing place. Omitted fields are left unchanged.",
+});
 
 export const transitionUpdateSchema = transitionSchema
   .omit({ id: true, inputArcs: true, outputArcs: true, x: true, y: true })
   .partial()
   .meta({
-    description:
-      "Fields to assign to an existing transition. Omitted fields are left unchanged.",
+    description: "Fields to assign to an existing transition. Omitted fields are left unchanged.",
   });
 
-export const colorUpdateSchema = colorSchema
-  .omit({ id: true, elements: true })
-  .partial()
-  .meta({
-    description:
-      "Fields to assign to an existing colour/type. Omitted fields are left unchanged.",
-  });
+export const colorUpdateSchema = colorSchema.omit({ id: true, elements: true }).partial().meta({
+  description: "Fields to assign to an existing colour/type. Omitted fields are left unchanged.",
+});
 
 export const colorElementUpdateSchema = colorElementSchema
   .omit({ elementId: true })
@@ -83,29 +68,17 @@ export const differentialEquationUpdateSchema = differentialEquationSchema
       "Fields to assign to an existing differential equation. Omitted fields are left unchanged.",
   });
 
-export const parameterUpdateSchema = parameterSchema
-  .omit({ id: true })
-  .partial()
-  .meta({
-    description:
-      "Fields to assign to an existing parameter. Omitted fields are left unchanged.",
-  });
+export const parameterUpdateSchema = parameterSchema.omit({ id: true }).partial().meta({
+  description: "Fields to assign to an existing parameter. Omitted fields are left unchanged.",
+});
 
-export const scenarioUpdateSchema = simulationScenarioSchema
-  .omit({ id: true })
-  .partial()
-  .meta({
-    description:
-      "Fields to assign to an existing scenario. Omitted fields are left unchanged.",
-  });
+export const scenarioUpdateSchema = simulationScenarioSchema.omit({ id: true }).partial().meta({
+  description: "Fields to assign to an existing scenario. Omitted fields are left unchanged.",
+});
 
-export const metricUpdateSchema = simulationMetricSchema
-  .omit({ id: true })
-  .partial()
-  .meta({
-    description:
-      "Fields to assign to an existing metric. Omitted fields are left unchanged.",
-  });
+export const metricUpdateSchema = simulationMetricSchema.omit({ id: true }).partial().meta({
+  description: "Fields to assign to an existing metric. Omitted fields are left unchanged.",
+});
 
 export const itemTypeAndIdSchema = z
   .discriminatedUnion("type", [
@@ -117,8 +90,7 @@ export const itemTypeAndIdSchema = z
     z.strictObject({ type: z.literal("parameter"), id: idSchema }),
   ])
   .meta({
-    description:
-      "An item to delete. Arc IDs use Petrinaut's generated arc ID format.",
+    description: "An item to delete. Arc IDs use Petrinaut's generated arc ID format.",
   }) satisfies z.ZodType<SelectionItem>;
 
 export const mutationActionInputSchemas = {
@@ -149,8 +121,7 @@ export const mutationActionInputSchemas = {
       update: transitionUpdateSchema,
     })
     .meta({
-      description:
-        "Update a transition's properties, arcs, or executable code.",
+      description: "Update a transition's properties, arcs, or executable code.",
     }),
   updateTransitionPosition: z
     .strictObject({
@@ -219,8 +190,7 @@ export const mutationActionInputSchemas = {
     })
     .meta({ description: "Update fields on an existing colour/type." }),
   removeType: z.strictObject({ typeId: idSchema }).meta({
-    description:
-      "Remove a colour/type and clear references from places and dynamics.",
+    description: "Remove a colour/type and clear references from places and dynamics.",
   }),
   addTypeElement: z
     .strictObject({
@@ -262,8 +232,7 @@ export const mutationActionInputSchemas = {
       description: "Update fields on an existing differential equation.",
     }),
   removeDifferentialEquation: z.strictObject({ equationId: idSchema }).meta({
-    description:
-      "Remove a differential equation and clear references from places.",
+    description: "Remove a differential equation and clear references from places.",
   }),
   addParameter: parameterSchema.meta({
     description: "Add a net-level parameter available to SDCPN code.",
@@ -321,9 +290,7 @@ export const mutationActionInputSchemas = {
 export type PlaceInput = z.infer<typeof placeSchema>;
 export type TransitionInput = z.infer<typeof transitionSchema>;
 export type ColorInput = z.infer<typeof colorSchema>;
-export type DifferentialEquationInput = z.infer<
-  typeof differentialEquationSchema
->;
+export type DifferentialEquationInput = z.infer<typeof differentialEquationSchema>;
 export type ParameterInput = z.infer<typeof parameterSchema>;
 export type ScenarioInput = z.infer<typeof simulationScenarioSchema>;
 export type MetricInput = z.infer<typeof simulationMetricSchema>;

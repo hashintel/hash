@@ -2,10 +2,7 @@
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { Client } from "@notionhq/client";
 import { config } from "dotenv-flow";
 import { z } from "zod";
@@ -24,9 +21,7 @@ const notion = new Client({
 });
 
 const SearchPageRequestSchema = z.object({
-  title: z
-    .string()
-    .meta({ description: "The title to search for in Notion pages" }),
+  title: z.string().meta({ description: "The title to search for in Notion pages" }),
 });
 
 const GetPageContentRequestSchema = z.object({

@@ -1,9 +1,6 @@
 import { WebSocketServer } from "ws";
 
-import {
-  getFlowRunEntityById,
-  getFlowRuns,
-} from "@local/hash-backend-utils/flows";
+import { getFlowRunEntityById, getFlowRuns } from "@local/hash-backend-utils/flows";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
@@ -103,10 +100,10 @@ const inferEntitiesMessageHandler = async ({
       }
 
       const handle = temporalClient.workflow.getHandle(workflowId);
-      await handle.signal<[ExternalInputResponseSignal]>(
-        externalInputResponseSignal,
-        { ...payload, resolvedBy: user.accountId },
-      );
+      await handle.signal<[ExternalInputResponseSignal]>(externalInputResponseSignal, {
+        ...payload,
+        resolvedBy: user.accountId,
+      });
       return;
     }
   }

@@ -1,11 +1,5 @@
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  Collapse,
-  FormControlLabel,
-  Switch,
-  Typography,
-} from "@mui/material";
+import { Box, Collapse, FormControlLabel, Switch, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
 
@@ -172,18 +166,10 @@ export const TopContextBar = ({
         ]}
       >
         <Box display="flex" gap={1}>
-          <Breadcrumbs
-            crumbs={crumbs}
-            defaultIcon={defaultCrumbIcon}
-            scrollToTop={scrollToTop}
-          />
+          <Breadcrumbs crumbs={crumbs} defaultIcon={defaultCrumbIcon} scrollToTop={scrollToTop} />
           {item && displayRestoredMessage ? (
             <PageRestoredMessageWrapper>{`${
-              isItemType(item)
-                ? "Type"
-                : isEntityPageEntity(item)
-                  ? "Page"
-                  : "Entity"
+              isItemType(item) ? "Type" : isEntityPageEntity(item) ? "Page" : "Entity"
             } restored!`}</PageRestoredMessageWrapper>
           ) : null}
           {breadcrumbsEndAdornment}
@@ -200,9 +186,7 @@ export const TopContextBar = ({
           )} */}
 
           {actionMenuItems?.length ? (
-            <ContextBarActionsDropdown>
-              {actionMenuItems}
-            </ContextBarActionsDropdown>
+            <ContextBarActionsDropdown>{actionMenuItems}</ContextBarActionsDropdown>
           ) : null}
           {isCanvasPage && (
             <FormControlLabel

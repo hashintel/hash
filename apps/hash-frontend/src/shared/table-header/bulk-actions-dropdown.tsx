@@ -1,17 +1,6 @@
 import { useMutation } from "@apollo/client";
-import {
-  Box,
-  chipClasses,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  Tooltip,
-} from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { Box, chipClasses, ListItemIcon, ListItemText, Menu, Tooltip } from "@mui/material";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -78,10 +67,9 @@ export const BulkActionsDropdown: FunctionComponent<{
 
   const refetchEntityTypes = useFetchEntityTypes();
 
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const [archiveEntity] = useMutation<ArchiveEntityMutation, ArchiveEntityMutationVariables>(
+    archiveEntityMutation,
+  );
 
   const [archiveEntityType] = useMutation<
     ArchiveEntityTypeMutation,
@@ -155,8 +143,7 @@ export const BulkActionsDropdown: FunctionComponent<{
   const canArchiveSelectedItems = useMemo(
     () =>
       itemsAreArchiveable &&
-      selectedItems.filter((item) => !isItemArchived(item)).length ===
-        selectedItems.length,
+      selectedItems.filter((item) => !isItemArchived(item)).length === selectedItems.length,
     [selectedItems, itemsAreArchiveable],
   );
 
@@ -188,20 +175,13 @@ export const BulkActionsDropdown: FunctionComponent<{
         }
       }),
     );
-  }, [
-    selectedItems,
-    archiveEntity,
-    archiveEntityType,
-    archivePage,
-    archivePropertyType,
-  ]);
+  }, [selectedItems, archiveEntity, archiveEntityType, archivePage, archivePropertyType]);
 
   // Whether or not the selected items can be un-archived
   const canUnarchiveSelectedItems = useMemo(
     () =>
       itemsAreArchiveable &&
-      selectedItems.filter((item) => isItemArchived(item)).length ===
-        selectedItems.length,
+      selectedItems.filter((item) => isItemArchived(item)).length === selectedItems.length,
     [selectedItems, itemsAreArchiveable],
   );
 
@@ -231,12 +211,7 @@ export const BulkActionsDropdown: FunctionComponent<{
         }
       }),
     );
-  }, [
-    selectedItems,
-    unarchiveEntityType,
-    unarchivePage,
-    unarchivePropertyType,
-  ]);
+  }, [selectedItems, unarchiveEntityType, unarchivePage, unarchivePropertyType]);
 
   const menuItems = useMemo(() => {
     return [
@@ -259,12 +234,7 @@ export const BulkActionsDropdown: FunctionComponent<{
           : "Cannot unarchive one or more of the selected items.",
       },
     ];
-  }, [
-    canArchiveSelectedItems,
-    archiveItem,
-    unarchiveItem,
-    canUnarchiveSelectedItems,
-  ]);
+  }, [canArchiveSelectedItems, archiveItem, unarchiveItem, canUnarchiveSelectedItems]);
 
   return (
     <Box>

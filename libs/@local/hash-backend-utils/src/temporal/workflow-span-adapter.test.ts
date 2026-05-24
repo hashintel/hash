@@ -222,20 +222,16 @@ describe("wrapWorkflowSpanExporter / normaliseSpan", () => {
 
   it("propagates the inner exporter's result code to the outer callback", async () => {
     const failing = {
-      export: (
-        _spans: ReadableSpan[],
-        cb: (result: { code: number; error?: Error }) => void,
-      ) => cb({ code: 1, error: new Error("downstream failed") }),
+      export: (_spans: ReadableSpan[], cb: (result: { code: number; error?: Error }) => void) =>
+        cb({ code: 1, error: new Error("downstream failed") }),
       shutdown: () => Promise.resolve(),
       forceFlush: () => Promise.resolve(),
     };
     const wrapped = wrapWorkflowSpanExporter(failing);
 
-    const result = await new Promise<{ code: number; error?: Error }>(
-      (resolve) => {
-        wrapped.export([v1Span()], resolve);
-      },
-    );
+    const result = await new Promise<{ code: number; error?: Error }>((resolve) => {
+      wrapped.export([v1Span()], resolve);
+    });
 
     expect(result.code).toBe(1);
     expect(result.error?.message).toBe("downstream failed");

@@ -4,11 +4,7 @@ export const createEntityMutation = /* GraphQL */ `
     $properties: PropertyObjectWithMetadata!
     $linkData: LinkData
   ) {
-    createEntity(
-      entityTypeIds: $entityTypeIds
-      properties: $properties
-      linkData: $linkData
-    )
+    createEntity(entityTypeIds: $entityTypeIds, properties: $properties, linkData: $linkData)
   }
 `;
 

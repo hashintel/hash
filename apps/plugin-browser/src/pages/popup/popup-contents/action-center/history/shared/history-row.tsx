@@ -1,12 +1,4 @@
-import {
-  Box,
-  Collapse,
-  Link,
-  Stack,
-  TableCell,
-  TableRow,
-  Tooltip,
-} from "@mui/material";
+import { Box, Collapse, Link, Stack, TableCell, TableRow, Tooltip } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import {
@@ -130,8 +122,7 @@ export const HistoryRow = ({
                   sx={{
                     ...iconSx,
                     transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
-                    transition: ({ transitions }) =>
-                      transitions.create("transform"),
+                    transition: ({ transitions }) => transitions.create("transform"),
                   }}
                 />
               </IconButton>
@@ -144,10 +135,7 @@ export const HistoryRow = ({
           </CellWithHoverButton>
         ) : (
           <TableCell>
-            <UrlChip
-              type={type}
-              url={flowRun.requestedPageUrl ?? flowRun.webPage.url}
-            />
+            <UrlChip type={type} url={flowRun.requestedPageUrl ?? flowRun.webPage.url} />
           </TableCell>
         )}
         {(type === "automatic" || type === "external-page-request") && (
@@ -181,10 +169,7 @@ export const HistoryRow = ({
           },
         }}
       >
-        <TableCell
-          colSpan={type === "automatic" ? 4 : 3}
-          sx={{ p: "0 !important" }}
-        >
+        <TableCell colSpan={type === "automatic" ? 4 : 3} sx={{ p: "0 !important" }}>
           <Collapse in={expanded} timeout={200}>
             <FlowMetadataCellContents flowRun={flowRun} visible={expanded} />
           </Collapse>

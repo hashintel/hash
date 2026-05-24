@@ -1,10 +1,4 @@
-import {
-  Box,
-  FormControlLabel,
-  FormGroup,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, FormControlLabel, FormGroup, Stack, Typography } from "@mui/material";
 
 import { MenuItem, Select } from "@hashintel/design-system";
 
@@ -13,10 +7,7 @@ import { SelectScope } from "./automated/select-scope";
 import { ModelSelector } from "./shared/model-selector";
 import { Section } from "./shared/section";
 import { SelectWebTarget } from "./shared/select-web-target";
-import {
-  generateTabPanelA11yProps,
-  type TabPanelProps,
-} from "./shared/tab-props";
+import { generateTabPanelA11yProps, type TabPanelProps } from "./shared/tab-props";
 import { SwitchWithDarkMode } from "./switch-with-dark-mode";
 
 import type { LocalStorage } from "../../../../shared/storage";
@@ -37,9 +28,7 @@ const DevelopmentTargetApiSwitcher = () => {
         <MenuItem value="http://localhost:5001">Local</MenuItem>
         <MenuItem value="https://app-api.hash.ai">Production</MenuItem>
       </Select>
-      <Typography
-        sx={{ fontSize: 14, mt: 1.5, color: ({ palette }) => palette.gray[90] }}
-      >
+      <Typography sx={{ fontSize: 14, mt: 1.5, color: ({ palette }) => palette.gray[90] }}>
         Remember to log in at the relevant frontend if you switch environments.
       </Typography>
     </Section>
@@ -85,12 +74,10 @@ export const Automated = ({
               label={
                 <Typography
                   sx={{
-                    color: ({ palette }) =>
-                      enabled ? palette.blue[70] : palette.gray[90],
+                    color: ({ palette }) => (enabled ? palette.blue[70] : palette.gray[90]),
                     fontWeight: enabled ? 600 : 400,
                     "@media (prefers-color-scheme: dark)": {
-                      color: ({ palette }) =>
-                        enabled ? palette.blue[70] : palette.gray[60],
+                      color: ({ palette }) => (enabled ? palette.blue[70] : palette.gray[60]),
                     },
                   }}
                 >
@@ -145,9 +132,7 @@ export const Automated = ({
           />
         </Box>
       </Section>
-      {(ENVIRONMENT !== "production" || ITERO_TEST_BED) && (
-        <DevelopmentTargetApiSwitcher />
-      )}
+      {(ENVIRONMENT !== "production" || ITERO_TEST_BED) && <DevelopmentTargetApiSwitcher />}
     </Box>
   );
 };

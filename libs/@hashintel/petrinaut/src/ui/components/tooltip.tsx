@@ -97,15 +97,11 @@ export const Tooltip: React.FC<TooltipProps> = ({
       }}
     >
       <ArkTooltip.Trigger asChild>
-        <ark.span className={cx(triggerWrapperStyle({ display }), className)}>
-          {children}
-        </ark.span>
+        <ark.span className={cx(triggerWrapperStyle({ display }), className)}>{children}</ark.span>
       </ArkTooltip.Trigger>
       <Portal container={portalContainerRef}>
         <ArkTooltip.Positioner>
-          <ArkTooltip.Content className={tooltipContentStyle}>
-            {content}
-          </ArkTooltip.Content>
+          <ArkTooltip.Content className={tooltipContentStyle}>{content}</ArkTooltip.Content>
         </ArkTooltip.Positioner>
       </Portal>
     </ArkTooltip.Root>
@@ -120,12 +116,7 @@ const circleInfoIconStyle = css({
   verticalAlign: "middle",
 });
 
-export const InfoIconTooltip = ({
-  tooltip,
-}: {
-  tooltip: string;
-  outlined?: boolean;
-}) => {
+export const InfoIconTooltip = ({ tooltip }: { tooltip: string; outlined?: boolean }) => {
   return (
     <Tooltip content={tooltip} display="inline">
       <Icon name="info" size="xs" className={circleInfoIconStyle} />

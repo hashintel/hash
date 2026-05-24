@@ -64,13 +64,9 @@ export const declineOrgInvitationResolver: ResolverFn<
   }
 
   if ("email" in invitation) {
-    const verifiedEmails = await getUserVerifiedEmails(
-      context,
-      graphQLContext.authentication,
-      {
-        user,
-      },
-    );
+    const verifiedEmails = await getUserVerifiedEmails(context, graphQLContext.authentication, {
+      user,
+    });
 
     if (!verifiedEmails.includes(invitation.email)) {
       throw Error.notFound("Invitation for user not found");

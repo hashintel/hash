@@ -18,9 +18,7 @@
     "paths": {
       "@blockprotocol/graph": ["../../@blockprotocol/graph/src/main.ts"],
       "@blockprotocol/graph/*": ["../../@blockprotocol/graph/src/*.ts"],
-      "@blockprotocol/type-system": [
-        "../../@blockprotocol/type-system/typescript/src/main.ts"
-      ],
+      "@blockprotocol/type-system": ["../../@blockprotocol/type-system/typescript/src/main.ts"],
       "@blockprotocol/type-system/slim": [
         "../../@blockprotocol/type-system/typescript/src/main-slim.ts"
       ],

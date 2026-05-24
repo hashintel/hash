@@ -31,9 +31,7 @@ function postTypedMessage(message: MonteCarloToMainMessage): void {
   workerRuntime.postMessage(message);
 }
 
-function progressFromResult(
-  result: MonteCarloAdvanceResult,
-): MonteCarloWorkerProgress {
+function progressFromResult(result: MonteCarloAdvanceResult): MonteCarloWorkerProgress {
   const latestFrame = distributionMetric?.getLatestFrame();
 
   return {
@@ -64,9 +62,7 @@ function postPendingDistributionFrames(): void {
     return;
   }
 
-  const frames = distributionMetric.frames.slice(
-    lastSentDistributionFrameCount,
-  );
+  const frames = distributionMetric.frames.slice(lastSentDistributionFrameCount);
   lastSentDistributionFrameCount = distributionMetric.frames.length;
 
   if (frames.length > 0) {
@@ -142,9 +138,7 @@ workerRuntime.onMessage((message) => {
         postTypedMessage({
           type: "error",
           message:
-            error instanceof Error
-              ? error.message
-              : "Failed to initialize Monte Carlo experiment",
+            error instanceof Error ? error.message : "Failed to initialize Monte Carlo experiment",
           itemId: error instanceof SDCPNItemError ? error.itemId : null,
         });
       }
@@ -171,9 +165,7 @@ workerRuntime.onMessage((message) => {
         postTypedMessage({
           type: "error",
           message:
-            error instanceof Error
-              ? error.message
-              : "Unknown error during Monte Carlo computation",
+            error instanceof Error ? error.message : "Unknown error during Monte Carlo computation",
           itemId: error instanceof SDCPNItemError ? error.itemId : null,
         });
       });

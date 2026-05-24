@@ -25,9 +25,11 @@ type BlockListMenuContentProps = {
   compatibleBlocks: HashBlock[];
 };
 
-export const BlockListMenuContent: FunctionComponent<
-  BlockListMenuContentProps
-> = ({ closeMenu, compatibleBlocks, popupState }) => {
+export const BlockListMenuContent: FunctionComponent<BlockListMenuContentProps> = ({
+  closeMenu,
+  compatibleBlocks,
+  popupState,
+}) => {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const blocks = useFilteredBlocks(searchQuery, compatibleBlocks);

@@ -48,8 +48,7 @@ interface HslColor {
  * @param l - Lightness (0-100)
  */
 function hsl(h: number, s: number, l: number): HslColor {
-  const clamp = (val: number, min: number, max: number) =>
-    Math.min(max, Math.max(min, val));
+  const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val));
 
   const color: HslColor = {
     h: clamp(h, 0, 360),

@@ -3,23 +3,14 @@ import {
   extractWebIdFromEntityId,
   splitEntityId,
 } from "@blockprotocol/type-system";
-import {
-  HashEntity,
-  HashLinkEntity,
-  queryEntities,
-} from "@local/hash-graph-sdk/entity";
+import { HashEntity, HashLinkEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type {
-  ActorEntityUuid,
-  EntityId,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityId, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 
 export const getEntitiesByLinearId = async (params: {
@@ -71,38 +62,34 @@ export const getEntityOutgoingLinks = async (params: {
 }) => {
   const { graphApiClient, authentication, entityId } = params;
 
-  const response = await queryEntities(
-    { graphApi: graphApiClient },
-    authentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [
-              { path: ["leftEntity", "uuid"] },
-              {
-                parameter: extractEntityUuidFromEntityId(entityId),
-              },
-            ],
-          },
-          {
-            equal: [
-              { path: ["leftEntity", "webId"] },
-              {
-                parameter: extractWebIdFromEntityId(entityId),
-              },
-            ],
-          },
-          {
-            equal: [{ path: ["archived"] }, { parameter: false }],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
-      includePermissions: false,
+  const response = await queryEntities({ graphApi: graphApiClient }, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            {
+              parameter: extractEntityUuidFromEntityId(entityId),
+            },
+          ],
+        },
+        {
+          equal: [
+            { path: ["leftEntity", "webId"] },
+            {
+              parameter: extractWebIdFromEntityId(entityId),
+            },
+          ],
+        },
+        {
+          equal: [{ path: ["archived"] }, { parameter: false }],
+        },
+      ],
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: params.includeDrafts ?? false,
+    includePermissions: false,
+  });
 
   const outgoingLinkEntities = response.entities.map(
     (entity) => new HashLinkEntity(new HashEntity(entity)),

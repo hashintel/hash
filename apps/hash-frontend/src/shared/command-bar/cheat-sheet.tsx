@@ -20,18 +20,15 @@ export const CheatSheet = () => {
     };
   }, []);
 
-  const groups = menu.options.reduce<Record<string, CommandBarOption[]>>(
-    (acc, option) => {
-      if (option.keysList && (showAll || option.isActive())) {
-        const group = acc[option.group] ?? [];
-        group.push(option);
-        acc[option.group] = group;
-      }
+  const groups = menu.options.reduce<Record<string, CommandBarOption[]>>((acc, option) => {
+    if (option.keysList && (showAll || option.isActive())) {
+      const group = acc[option.group] ?? [];
+      group.push(option);
+      acc[option.group] = group;
+    }
 
-      return acc;
-    },
-    {},
-  );
+    return acc;
+  }, {});
 
   /**
    * @todo reinstate this when we have enough shortcuts for a cheatsheet, and style it properly

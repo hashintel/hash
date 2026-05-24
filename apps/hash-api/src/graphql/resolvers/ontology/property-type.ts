@@ -42,14 +42,10 @@ export const createPropertyTypeResolver: ResolverFn<
 
   const { webId, propertyType } = params;
 
-  const createdPropertyType = await createPropertyType(
-    context,
-    authentication,
-    {
-      webId: (webId ?? user.accountId) as WebId,
-      schema: propertyType,
-    },
-  );
+  const createdPropertyType = await createPropertyType(context, authentication, {
+    webId: (webId ?? user.accountId) as WebId,
+    schema: propertyType,
+  });
 
   return createdPropertyType;
 };

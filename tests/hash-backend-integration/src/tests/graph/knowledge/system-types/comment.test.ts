@@ -10,10 +10,7 @@ import {
   getCommentParent,
   getCommentText,
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
-import {
-  createPage,
-  getPageBlocks,
-} from "@apps/hash-api/src/graph/knowledge/system-types/page";
+import { createPage, getPageBlocks } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -67,8 +64,9 @@ describe("Comment", () => {
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
-                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-                  { value: [] },
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": {
+                  value: [],
+                },
               },
             },
           },

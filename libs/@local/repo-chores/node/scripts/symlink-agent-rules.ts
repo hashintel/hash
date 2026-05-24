@@ -67,17 +67,13 @@ const targets: TargetConfig[] = [
 
 // Only run on macOS / Unix-like platforms where symlinks are well-supported.
 if (process.platform === "win32") {
-  console.warn(
-    "Symlink rules script is only supported on macOS / Unix-like platforms. Skipping.",
-  );
+  console.warn("Symlink rules script is only supported on macOS / Unix-like platforms. Skipping.");
   process.exit(0);
 }
 
 // Ensure the source rules directory exists before proceeding.
 if (!existsSync(RULES_DIR)) {
-  console.warn(
-    `Rules directory does not exist at ${RULES_DIR}. Nothing to symlink.`,
-  );
+  console.warn(`Rules directory does not exist at ${RULES_DIR}. Nothing to symlink.`);
   process.exit(0);
 }
 
@@ -145,6 +141,4 @@ for (const target of targets) {
   }
 }
 
-console.log(
-  `Symlinked ${rules.length} rules to ${targets.length} agent configs`,
-);
+console.log(`Symlinked ${rules.length} rules to ${targets.length} agent configs`);

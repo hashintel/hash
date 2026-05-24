@@ -4,10 +4,7 @@ import {
 } from "../../../../graph/knowledge/system-types/account.fields";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
-import type {
-  QueryIsShortnameTakenArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { QueryIsShortnameTakenArgs, ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
 
 export const isShortnameTakenResolver: ResolverFn<

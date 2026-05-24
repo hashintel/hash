@@ -13,10 +13,7 @@ import type {
 export const mapActionInputEntitiesToEntities = async (params: {
   actorId: ActorEntityUuid;
   graphApiClient: GraphApi;
-  inputEntities:
-    | SerializedEntity[]
-    | PersistedEntityMetadata[]
-    | PersistedEntitiesMetadata;
+  inputEntities: SerializedEntity[] | PersistedEntityMetadata[] | PersistedEntitiesMetadata;
 }): Promise<HashEntity[]> => {
   const { actorId, graphApiClient, inputEntities } = params;
 
@@ -24,9 +21,7 @@ export const mapActionInputEntitiesToEntities = async (params: {
   const directEntities: HashEntity[] = [];
 
   const inputEntitiesArray =
-    "persistedEntities" in inputEntities
-      ? inputEntities.persistedEntities
-      : inputEntities;
+    "persistedEntities" in inputEntities ? inputEntities.persistedEntities : inputEntities;
 
   for (const inputEntity of inputEntitiesArray) {
     if ("operation" in inputEntity) {
@@ -47,10 +42,7 @@ export const mapActionInputEntitiesToEntities = async (params: {
     {
       filter: {
         any: entityIdsToFetch.map((entityId) => ({
-          equal: [
-            { path: ["uuid"] },
-            { parameter: extractEntityUuidFromEntityId(entityId) },
-          ],
+          equal: [{ path: ["uuid"] }, { parameter: extractEntityUuidFromEntityId(entityId) }],
         })),
       },
       temporalAxes: currentTimeInstantTemporalAxes,

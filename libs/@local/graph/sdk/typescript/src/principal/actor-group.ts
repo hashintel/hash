@@ -21,11 +21,7 @@ export const getActorGroupMembers = (
   params: { actorGroupId: ActorGroupEntityUuid },
 ): Promise<ActorEntityUuid[]> =>
   graphApi
-    .getActorGroupRoleAssignments(
-      authentication.actorId,
-      params.actorGroupId,
-      "member",
-    )
+    .getActorGroupRoleAssignments(authentication.actorId, params.actorGroupId, "member")
     .then(({ data }) => data as ActorEntityUuid[]);
 
 export const addActorGroupMember = (
@@ -34,12 +30,7 @@ export const addActorGroupMember = (
   params: { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
 ): Promise<RoleAssignmentStatus> =>
   graphApi
-    .assignActorGroupRole(
-      authentication.actorId,
-      params.actorGroupId,
-      "member",
-      params.actorId,
-    )
+    .assignActorGroupRole(authentication.actorId, params.actorGroupId, "member", params.actorId)
     .then(({ data }) => data);
 
 export const getActorGroupRole = (
@@ -48,11 +39,7 @@ export const getActorGroupRole = (
   params: { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
 ): Promise<RoleName | null> =>
   graphApi
-    .getActorGroupRole(
-      authentication.actorId,
-      params.actorGroupId,
-      params.actorId,
-    )
+    .getActorGroupRole(authentication.actorId, params.actorGroupId, params.actorId)
     .then(({ data }) => data as RoleName | null);
 
 export const removeActorGroupMember = (
@@ -61,12 +48,7 @@ export const removeActorGroupMember = (
   params: { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
 ): Promise<RoleUnassignmentStatus> =>
   graphApi
-    .unassignActorGroupRole(
-      authentication.actorId,
-      params.actorGroupId,
-      "member",
-      params.actorId,
-    )
+    .unassignActorGroupRole(authentication.actorId, params.actorGroupId, "member", params.actorId)
     .then(({ data }) => data);
 
 export const addActorGroupAdministrator = (
@@ -112,9 +94,7 @@ export const createAiActor = (
   authentication: AuthenticationContext,
   params: { identifier: string },
 ): Promise<AiId> =>
-  graphApi
-    .createAiActor(authentication.actorId, params)
-    .then(({ data }) => data as AiId);
+  graphApi.createAiActor(authentication.actorId, params).then(({ data }) => data as AiId);
 
 export const updateWebShortname = (
   graphApi: GraphApi,

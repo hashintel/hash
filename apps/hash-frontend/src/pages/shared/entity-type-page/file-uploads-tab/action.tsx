@@ -1,10 +1,6 @@
 import { Box, Stack, Tooltip } from "@mui/material";
 
-import {
-  ArrowRotateLeftIcon,
-  ArrowUpRightIcon,
-  DashIcon,
-} from "@hashintel/design-system";
+import { ArrowRotateLeftIcon, ArrowUpRightIcon, DashIcon } from "@hashintel/design-system";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 
 import { useUserOrOrgShortnameByWebId } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
@@ -24,13 +20,7 @@ const buttonSx: SxProps<Theme> = {
 
 const actionHeight = 33;
 
-export const Action = ({
-  onRetry,
-  upload,
-}: {
-  onRetry: () => void;
-  upload: FileUpload;
-}) => {
+export const Action = ({ onRetry, upload }: { onRetry: () => void; upload: FileUpload }) => {
   const { shortname } = useUserOrOrgShortnameByWebId({
     webId: upload.webId,
   });
@@ -44,9 +34,7 @@ export const Action = ({
               shortname
                 ? generateEntityPath({
                     shortname,
-                    entityId:
-                      upload.createdEntities.fileEntity.metadata.recordId
-                        .entityId,
+                    entityId: upload.createdEntities.fileEntity.metadata.recordId.entityId,
                     includeDraftId: false,
                   })
                 : "#"
@@ -81,14 +69,8 @@ export const Action = ({
       );
     default:
       return (
-        <Stack
-          alignItems="center"
-          height={actionHeight}
-          justifyContent="center"
-        >
-          <DashIcon
-            sx={{ fontSize: 14, fill: ({ palette }) => palette.gray[50] }}
-          />
+        <Stack alignItems="center" height={actionHeight} justifyContent="center">
+          <DashIcon sx={{ fontSize: 14, fill: ({ palette }) => palette.gray[50] }} />
         </Stack>
       );
   }

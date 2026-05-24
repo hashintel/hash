@@ -12,20 +12,10 @@
  * Do not edit the class manually.
  */
 
-import globalAxios, {
-  AxiosPromise,
-  AxiosInstance,
-  AxiosRequestConfig,
-} from "axios";
+import globalAxios, { AxiosPromise, AxiosInstance, AxiosRequestConfig } from "axios";
 
 // @ts-ignore
-import {
-  BASE_PATH,
-  COLLECTION_FORMATS,
-  RequestArgs,
-  BaseAPI,
-  RequiredError,
-} from "./base.js";
+import { BASE_PATH, COLLECTION_FORMATS, RequestArgs, BaseAPI, RequiredError } from "./base.js";
 // Some imports not used depending on template conditions
 // @ts-ignore
 import {
@@ -351,11 +341,10 @@ export interface GetExternalServiceUsage200ResponseExternalServiceUsageInner {
   usagePerPrice: Array<GetExternalServiceUsage200ResponseExternalServiceUsageInnerUsagePerPriceInner>;
 }
 
-export const GetExternalServiceUsage200ResponseExternalServiceUsageInnerProviderNameEnum =
-  {
-    Openai: "openai",
-    Mapbox: "mapbox",
-  } as const;
+export const GetExternalServiceUsage200ResponseExternalServiceUsageInnerProviderNameEnum = {
+  Openai: "openai",
+  Mapbox: "mapbox",
+} as const;
 
 export type GetExternalServiceUsage200ResponseExternalServiceUsageInnerProviderNameEnum =
   (typeof GetExternalServiceUsage200ResponseExternalServiceUsageInnerProviderNameEnum)[keyof typeof GetExternalServiceUsage200ResponseExternalServiceUsageInnerProviderNameEnum];
@@ -747,8 +736,7 @@ export const SubscriptionTier = {
   Pro: "pro",
 } as const;
 
-export type SubscriptionTier =
-  (typeof SubscriptionTier)[keyof typeof SubscriptionTier];
+export type SubscriptionTier = (typeof SubscriptionTier)[keyof typeof SubscriptionTier];
 
 /**
  *
@@ -907,9 +895,7 @@ export interface UpdateSubscriptionTierRequest {
  * DefaultApi - axios parameter creator
  * @export
  */
-export const DefaultApiAxiosParamCreator = function (
-  configuration?: Configuration,
-) {
+export const DefaultApiAxiosParamCreator = function (configuration?: Configuration) {
   return {
     /**
      *
@@ -917,9 +903,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createStripeSetupIntent: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    createStripeSetupIntent: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/stripe-setup-intent`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -937,8 +921,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -986,8 +969,7 @@ export const DefaultApiAxiosParamCreator = function (
       localVarHeaderParameter["Content-Type"] = "application/json";
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1010,9 +992,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    deleteTaxId: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    deleteTaxId: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/tax-id`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1030,8 +1010,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1055,11 +1034,7 @@ export const DefaultApiAxiosParamCreator = function (
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
       // verify required parameter 'paymentMethodId' is not null or undefined
-      assertParamExists(
-        "detachPaymentMethod",
-        "paymentMethodId",
-        paymentMethodId,
-      );
+      assertParamExists("detachPaymentMethod", "paymentMethodId", paymentMethodId);
       const localVarPath = `/payment-method`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1081,8 +1056,7 @@ export const DefaultApiAxiosParamCreator = function (
       }
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1130,8 +1104,7 @@ export const DefaultApiAxiosParamCreator = function (
       localVarHeaderParameter["Content-Type"] = "application/json";
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1154,9 +1127,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getExternalServicePrices: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    getExternalServicePrices: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/external-service-prices`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1174,8 +1145,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1193,9 +1163,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getExternalServiceUsage: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    getExternalServiceUsage: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/external-service-usage`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1213,8 +1181,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1232,9 +1199,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getInvoices: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    getInvoices: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/invoices`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1252,8 +1217,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1271,9 +1235,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPaymentMethods: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    getPaymentMethods: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/payment-methods`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1291,8 +1253,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1310,9 +1271,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getSubscription: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    getSubscription: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/subscription`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1330,8 +1289,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1349,9 +1307,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getSubscriptionTierPrices: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    getSubscriptionTierPrices: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/subscription-tier-prices`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1369,8 +1325,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1388,9 +1343,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getTaxId: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    getTaxId: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/tax-id`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1408,8 +1361,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1427,9 +1379,7 @@ export const DefaultApiAxiosParamCreator = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getTaxRate: async (
-      options: AxiosRequestConfig = {},
-    ): Promise<RequestArgs> => {
+    getTaxRate: async (options: AxiosRequestConfig = {}): Promise<RequestArgs> => {
       const localVarPath = `/tax-rate`;
       // use dummy base URL string because the URL constructor only accepts absolute URLs.
       const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -1447,8 +1397,7 @@ export const DefaultApiAxiosParamCreator = function (
       const localVarQueryParameter = {} as any;
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1492,8 +1441,7 @@ export const DefaultApiAxiosParamCreator = function (
       }
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1539,8 +1487,7 @@ export const DefaultApiAxiosParamCreator = function (
       }
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1586,8 +1533,7 @@ export const DefaultApiAxiosParamCreator = function (
       }
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1631,8 +1577,7 @@ export const DefaultApiAxiosParamCreator = function (
       localVarHeaderParameter["Content-Type"] = "application/json";
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1663,11 +1608,7 @@ export const DefaultApiAxiosParamCreator = function (
       options: AxiosRequestConfig = {},
     ): Promise<RequestArgs> => {
       // verify required parameter 'paymentMethodId' is not null or undefined
-      assertParamExists(
-        "updatePaymentMethod",
-        "paymentMethodId",
-        paymentMethodId,
-      );
+      assertParamExists("updatePaymentMethod", "paymentMethodId", paymentMethodId);
       // verify required parameter 'updatePaymentMethodRequest' is not null or undefined
       assertParamExists(
         "updatePaymentMethod",
@@ -1697,8 +1638,7 @@ export const DefaultApiAxiosParamCreator = function (
       localVarHeaderParameter["Content-Type"] = "application/json";
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1751,8 +1691,7 @@ export const DefaultApiAxiosParamCreator = function (
       localVarHeaderParameter["Content-Type"] = "application/json";
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1805,8 +1744,7 @@ export const DefaultApiAxiosParamCreator = function (
       localVarHeaderParameter["Content-Type"] = "application/json";
 
       setSearchParams(localVarUrlObj, localVarQueryParameter);
-      let headersFromBaseOptions =
-        baseOptions && baseOptions.headers ? baseOptions.headers : {};
+      let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
       localVarRequestOptions.headers = {
         ...localVarHeaderParameter,
         ...headersFromBaseOptions,
@@ -1842,19 +1780,10 @@ export const DefaultApiFp = function (configuration?: Configuration) {
     async createStripeSetupIntent(
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<CreateStripeSetupIntent200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<CreateStripeSetupIntent200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.createStripeSetupIntent(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createStripeSetupIntent(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -1867,22 +1796,13 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       createSubscriptionRequest: CreateSubscriptionRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<CreateSubscription200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<CreateSubscription200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.createSubscription(
-          createSubscriptionRequest,
-          options,
-        );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
+      const localVarAxiosArgs = await localVarAxiosParamCreator.createSubscription(
+        createSubscriptionRequest,
+        options,
       );
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -1892,20 +1812,9 @@ export const DefaultApiFp = function (configuration?: Configuration) {
      */
     async deleteTaxId(
       options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<DeleteTaxId200Response>
-    > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.deleteTaxId(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+    ): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeleteTaxId200Response>> {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.deleteTaxId(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -1918,22 +1827,13 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       paymentMethodId: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<UpdatePaymentMethod200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<UpdatePaymentMethod200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.detachPaymentMethod(
-          paymentMethodId,
-          options,
-        );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
+      const localVarAxiosArgs = await localVarAxiosParamCreator.detachPaymentMethod(
+        paymentMethodId,
+        options,
       );
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -1946,22 +1846,13 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       externalServiceMethodRequest: ExternalServiceMethodRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<ExternalServiceMethod200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExternalServiceMethod200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.externalServiceMethod(
-          externalServiceMethodRequest,
-          options,
-        );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
+      const localVarAxiosArgs = await localVarAxiosParamCreator.externalServiceMethod(
+        externalServiceMethodRequest,
+        options,
       );
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -1977,14 +1868,8 @@ export const DefaultApiFp = function (configuration?: Configuration) {
         basePath?: string,
       ) => AxiosPromise<GetExternalServicePrices200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getExternalServicePrices(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getExternalServicePrices(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -1995,19 +1880,10 @@ export const DefaultApiFp = function (configuration?: Configuration) {
     async getExternalServiceUsage(
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetExternalServiceUsage200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetExternalServiceUsage200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getExternalServiceUsage(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getExternalServiceUsage(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2017,20 +1893,9 @@ export const DefaultApiFp = function (configuration?: Configuration) {
      */
     async getInvoices(
       options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetInvoices200Response>
-    > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getInvoices(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+    ): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetInvoices200Response>> {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getInvoices(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2041,19 +1906,10 @@ export const DefaultApiFp = function (configuration?: Configuration) {
     async getPaymentMethods(
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetPaymentMethods200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetPaymentMethods200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getPaymentMethods(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getPaymentMethods(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2064,19 +1920,10 @@ export const DefaultApiFp = function (configuration?: Configuration) {
     async getSubscription(
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetSubscription200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetSubscription200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getSubscription(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getSubscription(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2092,14 +1939,8 @@ export const DefaultApiFp = function (configuration?: Configuration) {
         basePath?: string,
       ) => AxiosPromise<GetSubscriptionTierPrices200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getSubscriptionTierPrices(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getSubscriptionTierPrices(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2109,20 +1950,9 @@ export const DefaultApiFp = function (configuration?: Configuration) {
      */
     async getTaxId(
       options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetTaxId200Response>
-    > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getTaxId(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+    ): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetTaxId200Response>> {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getTaxId(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2132,20 +1962,9 @@ export const DefaultApiFp = function (configuration?: Configuration) {
      */
     async getTaxRate(
       options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetTaxRate200Response>
-    > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getTaxRate(options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+    ): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetTaxRate200Response>> {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getTaxRate(options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2158,22 +1977,13 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       newSubscriptionTier?: SubscriptionTier,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetUpcomingInvoice200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetUpcomingInvoice200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getUpcomingInvoice(
-          newSubscriptionTier,
-          options,
-        );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getUpcomingInvoice(
+        newSubscriptionTier,
+        options,
       );
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2186,19 +1996,10 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       email: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetWaitlistPosition200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetWaitlistPosition200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getWaitlistPosition(email, options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getWaitlistPosition(email, options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2211,19 +2012,10 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       query: string,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<GetWebSearchResults200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<GetWebSearchResults200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.getWebSearchResults(query, options);
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      const localVarAxiosArgs = await localVarAxiosParamCreator.getWebSearchResults(query, options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2235,22 +2027,9 @@ export const DefaultApiFp = function (configuration?: Configuration) {
     async setTaxId(
       setTaxIdRequest: SetTaxIdRequest,
       options?: AxiosRequestConfig,
-    ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<SetTaxId200Response>
-    > {
-      const localVarAxiosArgs = await localVarAxiosParamCreator.setTaxId(
-        setTaxIdRequest,
-        options,
-      );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+    ): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SetTaxId200Response>> {
+      const localVarAxiosArgs = await localVarAxiosParamCreator.setTaxId(setTaxIdRequest, options);
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2265,23 +2044,14 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       updatePaymentMethodRequest: UpdatePaymentMethodRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<UpdatePaymentMethod200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<UpdatePaymentMethod200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.updatePaymentMethod(
-          paymentMethodId,
-          updatePaymentMethodRequest,
-          options,
-        );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
+      const localVarAxiosArgs = await localVarAxiosParamCreator.updatePaymentMethod(
+        paymentMethodId,
+        updatePaymentMethodRequest,
+        options,
       );
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2294,22 +2064,14 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       updateSubscriptionDefaultPaymentMethodRequest: UpdateSubscriptionDefaultPaymentMethodRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<UpdateSubscriptionTier200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<UpdateSubscriptionTier200Response>
     > {
       const localVarAxiosArgs =
         await localVarAxiosParamCreator.updateSubscriptionDefaultPaymentMethod(
           updateSubscriptionDefaultPaymentMethodRequest,
           options,
         );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
-      );
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
     /**
      *
@@ -2322,22 +2084,13 @@ export const DefaultApiFp = function (configuration?: Configuration) {
       updateSubscriptionTierRequest: UpdateSubscriptionTierRequest,
       options?: AxiosRequestConfig,
     ): Promise<
-      (
-        axios?: AxiosInstance,
-        basePath?: string,
-      ) => AxiosPromise<UpdateSubscriptionTier200Response>
+      (axios?: AxiosInstance, basePath?: string) => AxiosPromise<UpdateSubscriptionTier200Response>
     > {
-      const localVarAxiosArgs =
-        await localVarAxiosParamCreator.updateSubscriptionTier(
-          updateSubscriptionTierRequest,
-          options,
-        );
-      return createRequestFunction(
-        localVarAxiosArgs,
-        globalAxios,
-        BASE_PATH,
-        configuration,
+      const localVarAxiosArgs = await localVarAxiosParamCreator.updateSubscriptionTier(
+        updateSubscriptionTierRequest,
+        options,
       );
+      return createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration);
     },
   };
 };
@@ -2359,9 +2112,7 @@ export const DefaultApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    createStripeSetupIntent(
-      options?: any,
-    ): AxiosPromise<CreateStripeSetupIntent200Response> {
+    createStripeSetupIntent(options?: any): AxiosPromise<CreateStripeSetupIntent200Response> {
       return localVarFp
         .createStripeSetupIntent(options)
         .then((request) => request(axios, basePath));
@@ -2388,9 +2139,7 @@ export const DefaultApiFactory = function (
      * @throws {RequiredError}
      */
     deleteTaxId(options?: any): AxiosPromise<DeleteTaxId200Response> {
-      return localVarFp
-        .deleteTaxId(options)
-        .then((request) => request(axios, basePath));
+      return localVarFp.deleteTaxId(options).then((request) => request(axios, basePath));
     },
     /**
      *
@@ -2428,9 +2177,7 @@ export const DefaultApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getExternalServicePrices(
-      options?: any,
-    ): AxiosPromise<GetExternalServicePrices200Response> {
+    getExternalServicePrices(options?: any): AxiosPromise<GetExternalServicePrices200Response> {
       return localVarFp
         .getExternalServicePrices(options)
         .then((request) => request(axios, basePath));
@@ -2441,9 +2188,7 @@ export const DefaultApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getExternalServiceUsage(
-      options?: any,
-    ): AxiosPromise<GetExternalServiceUsage200Response> {
+    getExternalServiceUsage(options?: any): AxiosPromise<GetExternalServiceUsage200Response> {
       return localVarFp
         .getExternalServiceUsage(options)
         .then((request) => request(axios, basePath));
@@ -2455,9 +2200,7 @@ export const DefaultApiFactory = function (
      * @throws {RequiredError}
      */
     getInvoices(options?: any): AxiosPromise<GetInvoices200Response> {
-      return localVarFp
-        .getInvoices(options)
-        .then((request) => request(axios, basePath));
+      return localVarFp.getInvoices(options).then((request) => request(axios, basePath));
     },
     /**
      *
@@ -2465,12 +2208,8 @@ export const DefaultApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getPaymentMethods(
-      options?: any,
-    ): AxiosPromise<GetPaymentMethods200Response> {
-      return localVarFp
-        .getPaymentMethods(options)
-        .then((request) => request(axios, basePath));
+    getPaymentMethods(options?: any): AxiosPromise<GetPaymentMethods200Response> {
+      return localVarFp.getPaymentMethods(options).then((request) => request(axios, basePath));
     },
     /**
      *
@@ -2479,9 +2218,7 @@ export const DefaultApiFactory = function (
      * @throws {RequiredError}
      */
     getSubscription(options?: any): AxiosPromise<GetSubscription200Response> {
-      return localVarFp
-        .getSubscription(options)
-        .then((request) => request(axios, basePath));
+      return localVarFp.getSubscription(options).then((request) => request(axios, basePath));
     },
     /**
      *
@@ -2489,9 +2226,7 @@ export const DefaultApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    getSubscriptionTierPrices(
-      options?: any,
-    ): AxiosPromise<GetSubscriptionTierPrices200Response> {
+    getSubscriptionTierPrices(options?: any): AxiosPromise<GetSubscriptionTierPrices200Response> {
       return localVarFp
         .getSubscriptionTierPrices(options)
         .then((request) => request(axios, basePath));
@@ -2503,9 +2238,7 @@ export const DefaultApiFactory = function (
      * @throws {RequiredError}
      */
     getTaxId(options?: any): AxiosPromise<GetTaxId200Response> {
-      return localVarFp
-        .getTaxId(options)
-        .then((request) => request(axios, basePath));
+      return localVarFp.getTaxId(options).then((request) => request(axios, basePath));
     },
     /**
      *
@@ -2514,9 +2247,7 @@ export const DefaultApiFactory = function (
      * @throws {RequiredError}
      */
     getTaxRate(options?: any): AxiosPromise<GetTaxRate200Response> {
-      return localVarFp
-        .getTaxRate(options)
-        .then((request) => request(axios, basePath));
+      return localVarFp.getTaxRate(options).then((request) => request(axios, basePath));
     },
     /**
      *
@@ -2570,10 +2301,7 @@ export const DefaultApiFactory = function (
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    setTaxId(
-      setTaxIdRequest: SetTaxIdRequest,
-      options?: any,
-    ): AxiosPromise<SetTaxId200Response> {
+    setTaxId(setTaxIdRequest: SetTaxIdRequest, options?: any): AxiosPromise<SetTaxId200Response> {
       return localVarFp
         .setTaxId(setTaxIdRequest, options)
         .then((request) => request(axios, basePath));
@@ -2592,11 +2320,7 @@ export const DefaultApiFactory = function (
       options?: any,
     ): AxiosPromise<UpdatePaymentMethod200Response> {
       return localVarFp
-        .updatePaymentMethod(
-          paymentMethodId,
-          updatePaymentMethodRequest,
-          options,
-        )
+        .updatePaymentMethod(paymentMethodId, updatePaymentMethodRequest, options)
         .then((request) => request(axios, basePath));
     },
     /**
@@ -2672,9 +2396,7 @@ export interface DefaultApiInterface {
    * @throws {RequiredError}
    * @memberof DefaultApiInterface
    */
-  deleteTaxId(
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<DeleteTaxId200Response>;
+  deleteTaxId(options?: AxiosRequestConfig): AxiosPromise<DeleteTaxId200Response>;
 
   /**
    *
@@ -2731,9 +2453,7 @@ export interface DefaultApiInterface {
    * @throws {RequiredError}
    * @memberof DefaultApiInterface
    */
-  getInvoices(
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<GetInvoices200Response>;
+  getInvoices(options?: AxiosRequestConfig): AxiosPromise<GetInvoices200Response>;
 
   /**
    *
@@ -2742,9 +2462,7 @@ export interface DefaultApiInterface {
    * @throws {RequiredError}
    * @memberof DefaultApiInterface
    */
-  getPaymentMethods(
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<GetPaymentMethods200Response>;
+  getPaymentMethods(options?: AxiosRequestConfig): AxiosPromise<GetPaymentMethods200Response>;
 
   /**
    *
@@ -2753,9 +2471,7 @@ export interface DefaultApiInterface {
    * @throws {RequiredError}
    * @memberof DefaultApiInterface
    */
-  getSubscription(
-    options?: AxiosRequestConfig,
-  ): AxiosPromise<GetSubscription200Response>;
+  getSubscription(options?: AxiosRequestConfig): AxiosPromise<GetSubscription200Response>;
 
   /**
    *
@@ -2938,10 +2654,7 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
    * @throws {RequiredError}
    * @memberof DefaultApi
    */
-  public detachPaymentMethod(
-    paymentMethodId: string,
-    options?: AxiosRequestConfig,
-  ) {
+  public detachPaymentMethod(paymentMethodId: string, options?: AxiosRequestConfig) {
     return DefaultApiFp(this.configuration)
       .detachPaymentMethod(paymentMethodId, options)
       .then((request) => request(this.axios, this.basePath));
@@ -3076,10 +2789,7 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
    * @throws {RequiredError}
    * @memberof DefaultApi
    */
-  public getUpcomingInvoice(
-    newSubscriptionTier?: SubscriptionTier,
-    options?: AxiosRequestConfig,
-  ) {
+  public getUpcomingInvoice(newSubscriptionTier?: SubscriptionTier, options?: AxiosRequestConfig) {
     return DefaultApiFp(this.configuration)
       .getUpcomingInvoice(newSubscriptionTier, options)
       .then((request) => request(this.axios, this.basePath));
@@ -3121,10 +2831,7 @@ export class DefaultApi extends BaseAPI implements DefaultApiInterface {
    * @throws {RequiredError}
    * @memberof DefaultApi
    */
-  public setTaxId(
-    setTaxIdRequest: SetTaxIdRequest,
-    options?: AxiosRequestConfig,
-  ) {
+  public setTaxId(setTaxIdRequest: SetTaxIdRequest, options?: AxiosRequestConfig) {
     return DefaultApiFp(this.configuration)
       .setTaxId(setTaxIdRequest, options)
       .then((request) => request(this.axios, this.basePath));

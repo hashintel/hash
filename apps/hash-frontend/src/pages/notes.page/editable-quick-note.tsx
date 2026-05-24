@@ -2,10 +2,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  extractEntityUuidFromEntityId,
-  splitEntityId,
-} from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId, splitEntityId } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
 import {
   deserializeQueryEntitySubgraphResponse,
@@ -56,10 +53,7 @@ import type {
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import type { FunctionComponent } from "react";
 
-const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
-  amount,
-  unit,
-}) => (
+const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({ amount, unit }) => (
   <Typography
     sx={{
       color: ({ palette }) => palette.gray[50],
@@ -74,9 +68,7 @@ const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
   </Typography>
 );
 
-const parseTextFromTextBlock = ({
-  rightEntity,
-}: BlockCollectionContentItem) => {
+const parseTextFromTextBlock = ({ rightEntity }: BlockCollectionContentItem) => {
   const textTokens = rightEntity.blockChildEntity.properties[
     blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl
   ] as TextToken[] | undefined;
@@ -107,62 +99,55 @@ export const EditableQuickNote: FunctionComponent<{
 }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const [archiveEntity] = useMutation<ArchiveEntityMutation, ArchiveEntityMutationVariables>(
+    archiveEntityMutation,
+  );
 
   const [convertedPage, setConvertedPage] = useState<PageWithParentLink>();
   const [isConvertingPage, setIsConvertingPage] = useState(false);
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
-
-  const [isConvertToPageModalOpen, setIsConvertToPageModalOpen] =
-    useState(false);
-
-  const { refetch: refetchPageTree } = useAccountPages(
-    authenticatedUser.accountId as WebId,
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
   );
+
+  const [isConvertToPageModalOpen, setIsConvertToPageModalOpen] = useState(false);
+
+  const { refetch: refetchPageTree } = useAccountPages(authenticatedUser.accountId as WebId);
 
   const blockCollectionEntityId = quickNoteEntity.metadata.recordId.entityId;
 
   const [webId, entityUuid, draftId] = splitEntityId(blockCollectionEntityId);
-  const { data } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    variables: {
-      request: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["webId"] }, { parameter: webId }],
-            },
-            {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            ...(draftId
-              ? [
-                  {
-                    equal: [{ path: ["draftId"] }, { parameter: draftId }],
-                  },
-                ]
-              : []),
-          ],
+  const { data } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
+    {
+      variables: {
+        request: {
+          filter: {
+            all: [
+              {
+                equal: [{ path: ["webId"] }, { parameter: webId }],
+              },
+              {
+                equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+              },
+              ...(draftId
+                ? [
+                    {
+                      equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                    },
+                  ]
+                : []),
+            ],
+          },
+          traversalPaths: [getBlockCollectionTraversalPath({ blockDataDepth: 1 })],
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: !!draftId,
+          includePermissions: false,
         },
-        traversalPaths: [
-          getBlockCollectionTraversalPath({ blockDataDepth: 1 }),
-        ],
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: !!draftId,
-        includePermissions: false,
       },
+      fetchPolicy: "cache-and-network",
     },
-    fetchPolicy: "cache-and-network",
-  });
+  );
 
   const mostRecentContents = useMemo(
     () =>
@@ -195,10 +180,7 @@ export const EditableQuickNote: FunctionComponent<{
   );
 
   const textBlocks = useMemo(
-    () =>
-      mostRecentContents?.filter(({ rightEntity }) =>
-        isHashTextBlock(rightEntity.componentId),
-      ),
+    () => mostRecentContents?.filter(({ rightEntity }) => isHashTextBlock(rightEntity.componentId)),
     [mostRecentContents],
   );
 
@@ -225,8 +207,7 @@ export const EditableQuickNote: FunctionComponent<{
       return undefined;
     }
     const noWhitespace = text.replace(/\s+/g, ""); // Remove all whitespace characters
-    const surrogatePairs =
-      noWhitespace.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g) ?? [];
+    const surrogatePairs = noWhitespace.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g) ?? [];
     return noWhitespace.length - surrogatePairs.length;
   }, [text]);
 
@@ -284,13 +265,7 @@ export const EditableQuickNote: FunctionComponent<{
     await refetchPageTree();
     setIsConvertingPage(false);
     setConvertedPage(undefined);
-  }, [
-    blockCollectionEntityId,
-    updateEntity,
-    convertedPage,
-    archiveEntity,
-    refetchPageTree,
-  ]);
+  }, [blockCollectionEntityId, updateEntity, convertedPage, archiveEntity, refetchPageTree]);
 
   const handleConvertedToPage = useCallback(
     (page: PageWithParentLink) => {
@@ -349,10 +324,7 @@ export const EditableQuickNote: FunctionComponent<{
           <Box display="flex" marginRight={-1} marginTop={-1} columnGap={1}>
             {convertedPage ? (
               <>
-                <IconButton
-                  disabled={isConvertingPage}
-                  onClick={handleRevertToQuickNote}
-                >
+                <IconButton disabled={isConvertingPage} onClick={handleRevertToQuickNote}>
                   <UndoRegularIcon />
                 </IconButton>
                 {isConvertingPage ? (
@@ -363,9 +335,7 @@ export const EditableQuickNote: FunctionComponent<{
                   <Link
                     href={constructPageRelativeUrl({
                       workspaceShortname: authenticatedUser.shortname!,
-                      pageEntityUuid: extractEntityUuidFromEntityId(
-                        blockCollectionEntityId,
-                      ),
+                      pageEntityUuid: extractEntityUuidFromEntityId(blockCollectionEntityId),
                     })}
                   >
                     <IconButton>
@@ -377,10 +347,7 @@ export const EditableQuickNote: FunctionComponent<{
             ) : (
               <>
                 <Tooltip title="Archive Note" placement="top">
-                  <IconButton
-                    disabled={isConvertingPage}
-                    onClick={handleArchive}
-                  >
+                  <IconButton disabled={isConvertingPage} onClick={handleArchive}>
                     <ArchiveRegularIcon />
                   </IconButton>
                 </Tooltip>

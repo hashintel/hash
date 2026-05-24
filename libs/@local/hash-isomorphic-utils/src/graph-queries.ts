@@ -1,7 +1,4 @@
-import {
-  componentsFromVersionedUrl,
-  splitEntityId,
-} from "@blockprotocol/type-system";
+import { componentsFromVersionedUrl, splitEntityId } from "@blockprotocol/type-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 
 import {
@@ -16,11 +13,7 @@ import type {
   QueryTemporalAxesUnresolved,
   SubgraphRootType,
 } from "@blockprotocol/graph";
-import type {
-  EntityId,
-  Timestamp,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityId, Timestamp, VersionedUrl } from "@blockprotocol/type-system";
 import type {
   DataTypeQueryToken,
   EntityQueryToken,
@@ -169,11 +162,7 @@ export const generateVersionedUrlMatchingFilter = (
     )[];
   },
 ): Filter => {
-  const {
-    forEntityType,
-    ignoreParents = false,
-    pathPrefix = [],
-  } = options ?? {};
+  const { forEntityType, ignoreParents = false, pathPrefix = [] } = options ?? {};
 
   const { baseUrl, version } = componentsFromVersionedUrl(versionedUrl);
 
@@ -277,16 +266,12 @@ export const pageOrNotificationNotArchivedFilter: Filter = {
 };
 
 export const mapGqlSubgraphFieldsFragmentToSubgraph = <
-  RootType extends
-    | Exclude<SubgraphRootType, EntityRootType>
-    | EntityRootType<HashEntity>,
+  RootType extends Exclude<SubgraphRootType, EntityRootType> | EntityRootType<HashEntity>,
 >(
   subgraph: SubgraphFieldsFragment,
 ) => deserializeSubgraph<RootType>(subgraph);
 
-export const notificationTypesToIgnore = [
-  systemEntityTypes.notification.entityTypeId,
-];
+export const notificationTypesToIgnore = [systemEntityTypes.notification.entityTypeId];
 
 export const usageRecordTypesToIgnore = [
   systemEntityTypes.usageRecord.entityTypeId,
@@ -296,9 +281,7 @@ export const usageRecordTypesToIgnore = [
   systemLinkEntityTypes.incurredIn.linkEntityTypeId,
 ];
 
-const pageTypesToIgnore = [
-  systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
-];
+const pageTypesToIgnore = [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId];
 
 export const noisySystemTypeIds = [
   ...notificationTypesToIgnore,

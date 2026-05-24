@@ -33,8 +33,7 @@ export type FlowDefinitionsContextType = {
   selectedFlowDefinitionId: EntityUuid | null;
 };
 
-export const FlowDefinitionsContext =
-  createContext<FlowDefinitionsContextType | null>(null);
+export const FlowDefinitionsContext = createContext<FlowDefinitionsContextType | null>(null);
 
 const exampleFlows: FlowDefinition<FlowActionDefinitionId>[] = [
   researchTaskFlowDefinition,
@@ -70,9 +69,7 @@ export const FlowDefinitionsContextProvider = ({
   );
 
   return (
-    <FlowDefinitionsContext.Provider value={context}>
-      {children}
-    </FlowDefinitionsContext.Provider>
+    <FlowDefinitionsContext.Provider value={context}>{children}</FlowDefinitionsContext.Provider>
   );
 };
 

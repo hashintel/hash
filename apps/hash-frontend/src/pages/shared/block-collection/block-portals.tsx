@@ -91,13 +91,7 @@ export const usePortals = () => {
   );
 
   const renderedPortals = Object.keys(groupedPortals).map((draftId) => {
-    return (
-      <BlockPortals
-        key={draftId}
-        draftId={draftId}
-        portals={groupedPortals[draftId]!}
-      />
-    );
+    return <BlockPortals key={draftId} draftId={draftId} portals={groupedPortals[draftId]!} />;
   });
 
   return [renderedPortals, renderPortal, clearPortals] as const;

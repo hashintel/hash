@@ -192,9 +192,7 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
       orientation={orientation}
       onValueChange={(details) => {
         if (details.value) {
-          const selectedOption = options.find(
-            (opt) => opt.value === details.value,
-          );
+          const selectedOption = options.find((opt) => opt.value === details.value);
           if (selectedOption && !selectedOption.disabled) {
             onChange(details.value);
           }
@@ -235,9 +233,7 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
                 iconOnly: option.hideLabel ?? false,
               })}
             >
-              {option.icon && (
-                <span className={itemIconStyle}>{option.icon}</span>
-              )}
+              {option.icon && <span className={itemIconStyle}>{option.icon}</span>}
               {option.hideLabel ? null : option.label}
             </ArkSegmentGroup.ItemText>
             <ArkSegmentGroup.ItemControl className={itemControlStyle} />
@@ -247,11 +243,7 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
 
         if (option.tooltip) {
           return (
-            <Tooltip
-              key={option.value}
-              content={option.tooltip}
-              display="inline"
-            >
+            <Tooltip key={option.value} content={option.tooltip} display="inline">
               <span className={tooltipWrapperStyle}>{item}</span>
             </Tooltip>
           );

@@ -35,9 +35,7 @@ const rootStyle = css({
 const RunningExperimentsPopoverStory = ({
   experiments,
 }: {
-  experiments: Parameters<
-    typeof FakeExperimentsProvider
-  >[0]["initialExperiments"];
+  experiments: Parameters<typeof FakeExperimentsProvider>[0]["initialExperiments"];
 }) => {
   return (
     <FakeExperimentsProvider initialExperiments={experiments}>
@@ -53,23 +51,17 @@ export const None: Story = {
 };
 
 export const One: Story = {
-  render: () => (
-    <RunningExperimentsPopoverStory experiments={[oneExperiment]} />
-  ),
+  render: () => <RunningExperimentsPopoverStory experiments={[oneExperiment]} />,
 };
 
 export const Multiple: Story = {
-  render: () => (
-    <RunningExperimentsPopoverStory experiments={multipleExperiments} />
-  ),
+  render: () => <RunningExperimentsPopoverStory experiments={multipleExperiments} />,
 };
 
 export const Initializing: Story = {
   render: () => (
     <RunningExperimentsPopoverStory
-      experiments={[
-        makeExperiment(1, { status: "initializing", progress: null }),
-      ]}
+      experiments={[makeExperiment(1, { status: "initializing", progress: null })]}
     />
   ),
 };
@@ -95,8 +87,6 @@ export const InProgress: Story = {
 
 export const Complete: Story = {
   render: () => (
-    <RunningExperimentsPopoverStory
-      experiments={[makeExperiment(1, { status: "complete" })]}
-    />
+    <RunningExperimentsPopoverStory experiments={[makeExperiment(1, { status: "complete" })]} />
   ),
 };

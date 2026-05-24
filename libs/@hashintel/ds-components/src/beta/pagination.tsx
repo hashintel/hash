@@ -25,11 +25,7 @@ export const NextTrigger = withContext(Pagination.NextTrigger, "nextTrigger");
 export { PaginationContext as Context } from "@ark-ui/react/pagination";
 
 export interface PaginationItemsProps extends React.HTMLAttributes<HTMLElement> {
-  render: (page: {
-    type: "page";
-    value: number;
-    selected: boolean;
-  }) => React.ReactNode;
+  render: (page: { type: "page"; value: number; selected: boolean }) => React.ReactNode;
   ellipsis?: React.ReactElement | undefined;
 }
 

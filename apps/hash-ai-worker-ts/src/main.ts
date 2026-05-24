@@ -76,8 +76,7 @@ const workflowSource: WorkflowSource =
                  * to webpack 'alias'.
                  */
                 new TsconfigPathsPlugin({
-                  configFile:
-                    "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+                  configFile: "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
                 }),
               ],
             },

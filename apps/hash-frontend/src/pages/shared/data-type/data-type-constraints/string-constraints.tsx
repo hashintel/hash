@@ -137,14 +137,12 @@ const StringLengthText = ({
   inheritedConstraints: InheritedConstraints;
 }) => {
   const minLengthInheritedFrom =
-    inheritedConstraints.minLength &&
-    inheritedConstraints.minLength.value === minLength
+    inheritedConstraints.minLength && inheritedConstraints.minLength.value === minLength
       ? inheritedConstraints.minLength.from
       : undefined;
 
   const maxLengthInheritedFrom =
-    inheritedConstraints.maxLength &&
-    inheritedConstraints.maxLength.value === maxLength
+    inheritedConstraints.maxLength && inheritedConstraints.maxLength.value === maxLength
       ? inheritedConstraints.maxLength.from
       : undefined;
 
@@ -152,15 +150,9 @@ const StringLengthText = ({
     return (
       <>
         {", of between "}
-        <ConstraintText
-          text={minLength.toString()}
-          from={minLengthInheritedFrom}
-        />
+        <ConstraintText text={minLength.toString()} from={minLengthInheritedFrom} />
         {" and "}
-        <ConstraintText
-          text={maxLength.toString()}
-          from={maxLengthInheritedFrom}
-        />
+        <ConstraintText text={maxLength.toString()} from={maxLengthInheritedFrom} />
         {" characters long"}
       </>
     );
@@ -170,10 +162,7 @@ const StringLengthText = ({
     return (
       <>
         {", of at least "}
-        <ConstraintText
-          text={minLength.toString()}
-          from={minLengthInheritedFrom}
-        />
+        <ConstraintText text={minLength.toString()} from={minLengthInheritedFrom} />
         {" characters long"}
       </>
     );
@@ -183,10 +172,7 @@ const StringLengthText = ({
     return (
       <>
         {", of at most "}
-        <ConstraintText
-          text={maxLength.toString()}
-          from={maxLengthInheritedFrom}
-        />
+        <ConstraintText text={maxLength.toString()} from={maxLengthInheritedFrom} />
         {" characters long"}
       </>
     );
@@ -209,10 +195,8 @@ export const StringConstraints = ({
   const type = inheritedConstraints.type?.value ?? constraints.type;
 
   const ownFormat = "format" in constraints ? constraints.format : undefined;
-  const ownMinLength =
-    "minLength" in constraints ? constraints.minLength : undefined;
-  const ownMaxLength =
-    "maxLength" in constraints ? constraints.maxLength : undefined;
+  const ownMinLength = "minLength" in constraints ? constraints.minLength : undefined;
+  const ownMaxLength = "maxLength" in constraints ? constraints.maxLength : undefined;
 
   const ownPattern = "pattern" in constraints ? constraints.pattern : undefined;
   const ownEnum = "enum" in constraints ? constraints.enum : undefined;
@@ -228,18 +212,12 @@ export const StringConstraints = ({
    * – handle the case of a parent change which makes the type's own constraints invalid.
    */
   useEffect(() => {
-    if (
-      inheritedConstraints.minLength?.value !== undefined &&
-      ownMinLength != null
-    ) {
+    if (inheritedConstraints.minLength?.value !== undefined && ownMinLength != null) {
       if (inheritedConstraints.minLength.value > ownMinLength) {
         setValue("constraints.minLength", null, { shouldDirty: true });
       }
     }
-    if (
-      inheritedConstraints.maxLength?.value !== undefined &&
-      ownMaxLength != null
-    ) {
+    if (inheritedConstraints.maxLength?.value !== undefined && ownMaxLength != null) {
       if (inheritedConstraints.maxLength.value < ownMaxLength) {
         setValue("constraints.maxLength", null, { shouldDirty: true });
       }
@@ -275,13 +253,8 @@ export const StringConstraints = ({
     throw new Error("String constraint expected");
   }
 
-  if (
-    "pattern" in inheritedConstraints &&
-    inheritedConstraints.pattern?.length
-  ) {
-    patterns.push(
-      ...inheritedConstraints.pattern.map((regexp) => regexp.value),
-    );
+  if ("pattern" in inheritedConstraints && inheritedConstraints.pattern?.length) {
+    patterns.push(...inheritedConstraints.pattern.map((regexp) => regexp.value));
   }
 
   return (
@@ -289,10 +262,7 @@ export const StringConstraints = ({
       <Box>
         <Typography variant="smallTextParagraphs" sx={{ fontWeight: 300 }}>
           {"It must be a "}
-          <ConstraintText
-            text="string"
-            from={inheritedConstraints.type?.from}
-          />
+          <ConstraintText text="string" from={inheritedConstraints.type?.from} />
           {format && (
             <>
               {`, formatted as ${["email"].includes(format) ? "an" : "a"} `}

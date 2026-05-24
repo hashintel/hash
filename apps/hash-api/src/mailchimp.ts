@@ -39,13 +39,9 @@ export const createOrUpdateMailchimpUser = async (params: {
         if (error.response.body.title === "Member Exists") {
           const subscriberHash = md5(email.toLowerCase());
 
-          await mailchimp.lists.updateListMember(
-            mailchimpListId,
-            subscriberHash,
-            {
-              merge_fields,
-            },
-          );
+          await mailchimp.lists.updateListMember(mailchimpListId, subscriberHash, {
+            merge_fields,
+          });
         }
       });
   } catch (error) {

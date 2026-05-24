@@ -68,60 +68,51 @@ export const sortStepsTopologically = (
           ? possiblyDependentStep.inputSources
           : [possiblyDependentStep.inputSourceToParallelizeOn];
 
-      const numberOfDependenciesSatisfiedByReadyStep = inputSources.filter(
-        (input) => {
-          if (input.kind === "parallel-group-input") {
-            /**
-             * A 'parallel-group-input' is satisfied by the readyStep if the readyStep is its parent
-             */
-            return (
-              readyStep.kind === "parallel-group" &&
-              possiblyDependentStep.parallelParentId === readyStep.stepId
-            );
-          }
-
-          if (input.kind === "hardcoded" || input.sourceStepId === "trigger") {
-            /** We excluded these from the dependency count when calculating it */
-            return false;
-          }
-
-          const sourceStep = steps.find(
-            (step) => step.stepId === input.sourceStepId,
+      const numberOfDependenciesSatisfiedByReadyStep = inputSources.filter((input) => {
+        if (input.kind === "parallel-group-input") {
+          /**
+           * A 'parallel-group-input' is satisfied by the readyStep if the readyStep is its parent
+           */
+          return (
+            readyStep.kind === "parallel-group" &&
+            possiblyDependentStep.parallelParentId === readyStep.stepId
           );
+        }
 
-          if (!sourceStep) {
-            throw new Error(
-              `Could not find source step with stepId ${input.sourceStepId}`,
-            );
-          }
+        if (input.kind === "hardcoded" || input.sourceStepId === "trigger") {
+          /** We excluded these from the dependency count when calculating it */
+          return false;
+        }
 
-          if (sourceStep.kind === "parallel-group") {
-            /**
-             * If the source step is a parallel group, its outputs are only available once all of its children
-             * have no dependencies left. This may be satisfied when any one of it or its children are processed.
-             */
-            return [sourceStep, ...sourceStep.steps].every(
-              (step) =>
-                /**
-                 * The final dependency of steps within a parallel group may have been reduced to zero in this iteration,
-                 * in which case we don't want to count a step dependent on the group as being satisfied yet.
-                 * Any steps reduced to zero in this iteration will be processed in a future iteration,
-                 * at which point the step dependent on the parallel group can be pushed into the zero deps queue.
-                 */
-                !stepsReducedToZeroDependenciesByReadyStep.includes(
-                  step.stepId,
-                ) && dependencyCountByStepId.get(step.stepId) === 0,
-            );
-          }
+        const sourceStep = steps.find((step) => step.stepId === input.sourceStepId);
 
-          return input.sourceStepId === readyStep.stepId;
-        },
-      ).length;
+        if (!sourceStep) {
+          throw new Error(`Could not find source step with stepId ${input.sourceStepId}`);
+        }
+
+        if (sourceStep.kind === "parallel-group") {
+          /**
+           * If the source step is a parallel group, its outputs are only available once all of its children
+           * have no dependencies left. This may be satisfied when any one of it or its children are processed.
+           */
+          return [sourceStep, ...sourceStep.steps].every(
+            (step) =>
+              /**
+               * The final dependency of steps within a parallel group may have been reduced to zero in this iteration,
+               * in which case we don't want to count a step dependent on the group as being satisfied yet.
+               * Any steps reduced to zero in this iteration will be processed in a future iteration,
+               * at which point the step dependent on the parallel group can be pushed into the zero deps queue.
+               */
+              !stepsReducedToZeroDependenciesByReadyStep.includes(step.stepId) &&
+              dependencyCountByStepId.get(step.stepId) === 0,
+          );
+        }
+
+        return input.sourceStepId === readyStep.stepId;
+      }).length;
 
       if (numberOfDependenciesSatisfiedByReadyStep) {
-        const currentCount = dependencyCountByStepId.get(
-          possiblyDependentStep.stepId,
-        );
+        const currentCount = dependencyCountByStepId.get(possiblyDependentStep.stepId);
 
         if (currentCount === undefined) {
           throw new Error(
@@ -129,15 +120,12 @@ export const sortStepsTopologically = (
           );
         }
 
-        const newCount =
-          currentCount - numberOfDependenciesSatisfiedByReadyStep;
+        const newCount = currentCount - numberOfDependenciesSatisfiedByReadyStep;
         dependencyCountByStepId.set(possiblyDependentStep.stepId, newCount);
 
         if (newCount === 0) {
           stepsWithoutDependencies.push(possiblyDependentStep);
-          stepsReducedToZeroDependenciesByReadyStep.push(
-            possiblyDependentStep.stepId,
-          );
+          stepsReducedToZeroDependenciesByReadyStep.push(possiblyDependentStep.stepId);
         }
       }
     }
@@ -151,9 +139,7 @@ export const sortStepsTopologically = (
   }
 
   if (stepsWithCycles.length > 0) {
-    throw new Error(
-      `Cycles detected in steps with stepIds: ${stepsWithCycles.join(", ")}`,
-    );
+    throw new Error(`Cycles detected in steps with stepIds: ${stepsWithCycles.join(", ")}`);
   }
 
   return sortedItems;
@@ -184,9 +170,7 @@ export const groupStepsByDependencyLayer = (
       const layer = layers[index]!;
 
       const inputSources =
-        step.kind === "action"
-          ? step.inputSources
-          : [step.inputSourceToParallelizeOn];
+        step.kind === "action" ? step.inputSources : [step.inputSourceToParallelizeOn];
 
       const dependenciesAreInEarlierGroup = inputSources.every((input) => {
         if (
@@ -211,13 +195,9 @@ export const groupStepsByDependencyLayer = (
           );
         }
 
-        const inputStep = sortedAndFlattenedSteps.find(
-          (stp) => stp.stepId === inputSourceStepId,
-        );
+        const inputStep = sortedAndFlattenedSteps.find((stp) => stp.stepId === inputSourceStepId);
         if (!inputStep) {
-          throw new Error(
-            `Could not find input source step with stepId ${inputSourceStepId}`,
-          );
+          throw new Error(`Could not find input source step with stepId ${inputSourceStepId}`);
         }
 
         const inputStepIds =

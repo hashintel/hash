@@ -11,10 +11,7 @@ interface EntityTypePluralProps {
   readonly?: boolean;
 }
 
-export const EntityTypePlural = ({
-  isLinkType,
-  readonly,
-}: EntityTypePluralProps) => {
+export const EntityTypePlural = ({ isLinkType, readonly }: EntityTypePluralProps) => {
   const { control } = useFormContext<EntityTypeEditorFormData>();
 
   const pluralController = useController({

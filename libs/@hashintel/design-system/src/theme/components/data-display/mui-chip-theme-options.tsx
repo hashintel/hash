@@ -68,8 +68,7 @@ const getColors = (
   return {
     textColor: theme.palette[color][textColorShade as keyof PaletteValue],
     bgColor: theme.palette[color][bgColorShade as keyof PaletteValue],
-    textHoverColor:
-      theme.palette[color][textHoverColorShade as keyof PaletteValue],
+    textHoverColor: theme.palette[color][textHoverColorShade as keyof PaletteValue],
     bgHoverColor: theme.palette[color][bgHoverColorShade as keyof PaletteValue],
     outlineColor: outlineColorShade
       ? theme.palette[color][bgHoverColorShade as keyof PaletteValue]
@@ -95,14 +94,8 @@ export const MuiChipThemeOptions: Components<Theme>["MuiChip"] = {
     root: ({ ownerState, theme }) => {
       const { color, variant, onClick, clickable } = ownerState;
 
-      const {
-        textColor,
-        bgColor,
-        textHoverColor,
-        bgHoverColor,
-        outlineColor,
-        outlineHoverColor,
-      } = getColors(theme, color ?? "gray", variant);
+      const { textColor, bgColor, textHoverColor, bgHoverColor, outlineColor, outlineHoverColor } =
+        getColors(theme, color ?? "gray", variant);
 
       return {
         color: textColor,

@@ -2,10 +2,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 
 import { customColors } from "@hashintel/design-system/theme";
 
-import {
-  getCellHorizontalPadding,
-  getYCenter,
-} from "../../../../../../../components/grid/utils";
+import { getCellHorizontalPadding, getYCenter } from "../../../../../../../components/grid/utils";
 import { drawChipWithText } from "../../../../../../../components/grid/utils/draw-chip-with-text";
 import { drawTextWithIcon } from "../../../../../../../components/grid/utils/draw-text-with-icon";
 import { drawUrlAsLink } from "../../../../../../../components/grid/utils/draw-url-as-link";
@@ -72,17 +69,11 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       drawUrlAsLink({ args, url: value as string, left });
     } else {
       if (!valueMetadata) {
-        throw new Error(
-          `Expected value metadata to be set when value '${value}' is not empty`,
-        );
+        throw new Error(`Expected value metadata to be set when value '${value}' is not empty`);
       }
 
       try {
-        const valueParts = formatValue(
-          value,
-          valueMetadata,
-          permittedDataTypesIncludingChildren,
-        );
+        const valueParts = formatValue(value, valueMetadata, permittedDataTypesIncludingChildren);
 
         let textOffset = left;
         for (const [index, part] of valueParts.entries()) {
@@ -92,13 +83,11 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
           const additionalRightPadding =
             part.type === "leftLabel"
               ? 0.5
-              : part.type === "value" &&
-                  valueParts[index + 1]?.type === "rightLabel"
+              : part.type === "value" && valueParts[index + 1]?.type === "rightLabel"
                 ? 0.5
                 : 0;
 
-          textOffset +=
-            ctx.measureText(part.text).width + additionalRightPadding;
+          textOffset += ctx.measureText(part.text).width + additionalRightPadding;
         }
       } catch {
         /**
@@ -155,10 +144,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       ctx.strokeStyle = customColors.red[50];
       ctx.lineWidth = 1;
       ctx.moveTo(rect.x + getCellHorizontalPadding(), rect.y + rect.height - 4);
-      ctx.lineTo(
-        rect.x + rect.width - getCellHorizontalPadding(),
-        rect.y + rect.height - 4,
-      );
+      ctx.lineTo(rect.x + rect.width - getCellHorizontalPadding(), rect.y + rect.height - 4);
       ctx.stroke();
     }
   },

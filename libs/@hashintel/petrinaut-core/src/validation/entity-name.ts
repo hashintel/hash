@@ -33,9 +33,7 @@ type EntityNameValidationSuccess = {
   name: string;
 };
 
-type EntityNameValidationResult =
-  | EntityNameValidationSuccess
-  | EntityNameValidationError;
+type EntityNameValidationResult = EntityNameValidationSuccess | EntityNameValidationError;
 
 /**
  * Validate a name for a place or transition.

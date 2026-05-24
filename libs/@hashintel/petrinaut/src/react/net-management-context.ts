@@ -28,6 +28,4 @@ const DEFAULT_NET_MANAGEMENT: NetManagement = {
   loadPetriNet: () => {},
 };
 
-export const NetManagementContext = createContext<NetManagement>(
-  DEFAULT_NET_MANAGEMENT,
-);
+export const NetManagementContext = createContext<NetManagement>(DEFAULT_NET_MANAGEMENT);

@@ -65,16 +65,12 @@ const createLinearIssues = async (
       const parentIssueAssignee = await parentIssue.assignee;
 
       if (!parentIssueTeam) {
-        console.error(
-          chalk.yellow(`Could not find team for ticket ${ticketTodo.ticketId}`),
-        );
+        console.error(chalk.yellow(`Could not find team for ticket ${ticketTodo.ticketId}`));
         continue;
       }
 
       // A Markdown-formatted string with - [ ] checklists
-      const description = `This ticket tracks suggested follow-up tasks from ${
-        ticketTodo.ticketId
-      }:
+      const description = `This ticket tracks suggested follow-up tasks from ${ticketTodo.ticketId}:
 
 ${ticketTodo.todos.map((todo) => `- [ ] ${todo}`).join("\n")}`;
 
@@ -93,15 +89,11 @@ ${ticketTodo.todos.map((todo) => `- [ ] ${todo}`).join("\n")}`;
       if (issue.success && issue.issue) {
         const createdIssue = await linear.issue((await issue.issue).id);
         console.log(
-          chalk.green(
-            `Created Linear issue ${createdIssue.identifier}: ${createdIssue.title}`,
-          ),
+          chalk.green(`Created Linear issue ${createdIssue.identifier}: ${createdIssue.title}`),
         );
         createdTicketIds.push(createdIssue.identifier);
       } else {
-        console.error(
-          chalk.red(`Failed to create Linear issue for ${ticketTodo.ticketId}`),
-        );
+        console.error(chalk.red(`Failed to create Linear issue for ${ticketTodo.ticketId}`));
       }
     } catch {
       console.error(chalk.red("Error creating Linear issue"));
@@ -190,10 +182,7 @@ const submitPRReview = async ({
     const payload = {
       commit_id: headRefOid,
       body,
-      event:
-        generalReview.decision === "request-changes"
-          ? "REQUEST_CHANGES"
-          : "COMMENT",
+      event: generalReview.decision === "request-changes" ? "REQUEST_CHANGES" : "COMMENT",
       comments,
     };
 
@@ -216,11 +205,7 @@ const submitPRReview = async ({
       process.exit(1);
     }
 
-    console.log(
-      chalk.green(
-        `Submitted PR review with decision: ${generalReview.decision}`,
-      ),
-    );
+    console.log(chalk.green(`Submitted PR review with decision: ${generalReview.decision}`));
   } catch {
     console.error(chalk.red("Error submitting PR review"));
   }
@@ -298,9 +283,7 @@ const main = async (): Promise<void> => {
     console.log(chalk.red("No Linear ticket IDs found in PR title"));
     process.exit(1);
   } else {
-    console.log(
-      chalk.green(`Found Linear ticket IDs: ${linearTicketIds.join(", ")}`),
-    );
+    console.log(chalk.green(`Found Linear ticket IDs: ${linearTicketIds.join(", ")}`));
   }
 
   const preReplyCommentThreads = await getPrComments(prNumber);
@@ -322,9 +305,7 @@ const main = async (): Promise<void> => {
   });
 
   if (countOfRepliesPosted > 0) {
-    console.log(
-      chalk.green(`Submitted ${commentReplies.length} comment replies`),
-    );
+    console.log(chalk.green(`Submitted ${commentReplies.length} comment replies`));
 
     /**
      * Wait a couple of seconds in case the comment replies are not consistently available immediately from the API after posting them.

@@ -3,9 +3,7 @@ import { typedEntries } from "../../util/typed-entries.js";
 import type { CompileContext } from "../context/compile.js";
 import type { CompiledTsType } from "../shared.js";
 
-const replaceInterfaceWithTypeInCompiledTsType = (
-  compiledTsType: CompiledTsType,
-): CompiledTsType =>
+const replaceInterfaceWithTypeInCompiledTsType = (compiledTsType: CompiledTsType): CompiledTsType =>
   // Find all occurrences of `interface (someName) =` and replace it with `type $1 =`
   compiledTsType.replace(/interface ([a-zA-Z0-9]+)/gm, "type $1 =");
 
@@ -22,9 +20,7 @@ const replaceInterfaceWithTypeInCompiledTsType = (
 export const replaceInterfaceWithType = (context: CompileContext): void => {
   context.logDebug("Replacing `interface` with `type`");
 
-  for (const [typeId, compiledTsType] of typedEntries(
-    context.typeIdsToCompiledTypes,
-  )) {
+  for (const [typeId, compiledTsType] of typedEntries(context.typeIdsToCompiledTypes)) {
     context.typeIdsToCompiledTypes[typeId] =
       replaceInterfaceWithTypeInCompiledTsType(compiledTsType);
   }

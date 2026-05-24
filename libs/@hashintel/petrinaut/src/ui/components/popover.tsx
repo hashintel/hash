@@ -71,21 +71,13 @@ const sectionLabelStyle = css({
  * Popover content portalled into the shared .petrinaut-root container.
  * Wraps Portal + Positioner + Content from Ark UI.
  */
-const Content = ({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) => {
+const Content = ({ children, className }: { children: ReactNode; className?: string }) => {
   const portalContainerRef = usePortalContainerRef();
 
   return (
     <Portal container={portalContainerRef}>
       <ArkPopover.Positioner>
-        <ArkPopover.Content className={cx(contentStyle, className)}>
-          {children}
-        </ArkPopover.Content>
+        <ArkPopover.Content className={cx(contentStyle, className)}>{children}</ArkPopover.Content>
       </ArkPopover.Positioner>
     </Portal>
   );

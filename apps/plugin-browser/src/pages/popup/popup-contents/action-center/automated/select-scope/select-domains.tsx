@@ -42,9 +42,7 @@ export const SelectDomains = ({
         const filtered = filter(allOptions, params);
 
         const { inputValue } = params;
-        const isExisting = allOptions.some((option) =>
-          option.includes(inputValue),
-        );
+        const isExisting = allOptions.some((option) => option.includes(inputValue));
 
         if (inputValue !== "" && !isExisting) {
           // Show an option to the user making clear the new value can be added (also works by hitting enter)
@@ -94,9 +92,7 @@ export const SelectDomains = ({
       ]}
       multiple={multiple}
       onChange={(_event, value) => {
-        setSelectedDomains(
-          !value ? [] : Array.isArray(value) ? value : [value],
-        );
+        setSelectedDomains(!value ? [] : Array.isArray(value) ? value : [value]);
       }}
       options={options}
       renderOption={(props, domain) => (
@@ -106,12 +102,7 @@ export const SelectDomains = ({
       )}
       renderTags={(value, getTagProps) =>
         value.map((option, index) => (
-          <Chip
-            {...getTagProps({ index })}
-            key={option}
-            variant="outlined"
-            label={option}
-          />
+          <Chip {...getTagProps({ index })} key={option} variant="outlined" label={option} />
         ))
       }
       value={multiple ? selectedDomains : selectedDomains[0]}

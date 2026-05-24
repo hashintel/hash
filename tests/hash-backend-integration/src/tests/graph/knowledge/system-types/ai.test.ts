@@ -32,11 +32,7 @@ describe("AI Assistant", () => {
   it("can read AI assistant", async () => {
     const authentication = { actorId: systemAccountId };
 
-    const aiAssistant = await getAiByIdentifier(
-      graphContext.graphApi,
-      authentication,
-      "hash-ai",
-    );
+    const aiAssistant = await getAiByIdentifier(graphContext.graphApi, authentication, "hash-ai");
     expect(aiAssistant).toBeTruthy();
   });
 });

@@ -12,11 +12,7 @@ import { CircleArrowRightRegularIcon } from "../../shared/icons/circle-arrow-rig
 
 import type { FunctionComponent, ReactNode } from "react";
 
-type StepName =
-  | "verify-email"
-  | "reserve-username"
-  | "start-using-hash"
-  | "accept-invitation";
+type StepName = "verify-email" | "reserve-username" | "start-using-hash" | "accept-invitation";
 
 type Step = {
   name: StepName;
@@ -68,9 +64,7 @@ export const SignupSteps: FunctionComponent<{
   currentStep: StepName;
   withInvitation: boolean;
 }> = ({ currentStep, withInvitation }) => {
-  const stepsToDisplay = withInvitation
-    ? stepsWithInvitation
-    : stepsWithoutInvitation;
+  const stepsToDisplay = withInvitation ? stepsWithInvitation : stepsWithoutInvitation;
 
   const currentStepIndex = useMemo(
     () => stepsToDisplay.findIndex(({ name }) => name === currentStep),
@@ -101,12 +95,10 @@ export const SignupSteps: FunctionComponent<{
               borderRadius: "8px",
               paddingX: 8,
               paddingY: 4,
-              background: ({ palette }) =>
-                isCurrentStep ? "#001F41" : palette.common.white,
+              background: ({ palette }) => (isCurrentStep ? "#001F41" : palette.common.white),
               svg: {
                 fontSize: 24,
-                color: ({ palette }) =>
-                  isCurrentStep ? palette.blue[50] : palette.gray[60],
+                color: ({ palette }) => (isCurrentStep ? palette.blue[50] : palette.gray[60]),
               },
               borderWidth: 1,
               borderStyle: "solid",
@@ -134,8 +126,7 @@ export const SignupSteps: FunctionComponent<{
               </Typography>
               <Typography
                 sx={{
-                  color: ({ palette }) =>
-                    isCurrentStep ? palette.common.white : palette.gray[50],
+                  color: ({ palette }) => (isCurrentStep ? palette.common.white : palette.gray[50]),
                   fontSize: 16,
                   fontWeight: 400,
                   lineHeight: "130%",

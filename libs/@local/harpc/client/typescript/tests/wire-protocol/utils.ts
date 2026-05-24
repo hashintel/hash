@@ -16,13 +16,7 @@ const executablePath = Effect.fn("executablePath")(function* () {
   const path = yield* Path.Path;
   const directory = yield* packageDirectory();
 
-  return path.resolve(
-    directory,
-    "..",
-    "..",
-    "..",
-    "wire-protocol/dist/release/codec",
-  );
+  return path.resolve(directory, "..", "..", "..", "wire-protocol/dist/release/codec");
 });
 
 export const callEncode = Effect.fn("callEncode")(function* (
@@ -59,10 +53,7 @@ export const callDecode = Effect.fn("callDecode")(function* (
   return Uint8Array.from(buffer);
 });
 
-export const expectArrayBuffer = (
-  cx: vitest.TestContext,
-  value: ArrayBufferLike,
-): ArrayBuffer => {
+export const expectArrayBuffer = (cx: vitest.TestContext, value: ArrayBufferLike): ArrayBuffer => {
   cx.expect(value).toBeInstanceOf(ArrayBuffer);
 
   return value as ArrayBuffer;

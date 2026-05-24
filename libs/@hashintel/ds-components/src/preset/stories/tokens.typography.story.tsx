@@ -6,16 +6,7 @@ import type { FontWeightToken, Leading, TextStyle } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
 import type { Story } from "@ladle/react";
 
-const textStyles: readonly TextStyle[] = [
-  "xs",
-  "sm",
-  "base",
-  "lg",
-  "xl",
-  "2xl",
-  "3xl",
-  "4xl",
-];
+const textStyles: readonly TextStyle[] = ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl"];
 const leadingValues: readonly Leading[] = ["tight", "normal", "loose"];
 const fontWeightEntries: readonly { name: FontWeightToken; value: number }[] = [
   { name: "normal", value: 400 },
@@ -60,9 +51,7 @@ type TextStyleName = TextStyle;
 const TextStyleDemo = ({ style }: { style: TextStyleName }) => (
   <HStack gap="4" alignItems="baseline">
     <span className={labelStyles}>{style}</span>
-    <span className={css({ textStyle: style })}>
-      The quick brown fox jumps over the lazy dog
-    </span>
+    <span className={css({ textStyle: style })}>The quick brown fox jumps over the lazy dog</span>
   </HStack>
 );
 
@@ -79,13 +68,7 @@ const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
     </span>
     <HStack gap="6" alignItems="flex-start" width="[100%]">
       {leadingValues.map((leading) => (
-        <VStack
-          key={leading}
-          gap="1"
-          alignItems="flex-start"
-          flex="1"
-          minWidth="0"
-        >
+        <VStack key={leading} gap="1" alignItems="flex-start" flex="1" minWidth="0">
           <span className={valueStyles}>
             textStyle: {style} / leading: {leading}
           </span>
@@ -104,19 +87,10 @@ const LeadingComparisonRow = ({ style }: { style: TextStyleName }) => (
   </VStack>
 );
 
-const FontFamilyDemo = ({
-  name,
-  tokenPath,
-}: {
-  name: string;
-  tokenPath: Token;
-}) => (
+const FontFamilyDemo = ({ name, tokenPath }: { name: string; tokenPath: Token }) => (
   <HStack gap="4" alignItems="baseline">
     <span className={labelStyles}>{name}</span>
-    <span
-      className={css({ fontSize: "xl" })}
-      style={{ fontFamily: token(tokenPath) }}
-    >
+    <span className={css({ fontSize: "xl" })} style={{ fontFamily: token(tokenPath) }}>
       The quick brown fox jumps over the lazy dog
     </span>
   </HStack>
@@ -137,9 +111,7 @@ export const Typography: Story<{
 }> = ({ leadingFactor }) => (
   <div className={css({ leading: leadingFactor })}>
     <VStack gap="8" alignItems="flex-start" p="6">
-      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
-        Typography
-      </h1>
+      <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>Typography</h1>
 
       <VStack gap="4" alignItems="flex-start" width="[100%]">
         <h2 className={sectionTitleStyles}>Text Styles</h2>
@@ -157,8 +129,7 @@ export const Typography: Story<{
             mb: "2",
           })}
         >
-          Each text style shown at tight (×0.9), normal (×1), and loose (×1.1)
-          leading factor
+          Each text style shown at tight (×0.9), normal (×1), and loose (×1.1) leading factor
         </p>
         {textStyles.map((style) => (
           <LeadingComparisonRow key={style} style={style} />

@@ -6,10 +6,7 @@ import {
   type SimulationState,
 } from "../simulation/context";
 
-import type {
-  SimulationFrameReader,
-  SimulationFrameState,
-} from "@hashintel/petrinaut-core";
+import type { SimulationFrameReader, SimulationFrameState } from "@hashintel/petrinaut-core";
 
 /**
  * Lifecycle state of the active simulation. "NotRun" when nothing has been

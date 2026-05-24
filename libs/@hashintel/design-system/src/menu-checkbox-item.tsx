@@ -10,10 +10,10 @@ export type MenuCheckboxItemProps = {
   children?: ReactNode;
 } & Omit<MenuItemProps, "noSelectBackground">;
 
-const MenuCheckboxItem: ForwardRefRenderFunction<
-  HTMLLIElement,
-  MenuCheckboxItemProps
-> = ({ selected, children, ...props }, ref) => {
+const MenuCheckboxItem: ForwardRefRenderFunction<HTMLLIElement, MenuCheckboxItemProps> = (
+  { selected, children, ...props },
+  ref,
+) => {
   return (
     <MenuItem ref={ref} {...props} noSelectBackground>
       <ListItemIcon>

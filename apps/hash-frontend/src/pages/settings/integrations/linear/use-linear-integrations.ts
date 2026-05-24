@@ -1,10 +1,7 @@
 import { useLazyQuery, useQuery } from "@apollo/client";
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -58,10 +55,7 @@ export const useLinearIntegrations = (): {
         filter: {
           all: [
             {
-              equal: [
-                { path: ["webId"] },
-                { parameter: authenticatedUser.accountId },
-              ],
+              equal: [{ path: ["webId"] }, { parameter: authenticatedUser.accountId }],
             },
             {
               equal: [
@@ -91,18 +85,18 @@ export const useLinearIntegrations = (): {
     GetLinearOrganizationQueryVariables
   >(getLinearOrganizationQuery);
 
-  const [connectedLinearOrganizations, setConnectedLinearOrganizations] =
-    useState<GetLinearOrganizationQuery["getLinearOrganization"][]>([]);
+  const [connectedLinearOrganizations, setConnectedLinearOrganizations] = useState<
+    GetLinearOrganizationQuery["getLinearOrganization"][]
+  >([]);
 
   const linearIntegrations = useMemo(() => {
     if (!linearIntegrationsData) {
       return [];
     }
 
-    const subgraph =
-      deserializeQueryEntitySubgraphResponse<LinearIntegrationType>(
-        linearIntegrationsData.queryEntitySubgraph,
-      ).subgraph;
+    const subgraph = deserializeQueryEntitySubgraphResponse<LinearIntegrationType>(
+      linearIntegrationsData.queryEntitySubgraph,
+    ).subgraph;
 
     const linearIntegrationEntities = getRoots(subgraph);
 

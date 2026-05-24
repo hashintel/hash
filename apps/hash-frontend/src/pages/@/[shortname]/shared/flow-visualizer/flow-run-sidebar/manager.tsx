@@ -30,40 +30,36 @@ export const Manager = () => {
   const { selectedFlowRun } = useFlowRunsContext();
 
   const [showQuestionModal, setShowQuestionModal] = useState(false);
-  const [showResolvedQuestionsModal, setShowResolvedQuestionsModal] =
-    useState(false);
+  const [showResolvedQuestionsModal, setShowResolvedQuestionsModal] = useState(false);
 
-  const {
-    outstandingQuestionsRequest,
-    resolvedQuestionsRequests,
-    resolvedQuestionsCount,
-  } = useMemo(() => {
-    let outstandingRequest: ExternalInputRequest | undefined;
-    const resolvedRequests: ResolvedQuestionRequest[] = [];
+  const { outstandingQuestionsRequest, resolvedQuestionsRequests, resolvedQuestionsCount } =
+    useMemo(() => {
+      let outstandingRequest: ExternalInputRequest | undefined;
+      const resolvedRequests: ResolvedQuestionRequest[] = [];
 
-    let answersProvidedCount: number = 0;
+      let answersProvidedCount: number = 0;
 
-    for (const inputRequest of selectedFlowRun?.inputRequests ?? []) {
-      if (inputRequest.type === "human-input") {
-        if (!inputRequest.resolvedAt && !outstandingRequest) {
-          outstandingRequest = inputRequest;
-        } else if (inputRequest.resolvedAt && inputRequest.answers) {
-          resolvedRequests.push({
-            ...inputRequest,
-            resolvedAt: inputRequest.resolvedAt,
-            answers: inputRequest.answers,
-          });
-          answersProvidedCount += inputRequest.data.questions.length;
+      for (const inputRequest of selectedFlowRun?.inputRequests ?? []) {
+        if (inputRequest.type === "human-input") {
+          if (!inputRequest.resolvedAt && !outstandingRequest) {
+            outstandingRequest = inputRequest;
+          } else if (inputRequest.resolvedAt && inputRequest.answers) {
+            resolvedRequests.push({
+              ...inputRequest,
+              resolvedAt: inputRequest.resolvedAt,
+              answers: inputRequest.answers,
+            });
+            answersProvidedCount += inputRequest.data.questions.length;
+          }
         }
       }
-    }
 
-    return {
-      outstandingQuestionsRequest: outstandingRequest,
-      resolvedQuestionsRequests: resolvedRequests,
-      resolvedQuestionsCount: answersProvidedCount,
-    };
-  }, [selectedFlowRun]);
+      return {
+        outstandingQuestionsRequest: outstandingRequest,
+        resolvedQuestionsRequests: resolvedRequests,
+        resolvedQuestionsCount: answersProvidedCount,
+      };
+    }, [selectedFlowRun]);
 
   const flowIsClosed = !!selectedFlowRun?.closedAt;
 
@@ -102,9 +98,7 @@ export const Manager = () => {
             mt: 2,
           }}
         >
-          <CircleInfoIcon
-            sx={{ fill: ({ palette }) => palette.yellow[80], ...iconSx }}
-          />
+          <CircleInfoIcon sx={{ fill: ({ palette }) => palette.yellow[80], ...iconSx }} />
           <Typography
             variant="smallTextParagraphs"
             sx={{ color: ({ palette }) => palette.yellow[80] }}
@@ -123,9 +117,7 @@ export const Manager = () => {
           }}
         >
           <SuccessIcon />
-          <Typography variant="smallTextParagraphs">
-            No outstanding input requests
-          </Typography>
+          <Typography variant="smallTextParagraphs">No outstanding input requests</Typography>
         </Stack>
       )}
       {resolvedQuestionsCount > 0 && (
@@ -141,9 +133,7 @@ export const Manager = () => {
             mt: 2,
           }}
         >
-          <CircleInfoIcon
-            sx={{ fill: ({ palette }) => palette.blue[60], ...iconSx }}
-          />
+          <CircleInfoIcon sx={{ fill: ({ palette }) => palette.blue[60], ...iconSx }} />
           <Typography variant="smallTextParagraphs">
             {resolvedQuestionsCount} resolved questions
           </Typography>

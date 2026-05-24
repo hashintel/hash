@@ -23,9 +23,7 @@ function createSimulationFrameReader(
   const getPlaceTokenCount = (placeId: string): number =>
     frameView.getPlaceState(placeId)?.count ?? 0;
 
-  const getPlaceTokenValues = (
-    placeId: string,
-  ): SimulationPlaceTokenValues | null => {
+  const getPlaceTokenValues = (placeId: string): SimulationPlaceTokenValues | null => {
     const placeState = frameView.getPlaceState(placeId);
     if (!placeState) {
       return null;
@@ -64,16 +62,14 @@ function createSimulationFrameReader(
           dimensionIndex < elements.length && dimensionIndex < dimensions;
           dimensionIndex++
         ) {
-          token[elements[dimensionIndex]!.name] =
-            frameView.tokenValues[base + dimensionIndex] ?? 0;
+          token[elements[dimensionIndex]!.name] = frameView.tokenValues[base + dimensionIndex] ?? 0;
         }
         tokens.push(token);
       }
 
       return tokens;
     },
-    getTransitionState: (transitionId) =>
-      frameView.getTransitionState(transitionId),
+    getTransitionState: (transitionId) => frameView.getTransitionState(transitionId),
     toFrameState() {
       const places: SimulationFrameState["places"] = {};
       for (const [placeId, placeData] of frameView.getPlaceEntries()) {
@@ -93,6 +89,5 @@ export function compileSimulationFrameReader(
 ): (frame: EngineFrame, number: number, time: number) => SimulationFrameReader {
   const layout = createEngineFrameLayout(sdcpn);
 
-  return (frame, number, time) =>
-    createSimulationFrameReader(layout, frame, number, time);
+  return (frame, number, time) => createSimulationFrameReader(layout, frame, number, time);
 }

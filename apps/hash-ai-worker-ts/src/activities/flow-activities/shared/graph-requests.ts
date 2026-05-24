@@ -1,9 +1,6 @@
 import isEqual from "lodash/isEqual.js";
 
-import {
-  extractDraftIdFromEntityId,
-  splitEntityId,
-} from "@blockprotocol/type-system";
+import { extractDraftIdFromEntityId, splitEntityId } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -80,19 +77,15 @@ export const getEntityUpdate = <T extends PropertyObjectWithMetadata>({
 
   let isExactMatch = true;
 
-  for (const [key, propertyWithMetadata] of typedEntries(
-    newPropertiesWithMetadata.value,
-  )) {
+  for (const [key, propertyWithMetadata] of typedEntries(newPropertiesWithMetadata.value)) {
     if (!existingEntity.properties[key]) {
       isExactMatch = false;
     }
 
-    const newPropertySources =
-      propertyWithMetadata.metadata?.provenance?.sources;
+    const newPropertySources = propertyWithMetadata.metadata?.provenance?.sources;
 
     const existingPropertySources =
-      existingEntity.propertiesMetadata.value[key]?.metadata?.provenance
-        ?.sources;
+      existingEntity.propertiesMetadata.value[key]?.metadata?.provenance?.sources;
 
     let sourcesToApply = newPropertySources;
 
@@ -137,9 +130,7 @@ export const getEntityUpdate = <T extends PropertyObjectWithMetadata>({
     });
   }
 
-  const existingEntityIsDraft = !!extractDraftIdFromEntityId(
-    existingEntity.entityId,
-  );
+  const existingEntityIsDraft = !!extractDraftIdFromEntityId(existingEntity.entityId);
 
   return {
     existingEntityIsDraft,

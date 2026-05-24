@@ -30,29 +30,27 @@ type NextLinkComposedProps = {
 } & Omit<NextLinkProps, "href" | "passHref"> &
   Omit<MuiLinkProps, "href" | "color">;
 
-export const NextLinkComposed = forwardRef<
-  HTMLAnchorElement,
-  NextLinkComposedProps
->((props, ref) => {
-  const { as, to, replace, scroll, shallow, prefetch, locale, ...other } =
-    props;
+export const NextLinkComposed = forwardRef<HTMLAnchorElement, NextLinkComposedProps>(
+  (props, ref) => {
+    const { as, to, replace, scroll, shallow, prefetch, locale, ...other } = props;
 
-  return (
-    <NextLink
-      href={to}
-      prefetch={prefetch}
-      as={as}
-      replace={replace}
-      scroll={scroll}
-      shallow={shallow}
-      passHref
-      locale={locale}
-      legacyBehavior
-    >
-      <Anchor ref={ref} {...other} />
-    </NextLink>
-  );
-});
+    return (
+      <NextLink
+        href={to}
+        prefetch={prefetch}
+        as={as}
+        replace={replace}
+        scroll={scroll}
+        shallow={shallow}
+        passHref
+        locale={locale}
+        legacyBehavior
+      >
+        <Anchor ref={ref} {...other} />
+      </NextLink>
+    );
+  },
+);
 
 export type LinkProps = {
   activeClassName?: string;
@@ -75,10 +73,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>((props, ref) => {
   } = props;
 
   const router = useRouter();
-  const pathname =
-    typeof unvalidatedHref === "string"
-      ? unvalidatedHref
-      : unvalidatedHref.pathname;
+  const pathname = typeof unvalidatedHref === "string" ? unvalidatedHref : unvalidatedHref.pathname;
 
   const className = clsx(classNameProps, {
     [activeClassName]: router.pathname === pathname && activeClassName,
@@ -87,9 +82,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>((props, ref) => {
   if (process.env.NODE_ENV !== "production") {
     const children = other.children;
     if (isValidElement(children) && children.type === Button) {
-      throw new Error(
-        "Please use <Button href='' /> instead of <Link><Button /></Link>",
-      );
+      throw new Error("Please use <Button href='' /> instead of <Link><Button /></Link>");
     }
   }
 

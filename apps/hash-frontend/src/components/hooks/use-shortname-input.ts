@@ -3,16 +3,9 @@ import { useCallback, useState } from "react";
 
 import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
 
-import type {
-  IsShortnameTakenQuery,
-  QueryIsShortnameTakenArgs,
-} from "../../graphql/api-types.gen";
+import type { IsShortnameTakenQuery, QueryIsShortnameTakenArgs } from "../../graphql/api-types.gen";
 
-type ShortnameErrorCode =
-  | "IS_EMPTY"
-  | "IS_TOO_LONG"
-  | "IS_TOO_SHORT"
-  | "IS_TAKEN";
+type ShortnameErrorCode = "IS_EMPTY" | "IS_TOO_LONG" | "IS_TOO_SHORT" | "IS_TAKEN";
 
 const getShortnameError = (error: string | undefined, isTouched: boolean) => {
   switch (error) {
@@ -29,8 +22,7 @@ const getShortnameError = (error: string | undefined, isTouched: boolean) => {
   }
 };
 
-const parseShortnameInput = (input: string) =>
-  input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
+const parseShortnameInput = (input: string) => input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
 
 export const useShortnameInput = () => {
   const [loading, setLoading] = useState(false);
@@ -47,10 +39,7 @@ export const useShortnameInput = () => {
 
       setLoading(true);
 
-      const { data } = await client.query<
-        IsShortnameTakenQuery,
-        QueryIsShortnameTakenArgs
-      >({
+      const { data } = await client.query<IsShortnameTakenQuery, QueryIsShortnameTakenArgs>({
         query: isShortnameTakenQuery,
         variables: {
           shortname,

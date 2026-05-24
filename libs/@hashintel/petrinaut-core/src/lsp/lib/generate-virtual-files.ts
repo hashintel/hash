@@ -54,9 +54,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
   // Generate type definitions for each color
   for (const color of sdcpn.types) {
     const sanitizedColorId = sanitizeColorId(color.id);
-    const properties = color.elements
-      .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
-      .join("\n");
+    const properties = color.elements.map((el) => `  ${el.name}: ${toTsType(el.type)};`).join("\n");
 
     files.set(getItemFilePath("color-defs", { colorId: color.id }), {
       content: `export type Color_${sanitizedColorId} = {\n${properties}\n}`,
@@ -83,9 +81,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
     files.set(deDefsPath, {
       content: [
         `import type { Parameters } from "${parametersDefsPath}";`,
-        colorDefsPath
-          ? `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`
-          : "",
+        colorDefsPath ? `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";` : "",
         ``,
         sanitizedColorId
           ? `type Tokens = Array<Color_${sanitizedColorId}>;`
@@ -197,8 +193,7 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
       outputTypeProperties.length > 0
         ? `{\n${outputTypeProperties.join("\n")}\n}`
         : "Record<string, never>";
-    const lambdaReturnType =
-      transition.lambdaType === "predicate" ? "boolean" : "number";
+    const lambdaReturnType = transition.lambdaType === "predicate" ? "boolean" : "number";
 
     // Lambda definitions file
     files.set(lambdaDefsPath, {
@@ -303,9 +298,7 @@ export function generateScenarioSessionFiles(
 
   // Generate code files for parameter overrides
   const paramById = new Map(sdcpn.parameters.map((p) => [p.id, p]));
-  for (const [paramId, expression] of Object.entries(
-    session.parameterOverrides,
-  )) {
+  for (const [paramId, expression] of Object.entries(session.parameterOverrides)) {
     const param = paramById.get(paramId);
     if (!param) {
       continue;
@@ -453,9 +446,7 @@ export function generateMetricSessionFiles(
     } else {
       tokensType = "Record<string, number>[]";
     }
-    placeStateProperties.push(
-      `  "${place.name}": { count: number; tokens: ${tokensType} };`,
-    );
+    placeStateProperties.push(`  "${place.name}": { count: number; tokens: ${tokensType} };`);
   }
 
   const placesType =

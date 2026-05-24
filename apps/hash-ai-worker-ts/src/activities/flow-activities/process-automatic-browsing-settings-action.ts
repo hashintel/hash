@@ -29,15 +29,11 @@ export const processAutomaticBrowsingSettingsAction: AiFlowActionActivity<
     filter: {
       all: [
         {
-          equal: [
-            { path: ["webId"] },
-            { parameter: userAuthentication.actorId },
-          ],
+          equal: [{ path: ["webId"] }, { parameter: userAuthentication.actorId }],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.browserPluginSettings.entityTypeId,
-          { ignoreParents: true },
-        ),
+        generateVersionedUrlMatchingFilter(systemEntityTypes.browserPluginSettings.entityTypeId, {
+          ignoreParents: true,
+        }),
       ],
     },
     graphApiClient,
@@ -48,16 +44,11 @@ export const processAutomaticBrowsingSettingsAction: AiFlowActionActivity<
     throw new Error("User has no browser plugin settings configured");
   }
 
-  const automaticInferenceConfig = (
-    userBrowserPluginSettings as HashEntity<BrowserPluginSettings>
-  ).properties[
-    "https://hash.ai/@h/types/property-type/automatic-inference-configuration/"
-  ];
+  const automaticInferenceConfig = (userBrowserPluginSettings as HashEntity<BrowserPluginSettings>)
+    .properties["https://hash.ai/@h/types/property-type/automatic-inference-configuration/"];
 
   if (Object.keys(automaticInferenceConfig).length === 0) {
-    throw new Error(
-      "User has no automatic inference config set in browser plugin settings",
-    );
+    throw new Error("User has no automatic inference config set in browser plugin settings");
   }
 
   const { createAs, enabled, model, rules } =
@@ -82,8 +73,7 @@ export const processAutomaticBrowsingSettingsAction: AiFlowActionActivity<
       restrictToDomains.length === 0 ||
       restrictToDomains.some(
         (domainToMatch) =>
-          pageHostname === domainToMatch ||
-          pageHostname.endsWith(`.${domainToMatch}`),
+          pageHostname === domainToMatch || pageHostname.endsWith(`.${domainToMatch}`),
       )
     );
   });
@@ -96,9 +86,7 @@ export const processAutomaticBrowsingSettingsAction: AiFlowActionActivity<
     };
   }
 
-  const entityTypeIdsToInfer = applicableRules.map(
-    ({ entityTypeId }) => entityTypeId,
-  );
+  const entityTypeIdsToInfer = applicableRules.map(({ entityTypeId }) => entityTypeId);
 
   return {
     code: StatusCode.Ok,

@@ -1,11 +1,7 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import {
-  scenarioSchema,
-  type Color,
-  type Scenario,
-} from "@hashintel/petrinaut-core";
+import { scenarioSchema, type Color, type Scenario } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { MutationContext } from "../../../../../../react/state/mutation-context";
@@ -39,8 +35,7 @@ function buildDefaultsFromScenario(scenario: Scenario): ScenarioFormState {
       scenario.initialState.type === "per_place"
         ? (Object.fromEntries(
             Object.entries(scenario.initialState.content).filter(
-              (entry): entry is [string, string] =>
-                typeof entry[1] === "string",
+              (entry): entry is [string, string] => typeof entry[1] === "string",
             ),
           ) as Record<string, string>)
         : {},
@@ -54,10 +49,7 @@ function buildDefaultsFromScenario(scenario: Scenario): ScenarioFormState {
         : {},
     showAllPlaces: false,
     initialStateAsCode: scenario.initialState.type === "code",
-    initialStateCode:
-      scenario.initialState.type === "code"
-        ? scenario.initialState.content
-        : "",
+    initialStateCode: scenario.initialState.type === "code" ? scenario.initialState.content : "",
   };
 }
 
@@ -80,9 +72,7 @@ const ViewScenarioFooter = ({
     summarizeScenarioLspErrors(diagnosticsByUri);
   const hasLspErrors = lspErrorCount > 0;
 
-  const formError = formErrors.find((e) => typeof e === "string") as
-    | string
-    | undefined;
+  const formError = formErrors.find((e) => typeof e === "string") as string | undefined;
   const hasErrors = !!formError || hasLspErrors;
   const totalErrorCount = (formError ? 1 : 0) + lspErrorCount;
   const firstError = formError ?? firstLspMessage;
@@ -137,9 +127,7 @@ const ViewScenarioContent = ({
   // Names of OTHER scenarios — exclude the one being edited so it can keep
   // its current name without triggering the "already exists" error.
   const existingScenarioNames = new Set(
-    (petriNetDefinition.scenarios ?? [])
-      .filter((s) => s.id !== scenario.id)
-      .map((s) => s.name),
+    (petriNetDefinition.scenarios ?? []).filter((s) => s.id !== scenario.id).map((s) => s.name),
   );
 
   // Build defaults once from the scenario prop (component remounts via `key`
@@ -194,18 +182,10 @@ interface ViewScenarioDrawerProps {
   scenario: Scenario | undefined;
 }
 
-export const ViewScenarioDrawer = ({
-  open,
-  onClose,
-  scenario,
-}: ViewScenarioDrawerProps) => (
+export const ViewScenarioDrawer = ({ open, onClose, scenario }: ViewScenarioDrawerProps) => (
   <Drawer.Root open={open} onClose={onClose}>
     {scenario ? (
-      <ViewScenarioContent
-        key={scenario.id}
-        scenario={scenario}
-        onClose={onClose}
-      />
+      <ViewScenarioContent key={scenario.id} scenario={scenario} onClose={onClose} />
     ) : null}
   </Drawer.Root>
 );

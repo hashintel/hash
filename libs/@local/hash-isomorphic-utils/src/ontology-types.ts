@@ -55,9 +55,7 @@ export const generateTypeBaseUrl = ({
     domain ??
     // Ternary to be replaced by 'frontendUrl' in H-1172: hosted app only living temporarily at https://app.hash.ai
     (frontendUrl === "https://app.hash.ai" ? "https://hash.ai" : frontendUrl)
-  }/@${webShortname}/types/${kind}/${
-    slugOverride ?? slugifyTypeTitle(title)
-  }/` as const as BaseUrl;
+  }/@${webShortname}/types/${kind}/${slugOverride ?? slugifyTypeTitle(title)}/` as const as BaseUrl;
 
 /**
  * Generate the identifier of a type (its versioned URL).
@@ -131,9 +129,7 @@ export const generateLinkMapWithConsistentSelfReferences = (
     {},
   );
 
-export const rewriteSchemasToNextVersion = (
-  entityTypesToChange: EntityType[],
-) => {
+export const rewriteSchemasToNextVersion = (entityTypesToChange: EntityType[]) => {
   const baseUrlToNewVersion: Record<BaseUrl, VersionedUrl> = {};
 
   for (const entityType of entityTypesToChange) {
@@ -148,13 +144,9 @@ export const rewriteSchemasToNextVersion = (
   const updatedSchemas: EntityType[] = [];
 
   for (const entityType of entityTypesToChange) {
-    const clonedType = JSON.parse(
-      JSON.stringify(entityType),
-    ) as typeof entityType;
+    const clonedType = JSON.parse(JSON.stringify(entityType)) as typeof entityType;
 
-    for (const [linkTypeId, linkSchema] of typedEntries(
-      clonedType.links ?? {},
-    )) {
+    for (const [linkTypeId, linkSchema] of typedEntries(clonedType.links ?? {})) {
       if ("oneOf" in linkSchema.items) {
         for (const item of linkSchema.items.oneOf) {
           const baseUrl = extractBaseUrl(item.$ref);

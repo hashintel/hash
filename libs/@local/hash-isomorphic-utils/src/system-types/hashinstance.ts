@@ -63,8 +63,7 @@ export type HASHInstancePropertiesWithMetadata = {
  */
 export type MigrationStatePropertyValue = ObjectDataType;
 
-export type MigrationStatePropertyValueWithMetadata =
-  ObjectDataTypeWithMetadata;
+export type MigrationStatePropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 
 /**
  * The migrations that have been completed for this instance
@@ -81,22 +80,19 @@ export type MigrationsCompletedPropertyValueWithMetadata = {
  */
 export type OrgSelfRegistrationIsEnabledPropertyValue = BooleanDataType;
 
-export type OrgSelfRegistrationIsEnabledPropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type OrgSelfRegistrationIsEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
 /**
  * Whether or not user functionality related to pages is enabled.
  */
 export type PagesAreEnabledPropertyValue = BooleanDataType;
 
-export type PagesAreEnabledPropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type PagesAreEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;
 
 /**
  * Whether or not a user is able to register another user by inviting them to an org.
  */
-export type UserRegistrationByInvitationIsEnabledPropertyValue =
-  BooleanDataType;
+export type UserRegistrationByInvitationIsEnabledPropertyValue = BooleanDataType;
 
 export type UserRegistrationByInvitationIsEnabledPropertyValueWithMetadata =
   BooleanDataTypeWithMetadata;
@@ -106,5 +102,4 @@ export type UserRegistrationByInvitationIsEnabledPropertyValueWithMetadata =
  */
 export type UserSelfRegistrationIsEnabledPropertyValue = BooleanDataType;
 
-export type UserSelfRegistrationIsEnabledPropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export type UserSelfRegistrationIsEnabledPropertyValueWithMetadata = BooleanDataTypeWithMetadata;

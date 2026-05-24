@@ -12,9 +12,7 @@ export const App = () => {
       </Checkbox.Control>
       <Stack gap="0">
         <Checkbox.Label>I agree to the terms and conditions</Checkbox.Label>
-        <Text>
-          By clicking this, you agree to our Terms and Privacy Policy.
-        </Text>
+        <Text>By clicking this, you agree to our Terms and Privacy Policy.</Text>
       </Stack>
     </Checkbox.Root>
   );

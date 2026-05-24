@@ -24,8 +24,7 @@ const Tab = ({
   return (
     <Box
       sx={({ transitions }) => ({
-        background:
-          position === "left" ? styles.lightBackground : styles.darkBackground,
+        background: position === "left" ? styles.lightBackground : styles.darkBackground,
         borderColor: styles.borderColor,
         borderWidth: 1,
         borderStyle: "solid",
@@ -38,10 +37,7 @@ const Tab = ({
         pb: 2,
         position: "relative",
         top: nodeTabHeight.offset,
-        transition: transitions.create(
-          ["background", "borderColor"],
-          transitionOptions,
-        ),
+        transition: transitions.create(["background", "borderColor"], transitionOptions),
         zIndex: -1,
       })}
     >
@@ -105,11 +101,7 @@ export const NodeContainer = ({
           position="left"
         />
         {selectedFlowRun && kind !== "parallel-group" && (
-          <Tab
-            status={stepStatusName}
-            label={stepStatusName}
-            position="right"
-          />
+          <Tab status={stepStatusName} label={stepStatusName} position="right" />
         )}
       </Stack>
       <Box

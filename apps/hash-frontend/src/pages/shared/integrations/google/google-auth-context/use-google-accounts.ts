@@ -30,35 +30,31 @@ type UseGoogleAccountsResult = {
 export const useGoogleAccounts = (): UseGoogleAccountsResult => {
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const { data, loading, refetch } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
-    variables: {
-      request: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              googleEntityTypes.account.entityTypeId,
-              { ignoreParents: true },
-            ),
-            {
-              equal: [
-                { path: ["webId"] },
-                { parameter: authenticatedUser.accountId },
-              ],
-            },
-            { equal: [{ path: ["archived"] }, { parameter: false }] },
-          ],
+  const { data, loading, refetch } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
+    {
+      variables: {
+        request: {
+          filter: {
+            all: [
+              generateVersionedUrlMatchingFilter(googleEntityTypes.account.entityTypeId, {
+                ignoreParents: true,
+              }),
+              {
+                equal: [{ path: ["webId"] }, { parameter: authenticatedUser.accountId }],
+              },
+              { equal: [{ path: ["archived"] }, { parameter: false }] },
+            ],
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
         },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
       },
+      skip: !authenticatedUser,
+      fetchPolicy: "network-only",
     },
-    skip: !authenticatedUser,
-    fetchPolicy: "network-only",
-  });
+  );
 
   return useMemo(() => {
     const accounts = data

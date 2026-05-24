@@ -172,10 +172,7 @@ const DiffEqMainContent: React.FC = () => {
             }
             return (
               <>
-                <div
-                  className={colorDotStyle}
-                  style={{ backgroundColor: type.displayColor }}
-                />
+                <div className={colorDotStyle} style={{ backgroundColor: type.displayColor }} />
                 <span>{type.name}</span>
               </>
             );
@@ -184,10 +181,7 @@ const DiffEqMainContent: React.FC = () => {
             const type = types.find((tp) => tp.id === option.value);
             return (
               <>
-                <div
-                  className={colorDotStyle}
-                  style={{ backgroundColor: type?.displayColor }}
-                />
+                <div className={colorDotStyle} style={{ backgroundColor: type?.displayColor }} />
                 {option.label}
               </>
             );
@@ -200,23 +194,17 @@ const DiffEqMainContent: React.FC = () => {
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div className={confirmDialogOverlayStyle} onClick={cancelTypeChange}>
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-          <div
-            className={confirmDialogStyle}
-            onClick={(ev) => ev.stopPropagation()}
-          >
-            <div className={confirmDialogTitleStyle}>
-              Change Associated Type?
-            </div>
+          <div className={confirmDialogStyle} onClick={(ev) => ev.stopPropagation()}>
+            <div className={confirmDialogTitleStyle}>Change Associated Type?</div>
             <div className={confirmDialogTextStyle}>
               {placesUsingEquation.length === 1 ? (
                 <>
-                  <strong>1 place</strong> is currently using this differential
-                  equation:
+                  <strong>1 place</strong> is currently using this differential equation:
                 </>
               ) : (
                 <>
-                  <strong>{placesUsingEquation.length} places</strong> are
-                  currently using this differential equation:
+                  <strong>{placesUsingEquation.length} places</strong> are currently using this
+                  differential equation:
                 </>
               )}
             </div>
@@ -226,24 +214,14 @@ const DiffEqMainContent: React.FC = () => {
               ))}
             </ul>
             <div className={confirmDialogHintStyle}>
-              Changing the type may affect how these places behave. Are you sure
-              you want to continue?
+              Changing the type may affect how these places behave. Are you sure you want to
+              continue?
             </div>
             <div className={confirmDialogButtonsStyle}>
-              <Button
-                variant="subtle"
-                tone="neutral"
-                size="sm"
-                onClick={cancelTypeChange}
-              >
+              <Button variant="subtle" tone="neutral" size="sm" onClick={cancelTypeChange}>
                 Cancel
               </Button>
-              <Button
-                variant="solid"
-                tone="brand"
-                size="sm"
-                onClick={confirmTypeChange}
-              >
+              <Button variant="solid" tone="brand" size="sm" onClick={confirmTypeChange}>
                 Change Type
               </Button>
             </div>
@@ -253,10 +231,7 @@ const DiffEqMainContent: React.FC = () => {
 
       <Section title="Code" fillHeight>
         <CodeEditor
-          path={getDocumentUri(
-            "differential-equation",
-            differentialEquation.id,
-          )}
+          path={getDocumentUri("differential-equation", differentialEquation.id)}
           language="typescript"
           value={differentialEquation.code}
           height="100%"
@@ -275,8 +250,7 @@ const DiffEqMainContent: React.FC = () => {
 };
 
 const DiffEqCodeAction: React.FC = () => {
-  const { differentialEquation, types, updateDifferentialEquation } =
-    useDiffEqPropertiesContext();
+  const { differentialEquation, types, updateDifferentialEquation } = useDiffEqPropertiesContext();
   const isReadOnly = useIsReadOnly();
 
   if (isReadOnly) {
@@ -301,9 +275,7 @@ const DiffEqCodeAction: React.FC = () => {
           id: "load-default",
           label: "Load default template",
           onClick: () => {
-            const equationType = types.find(
-              (tp) => tp.id === differentialEquation.colorId,
-            );
+            const equationType = types.find((tp) => tp.id === differentialEquation.colorId);
 
             updateDifferentialEquation({
               equationId: differentialEquation.id,
@@ -318,10 +290,7 @@ const DiffEqCodeAction: React.FC = () => {
         {
           id: "generate-ai",
           label: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              display="inline"
-            >
+            <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON} display="inline">
               <div className={aiMenuItemStyle}>
                 <Icon name="sparkles" size="sm" />
                 Generate with AI

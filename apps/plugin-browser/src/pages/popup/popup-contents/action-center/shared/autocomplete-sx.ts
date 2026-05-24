@@ -1,8 +1,4 @@
-import {
-  autocompleteClasses,
-  menuItemClasses,
-  outlinedInputClasses,
-} from "@mui/material";
+import { autocompleteClasses, menuItemClasses, outlinedInputClasses } from "@mui/material";
 
 import {
   darkModeBorderColor,
@@ -13,9 +9,9 @@ import {
 
 import type { SxProps, Theme } from "@mui/material";
 
-export const inputPropsSx: (props: {
-  inputHeight: number;
-}) => SxProps<Theme> = ({ inputHeight }) => ({
+export const inputPropsSx: (props: { inputHeight: number }) => SxProps<Theme> = ({
+  inputHeight,
+}) => ({
   height: inputHeight,
 
   [`&.${outlinedInputClasses.root}`]: {

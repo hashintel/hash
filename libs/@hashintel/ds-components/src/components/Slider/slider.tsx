@@ -13,8 +13,7 @@ const thumbInnerStyles = css({
   height: `[${THUMB_HEIGHT}px]`,
   borderRadius: `[${THUMB_RADIUS}px]`,
   border: "[1px solid rgba(255,255,255,0.45)]",
-  background:
-    "[linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(37,99,235,0.98) 100%)]",
+  background: "[linear-gradient(180deg, rgba(59,130,246,0.95) 0%, rgba(37,99,235,0.98) 100%)]",
   boxShadow: "[0 2px 10px rgba(37,99,235,0.28)]",
 });
 

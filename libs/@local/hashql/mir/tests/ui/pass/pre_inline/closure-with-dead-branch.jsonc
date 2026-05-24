@@ -6,10 +6,5 @@
   "let",
   "identity",
   ["fn", { "#tuple": [] }, { "#struct": { "x": "Boolean" } }, "_", "x"],
-  [
-    "if",
-    ["identity", { "#literal": true }],
-    { "#literal": "yes" },
-    { "#literal": "no" }
-  ]
+  ["if", ["identity", { "#literal": true }], { "#literal": "yes" }, { "#literal": "no" }]
 ]

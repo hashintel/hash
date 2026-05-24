@@ -49,8 +49,7 @@ export type InstagramAccountOutgoingLinksByLinkEntityTypeId = {};
  */
 export type InstagramAccountProperties = ServiceAccountProperties & {};
 
-export type InstagramAccountPropertiesWithMetadata =
-  ServiceAccountPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type InstagramAccountPropertiesWithMetadata = ServiceAccountPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

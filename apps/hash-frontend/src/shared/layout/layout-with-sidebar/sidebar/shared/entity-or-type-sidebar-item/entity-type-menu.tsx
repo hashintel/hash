@@ -48,10 +48,7 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
           popupState={popupState}
         />
       )}
-      <FavoriteMenuItem
-        item={{ type: "entityType", entityTypeId }}
-        popupState={popupState}
-      />
+      <FavoriteMenuItem item={{ type: "entityType", entityTypeId }} popupState={popupState} />
       <SidebarMenuItem
         title={copiedFrozen ? "Copied!" : `Copy link to ${title}`}
         icon={faLink}

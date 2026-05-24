@@ -11,12 +11,7 @@ const items = [
 
 export const App = () => {
   return (
-    <ScrollArea.Root
-      size="sm"
-      borderRadius="l3"
-      borderWidth="1px"
-      scrollbar="visible"
-    >
+    <ScrollArea.Root size="sm" borderRadius="l3" borderWidth="1px" scrollbar="visible">
       <ScrollArea.Viewport>
         <ScrollArea.Content>
           <Table.Root variant="surface" stickyHeader>

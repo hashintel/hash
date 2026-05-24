@@ -77,18 +77,14 @@ export function compileVisualizer(code: string): VisualizerComponent {
     ) as VisualizerComponent;
 
     if (typeof compiledComponent !== "function") {
-      throw new Error(
-        `Expected default export to be a function, got ${typeof compiledComponent}`,
-      );
+      throw new Error(`Expected default export to be a function, got ${typeof compiledComponent}`);
     }
 
     return compiledComponent;
   } catch (error) {
     // Provide a detailed error message for debugging
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Unknown error occurred during compilation";
+      error instanceof Error ? error.message : "Unknown error occurred during compilation";
 
     throw new Error(`Failed to compile visualizer code: ${errorMessage}`);
   }

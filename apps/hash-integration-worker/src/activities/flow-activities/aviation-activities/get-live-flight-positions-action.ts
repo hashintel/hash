@@ -1,7 +1,4 @@
-import {
-  getOutgoingLinksForEntity,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinksForEntity, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type EntityId,
   extractEntityUuidFromEntityId,
@@ -57,25 +54,17 @@ const shouldFetchLivePosition = (
 ): boolean => {
   // Get departure time - prefer estimated, fall back to scheduled
   const actualDepartureTime =
-    departsFromProperties[
-      "https://hash.ai/@h/types/property-type/actual-gate-time/"
-    ];
+    departsFromProperties["https://hash.ai/@h/types/property-type/actual-gate-time/"];
   const estimatedDepartureTime =
-    departsFromProperties[
-      "https://hash.ai/@h/types/property-type/estimated-gate-time/"
-    ];
+    departsFromProperties["https://hash.ai/@h/types/property-type/estimated-gate-time/"];
   const scheduledDepartureTime =
-    departsFromProperties[
-      "https://hash.ai/@h/types/property-type/scheduled-gate-time/"
-    ];
+    departsFromProperties["https://hash.ai/@h/types/property-type/scheduled-gate-time/"];
 
   const expectedDepartureTime =
     actualDepartureTime ?? estimatedDepartureTime ?? scheduledDepartureTime;
 
   const actualArrivalTime =
-    arrivesAtProperties[
-      "https://hash.ai/@h/types/property-type/actual-gate-time/"
-    ];
+    arrivesAtProperties["https://hash.ai/@h/types/property-type/actual-gate-time/"];
 
   const now = Date.now();
 
@@ -86,12 +75,9 @@ const shouldFetchLivePosition = (
   // Check condition 2: No confirmed arrival, or arrival was in last 10 minutes
   const noConfirmedArrival = !actualArrivalTime;
   const arrivedInLastTenMinutes =
-    actualArrivalTime &&
-    now - new Date(actualArrivalTime).getTime() < TEN_MINUTES_MS;
+    actualArrivalTime && now - new Date(actualArrivalTime).getTime() < TEN_MINUTES_MS;
 
-  return Boolean(
-    departureHasPassed && (noConfirmedArrival || arrivedInLastTenMinutes),
-  );
+  return Boolean(departureHasPassed && (noConfirmedArrival || arrivedInLastTenMinutes));
 };
 
 /**
@@ -105,8 +91,9 @@ export const createGetLiveFlightPositionsAction = ({
 }): IntegrationFlowActionActivity<"getLiveFlightPositions"> => {
   return async ({ inputs }) => {
     try {
-      const { flowEntityId, runId, stepId, userAuthentication, workflowId } =
-        await getFlowContext({ graphApiClient });
+      const { flowEntityId, runId, stepId, userAuthentication, workflowId } = await getFlowContext({
+        graphApiClient,
+      });
 
       const { persistedEntities: persistedEntitiesInput } =
         getSimplifiedIntegrationFlowActionInputs({
@@ -121,9 +108,7 @@ export const createGetLiveFlightPositionsAction = ({
         persistedEntitiesInput,
       );
 
-      const flightEntityIds = persistedEntities.persistedEntities.map(
-        ({ entityId }) => entityId,
-      );
+      const flightEntityIds = persistedEntities.persistedEntities.map(({ entityId }) => entityId);
 
       if (flightEntityIds.length === 0) {
         const emptyStoredRef = await storePayload({
@@ -161,10 +146,7 @@ export const createGetLiveFlightPositionsAction = ({
         {
           filter: {
             any: flightEntityIds.map((entityId) => ({
-              equal: [
-                { path: ["uuid"] },
-                { parameter: extractEntityUuidFromEntityId(entityId) },
-              ],
+              equal: [{ path: ["uuid"] }, { parameter: extractEntityUuidFromEntityId(entityId) }],
             })),
           },
           traversalPaths: [
@@ -195,9 +177,7 @@ export const createGetLiveFlightPositionsAction = ({
 
       for (const entity of rootEntities) {
         const flightNumber =
-          entity.properties[
-            "https://hash.ai/@h/types/property-type/flight-number/"
-          ];
+          entity.properties["https://hash.ai/@h/types/property-type/flight-number/"];
 
         if (!flightNumber) {
           continue;
@@ -208,27 +188,18 @@ export const createGetLiveFlightPositionsAction = ({
           entity.metadata.recordId.entityId,
         );
 
-        const departsFromLink = outgoingLinks.find(
-          (link): link is LinkEntity<DepartsFrom> =>
-            link.metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.departsFrom.linkEntityTypeId,
-            ),
+        const departsFromLink = outgoingLinks.find((link): link is LinkEntity<DepartsFrom> =>
+          link.metadata.entityTypeIds.includes(systemLinkEntityTypes.departsFrom.linkEntityTypeId),
         );
 
-        const arrivesAtLink = outgoingLinks.find(
-          (link): link is LinkEntity<ArrivesAt> =>
-            link.metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.arrivesAt.linkEntityTypeId,
-            ),
+        const arrivesAtLink = outgoingLinks.find((link): link is LinkEntity<ArrivesAt> =>
+          link.metadata.entityTypeIds.includes(systemLinkEntityTypes.arrivesAt.linkEntityTypeId),
         );
 
         if (
           departsFromLink &&
           arrivesAtLink &&
-          shouldFetchLivePosition(
-            departsFromLink.properties,
-            arrivesAtLink.properties,
-          )
+          shouldFetchLivePosition(departsFromLink.properties, arrivesAtLink.properties)
         ) {
           const flightNumberPropertyMetadata = entity.propertyMetadata([
             systemPropertyTypes.flightNumber.propertyTypeBaseUrl,
@@ -255,10 +226,7 @@ export const createGetLiveFlightPositionsAction = ({
             flightNumber,
             primaryKeyProperties: {
               flightNumber,
-              flightDate:
-                entity.properties[
-                  "https://hash.ai/@h/types/property-type/flight-date/"
-                ]!,
+              flightDate: entity.properties["https://hash.ai/@h/types/property-type/flight-date/"]!,
             },
             flightNumberPropertyMetadata,
             flightDatePropertyMetadata,
@@ -317,9 +285,7 @@ export const createGetLiveFlightPositionsAction = ({
 
         const { properties, provenance: sourceProvenance } = positionData;
 
-        const propertiesWithPrimaryKey: Partial<
-          Flight["propertiesWithMetadata"]["value"]
-        > = {
+        const propertiesWithPrimaryKey: Partial<Flight["propertiesWithMetadata"]["value"]> = {
           ...properties,
         };
 
@@ -327,39 +293,28 @@ export const createGetLiveFlightPositionsAction = ({
          * We need the primary key properties passed out of this action,
          * because persistIntegrationEntities relies on them to match existing entities.
          */
-        for (const [propertyType, propertyValue] of Object.entries(
-          primaryKeyProperties,
-        )) {
+        for (const [propertyType, propertyValue] of Object.entries(primaryKeyProperties)) {
           switch (propertyType) {
             case "flightNumber":
-              propertiesWithPrimaryKey[
-                "https://hash.ai/@h/types/property-type/flight-number/"
-              ] = {
+              propertiesWithPrimaryKey["https://hash.ai/@h/types/property-type/flight-number/"] = {
                 value: propertyValue,
-                metadata:
-                  flightNumberPropertyMetadata as unknown as TextDataTypeMetadata,
+                metadata: flightNumberPropertyMetadata as unknown as TextDataTypeMetadata,
               };
               break;
             case "flightDate":
-              propertiesWithPrimaryKey[
-                "https://hash.ai/@h/types/property-type/flight-date/"
-              ] = {
+              propertiesWithPrimaryKey["https://hash.ai/@h/types/property-type/flight-date/"] = {
                 value: propertyValue,
-                metadata:
-                  flightDatePropertyMetadata as unknown as DateDataTypeMetadata,
+                metadata: flightDatePropertyMetadata as unknown as DateDataTypeMetadata,
               };
               break;
             default:
-              throw new Error(
-                `Unhandled primary key property type: ${propertyType}`,
-              );
+              throw new Error(`Unhandled primary key property type: ${propertyType}`);
           }
         }
 
-        const { properties: propertiesOnly, propertyMetadata } =
-          splitPropertiesAndMetadata({
-            value: propertiesWithPrimaryKey,
-          });
+        const { properties: propertiesOnly, propertyMetadata } = splitPropertiesAndMetadata({
+          value: propertiesWithPrimaryKey,
+        });
 
         const proposedEntity: ProposedEntity = {
           claims: {
@@ -414,8 +369,7 @@ export const createGetLiveFlightPositionsAction = ({
         ],
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
 
       return {
         code: StatusCode.Internal,

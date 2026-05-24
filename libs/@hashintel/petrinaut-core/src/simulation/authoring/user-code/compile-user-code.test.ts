@@ -30,10 +30,7 @@ describe("compileUserCode", () => {
           return a + b * c - d;
         });
       `;
-      const fn = compileUserCode<[number, number, number, number]>(
-        code,
-        "Dynamics",
-      );
+      const fn = compileUserCode<[number, number, number, number]>(code, "Dynamics");
       const result = fn(10, 2, 5, 3);
       expect(result).toBe(17);
     });
@@ -181,18 +178,14 @@ describe("compileUserCode", () => {
       const code = `
         const fn = Dynamics((x) => x * 2);
       `;
-      expect(() => compileUserCode(code, "Dynamics")).toThrow(
-        "Module must have a default export",
-      );
+      expect(() => compileUserCode(code, "Dynamics")).toThrow("Module must have a default export");
     });
 
     it("should throw error when export is not default", () => {
       const code = `
         export const fn = Dynamics((x) => x * 2);
       `;
-      expect(() => compileUserCode(code, "Dynamics")).toThrow(
-        "Module must have a default export",
-      );
+      expect(() => compileUserCode(code, "Dynamics")).toThrow("Module must have a default export");
     });
   });
 
@@ -284,9 +277,7 @@ describe("compileUserCode", () => {
 
     it("should throw error for empty code", () => {
       const code = "";
-      expect(() => compileUserCode(code, "Dynamics")).toThrow(
-        "Module must have a default export",
-      );
+      expect(() => compileUserCode(code, "Dynamics")).toThrow("Module must have a default export");
     });
   });
 
@@ -310,10 +301,7 @@ describe("compileUserCode", () => {
           return [dPrey, dPredator];
         });
       `;
-      const fn = compileUserCode<[number, number, number, number]>(
-        code,
-        "Dynamics",
-      );
+      const fn = compileUserCode<[number, number, number, number]>(code, "Dynamics");
       const result = fn(100, 10, 0.1, 0.02);
       expect(Array.isArray(result)).toBe(true);
       expect((result as number[]).length).toBe(2);

@@ -1,10 +1,5 @@
 import { advanceRun } from "./advance-run";
-import {
-  createRunState,
-  getRunSnapshot,
-  summarizeRun,
-  summarizeRuns,
-} from "./run-state";
+import { createRunState, getRunSnapshot, summarizeRun, summarizeRuns } from "./run-state";
 import { getFrameTime } from "./time";
 
 import type { MonteCarloRunState } from "./internal-types";
@@ -37,9 +32,7 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
    */
   constructor(config: MonteCarloSimulatorConfig) {
     if (!Number.isInteger(config.runCount) || config.runCount <= 0) {
-      throw new Error(
-        "MonteCarloSimulator requires a positive integer runCount",
-      );
+      throw new Error("MonteCarloSimulator requires a positive integer runCount");
     }
     if (!Number.isFinite(config.dt) || config.dt <= 0) {
       throw new Error("MonteCarloSimulator requires a positive dt");
@@ -48,9 +41,7 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
       throw new Error("MonteCarloSimulator requires a finite maxTime >= 0");
     }
     if (config.runs && config.runs.length > config.runCount) {
-      throw new Error(
-        "MonteCarloSimulator received more run configs than runCount",
-      );
+      throw new Error("MonteCarloSimulator received more run configs than runCount");
     }
 
     this.#runs = Array.from({ length: config.runCount }, (_, index) =>
@@ -97,11 +88,8 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
   /**
    * Advances batches until all runs finish or the optional batch cap is hit.
    */
-  runUntilComplete(
-    options: MonteCarloRunUntilCompleteOptions = {},
-  ): MonteCarloAdvanceResult {
-    const maxBatches =
-      options.maxBatches ?? Math.max(1, this.#runs[0]!.maxFrameNumber + 1);
+  runUntilComplete(options: MonteCarloRunUntilCompleteOptions = {}): MonteCarloAdvanceResult {
+    const maxBatches = options.maxBatches ?? Math.max(1, this.#runs[0]!.maxFrameNumber + 1);
     let result = summarizeRuns(this.#runs, 0);
 
     for (let batch = 0; batch < maxBatches && !result.allFinished; batch++) {
@@ -191,8 +179,6 @@ class MonteCarloSimulatorImpl implements MonteCarloSimulator {
 /**
  * Creates a Monte Carlo simulator from an SDCPN and run configuration.
  */
-export function createMonteCarloSimulator(
-  config: MonteCarloSimulatorConfig,
-): MonteCarloSimulator {
+export function createMonteCarloSimulator(config: MonteCarloSimulatorConfig): MonteCarloSimulator {
   return new MonteCarloSimulatorImpl(config);
 }

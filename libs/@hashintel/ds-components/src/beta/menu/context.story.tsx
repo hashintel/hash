@@ -25,9 +25,7 @@ export const App = () => {
             <Menu.Item value="new-file">New File</Menu.Item>
             <Menu.Item value="new-folder">New Folder</Menu.Item>
             <Menu.Item value="copy-path">Copy Path</Menu.Item>
-            <Menu.Item value="reveal-explorer">
-              Reveal in File Explorer
-            </Menu.Item>
+            <Menu.Item value="reveal-explorer">Reveal in File Explorer</Menu.Item>
             <Menu.Item value="properties">Properties</Menu.Item>
           </Menu.Content>
         </Menu.Positioner>

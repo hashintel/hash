@@ -1,9 +1,6 @@
 import { isEntityId, splitEntityId } from "@blockprotocol/type-system";
 import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
-import {
-  isStorageType,
-  storageProviderLookup,
-} from "@local/hash-backend-utils/file-storage";
+import { isStorageType, storageProviderLookup } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
@@ -21,10 +18,7 @@ import { LocalFileSystemStorageProvider } from "./local-file-storage";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { Entity, EntityId } from "@blockprotocol/type-system";
-import type {
-  FileStorageProvider,
-  StorageType,
-} from "@local/hash-backend-utils/file-storage";
+import type { FileStorageProvider, StorageType } from "@local/hash-backend-utils/file-storage";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Express } from "express";
@@ -39,10 +33,7 @@ const DOWNLOAD_URL_CACHE_OFFSET_SECONDS = 60 * 60;
 
 type StorageProviderInitialiser = (app: Express) => FileStorageProvider;
 
-const storageProviderInitialiserLookup: Record<
-  StorageType,
-  StorageProviderInitialiser
-> = {
+const storageProviderInitialiserLookup: Record<StorageType, StorageProviderInitialiser> = {
   AWS_S3: () => new AwsS3StorageProvider(getAwsS3Config()),
   LOCAL_FILE_SYSTEM: (app: Express) =>
     new LocalFileSystemStorageProvider({
@@ -54,10 +45,7 @@ const storageProviderInitialiserLookup: Record<
 
 let uploadStorageProvider: StorageType = "LOCAL_FILE_SYSTEM";
 
-export const initialiseStorageProvider = (
-  app: Express,
-  provider: StorageType,
-) => {
+export const initialiseStorageProvider = (app: Express, provider: StorageType) => {
   const initialiser = storageProviderInitialiserLookup[provider];
 
   const newProvider = initialiser(app);
@@ -97,57 +85,50 @@ const getFileEntity = async (
   const { entityId, key, includeDrafts = false } = params;
   const [webId, entityUuid] = splitEntityId(entityId);
 
-  const { entities: fileEntityRevisions } = await queryEntities(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-          },
-          {
-            equal: [{ path: ["webId"] }, { parameter: webId }],
-          },
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: key },
-            ],
-          },
-        ],
-      },
-      temporalAxes: fullDecisionTimeAxis,
-      includeDrafts,
-      includePermissions: false,
+  const { entities: fileEntityRevisions } = await queryEntities(context, authentication, {
+    filter: {
+      all: [
+        {
+          equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+        },
+        {
+          equal: [{ path: ["webId"] }, { parameter: webId }],
+        },
+        {
+          equal: [
+            {
+              path: ["properties", systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl],
+            },
+            { parameter: key },
+          ],
+        },
+      ],
     },
+    temporalAxes: fullDecisionTimeAxis,
+    includeDrafts,
+    includePermissions: false,
+  });
+
+  const latestFileEntityRevision = fileEntityRevisions.reduce<Entity | undefined>(
+    (previousLatestRevision, currentRevision) => {
+      if (!previousLatestRevision) {
+        return currentRevision;
+      }
+
+      const currentCreatedAt = new Date(
+        currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
+      );
+
+      const previousLatestRevisionCreatedAt = new Date(
+        previousLatestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+      );
+
+      return previousLatestRevisionCreatedAt < currentCreatedAt
+        ? currentRevision
+        : previousLatestRevision;
+    },
+    fileEntityRevisions[0],
   );
-
-  const latestFileEntityRevision = fileEntityRevisions.reduce<
-    Entity | undefined
-  >((previousLatestRevision, currentRevision) => {
-    if (!previousLatestRevision) {
-      return currentRevision;
-    }
-
-    const currentCreatedAt = new Date(
-      currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
-    );
-
-    const previousLatestRevisionCreatedAt = new Date(
-      previousLatestRevision.metadata.temporalVersioning.decisionTime.start
-        .limit,
-    );
-
-    return previousLatestRevisionCreatedAt < currentCreatedAt
-      ? currentRevision
-      : previousLatestRevision;
-  }, fileEntityRevisions[0]);
 
   return latestFileEntityRevision;
 };
@@ -227,8 +208,7 @@ export const setupFileDownloadProxyHandler = (app: Express, cache: Keyv) => {
       );
       if (!storageProviderName) {
         res.status(500).json({
-          error:
-            "No storage provider listed on file entity – cannot retrieve file.",
+          error: "No storage provider listed on file entity – cannot retrieve file.",
         });
         return;
       }
@@ -268,9 +248,7 @@ export const setupFileDownloadProxyHandler = (app: Express, cache: Keyv) => {
         await cache.set(
           key,
           presignUrl,
-          (DOWNLOAD_URL_EXPIRATION_SECONDS -
-            DOWNLOAD_URL_CACHE_OFFSET_SECONDS) *
-            1000,
+          (DOWNLOAD_URL_EXPIRATION_SECONDS - DOWNLOAD_URL_CACHE_OFFSET_SECONDS) * 1000,
         );
       } catch (error) {
         logger.warn(

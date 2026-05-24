@@ -1,6 +1,3 @@
 //@ run: pass
 //@ description: Ensures that type checking passes, if we directly call a closure with unconstrained generic types.
-[
-  ["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "T", "a"],
-  { "#literal": "1" }
-]
+[["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "T", "a"], { "#literal": "1" }]

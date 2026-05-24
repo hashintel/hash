@@ -14,17 +14,14 @@ import { MutableBuffer } from "../../../binary/index.js";
 import { U32_MAX, U32_MIN } from "../../../constants.js";
 import { createProto, implDecode, implEncode } from "../../../utils.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/models/request/RequestId",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/models/request/RequestId");
 
 export type TypeId = typeof TypeId;
 
 export const MIN_VALUE = U32_MIN;
 export const MAX_VALUE = U32_MAX;
 
-export interface RequestId
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface RequestId extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
   readonly value: number;
 }
@@ -38,11 +35,7 @@ const RequestIdProto: Omit<RequestId, "value"> = {
   },
 
   [Hash.symbol](this: RequestId) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.number(this.value)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.number(this.value)), Hash.cached(this));
   },
 
   toString(this: RequestId) {
@@ -67,8 +60,7 @@ const RequestIdProto: Omit<RequestId, "value"> = {
 };
 
 /** @internal */
-export const makeUnchecked = (value: number): RequestId =>
-  createProto(RequestIdProto, { value });
+export const makeUnchecked = (value: number): RequestId => createProto(RequestIdProto, { value });
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 

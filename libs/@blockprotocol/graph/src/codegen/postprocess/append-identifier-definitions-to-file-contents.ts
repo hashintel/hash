@@ -3,21 +3,15 @@ import { typedEntries } from "../../util/typed-entries.js";
 
 import type { PostprocessContext } from "../context/postprocess.js";
 
-export const appendIdentifierDefinitionsToFileContents = (
-  context: PostprocessContext,
-): void => {
+export const appendIdentifierDefinitionsToFileContents = (context: PostprocessContext): void => {
   context.logDebug("Adding types to file contents");
 
-  for (const [file, identifiersSet] of typedEntries(
-    context.filesToDefinedIdentifiers,
-  )) {
+  for (const [file, identifiersSet] of typedEntries(context.filesToDefinedIdentifiers)) {
     const identifiers = [...identifiersSet];
     identifiers.sort();
 
     for (const identifier of identifiers) {
-      const identifierSourceDefinition = mustBeDefined(
-        context.IdentifiersToSources[identifier],
-      );
+      const identifierSourceDefinition = mustBeDefined(context.IdentifiersToSources[identifier]);
 
       const source = identifierSourceDefinition.locallyImportable
         ? identifierSourceDefinition.source

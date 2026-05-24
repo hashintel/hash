@@ -6,11 +6,7 @@ import { handleStyling } from "../styles/styling";
 
 import type { ReactNode } from "react";
 
-export type SelectionVariant =
-  | "resource"
-  | "reactflow"
-  | "notSelectedConnection"
-  | "none";
+export type SelectionVariant = "resource" | "reactflow" | "notSelectedConnection" | "none";
 
 const containerStyle = css({
   position: "relative",

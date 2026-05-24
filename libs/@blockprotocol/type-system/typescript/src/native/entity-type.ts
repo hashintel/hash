@@ -32,29 +32,21 @@ export const getReferencedIdsFromEntityType = (
     inheritsFromEntityTypes.push(inheritedEntityType.$ref);
   }
 
-  for (const [linkTypeId, linkDefinition] of Object.entries(
-    entityType.links ?? {},
-  )) {
+  for (const [linkTypeId, linkDefinition] of Object.entries(entityType.links ?? {})) {
     /** @todo - if we had the `typedEntries` helper here we wouldn't need this cast */
     constrainsLinksOnEntityTypes.add(linkTypeId as VersionedUrl);
 
     if ("oneOf" in linkDefinition.items) {
-      for (const ele of linkDefinition.items.oneOf.map(
-        (oneOfEntry) => oneOfEntry.$ref,
-      )) {
+      for (const ele of linkDefinition.items.oneOf.map((oneOfEntry) => oneOfEntry.$ref)) {
         constrainsLinkDestinationsOnEntityTypes.add(ele);
       }
     }
   }
 
   return {
-    constrainsPropertiesOnPropertyTypes: [
-      ...constrainsPropertiesOnPropertyTypes,
-    ],
+    constrainsPropertiesOnPropertyTypes: [...constrainsPropertiesOnPropertyTypes],
     constrainsLinksOnEntityTypes: [...constrainsLinksOnEntityTypes],
-    constrainsLinkDestinationsOnEntityTypes: [
-      ...constrainsLinkDestinationsOnEntityTypes,
-    ],
+    constrainsLinkDestinationsOnEntityTypes: [...constrainsLinkDestinationsOnEntityTypes],
     inheritsFromEntityTypes: [...inheritsFromEntityTypes],
   };
 };

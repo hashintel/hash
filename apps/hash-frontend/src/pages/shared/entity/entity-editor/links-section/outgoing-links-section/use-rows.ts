@@ -14,10 +14,7 @@ import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity
 import { useEntityEditor } from "../../entity-editor-context";
 
 import type { LinkRow } from "./types";
-import type {
-  PartialEntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { PartialEntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 export const useRows = () => {
   const {
@@ -55,8 +52,7 @@ export const useRows = () => {
           return [];
         }
 
-        const linkEntityType =
-          closedMultiEntityTypesDefinitions.entityTypes[linkEntityTypeId];
+        const linkEntityType = closedMultiEntityTypesDefinitions.entityTypes[linkEntityTypeId];
 
         if (!linkEntityType) {
           throw new Error(
@@ -67,8 +63,7 @@ export const useRows = () => {
         const relevantUpload = uploads.find(
           (upload) =>
             upload.status !== "complete" &&
-            upload.linkedEntityData?.linkedEntityId ===
-              entity.metadata.recordId.entityId &&
+            upload.linkedEntityData?.linkedEntityId === entity.metadata.recordId.entityId &&
             upload.linkedEntityData.linkEntityTypeId === linkEntityTypeId,
         );
 
@@ -83,8 +78,7 @@ export const useRows = () => {
 
         if ("oneOf" in linkSchema.items) {
           expectedEntityTypes = linkSchema.items.oneOf.map(({ $ref }) => {
-            const expectedEntityType =
-              closedMultiEntityTypesDefinitions.entityTypes[$ref];
+            const expectedEntityType = closedMultiEntityTypesDefinitions.entityTypes[$ref];
 
             if (!expectedEntityType) {
               throw new Error(`entity type ${$ref} not found in definitions`);
@@ -95,9 +89,7 @@ export const useRows = () => {
         }
 
         const additions = draftLinksToCreate.filter((draftToCreate) =>
-          draftToCreate.linkEntity.metadata.entityTypeIds.includes(
-            linkEntityTypeId,
-          ),
+          draftToCreate.linkEntity.metadata.entityTypeIds.includes(linkEntityTypeId),
         );
 
         const linkAndTargetEntities: LinkRow["linkAndTargetEntities"] = [];
@@ -183,14 +175,11 @@ export const useRows = () => {
         linkAndTargetEntities.push(...additions);
 
         const isFile = expectedEntityTypes.some(
-          (expectedType) =>
-            isSpecialEntityTypeLookup?.[expectedType.$id]?.isFile,
+          (expectedType) => isSpecialEntityTypeLookup?.[expectedType.$id]?.isFile,
         );
 
         const retryErroredUpload =
-          relevantUpload?.status === "error"
-            ? () => uploadFile(relevantUpload)
-            : undefined;
+          relevantUpload?.status === "error" ? () => uploadFile(relevantUpload) : undefined;
 
         processedLinkEntityTypeIds.add(linkEntityTypeId);
 

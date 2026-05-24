@@ -40,9 +40,7 @@ export const orgTypedef = gql`
     org: MinimalGqlOrg!
   }
 
-  union PendingOrgInvitation =
-    | PendingOrgInvitationByEmail
-    | PendingOrgInvitationByShortname
+  union PendingOrgInvitation = PendingOrgInvitationByEmail | PendingOrgInvitationByShortname
 
   extend type Mutation {
     """

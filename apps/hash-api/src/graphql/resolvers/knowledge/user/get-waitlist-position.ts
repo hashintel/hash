@@ -12,9 +12,7 @@ export const getWaitlistPositionResolver: ResolverFn<
   Record<string, never>
 > = async (_, _args, graphQLContext) => {
   if (isSelfHostedInstance) {
-    throw new Error(
-      `This functionality is not relevant to self-hosted instances.`,
-    );
+    throw new Error(`This functionality is not relevant to self-hosted instances.`);
   }
 
   const { user } = graphQLContext;

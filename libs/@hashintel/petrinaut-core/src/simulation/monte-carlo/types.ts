@@ -72,9 +72,7 @@ export interface MonteCarloSimulator {
    * Keep advancing runs until every run is complete/errored or a batch cap is
    * reached.
    */
-  runUntilComplete(
-    options?: MonteCarloRunUntilCompleteOptions,
-  ): MonteCarloAdvanceResult;
+  runUntilComplete(options?: MonteCarloRunUntilCompleteOptions): MonteCarloAdvanceResult;
   /**
    * Read progress and capacity metadata for one run.
    */

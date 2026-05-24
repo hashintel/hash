@@ -93,10 +93,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
 
   const { draftLeftEntity, draftRightEntity } = useMemo(() => {
     if (draftEntity.linkData) {
-      const leftEntity = getEntityRevision(
-        draftEntitySubgraph,
-        draftEntity.linkData.leftEntityId,
-      );
+      const leftEntity = getEntityRevision(draftEntitySubgraph, draftEntity.linkData.leftEntityId);
 
       const rightEntity = getEntityRevision(
         draftEntitySubgraph,
@@ -110,13 +107,11 @@ export const AcceptDraftEntityButton: FunctionComponent<
          * `rightEntity` are nullable in this context.
          */
         draftLeftEntity:
-          leftEntity &&
-          extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId)
+          leftEntity && extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId)
             ? leftEntity
             : undefined,
         draftRightEntity:
-          rightEntity &&
-          extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId)
+          rightEntity && extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId)
             ? rightEntity
             : undefined,
       };
@@ -125,8 +120,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
     return {};
   }, [draftEntity, draftEntitySubgraph]);
 
-  const isUpdate =
-    !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+  const isUpdate = !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
 
   /**
    * Links cannot be made live without live left && right entities, so if this is a draft update to a live link
@@ -136,10 +130,9 @@ export const AcceptDraftEntityButton: FunctionComponent<
   const hasLeftOrRightDraftEntityThatMustBeUndrafted =
     !isUpdate && (!!draftLeftEntity || !!draftRightEntity);
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+  );
 
   const { refetch: refetchDraftEntitiesCount } = useDraftEntitiesCount();
 
@@ -186,20 +179,17 @@ export const AcceptDraftEntityButton: FunctionComponent<
     draftEntity,
   ]);
 
-  const handleAcceptDraftLinkEntityWithDraftLeftOrRightEntities =
-    useCallback(async () => {
-      await Promise.all(
-        [draftLeftEntity ?? [], draftRightEntity ?? []]
-          .flat()
-          .map((draftLinkedEntity) =>
-            acceptDraftEntity({ draftEntity: draftLinkedEntity }),
-          ),
-      );
+  const handleAcceptDraftLinkEntityWithDraftLeftOrRightEntities = useCallback(async () => {
+    await Promise.all(
+      [draftLeftEntity ?? [], draftRightEntity ?? []]
+        .flat()
+        .map((draftLinkedEntity) => acceptDraftEntity({ draftEntity: draftLinkedEntity })),
+    );
 
-      await acceptDraftEntity({
-        draftEntity,
-      });
-    }, [draftLeftEntity, draftEntity, draftRightEntity, acceptDraftEntity]);
+    await acceptDraftEntity({
+      draftEntity,
+    });
+  }, [draftLeftEntity, draftEntity, draftRightEntity, acceptDraftEntity]);
 
   const label = useMemo(() => {
     return generateEntityLabel(closedMultiEntityType, draftEntity);
@@ -220,9 +210,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
                   : "between a published entity, and a draft entity. If you continue the latter will be accepted as well."}
             </>
           }
-          close={() =>
-            setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(false)
-          }
+          close={() => setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(false)}
           header={
             <>
               Accept draft link: <strong>{label}</strong>
@@ -245,12 +233,8 @@ export const AcceptDraftEntityButton: FunctionComponent<
             openInNew
             linkEntity={new HashLinkEntity(draftEntity)}
             subgraph={draftEntitySubgraph}
-            leftEntityEndAdornment={
-              <LeftOrRightEntityEndAdornment isDraft={!!draftLeftEntity} />
-            }
-            rightEntityEndAdornment={
-              <LeftOrRightEntityEndAdornment isDraft={!!draftRightEntity} />
-            }
+            leftEntityEndAdornment={<LeftOrRightEntityEndAdornment isDraft={!!draftLeftEntity} />}
+            rightEntityEndAdornment={<LeftOrRightEntityEndAdornment isDraft={!!draftRightEntity} />}
             leftEntitySx={getRightOrLeftEntitySx({
               isDraft: !!draftLeftEntity,
             })}

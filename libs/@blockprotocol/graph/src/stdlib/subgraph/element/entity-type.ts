@@ -3,25 +3,15 @@ import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 import { isEntityTypeVertex } from "../../../types/subgraph/vertices.js";
 import { typedValues } from "../../../util/typed-entries.js";
 
-import type {
-  OntologyTypeVertexId,
-  OntologyVertices,
-  Subgraph,
-} from "../../../types/subgraph.js";
-import type {
-  BaseUrl,
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { OntologyTypeVertexId, OntologyVertices, Subgraph } from "../../../types/subgraph.js";
+import type { BaseUrl, EntityTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Returns all `EntityTypeWithMetadata`s within the vertices of the subgraph
  *
  * @param subgraph
  */
-export const getEntityTypes = (
-  subgraph: Subgraph,
-): EntityTypeWithMetadata[] => {
+export const getEntityTypes = (subgraph: Subgraph): EntityTypeWithMetadata[] => {
   return typedValues(subgraph.vertices).flatMap((versionObject) =>
     typedValues(versionObject)
       .filter(isEntityTypeVertex)
@@ -41,13 +31,8 @@ export const getEntityTypeById = (
   subgraph: Subgraph,
   entityTypeId: VersionedUrl,
 ): EntityTypeWithMetadata | undefined => {
-  const [baseUrl, version] = [
-    extractBaseUrl(entityTypeId),
-    extractVersion(entityTypeId),
-  ];
-  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[
-    version.toString()
-  ];
+  const [baseUrl, version] = [extractBaseUrl(entityTypeId), extractVersion(entityTypeId)];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version.toString()];
 
   if (!vertex) {
     return undefined;
@@ -132,16 +117,12 @@ export const getEntityTypeAndParentsById = (
     throw new Error(`Entity type ${entityTypeId} not found in subgraph`);
   }
 
-  const parentIds = (entityType.schema.allOf ?? []).map(
-    (parent) => parent.$ref,
-  );
+  const parentIds = (entityType.schema.allOf ?? []).map((parent) => parent.$ref);
 
   // Return the entity type, followed by its ancestors
   return [
     entityType,
-    ...parentIds.flatMap((parentId) =>
-      getEntityTypeAndParentsById(subgraph, parentId),
-    ),
+    ...parentIds.flatMap((parentId) => getEntityTypeAndParentsById(subgraph, parentId)),
   ];
 };
 
@@ -173,16 +154,12 @@ export const getBreadthFirstEntityTypesAndParents = (
       const entityType = getEntityTypeById(subgraph, currentEntityTypeId);
 
       if (!entityType) {
-        throw new Error(
-          `Entity type ${currentEntityTypeId} not found in subgraph`,
-        );
+        throw new Error(`Entity type ${currentEntityTypeId} not found in subgraph`);
       }
 
       result.push(entityType);
 
-      for (const parentId of entityType.schema.allOf?.map(
-        (parent) => parent.$ref,
-      ) ?? []) {
+      for (const parentId of entityType.schema.allOf?.map((parent) => parent.$ref) ?? []) {
         if (!visited.has(parentId)) {
           queue.push(parentId);
         }
@@ -219,8 +196,6 @@ export const getEntityTypeAndDescendantsById = (
   // Return the entity type, followed by its ancestors
   return [
     entityType,
-    ...descendants.flatMap(({ schema }) =>
-      getEntityTypeAndDescendantsById(subgraph, schema.$id),
-    ),
+    ...descendants.flatMap(({ schema }) => getEntityTypeAndDescendantsById(subgraph, schema.$id)),
   ];
 };

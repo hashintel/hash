@@ -14,10 +14,7 @@ import {
   getRoots,
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
-import {
-  currentTimestamp,
-  extractEntityUuidFromEntityId,
-} from "@blockprotocol/type-system";
+import { currentTimestamp, extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -49,9 +46,7 @@ type AuthInfoContextValue = {
   refetch: RefetchAuthInfoFunction;
 };
 
-export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(
-  undefined,
-);
+export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(undefined);
 
 type AuthInfoProviderProps = {
   initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType<HashEntity>>;
@@ -65,12 +60,9 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   const [authenticatedUserSubgraph, setAuthenticatedUserSubgraph] = useState(
     initialAuthenticatedUserSubgraph,
   ); // use the initial server-sent data to start – after that, the client controls the value
-  const [verifiableAddresses, setVerifiableAddresses] = useState<
-    VerifiableIdentityAddress[]
-  >([]);
+  const [verifiableAddresses, setVerifiableAddresses] = useState<VerifiableIdentityAddress[]>([]);
   const [aal2Required, setAal2Required] = useState(false);
-  const [emailVerificationStatusKnown, setEmailVerificationStatusKnown] =
-    useState(false);
+  const [emailVerificationStatusKnown, setEmailVerificationStatusKnown] = useState(false);
 
   const userMemberOfLinks = useMemo(() => {
     if (!authenticatedUserSubgraph) {
@@ -147,71 +139,61 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   const constructUserValueRef = useRef(constructUserValue);
   constructUserValueRef.current = constructUserValue;
 
-  const fetchAuthenticatedUser =
-    useCallback<RefetchAuthInfoFunction>(async () => {
-      /**
-       * @todo: use the `useLazyQuery` hook instead of the `apolloClient`
-       * here. This requires upgrading the `@apollo/client` to fix issue
-       * in the `useLazyQuery` hook that causes outdated data to be
-       * returned if an error is encountered by the query.
-       *
-       * @see https://linear.app/hash/issue/H-2182/upgrade-apolloclient-to-latest-version-to-fix-uselazyquery-behaviour
-       * @see https://github.com/apollographql/apollo-client/issues/6086
-       */
-      const [subgraph, kratosSessionResult] = await Promise.all([
-        apolloClient
-          .query<MeQuery>({
-            query: meQuery,
-            fetchPolicy: "network-only",
-          })
-          .then(({ data }) =>
-            mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(
-              data.me.subgraph,
-            ),
-          )
-          .catch(() => undefined),
-        oryKratosClient
-          .toSession()
-          .then(({ data }) => ({
-            aal2Required: false,
-            emailVerificationStatusKnown: true,
-            session: data,
-          }))
-          .catch((error: AxiosError) => ({
-            aal2Required: error.response?.status === 403,
-            emailVerificationStatusKnown: error.response?.status !== 403,
-            session: undefined,
-          })),
-      ]);
+  const fetchAuthenticatedUser = useCallback<RefetchAuthInfoFunction>(async () => {
+    /**
+     * @todo: use the `useLazyQuery` hook instead of the `apolloClient`
+     * here. This requires upgrading the `@apollo/client` to fix issue
+     * in the `useLazyQuery` hook that causes outdated data to be
+     * returned if an error is encountered by the query.
+     *
+     * @see https://linear.app/hash/issue/H-2182/upgrade-apolloclient-to-latest-version-to-fix-uselazyquery-behaviour
+     * @see https://github.com/apollographql/apollo-client/issues/6086
+     */
+    const [subgraph, kratosSessionResult] = await Promise.all([
+      apolloClient
+        .query<MeQuery>({
+          query: meQuery,
+          fetchPolicy: "network-only",
+        })
+        .then(({ data }) =>
+          mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity>>(data.me.subgraph),
+        )
+        .catch(() => undefined),
+      oryKratosClient
+        .toSession()
+        .then(({ data }) => ({
+          aal2Required: false,
+          emailVerificationStatusKnown: true,
+          session: data,
+        }))
+        .catch((error: AxiosError) => ({
+          aal2Required: error.response?.status === 403,
+          emailVerificationStatusKnown: error.response?.status !== 403,
+          session: undefined,
+        })),
+    ]);
 
-      if (kratosSessionResult.emailVerificationStatusKnown) {
-        setVerifiableAddresses(
-          kratosSessionResult.session?.identity?.verifiable_addresses ?? [],
-        );
-      }
+    if (kratosSessionResult.emailVerificationStatusKnown) {
+      setVerifiableAddresses(kratosSessionResult.session?.identity?.verifiable_addresses ?? []);
+    }
 
-      setAal2Required(kratosSessionResult.aal2Required);
-      setEmailVerificationStatusKnown(
-        kratosSessionResult.emailVerificationStatusKnown,
-      );
+    setAal2Required(kratosSessionResult.aal2Required);
+    setEmailVerificationStatusKnown(kratosSessionResult.emailVerificationStatusKnown);
 
-      if (!subgraph) {
-        setAuthenticatedUserSubgraph(undefined);
-        return {};
-      }
+    if (!subgraph) {
+      setAuthenticatedUserSubgraph(undefined);
+      return {};
+    }
 
-      setAuthenticatedUserSubgraph(subgraph);
+    setAuthenticatedUserSubgraph(subgraph);
 
-      const newVerifiableAddresses =
-        kratosSessionResult.session?.identity?.verifiable_addresses ?? [];
+    const newVerifiableAddresses =
+      kratosSessionResult.session?.identity?.verifiable_addresses ?? [];
 
-      return {
-        authenticatedUser: constructUserValueRef.current(
-          subgraph,
-          newVerifiableAddresses,
-        ),
-      };
-    }, [apolloClient]);
+    return {
+      authenticatedUser: constructUserValueRef.current(subgraph, newVerifiableAddresses),
+    };
+  }, [apolloClient]);
 
   useEffect(() => {
     void fetchAuthenticatedUser();
@@ -253,11 +235,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
     ],
   );
 
-  return (
-    <AuthInfoContext.Provider value={value}>
-      {children}
-    </AuthInfoContext.Provider>
-  );
+  return <AuthInfoContext.Provider value={value}>{children}</AuthInfoContext.Provider>;
 };
 
 export const useAuthInfo = (): AuthInfoContextValue => {

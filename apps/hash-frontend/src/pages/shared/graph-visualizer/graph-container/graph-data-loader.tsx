@@ -35,10 +35,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
     const seenNodeIds = new Set<string>();
 
     for (const [index, node] of nodes.entries()) {
-      if (
-        node.nodeTypeId &&
-        filters.includeByNodeTypeId?.[node.nodeTypeId] === false
-      ) {
+      if (node.nodeTypeId && filters.includeByNodeTypeId?.[node.nodeTypeId] === false) {
         continue;
       }
 
@@ -66,10 +63,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
          * We'll set this to 0 for now, and update it later when we have processed all the edges and sized the nodes.
          */
         significance: 0,
-        size:
-          config.nodeSizing.mode === "byEdgeCount"
-            ? config.nodeSizing.min
-            : node.size,
+        size: config.nodeSizing.mode === "byEdgeCount" ? config.nodeSizing.min : node.size,
         type: hasUrlImage ? "icon" : "bordered",
       } satisfies GraphVizNode & {
         x: number;
@@ -179,12 +173,10 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
      * based on how many edges point to them.
      */
     for (const aggregatedEdge of Object.values(aggregateEdgesById)) {
-      const individualEdges =
-        aggregateEdgeToIndividualEdgeIds[aggregatedEdge.edgeId];
+      const individualEdges = aggregateEdgeToIndividualEdgeIds[aggregatedEdge.edgeId];
 
       for (const individualEdgeId of individualEdges ?? []) {
-        const incomingEdges =
-          maybeEdgeIdToNumberOfIncomingEdges[individualEdgeId];
+        const incomingEdges = maybeEdgeIdToNumberOfIncomingEdges[individualEdgeId];
 
         let significance = aggregatedEdge.significance;
         if (incomingEdges) {
@@ -196,9 +188,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
            *   and each further edge pointing to it would only increase the significance by 1.
            * - this overcounts the significance of the first edge pointing to that edge.
            */
-          significance =
-            aggregatedEdge.significance +
-            (incomingEdges > 0 ? incomingEdges - 1 : 0);
+          significance = aggregatedEdge.significance + (incomingEdges > 0 ? incomingEdges - 1 : 0);
 
           aggregatedEdge.significance = significance;
         }
@@ -223,10 +213,8 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
     const maxEdgeSize = config.edgeSizing.max;
     const maxEdgeSizeIncrease = maxEdgeSize - minEdgeSize;
 
-    const nodeIdToTotalEdgeSignificance: Record<
-      string,
-      { In: number; Out: number; All: number }
-    > = {};
+    const nodeIdToTotalEdgeSignificance: Record<string, { In: number; Out: number; All: number }> =
+      {};
 
     let edgeGeometricSizeFactor: number | undefined;
     if (config.edgeSizing.scale === "Geometric") {
@@ -235,8 +223,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
       edgeGeometricSizeFactor =
         edgeSignificanceRatio === 1
           ? 1
-          : (maxEdgeSize / minEdgeSize) **
-            (1 / Math.log(edgeSignificanceRatio));
+          : (maxEdgeSize / minEdgeSize) ** (1 / Math.log(edgeSignificanceRatio));
     }
 
     for (const aggregateEdge of Object.values(aggregateEdgesById)) {
@@ -244,11 +231,8 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
 
       let size: number | undefined;
       if (config.edgeSizing.scale === "Linear") {
-        const relativeSignificance =
-          (significance - lowestSignificance) / edgeSignificanceRange;
-        size = Math.floor(
-          minEdgeSize + relativeSignificance * maxEdgeSizeIncrease,
-        );
+        const relativeSignificance = (significance - lowestSignificance) / edgeSignificanceRange;
+        size = Math.floor(minEdgeSize + relativeSignificance * maxEdgeSizeIncrease);
       } else {
         if (!edgeGeometricSizeFactor) {
           throw new Error("Expected edgeGeometricSizeFactor to be defined");
@@ -256,10 +240,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
         const normalizedSignificance = significance / lowestSignificance;
         size = Math.max(
           minEdgeSize,
-          Math.floor(
-            minEdgeSize *
-              edgeGeometricSizeFactor ** Math.log(normalizedSignificance),
-          ),
+          Math.floor(minEdgeSize * edgeGeometricSizeFactor ** Math.log(normalizedSignificance)),
         );
       }
 
@@ -303,29 +284,23 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
            * rather than go through the nodes in whatever order they happened to have been assigned in.
            */
           const numberOfBuckets = 10;
-          const percentileBucketSize = Math.ceil(
-            countValues.length / numberOfBuckets,
+          const percentileBucketSize = Math.ceil(countValues.length / numberOfBuckets);
+          const nodeIdAndSignificances = Object.entries(nodeIdToTotalEdgeSignificance).map(
+            ([nodeId, counts]) => ({
+              nodeId,
+              significance: counts[countKey],
+            }),
           );
-          const nodeIdAndSignificances = Object.entries(
-            nodeIdToTotalEdgeSignificance,
-          ).map(([nodeId, counts]) => ({
-            nodeId,
-            significance: counts[countKey],
-          }));
 
-          nodeIdAndSignificances.sort(
-            (a, b) => a.significance - b.significance,
-          );
-          const percentileSizeIncrement =
-            (maxNodeSize - minNodeSize) / (numberOfBuckets - 1);
+          nodeIdAndSignificances.sort((a, b) => a.significance - b.significance);
+          const percentileSizeIncrement = (maxNodeSize - minNodeSize) / (numberOfBuckets - 1);
 
           for (let i = 0; i < nodeIdAndSignificances.length; i++) {
             const { nodeId, significance } = nodeIdAndSignificances[i]!;
             graph.setNodeAttribute(nodeId, "significance", significance);
 
             const size =
-              minNodeSize +
-              Math.floor(i / percentileBucketSize) * percentileSizeIncrement;
+              minNodeSize + Math.floor(i / percentileBucketSize) * percentileSizeIncrement;
 
             graph.setNodeAttribute(nodeId, "size", size);
           }
@@ -346,20 +321,14 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
           if (config.nodeSizing.scale === "Geometric") {
             const countRatio = highestCount / lowestCount;
             geometricSizeFactor =
-              countRatio === 1
-                ? 1
-                : (maxNodeSize / minNodeSize) ** (1 / Math.log(countRatio));
+              countRatio === 1 ? 1 : (maxNodeSize / minNodeSize) ** (1 / Math.log(countRatio));
           }
 
           for (const [nodeId, significanceCounts] of Object.entries(
             nodeIdToTotalEdgeSignificance,
           )) {
             const aggregatedEdgeSignificance = significanceCounts[countKey];
-            graph.setNodeAttribute(
-              nodeId,
-              "significance",
-              aggregatedEdgeSignificance,
-            );
+            graph.setNodeAttribute(nodeId, "significance", aggregatedEdgeSignificance);
 
             let size;
 
@@ -367,38 +336,27 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
 
             switch (config.nodeSizing.scale) {
               case "Linear": {
-                const relativeEdgeCount =
-                  (aggregatedEdgeSignificance - lowestCount) / range;
+                const relativeEdgeCount = (aggregatedEdgeSignificance - lowestCount) / range;
                 size = minNodeSize + relativeEdgeCount * maxSizeIncrease;
                 break;
               }
               case "Logarithmic": {
                 if (logMin === undefined || logRange === undefined) {
-                  throw new Error(
-                    "Logarithmic scaling requires logMin and logRange to be defined",
-                  );
+                  throw new Error("Logarithmic scaling requires logMin and logRange to be defined");
                 }
                 const logEdgeCount = Math.log(aggregatedEdgeSignificance);
                 const normalizedLogCount = (logEdgeCount - logMin) / logRange;
-                size = Math.floor(
-                  minNodeSize + normalizedLogCount * maxSizeIncrease,
-                );
+                size = Math.floor(minNodeSize + normalizedLogCount * maxSizeIncrease);
 
                 break;
               }
               case "Geometric": {
                 if (geometricSizeFactor === undefined) {
-                  throw new Error(
-                    "Geometric scaling requires geometricSizeFactor to be defined",
-                  );
+                  throw new Error("Geometric scaling requires geometricSizeFactor to be defined");
                 }
 
-                const normalizedCount =
-                  aggregatedEdgeSignificance / lowestCount;
-                size = Math.floor(
-                  minNodeSize *
-                    geometricSizeFactor ** Math.log(normalizedCount),
-                );
+                const normalizedCount = aggregatedEdgeSignificance / lowestCount;
+                size = Math.floor(minNodeSize * geometricSizeFactor ** Math.log(normalizedCount));
 
                 break;
               }

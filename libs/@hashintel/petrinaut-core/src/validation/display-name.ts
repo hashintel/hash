@@ -18,9 +18,7 @@ export const displayNameSchema = z
   )
   .describe("Non-empty display name");
 
-type DisplayNameValidationResult =
-  | { valid: true; name: string }
-  | { valid: false; error: string };
+type DisplayNameValidationResult = { valid: true; name: string } | { valid: false; error: string };
 
 /**
  * Validate a display name (non-empty after trimming).
@@ -28,9 +26,7 @@ type DisplayNameValidationResult =
  *
  * FE-521: Also enforce in MutationProvider and surface in Diagnostics tab.
  */
-export function validateDisplayName(
-  input: string,
-): DisplayNameValidationResult {
+export function validateDisplayName(input: string): DisplayNameValidationResult {
   const result = displayNameSchema.safeParse(input);
 
   if (result.success) {

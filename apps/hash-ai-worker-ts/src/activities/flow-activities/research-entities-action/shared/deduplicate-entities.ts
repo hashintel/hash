@@ -80,8 +80,7 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
             },
             duplicateIds: {
               type: "array",
-              description:
-                "The IDs of entities that are duplicates of the canonical entity",
+              description: "The IDs of entities that are duplicates of the canonical entity",
               items: {
                 type: "string",
               },
@@ -113,8 +112,7 @@ export const deduplicateEntities = async (params: {
 > => {
   const { entities, model, exceededMaxTokensAttempt } = params;
 
-  const { flowEntityId, userAuthentication, stepId, webId } =
-    await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -136,9 +134,7 @@ export const deduplicateEntities = async (params: {
                     ${entitySummary.entityTypeIds.length > 1 ? "Types" : "Type"}: ${entitySummary.entityTypeIds.join(", ")}
                     Summary: ${entitySummary.summary}
                     ID: ${
-                      "localId" in entitySummary
-                        ? entitySummary.localId
-                        : entitySummary.entityId
+                      "localId" in entitySummary ? entitySummary.localId : entitySummary.entityId
                     }
                     </Entity>`,
                   )
@@ -212,19 +208,11 @@ export const deduplicateEntities = async (params: {
   const firstToolCall = toolCalls[0];
 
   if (!firstToolCall) {
-    throw new Error(
-      `Expected tool calls in message: ${JSON.stringify(message, null, 2)}`,
-    );
+    throw new Error(`Expected tool calls in message: ${JSON.stringify(message, null, 2)}`);
   }
 
   if (toolCalls.length > 1) {
-    throw new Error(
-      `Expected only one tool call in message: ${JSON.stringify(
-        message,
-        null,
-        2,
-      )}`,
-    );
+    throw new Error(`Expected only one tool call in message: ${JSON.stringify(message, null, 2)}`);
   }
 
   const { duplicates } = firstToolCall.input as {

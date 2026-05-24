@@ -59,9 +59,7 @@ export const createEntityEmbeddings = async (params: {
   usage: Usage;
 }> => {
   // sort property types by their base url
-  params.propertyTypes.sort((a, b) =>
-    extractBaseUrl(a.$id).localeCompare(extractBaseUrl(b.$id)),
-  );
+  params.propertyTypes.sort((a, b) => extractBaseUrl(a.$id).localeCompare(extractBaseUrl(b.$id)));
 
   // We want to create embeddings for:
   //   1. Each individual '[Property Title]: [Value]' pair, and

@@ -117,8 +117,7 @@ const App: FunctionComponent<AppProps> = ({
     setSsr(false);
   }, []);
 
-  const { aal2Required, authenticatedUser, emailVerificationStatusKnown } =
-    useAuthInfo();
+  const { aal2Required, authenticatedUser, emailVerificationStatusKnown } = useAuthInfo();
 
   const awaitingEmailVerificationStatus =
     !!authenticatedUser && !emailVerificationStatusKnown && !aal2Required;
@@ -173,9 +172,7 @@ const App: FunctionComponent<AppProps> = ({
                                         scope.setTag("error-boundary", "_app");
                                       }}
                                       fallback={(props) =>
-                                        getLayoutWithSidebar(
-                                          <ErrorFallback {...props} />,
-                                        )
+                                        getLayoutWithSidebar(<ErrorFallback {...props} />)
                                       }
                                     >
                                       {getLayout(<Component {...pageProps} />)}
@@ -200,9 +197,7 @@ const App: FunctionComponent<AppProps> = ({
   );
 };
 
-const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
-  props,
-) => {
+const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (props) => {
   const { initialAuthenticatedUserSubgraph, user } = props;
 
   return (
@@ -247,9 +242,8 @@ const getPrimaryEmailVerificationStatus = async (cookie?: string) =>
       }
 
       return (
-        identity.verifiable_addresses?.find(
-          ({ value }) => value === primaryEmailAddress,
-        )?.verified === true
+        identity.verifiable_addresses?.find(({ value }) => value === primaryEmailAddress)
+          ?.verified === true
       );
     })
     .catch(() => undefined);
@@ -295,9 +289,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       context: { headers: { cookie } },
     })
     .then(({ data }) =>
-      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity<User>>>(
-        data.me.subgraph,
-      ),
+      mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType<HashEntity<User>>>(data.me.subgraph),
     )
     .catch(() => undefined);
 
@@ -315,9 +307,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       redirectTo = redirectInGetInitialProps({
         appContext,
         location: `/signin${
-          ["", "/", "/404"].includes(pathname)
-            ? ""
-            : `?return_to=${req?.url ?? asPath}`
+          ["", "/", "/404"].includes(pathname) ? "" : `?return_to=${req?.url ?? asPath}`
         }`,
       });
     }

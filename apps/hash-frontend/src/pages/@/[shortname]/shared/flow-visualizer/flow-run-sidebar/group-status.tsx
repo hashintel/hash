@@ -13,10 +13,7 @@ import {
   WaitingIcon,
 } from "./group-status/group-step-status";
 
-import type {
-  GroupWithEdgesAndNodes,
-  UngroupedEdgesAndNodes,
-} from "../shared/types";
+import type { GroupWithEdgesAndNodes, UngroupedEdgesAndNodes } from "../shared/types";
 
 export const GroupStatus = ({
   groupData,
@@ -90,10 +87,7 @@ export const GroupStatus = ({
               <ErrorIcon statusFor="group" />
             )}
           </Box>
-          <Typography
-            variant="smallTextParagraphs"
-            sx={{ lineHeight: 1.2, ml: 1.5 }}
-          >
+          <Typography variant="smallTextParagraphs" sx={{ lineHeight: 1.2, ml: 1.5 }}>
             {groupData.group?.description ?? "Flow"}
           </Typography>
         </Stack>

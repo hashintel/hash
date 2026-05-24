@@ -5,11 +5,7 @@ import { Select } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { GrayToBlueIconButton } from "../../../gray-to-blue-icon-button";
-import {
-  ControlPanel,
-  ControlSectionContainer,
-  ItemLabel,
-} from "./control-components";
+import { ControlPanel, ControlSectionContainer, ItemLabel } from "./control-components";
 import { useGraphContext } from "./graph-context";
 import { IntegerInput } from "./integer-input";
 import { selectSx } from "./styles";
@@ -20,12 +16,7 @@ const directionOptions = ["All", "In", "Out"] as const;
 
 type Direction = (typeof directionOptions)[number];
 
-const scaleOptions = [
-  "Geometric",
-  "Linear",
-  "Logarithmic",
-  "Percentile",
-] as const;
+const scaleOptions = ["Geometric", "Linear", "Logarithmic", "Percentile"] as const;
 
 type Scale = (typeof scaleOptions)[number];
 
@@ -87,9 +78,7 @@ export type StaticNodeSizing = {
   mode: "static";
 };
 
-export type GraphVizConfig<
-  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
-> = {
+export type GraphVizConfig<NodeSizing extends DynamicNodeSizing | StaticNodeSizing> = {
   edgeSizing: DynamicEdgeSizing;
   /**
    * A unique key for the graph, under which the viz settings will be stored in local storage.
@@ -165,9 +154,7 @@ const ScaleSelect = <Exclusions extends Scale | null = null>({
   return (
     <Select
       value={value}
-      onChange={(event) =>
-        setValue(event.target.value as Exclude<Scale, Exclusions>)
-      }
+      onChange={(event) => setValue(event.target.value as Exclude<Scale, Exclusions>)}
       MenuProps={{
         container: graphContainerRef.current,
       }}
@@ -191,12 +178,7 @@ const ConfigPanel: FunctionComponent<{
   const { config, setConfig } = useGraphContext();
 
   return (
-    <ControlPanel
-      onClose={onClose}
-      open={open}
-      position="right"
-      title="Configuration"
-    >
+    <ControlPanel onClose={onClose} open={open} position="right" title="Configuration">
       <ControlSectionContainer
         label="Highlights"
         tooltip="When you hover or click on a node, configure which connected nodes are also shown"
@@ -297,35 +279,30 @@ const ConfigPanel: FunctionComponent<{
                   <Box>
                     <Box>How to scale node size:</Box>
                     <Box my={1}>
-                      <strong>Linear</strong> means that a node with twice as
-                      many edges as another will be roughly twice as big. If
-                      there is an outlier node with a much higher edge count
-                      than most of the others, it will be very large and the
-                      rest will appear almost equally small, even if there are
-                      significant differences in edge count between those rest.
+                      <strong>Linear</strong> means that a node with twice as many edges as another
+                      will be roughly twice as big. If there is an outlier node with a much higher
+                      edge count than most of the others, it will be very large and the rest will
+                      appear almost equally small, even if there are significant differences in edge
+                      count between those rest.
                     </Box>
                     <Box my={1}>
-                      <strong>Geometric</strong> smooths out differences between
-                      nodes more so that nodes with much higher edge counts
-                      don't dominate as much, while still being easily
-                      distinguishable. Medium count nodes will be closer in size
-                      to the larger ones than in a linear scale.
+                      <strong>Geometric</strong> smooths out differences between nodes more so that
+                      nodes with much higher edge counts don't dominate as much, while still being
+                      easily distinguishable. Medium count nodes will be closer in size to the
+                      larger ones than in a linear scale.
                     </Box>
                     <Box>
-                      <strong>Logarithmic</strong> means that node size grows
-                      quickly at low edge counts and slows down at higher edge
-                      counts. It is the most aggressive in reducing the size
-                      difference for nodes with the largest edge counts.
+                      <strong>Logarithmic</strong> means that node size grows quickly at low edge
+                      counts and slows down at higher edge counts. It is the most aggressive in
+                      reducing the size difference for nodes with the largest edge counts.
                     </Box>
                     <Box my={1}>
-                      <strong>Percentile</strong> arranges nodes into buckets of
-                      10% by edge count, and then increments each bucket by
-                      1/10th of the difference between the min and max sizes. It
-                      ensures an even distribution of node sizes, although it
-                      means that nodes with little to no difference in edge
-                      count can appear significantly different in size,
-                      depending on the range of edge counts present in the
-                      graph.
+                      <strong>Percentile</strong> arranges nodes into buckets of 10% by edge count,
+                      and then increments each bucket by 1/10th of the difference between the min
+                      and max sizes. It ensures an even distribution of node sizes, although it
+                      means that nodes with little to no difference in edge count can appear
+                      significantly different in size, depending on the range of edge counts present
+                      in the graph.
                     </Box>
                   </Box>
                 }
@@ -351,9 +328,7 @@ const ConfigPanel: FunctionComponent<{
             tooltip="Control the size of edges in the graph, which is based on the number of edges of the same type between the same two nodes."
           >
             <Box>
-              <ItemLabel tooltip="The minimum size. Edge will default to this size.">
-                Min
-              </ItemLabel>
+              <ItemLabel tooltip="The minimum size. Edge will default to this size.">Min</ItemLabel>
               <IntegerInput
                 max={config.edgeSizing.max}
                 value={config.edgeSizing.min}
@@ -409,19 +384,16 @@ const ConfigPanel: FunctionComponent<{
                   <Box>
                     <Box>How to scale edge size:</Box>
                     <Box my={1}>
-                      <strong>Linear</strong> means that an edge which
-                      aggregates together twice as many edges as another will be
-                      roughly twice as big. If there is an outlier edge with a
-                      much higher aggregated edge count than most of the others,
-                      it will be very large and the rest will appear almost
-                      equally small, even if there are significant differences
-                      in count between those rest.
+                      <strong>Linear</strong> means that an edge which aggregates together twice as
+                      many edges as another will be roughly twice as big. If there is an outlier
+                      edge with a much higher aggregated edge count than most of the others, it will
+                      be very large and the rest will appear almost equally small, even if there are
+                      significant differences in count between those rest.
                     </Box>
                     <Box my={1}>
-                      <strong>Geometric</strong> smooths out differences between
-                      edges more so that edges which aggregate up more
-                      individual edges don't dominate as much, while still being
-                      easily distinguishable.
+                      <strong>Geometric</strong> smooths out differences between edges more so that
+                      edges which aggregate up more individual edges don't dominate as much, while
+                      still being easily distinguishable.
                     </Box>
                   </Box>
                 }
@@ -454,10 +426,7 @@ export const ConfigControl = () => {
 
   return (
     <>
-      <ConfigPanel
-        open={configPanelOpen}
-        onClose={() => setConfigPanelOpen(false)}
-      />
+      <ConfigPanel open={configPanelOpen} onClose={() => setConfigPanelOpen(false)} />
       <GrayToBlueIconButton
         onClick={() => setConfigPanelOpen(true)}
         sx={{ position: "absolute", top: 8, right: 13 }}

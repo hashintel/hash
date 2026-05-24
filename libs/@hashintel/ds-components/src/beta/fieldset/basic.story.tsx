@@ -7,9 +7,7 @@ export const App = () => {
     <Fieldset.Root>
       <Fieldset.Control>
         <Fieldset.Legend>Contact details</Fieldset.Legend>
-        <Fieldset.HelperText>
-          Please provide your contact details below.
-        </Fieldset.HelperText>
+        <Fieldset.HelperText>Please provide your contact details below.</Fieldset.HelperText>
       </Fieldset.Control>
       <Fieldset.Content>
         <Field.Root>

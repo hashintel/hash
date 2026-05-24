@@ -1,9 +1,6 @@
 import Big from "big.js";
 
-import {
-  componentsFromVersionedUrl,
-  mustHaveAtLeastOne,
-} from "@blockprotocol/type-system";
+import { componentsFromVersionedUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 
 import { add, divide, multiply, subtract } from "./numbers.js";
 
@@ -140,9 +137,7 @@ export const formatDataValue = (
         const itemSchema = schema.prefixItems[index];
 
         if (!itemSchema) {
-          throw new Error(
-            `No schema for tuple item at index ${index} – value has too many items`,
-          );
+          throw new Error(`No schema for tuple item at index ${index} – value has too many items`);
         }
 
         const innerValue = formatDataValue(inner, itemSchema);
@@ -175,10 +170,7 @@ type Context = {
   self: Big;
 };
 
-const evaluateConversionValue = (
-  value: ConversionValue,
-  context: Context,
-): Big => {
+const evaluateConversionValue = (value: ConversionValue, context: Context): Big => {
   if (Array.isArray(value)) {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     return evaluateExpression(value, context);
@@ -189,10 +181,7 @@ const evaluateConversionValue = (
   }
 };
 
-const evaluateExpression = (
-  expression: ConversionExpression,
-  context: Context,
-): Big => {
+const evaluateExpression = (expression: ConversionExpression, context: Context): Big => {
   const left = evaluateConversionValue(expression[1], context);
   const right = evaluateConversionValue(expression[2], context);
 
@@ -286,9 +275,7 @@ const transformConstraint = (
   return constraint;
 };
 
-export const getMergedDataTypeSchema = (
-  dataType: ClosedDataType,
-): MergedDataTypeSchema => {
+export const getMergedDataTypeSchema = (dataType: ClosedDataType): MergedDataTypeSchema => {
   const { description, label } = dataType;
 
   const firstOption = dataType.allOf[0];
@@ -343,9 +330,7 @@ export const getMergedDataTypeSchema = (
 
     if (mergedSchema.type === "string") {
       if (option.type !== "string") {
-        throw new Error(
-          `Mixed primitive data types for data type: ${dataType.$id}`,
-        );
+        throw new Error(`Mixed primitive data types for data type: ${dataType.$id}`);
       }
       mergedSchema.pattern ??= [];
       if ("pattern" in option && option.pattern) {
@@ -353,9 +338,7 @@ export const getMergedDataTypeSchema = (
       }
     } else {
       if (option.type !== "number") {
-        throw new Error(
-          `Mixed primitive data types for data type: ${dataType.$id}`,
-        );
+        throw new Error(`Mixed primitive data types for data type: ${dataType.$id}`);
       }
       mergedSchema.multipleOf ??= [];
       if ("multipleOf" in option && option.multipleOf) {
@@ -367,9 +350,7 @@ export const getMergedDataTypeSchema = (
   return mergedSchema;
 };
 
-const isDataType = (
-  dataType: DataType | ClosedDataTypeDefinition,
-): dataType is DataType => {
+const isDataType = (dataType: DataType | ClosedDataTypeDefinition): dataType is DataType => {
   return "$id" in dataType;
 };
 
@@ -383,9 +364,7 @@ const isDataType = (
  * - making a query for an entityType with the 'resolvedWithDataTypeChildren' resolution method
  *     e.g. when selecting a value valid for specific entity types, and having the API resolve the valid data types
  */
-export const getPermittedDataTypes = <
-  T extends ClosedDataTypeDefinition | DataType,
->({
+export const getPermittedDataTypes = <T extends ClosedDataTypeDefinition | DataType>({
   targetDataTypes,
   dataTypePoolById,
 }: {
@@ -435,9 +414,7 @@ export const getPermittedDataTypes = <
   while (stack.length > 0) {
     const current = stack.pop()!;
 
-    const abstract = isDataType(current)
-      ? current.abstract
-      : current.schema.abstract;
+    const abstract = isDataType(current) ? current.abstract : current.schema.abstract;
 
     if (!abstract) {
       permittedDataTypes.push(current);
@@ -485,9 +462,7 @@ type DataTypeForSelector = {
  * We don't care about the closed schema for this purpose because the selector doesn't care about value constraints,
  * but it's the structure that some callers may already have.
  */
-const transformDataTypeForSelector = <
-  T extends DataType | ClosedDataTypeDefinition,
->(
+const transformDataTypeForSelector = <T extends DataType | ClosedDataTypeDefinition>(
   dataType: T,
   directChildrenByDataTypeId: Record<VersionedUrl, T[]>,
   allChildren: VersionedUrl[] = [],
@@ -505,11 +480,7 @@ const transformDataTypeForSelector = <
    * We need to track all descendants of the data type, so that {@link buildDataTypeTreesForSelector}
    * can remove any types as roots of a tree where they appear lower down another tree.
    */
-  allChildren.push(
-    ...children.map((child) =>
-      isDataType(child) ? child.$id : child.schema.$id,
-    ),
-  );
+  allChildren.push(...children.map((child) => (isDataType(child) ? child.$id : child.schema.$id)));
 
   for (const child of children) {
     const { transformedDataType } = transformDataTypeForSelector(
@@ -530,8 +501,7 @@ const transformDataTypeForSelector = <
   } else {
     const mergedSchema = getMergedDataTypeSchema(dataType.schema);
 
-    const firstSchema =
-      "anyOf" in mergedSchema ? mergedSchema.anyOf[0]! : mergedSchema;
+    const firstSchema = "anyOf" in mergedSchema ? mergedSchema.anyOf[0]! : mergedSchema;
 
     type = firstSchema.type;
     format = "format" in firstSchema ? firstSchema.format : undefined;
@@ -543,9 +513,7 @@ const transformDataTypeForSelector = <
     $id,
     baseUrl,
     abstract: !!schema.abstract,
-    children: transformedChildren.sort((a, b) =>
-      a.title.localeCompare(b.title),
-    ),
+    children: transformedChildren.sort((a, b) => a.title.localeCompare(b.title)),
     description: schema.description,
     directParents: isDataType(dataType)
       ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
@@ -578,9 +546,7 @@ const transformDataTypeForSelector = <
  * - making a query for an entityType with the 'resolvedWithDataTypeChildren' resolution method
  *     e.g. when selecting a value valid for specific entity types, and having the API resolve the valid data types
  */
-export const buildDataTypeTreesForSelector = <
-  T extends ClosedDataTypeDefinition | DataType,
->({
+export const buildDataTypeTreesForSelector = <T extends ClosedDataTypeDefinition | DataType>({
   targetDataTypes,
   dataTypePoolById,
 }: {

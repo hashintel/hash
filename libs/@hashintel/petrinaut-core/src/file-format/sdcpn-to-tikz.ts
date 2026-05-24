@@ -23,10 +23,7 @@ const LATEX_SPECIAL_CHARS: Record<string, string> = {
 };
 
 function escapeLatex(text: string): string {
-  return text.replace(
-    /[\\&%$#_{}~^]/g,
-    (char) => LATEX_SPECIAL_CHARS[char] ?? char,
-  );
+  return text.replace(/[\\&%$#_{}~^]/g, (char) => LATEX_SPECIAL_CHARS[char] ?? char);
 }
 
 function splitCamelCase(text: string): string {
@@ -148,9 +145,7 @@ export function sdcpnToTikZ(sdcpn: SDCPN, title: string): string {
       const tikzId = transitionIdMap.get(transition.id)!;
       const coord = toTikzCoord(transition.x, transition.y);
       const labelAttr = formatLabelAttr(transition.name);
-      lines.push(
-        `  \\node[transition, ${labelAttr}] (${tikzId}) at ${coord} {};`,
-      );
+      lines.push(`  \\node[transition, ${labelAttr}] (${tikzId}) at ${coord} {};`);
     }
     lines.push("");
   }
@@ -165,9 +160,7 @@ export function sdcpnToTikZ(sdcpn: SDCPN, title: string): string {
         continue;
       }
       const weightLabel =
-        arc.weight !== 1
-          ? ` node[midway, auto, font=\\footnotesize] {${arc.weight}}`
-          : "";
+        arc.weight !== 1 ? ` node[midway, auto, font=\\footnotesize] {${arc.weight}}` : "";
       arcLines.push(`  \\draw[arc] (${pId}) --${weightLabel} (${tId});`);
     }
 
@@ -177,9 +170,7 @@ export function sdcpnToTikZ(sdcpn: SDCPN, title: string): string {
         continue;
       }
       const weightLabel =
-        arc.weight !== 1
-          ? ` node[midway, auto, font=\\footnotesize] {${arc.weight}}`
-          : "";
+        arc.weight !== 1 ? ` node[midway, auto, font=\\footnotesize] {${arc.weight}}` : "";
       arcLines.push(`  \\draw[arc] (${tId}) --${weightLabel} (${pId});`);
     }
   }

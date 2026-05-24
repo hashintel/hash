@@ -12,12 +12,7 @@ import { resetGraph } from "../../../admin-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type {
-  EntityId,
-  Timestamp,
-  Url,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityId, Timestamp, Url, WebId } from "@blockprotocol/type-system";
 
 const logger = new Logger({
   environment: "test",
@@ -61,9 +56,7 @@ describe("File", () => {
       getFileEntityStorageKey: vi.fn(() => fileKey),
       getFlowOutputStorageKey: vi.fn(() => "mock-flow-output-key"),
       uploadDirect: vi.fn(() => Promise.resolve()),
-      downloadDirect: vi.fn(() =>
-        Promise.resolve(Buffer.from("mock-download-body")),
-      ),
+      downloadDirect: vi.fn(() => Promise.resolve(Buffer.from("mock-download-body"))),
       presignDownload: vi.fn(() => Promise.resolve(downloadUrl)),
       presignUpload: vi.fn(() =>
         Promise.resolve({
@@ -72,15 +65,13 @@ describe("File", () => {
               "https://hash.ai/@h/types/property-type/file-storage-key/": {
                 value: fileKey,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               },
               "https://hash.ai/@h/types/property-type/file-storage-provider/": {
                 value: "LOCAL_FILE_SYSTEM",
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               },
             },
@@ -91,15 +82,11 @@ describe("File", () => {
       storageType: "LOCAL_FILE_SYSTEM",
     };
 
-    const file = await createFileFromUploadRequest(
-      graphContext,
-      authentication,
-      {
-        name: "test-file",
-        fileEntityCreationInput: { webId: testUser.accountId as WebId },
-        size: 100,
-      },
-    );
+    const file = await createFileFromUploadRequest(graphContext, authentication, {
+      name: "test-file",
+      fileEntityCreationInput: { webId: testUser.accountId as WebId },
+      size: 100,
+    });
 
     expect(file.presignedPut.url).toEqual(uploadUrl);
 
@@ -109,9 +96,7 @@ describe("File", () => {
       ].endsWith(fileKey),
     ).toBeTruthy();
 
-    expect(graphContext.uploadProvider.getFileEntityStorageKey).toBeCalledTimes(
-      1,
-    );
+    expect(graphContext.uploadProvider.getFileEntityStorageKey).toBeCalledTimes(1);
     expect(graphContext.uploadProvider.presignUpload).toBeCalledTimes(1);
   });
 
@@ -127,9 +112,7 @@ describe("File", () => {
     });
 
     expect(
-      file.properties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-      ],
+      file.properties["https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"],
     ).toEqual(externalUrl);
   });
 });

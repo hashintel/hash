@@ -27,11 +27,7 @@ import {
 import { textBlockNodeToEntityProperties } from "./text.js";
 import { collect } from "./util.js";
 
-import type {
-  DraftEntity,
-  EntityStore,
-  EntityStoreType,
-} from "./entity-store.js";
+import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store.js";
 import type { BlockEntity } from "./entity.js";
 import type { ComponentNode, EntityNode } from "./prosemirror.js";
 import type { Draft } from "immer";
@@ -105,9 +101,7 @@ const EntityStoreListeners = new WeakMap<
 >();
 
 // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
-const entityStorePluginKey = new PluginKey<EntityStorePluginState>(
-  "entityStore",
-);
+const entityStorePluginKey = new PluginKey<EntityStorePluginState>("entityStore");
 
 type EntityStoreMeta = {
   store?: EntityStorePluginState;
@@ -127,9 +121,7 @@ export const entityStorePluginState = (state: EditorState) => {
   const pluginState = entityStorePluginKey.getState(state);
 
   if (!pluginState) {
-    throw new Error(
-      "Cannot get entity store when state does not have entity store plugin",
-    );
+    throw new Error("Cannot get entity store when state does not have entity store plugin");
   }
   return pluginState;
 };
@@ -140,8 +132,7 @@ export const entityStorePluginState = (state: EditorState) => {
 export const entityStorePluginStateFromTransaction = (
   tr: Transaction,
   state: EditorState,
-): EntityStorePluginState =>
-  getMeta(tr)?.store ?? entityStorePluginState(state);
+): EntityStorePluginState => getMeta(tr)?.store ?? entityStorePluginState(state);
 
 /**
  * Creates a draftId for an entity.
@@ -203,17 +194,13 @@ const setBlockChildEntity = (
   targetEntity: EntityStoreType,
 ) => {
   let targetDraftEntity = Object.values(draftEntityStore).find(
-    (entity) =>
-      entity.metadata.recordId.entityId ===
-      targetEntity.metadata.recordId.entityId,
+    (entity) => entity.metadata.recordId.entityId === targetEntity.metadata.recordId.entityId,
   );
 
   // Add target entity to draft store if it is not present there
   // @todo consider moving this to ProseMirrorSchemaManager.updateBlockData
   if (targetDraftEntity === undefined) {
-    const targetEntityDraftId = generateDraftIdForEntity(
-      targetEntity.metadata.recordId.entityId,
-    );
+    const targetEntityDraftId = generateDraftIdForEntity(targetEntity.metadata.recordId.entityId);
     targetDraftEntity = {
       metadata: targetEntity.metadata,
       draftId: targetEntityDraftId,
@@ -231,9 +218,7 @@ const setBlockChildEntity = (
   const draftBlockEntity = draftEntityStore[blockEntityDraftId];
 
   if (!isDraftBlockEntity(draftBlockEntity)) {
-    throw new Error(
-      `BlockEntity not present in draft store. Draft Id => ${blockEntityDraftId}`,
-    );
+    throw new Error(`BlockEntity not present in draft store. Draft Id => ${blockEntityDraftId}`);
   }
 
   /**
@@ -288,63 +273,51 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        updateEntitiesByDraftId(
-          draftState.store.draft,
-          action.payload.draftId,
-          (draftEntity) => {
-            if ("blockEntityMetadata" in action.payload) {
-              draftEntity.componentId =
-                action.payload.blockEntityMetadata.componentId;
-              draftEntity.blockChildEntity = action.payload.blockEntityMetadata
-                .blockChildEntity as Draft<
-                BlockEntity & { draftId?: string | undefined }
-              >;
+        updateEntitiesByDraftId(draftState.store.draft, action.payload.draftId, (draftEntity) => {
+          if ("blockEntityMetadata" in action.payload) {
+            draftEntity.componentId = action.payload.blockEntityMetadata.componentId;
+            draftEntity.blockChildEntity = action.payload.blockEntityMetadata
+              .blockChildEntity as Draft<BlockEntity & { draftId?: string | undefined }>;
+          }
+
+          if ("properties" in action.payload) {
+            if (action.payload.merge) {
+              Object.assign(draftEntity.properties, action.payload.properties);
+            } else {
+              draftEntity.properties = castDraft(action.payload.properties as PropertyObject);
             }
+          }
 
-            if ("properties" in action.payload) {
-              if (action.payload.merge) {
-                Object.assign(
-                  draftEntity.properties,
-                  action.payload.properties,
-                );
-              } else {
-                draftEntity.properties = castDraft(
-                  action.payload.properties as PropertyObject,
-                );
-              }
-            }
+          const now = currentTimestamp();
 
-            const now = currentTimestamp();
-
-            /**
-             * When we merge the updated entity store in from the API in createEntityStore, after a save,
-             * we compare the decision time of the local draft entities to that of the API-provided ones to see which
-             * to prefer. Although this is fragile and not a robust solution given the possibility of the API and the
-             * frontend having different clocks, it's better than nothing. We should instead have a proper
-             * collaborative server which manages document state. H-1234
-             */
-            draftEntity.metadata.temporalVersioning = {
-              decisionTime: {
-                start: {
-                  kind: "inclusive",
-                  limit: now,
-                },
-                end: {
-                  kind: "unbounded",
-                },
+          /**
+           * When we merge the updated entity store in from the API in createEntityStore, after a save,
+           * we compare the decision time of the local draft entities to that of the API-provided ones to see which
+           * to prefer. Although this is fragile and not a robust solution given the possibility of the API and the
+           * frontend having different clocks, it's better than nothing. We should instead have a proper
+           * collaborative server which manages document state. H-1234
+           */
+          draftEntity.metadata.temporalVersioning = {
+            decisionTime: {
+              start: {
+                kind: "inclusive",
+                limit: now,
               },
-              transactionTime: {
-                start: {
-                  kind: "inclusive",
-                  limit: now,
-                },
-                end: {
-                  kind: "unbounded",
-                },
+              end: {
+                kind: "unbounded",
               },
-            };
-          },
-        );
+            },
+            transactionTime: {
+              start: {
+                kind: "inclusive",
+                limit: now,
+              },
+              end: {
+                kind: "unbounded",
+              },
+            },
+          };
+        });
       });
     }
 
@@ -424,9 +397,7 @@ const entityStoreReducer = (
   return state;
 };
 
-export const disableEntityStoreTransactionInterpretation = (
-  tr: Transaction,
-) => {
+export const disableEntityStoreTransactionInterpretation = (tr: Transaction) => {
   setMeta(tr, {
     ...(getMeta(tr) ?? {}),
     disableInterpretation: true,
@@ -574,9 +545,7 @@ class ProsemirrorStateChangeHandler {
       const entity = draftEntityStore[blockEntityNode.attrs.draftId];
 
       if (!entity || !isBlockEntity(entity)) {
-        throw new Error(
-          "Block entity node points at non-block entity in draft store",
-        );
+        throw new Error("Block entity node points at non-block entity in draft store");
       }
 
       const componentId = componentNodeToId(node);
@@ -618,9 +587,7 @@ class ProsemirrorStateChangeHandler {
       // @todo in what circumstances does this occur
       if (!isDraftBlockEntity(parentEntity)) {
         const componentNodeChild = findComponentNodes(node)[0];
-        const componentId = componentNodeChild
-          ? componentNodeToId(componentNodeChild)
-          : "";
+        const componentId = componentNodeChild ? componentNodeToId(componentNodeChild) : "";
 
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
@@ -628,8 +595,7 @@ class ProsemirrorStateChangeHandler {
             merge: false,
             draftId: parentEntity.draftId,
             blockEntityMetadata: {
-              blockChildEntity:
-                draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
+              blockChildEntity: draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
               componentId,
             },
           },
@@ -662,9 +628,7 @@ class ProsemirrorStateChangeHandler {
       // Check if the next entity node's child is a component node
       isComponentNode(node.firstChild.firstChild)
     ) {
-      const nextTextProperties = textBlockNodeToEntityProperties(
-        node.firstChild,
-      );
+      const nextTextProperties = textBlockNodeToEntityProperties(node.firstChild);
 
       if (
         !isEqual(
@@ -724,10 +688,7 @@ class ProsemirrorStateChangeHandler {
     }
   }
 
-  private potentialNewDraftEntityForEntityNode(
-    node: EntityNode,
-    pos: number,
-  ): EntityNode {
+  private potentialNewDraftEntityForEntityNode(node: EntityNode, pos: number): EntityNode {
     this.potentialDraftIdSetForEntityNode(node, pos);
 
     const updatedNode = this.tr.doc.resolve(this.tr.mapping.map(pos)).nodeAfter;
@@ -742,8 +703,7 @@ class ProsemirrorStateChangeHandler {
   }
 
   private getDraftEntityStoreFromTransaction() {
-    return entityStorePluginStateFromTransaction(this.tr, this.state).store
-      .draft;
+    return entityStorePluginStateFromTransaction(this.tr, this.state).store.draft;
   }
 }
 
@@ -804,11 +764,7 @@ export const createEntityStorePlugin = ({ webId }: { webId: WebId }) => {
     view() {
       return {
         update: (view, prevState) => {
-          scheduleNotifyEntityStoreSubscribers(
-            view,
-            prevState,
-            entityStorePlugin,
-          );
+          scheduleNotifyEntityStoreSubscribers(view, prevState, entityStorePlugin);
         },
       };
     },
@@ -825,9 +781,7 @@ export const createEntityStorePlugin = ({ webId }: { webId: WebId }) => {
         return;
       }
 
-      if (
-        getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
-      ) {
+      if (getMeta(transactions[transactions.length - 1]!)?.disableInterpretation) {
         return;
       }
 

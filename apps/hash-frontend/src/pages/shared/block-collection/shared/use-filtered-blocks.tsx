@@ -3,26 +3,17 @@ import { useMemo } from "react";
 import { fuzzySearchBy } from "./fuzzy-search-by";
 
 import type { BlockVariant } from "@blockprotocol/core";
-import type {
-  HashBlock,
-  HashBlockMeta,
-} from "@local/hash-isomorphic-utils/blocks";
+import type { HashBlock, HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 
 type Option = {
   variant: BlockVariant;
   meta: HashBlockMeta;
 };
 
-export const useFilteredBlocks = (
-  searchText: string,
-  compatibleBlocks: HashBlock[],
-) => {
+export const useFilteredBlocks = (searchText: string, compatibleBlocks: HashBlock[]) => {
   return useMemo(() => {
     const allOptions: Option[] = compatibleBlocks
-      .sort(
-        (a, b) =>
-          a.meta.displayName?.localeCompare(b.meta.displayName ?? "") ?? 0,
-      )
+      .sort((a, b) => a.meta.displayName?.localeCompare(b.meta.displayName ?? "") ?? 0)
       .flatMap(({ meta }) =>
         // Assumes that variants have been built for all blocks in toBlockConfig
         // any required changes to block metadata should happen there

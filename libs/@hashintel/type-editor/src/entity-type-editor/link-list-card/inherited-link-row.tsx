@@ -4,10 +4,7 @@ import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { useEntityTypesOptions } from "../../shared/entity-types-options-context";
 import { ArrowTurnDownRightIcon } from "../shared/arrow-turn-down-right-icon";
-import {
-  EntityTypeTableRow,
-  EntityTypeTableTitleCellText,
-} from "../shared/entity-type-table";
+import { EntityTypeTableRow, EntityTypeTableTitleCellText } from "../shared/entity-type-table";
 import { generateReadonlyMessage } from "../shared/generate-readonly-message";
 import { Link } from "../shared/link";
 import {
@@ -56,11 +53,7 @@ export const InheritedLinkRow = ({
           </Link>
         </EntityTypeTableTitleCellText>
       </TableCell>
-      <Tooltip
-        placement="top"
-        classes={{ popper: fluidFontClassName }}
-        title={readonlyMessage}
-      >
+      <Tooltip placement="top" classes={{ popper: fluidFontClassName }} title={readonlyMessage}>
         <TableCell sx={{ py: "0 !important" }}>
           <DestinationTypeContainer>
             {destinationEntityTypes.length ? (
@@ -68,16 +61,11 @@ export const InheritedLinkRow = ({
                 const entityType = entityTypes[entityTypeId];
 
                 if (!entityType) {
-                  throw new Error(
-                    `Destination entity type ${entityTypeId} not found in options`,
-                  );
+                  throw new Error(`Destination entity type ${entityTypeId} not found in options`);
                 }
 
                 return (
-                  <DestinationEntityType
-                    key={entityTypeId}
-                    entityTypeSchema={entityType.schema}
-                  />
+                  <DestinationEntityType key={entityTypeId} entityTypeSchema={entityType.schema} />
                 );
               })
             ) : (
@@ -86,24 +74,10 @@ export const InheritedLinkRow = ({
           </DestinationTypeContainer>
         </TableCell>
       </Tooltip>
-      <Tooltip
-        placement="top"
-        classes={{ popper: fluidFontClassName }}
-        title={readonlyMessage}
-      >
+      <Tooltip placement="top" classes={{ popper: fluidFontClassName }} title={readonlyMessage}>
         <TableCell sx={{ p: "0 !important" }}>
-          <MultipleValuesControlContainer
-            canToggle={false}
-            menuOpen={false}
-            isReadOnly
-            showSummary
-          >
-            <MultipleValuesCellSummary
-              show
-              infinity={infinity}
-              min={minValue}
-              max={maxValue}
-            />
+          <MultipleValuesControlContainer canToggle={false} menuOpen={false} isReadOnly showSummary>
+            <MultipleValuesCellSummary show infinity={infinity} min={minValue} max={maxValue} />
           </MultipleValuesControlContainer>
         </TableCell>
       </Tooltip>

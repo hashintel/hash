@@ -3,17 +3,10 @@ import { z } from "zod";
 import { displayNameSchema } from "../validation/display-name";
 import { entityNameSchema } from "../validation/entity-name";
 
-import type {
-  Color,
-  DifferentialEquation,
-  Parameter,
-  Place,
-  Transition,
-} from "../types/sdcpn";
+import type { Color, DifferentialEquation, Parameter, Place, Transition } from "../types/sdcpn";
 
 export const idSchema = z.string().min(1).meta({
-  description:
-    "Stable identifier for an SDCPN entity. Use unique IDs within the net.",
+  description: "Stable identifier for an SDCPN entity. Use unique IDs within the net.",
 });
 
 export const positionSchema = z
@@ -72,8 +65,7 @@ export const outputArcSchema = z
   });
 
 export const arcDirectionSchema = z.enum(["input", "output"]).meta({
-  description:
-    "Whether the arc connects a place into a transition or a transition out to a place.",
+  description: "Whether the arc connects a place into a transition or a transition out to a place.",
 });
 
 export const colorElementSchema = z
@@ -82,8 +74,7 @@ export const colorElementSchema = z
       description: "Stable identifier for this colour element.",
     }),
     name: displayNameSchema.meta({
-      description:
-        "Token attribute name used in lambda, kernel, visualizer, and dynamics code.",
+      description: "Token attribute name used in lambda, kernel, visualizer, and dynamics code.",
     }),
     type: z.enum(["real", "integer", "boolean"]).meta({
       description: "Primitive token attribute type.",
@@ -113,12 +104,10 @@ export const placeSchema = z
         "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled.",
     }),
     visualizerCode: z.string().optional().meta({
-      description:
-        "Optional visualization module code for rendering tokens in this place.",
+      description: "Optional visualization module code for rendering tokens in this place.",
     }),
     showAsInitialState: z.boolean().optional().meta({
-      description:
-        "Optional UI hint to show this place in the initial-state view.",
+      description: "Optional UI hint to show this place in the initial-state view.",
     }),
     x: z.number().meta({
       description: "Horizontal canvas position.",
@@ -139,12 +128,10 @@ export const transitionSchema = z
       description: "Human-readable transition name.",
     }),
     inputArcs: z.array(inputArcSchema).meta({
-      description:
-        "Input arcs that gate and consume tokens for this transition.",
+      description: "Input arcs that gate and consume tokens for this transition.",
     }),
     outputArcs: z.array(outputArcSchema).meta({
-      description:
-        "Output arcs that receive tokens after this transition fires.",
+      description: "Output arcs that receive tokens after this transition fires.",
     }),
     lambdaType: z.enum(["predicate", "stochastic"]).meta({
       description:
@@ -166,8 +153,7 @@ export const transitionSchema = z
     }),
   })
   .meta({
-    description:
-      "A Petri net transition. Transitions connect places and define firing logic.",
+    description: "A Petri net transition. Transitions connect places and define firing logic.",
   }) satisfies z.ZodType<Transition>;
 
 export const colorSchema = z
@@ -183,8 +169,7 @@ export const colorSchema = z
       description: "CSS colour used by the UI to display this colour/type.",
     }),
     elements: z.array(colorElementSchema).meta({
-      description:
-        "Typed token attributes available on tokens of this colour/type.",
+      description: "Typed token attributes available on tokens of this colour/type.",
     }),
   })
   .meta({
@@ -199,8 +184,7 @@ export const differentialEquationSchema = z
       description: "Human-readable dynamics name.",
     }),
     colorId: idSchema.nullable().meta({
-      description:
-        "ID of the colour/type whose token attributes this dynamics function updates.",
+      description: "ID of the colour/type whose token attributes this dynamics function updates.",
     }),
     code: z.string().meta({
       description:
@@ -208,8 +192,7 @@ export const differentialEquationSchema = z
     }),
   })
   .meta({
-    description:
-      "A differential equation for continuous dynamics on coloured tokens.",
+    description: "A differential equation for continuous dynamics on coloured tokens.",
   }) satisfies z.ZodType<DifferentialEquation>;
 
 export const parameterSchema = z
@@ -219,20 +202,17 @@ export const parameterSchema = z
       description: "Human-readable parameter name.",
     }),
     variableName: z.string().min(1).meta({
-      description:
-        "Identifier used by lambda, kernel, visualizer, metric, and dynamics code.",
+      description: "Identifier used by lambda, kernel, visualizer, metric, and dynamics code.",
     }),
     type: z.enum(["real", "integer", "boolean"]).meta({
       description: "Primitive parameter type.",
     }),
     defaultValue: z.string().meta({
-      description:
-        "Default parameter value as an expression string parsed by the simulator.",
+      description: "Default parameter value as an expression string parsed by the simulator.",
     }),
   })
   .meta({
-    description:
-      "A net-level parameter available to executable SDCPN code and scenarios.",
+    description: "A net-level parameter available to executable SDCPN code and scenarios.",
   }) satisfies z.ZodType<Parameter>;
 
 export type PlaceSchema = typeof placeSchema;

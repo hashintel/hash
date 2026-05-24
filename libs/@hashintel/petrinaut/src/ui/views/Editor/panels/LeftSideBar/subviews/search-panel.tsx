@@ -153,13 +153,7 @@ interface SearchResult {
 
 function useSearchableItems(): SearchableItem[] {
   const {
-    petriNetDefinition: {
-      places,
-      transitions,
-      types,
-      differentialEquations,
-      parameters,
-    },
+    petriNetDefinition: { places, transitions, types, differentialEquations, parameters },
   } = use(SDCPNContext);
 
   return [
@@ -207,14 +201,8 @@ function useSearchableItems(): SearchableItem[] {
 
 // -- Components ---------------------------------------------------------------
 
-const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
-  results,
-}) => {
-  const {
-    isSelected: checkIsSelected,
-    selectItem,
-    searchInputRef,
-  } = use(EditorContext);
+const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({ results }) => {
+  const { isSelected: checkIsSelected, selectItem, searchInputRef } = use(EditorContext);
   const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
   const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   const focusedIndex = clampIndex(focusedIndexState, results.length);
@@ -239,9 +227,7 @@ const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
           return;
         }
         const nextIndex =
-          focusedIndex === null
-            ? 0
-            : Math.min(focusedIndex + 1, results.length - 1);
+          focusedIndex === null ? 0 : Math.min(focusedIndex + 1, results.length - 1);
         setFocusedIndex(nextIndex);
         const item = results[nextIndex];
         if (item) {
@@ -376,9 +362,7 @@ const SearchContent: React.FC = () => {
           }));
 
   const hasQuery = trimmed !== "";
-  const matchLabel = hasQuery
-    ? `${results.length} match${results.length === 1 ? "" : "es"}`
-    : null;
+  const matchLabel = hasQuery ? `${results.length} match${results.length === 1 ? "" : "es"}` : null;
 
   return (
     <>

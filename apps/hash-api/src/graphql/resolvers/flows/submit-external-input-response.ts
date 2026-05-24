@@ -3,10 +3,7 @@ import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/
 
 import * as Error from "../../error";
 
-import type {
-  MutationSubmitExternalInputResponseArgs,
-  ResolverFn,
-} from "../../api-types.gen";
+import type { MutationSubmitExternalInputResponseArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
 import type { EntityUuid } from "@blockprotocol/type-system";
 
@@ -15,11 +12,7 @@ export const submitExternalInputResponse: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationSubmitExternalInputResponseArgs
-> = async (
-  _,
-  { response, flowUuid },
-  { authentication, dataSources, temporal },
-) => {
+> = async (_, { response, flowUuid }, { authentication, dataSources, temporal }) => {
   const flow = await getFlowRunEntityById({
     flowRunId: flowUuid as EntityUuid,
     graphApiClient: dataSources.graphApi,

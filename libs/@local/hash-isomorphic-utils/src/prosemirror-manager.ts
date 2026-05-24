@@ -1,7 +1,4 @@
-import {
-  areComponentsCompatible,
-  isBlockWithTextualContentProperty,
-} from "./blocks-constants.js";
+import { areComponentsCompatible, isBlockWithTextualContentProperty } from "./blocks-constants.js";
 import { fetchBlock, prepareBlockCache } from "./blocks.js";
 import {
   addEntityStoreAction,
@@ -17,19 +14,11 @@ import {
   textualContentPropertyTypeBaseUrl,
 } from "./entity-store.js";
 import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
-import {
-  componentNodeGroupName,
-  findComponentNode,
-  mutateSchema,
-} from "./prosemirror.js";
+import { componentNodeGroupName, findComponentNode, mutateSchema } from "./prosemirror.js";
 import { childrenForTextEntity } from "./text.js";
 
 import type { HashBlock } from "./blocks.js";
-import type {
-  DraftEntity,
-  EntityStore,
-  EntityStoreType,
-} from "./entity-store.js";
+import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store.js";
 import type { BlockEntity } from "./entity.js";
 import type { TextualContentPropertyValue } from "./system-types/shared.js";
 import type { TextToken } from "./types.js";
@@ -127,9 +116,7 @@ export class ProsemirrorManager {
    */
   async ensureBlocksDefined(componentIds: string[] = []) {
     return Promise.all(
-      componentIds.map((componentId) =>
-        this.defineBlockByComponentId(componentId),
-      ),
+      componentIds.map((componentId) => this.defineBlockByComponentId(componentId)),
     );
   }
 
@@ -173,16 +160,11 @@ export class ProsemirrorManager {
     const childDraftId = blockEntity?.draftId;
 
     const blockData =
-      draftBlockId && entityStore
-        ? getBlockChildEntity(draftBlockId, entityStore)
-        : null;
+      draftBlockId && entityStore ? getBlockChildEntity(draftBlockId, entityStore) : null;
 
     const content =
       blockData && isRichTextProperties(blockData.properties)
-        ? childrenForTextEntity(
-            { properties: blockData.properties },
-            this.schema,
-          )
+        ? childrenForTextEntity({ properties: blockData.properties }, this.schema)
         : [];
 
     /**
@@ -219,10 +201,7 @@ export class ProsemirrorManager {
    * handles that for you.
    */
   async loadPage(currentState: EditorState, entities: BlockEntity[]) {
-    const store = createEntityStore(
-      entities,
-      entityStorePluginState(currentState).store.draft,
-    );
+    const store = createEntityStore(entities, entityStorePluginState(currentState).store.draft);
 
     const nodes = await Promise.all(
       entities.map(async (blockEntity) => {
@@ -233,11 +212,7 @@ export class ProsemirrorManager {
 
         await this.defineBlockByComponentId(blockEntity.componentId);
 
-        return this.renderBlock(
-          blockEntity.componentId,
-          store,
-          draftEntity.draftId,
-        );
+        return this.renderBlock(blockEntity.componentId, store, draftEntity.draftId);
       }),
     );
 
@@ -267,11 +242,7 @@ export class ProsemirrorManager {
       throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
     }
 
-    const [tr, newNode] = await this.createBlock(
-      targetComponentId,
-      draftBlockId,
-      targetVariant,
-    );
+    const [tr, newNode] = await this.createBlock(targetComponentId, draftBlockId, targetVariant);
 
     tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
     view.dispatch(tr);
@@ -321,9 +292,7 @@ export class ProsemirrorManager {
       : {};
 
     const entityStoreState = entityStorePluginState(this.view.state);
-    const blockEntity = draftBlockId
-      ? entityStoreState.store.draft[draftBlockId]
-      : null;
+    const blockEntity = draftBlockId ? entityStoreState.store.draft[draftBlockId] : null;
 
     if (draftBlockId && !blockEntity) {
       throw new Error("draftId is not present in entity store");
@@ -335,10 +304,7 @@ export class ProsemirrorManager {
 
     let targetBlockId: string;
 
-    if (
-      blockEntity &&
-      areComponentsCompatible(blockEntity.componentId, targetComponentId)
-    ) {
+    if (blockEntity && areComponentsCompatible(blockEntity.componentId, targetComponentId)) {
       if (targetComponentId === blockEntity.componentId) {
         addEntityStoreAction(this.view.state, tr, {
           type: "updateEntityProperties",
@@ -359,55 +325,34 @@ export class ProsemirrorManager {
             textualContentPropertyTypeBaseUrl
           ] as TextualContentPropertyValue | undefined;
 
-          const newTextContent =
-            newBlockProperties[textualContentPropertyTypeBaseUrl];
+          const newTextContent = newBlockProperties[textualContentPropertyTypeBaseUrl];
 
           if (
             existingTextContent &&
-            (!newTextContent ||
-              (Array.isArray(newTextContent) && !newTextContent[0]))
+            (!newTextContent || (Array.isArray(newTextContent) && !newTextContent[0]))
           ) {
             const textAsTokens =
               typeof existingTextContent === "string"
-                ? ([
-                    { tokenType: "text", text: existingTextContent },
-                  ] satisfies TextToken[])
+                ? ([{ tokenType: "text", text: existingTextContent }] satisfies TextToken[])
                 : existingTextContent;
 
-            newBlockProperties[textualContentPropertyTypeBaseUrl] =
-              textAsTokens;
+            newBlockProperties[textualContentPropertyTypeBaseUrl] = textAsTokens;
           }
         }
 
-        targetBlockId = this.createBlockEntity(
-          tr,
-          targetComponentId,
-          newBlockProperties,
-        );
+        targetBlockId = this.createBlockEntity(tr, targetComponentId, newBlockProperties);
       }
     } else {
-      targetBlockId = this.createBlockEntity(
-        tr,
-        targetComponentId,
-        entityProperties,
-      );
+      targetBlockId = this.createBlockEntity(tr, targetComponentId, entityProperties);
     }
 
     const updated = entityStorePluginStateFromTransaction(tr, this.view.state);
-    const newNode = this.renderBlock(
-      targetComponentId,
-      updated.store,
-      targetBlockId,
-    );
+    const newNode = this.renderBlock(targetComponentId, updated.store, targetBlockId);
 
     return [tr, newNode] as const;
   }
 
-  async insertBlock(
-    targetComponentId: string,
-    variant: BlockVariant | null,
-    to: number,
-  ) {
+  async insertBlock(targetComponentId: string, variant: BlockVariant | null, to: number) {
     const [tr, node] = await this.createBlock(targetComponentId, null, variant);
 
     tr.insert(to, node);
@@ -415,12 +360,7 @@ export class ProsemirrorManager {
     return { tr };
   }
 
-  async replaceRange(
-    targetComponentId: string,
-    variant: BlockVariant,
-    from: number,
-    to: number,
-  ) {
+  async replaceRange(targetComponentId: string, variant: BlockVariant, from: number, to: number) {
     const [tr, node] = await this.createBlock(targetComponentId, null, variant);
 
     tr.insert(to, node);
@@ -433,15 +373,10 @@ export class ProsemirrorManager {
       throw new Error("Cannot find inserted node in transaction");
     }
 
-    const componentPosition = findComponentNode(
-      containingNode,
-      blockPosition,
-    )?.[1];
+    const componentPosition = findComponentNode(containingNode, blockPosition)?.[1];
 
     if (typeof componentPosition !== "number") {
-      throw new Error(
-        "Cannot find inserted component node position in transaction",
-      );
+      throw new Error("Cannot find inserted component node position in transaction");
     }
 
     return { tr, blockPosition, componentPosition };
@@ -454,19 +389,13 @@ export class ProsemirrorManager {
    *
    * @todo this does not work within text blocks
    */
-  replaceBlockChildEntity(
-    blockEntityId: EntityId,
-    targetChildEntity: EntityStoreType,
-  ) {
+  replaceBlockChildEntity(blockEntityId: EntityId, targetChildEntity: EntityStoreType) {
     if (!this.view) {
       throw new Error("Cannot trigger replaceBlockChildEntity without view");
     }
 
     const { tr } = this.view.state;
-    const entityStore = entityStorePluginStateFromTransaction(
-      tr,
-      this.view.state,
-    ).store;
+    const entityStore = entityStorePluginStateFromTransaction(tr, this.view.state).store;
 
     const blockEntity = blockEntityId ? entityStore.saved[blockEntityId] : null;
 
@@ -479,10 +408,8 @@ export class ProsemirrorManager {
     // If the target entity is the same as the block's child entity
     // we don't need to do anything
     if (
-      targetChildEntity.metadata.recordId.entityId ===
-        childEntity.metadata.recordId.entityId &&
-      targetChildEntity.metadata.recordId.editionId ===
-        childEntity.metadata.recordId.editionId
+      targetChildEntity.metadata.recordId.entityId === childEntity.metadata.recordId.entityId &&
+      targetChildEntity.metadata.recordId.editionId === childEntity.metadata.recordId.editionId
     ) {
       return;
     }
@@ -516,10 +443,7 @@ export class ProsemirrorManager {
 
     const { tr } = this.view.state;
 
-    const entityStore = entityStorePluginStateFromTransaction(
-      tr,
-      this.view.state,
-    ).store.draft;
+    const entityStore = entityStorePluginStateFromTransaction(tr, this.view.state).store.draft;
 
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
@@ -584,10 +508,9 @@ export class ProsemirrorManager {
         merge: false,
         blockEntityMetadata: {
           componentId: targetComponentId,
-          blockChildEntity: entityStorePluginStateFromTransaction(
-            tr,
-            this.view.state,
-          ).store.draft[blockDataDraftId],
+          blockChildEntity: entityStorePluginStateFromTransaction(tr, this.view.state).store.draft[
+            blockDataDraftId
+          ],
         },
       },
     });

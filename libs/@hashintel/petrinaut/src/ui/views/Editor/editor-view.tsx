@@ -23,10 +23,7 @@ import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "../SDCPN/node-dimensions";
+import { classicNodeDimensions, compactNodeDimensions } from "../SDCPN/node-dimensions";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
@@ -105,14 +102,8 @@ export const EditorView = ({
   viewportActions?: ViewportAction[];
 }) => {
   // Get data from sdcpn-store
-  const {
-    createNewNet,
-    existingNets,
-    loadPetriNet,
-    petriNetDefinition,
-    title,
-    setTitle,
-  } = use(SDCPNContext);
+  const { createNewNet, existingNets, loadPetriNet, petriNetDefinition, title, setTitle } =
+    use(SDCPNContext);
   const { commitNodePositions } = use(MutationContext);
 
   // Get editor context
@@ -205,15 +196,11 @@ export const EditorView = ({
           ...sdcpnToLoad,
           places: sdcpnToLoad.places.map((place) => {
             const position = positions[place.id];
-            return position
-              ? { ...place, x: position.x, y: position.y }
-              : place;
+            return position ? { ...place, x: position.x, y: position.y } : place;
           }),
           transitions: sdcpnToLoad.transitions.map((transition) => {
             const position = positions[transition.id];
-            return position
-              ? { ...transition, x: position.x, y: position.y }
-              : transition;
+            return position ? { ...transition, x: position.x, y: position.y } : transition;
           }),
         };
       }
@@ -385,9 +372,7 @@ export const EditorView = ({
           hideNetManagementControls={hideNetManagementControls}
           mode={mode}
           onModeChange={setGlobalMode}
-          onRunningExperimentClick={(experiment) =>
-            handleRunningExperimentClick(experiment.id)
-          }
+          onRunningExperimentClick={(experiment) => handleRunningExperimentClick(experiment.id)}
         />
 
         <Stack direction="row" className={rowContainerStyle}>

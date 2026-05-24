@@ -67,9 +67,7 @@ export const useGridTooltip = (
       const interactableStartX =
         bounds.x +
         ("right" in interactablePosRelativeToCell
-          ? bounds.width -
-            interactableSize.width -
-            interactablePosRelativeToCell.right
+          ? bounds.width - interactableSize.width - interactablePosRelativeToCell.right
           : interactablePosRelativeToCell.left);
 
       const interactableStartY = bounds.y + interactablePosRelativeToCell.top;
@@ -93,8 +91,7 @@ export const useGridTooltip = (
 
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
-      const isEditorOpen =
-        !!document.querySelector(`div[id="portal"]`)?.children.length;
+      const isEditorOpen = !!document.querySelector(`div[id="portal"]`)?.children.length;
 
       if (isEditorOpen) {
         return;
@@ -135,10 +132,7 @@ export const useGridTooltip = (
 
   const hideTooltip = useCallback<TooltipCellProps["hideTooltip"]>(
     (colIndex, rowIndex) => {
-      if (
-        gridTooltip?.colIndex === colIndex &&
-        gridTooltip.rowIndex === rowIndex
-      ) {
+      if (gridTooltip?.colIndex === colIndex && gridTooltip.rowIndex === rowIndex) {
         popupState.close();
         setGridTooltip(null);
       }

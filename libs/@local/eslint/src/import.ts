@@ -1,8 +1,6 @@
 import { defineConfig, type ESConfig } from "./utils.js";
 
-export const importPlugin = (
-  config: readonly ESConfig[],
-): readonly ESConfig[] =>
+export const importPlugin = (config: readonly ESConfig[]): readonly ESConfig[] =>
   defineConfig([
     ...config,
     {

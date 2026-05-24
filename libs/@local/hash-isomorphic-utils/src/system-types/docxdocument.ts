@@ -151,8 +151,7 @@ export type DOCXDocumentOutgoingLinksByLinkEntityTypeId = {};
  */
 export type DOCXDocumentProperties = DocumentFileProperties & {};
 
-export type DOCXDocumentPropertiesWithMetadata =
-  DocumentFilePropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {};
-  };
+export type DOCXDocumentPropertiesWithMetadata = DocumentFilePropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};

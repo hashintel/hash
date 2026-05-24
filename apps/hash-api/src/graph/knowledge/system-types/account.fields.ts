@@ -1,10 +1,7 @@
 import { getOrgByShortname } from "./org";
 import { getUser } from "./user";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [
@@ -104,10 +101,9 @@ export const shortnameContainsInvalidCharacter: PureGraphFunction<
   return !!shortname.search(ALLOWED_SHORTNAME_CHARS);
 };
 
-export const shortnameIsRestricted: PureGraphFunction<
-  { shortname: string },
-  boolean
-> = ({ shortname }): boolean => {
+export const shortnameIsRestricted: PureGraphFunction<{ shortname: string }, boolean> = ({
+  shortname,
+}): boolean => {
   return RESTRICTED_SHORTNAMES.includes(shortname.toLowerCase());
 };
 
@@ -130,10 +126,9 @@ export const shortnameIsTaken: ImpureGraphFunction<
   );
 };
 
-export const shortnameIsInvalid: PureGraphFunction<
-  { shortname: string },
-  boolean
-> = (params): boolean => {
+export const shortnameIsInvalid: PureGraphFunction<{ shortname: string }, boolean> = (
+  params,
+): boolean => {
   return (
     params.shortname.length < shortnameMinimumLength ||
     params.shortname.length > shortnameMaximumLength ||

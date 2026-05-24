@@ -42,11 +42,7 @@ export const TypeGraphVisualizer = ({
   types,
 }: {
   onTypeClick: (typeId: VersionedUrl) => void;
-  types: (
-    | DataTypeWithMetadata
-    | EntityTypeWithMetadata
-    | PropertyTypeWithMetadata
-  )[];
+  types: (DataTypeWithMetadata | EntityTypeWithMetadata | PropertyTypeWithMetadata)[];
 }) => {
   const { palette } = useTheme();
 
@@ -110,9 +106,7 @@ export const TypeGraphVisualizer = ({
 
       addedNodeIds.add(entityTypeId);
 
-      for (const [linkTypeId, destinationSchema] of typedEntries(
-        schema.links ?? {},
-      )) {
+      for (const [linkTypeId, destinationSchema] of typedEntries(schema.links ?? {})) {
         const destinationTypeIds =
           "oneOf" in destinationSchema.items
             ? destinationSchema.items.oneOf.map((dest) => dest.$ref)
@@ -128,14 +122,10 @@ export const TypeGraphVisualizer = ({
          * But we can re-use any with the same destination set.
          * The id is therefore based on the link type and the destination types.
          */
-        const linkNodeId = `${linkTypeId}~${
-          destinationTypeIds?.sort().join("-") ?? "anything"
-        }`;
+        const linkNodeId = `${linkTypeId}~${destinationTypeIds?.sort().join("-") ?? "anything"}`;
 
         if (!addedNodeIds.has(linkNodeId)) {
-          const linkSchema = types.find(
-            (type) => type.schema.$id === linkTypeId,
-          )?.schema;
+          const linkSchema = types.find((type) => type.schema.$id === linkTypeId)?.schema;
 
           if (!linkSchema) {
             continue;
@@ -155,9 +145,7 @@ export const TypeGraphVisualizer = ({
                   instanceIds: [],
                   sourceIds: [],
                 };
-                linkNodesByEntityTypeId[destinationTypeId].sourceIds.push(
-                  linkNodeId,
-                );
+                linkNodesByEntityTypeId[destinationTypeId].sourceIds.push(linkNodeId);
 
                 isLinkToALink = true;
                 continue;
@@ -224,9 +212,7 @@ export const TypeGraphVisualizer = ({
     /**
      * For each link, check if anything links to it, and if so link from that thing to all instances of the link
      */
-    for (const { instanceIds, sourceIds } of typedValues(
-      linkNodesByEntityTypeId,
-    )) {
+    for (const { instanceIds, sourceIds } of typedValues(linkNodesByEntityTypeId)) {
       for (const sourceId of sourceIds) {
         for (const instanceId of instanceIds) {
           edgesToAdd.push({

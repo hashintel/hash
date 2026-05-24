@@ -57,16 +57,8 @@ type PopupTab = "one-off" | "automated" | "history";
 const openPopupTab = async (page: Page, extensionId: string, tab: PopupTab) => {
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
   await waitForPopupStateLoaded(page);
-  await page.evaluate(
-    async (targetTab) => chrome.storage.local.set({ popupTab: targetTab }),
-    tab,
-  );
-  const label =
-    tab === "one-off"
-      ? "One-off"
-      : tab === "automated"
-        ? "Automated"
-        : "History";
+  await page.evaluate(async (targetTab) => chrome.storage.local.set({ popupTab: targetTab }), tab);
+  const label = tab === "one-off" ? "One-off" : tab === "automated" ? "Automated" : "History";
   await page.click(`text=${label}`);
   await waitForPopupStateLoaded(page);
 };
@@ -81,16 +73,12 @@ const selectEntityTypeOption = async (
   { multiple = true }: { multiple?: boolean } = {},
 ) => {
   await page.keyboard.type(name);
-  await expect(
-    page.getByRole("option").filter({ hasText: name }).first(),
-  ).toBeVisible();
+  await expect(page.getByRole("option").filter({ hasText: name }).first()).toBeVisible();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   if (multiple) {
     await expect(
-      page
-        .locator(".MuiChip-label")
-        .filter({ hasText: new RegExp(`^${name}$`) }),
+      page.locator(".MuiChip-label").filter({ hasText: new RegExp(`^${name}$`) }),
     ).toHaveCount(1);
   }
 };
@@ -103,9 +91,7 @@ const selectEntityTypeOption = async (
  */
 const resetOneOffState = async (page: Page) => {
   await page.evaluate(async () => {
-    const { manualInferenceConfig } = await chrome.storage.local.get(
-      "manualInferenceConfig",
-    );
+    const { manualInferenceConfig } = await chrome.storage.local.get("manualInferenceConfig");
     await chrome.storage.local.set({
       manualInferenceConfig: {
         ...(manualInferenceConfig ?? {}),
@@ -121,9 +107,7 @@ const resetOneOffState = async (page: Page) => {
 /** Reset automatic inference state; see {@link resetOneOffState}. */
 const resetAutomatedState = async (page: Page) => {
   await page.evaluate(async () => {
-    const { automaticInferenceConfig } = await chrome.storage.local.get(
-      "automaticInferenceConfig",
-    );
+    const { automaticInferenceConfig } = await chrome.storage.local.get("automaticInferenceConfig");
     await chrome.storage.local.set({
       automaticInferenceConfig: {
         ...(automaticInferenceConfig ?? {}),
@@ -160,10 +144,7 @@ const signOutAndReloadPopup = async ({
   await expect(page.locator("text=One-off")).toBeVisible();
 };
 
-test("popup window loads with logged-out state", async ({
-  page,
-  extensionId,
-}) => {
+test("popup window loads with logged-out state", async ({ page, extensionId }) => {
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
   await expect(page.locator(loggedOutHeaderLocator)).toBeVisible();
@@ -171,10 +152,7 @@ test("popup window loads with logged-out state", async ({
   await expect(page.locator(createAccountButtonLocator)).toBeVisible();
 });
 
-test("popup window loads with logged-in state", async ({
-  page,
-  extensionId,
-}) => {
+test("popup window loads with logged-in state", async ({ page, extensionId }) => {
   await signInWithPassword(page);
   await expectSignedIn(page);
 
@@ -183,10 +161,7 @@ test("popup window loads with logged-in state", async ({
   await expect(page.locator("text=One-off")).toBeVisible();
 });
 
-test("options page loads with logged-out state", async ({
-  page,
-  extensionId,
-}) => {
+test("options page loads with logged-out state", async ({ page, extensionId }) => {
   await page.goto(`chrome-extension://${extensionId}/options.html`);
 
   await expect(page.locator(loggedOutHeaderLocator)).toBeVisible();
@@ -194,10 +169,7 @@ test("options page loads with logged-out state", async ({
   await expect(page.locator(createAccountButtonLocator)).toBeVisible();
 });
 
-test("options page loads with logged-in state", async ({
-  page,
-  extensionId,
-}) => {
+test("options page loads with logged-in state", async ({ page, extensionId }) => {
   await signInWithPassword(page);
   await expectSignedIn(page);
 
@@ -206,10 +178,7 @@ test("options page loads with logged-in state", async ({
   await expect(page.locator("text=Welcome, Alice")).toBeVisible();
 });
 
-test("user can type a quick note which persists across logouts", async ({
-  page,
-  extensionId,
-}) => {
+test("user can type a quick note which persists across logouts", async ({ page, extensionId }) => {
   await signInWithPassword(page);
   await expectSignedIn(page);
 
@@ -227,8 +196,7 @@ test("user can type a quick note which persists across logouts", async ({
   // the debounce + backend round-trip to complete before signing out.
   await page.waitForFunction(
     async (expected) => {
-      const { draftQuickNote } =
-        await chrome.storage.local.get("draftQuickNote");
+      const { draftQuickNote } = await chrome.storage.local.get("draftQuickNote");
       return draftQuickNote === expected;
     },
     testQuickNote,

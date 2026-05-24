@@ -28,12 +28,7 @@ import type {
   InferenceState,
   ProposedEntitySummary,
 } from "./inference-types.js";
-import type {
-  EntityId,
-  UserId,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityId, UserId, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { Status } from "@local/status";
 import type OpenAI from "openai";
@@ -131,9 +126,7 @@ export const inferEntitySummaries = async (params: {
     )[],
     proposedEntitySummaries: ProposedEntitySummary[],
   ) => {
-    logger.debug(
-      `Retrying with additional message: ${stringify(retryMessages)}`,
-    );
+    logger.debug(`Retrying with additional message: ${stringify(retryMessages)}`);
 
     const newMessages = [
       ...completionPayload.messages,
@@ -174,9 +167,7 @@ export const inferEntitySummaries = async (params: {
     }
 
     case "length": {
-      logger.error(
-        `AI Model returned 'length' finish reason on attempt ${iterationCount}.`,
-      );
+      logger.error(`AI Model returned 'length' finish reason on attempt ${iterationCount}.`);
 
       const toolCallId = toolCalls[0]?.id;
 
@@ -243,8 +234,7 @@ export const inferEntitySummaries = async (params: {
         if (toolCall.name === "register_entity_summaries") {
           let proposedEntitySummariesByType: ProposedEntitySummariesByType;
           try {
-            proposedEntitySummariesByType =
-              toolCall.input as ProposedEntitySummariesByType;
+            proposedEntitySummariesByType = toolCall.input as ProposedEntitySummariesByType;
           } catch (err) {
             logger.error(
               `Model provided invalid argument to register_entity_summaries function. Argument provided: ${stringify(
@@ -253,21 +243,18 @@ export const inferEntitySummaries = async (params: {
             );
 
             retryMessages.push({
-              content: `Invalid JSON, please try again: ${
-                (err as Error).message
-              }`,
+              content: `Invalid JSON, please try again: ${(err as Error).message}`,
               role: "tool",
               tool_call_id: toolCall.id,
             });
             continue;
           }
 
-          const { validSummaries, errorMessage } =
-            validateEntitySummariesByType({
-              parsedJson: proposedEntitySummariesByType,
-              entityTypesById: entityTypes,
-              existingSummaries: inferenceState.proposedEntitySummaries,
-            });
+          const { validSummaries, errorMessage } = validateEntitySummariesByType({
+            parsedJson: proposedEntitySummariesByType,
+            entityTypesById: entityTypes,
+            existingSummaries: inferenceState.proposedEntitySummaries,
+          });
 
           for (const validSummary of validSummaries) {
             if (
@@ -292,9 +279,7 @@ export const inferEntitySummaries = async (params: {
         }
       }
 
-      const typesWithNoSuggestionsToRerequest = Object.values(
-        entityTypes,
-      ).filter(
+      const typesWithNoSuggestionsToRerequest = Object.values(entityTypes).filter(
         ({ schema }) =>
           // We track which types we've already requested the model try again for – we won't ask again
           !providedOrRerequestedEntityTypes.has(schema.$id),
@@ -308,22 +293,16 @@ export const inferEntitySummaries = async (params: {
         logger.info(
           // @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
           // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          `No suggestions for entity types: ${typesWithNoSuggestionsToRerequest.join(
-            ", ",
-          )}`,
+          `No suggestions for entity types: ${typesWithNoSuggestionsToRerequest.join(", ")}`,
         );
 
         for (const { schema } of typesWithNoSuggestionsToRerequest) {
           providedOrRerequestedEntityTypes.add(schema.$id);
         }
 
-        const isMissingEntities = typesWithNoSuggestionsToRerequest.some(
-          ({ isLink }) => !isLink,
-        );
+        const isMissingEntities = typesWithNoSuggestionsToRerequest.some(({ isLink }) => !isLink);
 
-        const isMissingLinks = typesWithNoSuggestionsToRerequest.some(
-          ({ isLink }) => isLink,
-        );
+        const isMissingLinks = typesWithNoSuggestionsToRerequest.some(({ isLink }) => isLink);
 
         const missingContentKinds = `${isMissingEntities ? "entities" : ""}${
           isMissingEntities && isMissingLinks ? " or " : ""
@@ -350,9 +329,7 @@ export const inferEntitySummaries = async (params: {
 
       const toolCallsWithoutProblems = toolCalls.filter(
         (toolCall) =>
-          !retryMessages.some(
-            (msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id,
-          ),
+          !retryMessages.some((msg) => msg.role === "tool" && msg.tool_call_id === toolCall.id),
       );
 
       /**
@@ -367,10 +344,7 @@ export const inferEntitySummaries = async (params: {
         })),
       );
 
-      return retryWithMessages(
-        retryMessages,
-        inferenceState.proposedEntitySummaries,
-      );
+      return retryWithMessages(retryMessages, inferenceState.proposedEntitySummaries);
     }
   }
 

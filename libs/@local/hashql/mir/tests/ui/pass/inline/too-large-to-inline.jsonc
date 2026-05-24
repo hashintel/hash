@@ -6,13 +6,7 @@
 [
   "let",
   "big_func",
-  [
-    "fn",
-    { "#tuple": [] },
-    { "#struct": {} },
-    "Boolean",
-    ["input", "v", "Boolean"]
-  ],
+  ["fn", { "#tuple": [] }, { "#struct": {} }, "Boolean", ["input", "v", "Boolean"]],
   [
     "let",
     "caller",

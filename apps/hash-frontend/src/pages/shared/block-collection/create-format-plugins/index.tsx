@@ -76,17 +76,13 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
               return false;
             }
 
-            view.dispatch(
-              view.state.tr.setMeta(markPluginKey, { type: "format-blur" }),
-            );
+            view.dispatch(view.state.tr.setMeta(markPluginKey, { type: "format-blur" }));
           }, 300);
           return false;
         },
         focus(view) {
           clearTimeout(timeout);
-          view.dispatch(
-            view.state.tr.setMeta(markPluginKey, { type: "format-focus" }),
-          );
+          view.dispatch(view.state.tr.setMeta(markPluginKey, { type: "format-focus" }));
           return false;
         },
       },
@@ -147,9 +143,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
 
           const top = start.top + document.documentElement.scrollTop;
           const left =
-            start.left +
-            (end.right - start.left) / 2 +
-            document.documentElement.scrollLeft;
+            start.left + (end.right - start.left) / 2 + document.documentElement.scrollLeft;
 
           const activeMarks = getActiveMarksWithAttrs(editorView.state);
 
@@ -214,9 +208,8 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           )
         ) {
           linkUrl =
-            getActiveMarksWithAttrs(nextEditorState).find(
-              ({ name }) => name === linkMark.name,
-            )?.attrs?.href ?? null;
+            getActiveMarksWithAttrs(nextEditorState).find(({ name }) => name === linkMark.name)
+              ?.attrs?.href ?? null;
         }
 
         const nextPluginState: LinkPluginState = { ...pluginState, linkUrl };
@@ -288,9 +281,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           const end = view.coordsAtPos(to);
 
           const left =
-            start.left +
-            (end.right - start.left) / 2 +
-            document.documentElement.scrollLeft;
+            start.left + (end.right - start.left) / 2 + document.documentElement.scrollLeft;
           const bottom = end.bottom + document.documentElement.scrollTop;
 
           renderPortal(

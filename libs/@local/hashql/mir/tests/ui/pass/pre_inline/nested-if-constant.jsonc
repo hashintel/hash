@@ -9,12 +9,7 @@
     "if",
     { "#literal": false },
     { "#literal": "unreachable" },
-    [
-      "if",
-      { "#literal": true },
-      { "#literal": "result" },
-      { "#literal": "also-unreachable" }
-    ]
+    ["if", { "#literal": true }, { "#literal": "result" }, { "#literal": "also-unreachable" }]
   ],
   { "#literal": "outer-else" }
 ]

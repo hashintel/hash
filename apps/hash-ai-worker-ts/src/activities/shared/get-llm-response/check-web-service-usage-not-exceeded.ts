@@ -35,9 +35,7 @@ export const checkWebServiceUsageNotExceeded = async (params: {
       decisionTimeInterval: {
         start: {
           kind: "inclusive",
-          limit: generateTimestamp(
-            new Date(now.valueOf() - 1000 * 60 * 60 * 24 * 30),
-          ),
+          limit: generateTimestamp(new Date(now.valueOf() - 1000 * 60 * 60 * 24 * 30)),
         },
         end: {
           kind: "inclusive",
@@ -64,12 +62,9 @@ export const checkWebServiceUsageNotExceeded = async (params: {
     { userAccountId: userAuthenticationInfo.actorId },
   );
 
-  const { day: dayLimit, month: monthLimit } =
-    usageCostLimit[isUserAdmin ? "admin" : "web"];
+  const { day: dayLimit, month: monthLimit } = usageCostLimit[isUserAdmin ? "admin" : "web"];
 
-  const errorPrefix = isUserAdmin
-    ? "You have exceeded your admin"
-    : "The web has exceeded its";
+  const errorPrefix = isUserAdmin ? "You have exceeded your admin" : "The web has exceeded its";
 
   if (lastDaysCost >= dayLimit) {
     return {

@@ -22,65 +22,62 @@ export const useCreateBlockCollection = (props: { webId: WebId }) => {
     async (params: { kind: "page" | "note" | "profileBio" }) => {
       const { kind } = params;
 
-      const [blockCollectionEntity, blockEntity, textEntity] =
-        await Promise.all([
-          createEntity({
-            data: {
-              entityTypeIds: [systemEntityTypes[kind].entityTypeId],
-              properties: {} satisfies BlockCollectionProperties,
-            },
-          }).then(({ data }) => {
-            if (!data) {
-              throw new Error(`Error creating ${kind} entity`);
-            }
+      const [blockCollectionEntity, blockEntity, textEntity] = await Promise.all([
+        createEntity({
+          data: {
+            entityTypeIds: [systemEntityTypes[kind].entityTypeId],
+            properties: {} satisfies BlockCollectionProperties,
+          },
+        }).then(({ data }) => {
+          if (!data) {
+            throw new Error(`Error creating ${kind} entity`);
+          }
 
-            return data;
-          }),
-          createEntity({
-            data: {
-              entityTypeIds: [systemEntityTypes.block.entityTypeId],
-              properties: {
-                [systemPropertyTypes.componentId.propertyTypeBaseUrl]:
-                  paragraphBlockComponentId,
-              },
+          return data;
+        }),
+        createEntity({
+          data: {
+            entityTypeIds: [systemEntityTypes.block.entityTypeId],
+            properties: {
+              [systemPropertyTypes.componentId.propertyTypeBaseUrl]: paragraphBlockComponentId,
             },
-          }).then(({ data }) => {
-            if (!data) {
-              throw new Error("Error creating block entity");
-            }
+          },
+        }).then(({ data }) => {
+          if (!data) {
+            throw new Error("Error creating block entity");
+          }
 
-            return data;
-          }),
-          createEntity({
-            data: {
-              entityTypeIds: [systemEntityTypes.text.entityTypeId],
-              properties: {
-                [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]:
-                  [],
-              },
+          return data;
+        }),
+        createEntity({
+          data: {
+            entityTypeIds: [systemEntityTypes.text.entityTypeId],
+            properties: {
+              [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]: [],
             },
-          }).then(({ data }) => {
-            if (!data) {
-              throw new Error("Error creating text entity");
-            }
+          },
+        }).then(({ data }) => {
+          if (!data) {
+            throw new Error("Error creating text entity");
+          }
 
-            return data;
-          }),
-        ]);
+          return data;
+        }),
+      ]);
 
       await Promise.all([
         createEntity({
           data: {
-            entityTypeIds: [
-              systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
-            ],
+            entityTypeIds: [systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId],
             linkData: {
               leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
               rightEntityId: blockEntity.metadata.recordId.entityId,
             },
             properties: {
-              [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl]:
-                generateKeyBetween(null, null),
+              [systemPropertyTypes.fractionalIndex.propertyTypeBaseUrl]: generateKeyBetween(
+                null,
+                null,
+              ),
             },
           },
         }),

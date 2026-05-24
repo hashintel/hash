@@ -1,12 +1,5 @@
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  Collapse,
-  outlinedInputClasses,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Collapse, outlinedInputClasses, Stack, Tooltip, Typography } from "@mui/material";
 import debounce from "lodash/debounce";
 import { useEffect, useRef, useState } from "react";
 
@@ -95,9 +88,7 @@ const findStringInPages = ({
     lineCharacterStartIndices,
     pageNumber,
   } of pages) {
-    const fullPageText = ignoreCase
-      ? unnormalizedText.toLowerCase()
-      : unnormalizedText;
+    const fullPageText = ignoreCase ? unnormalizedText.toLowerCase() : unnormalizedText;
 
     /** Find the first occurrence of the search string in the full text for the page */
     let nextStartIndex = fullPageText.indexOf(searchString);
@@ -112,21 +103,17 @@ const findStringInPages = ({
       const startItemIndex = lineCharacterStartIndices.findIndex(
         (startIdx, idx) =>
           startIdx <= matchStartIndex &&
-          (idx === textLines.length - 1 ||
-            lineCharacterStartIndices[idx + 1]! > matchStartIndex),
+          (idx === textLines.length - 1 || lineCharacterStartIndices[idx + 1]! > matchStartIndex),
       );
-      const startCharIndex =
-        matchStartIndex - lineCharacterStartIndices[startItemIndex]!;
+      const startCharIndex = matchStartIndex - lineCharacterStartIndices[startItemIndex]!;
 
       /** Determine which line the match ends on, and at which character within the line */
       const endItemIndex = lineCharacterStartIndices.findIndex(
         (startIdx, idx) =>
           startIdx <= matchEndIndex &&
-          (idx === textLines.length - 1 ||
-            lineCharacterStartIndices[idx + 1]! > matchEndIndex),
+          (idx === textLines.length - 1 || lineCharacterStartIndices[idx + 1]! > matchEndIndex),
       );
-      const endCharIndex =
-        matchEndIndex - lineCharacterStartIndices[endItemIndex]!;
+      const endCharIndex = matchEndIndex - lineCharacterStartIndices[endItemIndex]!;
 
       results.hitsByPageNumber[pageNumber] ??= [];
       results.hitsByPageNumber[pageNumber].push({
@@ -218,30 +205,25 @@ export const PdfSearch = ({
     void getPages();
   }, [document]);
 
-  const getSearchHits = debounce(
-    (currentText: string, shouldIgnoreCase: boolean) => {
-      if (!currentText) {
-        setSearchHits({ hitsByPageNumber: {}, total: 0 });
-        setSelectedSearchHit(null);
-        return;
-      }
+  const getSearchHits = debounce((currentText: string, shouldIgnoreCase: boolean) => {
+    if (!currentText) {
+      setSearchHits({ hitsByPageNumber: {}, total: 0 });
+      setSelectedSearchHit(null);
+      return;
+    }
 
-      const hits = findStringInPages({
-        pages,
-        searchString: currentText,
-        ignoreCase: shouldIgnoreCase,
-      });
-      setSearchHits(hits);
+    const hits = findStringInPages({
+      pages,
+      searchString: currentText,
+      ignoreCase: shouldIgnoreCase,
+    });
+    setSearchHits(hits);
 
-      const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
-      const firstHit = firstPageWithHit
-        ? hits.hitsByPageNumber[firstPageWithHit]?.[0]
-        : null;
+    const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
+    const firstHit = firstPageWithHit ? hits.hitsByPageNumber[firstPageWithHit]?.[0] : null;
 
-      setSelectedSearchHit(firstHit ?? null);
-    },
-    300,
-  );
+    setSelectedSearchHit(firstHit ?? null);
+  }, 300);
 
   const { total, hitsByPageNumber } = searchHits;
 
@@ -280,13 +262,8 @@ export const PdfSearch = ({
           }}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
-              if (
-                selectedSearchHit &&
-                selectedSearchHit.indexInAllHits < total - 1
-              ) {
-                setSelectedSearchHit(
-                  allHits[selectedSearchHit.indexInAllHits + 1]!,
-                );
+              if (selectedSearchHit && selectedSearchHit.indexInAllHits < total - 1) {
+                setSelectedSearchHit(allHits[selectedSearchHit.indexInAllHits + 1]!);
               }
             }
           }}
@@ -317,31 +294,18 @@ export const PdfSearch = ({
           >
             <FontCaseRegularIcon
               sx={{
-                fill: ({ palette }) =>
-                  ignoreCase ? undefined : palette.blue[70],
+                fill: ({ palette }) => (ignoreCase ? undefined : palette.blue[70]),
                 transition: ({ transitions }) => transitions.create("fill"),
               }}
             />
           </GrayToBlueIconButton>
           <Collapse orientation="horizontal" in={!!searchText} timeout={200}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              gap={1}
-              sx={{ height: 22 }}
-            >
+            <Stack direction="row" alignItems="center" gap={1} sx={{ height: 22 }}>
               <GrayToBlueIconButton
-                disabled={
-                  !selectedSearchHit || selectedSearchHit.indexInAllHits === 0
-                }
+                disabled={!selectedSearchHit || selectedSearchHit.indexInAllHits === 0}
                 onClick={() => {
-                  if (
-                    selectedSearchHit &&
-                    selectedSearchHit.indexInAllHits > 0
-                  ) {
-                    setSelectedSearchHit(
-                      allHits[selectedSearchHit.indexInAllHits - 1]!,
-                    );
+                  if (selectedSearchHit && selectedSearchHit.indexInAllHits > 0) {
+                    setSelectedSearchHit(allHits[selectedSearchHit.indexInAllHits - 1]!);
                   }
                 }}
                 sx={{ "& svg": { fontSize: 10 }, p: 0.6 }}
@@ -359,18 +323,10 @@ export const PdfSearch = ({
                 {`${(selectedSearchHit?.indexInAllHits ?? -1) + 1} of ${total}`}
               </Typography>
               <GrayToBlueIconButton
-                disabled={
-                  !selectedSearchHit ||
-                  selectedSearchHit.indexInAllHits === total - 1
-                }
+                disabled={!selectedSearchHit || selectedSearchHit.indexInAllHits === total - 1}
                 onClick={() => {
-                  if (
-                    selectedSearchHit &&
-                    selectedSearchHit.indexInAllHits < total - 1
-                  ) {
-                    setSelectedSearchHit(
-                      allHits[selectedSearchHit.indexInAllHits + 1]!,
-                    );
+                  if (selectedSearchHit && selectedSearchHit.indexInAllHits < total - 1) {
+                    setSelectedSearchHit(allHits[selectedSearchHit.indexInAllHits + 1]!);
                   }
                 }}
                 sx={{ "& svg": { fontSize: 10 }, p: 0.6 }}

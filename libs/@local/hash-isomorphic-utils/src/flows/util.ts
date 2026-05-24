@@ -1,7 +1,4 @@
-import {
-  aiActionDefinitions,
-  integrationActionDefinitions,
-} from "./action-definitions.js";
+import { aiActionDefinitions, integrationActionDefinitions } from "./action-definitions.js";
 import { triggerDefinitions } from "./trigger-definitions.js";
 
 import type {
@@ -15,10 +12,7 @@ import type {
 
 export type FlowType = "ai" | "integration";
 
-type ActionDefinitionsMap<T extends FlowActionDefinitionId> = Record<
-  T,
-  ActionDefinition<T>
->;
+type ActionDefinitionsMap<T extends FlowActionDefinitionId> = Record<T, ActionDefinition<T>>;
 
 const getActionDefinitions = <T extends FlowActionDefinitionId>(
   flowType: FlowType,
@@ -73,14 +67,11 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
           : []),
         ...(sourceStep.kind === "trigger" || sourceStep.kind === "scheduled"
           ? [
-              ...(triggerDefinitions[sourceStep.triggerDefinitionId].outputs ??
-                []),
+              ...(triggerDefinitions[sourceStep.triggerDefinitionId].outputs ?? []),
               ...(sourceStep.outputs ?? []),
             ]
           : []),
-        ...(sourceStep.kind === "parallel-group"
-          ? [sourceStep.aggregateOutput]
-          : []),
+        ...(sourceStep.kind === "parallel-group" ? [sourceStep.aggregateOutput] : []),
       ];
 
       const matchingSourceStepOutput = sourceStepOutputs.find(
@@ -100,9 +91,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
       }
 
       const childActionSteps = step.steps.filter(
-        (
-          childStep,
-        ): childStep is Extract<FlowStepDefinition<T>, { kind: "action" }> =>
+        (childStep): childStep is Extract<FlowStepDefinition<T>, { kind: "action" }> =>
           childStep.kind === "action",
       );
 
@@ -111,9 +100,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
           if (childActionInputSource.kind === "parallel-group-input") {
             const { actionDefinitionId } = childActionStep;
 
-            const matchingDefinitionInput = actionDefinitions[
-              actionDefinitionId
-            ].inputs.find(
+            const matchingDefinitionInput = actionDefinitions[actionDefinitionId].inputs.find(
               (input) => input.name === childActionInputSource.inputName,
             );
 
@@ -164,9 +151,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
     if (childStepUsedForAggregateOutput.kind === "action") {
       const childActionStepOutput = actionDefinitions[
         childStepUsedForAggregateOutput.actionDefinitionId
-      ].outputs.find(
-        (output) => output.name === aggregateOutput.stepOutputName,
-      );
+      ].outputs.find((output) => output.name === aggregateOutput.stepOutputName);
 
       if (!childActionStepOutput) {
         throw new Error(
@@ -175,10 +160,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
       }
       /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */
     } else if (childStepUsedForAggregateOutput.kind === "parallel-group") {
-      if (
-        childStepUsedForAggregateOutput.aggregateOutput.name !==
-        aggregateOutput.name
-      ) {
+      if (childStepUsedForAggregateOutput.aggregateOutput.name !== aggregateOutput.name) {
         throw new Error(
           `${errorPrefix}references an aggregate output source step output "${aggregateOutput.stepOutputName}" that does not exist in its child step`,
         );
@@ -215,9 +197,9 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
     }
 
     for (const inputSource of inputSources) {
-      const matchingDefinitionInput = actionDefinitions[
-        actionDefinitionId
-      ].inputs.find((input) => input.name === inputSource.inputName);
+      const matchingDefinitionInput = actionDefinitions[actionDefinitionId].inputs.find(
+        (input) => input.name === inputSource.inputName,
+      );
 
       if (!matchingDefinitionInput) {
         throw new Error(
@@ -247,14 +229,11 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
             : []),
           ...(sourceStep.kind === "trigger" || sourceStep.kind === "scheduled"
             ? [
-                ...(triggerDefinitions[sourceStep.triggerDefinitionId]
-                  .outputs ?? []),
+                ...(triggerDefinitions[sourceStep.triggerDefinitionId].outputs ?? []),
                 ...(sourceStep.outputs ?? []),
               ]
             : []),
-          ...(sourceStep.kind === "parallel-group"
-            ? [sourceStep.aggregateOutput]
-            : []),
+          ...(sourceStep.kind === "parallel-group" ? [sourceStep.aggregateOutput] : []),
         ];
 
         const matchingSourceStepOutput = sourceStepOutputs.find(
@@ -268,20 +247,14 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
         }
 
         if (
-          !matchingDefinitionInput.oneOfPayloadKinds.includes(
-            matchingSourceStepOutput.payloadKind,
-          )
+          !matchingDefinitionInput.oneOfPayloadKinds.includes(matchingSourceStepOutput.payloadKind)
         ) {
           throw new Error(
             `${errorPrefix}references an output "${inputSource.sourceStepOutputName}" of step "${inputSource.sourceStepId}" that does not match the expected payload kinds of the input (expected: ${matchingDefinitionInput.oneOfPayloadKinds.join(", ")}, actual: ${matchingSourceStepOutput.payloadKind})`,
           );
         }
       } else if (inputSource.kind === "hardcoded") {
-        if (
-          !matchingDefinitionInput.oneOfPayloadKinds.includes(
-            inputSource.payload.kind,
-          )
-        ) {
+        if (!matchingDefinitionInput.oneOfPayloadKinds.includes(inputSource.payload.kind)) {
           throw new Error(
             `${errorPrefix}references a hardcoded value that does not match the expected payload kinds of the input`,
           );
@@ -293,11 +266,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
         "fallbackPayload" in inputSource &&
         inputSource.fallbackPayload
       ) {
-        if (
-          !matchingDefinitionInput.oneOfPayloadKinds.includes(
-            inputSource.fallbackPayload.kind,
-          )
-        ) {
+        if (!matchingDefinitionInput.oneOfPayloadKinds.includes(inputSource.fallbackPayload.kind)) {
           throw new Error(
             `${errorPrefix}references a fallback value that does not match the expected payload kinds of the input`,
           );
@@ -307,9 +276,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
   }
 };
 
-const getAllStepDefinitionsInParallelGroupDefinition = <
-  T extends FlowActionDefinitionId,
->(
+const getAllStepDefinitionsInParallelGroupDefinition = <T extends FlowActionDefinitionId>(
   stepDefinition: ParallelGroupStepDefinition<T>,
 ): FlowStepDefinition<T>[] => [
   ...stepDefinition.steps,
@@ -320,16 +287,12 @@ const getAllStepDefinitionsInParallelGroupDefinition = <
   ),
 ];
 
-export const getAllStepDefinitionsInFlowDefinition = <
-  T extends FlowActionDefinitionId,
->(
+export const getAllStepDefinitionsInFlowDefinition = <T extends FlowActionDefinitionId>(
   flow: FlowDefinition<T>,
 ) => [
   ...flow.steps,
   ...flow.steps.flatMap((step) =>
-    step.kind === "parallel-group"
-      ? getAllStepDefinitionsInParallelGroupDefinition(step)
-      : [],
+    step.kind === "parallel-group" ? getAllStepDefinitionsInParallelGroupDefinition(step) : [],
   ),
 ];
 

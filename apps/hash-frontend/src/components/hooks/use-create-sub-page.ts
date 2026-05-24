@@ -18,13 +18,7 @@ import type {
 } from "../../graphql/api-types.gen";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 
-export const useCreateSubPage = ({
-  shortname,
-  webId,
-}: {
-  shortname?: string;
-  webId?: WebId;
-}) => {
+export const useCreateSubPage = ({ shortname, webId }: { shortname?: string; webId?: WebId }) => {
   const router = useRouter();
 
   const [createPageFn, { loading: createPageLoading }] = useMutation<
@@ -66,8 +60,7 @@ export const useCreateSubPage = ({
       });
 
       if (response.data?.createPage) {
-        const pageEntityId =
-          response.data.createPage.metadata.recordId.entityId;
+        const pageEntityId = response.data.createPage.metadata.recordId.entityId;
 
         await setParentPageFn({
           variables: {
@@ -91,8 +84,5 @@ export const useCreateSubPage = ({
     [createPageFn, webId, setParentPageFn, router, shortname],
   );
 
-  return [
-    createSubPage,
-    { loading: createPageLoading || setParentPageLoading },
-  ] as const;
+  return [createSubPage, { loading: createPageLoading || setParentPageLoading }] as const;
 };

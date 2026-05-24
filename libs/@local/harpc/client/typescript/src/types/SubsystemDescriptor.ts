@@ -15,9 +15,7 @@ import { createProto, implDecode, implEncode } from "../utils.js";
 import * as SubsystemId from "./SubsystemId.js";
 import * as Version from "./Version.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/types/SubsystemDescriptor",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/types/SubsystemDescriptor");
 
 export type TypeId = typeof TypeId;
 
@@ -72,10 +70,7 @@ const SubsystemDescriptorProto: Omit<SubsystemDescriptor, "id" | "version"> = {
   },
 };
 
-export const make = (
-  id: SubsystemId.SubsystemId,
-  version: Version.Version,
-): SubsystemDescriptor =>
+export const make = (id: SubsystemId.SubsystemId, version: Version.Version): SubsystemDescriptor =>
   createProto(SubsystemDescriptorProto, { id, version });
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
@@ -99,11 +94,8 @@ export const decode = implDecode((buffer) =>
   }),
 );
 
-export const isSubsystemDescriptor = (
-  value: unknown,
-): value is SubsystemDescriptor => Predicate.hasProperty(value, TypeId);
+export const isSubsystemDescriptor = (value: unknown): value is SubsystemDescriptor =>
+  Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(SubsystemId.arbitrary(fc), Version.arbitrary(fc))
-    .map(Function.tupled(make));
+  fc.tuple(SubsystemId.arbitrary(fc), Version.arbitrary(fc)).map(Function.tupled(make));

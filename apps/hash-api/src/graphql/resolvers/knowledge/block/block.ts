@@ -15,9 +15,7 @@ export const blocksResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const blocks = await Promise.all(
-    params.blocks.map((entityId) =>
-      getBlockById(context, authentication, { entityId }),
-    ),
+    params.blocks.map((entityId) => getBlockById(context, authentication, { entityId })),
   );
 
   return blocks.map(({ componentId, entity }) => ({

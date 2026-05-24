@@ -6,10 +6,7 @@ import {
   createMentionNotification,
   getMentionNotification,
 } from "../../../system-types/notification";
-import {
-  getMentionedUsersInTextualContent,
-  getTextFromEntity,
-} from "../../../system-types/text";
+import { getMentionedUsersInTextualContent, getTextFromEntity } from "../../../system-types/text";
 import { getUser } from "../../../system-types/user";
 import { checkPermissionsOnEntity } from "../../entity";
 import { getTextUpdateOccurredIn } from "../shared/mention-notification";
@@ -25,83 +22,122 @@ import type { TextToken } from "@local/hash-isomorphic-utils/types";
  * - the `Text` entity is in a page
  * - the `Text` entity is in a comment that's on a page
  */
-export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
-  async ({ previousEntity, propertyPatches, authentication, context }) => {
-    const getNewValueForPath =
-      getDefinedPropertyFromPatchesGetter<TextProperties>(propertyPatches);
+export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback = async ({
+  previousEntity,
+  propertyPatches,
+  authentication,
+  context,
+}) => {
+  const getNewValueForPath = getDefinedPropertyFromPatchesGetter<TextProperties>(propertyPatches);
 
-    const newTextValue = getNewValueForPath(
-      "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/",
+  const newTextValue = getNewValueForPath(
+    "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/",
+  );
+
+  if (!newTextValue || typeof newTextValue === "string") {
+    return;
+  }
+
+  const updatedTextualContent = newTextValue as TextToken[];
+
+  const text = getTextFromEntity({ entity: previousEntity });
+
+  const { occurredInComment, occurredInEntity, occurredInBlock } = await getTextUpdateOccurredIn(
+    context,
+    authentication,
+    {
+      text,
+    },
+  );
+
+  if (!occurredInEntity || !occurredInBlock) {
+    return;
+  }
+
+  const previousTextualContent = text.textualContent;
+
+  const [previousMentionedUsers, updatedMentionedUsers] = await Promise.all([
+    getMentionedUsersInTextualContent(context, authentication, {
+      textualContent: previousTextualContent,
+    }),
+    getMentionedUsersInTextualContent(context, authentication, {
+      textualContent: updatedTextualContent,
+    }),
+  ]);
+
+  const addedMentionedUsers = updatedMentionedUsers.filter(
+    (user) =>
+      !previousMentionedUsers.some(
+        (previousUser) =>
+          previousUser.entity.metadata.recordId.entityId === user.entity.metadata.recordId.entityId,
+      ),
+  );
+
+  const removedMentionedUsers = previousMentionedUsers.filter(
+    (previousUser) =>
+      !updatedMentionedUsers.some(
+        (user) =>
+          user.entity.metadata.recordId.entityId === previousUser.entity.metadata.recordId.entityId,
+      ),
+  );
+
+  const triggeredByUserEntityId = entityIdFromComponents(
+    authentication.actorId as WebId,
+    authentication.actorId as string as EntityUuid,
+  );
+
+  const triggeredByUser = await getUser(context, authentication, {
+    entityId: triggeredByUserEntityId,
+  });
+
+  if (!triggeredByUser) {
+    throw new Error(
+      `User with entityId ${triggeredByUserEntityId} doesn't exist or cannot be accessed by requesting user.`,
     );
+  }
 
-    if (!newTextValue || typeof newTextValue === "string") {
-      return;
-    }
-
-    const updatedTextualContent = newTextValue as TextToken[];
-
-    const text = getTextFromEntity({ entity: previousEntity });
-
-    const { occurredInComment, occurredInEntity, occurredInBlock } =
-      await getTextUpdateOccurredIn(context, authentication, {
-        text,
-      });
-
-    if (!occurredInEntity || !occurredInBlock) {
-      return;
-    }
-
-    const previousTextualContent = text.textualContent;
-
-    const [previousMentionedUsers, updatedMentionedUsers] = await Promise.all([
-      getMentionedUsersInTextualContent(context, authentication, {
-        textualContent: previousTextualContent,
-      }),
-      getMentionedUsersInTextualContent(context, authentication, {
-        textualContent: updatedTextualContent,
-      }),
-    ]);
-
-    const addedMentionedUsers = updatedMentionedUsers.filter(
-      (user) =>
-        !previousMentionedUsers.some(
-          (previousUser) =>
-            previousUser.entity.metadata.recordId.entityId ===
-            user.entity.metadata.recordId.entityId,
-        ),
-    );
-
-    const removedMentionedUsers = previousMentionedUsers.filter(
-      (previousUser) =>
-        !updatedMentionedUsers.some(
-          (user) =>
-            user.entity.metadata.recordId.entityId ===
-            previousUser.entity.metadata.recordId.entityId,
-        ),
-    );
-
-    const triggeredByUserEntityId = entityIdFromComponents(
-      authentication.actorId as WebId,
-      authentication.actorId as string as EntityUuid,
-    );
-
-    const triggeredByUser = await getUser(context, authentication, {
-      entityId: triggeredByUserEntityId,
-    });
-
-    if (!triggeredByUser) {
-      throw new Error(
-        `User with entityId ${triggeredByUserEntityId} doesn't exist or cannot be accessed by requesting user.`,
+  await Promise.all([
+    ...removedMentionedUsers.map(async (removedMentionedUser) => {
+      const existingNotification = await getMentionNotification(
+        context,
+        { actorId: removedMentionedUser.accountId },
+        {
+          recipient: removedMentionedUser,
+          triggeredByUser,
+          occurredInEntity,
+          occurredInComment,
+          occurredInBlock,
+          occurredInText: text,
+        },
       );
-    }
 
-    await Promise.all([
-      ...removedMentionedUsers.map(async (removedMentionedUser) => {
-        const existingNotification = await getMentionNotification(
+      if (existingNotification) {
+        await archiveNotification(
           context,
           { actorId: removedMentionedUser.accountId },
+          { notification: existingNotification },
+        );
+      }
+    }),
+    ...addedMentionedUsers
+      .filter((addedMentionedUser) => triggeredByUser.accountId !== addedMentionedUser.accountId)
+      .map(async (addedMentionedUser) => {
+        const { view: mentionedUserCanViewPage } = await checkPermissionsOnEntity(
+          context,
+          { actorId: addedMentionedUser.accountId },
+          { entity: occurredInEntity.entity },
+        );
+
+        if (!mentionedUserCanViewPage) {
+          return;
+        }
+
+        const existingNotification = await getMentionNotification(
+          context,
+          /** @todo: use authentication of machine user instead */
+          { actorId: addedMentionedUser.accountId },
           {
-            recipient: removedMentionedUser,
+            recipient: addedMentionedUser,
             triggeredByUser,
             occurredInEntity,
             occurredInComment,
@@ -110,60 +146,21 @@ export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
           },
         );
 
-        if (existingNotification) {
-          await archiveNotification(
-            context,
-            { actorId: removedMentionedUser.accountId },
-            { notification: existingNotification },
-          );
-        }
-      }),
-      ...addedMentionedUsers
-        .filter(
-          (addedMentionedUser) =>
-            triggeredByUser.accountId !== addedMentionedUser.accountId,
-        )
-        .map(async (addedMentionedUser) => {
-          const { view: mentionedUserCanViewPage } =
-            await checkPermissionsOnEntity(
-              context,
-              { actorId: addedMentionedUser.accountId },
-              { entity: occurredInEntity.entity },
-            );
-
-          if (!mentionedUserCanViewPage) {
-            return;
-          }
-
-          const existingNotification = await getMentionNotification(
+        if (!existingNotification) {
+          await createMentionNotification(
             context,
             /** @todo: use authentication of machine user instead */
             { actorId: addedMentionedUser.accountId },
             {
-              recipient: addedMentionedUser,
-              triggeredByUser,
+              webId: addedMentionedUser.accountId,
               occurredInEntity,
-              occurredInComment,
               occurredInBlock,
+              occurredInComment,
               occurredInText: text,
+              triggeredByUser,
             },
           );
-
-          if (!existingNotification) {
-            await createMentionNotification(
-              context,
-              /** @todo: use authentication of machine user instead */
-              { actorId: addedMentionedUser.accountId },
-              {
-                webId: addedMentionedUser.accountId,
-                occurredInEntity,
-                occurredInBlock,
-                occurredInComment,
-                occurredInText: text,
-                triggeredByUser,
-              },
-            );
-          }
-        }),
-    ]);
-  };
+        }
+      }),
+  ]);
+};

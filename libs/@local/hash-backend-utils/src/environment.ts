@@ -24,10 +24,7 @@ export const getRequiredEnv = (name: string) => {
   return value;
 };
 
-export const waitOnResource = async (
-  resource: string,
-  logger?: Pick<Console, "debug">,
-) => {
+export const waitOnResource = async (resource: string, logger?: Pick<Console, "debug">) => {
   logger?.debug(`Waiting on ${resource}...`);
 
   await waitOn({

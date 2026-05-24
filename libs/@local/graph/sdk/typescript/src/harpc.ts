@@ -1,14 +1,6 @@
 // This code is written in a way that be *easily* auto generated, which is why we use the classes.
 
-import {
-  Effect,
-  Function,
-  Option,
-  pipe,
-  Predicate,
-  Schema,
-  Stream,
-} from "effect";
+import { Effect, Function, Option, pipe, Predicate, Schema, Stream } from "effect";
 
 import { ClientError } from "@local/harpc-client";
 import { Decoder, Encoder } from "@local/harpc-client/codec";

@@ -5,16 +5,9 @@ import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { useSentryFeedbackAction } from "./app/sentry-feedback-button";
-import {
-  type SDCPNInLocalStorage,
-  useLocalStorageSDCPNs,
-} from "./app/use-local-storage-sdcpns";
+import { type SDCPNInLocalStorage, useLocalStorageSDCPNs } from "./app/use-local-storage-sdcpns";
 
-import type {
-  MinimalNetMetadata,
-  PetrinautDocHandle,
-  SDCPN,
-} from "@hashintel/petrinaut-core";
+import type { MinimalNetMetadata, PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
@@ -97,14 +90,10 @@ export const DevApp = () => {
   const firstNet = Object.values(storedSDCPNsForDisplay)[0] ?? null;
 
   // The net currently selected in the UI.
-  const [currentNetId, setCurrentNetId] = useState<string | null>(
-    () => firstNet?.id ?? null,
-  );
+  const [currentNetId, setCurrentNetId] = useState<string | null>(() => firstNet?.id ?? null);
 
   // Metadata and persisted SDCPN snapshot for the selected net.
-  const currentNet = currentNetId
-    ? (storedSDCPNsForDisplay[currentNetId] ?? null)
-    : null;
+  const currentNet = currentNetId ? (storedSDCPNsForDisplay[currentNetId] ?? null) : null;
 
   // Live editable document handle for the selected net only.
   const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(() =>
@@ -141,18 +130,11 @@ export const DevApp = () => {
       title: net.title,
       lastUpdated: net.lastUpdated,
     }))
-    .sort(
-      (a, b) =>
-        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
-    );
+    .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime());
 
-  const createNewNet = (params: {
-    petriNetDefinition: SDCPN;
-    title: string;
-  }) => {
+  const createNewNet = (params: { petriNetDefinition: SDCPN; title: string }) => {
     const newNet = createLocalStorageNetRecord(params);
-    const previousNet =
-      currentNetId && currentNetId !== newNet.id ? currentNet : null;
+    const previousNet = currentNetId && currentNetId !== newNet.id ? currentNet : null;
     const previousNetIdToRemove = previousNet !== null ? currentNetId : null;
 
     setStoredSDCPNs((prev) => {
@@ -185,9 +167,7 @@ export const DevApp = () => {
         currentNet && isEmptySDCPN(currentNet.sdcpn) ? currentNetId : null;
 
       setStoredSDCPNs((prev) => {
-        const prevNet = previousNetIdToRemove
-          ? prev[previousNetIdToRemove]
-          : null;
+        const prevNet = previousNetIdToRemove ? prev[previousNetIdToRemove] : null;
 
         if (previousNetIdToRemove && prevNet && isEmptySDCPN(prevNet.sdcpn)) {
           const next = { ...prev };

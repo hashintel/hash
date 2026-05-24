@@ -33,9 +33,7 @@ export type SeriesOption =
   | GraphSeriesOption;
 
 // Combine an Option type with only required components and charts via ComposeOption
-export type ECOption = echarts.ComposeOption<
-  SeriesOption | TooltipComponentOption
->;
+export type ECOption = echarts.ComposeOption<SeriesOption | TooltipComponentOption>;
 
 // Register the required components
 echarts.use([
@@ -54,11 +52,7 @@ type GraphProps = {
   sx?: BoxProps["sx"];
 };
 
-export const EChart: FunctionComponent<GraphProps> = ({
-  options,
-  sx,
-  onChartInitialized,
-}) => {
+export const EChart: FunctionComponent<GraphProps> = ({ options, sx, onChartInitialized }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const [chart, setChart] = useState<Chart>();
@@ -97,10 +91,7 @@ export const EChart: FunctionComponent<GraphProps> = ({
 
   return (
     <Box
-      sx={[
-        { width: "100%", height: "100%" },
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}
+      sx={[{ width: "100%", height: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
       ref={wrapperRef}
     />
   );

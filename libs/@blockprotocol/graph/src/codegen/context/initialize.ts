@@ -1,17 +1,9 @@
 import { processCodegenParameters } from "../parameters.js";
 import { TypeDependencyMap } from "./shared.js";
 
-import type {
-  CodegenParameters,
-  ProcessedCodegenParameters,
-} from "../parameters.js";
+import type { CodegenParameters, ProcessedCodegenParameters } from "../parameters.js";
 import type { JsonSchema, LogLevel } from "../shared.js";
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { DataType, EntityType, PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 export class InitializeContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -39,11 +31,7 @@ export class InitializeContext {
   }
 
   logInfo(message: string) {
-    if (
-      this.logLevel === "info" ||
-      this.logLevel === "debug" ||
-      this.logLevel === "trace"
-    ) {
+    if (this.logLevel === "info" || this.logLevel === "debug" || this.logLevel === "trace") {
       // eslint-disable-next-line no-console
       console.log(`INFO: ${message}`);
     }

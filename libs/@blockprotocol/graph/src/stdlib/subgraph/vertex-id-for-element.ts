@@ -2,10 +2,7 @@ import { isEntityRecordId, isOntologyTypeRecordId } from "../../types.js";
 import { typedEntries } from "../../util/typed-entries.js";
 
 import type { GraphElementVertexId, Subgraph } from "../../types.js";
-import type {
-  EntityRecordId,
-  OntologyTypeRecordId,
-} from "@blockprotocol/type-system";
+import type { EntityRecordId, OntologyTypeRecordId } from "@blockprotocol/type-system";
 
 /**
  * Searches the vertices of the subgraph for an element that matches a given {@link EntityRecordId} or
@@ -40,9 +37,5 @@ export const getVertexIdForRecordId = (
     }
   }
 
-  throw new Error(
-    `Could not find vertex associated with recordId: ${JSON.stringify(
-      recordId,
-    )}`,
-  );
+  throw new Error(`Could not find vertex associated with recordId: ${JSON.stringify(recordId)}`);
 };

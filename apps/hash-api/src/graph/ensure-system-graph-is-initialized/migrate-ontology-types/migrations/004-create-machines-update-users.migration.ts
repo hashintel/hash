@@ -16,34 +16,27 @@ import {
 import type { MigrationFunction } from "../types";
 import type { EntityType } from "@blockprotocol/type-system";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /**
    * Step 1. Create the Actor entity type, which User and Machine will inherit from
    */
-  const actorEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Actor",
-        description:
-          "Someone or something that can perform actions in the system",
-        icon: "/icons/types/user.svg",
-      },
-      webShortname: "h",
-      migrationState,
+  const actorEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Actor",
+      description: "Someone or something that can perform actions in the system",
+      icon: "/icons/types/user.svg",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /**
    * Step 2: Create the Machine entity type
    */
-  const machineIdentifierPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const machineIdentifierPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Machine Identifier",
         description: "A unique identifier for a machine",
@@ -51,7 +44,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
@@ -83,19 +77,13 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const userEntityType = await getEntityTypeById(
-    context.graphApi,
-    authentication,
-    {
-      entityTypeId: currentUserEntityTypeId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  );
+  const userEntityType = await getEntityTypeById(context.graphApi, authentication, {
+    entityTypeId: currentUserEntityTypeId,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!userEntityType) {
-    throw new NotFoundError(
-      `Could not find entity type with ID ${currentUserEntityTypeId}`,
-    );
+    throw new NotFoundError(`Could not find entity type with ID ${currentUserEntityTypeId}`);
   }
 
   const newUserEntityTypeSchema = {
@@ -103,41 +91,36 @@ const migrate: MigrationFunction = async ({
     allOf: atLeastOne([{ $ref: actorEntityType.schema.$id }]),
   };
 
-  const { updatedEntityTypeId: updatedUserEntityTypeId } =
-    await updateSystemEntityType(context, authentication, {
-      currentEntityTypeId: currentUserEntityTypeId,
-      migrationState,
-      newSchema: newUserEntityTypeSchema,
-    });
-
-  /** Step 4: Update the Occurred in Entity link type to have an Entity Edition Id property, to track which edition was created */
-  const editionIdPropertyType = await createSystemPropertyTypeIfNotExists(
+  const { updatedEntityTypeId: updatedUserEntityTypeId } = await updateSystemEntityType(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Entity Edition Id",
-        description: "An identifier for an edition of an entity",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
+      currentEntityTypeId: currentUserEntityTypeId,
       migrationState,
+      newSchema: newUserEntityTypeSchema,
     },
   );
+
+  /** Step 4: Update the Occurred in Entity link type to have an Entity Edition Id property, to track which edition was created */
+  const editionIdPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Entity Edition Id",
+      description: "An identifier for an edition of an entity",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    webShortname: "h",
+    migrationState,
+  });
 
   const currentOccurredInEntityEntityTypeId = getCurrentHashLinkEntityTypeId({
     linkEntityTypeKey: "occurredInEntity",
     migrationState,
   });
 
-  const occurredInEntityEntityType = await getEntityTypeById(
-    context.graphApi,
-    authentication,
-    {
-      entityTypeId: currentOccurredInEntityEntityTypeId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  );
+  const occurredInEntityEntityType = await getEntityTypeById(context.graphApi, authentication, {
+    entityTypeId: currentOccurredInEntityEntityTypeId,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!occurredInEntityEntityType) {
     throw new NotFoundError(
@@ -155,12 +138,15 @@ const migrate: MigrationFunction = async ({
     },
   };
 
-  const { updatedEntityTypeId: updatedOccurredInEntityEntityTypeId } =
-    await updateSystemEntityType(context, authentication, {
+  const { updatedEntityTypeId: updatedOccurredInEntityEntityTypeId } = await updateSystemEntityType(
+    context,
+    authentication,
+    {
       currentEntityTypeId: currentOccurredInEntityEntityTypeId,
       migrationState,
       newSchema: newOccurredInEntityEntityTypeSchema,
-    });
+    },
+  );
 
   /** Step 5: Create a new Graph Change notification type to notify of generic CRUD operations in the graph */
 
@@ -175,8 +161,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Graph Change Type",
-        description:
-          "The type of change that occurred (e.g. create, update, archive)",
+        description: "The type of change that occurred (e.g. create, update, archive)",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "h",
@@ -210,10 +195,7 @@ const migrate: MigrationFunction = async ({
 
   /** Step 6: Update the dependencies of entity types which we've updated above */
   await upgradeDependenciesInHashEntityType(context, authentication, {
-    upgradedEntityTypeIds: [
-      updatedUserEntityTypeId,
-      updatedOccurredInEntityEntityTypeId,
-    ],
+    upgradedEntityTypeIds: [updatedUserEntityTypeId, updatedOccurredInEntityEntityTypeId],
     dependentEntityTypeKeys: [
       "comment",
       "commentNotification",

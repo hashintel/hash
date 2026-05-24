@@ -15,18 +15,10 @@ import {
 import { getOrgFromEntity } from "./org";
 import { getUserFromEntity } from "./user";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type { Org } from "./org";
 import type { User } from "./user";
-import type {
-  ActorEntityUuid,
-  EntityId,
-  EntityUuid,
-  UserId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -39,9 +31,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
   OrgMembership
 > = ({ linkEntity }) => {
   if (
-    !linkEntity.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-    )
+    !linkEntity.metadata.entityTypeIds.includes(systemLinkEntityTypes.isMemberOf.linkEntityTypeId)
   ) {
     throw new EntityTypeMismatchError(
       linkEntity.metadata.recordId.entityId,

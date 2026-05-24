@@ -33,13 +33,9 @@ export type EntityVertex<EntityImpl extends Entity = Entity> = {
   inner: EntityImpl;
 };
 
-export type OntologyVertex =
-  | DataTypeVertex
-  | PropertyTypeVertex
-  | EntityTypeVertex;
+export type OntologyVertex = DataTypeVertex | PropertyTypeVertex | EntityTypeVertex;
 
-export type KnowledgeGraphVertex<EntityImpl extends Entity = Entity> =
-  EntityVertex<EntityImpl>;
+export type KnowledgeGraphVertex<EntityImpl extends Entity = Entity> = EntityVertex<EntityImpl>;
 
 export type Vertex<EntityImpl extends Entity = Entity> =
   | OntologyVertex
@@ -49,15 +45,11 @@ export const isDataTypeVertex = (vertex: Vertex): vertex is DataTypeVertex => {
   return vertex.kind === "dataType";
 };
 
-export const isPropertyTypeVertex = (
-  vertex: Vertex,
-): vertex is PropertyTypeVertex => {
+export const isPropertyTypeVertex = (vertex: Vertex): vertex is PropertyTypeVertex => {
   return vertex.kind === "propertyType";
 };
 
-export const isEntityTypeVertex = (
-  vertex: Vertex,
-): vertex is EntityTypeVertex => {
+export const isEntityTypeVertex = (vertex: Vertex): vertex is EntityTypeVertex => {
   return vertex.kind === "entityType";
 };
 
@@ -75,9 +67,7 @@ export type EntityVertexId = VertexId<EntityId, EntityRevisionId>;
 export type OntologyTypeVertexId = VertexId<BaseUrl, OntologyTypeVersion>;
 export type GraphElementVertexId = EntityVertexId | OntologyTypeVertexId;
 
-export const isOntologyTypeVertexId = (
-  vertexId: unknown,
-): vertexId is OntologyTypeVertexId => {
+export const isOntologyTypeVertexId = (vertexId: unknown): vertexId is OntologyTypeVertexId => {
   return (
     vertexId != null &&
     typeof vertexId === "object" &&
@@ -90,9 +80,7 @@ export const isOntologyTypeVertexId = (
   );
 };
 
-export const isEntityVertexId = (
-  vertexId: unknown,
-): vertexId is EntityVertexId => {
+export const isEntityVertexId = (vertexId: unknown): vertexId is EntityVertexId => {
   return (
     vertexId != null &&
     typeof vertexId === "object" &&

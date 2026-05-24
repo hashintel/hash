@@ -14,9 +14,7 @@ const matchFavorite = (item1: Favorite, item2: Favorite) => {
     case "entity":
       return item2.type === "entity" && item1.entityId === item2.entityId;
     case "entityType":
-      return (
-        item2.type === "entityType" && item1.entityTypeId === item2.entityTypeId
-      );
+      return item2.type === "entityType" && item1.entityTypeId === item2.entityTypeId;
     case "page":
       return item2.type === "page" && item1.pageEntityId === item2.pageEntityId;
     default:
@@ -34,8 +32,7 @@ export const FavoriteMenuItem = ({
   const preferences = useUserPreferences();
 
   const isFavorite = useMemo(
-    () =>
-      preferences.favorites.some((favorite) => matchFavorite(favorite, item)),
+    () => preferences.favorites.some((favorite) => matchFavorite(favorite, item)),
     [item, preferences.favorites],
   );
 
@@ -43,9 +40,7 @@ export const FavoriteMenuItem = ({
 
   const toggleFavorite = () => {
     const newFavorites = isFavorite
-      ? preferences.favorites.filter(
-          (favorite) => !matchFavorite(favorite, item),
-        )
+      ? preferences.favorites.filter((favorite) => !matchFavorite(favorite, item))
       : [...preferences.favorites, item];
 
     void updateUser({

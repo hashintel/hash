@@ -6,10 +6,7 @@ import { Menu, type MenuItem } from "../../../../components/menu";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
-import type {
-  CursorMode,
-  EditorState,
-} from "../../../../../react/state/editor-context";
+import type { CursorMode, EditorState } from "../../../../../react/state/editor-context";
 
 type EditorEditionMode = EditorState["editionMode"];
 

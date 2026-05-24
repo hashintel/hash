@@ -13,9 +13,7 @@ import { DraftEntityChip } from "./draft-entity-chip";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FunctionComponent } from "react";
 
-export const DraftEntityWeb: FunctionComponent<{ entity: HashEntity }> = ({
-  entity,
-}) => {
+export const DraftEntityWeb: FunctionComponent<{ entity: HashEntity }> = ({ entity }) => {
   const webId = useMemo(
     () => extractWebIdFromEntityId(entity.metadata.recordId.entityId),
     [entity],

@@ -4,15 +4,9 @@ import { systemLinkEntityTypes } from "./ontology-type-ids.js";
 import { simplifyProperties } from "./simplify-properties.js";
 
 import type { FlowUsageRecordCustomMetadata } from "./flows/types.js";
-import type {
-  ServiceFeature,
-  UsageRecord,
-} from "./system-types/usagerecord.js";
+import type { ServiceFeature, UsageRecord } from "./system-types/usagerecord.js";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  ClosedTemporalBound,
-  TemporalInterval,
-} from "@blockprotocol/type-system";
+import type { ClosedTemporalBound, TemporalInterval } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 const generateAggregateUsageKey = ({
@@ -35,11 +29,10 @@ const getServiceFeatureForUsage = ({
     usageRecord.metadata.recordId.entityId,
   );
 
-  const serviceFeatureLinkAndEntities = linkedEntities.filter(
-    ({ linkEntity }) =>
-      linkEntity[0]!.metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-      ),
+  const serviceFeatureLinkAndEntities = linkedEntities.filter(({ linkEntity }) =>
+    linkEntity[0]!.metadata.entityTypeIds.includes(
+      systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+    ),
   );
   if (serviceFeatureLinkAndEntities.length !== 1) {
     throw new Error(
@@ -59,18 +52,13 @@ const getServiceFeatureForUsage = ({
 
   const applicablePrice = serviceUnitCost.find((entry) => {
     const { appliesUntil, appliesFrom } = simplifyProperties(entry);
-    if (
-      appliesUntil &&
-      appliesUntil <= usageRecord.metadata.provenance.createdAtTransactionTime
-    ) {
+    if (appliesUntil && appliesUntil <= usageRecord.metadata.provenance.createdAtTransactionTime) {
       return false;
     }
     if (!appliesFrom) {
       return false;
     }
-    return (
-      appliesFrom <= usageRecord.metadata.provenance.createdAtTransactionTime
-    );
+    return appliesFrom <= usageRecord.metadata.provenance.createdAtTransactionTime;
   });
 
   if (!applicablePrice) {
@@ -79,9 +67,7 @@ const getServiceFeatureForUsage = ({
       featureName,
     });
 
-    throw new Error(
-      `No applicable price found for service feature ${serviceFeatureKey}.`,
-    );
+    throw new Error(`No applicable price found for service feature ${serviceFeatureKey}.`);
   }
 
   const { inputUnitCost, outputUnitCost } = simplifyProperties(applicablePrice);
@@ -96,10 +82,7 @@ export type AggregatedUsageRecord = {
   totalOutputUnitCount: number;
   totalCostInUsd: number;
   last24hoursTotalCostInUsd: number;
-  limitedToPeriod: TemporalInterval<
-    ClosedTemporalBound,
-    ClosedTemporalBound
-  > | null;
+  limitedToPeriod: TemporalInterval<ClosedTemporalBound, ClosedTemporalBound> | null;
 };
 
 export const getAggregateUsageRecordsByServiceFeature = ({
@@ -107,26 +90,19 @@ export const getAggregateUsageRecordsByServiceFeature = ({
   serviceUsageRecords,
   serviceUsageRecordSubgraph,
 }: {
-  decisionTimeInterval?: TemporalInterval<
-    ClosedTemporalBound,
-    ClosedTemporalBound
-  >;
+  decisionTimeInterval?: TemporalInterval<ClosedTemporalBound, ClosedTemporalBound>;
   serviceUsageRecords: HashEntity<UsageRecord>[];
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
 }): AggregatedUsageRecord[] => {
-  const aggregateUsageByServiceFeature: Record<string, AggregatedUsageRecord> =
-    {};
+  const aggregateUsageByServiceFeature: Record<string, AggregatedUsageRecord> = {};
 
   for (const record of serviceUsageRecords) {
-    const { inputUnitCost, outputUnitCost, serviceName, featureName } =
-      getServiceFeatureForUsage({
-        serviceUsageRecordSubgraph,
-        usageRecord: record,
-      });
+    const { inputUnitCost, outputUnitCost, serviceName, featureName } = getServiceFeatureForUsage({
+      serviceUsageRecordSubgraph,
+      usageRecord: record,
+    });
 
-    const { inputUnitCount, outputUnitCount } = simplifyProperties(
-      record.properties,
-    );
+    const { inputUnitCount, outputUnitCount } = simplifyProperties(record.properties);
 
     const serviceFeatureKey = generateAggregateUsageKey({
       serviceName,
@@ -150,18 +126,14 @@ export const getAggregateUsageRecordsByServiceFeature = ({
       outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
 
     const inputCost =
-      (inputUnitCount ?? 0) *
-      (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
+      (inputUnitCount ?? 0) * (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
     const outputCost =
-      (outputUnitCount ?? 0) *
-      (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
+      (outputUnitCount ?? 0) * (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
     const totalCost = inputCost + outputCost;
 
     aggregateUsage.totalCostInUsd += totalCost;
 
-    const oneDayEarlier = new Date(
-      new Date().valueOf() - 24 * 60 * 60 * 1000,
-    ).toISOString();
+    const oneDayEarlier = new Date(new Date().valueOf() - 24 * 60 * 60 * 1000).toISOString();
     if (record.metadata.provenance.createdAtTransactionTime > oneDayEarlier) {
       aggregateUsage.last24hoursTotalCostInUsd += totalCost;
     }
@@ -187,12 +159,11 @@ export const getAggregateUsageRecordsByTask = ({
   const aggregateUsageByTask: Record<string, AggregatedUsageByTask> = {};
 
   for (const record of serviceUsageRecords) {
-    const { inputUnitCount, outputUnitCount, customMetadata } =
-      simplifyProperties(record.properties);
+    const { inputUnitCount, outputUnitCount, customMetadata } = simplifyProperties(
+      record.properties,
+    );
 
-    const taskName = (
-      customMetadata as FlowUsageRecordCustomMetadata | undefined
-    )?.taskName;
+    const taskName = (customMetadata as FlowUsageRecordCustomMetadata | undefined)?.taskName;
     if (!taskName) {
       continue;
     }
@@ -216,11 +187,9 @@ export const getAggregateUsageRecordsByTask = ({
       outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
 
     const inputCost =
-      (inputUnitCount ?? 0) *
-      (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
+      (inputUnitCount ?? 0) * (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
     const outputCost =
-      (outputUnitCount ?? 0) *
-      (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
+      (outputUnitCount ?? 0) * (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
     const totalCost = inputCost + outputCost;
 
     aggregateUsage.totalCostInUsd += totalCost;

@@ -7,11 +7,7 @@ interface TestUser {
   readonly password: string;
 }
 
-const user = (
-  email: string,
-  shortname: string,
-  displayName: string,
-): TestUser => ({
+const user = (email: string, shortname: string, displayName: string): TestUser => ({
   email,
   shortname,
   displayName,
@@ -40,16 +36,8 @@ export const testUsers = {
   mfaLogin: user("mfa-login@example.com", "mfa-login", "MFA Login"),
   mfaBackup: user("mfa-backup@example.com", "mfa-backup", "MFA Backup"),
   mfaDisable: user("mfa-disable@example.com", "mfa-disable", "MFA Disable"),
-  mfaWrongCode: user(
-    "mfa-wrong-code@example.com",
-    "mfa-wrong-code",
-    "MFA Wrong Code",
-  ),
+  mfaWrongCode: user("mfa-wrong-code@example.com", "mfa-wrong-code", "MFA Wrong Code"),
 
   // Signup
-  signupAllowlisted: user(
-    "signup-allow@example.com",
-    "signup-allow",
-    "Signup Allow",
-  ),
+  signupAllowlisted: user("signup-allow@example.com", "signup-allow", "Signup Allow"),
 } as const;

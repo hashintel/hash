@@ -13,18 +13,11 @@ export const GoalListSection = ({
   rows: GoalSummary[];
   type: "active" | "archived";
 }) => {
-  const totalOpenQuestions = rows.reduce(
-    (acc, row) => acc + row.openInputRequests,
-    0,
-  );
+  const totalOpenQuestions = rows.reduce((acc, row) => acc + row.openInputRequests, 0);
 
   if (loading) {
     return (
-      <Stack
-        direction="row"
-        gap={10}
-        sx={{ "*": { transform: "none !important" } }}
-      >
+      <Stack direction="row" gap={10} sx={{ "*": { transform: "none !important" } }}>
         <Box sx={{ mt: 4 }}>
           <Skeleton width={140} height={150} />
         </Box>
@@ -38,14 +31,10 @@ export const GoalListSection = ({
   return (
     <Stack direction="row" gap={2}>
       <Box sx={{ width: 250 }}>
-        <Typography
-          sx={{ fontSize: 42, fontWeight: 600, mt: 2, lineHeight: 1 }}
-        >
+        <Typography sx={{ fontSize: 42, fontWeight: 600, mt: 2, lineHeight: 1 }}>
           {rows.length}
         </Typography>
-        <Typography sx={{ fontSize: 17, fontWeight: 600, mb: 2 }}>
-          {type} goals
-        </Typography>
+        <Typography sx={{ fontSize: 17, fontWeight: 600, mb: 2 }}>{type} goals</Typography>
         {type === "active" && (
           <Typography
             sx={{

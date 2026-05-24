@@ -29,9 +29,7 @@ const Description = z
       error: "Description cannot contain '<'",
     }),
   )
-  .describe(
-    "Informative explanation of what the skill does and when to use it. Max 1024 chars.",
-  );
+  .describe("Informative explanation of what the skill does and when to use it. Max 1024 chars.");
 const License = z
   .string()
   .optional()
@@ -40,9 +38,7 @@ const Compatibility = z
   .string()
   .max(500)
   .optional()
-  .describe(
-    "Version or environment compatibility requirements. Max 500 chars.",
-  );
+  .describe("Version or environment compatibility requirements. Max 500 chars.");
 const AllowedTools = z
   .string()
   .transform((value) => value.split(" "))
@@ -67,9 +63,7 @@ const Trigger = z
 const SuggestEnforcement = z
   .literal("suggest")
   .describe("Skill suggestion appears but doesn't block execution.");
-const WarnEnforcement = z
-  .literal("warn")
-  .describe("Shows warning but allows proceeding.");
+const WarnEnforcement = z.literal("warn").describe("Shows warning but allows proceeding.");
 const BlockEnforcement = z
   .literal("block")
   .describe("Requires skill to be used before proceeding (guardrail).");
@@ -78,16 +72,10 @@ const Enforcement = z
   .default("suggest")
   .describe("How strictly the skill is enforced.");
 
-const CriticalPriority = z
-  .literal("critical")
-  .describe("Always trigger when matched.");
+const CriticalPriority = z.literal("critical").describe("Always trigger when matched.");
 const HighPriority = z.literal("high").describe("Trigger for most matches.");
-const MediumPriority = z
-  .literal("medium")
-  .describe("Trigger for clear matches.");
-const LowPriority = z
-  .literal("low")
-  .describe("Trigger only for explicit matches.");
+const MediumPriority = z.literal("medium").describe("Trigger for clear matches.");
+const LowPriority = z.literal("low").describe("Trigger only for explicit matches.");
 const Priority = z
   .union([CriticalPriority, HighPriority, MediumPriority, LowPriority])
   .default("low")
@@ -120,17 +108,13 @@ const FileTriggersIncludes = z
   .string()
   .array()
   .default(() => [])
-  .describe(
-    "Glob patterns for files that trigger this skill. If empty, all files are considered.",
-  );
+  .describe("Glob patterns for files that trigger this skill. If empty, all files are considered.");
 
 const FileTriggersExcludes = z
   .string()
   .array()
   .default(() => [])
-  .describe(
-    "Glob patterns for files to exclude from triggering. If empty, no files are excluded.",
-  );
+  .describe("Glob patterns for files to exclude from triggering. If empty, no files are excluded.");
 
 const FileTriggersContent = z
   .string()
@@ -141,9 +125,7 @@ const FileTriggersContent = z
 const FileTriggersCreateOnly = z
   .boolean()
   .default(false)
-  .describe(
-    "If true, only trigger when creating new files, not editing existing ones.",
-  );
+  .describe("If true, only trigger when creating new files, not editing existing ones.");
 
 const FileTriggers = z
   .strictObject({
@@ -217,9 +199,7 @@ export const SkillTrigger = z
 export const SkillRules = z
   .object({
     version: z.literal("2.0").describe("Schema version for skill rules file."),
-    description: z
-      .string()
-      .describe("Human-readable description of this skill rules file."),
+    description: z.string().describe("Human-readable description of this skill rules file."),
     skills: z
       .record(z.string(), SkillTrigger)
       .describe("Map of skill names to their trigger configurations."),

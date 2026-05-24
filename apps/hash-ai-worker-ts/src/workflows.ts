@@ -13,10 +13,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 
 import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
 
-import type {
-  createAiActivities,
-  createGraphActivities,
-} from "./activities.js";
+import type { createAiActivities, createGraphActivities } from "./activities.js";
 import type {
   ActorEntityUuid,
   BaseUrl,
@@ -42,9 +39,7 @@ const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
   },
 });
 
-const graphActivities = proxyActivities<
-  ReturnType<typeof createGraphActivities>
->({
+const graphActivities = proxyActivities<ReturnType<typeof createGraphActivities>>({
   startToCloseTimeout: "20 second",
   retry: {
     maximumAttempts: 3,
@@ -108,17 +103,15 @@ export const updateDataTypeEmbeddings = async (
   }
 
   for (const dataType of dataTypes) {
-    const generatedEmbeddings =
-      await aiActivities.createDataTypeEmbeddingsActivity({
-        dataType,
-      });
+    const generatedEmbeddings = await aiActivities.createDataTypeEmbeddingsActivity({
+      dataType,
+    });
 
     await graphActivities.updateDataTypeEmbeddings({
       authentication: params.authentication,
       embedding: generatedEmbeddings.embedding,
       dataTypeId: dataType.schema.$id,
-      updatedAtTransactionTime:
-        dataType.metadata.temporalVersioning.transactionTime.start.limit,
+      updatedAtTransactionTime: dataType.metadata.temporalVersioning.transactionTime.start.limit,
       reset: true,
     });
 
@@ -180,10 +173,9 @@ export const updatePropertyTypeEmbeddings = async (
   }
 
   for (const propertyType of propertyTypes) {
-    const generatedEmbeddings =
-      await aiActivities.createPropertyTypeEmbeddingsActivity({
-        propertyType,
-      });
+    const generatedEmbeddings = await aiActivities.createPropertyTypeEmbeddingsActivity({
+      propertyType,
+    });
 
     await graphActivities.updatePropertyTypeEmbeddings({
       authentication: params.authentication,
@@ -252,17 +244,15 @@ export const updateEntityTypeEmbeddings = async (
   }
 
   for (const entityType of entityTypes) {
-    const generatedEmbeddings =
-      await aiActivities.createEntityTypeEmbeddingsActivity({
-        entityType,
-      });
+    const generatedEmbeddings = await aiActivities.createEntityTypeEmbeddingsActivity({
+      entityType,
+    });
 
     await graphActivities.updateEntityTypeEmbeddings({
       authentication: params.authentication,
       entityTypeId: entityType.schema.$id,
       embedding: generatedEmbeddings.embedding,
-      updatedAtTransactionTime:
-        entityType.metadata.temporalVersioning.transactionTime.start.limit,
+      updatedAtTransactionTime: entityType.metadata.temporalVersioning.transactionTime.start.limit,
       reset: true,
     });
 
@@ -313,12 +303,11 @@ export const updateEntityEmbeddings = async (
     }
 
     // Activity handles everything: fetch, filter FlowRun/empty, create embeddings, store
-    const embeddingUsage =
-      await aiActivities.createAndStoreEntityEmbeddingsActivity({
-        authentication: params.authentication,
-        entityIds: params.entityIds,
-        embeddingExclusions: params.embeddingExclusions,
-      });
+    const embeddingUsage = await aiActivities.createAndStoreEntityEmbeddingsActivity({
+      authentication: params.authentication,
+      entityIds: params.entityIds,
+      embeddingExclusions: params.embeddingExclusions,
+    });
 
     usage.prompt_tokens += embeddingUsage.prompt_tokens;
     usage.total_tokens += embeddingUsage.total_tokens;
@@ -378,17 +367,14 @@ export const updateEntityEmbeddings = async (
     }
 
     // Extract entity IDs and pass batch to the activity
-    const entityIds = entities.map(
-      (entity) => entity.metadata.recordId.entityId,
-    );
+    const entityIds = entities.map((entity) => entity.metadata.recordId.entityId);
 
     // Activity handles: fetch, create embeddings, store
-    const embeddingUsage =
-      await aiActivities.createAndStoreEntityEmbeddingsActivity({
-        authentication: params.authentication,
-        entityIds,
-        embeddingExclusions: params.embeddingExclusions,
-      });
+    const embeddingUsage = await aiActivities.createAndStoreEntityEmbeddingsActivity({
+      authentication: params.authentication,
+      entityIds,
+      embeddingExclusions: params.embeddingExclusions,
+    });
 
     usage.prompt_tokens += embeddingUsage.prompt_tokens;
     usage.total_tokens += embeddingUsage.total_tokens;
@@ -473,11 +459,10 @@ export const updateAllEntityEmbeddings = async (
   // Process batches of webs, paginating through system machines
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cursor is reassigned in the loop
   while (true) {
-    const { machineIds, cursor: nextCursor } =
-      await graphActivities.getSystemMachineIds({
-        cursor: machineCursor,
-        limit: WEBS_PER_BATCH,
-      });
+    const { machineIds, cursor: nextCursor } = await graphActivities.getSystemMachineIds({
+      cursor: machineCursor,
+      limit: WEBS_PER_BATCH,
+    });
 
     if (machineIds.length === 0) {
       break;
@@ -526,9 +511,7 @@ export const updateAllEntityEmbeddings = async (
   return usage;
 };
 
-export const parseTextFromFile = async (
-  params: ParseTextFromFileParams,
-): Promise<void> => {
+export const parseTextFromFile = async (params: ParseTextFromFileParams): Promise<void> => {
   await aiActivities.parseTextFromFileActivity(params);
 };
 

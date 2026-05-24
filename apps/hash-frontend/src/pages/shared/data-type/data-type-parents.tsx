@@ -46,9 +46,7 @@ export const DataTypeParentCard = ({
 
   const currentVersion = extractVersion($id);
   const newVersion =
-    compareOntologyTypeVersions(currentVersion, latestVersion) < 0
-      ? latestVersion
-      : undefined;
+    compareOntologyTypeVersions(currentVersion, latestVersion) < 0 ? latestVersion : undefined;
 
   const { control, setValue } = useFormContext<DataTypeFormData>();
 
@@ -128,12 +126,8 @@ export const DataTypesParents = ({
 
         for (const dataTypeOption of Object.values(dataTypes)) {
           if (
-            dataTypeOption.metadata.recordId.baseUrl ===
-              parentDataType.metadata.recordId.baseUrl &&
-            compareOntologyTypeVersions(
-              dataTypeOption.metadata.recordId.version,
-              latestVersion,
-            ) > 0
+            dataTypeOption.metadata.recordId.baseUrl === parentDataType.metadata.recordId.baseUrl &&
+            compareOntologyTypeVersions(dataTypeOption.metadata.recordId.version, latestVersion) > 0
           ) {
             latestVersion = dataTypeOption.metadata.recordId.version;
           }
@@ -159,17 +153,14 @@ export const DataTypesParents = ({
             ) && type.metadata.recordId.baseUrl !== dataTypeBaseUrl,
         )
         .map((type) => type.schema),
-      dataTypePoolById: dataTypesArray.reduce<Record<VersionedUrl, DataType>>(
-        (acc, type) => {
-          if (type.metadata.recordId.baseUrl === dataTypeBaseUrl) {
-            return acc;
-          }
-
-          acc[type.schema.$id] = type.schema;
+      dataTypePoolById: dataTypesArray.reduce<Record<VersionedUrl, DataType>>((acc, type) => {
+        if (type.metadata.recordId.baseUrl === dataTypeBaseUrl) {
           return acc;
-        },
-        {},
-      ),
+        }
+
+        acc[type.schema.$id] = type.schema;
+        return acc;
+      }, {}),
     });
   }, [dataTypes, dataTypeBaseUrl]);
 
@@ -181,19 +172,15 @@ export const DataTypesParents = ({
     }
 
     if (!("type" in parent)) {
-      throw new Error(
-        `Parent data type does not have a type: ${newParentTypeId}`,
-      );
+      throw new Error(`Parent data type does not have a type: ${newParentTypeId}`);
     }
 
-    const parentsWithoutOlderVersion = directParentDataTypeIds.filter(
-      (parentId) => {
-        const existingParentBaseUrl = extractBaseUrl(parentId);
-        const newParentBaseUrl = extractBaseUrl(newParentTypeId);
+    const parentsWithoutOlderVersion = directParentDataTypeIds.filter((parentId) => {
+      const existingParentBaseUrl = extractBaseUrl(parentId);
+      const newParentBaseUrl = extractBaseUrl(newParentTypeId);
 
-        return existingParentBaseUrl !== newParentBaseUrl;
-      },
-    );
+      return existingParentBaseUrl !== newParentBaseUrl;
+    });
 
     setValue("allOf", [...parentsWithoutOlderVersion, newParentTypeId], {
       shouldDirty: true,
@@ -211,11 +198,7 @@ export const DataTypesParents = ({
   useEffect(() => {
     const firstParentType = parents?.[0]?.dataType;
 
-    if (
-      firstParentType &&
-      "type" in firstParentType &&
-      type !== firstParentType.type
-    ) {
+    if (firstParentType && "type" in firstParentType && type !== firstParentType.type) {
       setValue("constraints.type", firstParentType.type, { shouldDirty: true });
     }
   }, [type, parents, setValue]);
@@ -223,9 +206,7 @@ export const DataTypesParents = ({
   const removeParent = (parentToRemoveTypeId: VersionedUrl) => {
     setValue(
       "allOf",
-      directParentDataTypeIds.filter(
-        (parentId) => parentId !== parentToRemoveTypeId,
-      ),
+      directParentDataTypeIds.filter((parentId) => parentId !== parentToRemoveTypeId),
       {
         shouldDirty: true,
       },
@@ -243,9 +224,7 @@ export const DataTypesParents = ({
           <Typography variant="h5" mb={2}>
             Extends
           </Typography>
-          <Typography variant="smallTextParagraphs">
-            This type has no parents.
-          </Typography>
+          <Typography variant="smallTextParagraphs">This type has no parents.</Typography>
         </Box>
       );
     }

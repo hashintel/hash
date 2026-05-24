@@ -10,9 +10,7 @@ const iconSize = 16;
 const iconGap = 10;
 const cellMargin = getCellHorizontalPadding();
 
-export const drawInteractableTooltipIcons = (
-  args: DrawArgs<TooltipCell>,
-): Interactable[] => {
+export const drawInteractableTooltipIcons = (args: DrawArgs<TooltipCell>): Interactable[] => {
   const { ctx, cell, rect, col, row, theme } = args;
   const { hideTooltip, showTooltip, tooltips } = cell.data;
 

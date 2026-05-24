@@ -26,13 +26,7 @@ initialization, later document mutations do not affect the active simulation.
 ## Simulation State
 
 ```typescript
-type SimulationState =
-  | "Initializing"
-  | "Ready"
-  | "Running"
-  | "Paused"
-  | "Complete"
-  | "Error";
+type SimulationState = "Initializing" | "Ready" | "Running" | "Paused" | "Complete" | "Error";
 ```
 
 | State          | Description                                           |
@@ -134,15 +128,12 @@ const simulation = await createSimulation({
     maxFramesAhead: 100,
     batchSize: 50,
   },
-  createWorker: () =>
-    new Worker(new URL("./simulation.worker.js", import.meta.url)),
+  createWorker: () => new Worker(new URL("./simulation.worker.js", import.meta.url)),
 });
 
 const unsubscribe = simulation.frames.subscribe(({ count, latest }) => {
   if (latest) {
-    console.log(
-      `Computed ${count} frames; place p1 has ${latest.getPlaceTokenCount("p1")} tokens`,
-    );
+    console.log(`Computed ${count} frames; place p1 has ${latest.getPlaceTokenCount("p1")} tokens`);
   }
 });
 

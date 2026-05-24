@@ -10,6 +10,4 @@ const paginationSlotRecipeDefinition = {
 
 export const paginationSlotRecipe = sva(paginationSlotRecipeDefinition);
 
-export type PaginationSlotRecipeProps = RecipeVariantProps<
-  typeof paginationSlotRecipe
->;
+export type PaginationSlotRecipeProps = RecipeVariantProps<typeof paginationSlotRecipe>;

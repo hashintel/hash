@@ -3,9 +3,7 @@ import { SvgIcon } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const LightbulbOnRainbowIcon: FunctionComponent<SvgIconProps> = (
-  props,
-) => {
+export const LightbulbOnRainbowIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon width="18" height="15" viewBox="0 0 18 15" fill="none" {...props}>
       <path

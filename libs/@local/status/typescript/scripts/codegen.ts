@@ -84,10 +84,7 @@ const codegen = async ({
   jsonSchemaOutputDir?: string;
 }) => {
   for await (const filePath of getFiles(typeDefsDir)) {
-    const fileParentStructure = path.relative(
-      typeDefsDir,
-      path.dirname(filePath),
-    );
+    const fileParentStructure = path.relative(typeDefsDir, path.dirname(filePath));
     const fileName = path.parse(filePath).name;
     const fileExtension = path.extname(filePath);
 
@@ -100,10 +97,7 @@ const codegen = async ({
         const rustParentsPath = path.join(rustOutputDir, fileParentStructure);
         await mkdir(rustParentsPath, { recursive: true });
 
-        const rustOutputPath = path.join(
-          rustParentsPath,
-          `${snakeCase(fileName)}.rs`,
-        );
+        const rustOutputPath = path.join(rustParentsPath, `${snakeCase(fileName)}.rs`);
 
         await execa("quicktype", [
           filePath,
@@ -118,10 +112,7 @@ const codegen = async ({
       }
 
       if (jsonSchemaOutputDir) {
-        const jsonSchemaParentsPath = path.join(
-          jsonSchemaOutputDir,
-          fileParentStructure,
-        );
+        const jsonSchemaParentsPath = path.join(jsonSchemaOutputDir, fileParentStructure);
         await mkdir(jsonSchemaParentsPath, { recursive: true });
 
         const jsonSchemaOutputPath = path.join(
@@ -153,9 +144,7 @@ const codegen = async ({
 
 void (async () => {
   const args = yargs(argv.slice(2))
-    .usage(
-      "Usage: $0 <entry-point-dir> -r [rust-out-dir] -j [json-schema-out-dir]",
-    )
+    .usage("Usage: $0 <entry-point-dir> -r [rust-out-dir] -j [json-schema-out-dir]")
     .positional("entry-point-dir", {
       describe:
         "The directory to recursively search for TypeScript type definitions to generate code from",

@@ -5,10 +5,7 @@ import {
   entityStorePluginState,
   subscribeToEntityStore,
 } from "@local/hash-isomorphic-utils/entity-store-plugin";
-import {
-  findComponentNode,
-  isEntityNode,
-} from "@local/hash-isomorphic-utils/prosemirror";
+import { findComponentNode, isEntityNode } from "@local/hash-isomorphic-utils/prosemirror";
 
 import { getBlockDomId } from "../../../shared/get-block-dom-id";
 import { BlockContext } from "./block-context";
@@ -32,9 +29,7 @@ import type { EditorView, NodeView } from "prosemirror-view";
 const nullBlockView = {};
 
 /** used to hold the blockView instance */
-export const BlockViewContext = createContext<BlockView>(
-  nullBlockView as BlockView,
-);
+export const BlockViewContext = createContext<BlockView>(nullBlockView as BlockView);
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
@@ -71,9 +66,7 @@ export class BlockView implements NodeView {
 
     const draftEntity = this.store.draft[blockEntityNode.attrs.draftId];
 
-    return (
-      (draftEntity?.metadata.recordId.entityId as EntityId | undefined) ?? null
-    );
+    return (draftEntity?.metadata.recordId.entityId as EntityId | undefined) ?? null;
   };
 
   private getBlockDraftId() {
@@ -129,10 +122,7 @@ export class BlockView implements NodeView {
     );
     this.insertBlockBottomContainer.contentEditable = "false";
     this.renderPortal(
-      <InsertBlock
-        onBlockSuggesterChange={this.onBlockInsert(true)}
-        readonly={this.readonly}
-      />,
+      <InsertBlock onBlockSuggesterChange={this.onBlockInsert(true)} readonly={this.readonly} />,
       this.insertBlockBottomContainer,
     );
 
@@ -189,9 +179,7 @@ export class BlockView implements NodeView {
    *
    * @todo find a more generalized alternative
    */
-  ignoreMutation(
-    record: Parameters<NonNullable<NodeView["ignoreMutation"]>>[0],
-  ) {
+  ignoreMutation(record: Parameters<NonNullable<NodeView["ignoreMutation"]>>[0]) {
     if (record.target === this.dom && record.type === "attributes") {
       return record.attributeName === "class" || record.attributeName === "id";
     } else if (
@@ -270,12 +258,7 @@ export class BlockView implements NodeView {
                    * that the whole node is re-ordered when drag & drop
                    * starts
                    */
-                  tr.setSelection(
-                    NodeSelection.create(
-                      this.editorView.state.doc,
-                      this.getPos(),
-                    ),
-                  );
+                  tr.setSelection(NodeSelection.create(this.editorView.state.doc, this.getPos()));
 
                   this.editorView.dispatch(tr);
 
@@ -284,10 +267,7 @@ export class BlockView implements NodeView {
                 onClick={this.onDragEnd}
               />
               {!this.readonly && this.isCommentingEnabled ? (
-                <CreateBlockCommentButton
-                  blockEntityId={blockEntityId}
-                  rootNode={this.rootNode}
-                />
+                <CreateBlockCommentButton blockEntityId={blockEntityId} rootNode={this.rootNode} />
               ) : null}
             </BlockViewContext.Provider>
           );
@@ -334,9 +314,7 @@ export class BlockView implements NodeView {
     const { node, getPos } = this;
     this.manager.deleteNode(node, getPos()).catch((err: Error) => {
       // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error(
-        `Error deleting node at position ${getPos()}: ${err.message}`,
-      );
+      console.error(`Error deleting node at position ${getPos()}: ${err.message}`);
     });
   };
 
@@ -365,9 +343,7 @@ export class BlockView implements NodeView {
       const { editorView, getPos } = this;
 
       const position = editorView.state.doc.resolve(getPos());
-      const newPosition = position.posAtIndex(
-        position.index(0) + (insertBelow ? 1 : 0),
-      );
+      const newPosition = position.posAtIndex(position.index(0) + (insertBelow ? 1 : 0));
 
       this.manager
         .insertBlock(blockMeta.componentId, variant, newPosition)
@@ -376,10 +352,7 @@ export class BlockView implements NodeView {
            * calculate nextPosition to correctly focus the component inside, not the wrapper
            * */
           const $pos = tr.doc.resolve(newPosition + 1);
-          const nextPosition = findComponentNode(
-            $pos.node(1),
-            $pos.start(1),
-          )?.[1];
+          const nextPosition = findComponentNode($pos.node(1), $pos.start(1))?.[1];
 
           if (nextPosition !== undefined) {
             tr.setSelection(TextSelection.create(tr.doc, nextPosition));

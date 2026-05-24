@@ -52,23 +52,15 @@ export const createFlowScheduleResolver: ResolverFn<
     throw GraphQLError.badRequest("Data sources are required for AI flows");
   }
 
-  const schedule = await createFlowScheduleEntity(
-    context,
-    authentication,
-    input,
-  );
+  const schedule = await createFlowScheduleEntity(context, authentication, input);
 
   const props = simplifyProperties(schedule.properties);
-  const scheduleId = extractEntityUuidFromEntityId(
-    schedule.metadata.recordId.entityId,
-  );
+  const scheduleId = extractEntityUuidFromEntityId(schedule.metadata.recordId.entityId);
 
   const taskQueue = flowType;
 
   const workflowParams: RunFlowWorkflowParams = {
-    ...(flowType === "ai" && input.dataSources
-      ? { dataSources: input.dataSources }
-      : {}),
+    ...(flowType === "ai" && input.dataSources ? { dataSources: input.dataSources } : {}),
     flowDefinition,
     flowRunName: input.name,
     flowTrigger: input.flowTrigger,
@@ -104,16 +96,10 @@ export const createFlowScheduleResolver: ResolverFn<
       },
     });
   } catch (err) {
-    await schedule.archive(
-      context.graphApi,
-      authentication,
-      context.provenance,
-    );
+    await schedule.archive(context.graphApi, authentication, context.provenance);
 
     const message = err instanceof Error ? err.message : String(err);
-    throw GraphQLError.internal(
-      `Failed to create Temporal schedule: ${message}`,
-    );
+    throw GraphQLError.internal(`Failed to create Temporal schedule: ${message}`);
   }
 
   return scheduleId;
@@ -136,9 +122,7 @@ export const updateFlowScheduleResolver: ResolverFn<
   });
 
   // Update the Temporal schedule if relevant fields changed
-  const scheduleId = extractEntityUuidFromEntityId(
-    schedule.metadata.recordId.entityId,
-  );
+  const scheduleId = extractEntityUuidFromEntityId(schedule.metadata.recordId.entityId);
 
   try {
     const handle = temporal.schedule.getHandle(scheduleId);
@@ -165,9 +149,7 @@ export const updateFlowScheduleResolver: ResolverFn<
           ...(typeof input.catchupWindowMs === "number"
             ? { catchupWindow: input.catchupWindowMs }
             : {}),
-          ...(input.pauseOnFailure !== undefined
-            ? { pauseOnFailure: input.pauseOnFailure }
-            : {}),
+          ...(input.pauseOnFailure !== undefined ? { pauseOnFailure: input.pauseOnFailure } : {}),
         },
       }));
     }
@@ -177,9 +159,7 @@ export const updateFlowScheduleResolver: ResolverFn<
       const { dataSources } = input;
 
       await handle.update((prev) => {
-        const existingParams = prev.action.args?.[0] as
-          | RunFlowWorkflowParams
-          | undefined;
+        const existingParams = prev.action.args?.[0] as RunFlowWorkflowParams | undefined;
 
         if (!existingParams) {
           // This shouldn't happen for a valid existing schedule
@@ -214,11 +194,9 @@ export const pauseFlowScheduleResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
-  const existingSchedule = await getFlowScheduleEntityById(
-    context,
-    authentication,
-    { scheduleEntityId },
-  );
+  const existingSchedule = await getFlowScheduleEntityById(context, authentication, {
+    scheduleEntityId,
+  });
 
   const { scheduleStatus } = simplifyProperties(existingSchedule.properties);
 
@@ -232,9 +210,7 @@ export const pauseFlowScheduleResolver: ResolverFn<
   });
 
   // Pause the Temporal schedule
-  const scheduleId = extractEntityUuidFromEntityId(
-    schedule.metadata.recordId.entityId,
-  );
+  const scheduleId = extractEntityUuidFromEntityId(schedule.metadata.recordId.entityId);
 
   try {
     const handle = temporal.schedule.getHandle(scheduleId);
@@ -262,15 +238,11 @@ export const resumeFlowScheduleResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
-  const existingSchedule = await getFlowScheduleEntityById(
-    context,
-    authentication,
-    { scheduleEntityId },
-  );
+  const existingSchedule = await getFlowScheduleEntityById(context, authentication, {
+    scheduleEntityId,
+  });
 
-  const { scheduleStatus, schedulePauseState } = simplifyProperties(
-    existingSchedule.properties,
-  );
+  const { scheduleStatus, schedulePauseState } = simplifyProperties(existingSchedule.properties);
 
   if (scheduleStatus === "active") {
     return true;
@@ -282,9 +254,7 @@ export const resumeFlowScheduleResolver: ResolverFn<
   });
 
   // Resume the Temporal schedule
-  const scheduleId = extractEntityUuidFromEntityId(
-    schedule.metadata.recordId.entityId,
-  );
+  const scheduleId = extractEntityUuidFromEntityId(schedule.metadata.recordId.entityId);
 
   try {
     const handle = temporal.schedule.getHandle(scheduleId);
@@ -318,9 +288,7 @@ export const archiveFlowScheduleResolver: ResolverFn<
     scheduleEntityId,
   });
 
-  const scheduleId = extractEntityUuidFromEntityId(
-    schedule.metadata.recordId.entityId,
-  );
+  const scheduleId = extractEntityUuidFromEntityId(schedule.metadata.recordId.entityId);
 
   await schedule.archive(context.graphApi, authentication, context.provenance);
 
@@ -329,11 +297,7 @@ export const archiveFlowScheduleResolver: ResolverFn<
     await handle.delete();
   } catch (err) {
     if (!(err instanceof ScheduleNotFoundError)) {
-      await schedule.unarchive(
-        context.graphApi,
-        authentication,
-        context.provenance,
-      );
+      await schedule.unarchive(context.graphApi, authentication, context.provenance);
 
       throw GraphQLError.internal(
         `Failed to delete Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,

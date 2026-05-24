@@ -13,9 +13,7 @@ export type InheritsFromEdge = Subtype<
   }
 >;
 
-export const isInheritsFromEdge = (
-  outwardEdge: OutwardEdge,
-): outwardEdge is InheritsFromEdge => {
+export const isInheritsFromEdge = (outwardEdge: OutwardEdge): outwardEdge is InheritsFromEdge => {
   return outwardEdge.kind === "INHERITS_FROM" && !outwardEdge.reversed;
 };
 
@@ -28,9 +26,7 @@ export type IsInheritedByEdge = Subtype<
   }
 >;
 
-export const isIsInheritedByEdge = (
-  outwardEdge: OutwardEdge,
-): outwardEdge is IsInheritedByEdge => {
+export const isIsInheritedByEdge = (outwardEdge: OutwardEdge): outwardEdge is IsInheritedByEdge => {
   return outwardEdge.kind === "INHERITS_FROM" && outwardEdge.reversed;
 };
 
@@ -76,9 +72,7 @@ export type ConstrainsPropertiesOnEdge = Subtype<
 export const isConstrainsPropertiesOnEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is ConstrainsPropertiesOnEdge => {
-  return (
-    outwardEdge.kind === "CONSTRAINS_PROPERTIES_ON" && !outwardEdge.reversed
-  );
+  return outwardEdge.kind === "CONSTRAINS_PROPERTIES_ON" && !outwardEdge.reversed;
 };
 
 export type PropertiesConstrainedByEdge = Subtype<
@@ -93,9 +87,7 @@ export type PropertiesConstrainedByEdge = Subtype<
 export const isPropertiesConstrainedByEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is PropertiesConstrainedByEdge => {
-  return (
-    outwardEdge.kind === "CONSTRAINS_PROPERTIES_ON" && outwardEdge.reversed
-  );
+  return outwardEdge.kind === "CONSTRAINS_PROPERTIES_ON" && outwardEdge.reversed;
 };
 
 export type ConstrainsLinksOnEdge = Subtype<
@@ -140,10 +132,7 @@ export type ConstrainsLinkDestinationsOnEdge = Subtype<
 export const isConstrainsLinkDestinationsOnEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is ConstrainsLinkDestinationsOnEdge => {
-  return (
-    outwardEdge.kind === "CONSTRAINS_LINK_DESTINATIONS_ON" &&
-    !outwardEdge.reversed
-  );
+  return outwardEdge.kind === "CONSTRAINS_LINK_DESTINATIONS_ON" && !outwardEdge.reversed;
 };
 
 export type LinkDestinationsConstrainedByEdge = Subtype<
@@ -158,10 +147,7 @@ export type LinkDestinationsConstrainedByEdge = Subtype<
 export const isLinkDestinationsConstrainedByEdge = (
   outwardEdge: OutwardEdge,
 ): outwardEdge is LinkDestinationsConstrainedByEdge => {
-  return (
-    outwardEdge.kind === "CONSTRAINS_LINK_DESTINATIONS_ON" &&
-    outwardEdge.reversed
-  );
+  return outwardEdge.kind === "CONSTRAINS_LINK_DESTINATIONS_ON" && outwardEdge.reversed;
 };
 
 export type IsTypeOfEdge = Subtype<
@@ -173,9 +159,7 @@ export type IsTypeOfEdge = Subtype<
   }
 >;
 
-export const isIsTypeOfEdge = (
-  outwardEdge: OutwardEdge,
-): outwardEdge is IsTypeOfEdge => {
+export const isIsTypeOfEdge = (outwardEdge: OutwardEdge): outwardEdge is IsTypeOfEdge => {
   return outwardEdge.kind === "IS_OF_TYPE" && outwardEdge.reversed;
 };
 

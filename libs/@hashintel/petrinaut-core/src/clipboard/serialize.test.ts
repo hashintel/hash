@@ -65,9 +65,7 @@ const fullNet: SDCPN = {
       elements: [{ elementId: "e1", name: "value", type: "real" }],
     },
   ],
-  differentialEquations: [
-    { id: "de1", name: "Equation1", colorId: "c1", code: "dx = -x;" },
-  ],
+  differentialEquations: [{ id: "de1", name: "Equation1", colorId: "c1", code: "dx = -x;" }],
   parameters: [
     {
       id: "param1",
@@ -106,11 +104,7 @@ describe("serializeSelection", () => {
   });
 
   it("copies only the selected place", () => {
-    const payload = serializeSelection(
-      fullNet,
-      sel({ type: "place", id: "p1" }),
-      null,
-    );
+    const payload = serializeSelection(fullNet, sel({ type: "place", id: "p1" }), null);
 
     expect(payload.data.places).toHaveLength(1);
     expect(payload.data.places[0]!.id).toBe("p1");
@@ -149,11 +143,7 @@ describe("serializeSelection", () => {
   });
 
   it("strips all arcs when a transition is selected alone", () => {
-    const payload = serializeSelection(
-      fullNet,
-      sel({ type: "transition", id: "t1" }),
-      null,
-    );
+    const payload = serializeSelection(fullNet, sel({ type: "transition", id: "t1" }), null);
 
     const transition = payload.data.transitions[0]!;
     expect(transition.inputArcs).toHaveLength(0);
@@ -161,11 +151,7 @@ describe("serializeSelection", () => {
   });
 
   it("copies a token type", () => {
-    const payload = serializeSelection(
-      fullNet,
-      sel({ type: "type", id: "c1" }),
-      null,
-    );
+    const payload = serializeSelection(fullNet, sel({ type: "type", id: "c1" }), null);
 
     expect(payload.data.types).toHaveLength(1);
     expect(payload.data.types[0]!.name).toBe("Token");
@@ -183,11 +169,7 @@ describe("serializeSelection", () => {
   });
 
   it("copies a parameter", () => {
-    const payload = serializeSelection(
-      fullNet,
-      sel({ type: "parameter", id: "param1" }),
-      null,
-    );
+    const payload = serializeSelection(fullNet, sel({ type: "parameter", id: "param1" }), null);
 
     expect(payload.data.parameters).toHaveLength(1);
     expect(payload.data.parameters[0]!.variableName).toBe("rate");
@@ -215,22 +197,14 @@ describe("serializeSelection", () => {
   });
 
   it("ignores arc selections (arcs come with transitions)", () => {
-    const payload = serializeSelection(
-      fullNet,
-      sel({ type: "arc", id: "$A_p1___t1" }),
-      null,
-    );
+    const payload = serializeSelection(fullNet, sel({ type: "arc", id: "$A_p1___t1" }), null);
 
     expect(payload.data.places).toHaveLength(0);
     expect(payload.data.transitions).toHaveLength(0);
   });
 
   it("ignores selection IDs that don't match any item in the net", () => {
-    const payload = serializeSelection(
-      fullNet,
-      sel({ type: "place", id: "nonexistent" }),
-      null,
-    );
+    const payload = serializeSelection(fullNet, sel({ type: "place", id: "nonexistent" }), null);
 
     expect(payload.data.places).toHaveLength(0);
   });

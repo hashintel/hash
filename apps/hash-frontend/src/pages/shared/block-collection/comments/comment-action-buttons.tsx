@@ -16,9 +16,7 @@ type CommentActionButtonsProps = {
   sx?: SxProps<Theme>;
 };
 
-export const CommentActionButtons: FunctionComponent<
-  CommentActionButtonsProps
-> = ({
+export const CommentActionButtons: FunctionComponent<CommentActionButtonsProps> = ({
   submitLabel = "Submit",
   cancelLabel = "Cancel",
   submitDisabled,

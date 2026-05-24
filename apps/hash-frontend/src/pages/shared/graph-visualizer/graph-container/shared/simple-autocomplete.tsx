@@ -60,12 +60,11 @@ export const VirtualizedList = forwardRef<
   );
 });
 
-const VirtualizedListComp = forwardRef<
-  HTMLDivElement,
-  { children: ReactElement[] }
->((defaultProps, ref) => {
-  return <VirtualizedList ref={ref} {...defaultProps} rowheight={36} />;
-});
+const VirtualizedListComp = forwardRef<HTMLDivElement, { children: ReactElement[] }>(
+  (defaultProps, ref) => {
+    return <VirtualizedList ref={ref} {...defaultProps} rowheight={36} />;
+  },
+);
 
 export const SimpleAutocomplete = <
   T extends {
@@ -154,9 +153,7 @@ export const SimpleAutocomplete = <
         setValue(option);
       }}
       options={
-        sortAlphabetically
-          ? options.sort((a, b) => a.label.localeCompare(b.label))
-          : options
+        sortAlphabetically ? options.sort((a, b) => a.label.localeCompare(b.label)) : options
       }
       renderOption={(
         {
@@ -169,8 +166,7 @@ export const SimpleAutocomplete = <
         option,
       ) => {
         const label =
-          option.label +
-          (suffixKey && option[suffixKey] ? ` ${option[suffixKey]}` : "");
+          option.label + (suffixKey && option[suffixKey] ? ` ${option[suffixKey]}` : "");
 
         const regex = /(\[[0-9]+]|\([0-9]+\)|\(None\)|\[None]|[^[\]()]+)/g;
 
@@ -193,10 +189,7 @@ export const SimpleAutocomplete = <
         });
 
         return (
-          <GraphVizTooltip
-            key={option.valueForSelector}
-            title={listComponent ? label : ""}
-          >
+          <GraphVizTooltip key={option.valueForSelector} title={listComponent ? label : ""}>
             <MenuItem
               {...props}
               sx={{
@@ -213,8 +206,7 @@ export const SimpleAutocomplete = <
                   // eslint-disable-next-line react/no-array-index-key
                   key={index}
                   sx={{
-                    color: ({ palette }) =>
-                      isCount ? palette.gray[50] : palette.common.black,
+                    color: ({ palette }) => (isCount ? palette.gray[50] : palette.common.black),
                     mr: isCount && index === 0 ? 0.5 : 0,
                     ml: isCount ? 0.5 : 0,
                   }}

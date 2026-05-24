@@ -27,9 +27,7 @@ for (const entryName in config.entry) {
 }
 
 // Add HotModuleReplacementPlugin to plugin list
-config.plugins = [new webpack.HotModuleReplacementPlugin({})].concat(
-  config.plugins || [],
-);
+config.plugins = [new webpack.HotModuleReplacementPlugin({})].concat(config.plugins || []);
 
 const compiler = webpack(config);
 

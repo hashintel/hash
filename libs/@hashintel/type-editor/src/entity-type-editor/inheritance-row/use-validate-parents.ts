@@ -20,9 +20,7 @@ import type {
  * @throws if there are any duplicate property or link types (of any version) among inheritedTypes and childsOwnTypeIds,
  *    UNLESS they belong to the exact same entity type version
  */
-const throwIfDuplicates = <
-  T extends InheritedValues["links"] | InheritedValues["properties"],
->({
+const throwIfDuplicates = <T extends InheritedValues["links"] | InheritedValues["properties"]>({
   inheritedTypes,
   childsOwnTypeIds,
   label,
@@ -39,22 +37,14 @@ const throwIfDuplicates = <
 }) => {
   for (const inheritedType of inheritedTypes) {
     const inheritedFrom =
-      inheritedType.inheritanceChain[
-        inheritedType.inheritanceChain.length - 1
-      ]!;
+      inheritedType.inheritanceChain[inheritedType.inheritanceChain.length - 1]!;
 
     const fullTypeDetails = typeOptions[inheritedType.$id];
     if (!fullTypeDetails) {
-      throw new Error(
-        `${label} ${inheritedType.$id} not found in ${label} type options`,
-      );
+      throw new Error(`${label} ${inheritedType.$id} not found in ${label} type options`);
     }
 
-    if (
-      childsOwnTypeIds.find(
-        (id) => extractBaseUrl(id) === extractBaseUrl(inheritedType.$id),
-      )
-    ) {
+    if (childsOwnTypeIds.find((id) => extractBaseUrl(id) === extractBaseUrl(inheritedType.$id))) {
       throw new Error(
         `The parent type you’re adding (${newParentTitle}) ${
           inheritedFrom.schema.title !== newParentTitle
@@ -67,17 +57,13 @@ const throwIfDuplicates = <
       );
     }
 
-    const duplicateFromAnotherParent = (
-      inheritedTypes as InheritedValues["links"]
-    ).find(
+    const duplicateFromAnotherParent = (inheritedTypes as InheritedValues["links"]).find(
       (type) =>
         // Disallow duplicates of the same type by any version
         extractBaseUrl(type.$id) === extractBaseUrl(inheritedType.$id) &&
         // Unless they belong directly to the exact same entity type version –
         // it might appear in multiple chains, e.g. Father <- Person, Salesman <- Person
-        inheritedType.inheritanceChain[ // the direct owner will be the last in the inheritance chain
-          inheritedType.inheritanceChain.length - 1
-        ]!.schema.$id !==
+        inheritedType.inheritanceChain[inheritedType.inheritanceChain.length - 1]!.schema.$id !== // the direct owner will be the last in the inheritance chain
           type.inheritanceChain[type.inheritanceChain.length - 1]!.schema.$id,
     );
 
@@ -93,9 +79,7 @@ const throwIfDuplicates = <
             ? `has a parent ${inheritedFrom.schema.title} which `
             : ""
         }
-        specifies a ${label} (${
-          fullTypeDetails.schema.title
-        }) already present on another parent (${
+        specifies a ${label} (${fullTypeDetails.schema.title}) already present on another parent (${
           duplicateInheritedFrom.schema.title
         }). Please remove it from either ${newParentTitle} or ${
           duplicateInheritedFrom.schema.title
@@ -127,13 +111,7 @@ export const useValidateParents = (): ((args: {
   const propertyTypes = usePropertyTypesOptions();
 
   return useCallback(
-    ({
-      childEntityTypeId,
-      childPropertiesIds,
-      childLinksIds,
-      directParentIds,
-      newParentTitle,
-    }) => {
+    ({ childEntityTypeId, childPropertiesIds, childLinksIds, directParentIds, newParentTitle }) => {
       const areChainsLinkChains = [];
 
       const {
@@ -158,8 +136,7 @@ export const useValidateParents = (): ((args: {
           // Check if the current type's id appears twice in the chain from child to root parent
           if (
             idsInChainIncludingChild.findIndex(
-              (id) =>
-                extractBaseUrl(id) === extractBaseUrl(currentType.schema.$id),
+              (id) => extractBaseUrl(id) === extractBaseUrl(currentType.schema.$id),
             ) !==
             // add 1 because the child is included in the array of ids but not the loop
             i + 1
@@ -170,8 +147,7 @@ export const useValidateParents = (): ((args: {
           }
 
           const isLink = !!(
-            linkTypes[currentType.schema.$id] ??
-            currentType.schema.$id === linkEntityTypeUrl
+            linkTypes[currentType.schema.$id] ?? currentType.schema.$id === linkEntityTypeUrl
           );
           if (isLink) {
             isLinkChain = true;
@@ -184,13 +160,8 @@ export const useValidateParents = (): ((args: {
           areChainsLinkChains.push(isLinkChain);
         }
 
-        if (
-          areChainsLinkChains.includes(true) &&
-          areChainsLinkChains.includes(false)
-        ) {
-          throw new Error(
-            "You cannot extend both link types and non-link types.",
-          );
+        if (areChainsLinkChains.includes(true) && areChainsLinkChains.includes(false)) {
+          throw new Error("You cannot extend both link types and non-link types.");
         }
       }
 

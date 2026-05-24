@@ -8,11 +8,7 @@ import { GraphVizTooltip } from "./graph-viz-tooltip";
 
 import type { PropsWithChildren, ReactElement, RefObject } from "react";
 
-export const InfoIconTooltip = ({
-  tooltip,
-}: {
-  tooltip: string | ReactElement;
-}) => {
+export const InfoIconTooltip = ({ tooltip }: { tooltip: string | ReactElement }) => {
   return (
     <GraphVizTooltip title={tooltip} placement="top">
       <Box
@@ -42,8 +38,7 @@ export const ItemLabel = ({
     <Typography
       component="div"
       sx={{
-        color: ({ palette }) =>
-          uppercase ? palette.gray[70] : palette.common.black,
+        color: ({ palette }) => (uppercase ? palette.gray[70] : palette.common.black),
         fontSize,
         fontWeight: uppercase ? 600 : 400,
         letterSpacing: uppercase ? 0.2 : 0,
@@ -104,9 +99,7 @@ export const ControlPanel = ({
         left: position === "left" ? 0 : undefined,
         right: position === "right" ? 0 : undefined,
         top: 0,
-        transform: open
-          ? "translateX(0%)"
-          : `translateX(${position === "left" ? "-" : ""}100%)`,
+        transform: open ? "translateX(0%)" : `translateX(${position === "left" ? "-" : ""}100%)`,
         maxHeight: ({ spacing }) => `calc(100% - ${spacing(4)})`,
         transition: ({ transitions }) => transitions.create(["transform"]),
         py: 1.2,
@@ -123,13 +116,7 @@ export const ControlPanel = ({
         overflowY: "auto",
       }}
     >
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        pr={1.8}
-        pl={2}
-      >
+      <Stack direction="row" alignItems="center" justifyContent="space-between" pr={1.8} pl={2}>
         <Typography
           sx={{
             color: ({ palette }) => palette.gray[90],

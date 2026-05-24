@@ -12,12 +12,12 @@ type CustomElementLoaderProps = {
 /**
  * Registers (if not already registered) and loads a custom element.
  */
-export const CustomElementLoader: FunctionComponent<
-  CustomElementLoaderProps
-> = ({ elementClass, properties, tagName }) => {
-  const [CustomElement, setCustomElement] = useState<FunctionComponent | null>(
-    null,
-  );
+export const CustomElementLoader: FunctionComponent<CustomElementLoaderProps> = ({
+  elementClass,
+  properties,
+  tagName,
+}) => {
+  const [CustomElement, setCustomElement] = useState<FunctionComponent | null>(null);
   const existingDefinitionRef = useRef<CustomElementDefinition | null>(null);
 
   useLayoutEffect(() => {
@@ -33,9 +33,7 @@ export const CustomElementLoader: FunctionComponent<
         customElements.define(tagName, elementClass);
       } catch (err) {
         // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error(
-          `Error defining custom element: ${(err as Error).message}`,
-        );
+        console.error(`Error defining custom element: ${(err as Error).message}`);
         throw err;
       }
     } else if (existingCustomElement !== elementClass) {
@@ -53,9 +51,7 @@ export const CustomElementLoader: FunctionComponent<
         customElements.define(`${tagName}${i}`, elementClass);
       } catch (err) {
         // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error(
-          `Error defining custom element: ${(err as Error).message}`,
-        );
+        console.error(`Error defining custom element: ${(err as Error).message}`);
         throw err;
       }
     }

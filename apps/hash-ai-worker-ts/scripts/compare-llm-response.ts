@@ -6,10 +6,7 @@ import { getLlmResponse } from "../src/activities/shared/get-llm-response.js";
 import { graphApiClient } from "../src/activities/shared/graph-api-client.js";
 import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id.js";
 
-import type {
-  LlmParams,
-  LlmResponse,
-} from "../src/activities/shared/get-llm-response/types.js";
+import type { LlmParams, LlmResponse } from "../src/activities/shared/get-llm-response/types.js";
 import type { CompareLlmResponseConfig } from "./compare-llm-response/types.js";
 import type { WebId } from "@blockprotocol/type-system";
 
@@ -36,9 +33,7 @@ const getCompareLlmResponseConfig = async (params: {
     };
 
     if (!module.config) {
-      throw new Error(
-        `No config object exported in the file: ${configFilePath}`,
-      );
+      throw new Error(`No config object exported in the file: ${configFilePath}`);
     }
 
     return module.config;
@@ -62,10 +57,7 @@ const persistCompareLlmResponses = (params: {
 
   const resultsFileName = `${resultsDirectory}/${now.toISOString()}.json`;
 
-  writeFileSync(
-    resultsFileName,
-    JSON.stringify({ llmParams, llmResponses }, null, 2),
-  );
+  writeFileSync(resultsFileName, JSON.stringify({ llmParams, llmResponses }, null, 2));
 };
 
 export const compareLlmResponses = async () => {

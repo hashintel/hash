@@ -16,8 +16,7 @@ export default [
           patterns: [
             {
               group: ["*use-user-value"],
-              message:
-                "Please useUserContext instead to share state across components",
+              message: "Please useUserContext instead to share state across components",
             },
           ],
         },

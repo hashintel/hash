@@ -54,11 +54,8 @@ interface ArrayMinMaxItemsProps {
   arrayId: string;
 }
 
-export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
-  arrayId,
-}) => {
-  const { control, setValue } =
-    useFormContext<ExpectedValueSelectorFormValues>();
+export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({ arrayId }) => {
+  const { control, setValue } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const [minItems, maxItems] = useWatch({
     control,
@@ -139,16 +136,11 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
                 const min = Math.max(0, valueAsNumber);
 
                 if (min > maxItems) {
-                  setValue(
-                    `flattenedCustomExpectedValueList.${arrayId}.data.maxItems`,
-                    min,
-                    { shouldDirty: true },
-                  );
+                  setValue(`flattenedCustomExpectedValueList.${arrayId}.data.maxItems`, min, {
+                    shouldDirty: true,
+                  });
                 }
-                setValue(
-                  `flattenedCustomExpectedValueList.${arrayId}.data.minItems`,
-                  min,
-                );
+                setValue(`flattenedCustomExpectedValueList.${arrayId}.data.minItems`, min);
 
                 setImmediate(() => {
                   setInputSize();
@@ -207,9 +199,7 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
                 alignItems: "center",
               },
             }}
-            collapsedSize={
-              infinityController.field.value ? 0 : `${maxItemsWidth || 1}ch`
-            }
+            collapsedSize={infinityController.field.value ? 0 : `${maxItemsWidth || 1}ch`}
           >
             <Box>
               <ItemInput
@@ -225,16 +215,11 @@ export const ArrayMinMaxItems: FunctionComponent<ArrayMinMaxItemsProps> = ({
                     const max = Math.max(0, valueAsNumber);
 
                     if (max < minItems) {
-                      setValue(
-                        `flattenedCustomExpectedValueList.${arrayId}.data.minItems`,
-                        max,
-                        { shouldDirty: true },
-                      );
+                      setValue(`flattenedCustomExpectedValueList.${arrayId}.data.minItems`, max, {
+                        shouldDirty: true,
+                      });
                     }
-                    setValue(
-                      `flattenedCustomExpectedValueList.${arrayId}.data.maxItems`,
-                      max,
-                    );
+                    setValue(`flattenedCustomExpectedValueList.${arrayId}.data.maxItems`, max);
 
                     setImmediate(() => {
                       setInputSize();

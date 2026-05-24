@@ -109,12 +109,8 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
 }: NodeProps<TransitionNodeType>) => {
   const { label } = data;
 
-  const {
-    isSelected,
-    isNotSelectedConnection,
-    isNotHoveredConnection,
-    hoveredItem,
-  } = use(EditorContext);
+  const { isSelected, isNotSelectedConnection, isNotHoveredConnection, hoveredItem } =
+    use(EditorContext);
 
   // Refs for animated elements
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -132,22 +128,18 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeType>> = ({
     ? "resource"
     : selected
       ? "reactflow"
-      : isNotHoveredConnection(id) ||
-          (!hoveredItem && isNotSelectedConnection(id))
+      : isNotHoveredConnection(id) || (!hoveredItem && isNotSelectedConnection(id))
         ? "notSelectedConnection"
         : "none";
 
-  const subtitle =
-    data.lambdaType === "stochastic" ? "Stochastic" : "Predicate";
+  const subtitle = data.lambdaType === "stochastic" ? "Stochastic" : "Predicate";
 
   return (
     <NodeCard
       cardClassName={`${nodeCardStyle({ selection: selectionVariant })} ${transitionCardStyle}`}
       cardRef={boxRef}
       iconContainer={
-        <div
-          className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}
-        >
+        <div className={`${iconContainerBaseStyle} ${transitionIconContainerStyle}`}>
           <Icon name="squareFilled" />
           {data.lambdaType === "stochastic" && (
             <div className={`${iconBadgeStyle} ${stochasticBadgeStyle}`}>

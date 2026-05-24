@@ -6,11 +6,7 @@ import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 
 // -- Helpers ------------------------------------------------------------------
 
-const param = (
-  id: string,
-  variableName: string,
-  defaultValue: string,
-): Parameter => ({
+const param = (id: string, variableName: string, defaultValue: string): Parameter => ({
   id,
   name: variableName,
   variableName,
@@ -66,10 +62,9 @@ describe("compileScenario", () => {
     });
 
     it("evaluates a constant parameter override", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "42" } }),
-        [param("p1", "x", "10")],
-      );
+      const result = compileScenario(scenario({ parameterOverrides: { p1: "42" } }), [
+        param("p1", "x", "10"),
+      ]);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -112,9 +107,7 @@ describe("compileScenario", () => {
     it("makes scenario parameters accessible via scenario object", () => {
       const result = compileScenario(
         scenario({
-          scenarioParameters: [
-            { type: "real", identifier: "rate", default: 3.5 },
-          ],
+          scenarioParameters: [{ type: "real", identifier: "rate", default: 3.5 }],
           parameterOverrides: { p1: "scenario.rate * 2" },
         }),
         [param("p1", "x", "0")],
@@ -129,9 +122,7 @@ describe("compileScenario", () => {
     it("allows scenario params in initial state expressions", () => {
       const result = compileScenario(
         scenario({
-          scenarioParameters: [
-            { type: "integer", identifier: "count", default: 50 },
-          ],
+          scenarioParameters: [{ type: "integer", identifier: "count", default: 50 }],
           initialState: {
             type: "per_place",
             content: { place1: "scenario.count" },
@@ -149,9 +140,7 @@ describe("compileScenario", () => {
     it("uses supplied scenario parameter values over defaults", () => {
       const result = compileScenario(
         scenario({
-          scenarioParameters: [
-            { type: "integer", identifier: "count", default: 50 },
-          ],
+          scenarioParameters: [{ type: "integer", identifier: "count", default: 50 }],
           parameterOverrides: { p1: "scenario.count * 2" },
           initialState: {
             type: "per_place",
@@ -174,9 +163,7 @@ describe("compileScenario", () => {
     it("rejects non-finite supplied scenario parameter values", () => {
       const result = compileScenario(
         scenario({
-          scenarioParameters: [
-            { type: "real", identifier: "rate", default: 1 },
-          ],
+          scenarioParameters: [{ type: "real", identifier: "rate", default: 1 }],
         }),
         [],
         [],
@@ -199,10 +186,9 @@ describe("compileScenario", () => {
 
   describe("expression features", () => {
     it("supports Math functions", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "Math.sqrt(144)" } }),
-        [param("p1", "x", "0")],
-      );
+      const result = compileScenario(scenario({ parameterOverrides: { p1: "Math.sqrt(144)" } }), [
+        param("p1", "x", "0"),
+      ]);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -213,9 +199,7 @@ describe("compileScenario", () => {
     it("supports complex expressions with both parameters and scenario", () => {
       const result = compileScenario(
         scenario({
-          scenarioParameters: [
-            { type: "real", identifier: "altitude", default: 80 },
-          ],
+          scenarioParameters: [{ type: "real", identifier: "altitude", default: 80 }],
           parameterOverrides: {
             p1: "Math.sqrt(400000 / scenario.altitude)",
           },
@@ -225,18 +209,14 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(Number(result.result.parameterValues.velocity)).toBeCloseTo(
-          Math.sqrt(400000 / 80),
-        );
+        expect(Number(result.result.parameterValues.velocity)).toBeCloseTo(Math.sqrt(400000 / 80));
       }
     });
 
     it("supports ternary expressions", () => {
       const result = compileScenario(
         scenario({
-          scenarioParameters: [
-            { type: "boolean", identifier: "large", default: 1 },
-          ],
+          scenarioParameters: [{ type: "boolean", identifier: "large", default: 1 }],
           initialState: {
             type: "per_place",
             content: { place1: "scenario.large ? 1000 : 10" },
@@ -383,10 +363,7 @@ describe("compileScenario", () => {
           },
         }),
         [],
-        [
-          place("uncolored", "Uncolored", null),
-          place("colored", "Colored", "type1"),
-        ],
+        [place("uncolored", "Uncolored", null), place("colored", "Colored", "type1")],
         [color("type1")],
       );
 
@@ -530,10 +507,9 @@ describe("compileScenario", () => {
 
   describe("error handling", () => {
     it("reports syntax errors in expressions", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "1 +" } }),
-        [param("p1", "x", "0")],
-      );
+      const result = compileScenario(scenario({ parameterOverrides: { p1: "1 +" } }), [
+        param("p1", "x", "0"),
+      ]);
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -544,10 +520,9 @@ describe("compileScenario", () => {
     });
 
     it("reports non-numeric results", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: '"hello"' } }),
-        [param("p1", "x", "0")],
-      );
+      const result = compileScenario(scenario({ parameterOverrides: { p1: '"hello"' } }), [
+        param("p1", "x", "0"),
+      ]);
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -570,10 +545,9 @@ describe("compileScenario", () => {
     });
 
     it("reports runtime errors (undefined variable)", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "nonexistent" } }),
-        [param("p1", "x", "0")],
-      );
+      const result = compileScenario(scenario({ parameterOverrides: { p1: "nonexistent" } }), [
+        param("p1", "x", "0"),
+      ]);
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -602,10 +576,9 @@ describe("compileScenario", () => {
 
   describe("sandboxing", () => {
     it("blocks access to window", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "typeof window" } }),
-        [param("p1", "x", "0")],
-      );
+      const result = compileScenario(scenario({ parameterOverrides: { p1: "typeof window" } }), [
+        param("p1", "x", "0"),
+      ]);
 
       // "typeof window" returns "undefined" (a string), not a number
       expect(result.ok).toBe(false);
@@ -663,9 +636,7 @@ describe("compileScenario", () => {
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.errors.some((e) => /constructor/i.test(e.message))).toBe(
-          true,
-        );
+        expect(result.errors.some((e) => /constructor/i.test(e.message))).toBe(true);
       }
     });
 
@@ -683,10 +654,9 @@ describe("compileScenario", () => {
     });
 
     it("allows Math (safe global)", () => {
-      const result = compileScenario(
-        scenario({ parameterOverrides: { p1: "Math.PI" } }),
-        [param("p1", "x", "0")],
-      );
+      const result = compileScenario(scenario({ parameterOverrides: { p1: "Math.PI" } }), [
+        param("p1", "x", "0"),
+      ]);
 
       expect(result.ok).toBe(true);
       if (result.ok) {

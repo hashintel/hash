@@ -44,14 +44,9 @@ export const Section = ({
       <Stack direction="row" justifyContent="space-between" mb={1}>
         <Stack alignItems="center" direction="row">
           {HeaderIcon && (
-            <HeaderIcon
-              sx={({ palette }) => ({ fill: palette.gray[50], height: 16 })}
-            />
+            <HeaderIcon sx={({ palette }) => ({ fill: palette.gray[50], height: 16 })} />
           )}
-          <Typography
-            variant="smallCaps"
-            sx={{ fontSize: 12, fontWeight: 600, ml: 0.2 }}
-          >
+          <Typography variant="smallCaps" sx={{ fontSize: 12, fontWeight: 600, ml: 0.2 }}>
             {headerText}
           </Typography>
         </Stack>
@@ -79,9 +74,7 @@ export const Section = ({
             >
               {linkText}
             </Typography>
-            <ArrowUpRightIcon
-              sx={({ palette }) => ({ fill: palette.gray[50], height: 14 })}
-            />
+            <ArrowUpRightIcon sx={({ palette }) => ({ fill: palette.gray[50], height: 14 })} />
           </Stack>
         )}
       </Stack>

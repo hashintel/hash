@@ -20,13 +20,7 @@ const FileUploadList = () => {
         <FileUpload.Item file={file} key={file.name} p="0.5" w="fit-content">
           <FileUpload.ItemPreviewImage />
           <FileUpload.ItemDeleteTrigger asChild>
-            <IconButton
-              size="2xs"
-              borderRadius="full"
-              pos="absolute"
-              top="-2"
-              right="-2"
-            >
+            <IconButton size="2xs" borderRadius="full" pos="absolute" top="-2" right="-2">
               <XIcon />
             </IconButton>
           </FileUpload.ItemDeleteTrigger>

@@ -1,7 +1,4 @@
-import {
-  entityIdFromComponents,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
+import { entityIdFromComponents, extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -23,11 +20,8 @@ const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,
 );
 
-const supportedLinearLinkEntityTypeIds = linearTypeMappings.flatMap(
-  ({ outgoingLinkMappings }) =>
-    outgoingLinkMappings.map(
-      ({ linkEntityTypeId }) => linkEntityTypeId as VersionedUrl,
-    ),
+const supportedLinearLinkEntityTypeIds = linearTypeMappings.flatMap(({ outgoingLinkMappings }) =>
+  outgoingLinkMappings.map(({ linkEntityTypeId }) => linkEntityTypeId as VersionedUrl),
 );
 
 export const supportedLinearTypeIds = [
@@ -46,11 +40,7 @@ export const processEntityChange = async ({
 }) => {
   const { entityTypeIds } = entity.metadata;
 
-  if (
-    !entityTypeIds.some(
-      (entityTypeId) => !supportedLinearTypeIds.includes(entityTypeId),
-    )
-  ) {
+  if (!entityTypeIds.some((entityTypeId) => !supportedLinearTypeIds.includes(entityTypeId))) {
     throw new Error(
       `Entity with entity type(s) ${entityTypeIds.join(", ")} passed to Linear sync back processor – supported types are ${supportedLinearEntityTypeIds.join(
         ", ",
@@ -127,27 +117,23 @@ export const processEntityChange = async ({
     },
   );
 
-  const linearId =
-    linearEntityToUpdate.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
+  const linearId = linearEntityToUpdate.properties[linearPropertyTypes.id.propertyTypeBaseUrl];
 
   if (!linearId) {
     return;
   }
 
-  await temporalClient.workflow.start<UpdateLinearDataWorkflow>(
-    "updateLinearData",
-    {
-      workflowId: generateUuid(),
-      taskQueue: "integration",
-      args: [
-        {
-          apiKey: linearApiKey,
-          linearId: linearId as string,
-          authentication: { actorId: linearMachineActorId },
-          entityTypeIds: linearEntityToUpdate.metadata.entityTypeIds,
-          entity: linearEntityToUpdate.toJSON(),
-        },
-      ],
-    },
-  );
+  await temporalClient.workflow.start<UpdateLinearDataWorkflow>("updateLinearData", {
+    workflowId: generateUuid(),
+    taskQueue: "integration",
+    args: [
+      {
+        apiKey: linearApiKey,
+        linearId: linearId as string,
+        authentication: { actorId: linearMachineActorId },
+        entityTypeIds: linearEntityToUpdate.metadata.entityTypeIds,
+        entity: linearEntityToUpdate.toJSON(),
+      },
+    ],
+  });
 };

@@ -17,8 +17,7 @@ export const App = () => {
         <Card.Header>
           <Card.Title>The perfect latte</Card.Title>
           <Card.Description>
-            Caffè latte is a coffee beverage of Italian origin made with
-            espresso and steamed milk.
+            Caffè latte is a coffee beverage of Italian origin made with espresso and steamed milk.
           </Card.Description>
         </Card.Header>
         <Card.Body>

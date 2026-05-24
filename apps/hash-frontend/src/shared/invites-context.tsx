@@ -30,9 +30,7 @@ export const useInvites = () => {
   return invitesContext;
 };
 
-export const InvitesContextProvider: FunctionComponent<PropsWithChildren> = ({
-  children,
-}) => {
+export const InvitesContextProvider: FunctionComponent<PropsWithChildren> = ({ children }) => {
   const { authenticatedUser } = useAuthInfo();
 
   const pollInterval = usePollInterval();
@@ -41,14 +39,14 @@ export const InvitesContextProvider: FunctionComponent<PropsWithChildren> = ({
     data: invitesData,
     loading: loadingInvites,
     refetch,
-  } = useQuery<
-    GetMyPendingInvitationsQuery,
-    GetMyPendingInvitationsQueryVariables
-  >(getMyPendingInvitationsQuery, {
-    pollInterval,
-    skip: !authenticatedUser?.accountSignupComplete,
-    fetchPolicy: "network-only",
-  });
+  } = useQuery<GetMyPendingInvitationsQuery, GetMyPendingInvitationsQueryVariables>(
+    getMyPendingInvitationsQuery,
+    {
+      pollInterval,
+      skip: !authenticatedUser?.accountSignupComplete,
+      fetchPolicy: "network-only",
+    },
+  );
 
   const value = useMemo<InvitesContextValues>(
     () => ({
@@ -59,7 +57,5 @@ export const InvitesContextProvider: FunctionComponent<PropsWithChildren> = ({
     [loadingInvites, invitesData, refetch],
   );
 
-  return (
-    <InvitesContext.Provider value={value}>{children}</InvitesContext.Provider>
-  );
+  return <InvitesContext.Provider value={value}>{children}</InvitesContext.Provider>;
 };

@@ -34,10 +34,9 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
   const { shortname } = router.query as { shortname: string };
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+  );
 
   const { authenticatedUser, refetch: refetchUser } = useAuthenticatedUser();
   const { refetch: refetchOrgs } = useOrgs();
@@ -74,15 +73,11 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
                 ? blockProtocolPropertyTypes.description.propertyTypeBaseUrl
                 : systemPropertyTypes[key].propertyTypeBaseUrl,
           ],
-          op:
-            key === "websiteUrl" && !value.startsWith("http")
-              ? "remove"
-              : "add",
+          op: key === "websiteUrl" && !value.startsWith("http") ? "remove" : "add",
           property: {
             value,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         });

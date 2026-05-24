@@ -11,10 +11,7 @@ import type {
   EntityTypeEditorLinkData,
   EntityTypeEditorPropertyData,
 } from "../../shared/form-types";
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 
 export type InheritanceData = {
   /**
@@ -76,9 +73,7 @@ const addInheritedValuesForEntityType = (
   const entityType = entityTypeOptions[entityTypeId];
 
   if (!entityType) {
-    throw new Error(
-      `Entity type ${entityTypeId} not found in entity type options`,
-    );
+    throw new Error(`Entity type ${entityTypeId} not found in entity type options`);
   }
 
   const newInheritanceChain = [...inheritanceChainToHere, entityType];
@@ -91,19 +86,16 @@ const addInheritedValuesForEntityType = (
   const { properties, links } = getFormDataFromEntityType(entityType.schema);
 
   for (const link of links) {
-    const duplicateLinkKey = Object.keys(inheritedValuesMap.links).find(
-      (versionedUrl) => versionedUrl.startsWith(extractBaseUrl(link.$id)),
+    const duplicateLinkKey = Object.keys(inheritedValuesMap.links).find((versionedUrl) =>
+      versionedUrl.startsWith(extractBaseUrl(link.$id)),
     ) as VersionedUrl | undefined;
     if (duplicateLinkKey) {
       const duplicateInheritedFrom =
         inheritedValuesMap.links[duplicateLinkKey]!.inheritanceChain[
-          inheritedValuesMap.links[duplicateLinkKey]!.inheritanceChain.length -
-            1
+          inheritedValuesMap.links[duplicateLinkKey]!.inheritanceChain.length - 1
         ]!;
       throw new Error(
-        `Link type '${versionedUrlToTitle(
-          duplicateLinkKey,
-        )}' found on two parents: '${
+        `Link type '${versionedUrlToTitle(duplicateLinkKey)}' found on two parents: '${
           duplicateInheritedFrom.schema.title
         }' and '${
           entityType.schema.title
@@ -119,21 +111,16 @@ const addInheritedValuesForEntityType = (
   }
 
   for (const property of properties) {
-    const duplicatePropertyKey = Object.keys(
-      inheritedValuesMap.properties,
-    ).find((versionedUrl) =>
+    const duplicatePropertyKey = Object.keys(inheritedValuesMap.properties).find((versionedUrl) =>
       versionedUrl.startsWith(extractBaseUrl(property.$id)),
     ) as VersionedUrl | undefined;
     if (duplicatePropertyKey) {
       const duplicateInheritedFrom =
         inheritedValuesMap.properties[duplicatePropertyKey]!.inheritanceChain[
-          inheritedValuesMap.properties[duplicatePropertyKey]!.inheritanceChain
-            .length - 1
+          inheritedValuesMap.properties[duplicatePropertyKey]!.inheritanceChain.length - 1
         ]!;
       throw new Error(
-        `Property type '${versionedUrlToTitle(
-          duplicatePropertyKey,
-        )}' found on two parents: '${
+        `Property type '${versionedUrlToTitle(duplicatePropertyKey)}' found on two parents: '${
           duplicateInheritedFrom.schema.title
         }' and '${
           entityType.schema.title

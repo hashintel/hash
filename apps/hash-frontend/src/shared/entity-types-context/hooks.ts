@@ -13,8 +13,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-export const useEntityTypesLoading = () =>
-  useEntityTypesContextRequired().loading;
+export const useEntityTypesLoading = () => useEntityTypesContextRequired().loading;
 
 export const useEntityTypesOptional = () => {
   const { entityTypes } = useEntityTypesContextRequired();
@@ -22,27 +21,21 @@ export const useEntityTypesOptional = () => {
   return entityTypes;
 };
 
-export const useEntityTypesSubgraphOptional = () =>
-  useEntityTypesContextRequired().subgraph;
+export const useEntityTypesSubgraphOptional = () => useEntityTypesContextRequired().subgraph;
 
-export const useFetchEntityTypes = () =>
-  useEntityTypesContextRequired().refetch;
+export const useFetchEntityTypes = () => useEntityTypesContextRequired().refetch;
 
-export const useLatestEntityTypesOptional = (params?: {
-  includeArchived: boolean;
-}) => {
+export const useLatestEntityTypesOptional = (params?: { includeArchived: boolean }) => {
   const { includeArchived = false } = params ?? {};
 
-  const { entityTypes, isSpecialEntityTypeLookup, loading } =
-    useEntityTypesContextRequired();
+  const { entityTypes, isSpecialEntityTypeLookup, loading } = useEntityTypesContextRequired();
 
   const latestEntityTypes = useMemo(() => {
     if (!entityTypes) {
       return null;
     }
 
-    const latestEntityTypesMap: Map<BaseUrl, EntityTypeWithMetadata> =
-      new Map();
+    const latestEntityTypesMap: Map<BaseUrl, EntityTypeWithMetadata> = new Map();
 
     for (const entityType of entityTypes) {
       const baseUrl = entityType.metadata.recordId.baseUrl;
@@ -63,9 +56,7 @@ export const useLatestEntityTypesOptional = (params?: {
 
     return includeArchived
       ? latestEntityTypesArray
-      : latestEntityTypesArray.filter(
-          (entityType) => !isTypeArchived(entityType),
-        );
+      : latestEntityTypesArray.filter((entityType) => !isTypeArchived(entityType));
   }, [entityTypes, includeArchived]);
 
   return { latestEntityTypes, isSpecialEntityTypeLookup, loading };
@@ -93,10 +84,9 @@ export const useIsSpecialEntityType = (
       };
     }
 
-    const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> =
-      Object.fromEntries(
-        (entityTypes ?? []).map((type) => [type.schema.$id, type]),
-      );
+    const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> = Object.fromEntries(
+      (entityTypes ?? []).map((type) => [type.schema.$id, type]),
+    );
 
     return isSpecialEntityType(entityType, typesByVersion);
   }, [entityType, entityTypes, loading]);

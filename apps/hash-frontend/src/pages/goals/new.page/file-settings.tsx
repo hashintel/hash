@@ -1,17 +1,10 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useState } from "react";
 
-import {
-  FileRegularIcon,
-  IconButton,
-  XMarkRegularIcon,
-} from "@hashintel/design-system";
+import { FileRegularIcon, IconButton, XMarkRegularIcon } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import {
-  useFileUploads,
-  useFileUploadsProgress,
-} from "../../../shared/file-upload-context";
+import { useFileUploads, useFileUploadsProgress } from "../../../shared/file-upload-context";
 import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
 
 import type { WebId } from "@blockprotocol/type-system";
@@ -48,18 +41,10 @@ const UploadedFile = ({
   const sizeInKiloBytes = fileSize ? Math.floor(fileSize / 1024) : null;
 
   return (
-    <Stack
-      alignItems="center"
-      direction="row"
-      key={fileEntity.metadata.recordId.entityId}
-    >
+    <Stack alignItems="center" direction="row" key={fileEntity.metadata.recordId.entityId}>
       <FileRegularIcon sx={uploadedFileSx} />
-      <Typography sx={{ ...uploadedFileSx, fontWeight: 500 }}>
-        {fileName}
-      </Typography>
-      {sizeInKiloBytes !== null && (
-        <Typography sx={uploadedFileSx}>{sizeInKiloBytes}KB</Typography>
-      )}
+      <Typography sx={{ ...uploadedFileSx, fontWeight: 500 }}>{fileName}</Typography>
+      {sizeInKiloBytes !== null && <Typography sx={uploadedFileSx}>{sizeInKiloBytes}KB</Typography>}
       <IconButton
         aria-label="Remove file from Flow"
         onClick={removeFromFlow}
@@ -82,14 +67,8 @@ const UploadedFile = ({
   );
 };
 
-export const FileSettings = ({
-  settings,
-  setSettings,
-  webId,
-}: FileSettingsProps) => {
-  const [uploadsInProgress, setUploadsInProgress] = useState<null | string[]>(
-    null,
-  );
+export const FileSettings = ({ settings, setSettings, webId }: FileSettingsProps) => {
+  const [uploadsInProgress, setUploadsInProgress] = useState<null | string[]>(null);
 
   const { uploadFile } = useFileUploads();
 
@@ -109,19 +88,14 @@ export const FileSettings = ({
           onComplete: (upload) => {
             setSettings((existingSettings) => ({
               ...existingSettings,
-              fileEntities: [
-                ...existingSettings.fileEntities,
-                upload.createdEntities.fileEntity,
-              ],
+              fileEntities: [...existingSettings.fileEntities, upload.createdEntities.fileEntity],
             }));
           },
           webId,
           returnBeforeCompletion: true,
         }),
       ),
-    ).then((uploads) =>
-      setUploadsInProgress(uploads.map((upload) => upload.requestId)),
-    );
+    ).then((uploads) => setUploadsInProgress(uploads.map((upload) => upload.requestId)));
   };
 
   const hasPendingUploads = uploadsInProgress?.some(
@@ -162,8 +136,7 @@ export const FileSettings = ({
                     ...currentSettings,
                     fileEntities: currentSettings.fileEntities.filter(
                       (entity) =>
-                        entity.metadata.recordId.entityId !==
-                        fileEntity.metadata.recordId.entityId,
+                        entity.metadata.recordId.entityId !== fileEntity.metadata.recordId.entityId,
                     ),
                   }))
                 }

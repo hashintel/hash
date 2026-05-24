@@ -6,10 +6,7 @@ import fs from "fs-extra";
 
 import { UserFriendlyError } from "./shared/errors";
 import { checkIfDirHasUncommittedChanges } from "./shared/git";
-import {
-  derivePackageInfoFromEnv,
-  outputPackageInfo,
-} from "./shared/package-infos";
+import { derivePackageInfoFromEnv, outputPackageInfo } from "./shared/package-infos";
 import { updateJson } from "./shared/update-json";
 
 const replaceWithDistPath = (exportPath: string, extension: ".d.ts" | ".js") =>
@@ -39,9 +36,7 @@ const script = async () => {
 
   process.stdout.write(" Done\n");
 
-  process.stdout.write(
-    "Ensuring .js extensions present in local import statements...",
-  );
+  process.stdout.write("Ensuring .js extensions present in local import statements...");
   await execa("fix-esm-import-path", ["./src"], {
     cwd: packageInfo.path,
     stdout: "inherit",
@@ -105,15 +100,12 @@ const script = async () => {
         for (const [key, typePathArray] of Object.entries(
           packageJson.typesVersions["*"] as Record<string, string[]>,
         )) {
-          packageJson.typesVersions["*"][key] = typePathArray.map(
-            (typePath: string) => replaceWithDistPath(typePath, ".d.ts"),
+          packageJson.typesVersions["*"][key] = typePathArray.map((typePath: string) =>
+            replaceWithDistPath(typePath, ".d.ts"),
           );
         }
 
-        packageJson.types = replaceWithDistPath(
-          packageJson.types as string,
-          ".d.ts",
-        );
+        packageJson.types = replaceWithDistPath(packageJson.types as string, ".d.ts");
       } else {
         throw new UserFriendlyError(
           "Unrecognised package.json export format – please either a single 'main' export or an 'exports' group.",

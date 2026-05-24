@@ -45,8 +45,7 @@ export const Avatar: FunctionComponent<AvatarProps> = ({
             alignItems: "center",
             justifyContent: "center",
           }),
-          background:
-            (bgcolor ?? src) ? undefined : ({ palette }) => palette.blue[70],
+          background: (bgcolor ?? src) ? undefined : ({ palette }) => palette.blue[70],
           borderRadius,
           border: ({ palette }) => `1px solid ${palette.gray[20]}`,
         },

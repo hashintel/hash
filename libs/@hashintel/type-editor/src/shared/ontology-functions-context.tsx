@@ -21,17 +21,13 @@ export type canEditResourceFunction = (proposal: {
 
 export type EditorOntologyFunctions = Pick<
   GraphEmbedderMessageCallbacks,
-  | "createPropertyType"
-  | "updatePropertyType"
-  | "createEntityType"
-  | "updateEntityType"
+  "createPropertyType" | "updatePropertyType" | "createEntityType" | "updateEntityType"
 > & {
   validateTitle: TitleValidationFunction;
   canEditResource: canEditResourceFunction;
 };
 
-export const OntologyFunctionsContext =
-  createContext<EditorOntologyFunctions | null>(null);
+export const OntologyFunctionsContext = createContext<EditorOntologyFunctions | null>(null);
 
 export const useOntologyFunctions = () => {
   const ontologyFunctions = useContext(OntologyFunctionsContext);

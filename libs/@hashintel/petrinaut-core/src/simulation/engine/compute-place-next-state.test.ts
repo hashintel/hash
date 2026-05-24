@@ -15,11 +15,7 @@ it("executes without errors", () => {
     [3, 4],
   ]);
 
-  const differentialEquation: PlaceDifferentialEquation = (
-    _state,
-    dimensions,
-    numberOfTokens,
-  ) => {
+  const differentialEquation: PlaceDifferentialEquation = (_state, dimensions, numberOfTokens) => {
     return new Float64Array(dimensions * numberOfTokens).fill(1);
   };
 
@@ -49,11 +45,7 @@ it("adds derivative to current state value", () => {
     [3, 4],
   ]);
 
-  const differentialEquation: PlaceDifferentialEquation = (
-    _state,
-    dimensions,
-    numberOfTokens,
-  ) => {
+  const differentialEquation: PlaceDifferentialEquation = (_state, dimensions, numberOfTokens) => {
     return new Float64Array(dimensions * numberOfTokens).fill(1);
   };
 

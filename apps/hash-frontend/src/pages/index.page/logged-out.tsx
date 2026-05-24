@@ -16,48 +16,32 @@ export const LoggedOut = () => {
       <HomepageCard wide>
         <HomepageBigText>
           You are{" "}
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.blue[70] }}
-          >
+          <Box component="span" sx={{ color: ({ palette }) => palette.blue[70] }}>
             not yet
           </Box>
         </HomepageBigText>
         <HomepageBigText>on the waitlist</HomepageBigText>
         <HomepageSmallCaps>
           Sign up
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.blue[70], ml: 0.7 }}
-          >
+          <Box component="span" sx={{ color: ({ palette }) => palette.blue[70], ml: 0.7 }}>
             for access
           </Box>
         </HomepageSmallCaps>
-        <Button
-          href="/signup"
-          variant="primary"
-          size="small"
-          sx={{ borderRadius: 2 }}
-        >
+        <Button href="/signup" variant="primary" size="small" sx={{ borderRadius: 2 }}>
           Create an account
           <ArrowRightRegularIcon sx={{ fontSize: 14, ml: 1 }} />
         </Button>
       </HomepageCard>
       <HomepageCard wide>
         <HomepageBigText>
-          <Box
-            component="span"
-            sx={{ color: ({ palette }) => palette.teal[60] }}
-          >
+          <Box component="span" sx={{ color: ({ palette }) => palette.teal[60] }}>
             See videos
           </Box>
           <Box component="span" sx={{ fontWeight: 400, ml: 1 }}>
             of
           </Box>
         </HomepageBigText>
-        <HomepageBigText sx={{ fontWeight: 400 }}>
-          HASH in action
-        </HomepageBigText>
+        <HomepageBigText sx={{ fontWeight: 400 }}>HASH in action</HomepageBigText>
         <HomepageSmallCaps>Watch videos</HomepageSmallCaps>
         <FollowUsButton />
       </HomepageCard>

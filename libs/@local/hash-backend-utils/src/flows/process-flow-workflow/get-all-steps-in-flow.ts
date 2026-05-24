@@ -4,9 +4,7 @@ import type {
   ParallelGroupStep,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-const getAllStepsInParallelGroupStep = (
-  parallelGroupStep: ParallelGroupStep,
-): FlowStep[] => [
+const getAllStepsInParallelGroupStep = (parallelGroupStep: ParallelGroupStep): FlowStep[] => [
   ...(parallelGroupStep.steps ?? []),
   ...(parallelGroupStep.steps?.flatMap((step) =>
     step.kind === "parallel-group" ? getAllStepsInParallelGroupStep(step) : [],

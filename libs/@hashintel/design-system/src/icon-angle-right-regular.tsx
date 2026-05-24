@@ -3,9 +3,7 @@ import { SvgIcon } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const AngleRightRegularIcon: FunctionComponent<SvgIconProps> = (
-  props,
-) => {
+export const AngleRightRegularIcon: FunctionComponent<SvgIconProps> = (props) => {
   return (
     <SvgIcon
       stroke="currentColor"

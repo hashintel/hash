@@ -59,17 +59,13 @@ export const getGoogleAccountById = async ({
             equal: [{ path: ["webId"] }, { parameter: userAccountId }],
           },
           { equal: [{ path: ["archived"] }, { parameter: false }] },
-          generateVersionedUrlMatchingFilter(
-            googleEntityTypes.account.entityTypeId,
-            { ignoreParents: true },
-          ),
+          generateVersionedUrlMatchingFilter(googleEntityTypes.account.entityTypeId, {
+            ignoreParents: true,
+          }),
           {
             equal: [
               {
-                path: [
-                  "properties",
-                  "https://hash.ai/@google/types/property-type/account-id/",
-                ],
+                path: ["properties", "https://hash.ai/@google/types/property-type/account-id/"],
               },
               { parameter: googleAccountId },
             ],
@@ -116,8 +112,7 @@ export const getTokensForGoogleAccount = async ({
 
   const { userSecret } = secretAndLinkPairs[0];
 
-  const vaultPath =
-    userSecret.properties["https://hash.ai/@h/types/property-type/vault-path/"];
+  const vaultPath = userSecret.properties["https://hash.ai/@h/types/property-type/vault-path/"];
 
   try {
     const vaultResponse = await vaultClient.read<Auth.Credentials>({

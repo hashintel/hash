@@ -1,10 +1,5 @@
 import { useMutation } from "@apollo/client";
-import {
-  autocompleteClasses,
-  Box,
-  outlinedInputClasses,
-  Typography,
-} from "@mui/material";
+import { autocompleteClasses, Box, outlinedInputClasses, Typography } from "@mui/material";
 import { generateKeyBetween } from "fractional-indexing";
 import { useCallback, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -55,8 +50,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 > = ({ quickNoteEntity, onClose, onConvertedToPage, ...modalProps }) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const { control, reset, handleSubmit, register, setValue } =
-    useForm<ConvertToPageFormData>();
+  const { control, reset, handleSubmit, register, setValue } = useForm<ConvertToPageFormData>();
 
   const createdAt = useMemo(
     () => new Date(quickNoteEntity.metadata.provenance.createdAtDecisionTime),
@@ -67,14 +61,11 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 
   const { data: pages } = useAccountPages(authenticatedUser.accountId as WebId);
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation);
-
-  const { createEntity } = useBlockProtocolCreateEntity(
-    authenticatedUser.accountId as WebId,
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
   );
+
+  const { createEntity } = useBlockProtocolCreateEntity(authenticatedUser.accountId as WebId);
 
   const innerSubmit = handleSubmit(async (data) => {
     const { parentPage } = data;
@@ -111,8 +102,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
               property: {
                 value: title,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               } satisfies TitlePropertyValueWithMetadata,
             },
@@ -124,8 +114,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
               property: {
                 value: fractionalIndex,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               } satisfies FractionalIndexPropertyValueWithMetadata,
             },
@@ -207,33 +196,25 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
               <Autocomplete<SimplePage, false, false>
                 value={field.value}
                 isOptionEqualToValue={(option, value) =>
-                  option.metadata.recordId.entityId ===
-                  value.metadata.recordId.entityId
+                  option.metadata.recordId.entityId === value.metadata.recordId.entityId
                 }
                 options={pages}
                 getOptionLabel={(page) => page.title}
                 inputLabel="Parent page"
                 inputPlaceholder="Set a parent page..."
-                onChange={(_, page) =>
-                  setValue("parentPage", page ?? undefined)
-                }
+                onChange={(_, page) => setValue("parentPage", page ?? undefined)}
                 autoFocus={false}
                 renderOption={(props, page) => (
                   <Box component="li" {...props}>
-                    <PageIcon
-                      size="small"
-                      icon={page.icon}
-                      sx={{ marginRight: 1 }}
-                    />
+                    <PageIcon size="small" icon={page.icon} sx={{ marginRight: 1 }} />
                     <Typography>{page.title}</Typography>
                   </Box>
                 )}
                 inputHeight={48}
                 sx={{
-                  [`&.${autocompleteClasses.hasClearIcon} .${outlinedInputClasses.root}`]:
-                    {
-                      paddingRight: 1,
-                    },
+                  [`&.${autocompleteClasses.hasClearIcon} .${outlinedInputClasses.root}`]: {
+                    paddingRight: 1,
+                  },
                   [`.${outlinedInputClasses.root}`]: {
                     height: "unset",
                     paddingY: 1.5,

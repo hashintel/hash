@@ -32,11 +32,7 @@ import type {
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type {
-  Embedding,
-  EntityEmbedding,
-  GraphApi,
-} from "@local/hash-graph-client";
+import type { Embedding, EntityEmbedding, GraphApi } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
@@ -46,26 +42,16 @@ import type { OpenAI } from "openai";
 
 export { createGraphActivities } from "./activities/graph.js";
 
-export const createAiActivities = ({
-  graphApiClient,
-}: {
-  graphApiClient: GraphApi;
-}) => ({
-  async parseTextFromFileActivity(
-    params: ParseTextFromFileParams,
-  ): Promise<void> {
+export const createAiActivities = ({ graphApiClient }: { graphApiClient: GraphApi }) => ({
+  async parseTextFromFileActivity(params: ParseTextFromFileParams): Promise<void> {
     return parseTextFromFile({ graphApiClient }, params);
   },
 
-  async createEmbeddingsActivity(
-    params: CreateEmbeddingsParams,
-  ): Promise<CreateEmbeddingsReturn> {
+  async createEmbeddingsActivity(params: CreateEmbeddingsParams): Promise<CreateEmbeddingsReturn> {
     return createEmbeddings(params);
   },
 
-  async createDataTypeEmbeddingsActivity(params: {
-    dataType: DataTypeWithMetadata;
-  }): Promise<{
+  async createDataTypeEmbeddingsActivity(params: { dataType: DataTypeWithMetadata }): Promise<{
     embedding: Embedding;
     usage: OpenAI.CreateEmbeddingResponse.Usage;
   }> {
@@ -143,31 +129,23 @@ export const createAiActivities = ({
     }
 
     // Fetch all entities by IDs in one query
-    const { entities } = await queryEntities(
-      { graphApi: graphApiClient },
-      params.authentication,
-      {
-        filter: {
-          any: params.entityIds.map((entityId) =>
-            generateEntityIdFilter({
-              entityId,
-              includeArchived: true,
-            }),
-          ),
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
+    const { entities } = await queryEntities({ graphApi: graphApiClient }, params.authentication, {
+      filter: {
+        any: params.entityIds.map((entityId) =>
+          generateEntityIdFilter({
+            entityId,
+            includeArchived: true,
+          }),
+        ),
       },
-    );
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
+    });
 
     for (const entity of entities) {
       // Skip FlowRun entities due to the size of their property values
-      if (
-        entity.metadata.entityTypeIds.includes(
-          systemEntityTypes.flowRun.entityTypeId,
-        )
-      ) {
+      if (entity.metadata.entityTypeIds.includes(systemEntityTypes.flowRun.entityTypeId)) {
         continue;
       }
 
@@ -177,28 +155,19 @@ export const createAiActivities = ({
       }
 
       // Query entity type subgraph to get property types
-      const { subgraph } = await queryEntityTypeSubgraph(
-        graphApiClient,
-        params.authentication,
-        {
-          filter: {
-            any: entity.metadata.entityTypeIds.map(
-              (entityTypeId: VersionedUrl) => ({
-                equal: [
-                  { path: ["versionedUrl"] },
-                  { parameter: entityTypeId },
-                ],
-              }),
-            ),
-          },
-          graphResolveDepths: {
-            inheritsFrom: 255,
-            constrainsPropertiesOn: 1,
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-          traversalPaths: [],
+      const { subgraph } = await queryEntityTypeSubgraph(graphApiClient, params.authentication, {
+        filter: {
+          any: entity.metadata.entityTypeIds.map((entityTypeId: VersionedUrl) => ({
+            equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+          })),
         },
-      );
+        graphResolveDepths: {
+          inheritsFrom: 255,
+          constrainsPropertiesOn: 1,
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        traversalPaths: [],
+      });
 
       const propertyTypes = getPropertyTypes(subgraph);
 
@@ -207,8 +176,7 @@ export const createAiActivities = ({
       if (params.embeddingExclusions) {
         for (const entityTypeId of entity.metadata.entityTypeIds) {
           const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
-          const excludedProperties =
-            params.embeddingExclusions[entityTypeBaseUrl];
+          const excludedProperties = params.embeddingExclusions[entityTypeBaseUrl];
           if (excludedProperties) {
             for (const propertyBaseUrl of excludedProperties) {
               delete filteredProperties[propertyBaseUrl];
@@ -238,8 +206,7 @@ export const createAiActivities = ({
             reset: true,
             updatedAtTransactionTime:
               entity.metadata.temporalVersioning.transactionTime.start.limit,
-            updatedAtDecisionTime:
-              entity.metadata.temporalVersioning.decisionTime.start.limit,
+            updatedAtDecisionTime: entity.metadata.temporalVersioning.decisionTime.start.limit,
           })
           .then((response) => response.data);
       }
@@ -256,10 +223,7 @@ export const createAiActivities = ({
   getWebPageActivity,
 
   async getDereferencedEntityTypesActivity(
-    params: Omit<
-      Parameters<typeof getDereferencedEntityTypesActivity>[0],
-      "graphApiClient"
-    >,
+    params: Omit<Parameters<typeof getDereferencedEntityTypesActivity>[0], "graphApiClient">,
   ) {
     return getDereferencedEntityTypesActivity({
       ...params,
@@ -268,10 +232,7 @@ export const createAiActivities = ({
   },
 
   async getAiAssistantAccountIdActivity(
-    params: Omit<
-      Parameters<typeof getAiAssistantAccountIdActivity>[0],
-      "graphApiClient"
-    >,
+    params: Omit<Parameters<typeof getAiAssistantAccountIdActivity>[0], "graphApiClient">,
   ) {
     return getAiAssistantAccountIdActivity({
       ...params,

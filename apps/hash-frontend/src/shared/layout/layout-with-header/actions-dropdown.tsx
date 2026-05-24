@@ -11,11 +11,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useContext } from "react";
 
 import {
@@ -60,9 +56,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
         rounded
         sx={({ palette }) => ({
           color: popupState.isOpen ? palette.common.white : palette.gray[40],
-          backgroundColor: popupState.isOpen
-            ? palette.blue["70"]
-            : palette.gray[20],
+          backgroundColor: popupState.isOpen ? palette.blue["70"] : palette.gray[20],
         })}
         {...bindTrigger(popupState)}
       >
@@ -104,8 +98,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
         >
           Create New
         </Typography>
-        {hashInstance?.properties.pagesAreEnabled &&
-        enabledFeatureFlags.pages ? (
+        {hashInstance?.properties.pagesAreEnabled && enabledFeatureFlags.pages ? (
           <CreatePageMenuItems onClick={popupState.close} />
         ) : null}
         <MenuItem href="/new/entity" onClick={popupState.close}>
@@ -151,16 +144,14 @@ const ActionsDropdownInner: FunctionComponent = () => {
           href="/settings/integrations"
           onClick={popupState.close}
           sx={{
-            [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]:
-              {
-                color: ({ palette }) => palette.blue[70],
-                fontWeight: 600,
-              },
+            [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]: {
+              color: ({ palette }) => palette.blue[70],
+              fontWeight: 600,
+            },
             "&:hover": {
-              [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]:
-                {
-                  color: ({ palette }) => palette.blue[70],
-                },
+              [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]: {
+                color: ({ palette }) => palette.blue[70],
+              },
             },
           }}
         >

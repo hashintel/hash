@@ -30,18 +30,13 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
     }
     return <HtmlLoader html={{ source: blockSource, url: sourceUrl }} />;
   } else if (entryPoint === "custom-element") {
-    if (
-      typeof blockSource === "string" ||
-      !(blockSource.prototype instanceof HTMLElement)
-    ) {
+    if (typeof blockSource === "string" || !(blockSource.prototype instanceof HTMLElement)) {
       throw new Error(
         `'custom-element' entryPoint expects parsed source to have 'HTMLElement' as prototype`,
       );
     }
     if (typeof blockType.tagName !== "string") {
-      throw new Error(
-        `Must provide blockType.tagName when entryPoint is 'custom-element'`,
-      );
+      throw new Error(`Must provide blockType.tagName when entryPoint is 'custom-element'`);
     }
     return (
       <CustomElementLoader

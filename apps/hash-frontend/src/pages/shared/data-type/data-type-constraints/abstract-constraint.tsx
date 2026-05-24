@@ -38,19 +38,15 @@ export const AbstractConstraint = ({ isReadOnly }: { isReadOnly: boolean }) => {
             }}
           />
         )}
-        <Typography
-          variant="smallTextParagraphs"
-          sx={{ fontWeight: 300, fontSize: 13 }}
-        >
+        <Typography variant="smallTextParagraphs" sx={{ fontWeight: 300, fontSize: 13 }}>
           {abstract ? (
             <>
-              Users <ConstraintText text="cannot" /> create values of this data
-              type: its children must be assigned to properties instead.
+              Users <ConstraintText text="cannot" /> create values of this data type: its children
+              must be assigned to properties instead.
             </>
           ) : (
             <>
-              Users <ConstraintText text="may" /> create values of this data
-              type.
+              Users <ConstraintText text="may" /> create values of this data type.
             </>
           )}
         </Typography>

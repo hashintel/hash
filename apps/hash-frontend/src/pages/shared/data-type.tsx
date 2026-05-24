@@ -40,10 +40,7 @@ import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
 import { NotFound } from "./not-found";
 import { inSlideContainerStyles } from "./shared/slide-styles";
 import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
-import {
-  TypeDefinitionContainer,
-  typeHeaderContainerStyles,
-} from "./shared/type-editor-styling";
+import { TypeDefinitionContainer, typeHeaderContainerStyles } from "./shared/type-editor-styling";
 import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
@@ -85,24 +82,24 @@ export const DataType = ({
 
   const { refetch: refetchAllDataTypes } = useDataTypesContext();
 
-  const [createDataType] = useMutation<
-    CreateDataTypeMutation,
-    CreateDataTypeMutationVariables
-  >(createDataTypeMutation, {
-    onCompleted() {
-      refetchAllDataTypes();
+  const [createDataType] = useMutation<CreateDataTypeMutation, CreateDataTypeMutationVariables>(
+    createDataTypeMutation,
+    {
+      onCompleted() {
+        refetchAllDataTypes();
+      },
     },
-  });
+  );
 
-  const [updateDataType] = useMutation<
-    UpdateDataTypeMutation,
-    UpdateDataTypeMutationVariables
-  >(updateDataTypeMutation, {
-    onCompleted(data) {
-      refetchAllDataTypes();
-      onDataTypeUpdated(data.updateDataType);
+  const [updateDataType] = useMutation<UpdateDataTypeMutation, UpdateDataTypeMutationVariables>(
+    updateDataTypeMutation,
+    {
+      onCompleted(data) {
+        refetchAllDataTypes();
+        onDataTypeUpdated(data.updateDataType);
+      },
     },
-  });
+  );
 
   const formMethods = useForm<DataTypeFormData>({
     defaultValues: {
@@ -114,12 +111,7 @@ export const DataType = ({
     },
   });
 
-  const {
-    control,
-    formState,
-    handleSubmit: wrapHandleSubmit,
-    reset,
-  } = formMethods;
+  const { control, formState, handleSubmit: wrapHandleSubmit, reset } = formMethods;
 
   const parents = useWatch({
     control,
@@ -177,9 +169,7 @@ export const DataType = ({
     }
 
     const dataTypes = getRoots<DataTypeRootType>(
-      deserializeQueryDataTypeSubgraphResponse(
-        remoteDataTypeData.queryDataTypeSubgraph,
-      ).subgraph,
+      deserializeQueryDataTypeSubgraphResponse(remoteDataTypeData.queryDataTypeSubgraph).subgraph,
     );
 
     let highestVersionDataType: DataTypeWithMetadata | null = null;
@@ -188,10 +178,7 @@ export const DataType = ({
       const version = extractVersion(dataType.schema.$id);
       if (
         !highestVersionDataType ||
-        compareOntologyTypeVersions(
-          version,
-          highestVersionDataType.metadata.recordId.version,
-        ) > 0
+        compareOntologyTypeVersions(version, highestVersionDataType.metadata.recordId.version) > 0
       ) {
         highestVersionDataType = dataType;
       }
@@ -232,8 +219,9 @@ export const DataType = ({
 
   const isDraft = !!draftNewDataType;
 
-  const { userPermissions, loading: loadingUserPermissions } =
-    useUserPermissionsOnDataType(dataType?.schema.$id);
+  const { userPermissions, loading: loadingUserPermissions } = useUserPermissionsOnDataType(
+    dataType?.schema.$id,
+  );
 
   const handleSubmit = wrapHandleSubmit(async (data) => {
     if (!isDirty && !isDraft) {
@@ -247,8 +235,7 @@ export const DataType = ({
       return;
     }
 
-    const { dataType: inputDataType, conversions } =
-      getDataTypeFromFormData(data);
+    const { dataType: inputDataType, conversions } = getDataTypeFromFormData(data);
 
     if (isDraft) {
       if (!webId) {
@@ -290,12 +277,7 @@ export const DataType = ({
 
   const { pushToSlideStack } = useSlideStack();
 
-  if (
-    !draftNewDataType &&
-    !dataType &&
-    !loadingRemoteDataType &&
-    !loadingUserPermissions
-  ) {
+  if (!draftNewDataType && !dataType && !loadingRemoteDataType && !loadingUserPermissions) {
     return (
       <NotFound
         resourceLabel={{
@@ -308,9 +290,8 @@ export const DataType = ({
               The latest version can be found{" "}
               <Link
                 href={
-                  generateLinkParameters(
-                    versionedUrlFromComponents(dataTypeBaseUrl, latestVersion),
-                  ).href
+                  generateLinkParameters(versionedUrlFromComponents(dataTypeBaseUrl, latestVersion))
+                    .href
                 }
               >
                 here
@@ -428,10 +409,7 @@ export const DataType = ({
                 <DataTypeConstraints isReadOnly={isReadOnly} />
                 <DataTypeLabels isReadOnly={isReadOnly} />
                 {!abstract && (
-                  <DataTypeConversions
-                    dataType={dataType.schema}
-                    isReadOnly={isReadOnly}
-                  />
+                  <DataTypeConversions dataType={dataType.schema} isReadOnly={isReadOnly} />
                 )}
               </InheritedConstraintsProvider>
             </Stack>

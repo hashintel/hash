@@ -21,9 +21,7 @@ export const useIsReadOnly = (): boolean => {
   const { state: simulationState } = use(SimulationContext);
 
   const isSimulationActive =
-    simulationState === "Running" ||
-    simulationState === "Paused" ||
-    simulationState === "Complete";
+    simulationState === "Running" || simulationState === "Paused" || simulationState === "Complete";
 
   return readonly || globalMode === "simulate" || isSimulationActive;
 };

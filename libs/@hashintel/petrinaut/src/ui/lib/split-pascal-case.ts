@@ -21,9 +21,7 @@ export const splitPascalCase = (pascalCaseString: string): string[] => {
   // or a sequence of capitals followed by a lowercase letter (acronym),
   // or a sequence of capitals at the end or before digits (final acronym),
   // or a sequence of digits
-  const segments = pascalCaseString.match(
-    /([A-Z]+(?=[A-Z][a-z]|\b|\d)|[A-Z][a-z]+|\d+)/g,
-  );
+  const segments = pascalCaseString.match(/([A-Z]+(?=[A-Z][a-z]|\b|\d)|[A-Z][a-z]+|\d+)/g);
 
   if (!segments) {
     return [pascalCaseString];

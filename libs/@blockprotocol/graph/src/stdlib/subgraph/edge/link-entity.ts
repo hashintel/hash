@@ -13,20 +13,9 @@ import {
 import { getEntityRevisionsByEntityId } from "../element/entity.js";
 import { getLatestInstantIntervalForSubgraph } from "../temporal-axes.js";
 
-import type {
-  LinkEntityAndLeftEntity,
-  LinkEntityAndRightEntity,
-} from "../../../types/entity.js";
-import type {
-  KnowledgeGraphRootedEdges,
-  Subgraph,
-} from "../../../types/subgraph.js";
-import type {
-  Entity,
-  EntityId,
-  TemporalBound,
-  TemporalInterval,
-} from "@blockprotocol/type-system";
+import type { LinkEntityAndLeftEntity, LinkEntityAndRightEntity } from "../../../types/entity.js";
+import type { KnowledgeGraphRootedEdges, Subgraph } from "../../../types/subgraph.js";
+import type { Entity, EntityId, TemporalBound, TemporalInterval } from "@blockprotocol/type-system";
 
 const getUniqueEntitiesFilter = () => {
   const set = new Set();
@@ -60,8 +49,7 @@ export const getOutgoingLinksForEntity = (
   entityId: EntityId,
   interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
-  const searchInterval =
-    interval ?? getLatestInstantIntervalForSubgraph(subgraph);
+  const searchInterval = interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
   const entityEdges = (subgraph.edges as KnowledgeGraphRootedEdges)[entityId];
 
@@ -75,32 +63,19 @@ export const getOutgoingLinksForEntity = (
 
   for (const [edgeTimestamp, outwardEdges] of typedEntries(entityEdges)) {
     // Only look at outgoing edges that were created before or within the search interval
-    if (
-      !intervalIsStrictlyAfterInterval(
-        intervalForTimestamp(edgeTimestamp),
-        searchInterval,
-      )
-    ) {
+    if (!intervalIsStrictlyAfterInterval(intervalForTimestamp(edgeTimestamp), searchInterval)) {
       for (const outwardEdge of outwardEdges) {
         if (isOutgoingLinkEdge(outwardEdge)) {
-          const { entityId: linkEntityId, interval: edgeInterval } =
-            outwardEdge.rightEndpoint;
+          const { entityId: linkEntityId, interval: edgeInterval } = outwardEdge.rightEndpoint;
 
           // Find the revisions of the link at the intersection of the search interval and the edge's valid interval
-          const intersection = intervalIntersectionWithInterval(
-            searchInterval,
-            edgeInterval,
-          );
+          const intersection = intervalIntersectionWithInterval(searchInterval, edgeInterval);
 
           if (intersection === null) {
             continue;
           }
 
-          for (const entity of getEntityRevisionsByEntityId(
-            subgraph,
-            linkEntityId,
-            intersection,
-          )) {
+          for (const entity of getEntityRevisionsByEntityId(subgraph, linkEntityId, intersection)) {
             if (uniqueEntitiesFilter(entity)) {
               entities.push(entity);
             }
@@ -132,8 +107,7 @@ export const getIncomingLinksForEntity = (
   entityId: EntityId,
   interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] => {
-  const searchInterval =
-    interval ?? getLatestInstantIntervalForSubgraph(subgraph);
+  const searchInterval = interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
   const entityEdges = (subgraph.edges as KnowledgeGraphRootedEdges)[entityId];
 
@@ -146,32 +120,19 @@ export const getIncomingLinksForEntity = (
   const entities = [];
 
   for (const [edgeTimestamp, outwardEdges] of typedEntries(entityEdges)) {
-    if (
-      !intervalIsStrictlyAfterInterval(
-        intervalForTimestamp(edgeTimestamp),
-        searchInterval,
-      )
-    ) {
+    if (!intervalIsStrictlyAfterInterval(intervalForTimestamp(edgeTimestamp), searchInterval)) {
       for (const outwardEdge of outwardEdges) {
         if (isIncomingLinkEdge(outwardEdge)) {
-          const { entityId: linkEntityId, interval: edgeInterval } =
-            outwardEdge.rightEndpoint;
+          const { entityId: linkEntityId, interval: edgeInterval } = outwardEdge.rightEndpoint;
 
           // Find the revisions of the link at the intersection of the search interval and the edge's valid interval
-          const intersection = intervalIntersectionWithInterval(
-            searchInterval,
-            edgeInterval,
-          );
+          const intersection = intervalIntersectionWithInterval(searchInterval, edgeInterval);
 
           if (intersection === null) {
             continue;
           }
 
-          for (const entity of getEntityRevisionsByEntityId(
-            subgraph,
-            linkEntityId,
-            intersection,
-          )) {
+          for (const entity of getEntityRevisionsByEntityId(subgraph, linkEntityId, intersection)) {
             if (uniqueEntitiesFilter(entity)) {
               entities.push(entity);
             }
@@ -203,12 +164,9 @@ export const getLeftEntityForLinkEntity = (
   entityId: EntityId,
   interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] | undefined => {
-  const searchInterval =
-    interval ?? getLatestInstantIntervalForSubgraph(subgraph);
+  const searchInterval = interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outwardEdge = Object.values(
-    (subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {},
-  )
+  const outwardEdge = Object.values((subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {})
     .flat()
     .find(isHasLeftEntityEdge);
 
@@ -216,12 +174,8 @@ export const getLeftEntityForLinkEntity = (
     return undefined;
   }
 
-  const { entityId: leftEntityId, interval: edgeInterval } =
-    outwardEdge.rightEndpoint;
-  const intersection = intervalIntersectionWithInterval(
-    searchInterval,
-    edgeInterval,
-  );
+  const { entityId: leftEntityId, interval: edgeInterval } = outwardEdge.rightEndpoint;
+  const intersection = intervalIntersectionWithInterval(searchInterval, edgeInterval);
 
   if (intersection === null) {
     throw new Error(
@@ -254,12 +208,9 @@ export const getRightEntityForLinkEntity = (
   entityId: EntityId,
   interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): Entity[] | undefined => {
-  const searchInterval =
-    interval ?? getLatestInstantIntervalForSubgraph(subgraph);
+  const searchInterval = interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outwardEdge = Object.values(
-    (subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {},
-  )
+  const outwardEdge = Object.values((subgraph.edges as KnowledgeGraphRootedEdges)[entityId] ?? {})
     .flat()
     .find(isHasRightEntityEdge);
 
@@ -267,13 +218,9 @@ export const getRightEntityForLinkEntity = (
     return undefined;
   }
 
-  const { entityId: rightEntityId, interval: edgeInterval } =
-    outwardEdge.rightEndpoint;
+  const { entityId: rightEntityId, interval: edgeInterval } = outwardEdge.rightEndpoint;
 
-  const intersection = intervalIntersectionWithInterval(
-    searchInterval,
-    edgeInterval,
-  );
+  const intersection = intervalIntersectionWithInterval(searchInterval, edgeInterval);
 
   if (intersection === null) {
     throw new Error(
@@ -298,21 +245,15 @@ export const getRightEntityForLinkEntity = (
  *   of time in the {@link Subgraph}
  */
 export const getOutgoingLinkAndTargetEntities = <
-  LinkAndRightEntities extends LinkEntityAndRightEntity[] =
-    LinkEntityAndRightEntity[],
+  LinkAndRightEntities extends LinkEntityAndRightEntity[] = LinkEntityAndRightEntity[],
 >(
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): LinkAndRightEntities => {
-  const searchInterval =
-    interval ?? getLatestInstantIntervalForSubgraph(subgraph);
+  const searchInterval = interval ?? getLatestInstantIntervalForSubgraph(subgraph);
 
-  const outgoingLinkEntities = getOutgoingLinksForEntity(
-    subgraph,
-    entityId,
-    searchInterval,
-  );
+  const outgoingLinkEntities = getOutgoingLinksForEntity(subgraph, entityId, searchInterval);
   const mappedRevisions = outgoingLinkEntities.reduce(
     (revisionMap, entity) => {
       const linkEntityId = entity.metadata.recordId.entityId;
@@ -326,18 +267,12 @@ export const getOutgoingLinkAndTargetEntities = <
     {} as Record<EntityId, Entity[]>,
   );
 
-  return typedEntries(mappedRevisions).map(
-    ([linkEntityId, linkEntityRevisions]) => {
-      return {
-        linkEntity: linkEntityRevisions,
-        rightEntity: getRightEntityForLinkEntity(
-          subgraph,
-          linkEntityId,
-          searchInterval,
-        ),
-      };
-    },
-  ) as LinkAndRightEntities; // @todo consider fixing generics in functions called within
+  return typedEntries(mappedRevisions).map(([linkEntityId, linkEntityRevisions]) => {
+    return {
+      linkEntity: linkEntityRevisions,
+      rightEntity: getRightEntityForLinkEntity(subgraph, linkEntityId, searchInterval),
+    };
+  }) as LinkAndRightEntities; // @todo consider fixing generics in functions called within
 };
 
 /**
@@ -351,24 +286,16 @@ export const getOutgoingLinkAndTargetEntities = <
  *   of time in the {@link Subgraph}
  */
 export const getIncomingLinkAndSourceEntities = <
-  LinkAndLeftEntities extends LinkEntityAndLeftEntity[] =
-    LinkEntityAndLeftEntity[],
+  LinkAndLeftEntities extends LinkEntityAndLeftEntity[] = LinkEntityAndLeftEntity[],
 >(
   subgraph: Subgraph,
   entityId: EntityId,
   interval?: TemporalInterval<TemporalBound, TemporalBound>,
 ): LinkAndLeftEntities => {
   const searchInterval =
-    interval ??
-    intervalForTimestamp(
-      subgraph.temporalAxes.resolved.variable.interval.end.limit,
-    );
+    interval ?? intervalForTimestamp(subgraph.temporalAxes.resolved.variable.interval.end.limit);
 
-  const incomingLinkEntities = getIncomingLinksForEntity(
-    subgraph,
-    entityId,
-    searchInterval,
-  );
+  const incomingLinkEntities = getIncomingLinksForEntity(subgraph, entityId, searchInterval);
   const mappedRevisions = incomingLinkEntities.reduce(
     (revisionMap, entity) => {
       const linkEntityId = entity.metadata.recordId.entityId;
@@ -382,16 +309,10 @@ export const getIncomingLinkAndSourceEntities = <
     {} as Record<EntityId, Entity[]>,
   );
 
-  return typedEntries(mappedRevisions).map(
-    ([linkEntityId, linkEntityRevisions]) => {
-      return {
-        linkEntity: linkEntityRevisions,
-        leftEntity: getLeftEntityForLinkEntity(
-          subgraph,
-          linkEntityId,
-          searchInterval,
-        ),
-      };
-    },
-  ) as LinkAndLeftEntities; // @todo consider fixing generics in functions called within
+  return typedEntries(mappedRevisions).map(([linkEntityId, linkEntityRevisions]) => {
+    return {
+      linkEntity: linkEntityRevisions,
+      leftEntity: getLeftEntityForLinkEntity(subgraph, linkEntityId, searchInterval),
+    };
+  }) as LinkAndLeftEntities; // @todo consider fixing generics in functions called within
 };

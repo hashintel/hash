@@ -4,10 +4,7 @@ import type {
   HasSpatiallyPositionedContent,
   HasSpatiallyPositionedContentProperties,
 } from "./system-types/canvas.js";
-import type {
-  HasIndexedContent,
-  HasIndexedContentProperties,
-} from "./system-types/shared.js";
+import type { HasIndexedContent, HasIndexedContentProperties } from "./system-types/shared.js";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
 
@@ -31,9 +28,7 @@ export const getBlockCollectionTraversalPath = ({
 });
 
 const isSpatiallyPositionedProperties = (
-  properties:
-    | HasSpatiallyPositionedContentProperties
-    | HasIndexedContentProperties,
+  properties: HasSpatiallyPositionedContentProperties | HasIndexedContentProperties,
 ): properties is HasSpatiallyPositionedContentProperties => {
   const testProperty: keyof HasSpatiallyPositionedContentProperties =
     "https://hash.ai/@h/types/property-type/rotation-in-rads/";
@@ -42,12 +37,8 @@ const isSpatiallyPositionedProperties = (
 };
 
 export const sortBlockCollectionLinks = <
-  Left extends HashLinkEntity<
-    HasSpatiallyPositionedContent | HasIndexedContent
-  >,
-  Right extends HashLinkEntity<
-    HasSpatiallyPositionedContent | HasIndexedContent
-  >,
+  Left extends HashLinkEntity<HasSpatiallyPositionedContent | HasIndexedContent>,
+  Right extends HashLinkEntity<HasSpatiallyPositionedContent | HasIndexedContent>,
 >(
   a: Left,
   b: Right,
@@ -58,12 +49,8 @@ export const sortBlockCollectionLinks = <
   ) {
     return 0;
   }
-  const { fractionalIndex: aFractionalIndex } = simplifyProperties(
-    a.properties,
-  );
-  const { fractionalIndex: bFractionalIndex } = simplifyProperties(
-    b.properties,
-  );
+  const { fractionalIndex: aFractionalIndex } = simplifyProperties(a.properties);
+  const { fractionalIndex: bFractionalIndex } = simplifyProperties(b.properties);
 
   return aFractionalIndex < bFractionalIndex ? -1 : 1;
 };

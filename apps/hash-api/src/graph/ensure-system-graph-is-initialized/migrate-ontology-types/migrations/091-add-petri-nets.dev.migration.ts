@@ -8,19 +8,14 @@ import {
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   const netDefinitionPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
         title: "Definition Object",
-        description:
-          "A definition of something, represented as an opaque JSON object.",
+        description: "A definition of something, represented as an opaque JSON object.",
         possibleValues: [{ primitiveDataType: "object" }],
       },
       migrationState,
@@ -108,35 +103,31 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _petriNetEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Petri Net",
-        description:
-          "A Petri net is a mathematical model of a system that can be used to represent and analyze complex systems.",
-        properties: [
-          {
-            propertyType: netDefinitionPropertyType.schema.$id,
-            required: true,
-          },
-          {
-            propertyType: titlePropertyTypeId,
-            required: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: subProcessOfLinkEntityType,
-            destinationEntityTypes: ["SELF_REFERENCE"],
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const _petriNetEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Petri Net",
+      description:
+        "A Petri net is a mathematical model of a system that can be used to represent and analyze complex systems.",
+      properties: [
+        {
+          propertyType: netDefinitionPropertyType.schema.$id,
+          required: true,
+        },
+        {
+          propertyType: titlePropertyTypeId,
+          required: true,
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: subProcessOfLinkEntityType,
+          destinationEntityTypes: ["SELF_REFERENCE"],
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   return migrationState;
 };

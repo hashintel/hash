@@ -6,10 +6,7 @@ import { Menu, useMenuItemContext } from "@ark-ui/react/menu";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { type ComponentProps, forwardRef } from "react";
 
-import {
-  createStyleContext,
-  type HTMLStyledProps,
-} from "@hashintel/ds-helpers/jsx";
+import { createStyleContext, type HTMLStyledProps } from "@hashintel/ds-helpers/jsx";
 
 import { menuSlotRecipe } from "./menu.recipe";
 
@@ -26,19 +23,13 @@ export const Arrow = withContext(Menu.Arrow, "arrow");
 export const ArrowTip = withContext(Menu.ArrowTip, "arrowTip");
 export const CheckboxItem = withContext(Menu.CheckboxItem, "item");
 export const Content = withContext(Menu.Content, "content");
-export const ContextTrigger = withContext(
-  Menu.ContextTrigger,
-  "contextTrigger",
-);
+export const ContextTrigger = withContext(Menu.ContextTrigger, "contextTrigger");
 export const Indicator = withContext(Menu.Indicator, "indicator", {
   defaultProps: { children: <ChevronDownIcon /> },
 });
 export const Item = withContext(Menu.Item, "item");
 export const ItemGroup = withContext(Menu.ItemGroup, "itemGroup");
-export const ItemGroupLabel = withContext(
-  Menu.ItemGroupLabel,
-  "itemGroupLabel",
-);
+export const ItemGroupLabel = withContext(Menu.ItemGroupLabel, "itemGroupLabel");
 export const ItemText = withContext(Menu.ItemText, "itemText");
 export const Positioner = withContext(Menu.Positioner, "positioner");
 export const RadioItem = withContext(Menu.RadioItem, "item");
@@ -54,16 +45,14 @@ export {
 
 const StyledItemIndicator = withContext(Menu.ItemIndicator, "itemIndicator");
 
-export const ItemIndicator = forwardRef<HTMLDivElement, HTMLStyledProps<"div">>(
-  (props, ref) => {
-    const item = useMenuItemContext();
+export const ItemIndicator = forwardRef<HTMLDivElement, HTMLStyledProps<"div">>((props, ref) => {
+  const item = useMenuItemContext();
 
-    return item.checked ? (
-      <StyledItemIndicator ref={ref} {...props}>
-        <CheckIcon />
-      </StyledItemIndicator>
-    ) : (
-      <svg aria-hidden="true" focusable="false" />
-    );
-  },
-);
+  return item.checked ? (
+    <StyledItemIndicator ref={ref} {...props}>
+      <CheckIcon />
+    </StyledItemIndicator>
+  ) : (
+    <svg aria-hidden="true" focusable="false" />
+  );
+});

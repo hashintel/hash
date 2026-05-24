@@ -15,10 +15,7 @@ export type CreateEmbeddingsReturn = {
   };
 };
 
-export const rewriteSemanticFilter = async (
-  filter: Filter,
-  temporalClient?: Client,
-) => {
+export const rewriteSemanticFilter = async (filter: Filter, temporalClient?: Client) => {
   if ("cosineDistance" in filter) {
     if (
       filter.cosineDistance[1] &&
@@ -47,15 +44,11 @@ export const rewriteSemanticFilter = async (
     }
   } else if ("all" in filter) {
     await Promise.all(
-      filter.all.map((innerFilter) =>
-        rewriteSemanticFilter(innerFilter, temporalClient),
-      ),
+      filter.all.map((innerFilter) => rewriteSemanticFilter(innerFilter, temporalClient)),
     );
   } else if ("any" in filter) {
     await Promise.all(
-      filter.any.map((innerFilter) =>
-        rewriteSemanticFilter(innerFilter, temporalClient),
-      ),
+      filter.any.map((innerFilter) => rewriteSemanticFilter(innerFilter, temporalClient)),
     );
   } else if ("not" in filter) {
     await rewriteSemanticFilter(filter.not, temporalClient);

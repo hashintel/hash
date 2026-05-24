@@ -113,10 +113,7 @@ const dimensionNameInputStyle = css({
   flex: "[1]",
 });
 
-type ElementNameInputState = Record<
-  string,
-  { sourceName: string; value: string }
->;
+type ElementNameInputState = Record<string, { sourceName: string; value: string }>;
 
 const slugifyToIdentifier = (input: string): string => {
   let slug = input
@@ -149,12 +146,9 @@ const TypeMainContent: React.FC = () => {
   const isDisabled = useIsReadOnly();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [elementNameInputs, setElementNameInputs] =
-    useState<ElementNameInputState>({});
+  const [elementNameInputs, setElementNameInputs] = useState<ElementNameInputState>({});
 
-  const getElementNameInputValue = (
-    element: (typeof type.elements)[number],
-  ): string => {
+  const getElementNameInputValue = (element: (typeof type.elements)[number]): string => {
     const input = elementNameInputs[element.elementId];
     return input?.sourceName === element.name ? input.value : element.name;
   };
@@ -325,9 +319,7 @@ const TypeMainContent: React.FC = () => {
         )}
       >
         {type.elements.length === 0 ? (
-          <div className={emptyDimensionsStyle}>
-            No dimensions defined. Click + to add.
-          </div>
+          <div className={emptyDimensionsStyle}>No dimensions defined. Click + to add.</div>
         ) : (
           <div className={dimensionsListStyle}>
             {type.elements.map((element, index) => (
@@ -363,16 +355,10 @@ const TypeMainContent: React.FC = () => {
                 <Input
                   value={getElementNameInputValue(element)}
                   onChange={(event) => {
-                    handleUpdateElementName(
-                      element.elementId,
-                      event.target.value,
-                    );
+                    handleUpdateElementName(element.elementId, event.target.value);
                   }}
                   onBlur={(event) => {
-                    handleBlurElementName(
-                      element.elementId,
-                      event.target.value,
-                    );
+                    handleBlurElementName(element.elementId, event.target.value);
                   }}
                   disabled={isDisabled}
                   placeholder="dimension_name"
@@ -391,9 +377,7 @@ const TypeMainContent: React.FC = () => {
                   tone="error"
                   aria-label={`Delete dimension ${element.name}`}
                   tooltip={
-                    isDisabled
-                      ? UI_MESSAGES.READ_ONLY_MODE
-                      : `Delete dimension ${element.name}`
+                    isDisabled ? UI_MESSAGES.READ_ONLY_MODE : `Delete dimension ${element.name}`
                   }
                   tooltipDisplay="inline"
                   iconName="close"

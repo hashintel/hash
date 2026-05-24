@@ -17,10 +17,7 @@ export const generatedTypeSuffix = {
   metadataSchema: "",
 };
 
-const trimEntityTypeSuffixRegex = new RegExp(
-  `${generatedTypeSuffix.entityType}$`,
-  "m",
-);
+const trimEntityTypeSuffixRegex = new RegExp(`${generatedTypeSuffix.entityType}$`, "m");
 
 export const entityDefinitionNameForEntityType = (typeName: string) =>
   typeName.replace(trimEntityTypeSuffixRegex, "");
@@ -45,8 +42,7 @@ export const identifiersForExternalImports = [
   "PropertyProvenance",
 ] as const;
 
-export type IdentifierForExternalImport =
-  (typeof identifiersForExternalImports)[number];
+export type IdentifierForExternalImport = (typeof identifiersForExternalImports)[number];
 
 export const metadataSchemaKind = "metadataSchema";
 

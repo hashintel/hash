@@ -13,9 +13,7 @@ type YarnWorkspaceInfo = {
   name: string;
 };
 
-export const getWorkspaceInfoLookup = async (): Promise<
-  Record<string, YarnWorkspaceInfo>
-> => {
+export const getWorkspaceInfoLookup = async (): Promise<Record<string, YarnWorkspaceInfo>> => {
   const { stdout } = await execa("yarn", ["workspaces", "list", "--json"], {
     env: { PATH: process.env.PATH },
     extendEnv: false, // Avoid passing FORCE_COLOR to a sub-process

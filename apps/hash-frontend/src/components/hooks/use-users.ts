@@ -6,17 +6,11 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import {
-  constructMinimalUser,
-  isEntityUserEntity,
-} from "../../lib/user-and-org";
+import { constructMinimalUser, isEntityUserEntity } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 
-import type {
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
+import type { QueryEntitiesQuery, QueryEntitiesQueryVariables } from "../../graphql/api-types.gen";
 import type { MinimalUser } from "../../lib/user-and-org";
 
 export const useUsers = (): {
@@ -24,27 +18,23 @@ export const useUsers = (): {
   refetch: () => void;
   users?: MinimalUser[];
 } => {
-  const { data, loading, refetch } = useQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery, {
-    variables: {
-      request: {
-        filter: convertBpFilterToGraphFilter({
-          filters: [
-            entityHasEntityTypeByVersionedUrlFilter(
-              systemEntityTypes.user.entityTypeId,
-            ),
-          ],
-          operator: "AND",
-        }),
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
+  const { data, loading, refetch } = useQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
+    {
+      variables: {
+        request: {
+          filter: convertBpFilterToGraphFilter({
+            filters: [entityHasEntityTypeByVersionedUrlFilter(systemEntityTypes.user.entityTypeId)],
+            operator: "AND",
+          }),
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: false,
+          includePermissions: false,
+        },
       },
+      fetchPolicy: "cache-and-network",
     },
-    fetchPolicy: "cache-and-network",
-  });
+  );
 
   const { queryEntities } = data ?? {};
 
@@ -54,17 +44,15 @@ export const useUsers = (): {
         return undefined;
       }
 
-      return deserializeQueryEntitiesResponse(queryEntities).entities.map(
-        (userEntity) => {
-          if (!isEntityUserEntity(userEntity)) {
-            throw new Error(
-              `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
-            );
-          }
+      return deserializeQueryEntitiesResponse(queryEntities).entities.map((userEntity) => {
+        if (!isEntityUserEntity(userEntity)) {
+          throw new Error(
+            `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
+          );
+        }
 
-          return constructMinimalUser({ userEntity });
-        },
-      );
+        return constructMinimalUser({ userEntity });
+      });
     },
     [queryEntities],
     /**

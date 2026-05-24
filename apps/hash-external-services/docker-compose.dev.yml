@@ -211,8 +211,7 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
     restart: unless-stopped
     healthcheck:
-      test:
-        ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 2s
       timeout: 2s
       retries: 10

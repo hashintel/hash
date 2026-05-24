@@ -5,9 +5,7 @@
   "properties": {
     "$schema": {
       "type": "string",
-      "enum": [
-        "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"
-      ]
+      "enum": ["https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type"]
     },
     "kind": {
       "type": "string",
@@ -46,13 +44,5 @@
     }
   },
   "additionalProperties": false,
-  "required": [
-    "$schema",
-    "kind",
-    "type",
-    "$id",
-    "title",
-    "description",
-    "properties"
-  ]
+  "required": ["$schema", "kind", "type", "$id", "title", "description", "properties"]
 }

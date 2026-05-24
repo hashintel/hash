@@ -26,10 +26,7 @@ import type {
  * default run set.
  */
 function deriveRunSeed(baseSeed: number, runIndex: number): number {
-  return (
-    Math.abs(Math.trunc(baseSeed + (runIndex + 1) * 2_654_435_761)) %
-    2_147_483_648
-  );
+  return Math.abs(Math.trunc(baseSeed + (runIndex + 1) * 2_654_435_761)) % 2_147_483_648;
 }
 
 /**
@@ -48,16 +45,8 @@ export function ensureFrameCapacity(
     return frame;
   }
 
-  const nextCapacity = Math.max(
-    requiredTokenValueCount,
-    frame.tokenValueCapacity * 2,
-    8,
-  );
-  const resizedFrame = cloneMonteCarloFrameBuffer(
-    run.simulation.frameLayout,
-    frame,
-    nextCapacity,
-  );
+  const nextCapacity = Math.max(requiredTokenValueCount, frame.tokenValueCapacity * 2, 8);
+  const resizedFrame = cloneMonteCarloFrameBuffer(run.simulation.frameLayout, frame, nextCapacity);
 
   if (run.currentFrame === frame) {
     run.currentFrame = resizedFrame;
@@ -106,10 +95,7 @@ export function createRunState(
     config.initialTokenValueCapacity ?? initialTokenValueCount,
     initialTokenValueCount,
   );
-  const currentFrame = createMonteCarloFrameBuffer(
-    simulation.frameLayout,
-    initialCapacity,
-  );
+  const currentFrame = createMonteCarloFrameBuffer(simulation.frameLayout, initialCapacity);
   copyEngineFrameViewToMonteCarloFrameBuffer(
     simulation.frameLayout,
     initialView,
@@ -127,10 +113,7 @@ export function createRunState(
       currentFrameNumber: 0,
     },
     currentFrame,
-    nextFrame: createMonteCarloFrameBuffer(
-      simulation.frameLayout,
-      initialCapacity,
-    ),
+    nextFrame: createMonteCarloFrameBuffer(simulation.frameLayout, initialCapacity),
     initialMarking,
     parameterValues: simulation.parameterValues,
     frameNumber: 0,
@@ -206,11 +189,7 @@ export function summarizeRuns(
  */
 export function getRunSnapshot(run: MonteCarloRunState): MonteCarloRunSnapshot {
   const placeTokenCounts: Record<string, number> = {};
-  for (
-    let placeIndex = 0;
-    placeIndex < run.simulation.frameLayout.placeIds.length;
-    placeIndex++
-  ) {
+  for (let placeIndex = 0; placeIndex < run.simulation.frameLayout.placeIds.length; placeIndex++) {
     placeTokenCounts[run.simulation.frameLayout.placeIds[placeIndex]!] =
       run.currentFrame.placeCounts[placeIndex] ?? 0;
   }

@@ -2,8 +2,7 @@ import RudderAnalytics from "@rudderstack/rudder-sdk-node";
 
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 
-const RUDDERSTACK_KEY =
-  process.env.HASH_API_RUDDERSTACK_KEY || "2SKw8Q5jz5g08LNKpk0Ag82N7HL";
+const RUDDERSTACK_KEY = process.env.HASH_API_RUDDERSTACK_KEY || "2SKw8Q5jz5g08LNKpk0Ag82N7HL";
 
 export class Telemetry {
   private static rudder_client: RudderAnalytics | undefined | null = undefined;

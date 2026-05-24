@@ -266,10 +266,7 @@ export const ArcItem = ({
 
   const nameCellContent = (
     <div className={nameCellInnerStyle}>
-      <div
-        className={colorDotStyle}
-        style={{ backgroundColor: color ?? "#d4d4d4" }}
-      />
+      <div className={colorDotStyle} style={{ backgroundColor: color ?? "#d4d4d4" }} />
       <span className={nameTextStyle}>{placeName}</span>
       <Icon name="chevronDown" size="xs" className={chevronStyle} />
     </div>
@@ -292,9 +289,7 @@ export const ArcItem = ({
           triggerClassName={selectTriggerOverrideStyle}
           renderTrigger={() => nameCellContent}
           renderItem={(item) => {
-            const placeColor = availablePlaces.find(
-              (pl) => pl.id === item.value,
-            )?.color;
+            const placeColor = availablePlaces.find((pl) => pl.id === item.value)?.color;
             return (
               <>
                 <div
@@ -317,10 +312,7 @@ export const ArcItem = ({
           <div />
           <div />
         </div>
-        <div
-          className={separatorBackgroundStyle}
-          style={separatorBarMaskStyle}
-        />
+        <div className={separatorBackgroundStyle} style={separatorBarMaskStyle} />
       </div>
       <NumberInput
         value={weight}
@@ -330,10 +322,7 @@ export const ArcItem = ({
         size="sm"
         className={weightInputStyle}
         onChange={(event) => {
-          const newWeight = Number.parseInt(
-            (event.target as HTMLInputElement).value,
-            10,
-          );
+          const newWeight = Number.parseInt((event.target as HTMLInputElement).value, 10);
           if (!Number.isNaN(newWeight) && newWeight >= 1) {
             onWeightChange(newWeight);
           }

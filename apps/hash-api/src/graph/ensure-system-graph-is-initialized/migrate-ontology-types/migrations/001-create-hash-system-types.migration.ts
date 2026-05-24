@@ -32,11 +32,7 @@ const blockProtocolEntityTypeIds = [
   "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
 ] as const;
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /** HASH Instance entity type */
 
   const pagesAreEnabledPropertyType = await createSystemPropertyTypeIfNotExists(
@@ -45,8 +41,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Pages Are Enabled",
-        description:
-          "Whether or not user functionality related to pages is enabled.",
+        description: "Whether or not user functionality related to pages is enabled.",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
       webShortname: "h",
@@ -54,20 +49,24 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const userSelfRegistrationIsEnabledPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const userSelfRegistrationIsEnabledPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "User Self Registration Is Enabled",
-        description:
-          "Whether or not user self registration (sign-up) is enabled.",
+        description: "Whether or not user self registration (sign-up) is enabled.",
         possibleValues: [{ primitiveDataType: "boolean" }],
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
-  const orgSelfRegistrationIsEnabledPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const orgSelfRegistrationIsEnabledPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Org Self Registration Is Enabled",
         description:
@@ -76,10 +75,13 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
-  const userRegistrationByInviteIsEnabledPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const userRegistrationByInviteIsEnabledPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "User Registration By Invitation Is Enabled",
         description:
@@ -88,7 +90,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
@@ -120,8 +123,10 @@ const migrate: MigrationFunction = async ({
 
   /** File entity type */
 
-  const fileStorageBucketPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const fileStorageBucketPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "File Storage Bucket",
         description: "The bucket in which a file is stored.",
@@ -129,22 +134,27 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
-  const fileStorageEndpointPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const fileStorageEndpointPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "File Storage Endpoint",
-        description:
-          "The endpoint for making requests to a file storage provider.",
+        description: "The endpoint for making requests to a file storage provider.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
-  const fileStorageForcePathStylePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const fileStorageForcePathStylePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "File Storage Force Path Style",
         description:
@@ -153,7 +163,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   const fileStorageKeyPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -169,8 +180,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const fileStorageProviderPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const fileStorageProviderPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "File Storage Provider",
         description: "The provider of a file storage service.",
@@ -178,10 +191,13 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
-  const fileStorageRegionPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const fileStorageRegionPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "File Storage Region",
         description: "The region in which a file is stored.",
@@ -189,100 +205,92 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
-
-  const fileEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "File",
-        titlePlural: "Files",
-        description: "A file hosted at a URL",
-        icon: "/icons/types/file.svg",
-        labelProperty:
-          blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.fileUrl.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.mimeType.propertyTypeId,
-          },
-          {
-            propertyType: fileStorageBucketPropertyType,
-          },
-          {
-            propertyType: fileStorageEndpointPropertyType,
-          },
-          {
-            propertyType: fileStorageForcePathStylePropertyType,
-          },
-          {
-            propertyType: fileStorageKeyPropertyType,
-          },
-          {
-            propertyType: fileStorageProviderPropertyType,
-          },
-          {
-            propertyType: fileStorageRegionPropertyType,
-          },
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/v/1",
-          },
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
-          },
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
-          },
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/v/1",
-          },
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/v/1",
-          },
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/v/1",
-          },
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1",
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
     },
   );
+
+  const fileEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "File",
+      titlePlural: "Files",
+      description: "A file hosted at a URL",
+      icon: "/icons/types/file.svg",
+      labelProperty: blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl,
+      properties: [
+        {
+          propertyType: blockProtocolPropertyTypes.fileUrl.propertyTypeId,
+          required: true,
+        },
+        {
+          propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+        },
+        {
+          propertyType: blockProtocolPropertyTypes.mimeType.propertyTypeId,
+        },
+        {
+          propertyType: fileStorageBucketPropertyType,
+        },
+        {
+          propertyType: fileStorageEndpointPropertyType,
+        },
+        {
+          propertyType: fileStorageForcePathStylePropertyType,
+        },
+        {
+          propertyType: fileStorageKeyPropertyType,
+        },
+        {
+          propertyType: fileStorageProviderPropertyType,
+        },
+        {
+          propertyType: fileStorageRegionPropertyType,
+        },
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/v/1",
+        },
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+        },
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
+        },
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/v/1",
+        },
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/v/1",
+        },
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/v/1",
+        },
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1",
+        },
+      ],
+    },
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Image File entity type */
 
-  const imageFileEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [fileEntityType.schema.$id],
-        title: "Image File",
-        titlePlural: "Image Files",
-        icon: "/icons/types/file-image.svg",
-        description: "An image file hosted at a URL",
-      },
-      webShortname: "h",
-      migrationState,
+  const imageFileEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [fileEntityType.schema.$id],
+      title: "Image File",
+      titlePlural: "Image Files",
+      icon: "/icons/types/file-image.svg",
+      description: "An image file hosted at a URL",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Block entity type */
 
@@ -300,51 +308,43 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const hasDataLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Has Data",
-        inverse: {
-          title: "Data For",
-        },
-        description: "The data that something has.",
+  const hasDataLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Has Data",
+      inverse: {
+        title: "Data For",
       },
-      webShortname: "h",
-      migrationState,
+      description: "The data that something has.",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const blockEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Block",
-        titlePlural: "Blocks",
-        icon: "/icons/types/cube.svg",
-        description:
-          "A block that displays or otherwise uses data, part of a wider page or collection.",
-        properties: [
-          {
-            propertyType: componentIdPropertyType,
-            required: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: hasDataLinkEntityType,
-            minItems: 1,
-            maxItems: 1,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+  const blockEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Block",
+      titlePlural: "Blocks",
+      icon: "/icons/types/cube.svg",
+      description:
+        "A block that displays or otherwise uses data, part of a wider page or collection.",
+      properties: [
+        {
+          propertyType: componentIdPropertyType,
+          required: true,
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: hasDataLinkEntityType,
+          minItems: 1,
+          maxItems: 1,
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Block Collection entity type */
 
@@ -371,8 +371,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Fractional Index",
-        description:
-          "The fractional index indicating the current position of something.",
+        description: "The fractional index indicating the current position of something.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "h",
@@ -380,8 +379,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const hasIndexedContentLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const hasIndexedContentLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Indexed Content",
@@ -398,75 +399,59 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
-
-  const profileBioEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockCollectionEntityType.schema.$id],
-        title: "Profile Bio",
-        titlePlural: "Profile Bios",
-        icon: "/icons/types/memo-circle-info.svg",
-        description:
-          "A biography for display on someone or something's profile.",
-        outgoingLinks: [
-          {
-            linkEntityType: hasIndexedContentLinkEntityType,
-            destinationEntityTypes: [blockEntityType],
-            minItems: 1,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
     },
   );
+
+  const profileBioEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockCollectionEntityType.schema.$id],
+      title: "Profile Bio",
+      titlePlural: "Profile Bios",
+      icon: "/icons/types/memo-circle-info.svg",
+      description: "A biography for display on someone or something's profile.",
+      outgoingLinks: [
+        {
+          linkEntityType: hasIndexedContentLinkEntityType,
+          destinationEntityTypes: [blockEntityType],
+          minItems: 1,
+        },
+      ],
+    },
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Organization entity type */
 
-  const shortnamePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Shortname",
-        description: "A unique identifier for something, in the form of a slug",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const shortnamePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Shortname",
+      description: "A unique identifier for something, in the form of a slug",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const orgNamePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Organization Name",
-        description: "The name of an organization.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const orgNamePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Organization Name",
+      description: "The name of an organization.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const locationPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Location",
-        description: "A location for something, expressed as a single string",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const locationPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Location",
+      description: "A location for something, expressed as a single string",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   const uriDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "uri",
@@ -487,8 +472,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const pinnedEntityTypeBaseUrlPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const pinnedEntityTypeBaseUrlPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Pinned Entity Type Base URL",
         description: "The base URL of a pinned entity type.",
@@ -496,24 +483,21 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
-
-  const hasAvatarLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Has Avatar",
-        inverse: {
-          title: "Avatar For",
-        },
-        description: "The avatar something has.",
-      },
-      webShortname: "h",
-      migrationState,
     },
   );
+
+  const hasAvatarLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Has Avatar",
+      inverse: {
+        title: "Avatar For",
+      },
+      description: "The avatar something has.",
+    },
+    webShortname: "h",
+    migrationState,
+  });
 
   const hasCoverImageLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -532,85 +516,77 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const hasBioLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Has Bio",
-        inverse: {
-          title: "Bio For",
-        },
-        description: "The biography something has.",
+  const hasBioLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Has Bio",
+      inverse: {
+        title: "Bio For",
       },
-      webShortname: "h",
-      migrationState,
+      description: "The biography something has.",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const orgEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Organization",
-        titlePlural: "Organizations",
-        icon: "/icons/types/people-group.svg",
-        labelProperty: systemPropertyTypes.organizationName.propertyTypeBaseUrl,
-        description:
-          "An organization. Organizations are root-level objects that contain user accounts and teams.",
-        properties: [
-          {
-            propertyType: shortnamePropertyType,
-            required: true,
-          },
-          {
-            propertyType: orgNamePropertyType,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-            required: false,
-          },
-          {
-            propertyType: locationPropertyType,
-            required: false,
-          },
-          {
-            propertyType: websiteUrlPropertyType,
-            required: false,
-          },
-          {
-            propertyType: pinnedEntityTypeBaseUrlPropertyType,
-            array: { maxItems: 5 },
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: hasAvatarLinkEntityType,
-            destinationEntityTypes: [imageFileEntityType],
-            maxItems: 1,
-            minItems: 0,
-          },
-          {
-            linkEntityType: hasCoverImageLinkEntityType,
-            destinationEntityTypes: [imageFileEntityType],
-            maxItems: 1,
-            minItems: 0,
-          },
-          {
-            linkEntityType: hasBioLinkEntityType,
-            destinationEntityTypes: [profileBioEntityType],
-            minItems: 0,
-            maxItems: 1,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+  const orgEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Organization",
+      titlePlural: "Organizations",
+      icon: "/icons/types/people-group.svg",
+      labelProperty: systemPropertyTypes.organizationName.propertyTypeBaseUrl,
+      description:
+        "An organization. Organizations are root-level objects that contain user accounts and teams.",
+      properties: [
+        {
+          propertyType: shortnamePropertyType,
+          required: true,
+        },
+        {
+          propertyType: orgNamePropertyType,
+          required: true,
+        },
+        {
+          propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+          required: false,
+        },
+        {
+          propertyType: locationPropertyType,
+          required: false,
+        },
+        {
+          propertyType: websiteUrlPropertyType,
+          required: false,
+        },
+        {
+          propertyType: pinnedEntityTypeBaseUrlPropertyType,
+          array: { maxItems: 5 },
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: hasAvatarLinkEntityType,
+          destinationEntityTypes: [imageFileEntityType],
+          maxItems: 1,
+          minItems: 0,
+        },
+        {
+          linkEntityType: hasCoverImageLinkEntityType,
+          destinationEntityTypes: [imageFileEntityType],
+          maxItems: 1,
+          minItems: 0,
+        },
+        {
+          linkEntityType: hasBioLinkEntityType,
+          destinationEntityTypes: [profileBioEntityType],
+          minItems: 0,
+          maxItems: 1,
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Service Account entity type */
 
@@ -744,22 +720,20 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const emailPropertyType = await createSystemPropertyTypeIfNotExists(
+  const emailPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Email",
+      description: "An email address",
+      possibleValues: [{ dataTypeId: emailDataTypeId }],
+    },
+    webShortname: "h",
+    migrationState,
+  });
+
+  const kratosIdentityIdPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Email",
-        description: "An email address",
-        possibleValues: [{ dataTypeId: emailDataTypeId }],
-      },
-      webShortname: "h",
-      migrationState,
-    },
-  );
-
-  const kratosIdentityIdPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Kratos Identity Id",
         description: "An identifier for a record in Ory Kratos.",
@@ -767,7 +741,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   const preferredNamePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -783,8 +758,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const preferredPronounsPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const preferredPronounsPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Preferred Pronouns",
         description: "Someone's preferred pronouns.",
@@ -792,7 +769,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   const isMemberOfLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -811,8 +789,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const hasServiceAccountLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const hasServiceAccountLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Service Account",
@@ -823,278 +803,233 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
-
-  const userEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "User",
-        titlePlural: "Users",
-        icon: "/icons/types/user.svg",
-        description: "A user of the HASH application.",
-        properties: [
-          {
-            propertyType: shortnamePropertyType,
-          },
-          {
-            propertyType: emailPropertyType,
-            required: true,
-            array: { minItems: 1 },
-          },
-          {
-            propertyType: kratosIdentityIdPropertyType,
-            required: true,
-          },
-          {
-            propertyType: preferredNamePropertyType,
-          },
-          {
-            propertyType: preferredPronounsPropertyType,
-          },
-          {
-            propertyType: locationPropertyType,
-          },
-          {
-            propertyType: websiteUrlPropertyType,
-          },
-          {
-            propertyType: pinnedEntityTypeBaseUrlPropertyType,
-            array: { maxItems: 5 },
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: isMemberOfLinkEntityType,
-            destinationEntityTypes: [orgEntityType],
-          },
-          {
-            linkEntityType: hasAvatarLinkEntityType,
-            destinationEntityTypes: [imageFileEntityType],
-            maxItems: 1,
-            minItems: 0,
-          },
-          {
-            linkEntityType: hasCoverImageLinkEntityType,
-            destinationEntityTypes: [imageFileEntityType],
-            maxItems: 1,
-            minItems: 0,
-          },
-          {
-            linkEntityType: hasServiceAccountLinkEntityType,
-            destinationEntityTypes: [serviceAccountEntityType],
-          },
-          {
-            linkEntityType: hasBioLinkEntityType,
-            destinationEntityTypes: [profileBioEntityType],
-            minItems: 0,
-            maxItems: 1,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
     },
   );
+
+  const userEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "User",
+      titlePlural: "Users",
+      icon: "/icons/types/user.svg",
+      description: "A user of the HASH application.",
+      properties: [
+        {
+          propertyType: shortnamePropertyType,
+        },
+        {
+          propertyType: emailPropertyType,
+          required: true,
+          array: { minItems: 1 },
+        },
+        {
+          propertyType: kratosIdentityIdPropertyType,
+          required: true,
+        },
+        {
+          propertyType: preferredNamePropertyType,
+        },
+        {
+          propertyType: preferredPronounsPropertyType,
+        },
+        {
+          propertyType: locationPropertyType,
+        },
+        {
+          propertyType: websiteUrlPropertyType,
+        },
+        {
+          propertyType: pinnedEntityTypeBaseUrlPropertyType,
+          array: { maxItems: 5 },
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: isMemberOfLinkEntityType,
+          destinationEntityTypes: [orgEntityType],
+        },
+        {
+          linkEntityType: hasAvatarLinkEntityType,
+          destinationEntityTypes: [imageFileEntityType],
+          maxItems: 1,
+          minItems: 0,
+        },
+        {
+          linkEntityType: hasCoverImageLinkEntityType,
+          destinationEntityTypes: [imageFileEntityType],
+          maxItems: 1,
+          minItems: 0,
+        },
+        {
+          linkEntityType: hasServiceAccountLinkEntityType,
+          destinationEntityTypes: [serviceAccountEntityType],
+        },
+        {
+          linkEntityType: hasBioLinkEntityType,
+          destinationEntityTypes: [profileBioEntityType],
+          minItems: 0,
+          maxItems: 1,
+        },
+      ],
+    },
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Text entity type */
 
-  const textEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Text",
-        titlePlural: "Texts",
-        icon: "/icons/types/text.svg",
-        description: "An ordered sequence of characters.",
-        properties: [
-          {
-            propertyType:
-              "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2",
-            required: true,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+  const textEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Text",
+      titlePlural: "Texts",
+      icon: "/icons/types/text.svg",
+      description: "An ordered sequence of characters.",
+      properties: [
+        {
+          propertyType:
+            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2",
+          required: true,
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Page entity type */
 
-  const archivedPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        possibleValues: [{ primitiveDataType: "boolean" }],
-        title: "Archived",
-        description: "Whether or not something has been archived.",
-      },
-      webShortname: "h",
-      migrationState,
+  const archivedPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      possibleValues: [{ primitiveDataType: "boolean" }],
+      title: "Archived",
+      description: "Whether or not something has been archived.",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const summaryPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Summary",
-        description: "The summary of the something.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const summaryPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Summary",
+      description: "The summary of the something.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const titlePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Title",
-        description: "The title of something.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const titlePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Title",
+      description: "The title of something.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const iconPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Icon",
-        description: "An emoji icon.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const iconPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Icon",
+      description: "An emoji icon.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const hasParentLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Has Parent",
-        inverse: {
-          title: "Parent Of",
+  const hasParentLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Has Parent",
+      inverse: {
+        title: "Parent Of",
+      },
+      description: "The parent something has.",
+    },
+    webShortname: "h",
+    migrationState,
+  });
+
+  const pageEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockCollectionEntityType.schema.$id],
+      title: "Page",
+      titlePlural: "Pages",
+      icon: "/icons/types/page.svg",
+      labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
+      description: "A page for displaying and potentially interacting with data.",
+      properties: [
+        {
+          propertyType: summaryPropertyType,
         },
-        description: "The parent something has.",
-      },
-      webShortname: "h",
-      migrationState,
+        {
+          propertyType: archivedPropertyType,
+        },
+        {
+          propertyType: iconPropertyType,
+        },
+        {
+          propertyType: titlePropertyType,
+          required: true,
+        },
+        {
+          propertyType: fractionalIndexPropertyType,
+          required: true,
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: hasParentLinkEntityType,
+          destinationEntityTypes: ["SELF_REFERENCE"],
+          maxItems: 1,
+        },
+      ],
     },
-  );
-
-  const pageEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockCollectionEntityType.schema.$id],
-        title: "Page",
-        titlePlural: "Pages",
-        icon: "/icons/types/page.svg",
-        labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
-        description:
-          "A page for displaying and potentially interacting with data.",
-        properties: [
-          {
-            propertyType: summaryPropertyType,
-          },
-          {
-            propertyType: archivedPropertyType,
-          },
-          {
-            propertyType: iconPropertyType,
-          },
-          {
-            propertyType: titlePropertyType,
-            required: true,
-          },
-          {
-            propertyType: fractionalIndexPropertyType,
-            required: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: hasParentLinkEntityType,
-            destinationEntityTypes: ["SELF_REFERENCE"],
-            maxItems: 1,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
-    },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Document entity type */
 
-  const _documentEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Document",
-        titlePlural: "Documents",
-        description:
-          "A page in document format, with content arranged in columns.",
-        allOf: [pageEntityType.schema.$id],
-        outgoingLinks: [
-          {
-            linkEntityType: hasIndexedContentLinkEntityType,
-            destinationEntityTypes: [blockEntityType],
-            minItems: 0,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+  const _documentEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Document",
+      titlePlural: "Documents",
+      description: "A page in document format, with content arranged in columns.",
+      allOf: [pageEntityType.schema.$id],
+      outgoingLinks: [
+        {
+          linkEntityType: hasIndexedContentLinkEntityType,
+          destinationEntityTypes: [blockEntityType],
+          minItems: 0,
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Canvas entity type */
 
-  const xPositionPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "X Position",
-        description: "The position of something on the x axis.",
-        possibleValues: [{ primitiveDataType: "number" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const xPositionPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "X Position",
+      description: "The position of something on the x axis.",
+      possibleValues: [{ primitiveDataType: "number" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const yPositionPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Y Position",
-        description: "The position of something on the y axis.",
-        possibleValues: [{ primitiveDataType: "number" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const yPositionPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Y Position",
+      description: "The position of something on the y axis.",
+      possibleValues: [{ primitiveDataType: "number" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   const heightInPixelsPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1138,8 +1073,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const hasSpatiallyPositionedContentLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const hasSpatiallyPositionedContentLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Spatially Positioned Content",
@@ -1172,79 +1109,69 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
-
-  const _canvasEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Canvas",
-        titlePlural: "Canvases",
-        icon: "/icons/types/rectangle.svg",
-        description:
-          "A page in canvas format, with content in a free-form arrangement.",
-        allOf: [pageEntityType.schema.$id],
-        outgoingLinks: [
-          {
-            linkEntityType: hasSpatiallyPositionedContentLinkEntityType,
-            destinationEntityTypes: [blockEntityType],
-            minItems: 0,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
     },
   );
+
+  const _canvasEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Canvas",
+      titlePlural: "Canvases",
+      icon: "/icons/types/rectangle.svg",
+      description: "A page in canvas format, with content in a free-form arrangement.",
+      allOf: [pageEntityType.schema.$id],
+      outgoingLinks: [
+        {
+          linkEntityType: hasSpatiallyPositionedContentLinkEntityType,
+          destinationEntityTypes: [blockEntityType],
+          minItems: 0,
+        },
+      ],
+    },
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Quick Note entity */
 
-  const _quickNoteEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockCollectionEntityType.schema.$id],
-        title: "Note",
-        titlePlural: "Notes",
-        icon: "/icons/types/note-sticky.svg",
-        description: "A (usually) quick or short note.",
-        properties: [{ propertyType: archivedPropertyType }],
-        outgoingLinks: [
-          {
-            linkEntityType: hasIndexedContentLinkEntityType,
-            destinationEntityTypes: [blockEntityType],
-            minItems: 1,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+  const _quickNoteEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockCollectionEntityType.schema.$id],
+      title: "Note",
+      titlePlural: "Notes",
+      icon: "/icons/types/note-sticky.svg",
+      description: "A (usually) quick or short note.",
+      properties: [{ propertyType: archivedPropertyType }],
+      outgoingLinks: [
+        {
+          linkEntityType: hasIndexedContentLinkEntityType,
+          destinationEntityTypes: [blockEntityType],
+          minItems: 1,
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   const dateTimeDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "datetime",
     migrationState,
   });
 
-  const expiredAtPropertyType = await createSystemPropertyTypeIfNotExists(
+  const expiredAtPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Expired At",
+      description: "Stringified timestamp of when something expired.",
+      possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
+    },
+    webShortname: "h",
+    migrationState,
+  });
+
+  const connectionSourceNamePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Expired At",
-        description: "Stringified timestamp of when something expired.",
-        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
-      },
-      webShortname: "h",
-      migrationState,
-    },
-  );
-
-  const connectionSourceNamePropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Connection Source Name",
         description: "The name of the connection source.",
@@ -1252,21 +1179,18 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
-
-  const vaultPathPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Vault Path",
-        description: "The path to a secret in Hashicorp Vault.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
     },
   );
+
+  const vaultPathPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Vault Path",
+      description: "The path to a secret in Hashicorp Vault.",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    webShortname: "h",
+    migrationState,
+  });
 
   const linearTeamIdPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1282,8 +1206,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const syncLinearDataWithLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const syncLinearDataWithLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Sync Linear Data With",
@@ -1297,7 +1223,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   const usesUserSecretLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -1316,34 +1243,30 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const userSecretEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "User Secret",
-        titlePlural: "User Secrets",
-        icon: "/icons/types/user-lock.svg",
-        description: "A secret or credential belonging to a user.",
-        properties: [
-          {
-            propertyType: expiredAtPropertyType,
-            required: true,
-          },
-          {
-            propertyType: connectionSourceNamePropertyType,
-            required: true,
-          },
-          {
-            propertyType: vaultPathPropertyType,
-            required: true,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+  const userSecretEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "User Secret",
+      titlePlural: "User Secrets",
+      icon: "/icons/types/user-lock.svg",
+      description: "A secret or credential belonging to a user.",
+      properties: [
+        {
+          propertyType: expiredAtPropertyType,
+          required: true,
+        },
+        {
+          propertyType: connectionSourceNamePropertyType,
+          required: true,
+        },
+        {
+          propertyType: vaultPathPropertyType,
+          required: true,
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   const linearOrgIdPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -1406,36 +1329,28 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const deletedAtPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Deleted At",
-        description: "Stringified timestamp of when something was deleted.",
-        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
-      },
-      webShortname: "h",
-      migrationState,
+  const deletedAtPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Deleted At",
+      description: "Stringified timestamp of when something was deleted.",
+      possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const hasTextLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Has Text",
-        inverse: {
-          title: "Text For",
-        },
-        description: "The text something has.",
+  const hasTextLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Has Text",
+      inverse: {
+        title: "Text For",
       },
-      webShortname: "h",
-      migrationState,
+      description: "The text something has.",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   const authoredByLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -1455,92 +1370,82 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const commentEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Comment",
-        titlePlural: "Comments",
-        icon: "/icons/types/comment.svg",
-        description: "Comment associated with the issue.",
-        properties: [
-          {
-            propertyType: resolvedAtPropertyType,
-          },
-          {
-            propertyType: deletedAtPropertyType,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: hasTextLinkEntityType,
-            destinationEntityTypes: [textEntityType],
-            minItems: 1,
-            maxItems: 1,
-          },
-          {
-            linkEntityType: hasParentLinkEntityType,
-            destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
-            minItems: 1,
-            maxItems: 1,
-          },
-          {
-            linkEntityType: authoredByLinkEntityType,
-            destinationEntityTypes: [userEntityType],
-            minItems: 1,
-            maxItems: 1,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+  const commentEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Comment",
+      titlePlural: "Comments",
+      icon: "/icons/types/comment.svg",
+      description: "Comment associated with the issue.",
+      properties: [
+        {
+          propertyType: resolvedAtPropertyType,
+        },
+        {
+          propertyType: deletedAtPropertyType,
+        },
+      ],
+      outgoingLinks: [
+        {
+          linkEntityType: hasTextLinkEntityType,
+          destinationEntityTypes: [textEntityType],
+          minItems: 1,
+          maxItems: 1,
+        },
+        {
+          linkEntityType: hasParentLinkEntityType,
+          destinationEntityTypes: ["SELF_REFERENCE", blockEntityType],
+          minItems: 1,
+          maxItems: 1,
+        },
+        {
+          linkEntityType: authoredByLinkEntityType,
+          destinationEntityTypes: [userEntityType],
+          minItems: 1,
+          maxItems: 1,
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Notification entity type */
 
-  const readAtPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Read At",
-        description: "The timestamp of when something was read.",
-        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
-      },
-      webShortname: "h",
-      migrationState,
+  const readAtPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Read At",
+      description: "The timestamp of when something was read.",
+      possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const notificationEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Notification",
-        titlePlural: "Notifications",
-        icon: "/icons/types/megaphone.svg",
-        description: "A notification to a user.",
-        properties: [
-          {
-            propertyType: archivedPropertyType,
-          },
-          {
-            propertyType: readAtPropertyType,
-          },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+  const notificationEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Notification",
+      titlePlural: "Notifications",
+      icon: "/icons/types/megaphone.svg",
+      description: "A notification to a user.",
+      properties: [
+        {
+          propertyType: archivedPropertyType,
+        },
+        {
+          propertyType: readAtPropertyType,
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Mention Notification entity type */
 
-  const occurredInEntityLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const occurredInEntityLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Occurred In Entity",
@@ -1551,7 +1456,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   const occurredInBlockLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -1570,8 +1476,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const occurredInCommentLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const occurredInCommentLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Occurred In Comment",
@@ -1582,7 +1490,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   const occurredInTextLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -1618,8 +1527,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _mentionNotificationEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const _mentionNotificationEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [notificationEntityType.schema.$id],
         title: "Mention Notification",
@@ -1660,12 +1571,15 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   /** Comment Notification entity type */
 
-  const triggeredByCommentLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const triggeredByCommentLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Triggered By Comment",
@@ -1676,10 +1590,13 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
-  const repliedToCommentLinkEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const repliedToCommentLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Replied To Comment",
@@ -1690,10 +1607,13 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
-  const _commentNotificationEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const _commentNotificationEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         title: "Comment Notification",
         titlePlural: "Comment Notifications",
@@ -1734,21 +1654,18 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   /**
    * Ensure the primitive BP data types are loaded
    */
   await Promise.all([
     ...blockProtocolDataTypeIds.map(async (dataTypeId) => {
-      const existingDataType = await getDataTypeById(
-        context.graphApi,
-        authentication,
-        {
-          dataTypeId,
-          temporalAxes: fullTransactionTimeAxis,
-        },
-      );
+      const existingDataType = await getDataTypeById(context.graphApi, authentication, {
+        dataTypeId,
+        temporalAxes: fullTransactionTimeAxis,
+      });
 
       if (existingDataType) {
         return;
@@ -1759,14 +1676,10 @@ const migrate: MigrationFunction = async ({
       });
     }),
     ...blockProtocolEntityTypeIds.map(async (entityTypeId) => {
-      const existingEntityType = await getEntityTypeById(
-        context.graphApi,
-        authentication,
-        {
-          entityTypeId,
-          temporalAxes: fullTransactionTimeAxis,
-        },
-      );
+      const existingEntityType = await getEntityTypeById(context.graphApi, authentication, {
+        entityTypeId,
+        temporalAxes: fullTransactionTimeAxis,
+      });
 
       if (existingEntityType) {
         return;

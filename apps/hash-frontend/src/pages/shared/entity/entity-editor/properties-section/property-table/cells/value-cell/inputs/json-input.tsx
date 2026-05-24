@@ -23,9 +23,7 @@ const isJsonObjectString = (str?: string) => {
 };
 
 export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
-  const [innerValue, setInnerValue] = useState(
-    JSON.stringify(value, undefined, 2),
-  );
+  const [innerValue, setInnerValue] = useState(JSON.stringify(value, undefined, 2));
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
@@ -52,11 +50,7 @@ export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
         }}
       >
         <>
-          <JsonEditor
-            height={300}
-            value={innerValue}
-            onChange={(val) => setInnerValue(val)}
-          />
+          <JsonEditor height={300} value={innerValue} onChange={(val) => setInnerValue(val)} />
           <Box
             sx={{
               display: "flex",
@@ -65,10 +59,7 @@ export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
               justifyContent: "space-between",
             }}
           >
-            <Typography
-              variant="smallCaps"
-              sx={{ color: "red.70", pl: 2, pb: 1 }}
-            >
+            <Typography variant="smallCaps" sx={{ color: "red.70", pl: 2, pb: 1 }}>
               {!isValid && "Invalid JSON Object"}
             </Typography>
 
@@ -83,16 +74,8 @@ export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
                 p: 0.5,
               }}
             >
-              <Tooltip
-                title="Discard Changes"
-                placement="top"
-                disableInteractive
-              >
-                <IconButton
-                  rounded
-                  sx={{ color: "white" }}
-                  onClick={() => onChange(value, true)}
-                >
+              <Tooltip title="Discard Changes" placement="top" disableInteractive>
+                <IconButton rounded sx={{ color: "white" }} onClick={() => onChange(value, true)}>
                   <FontAwesomeIcon icon={faClose} />
                 </IconButton>
               </Tooltip>

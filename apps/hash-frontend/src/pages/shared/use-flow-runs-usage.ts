@@ -1,10 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import {
@@ -57,48 +54,45 @@ export const useFlowRunsUsage = ({
 
   const available = !!(process.env.NEXT_PUBLIC_SHOW_WORKER_COST ?? isUserAdmin);
 
-  const { data, loading } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    pollInterval,
-    skip: !available,
-    fetchPolicy: "network-only",
-    variables: {
-      request: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.usageRecord.entityTypeId,
-              {
+  const { data, loading } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
+    {
+      pollInterval,
+      skip: !available,
+      fetchPolicy: "network-only",
+      variables: {
+        request: {
+          filter: {
+            all: [
+              generateVersionedUrlMatchingFilter(systemEntityTypes.usageRecord.entityTypeId, {
                 ignoreParents: true,
+              }),
+              {
+                any: flowRunIds.map((flowRunId) => ({
+                  equal: [
+                    { path: ["outgoingLinks", "rightEntity", "uuid"] },
+                    { parameter: flowRunId },
+                  ],
+                })),
               },
-            ),
-            {
-              any: flowRunIds.map((flowRunId) => ({
-                equal: [
-                  { path: ["outgoingLinks", "rightEntity", "uuid"] },
-                  { parameter: flowRunId },
-                ],
-              })),
-            },
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        traversalPaths: [
-          {
-            // Required to retrieve the service the usage record relates to, and the Flow it is associated with
-            edges: [
-              { kind: "has-left-entity", direction: "incoming" },
-              { kind: "has-right-entity", direction: "outgoing" },
             ],
           },
-        ],
-        includeDrafts: false,
-        includePermissions: false,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          traversalPaths: [
+            {
+              // Required to retrieve the service the usage record relates to, and the Flow it is associated with
+              edges: [
+                { kind: "has-left-entity", direction: "incoming" },
+                { kind: "has-right-entity", direction: "outgoing" },
+              ],
+            },
+          ],
+          includeDrafts: false,
+          includePermissions: false,
+        },
       },
     },
-  });
+  );
 
   const usageByFlowRun = useMemo<UsageByFlowRunId>(() => {
     if (!data) {
@@ -108,24 +102,20 @@ export const useFlowRunsUsage = ({
     const usageByFlowRunId: UsageByFlowRunId = {};
 
     for (const flowRunId of flowRunIds) {
-      const serviceUsageRecordSubgraph =
-        deserializeQueryEntitySubgraphResponse<UsageRecord>(
-          data.queryEntitySubgraph,
-        ).subgraph;
+      const serviceUsageRecordSubgraph = deserializeQueryEntitySubgraphResponse<UsageRecord>(
+        data.queryEntitySubgraph,
+      ).subgraph;
 
-      const usageRecordsForFlowRun = getRoots(
-        serviceUsageRecordSubgraph,
-      ).filter((usageRecord) => {
+      const usageRecordsForFlowRun = getRoots(serviceUsageRecordSubgraph).filter((usageRecord) => {
         const linkedEntities = getOutgoingLinkAndTargetEntities(
           serviceUsageRecordSubgraph,
           usageRecord.metadata.recordId.entityId,
         );
 
-        const incurredInLinkAndEntities = linkedEntities.filter(
-          ({ linkEntity }) =>
-            linkEntity[0]!.metadata.entityTypeIds.includes(
-              systemLinkEntityTypes.incurredIn.linkEntityTypeId,
-            ),
+        const incurredInLinkAndEntities = linkedEntities.filter(({ linkEntity }) =>
+          linkEntity[0]!.metadata.entityTypeIds.includes(
+            systemLinkEntityTypes.incurredIn.linkEntityTypeId,
+          ),
         );
 
         if (incurredInLinkAndEntities.length !== 1) {
@@ -141,17 +131,14 @@ export const useFlowRunsUsage = ({
         }
 
         return (
-          extractEntityUuidFromEntityId(
-            incurredInEntity.metadata.recordId.entityId,
-          ) === flowRunId
+          extractEntityUuidFromEntityId(incurredInEntity.metadata.recordId.entityId) === flowRunId
         );
       });
 
-      const aggregatedUsageRecordsForFlowRun =
-        getAggregateUsageRecordsByServiceFeature({
-          serviceUsageRecords: usageRecordsForFlowRun,
-          serviceUsageRecordSubgraph,
-        });
+      const aggregatedUsageRecordsForFlowRun = getAggregateUsageRecordsByServiceFeature({
+        serviceUsageRecords: usageRecordsForFlowRun,
+        serviceUsageRecordSubgraph,
+      });
 
       const aggregatedUsageRecordsByTask = getAggregateUsageRecordsByTask({
         serviceUsageRecords: usageRecordsForFlowRun,

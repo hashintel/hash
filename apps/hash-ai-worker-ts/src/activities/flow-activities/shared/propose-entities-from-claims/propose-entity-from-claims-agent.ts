@@ -1,13 +1,7 @@
 import dedent from "dedent";
 
-import {
-  entityIdFromComponents,
-  mustHaveAtLeastOne,
-} from "@blockprotocol/type-system";
-import {
-  HashEntity,
-  mergePropertyObjectAndMetadata,
-} from "@local/hash-graph-sdk/entity";
+import { entityIdFromComponents, mustHaveAtLeastOne } from "@blockprotocol/type-system";
+import { HashEntity, mergePropertyObjectAndMetadata } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { extractErrorMessage } from "../../../infer-entities/shared/extract-validation-failure-details.js";
@@ -21,10 +15,7 @@ import { stringify } from "../../../shared/stringify.js";
 
 import type { PropertyValueWithSimplifiedProperties } from "../../../infer-entities/shared/map-simplified-properties-to-properties.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
-import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
+import type { LlmMessage, LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import type { ExistingEntitySummary } from "../../research-entities-action/coordinating-agent/summarize-existing-entities.js";
 import type { Claim } from "../claims.js";
@@ -117,10 +108,9 @@ const generatePropertyMetadata = (params: {
     value: {},
   };
 
-  for (const [
-    simplifiedPropertyKey,
-    { claimIdsUsedToDetermineValue },
-  ] of Object.entries(inputProperties)) {
+  for (const [simplifiedPropertyKey, { claimIdsUsedToDetermineValue }] of Object.entries(
+    inputProperties,
+  )) {
     const claimsUsedToDetermineValue = allClaims.filter((claim) =>
       claimIdsUsedToDetermineValue.includes(claim.claimId),
     );
@@ -167,10 +157,7 @@ const generatePropertyMetadata = (params: {
   }
 
   return {
-    propertyMetadata:
-      Object.keys(propertyMetadata).length > 0
-        ? propertyMetadata
-        : { value: {} },
+    propertyMetadata: Object.keys(propertyMetadata).length > 0 ? propertyMetadata : { value: {} },
   };
 };
 
@@ -221,31 +208,23 @@ const generateToolDefinitions = (params: {
                           entityTypeId: {
                             type: "string",
                             enum: [dereferencedOutgoingLinkEntityType.$id],
-                            description:
-                              "The entity type ID of the target entity",
+                            description: "The entity type ID of the target entity",
                           },
                           targetEntityId: {
                             type: "string",
                             description: "The ID of the target entity",
                           },
                           properties: {
-                            description:
-                              "The properties to set on the outgoing link",
+                            description: "The properties to set on the outgoing link",
                             default: {},
                             type: "object",
                             additionalProperties: false,
-                            properties:
-                              mapPropertiesSchemaToInputPropertiesSchema({
-                                properties:
-                                  dereferencedOutgoingLinkEntityType.properties,
-                              }),
+                            properties: mapPropertiesSchemaToInputPropertiesSchema({
+                              properties: dereferencedOutgoingLinkEntityType.properties,
+                            }),
                           },
                         },
-                        required: [
-                          "entityTypeId",
-                          "targetEntityId",
-                          "properties",
-                        ],
+                        required: ["entityTypeId", "targetEntityId", "properties"],
                       }),
                     ),
                   },
@@ -255,9 +234,7 @@ const generateToolDefinitions = (params: {
         },
         required: [
           "properties",
-          ...(proposeOutgoingLinkEntityTypes.length > 0
-            ? ["outgoingLinks"]
-            : []),
+          ...(proposeOutgoingLinkEntityTypes.length > 0 ? ["outgoingLinks"] : []),
         ],
       },
     },
@@ -315,10 +292,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
     schema: DereferencedEntityType;
     simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
   }[];
-  possibleOutgoingLinkTargetEntitySummaries: (
-    | LocalEntitySummary
-    | ExistingEntitySummary
-  )[];
+  possibleOutgoingLinkTargetEntitySummaries: (LocalEntitySummary | ExistingEntitySummary)[];
   retryContext?: {
     retryCount: number;
     retryMessages: LlmMessage[];
@@ -349,8 +323,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
 
   const allClaims = [...claims.isObjectOf, ...claims.isSubjectOf];
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const { userAuthentication, flowEntityId, stepId, webId } = await getFlowContext();
 
   const proposingOutgoingLinks =
     proposeOutgoingLinkEntityTypes.length > 0 &&
@@ -407,9 +380,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get response from LLM: ${stringify(llmResponse)}`,
-    );
+    throw new Error(`Failed to get response from LLM: ${stringify(llmResponse)}`);
   }
 
   const retry = (retryParams: { retryMessage: LlmUserMessage }) => {
@@ -448,20 +419,17 @@ export const proposeEntityFromClaimsAgent = async (params: {
     });
   }
 
-  const proposeEntityToolCall = toolCalls.find(
-    (toolCall) => toolCall.name === "proposeEntity",
-  );
+  const proposeEntityToolCall = toolCalls.find((toolCall) => toolCall.name === "proposeEntity");
 
   if (proposeEntityToolCall) {
-    const { properties: inputProperties, outgoingLinks } =
-      proposeEntityToolCall.input as {
-        properties?: InputPropertiesObject;
-        outgoingLinks?: {
-          entityTypeId: string;
-          targetEntityId: string;
-          properties: InputPropertiesObject;
-        }[];
-      };
+    const { properties: inputProperties, outgoingLinks } = proposeEntityToolCall.input as {
+      properties?: InputPropertiesObject;
+      outgoingLinks?: {
+        entityTypeId: string;
+        targetEntityId: string;
+        properties: InputPropertiesObject;
+      }[];
+    };
 
     if (!inputProperties) {
       return retry({
@@ -507,10 +475,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
           /** @todo: set this depending on whether entities are created as drafts? */
           requiredProperties: false,
         },
-        properties: mergePropertyObjectAndMetadata(
-          properties,
-          propertyMetadata,
-        ),
+        properties: mergePropertyObjectAndMetadata(properties, propertyMetadata),
       });
     } catch (error) {
       const invalidReason = `${extractErrorMessage(error)}.`;
@@ -536,8 +501,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
         outgoingLinks.map(async (outgoingLink) => {
           const {
             schema: dereferencedOutgoingLinkEntityType,
-            simplifiedPropertyTypeMappings:
-              outgoingLinkSimplifiedPropertyTypeMappings,
+            simplifiedPropertyTypeMappings: outgoingLinkSimplifiedPropertyTypeMappings,
           } =
             proposeOutgoingLinkEntityTypes.find(
               ({ schema }) => schema.$id === outgoingLink.entityTypeId,
@@ -557,24 +521,20 @@ export const proposeEntityFromClaimsAgent = async (params: {
 
           const outgoingLinkInputProperties = outgoingLink.properties;
 
-          const outgoingLinkSimplifiedProperties =
-            mapInputPropertiesToPropertiesObject({
-              inputProperties: outgoingLinkInputProperties,
-            });
+          const outgoingLinkSimplifiedProperties = mapInputPropertiesToPropertiesObject({
+            inputProperties: outgoingLinkInputProperties,
+          });
 
           const outgoingLinkProperties = mapSimplifiedPropertiesToProperties({
             simplifiedProperties: outgoingLinkSimplifiedProperties,
-            simplifiedPropertyTypeMappings:
-              outgoingLinkSimplifiedPropertyTypeMappings,
+            simplifiedPropertyTypeMappings: outgoingLinkSimplifiedPropertyTypeMappings,
           });
 
-          const { propertyMetadata: outgoingLinkPropertyMetadata } =
-            generatePropertyMetadata({
-              inputProperties: outgoingLinkInputProperties,
-              allClaims,
-              simplifiedPropertyTypeMappings:
-                outgoingLinkSimplifiedPropertyTypeMappings,
-            });
+          const { propertyMetadata: outgoingLinkPropertyMetadata } = generatePropertyMetadata({
+            inputProperties: outgoingLinkInputProperties,
+            allClaims,
+            simplifiedPropertyTypeMappings: outgoingLinkSimplifiedPropertyTypeMappings,
+          });
 
           const claimsUsedToToCreateLink = allClaims.filter((claim) =>
             Object.values(outgoingLink.properties)
@@ -604,15 +564,12 @@ export const proposeEntityFromClaimsAgent = async (params: {
             );
           }
 
-          const targetEntitySummary =
-            possibleOutgoingLinkTargetEntitySummaries.find(
-              (possibleOutgoingLinkTargetEntitySummary) =>
-                "localId" in possibleOutgoingLinkTargetEntitySummary
-                  ? possibleOutgoingLinkTargetEntitySummary.localId ===
-                    outgoingLink.targetEntityId
-                  : possibleOutgoingLinkTargetEntitySummary.entityId ===
-                    outgoingLink.targetEntityId,
-            );
+          const targetEntitySummary = possibleOutgoingLinkTargetEntitySummaries.find(
+            (possibleOutgoingLinkTargetEntitySummary) =>
+              "localId" in possibleOutgoingLinkTargetEntitySummary
+                ? possibleOutgoingLinkTargetEntitySummary.localId === outgoingLink.targetEntityId
+                : possibleOutgoingLinkTargetEntitySummary.entityId === outgoingLink.targetEntityId,
+          );
 
           if (!targetEntitySummary) {
             retryToolCallMessages.push(
@@ -633,15 +590,10 @@ export const proposeEntityFromClaimsAgent = async (params: {
                * 2. Or/additionally introduce a 'has predicate' relationship from the claim,
                *    which we either use always or ask an LLM to decide between subject/object/predicate based on the phrasing of the claim.
                */
-              isObjectOf: claimsUsedToToCreateLink.map(
-                (claim) => claim.claimId,
-              ),
+              isObjectOf: claimsUsedToToCreateLink.map((claim) => claim.claimId),
               isSubjectOf: [],
             },
-            localEntityId: entityIdFromComponents(
-              webId,
-              generateUuid() as EntityUuid,
-            ),
+            localEntityId: entityIdFromComponents(webId, generateUuid() as EntityUuid),
             summary: `"${dereferencedOutgoingLinkEntityType.title}" link with source ${entitySummary.name} and target ${targetEntitySummary.name}`,
             sourceEntityId: {
               kind: "proposed-entity",
@@ -694,9 +646,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
       localEntityId: entitySummary.localId,
       propertyMetadata,
       summary: entitySummary.summary,
-      entityTypeIds: mustHaveAtLeastOne(
-        dereferencedEntityTypes.map((type) => type.$id),
-      ),
+      entityTypeIds: mustHaveAtLeastOne(dereferencedEntityTypes.map((type) => type.$id)),
       properties,
       provenance: editionProvenance,
     };
@@ -708,9 +658,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
     };
   }
 
-  const abandonEntityToolCall = toolCalls.find(
-    (toolCall) => toolCall.name === "abandonEntity",
-  );
+  const abandonEntityToolCall = toolCalls.find((toolCall) => toolCall.name === "abandonEntity");
 
   if (abandonEntityToolCall) {
     const { explanation } = abandonEntityToolCall.input as {

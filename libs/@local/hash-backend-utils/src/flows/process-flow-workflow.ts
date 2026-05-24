@@ -1,8 +1,4 @@
-import {
-  ApplicationFailure,
-  proxyActivities,
-  workflowInfo,
-} from "@temporalio/workflow";
+import { ApplicationFailure, proxyActivities, workflowInfo } from "@temporalio/workflow";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { isStoredPayloadRef } from "@local/hash-isomorphic-utils/flows/types";
@@ -21,11 +17,7 @@ import {
 } from "./process-flow-workflow/initialize-flow.js";
 import { passOutputsToUnprocessedSteps } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
 
-import type {
-  ActionName,
-  CreateFlowActivities,
-  ProxyFlowActivity,
-} from "./action-types.js";
+import type { ActionName, CreateFlowActivities, ProxyFlowActivity } from "./action-types.js";
 import type {
   BaseRunFlowWorkflowParams,
   RunFlowWorkflowResponse,
@@ -90,9 +82,7 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
         });
       }
 
-      if (
-        step.inputs?.some((input) => input.inputName === inputSource.inputName)
-      ) {
+      if (step.inputs?.some((input) => input.inputName === inputSource.inputName)) {
         /**
          * If the input has been provided, the input has been satisfied.
          */
@@ -103,10 +93,7 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
          * has not satisfied its dependencies.
          */
         return false;
-      } else if (
-        inputSource.kind === "step-output" &&
-        inputSource.sourceStepId !== "trigger"
-      ) {
+      } else if (inputSource.kind === "step-output" && inputSource.sourceStepId !== "trigger") {
         /**
          * If the input is optional, but depends on a runnable step (i.e. not
          * the trigger), the step only has satisfied its dependencies if the
@@ -143,13 +130,14 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
   }
 };
 
-const { persistFlowActivity, userHasPermissionToRunFlowInWebActivity } =
-  proxyActivities<ReturnType<typeof createCommonFlowActivities>>({
-    startToCloseTimeout: "60 second",
-    retry: {
-      maximumAttempts: 1,
-    },
-  });
+const { persistFlowActivity, userHasPermissionToRunFlowInWebActivity } = proxyActivities<
+  ReturnType<typeof createCommonFlowActivities>
+>({
+  startToCloseTimeout: "60 second",
+  retry: {
+    maximumAttempts: 1,
+  },
+});
 
 export const processFlowWorkflow = async <
   ValidActionDefinitionId extends FlowActionDefinitionId,
@@ -164,10 +152,7 @@ export const processFlowWorkflow = async <
       flowDefinition: FlowDefinition<ValidActionDefinitionId>;
       flowTrigger: FlowTrigger;
     }) => Promise<string>;
-    proxyFlowActivity: ProxyFlowActivity<
-      ValidActionDefinitionId,
-      CreateActivitiesFn
-    >;
+    proxyFlowActivity: ProxyFlowActivity<ValidActionDefinitionId, CreateActivitiesFn>;
   },
 ): Promise<RunFlowWorkflowResponse> => {
   const {
@@ -198,11 +183,10 @@ export const processFlowWorkflow = async <
   }
 
   // Ensure the user has permission to create entities in specified web
-  const userHasPermissionToRunFlowInWeb =
-    await userHasPermissionToRunFlowInWebActivity({
-      userAuthentication,
-      webId,
-    });
+  const userHasPermissionToRunFlowInWeb = await userHasPermissionToRunFlowInWebActivity({
+    userAuthentication,
+    webId,
+  });
 
   if (userHasPermissionToRunFlowInWeb.status !== "ok") {
     const errorMessage = `User does not have permission to run flow in web ${webId}: ${userHasPermissionToRunFlowInWeb.errorMessage}`;
@@ -264,9 +248,7 @@ export const processFlowWorkflow = async <
   const processStep = async (currentStepId: string) => {
     log(`Step ${currentStepId}: processing step`);
 
-    const currentStep = getAllStepsInFlow(flow).find(
-      (step) => step.stepId === currentStepId,
-    );
+    const currentStep = getAllStepsInFlow(flow).find((step) => step.stepId === currentStepId);
 
     if (!currentStep) {
       processStepErrors[currentStepId] = {
@@ -283,8 +265,7 @@ export const processFlowWorkflow = async <
         flowDefinition,
       });
 
-      const actionName =
-        `${currentStep.actionDefinitionId}Action` satisfies ActionName<string>;
+      const actionName = `${currentStep.actionDefinitionId}Action` satisfies ActionName<string>;
 
       const actionActivity = proxyFlowActivity({
         // @ts-expect-error - not sure what's going on with inference of valid names here
@@ -332,9 +313,7 @@ export const processFlowWorkflow = async <
       processedStepIds.push(currentStep.stepId);
 
       if (actionResponse.code !== StatusCode.Ok) {
-        log(
-          `Step ${currentStepId}: error executing "${currentStep.actionDefinitionId}" action`,
-        );
+        log(`Step ${currentStepId}: error executing "${currentStep.actionDefinitionId}" action`);
 
         processStepErrors[currentStepId] = {
           code: StatusCode.Internal,
@@ -358,8 +337,7 @@ export const processFlowWorkflow = async <
         outputs,
         processedStepIds,
         stepId: currentStepId,
-        outputDefinitions:
-          actionDefinitions[currentStep.actionDefinitionId].outputs,
+        outputDefinitions: actionDefinitions[currentStep.actionDefinitionId].outputs,
       });
 
       if (status.code !== StatusCode.Ok) {
@@ -389,8 +367,7 @@ export const processFlowWorkflow = async <
         return;
       }
 
-      const { steps: parallelGroupStepDefinitions } =
-        parallelGroupStepDefinition;
+      const { steps: parallelGroupStepDefinitions } = parallelGroupStepDefinition;
 
       const arrayToParallelizeOn = inputToParallelizeOn.payload.value;
 
@@ -409,26 +386,25 @@ export const processFlowWorkflow = async <
         return;
       }
 
-      const newSteps = arrayToParallelizeOn.flatMap(
-        (parallelizedValue, index) =>
-          parallelGroupStepDefinitions.map((stepDefinition) => {
-            if (stepDefinition.kind === "action") {
-              const parallelGroupInputPayload: Payload = {
-                kind: inputToParallelizeOn.payload.kind,
-                value: parallelizedValue,
-                /** @todo: figure out why this isn't assignable */
-              } as Payload;
+      const newSteps = arrayToParallelizeOn.flatMap((parallelizedValue, index) =>
+        parallelGroupStepDefinitions.map((stepDefinition) => {
+          if (stepDefinition.kind === "action") {
+            const parallelGroupInputPayload: Payload = {
+              kind: inputToParallelizeOn.payload.kind,
+              value: parallelizedValue,
+              /** @todo: figure out why this isn't assignable */
+            } as Payload;
 
-              return initializeActionStep({
-                flowTrigger,
-                stepDefinition,
-                overrideStepId: `${stepDefinition.stepId}~${index}`,
-                parallelGroupInputPayload,
-              });
-            } else {
-              return initializeParallelGroup({ flowTrigger, stepDefinition });
-            }
-          }),
+            return initializeActionStep({
+              flowTrigger,
+              stepDefinition,
+              overrideStepId: `${stepDefinition.stepId}~${index}`,
+              parallelGroupInputPayload,
+            });
+          } else {
+            return initializeParallelGroup({ flowTrigger, stepDefinition });
+          }
+        }),
       );
 
       /**
@@ -454,8 +430,7 @@ export const processFlowWorkflow = async <
   );
 
   if (stepWithSatisfiedDependencies.length === 0) {
-    const errorMessage =
-      "No steps have satisfied dependencies when initializing the flow.";
+    const errorMessage = "No steps have satisfied dependencies when initializing the flow.";
     throw ApplicationFailure.create({
       message: errorMessage,
       details: [
@@ -476,10 +451,7 @@ export const processFlowWorkflow = async <
           step,
           flowDefinition,
           processedStepIds,
-        }) &&
-        !processedStepIds.some(
-          (processedStepId) => processedStepId === step.stepId,
-        ),
+        }) && !processedStepIds.some((processedStepId) => processedStepId === step.stepId),
     );
 
     // There are no more steps which can be processed, so we exit the recursive loop
@@ -513,9 +485,10 @@ export const processFlowWorkflow = async <
    */
   await sleep(3_000);
 
-  const stepErrors = Object.entries(processStepErrors).map(
-    ([stepId, status]) => ({ ...status, contents: [{ stepId }] }),
-  );
+  const stepErrors = Object.entries(processStepErrors).map(([stepId, status]) => ({
+    ...status,
+    contents: [{ stepId }],
+  }));
 
   /** @todo this is not necessarily an error once there are branches */
   if (processedStepIds.length !== getAllStepsInFlow(flow).length) {
@@ -629,10 +602,7 @@ export const processFlowWorkflow = async <
      * Steps may error and be retried, or the whole workflow retried, while still producing the required outputs
      * – start with an initial status of OK if the outputs are present, to be adjusted if necessary.
      */
-    code:
-      outputs.length === flowDefinition.outputs.length
-        ? StatusCode.Ok
-        : StatusCode.Internal,
+    code: outputs.length === flowDefinition.outputs.length ? StatusCode.Ok : StatusCode.Internal,
     contents: [{ outputs, stepErrors }],
   };
 };

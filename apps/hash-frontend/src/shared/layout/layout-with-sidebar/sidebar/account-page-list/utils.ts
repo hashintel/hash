@@ -18,19 +18,11 @@ export const getTreeItemList = (
 
   return pagesList
     .filter(({ parentPage }) =>
-      parentId
-        ? parentPage?.metadata.recordId.entityId === parentId
-        : !parentPage,
+      parentId ? parentPage?.metadata.recordId.entityId === parentId : !parentPage,
     )
-    .sort((pageA, pageB) =>
-      pageA.fractionalIndex > pageB.fractionalIndex ? 1 : -1,
-    )
+    .sort((pageA, pageB) => (pageA.fractionalIndex > pageB.fractionalIndex ? 1 : -1))
     .reduce((prev, page) => {
-      const children = getTreeItemList(
-        pagesList,
-        page.metadata.recordId.entityId,
-        depth + 1,
-      );
+      const children = getTreeItemList(pagesList, page.metadata.recordId.entityId, depth + 1);
 
       const item: TreeItem = {
         page,
@@ -47,8 +39,7 @@ export const isPageCollapsed = (
   expandedIds: string[],
   activeId: UniqueIdentifier | null,
 ): boolean => {
-  const parentPageEntityId =
-    treeItem.page.parentPage?.metadata.recordId.entityId;
+  const parentPageEntityId = treeItem.page.parentPage?.metadata.recordId.entityId;
 
   if (!parentPageEntityId) {
     return false;
@@ -63,19 +54,13 @@ export const isPageCollapsed = (
 
   return (
     !parentExpanded ||
-    (!!parentPage &&
-      isPageCollapsed(parentPage, treeItemList, expandedIds, activeId))
+    (!!parentPage && isPageCollapsed(parentPage, treeItemList, expandedIds, activeId))
   );
 };
 
-export const getLastIndex = (
-  treeItemList: TreeItem[],
-  parentId: string | null = null,
-) => {
+export const getLastIndex = (treeItemList: TreeItem[], parentId: string | null = null) => {
   const groupItems = treeItemList.filter(({ page }) =>
-    parentId
-      ? page.parentPage?.metadata.recordId.entityId === parentId
-      : !page.parentPage,
+    parentId ? page.parentPage?.metadata.recordId.entityId === parentId : !page.parentPage,
   );
   return groupItems[groupItems.length - 1]?.page.fractionalIndex ?? null;
 };
@@ -130,8 +115,7 @@ export const getProjection = (
     const newParent = newItems
       .slice(0, overItemIndex)
       .reverse()
-      .find((item) => item.depth === depth)?.page.parentPage?.metadata
-      .recordId.entityId;
+      .find((item) => item.depth === depth)?.page.parentPage?.metadata.recordId.entityId;
 
     return newParent ?? null;
   };

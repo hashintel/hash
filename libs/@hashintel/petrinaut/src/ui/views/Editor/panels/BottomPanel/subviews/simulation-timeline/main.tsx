@@ -42,9 +42,7 @@ const SimulationTimelineContent: React.FC = () => {
   if (store.length === 0 || totalFrames === 0) {
     return (
       <div className={containerStyle}>
-        <span style={{ fontSize: 12, color: "#999" }}>
-          No simulation data available
-        </span>
+        <span style={{ fontSize: 12, color: "#999" }}>No simulation data available</span>
       </div>
     );
   }

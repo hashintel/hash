@@ -39,12 +39,7 @@
           "if",
           ["is_large", "val"],
           { "#literal": "large" },
-          [
-            "if",
-            ["is_small", "val"],
-            { "#literal": "small" },
-            { "#literal": "medium" }
-          ]
+          ["if", ["is_small", "val"], { "#literal": "small" }, { "#literal": "medium" }]
         ]
       ],
       ["classify", { "#literal": 75 }]

@@ -12,9 +12,7 @@ export const addMetadataDependenciesToFiles = (context: PostprocessContext) => {
   for (const [file, contents] of Object.entries(context.filesToContents)) {
     for (const schema of sharedMetadataSchemas) {
       if (contents.match(new RegExp(`\\b${schema.title}\\b`))) {
-        context.logTrace(
-          `Adding dependent identifier ${schema.title} to file ${file}`,
-        );
+        context.logTrace(`Adding dependent identifier ${schema.title} to file ${file}`);
         context.addDependentIdentifierInFile(schema.title, file);
       }
     }

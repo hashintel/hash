@@ -22,13 +22,7 @@ const script = async () => {
     caseSensitiveMatch: false,
     cwd: monorepoRootDirPath,
     dot: true,
-    ignore: [
-      "**/dist/**",
-      "**/node_modules/**",
-      "**/runner_venv/**",
-      "**/target/**",
-      "**/venv/**",
-    ],
+    ignore: ["**/dist/**", "**/node_modules/**", "**/runner_venv/**", "**/target/**", "**/venv/**"],
   });
 
   const misspelledLicenseFileSet = new Set<string>();
@@ -45,17 +39,12 @@ const script = async () => {
   let checkFailed = false;
 
   for (const yarnWorkspaceDirPath of yarnWorkspaceDirPaths) {
-    const canonicalLicenseFilePath = path.resolve(
-      yarnWorkspaceDirPath,
-      "LICENSE.md",
-    );
+    const canonicalLicenseFilePath = path.resolve(yarnWorkspaceDirPath, "LICENSE.md");
 
     const currentLicenseFilePaths = licenseFilePaths.filter(
       (licenseFilePath) =>
         licenseFilePath.startsWith(yarnWorkspaceDirPath) &&
-        !licenseFilePath
-          .slice(yarnWorkspaceDirPath.length + 1)
-          .includes(path.sep),
+        !licenseFilePath.slice(yarnWorkspaceDirPath.length + 1).includes(path.sep),
     );
 
     let canonicalLicenseFilePathIsPresent = false;
@@ -86,15 +75,9 @@ const script = async () => {
 
       if (misspelledLicenseFileSet.has(licenseFilePath)) {
         checkFailed = true;
-        console.log(
-          chalk.red("[NAMING] "),
-          path.relative(monorepoRootDirPath, licenseFilePath),
-        );
+        console.log(chalk.red("[NAMING] "), path.relative(monorepoRootDirPath, licenseFilePath));
       } else {
-        console.log(
-          chalk.yellow("         "),
-          path.relative(monorepoRootDirPath, licenseFilePath),
-        );
+        console.log(chalk.yellow("         "), path.relative(monorepoRootDirPath, licenseFilePath));
       }
     }
   }
@@ -108,16 +91,10 @@ const script = async () => {
     for (const licenseFilePath of unusedLicenseFilePaths) {
       if (misspelledLicenseFileSet.has(licenseFilePath)) {
         checkFailed = true;
-        console.log(
-          chalk.red("[NAMING] "),
-          path.relative(monorepoRootDirPath, licenseFilePath),
-        );
+        console.log(chalk.red("[NAMING] "), path.relative(monorepoRootDirPath, licenseFilePath));
       } else {
         extraLicenseFilesArePresent = true;
-        console.log(
-          chalk.yellow("[EXTRA]  "),
-          path.relative(monorepoRootDirPath, licenseFilePath),
-        );
+        console.log(chalk.yellow("[EXTRA]  "), path.relative(monorepoRootDirPath, licenseFilePath));
       }
     }
   }

@@ -9,13 +9,7 @@ export const wong = [
   "#CC79A7",
 ] as const;
 
-export const ibm = [
-  "#648FFF",
-  "#785EF0",
-  "#DC267F",
-  "#FE6100",
-  "#FFB000",
-] as const;
+export const ibm = ["#648FFF", "#785EF0", "#DC267F", "#FE6100", "#FFB000"] as const;
 
 export const tol = [
   "#332288",

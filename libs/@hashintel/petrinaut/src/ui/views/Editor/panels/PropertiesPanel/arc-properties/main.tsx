@@ -51,9 +51,7 @@ const ArcPropertiesContext = createContext<ArcPropertiesData | null>(null);
 function useArcPropertiesContext() {
   const ctx = use(ArcPropertiesContext);
   if (!ctx) {
-    throw new Error(
-      "useArcPropertiesContext must be used within ArcProperties",
-    );
+    throw new Error("useArcPropertiesContext must be used within ArcProperties");
   }
   return ctx;
 }
@@ -107,10 +105,7 @@ const ArcMainContent: React.FC = () => {
           step={1}
           value={weight}
           onChange={(event) => {
-            const value = Number.parseInt(
-              (event.target as HTMLInputElement).value,
-              10,
-            );
+            const value = Number.parseInt((event.target as HTMLInputElement).value, 10);
             if (value > 0) {
               updateArcWeight({
                 transitionId,
@@ -128,8 +123,7 @@ const ArcMainContent: React.FC = () => {
 };
 
 const DeleteArcAction: React.FC = () => {
-  const { transitionId, placeId, arcDirection, removeArc } =
-    useArcPropertiesContext();
+  const { transitionId, placeId, arcDirection, removeArc } = useArcPropertiesContext();
   const { clearSelection } = use(EditorContext);
   const isReadOnly = useIsReadOnly();
 
@@ -185,25 +179,15 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
 
   const { sourceId, targetId } = parsed;
 
-  const sourcePlace = petriNetDefinition.places.find(
-    (pl) => pl.id === sourceId,
-  );
-  const targetPlace = petriNetDefinition.places.find(
-    (pl) => pl.id === targetId,
-  );
-  const sourceTransition = petriNetDefinition.transitions.find(
-    (tr) => tr.id === sourceId,
-  );
-  const targetTransition = petriNetDefinition.transitions.find(
-    (tr) => tr.id === targetId,
-  );
+  const sourcePlace = petriNetDefinition.places.find((pl) => pl.id === sourceId);
+  const targetPlace = petriNetDefinition.places.find((pl) => pl.id === targetId);
+  const sourceTransition = petriNetDefinition.transitions.find((tr) => tr.id === sourceId);
+  const targetTransition = petriNetDefinition.transitions.find((tr) => tr.id === targetId);
 
   let data: ArcPropertiesData;
 
   if (sourcePlace && targetTransition) {
-    const arc = targetTransition.inputArcs.find(
-      (ia) => ia.placeId === sourcePlace.id,
-    );
+    const arc = targetTransition.inputArcs.find((ia) => ia.placeId === sourcePlace.id);
     data = {
       arcId,
       transitionId: targetTransition.id,
@@ -218,9 +202,7 @@ export const ArcProperties: React.FC<ArcPropertiesProps> = ({
       removeArc,
     };
   } else if (sourceTransition && targetPlace) {
-    const arc = sourceTransition.outputArcs.find(
-      (oa) => oa.placeId === targetPlace.id,
-    );
+    const arc = sourceTransition.outputArcs.find((oa) => oa.placeId === targetPlace.id);
     data = {
       arcId,
       transitionId: sourceTransition.id,

@@ -71,8 +71,7 @@ function selectValueToView(value: string): TimelineView {
 }
 
 const TimelineChartTypeSelector: React.FC = () => {
-  const { timelineChartType: chartType, setTimelineChartType: setChartType } =
-    use(EditorContext);
+  const { timelineChartType: chartType, setTimelineChartType: setChartType } = use(EditorContext);
 
   return (
     <SegmentGroup
@@ -85,8 +84,7 @@ const TimelineChartTypeSelector: React.FC = () => {
 };
 
 const TimelineViewPicker: React.FC = () => {
-  const { timelineView, setTimelineView, setGlobalMode, setSimulateViewMode } =
-    use(EditorContext);
+  const { timelineView, setTimelineView, setGlobalMode, setSimulateViewMode } = use(EditorContext);
   const {
     petriNetDefinition: { metrics = [] },
   } = use(SDCPNContext);
@@ -151,10 +149,7 @@ const TimelineViewPicker: React.FC = () => {
           }}
         />
       </div>
-      <CreateMetricDrawer
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
+      <CreateMetricDrawer open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
       <ViewMetricDrawer
         // Gate on the metric existing — the picker can swap to a non-metric
         // view while the drawer is open, and we don't want an empty overlay.

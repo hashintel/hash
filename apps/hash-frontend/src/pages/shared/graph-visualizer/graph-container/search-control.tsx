@@ -23,8 +23,7 @@ const Search = ({
   open: boolean;
   onClose: () => void;
 }) => {
-  const { filters, refreshGraphHighlights, graphState, setGraphState } =
-    useGraphContext();
+  const { filters, refreshGraphHighlights, graphState, setGraphState } = useGraphContext();
 
   const [selectedNode, _setSelectedNode] = useState<NodeData | null>(null);
 
@@ -101,19 +100,11 @@ const Search = ({
   }, [open]);
 
   return (
-    <ControlPanel
-      onClose={onClose}
-      open={open}
-      panelRef={panelRef}
-      position="left"
-      title="Search"
-    >
+    <ControlPanel onClose={onClose} open={open} panelRef={panelRef} position="left" title="Search">
       <Box sx={{ width: 460, px: 1.5, mt: 1 }}>
         <SimpleAutocomplete
           endAdornment={
-            <SearchIcon
-              sx={{ fontSize: 16, color: ({ palette }) => palette.gray[30] }}
-            />
+            <SearchIcon sx={{ fontSize: 16, color: ({ palette }) => palette.gray[30] }} />
           }
           inputRef={inputRef}
           options={nodeOptions}
@@ -131,11 +122,7 @@ export const SearchControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
 
   return (
     <>
-      <Search
-        nodes={nodes}
-        open={searchPanelOpen}
-        onClose={() => setSearchPanelOpen(false)}
-      />
+      <Search nodes={nodes} open={searchPanelOpen} onClose={() => setSearchPanelOpen(false)} />
       <GrayToBlueIconButton
         onClick={() => setSearchPanelOpen(true)}
         sx={{ position: "absolute", top: 8, left: 42 }}

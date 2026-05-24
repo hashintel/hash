@@ -2,8 +2,7 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import type { ServiceEmbedderMessageCallbacks } from "@blockprotocol/service";
 
-type ServiceFunction =
-  ServiceEmbedderMessageCallbacks[keyof ServiceEmbedderMessageCallbacks];
+type ServiceFunction = ServiceEmbedderMessageCallbacks[keyof ServiceEmbedderMessageCallbacks];
 
 const callExternalApiMethod = async (params: {
   providerName: string;

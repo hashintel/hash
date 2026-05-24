@@ -41,9 +41,7 @@ export const ConversionMenu = ({
   onSelectConversionTarget: (dataTypeId: VersionedUrl | null) => void;
 } & PopperProps) => {
   if (!conversionTargetsByColumnKey) {
-    throw new Error(
-      "Conversion menu requires column key and conversion targets",
-    );
+    throw new Error("Conversion menu requires column key and conversion targets");
   }
 
   if (columnKey && !conversionTargetsByColumnKey[columnKey]) {
@@ -122,9 +120,7 @@ export const ConversionMenu = ({
                     onClose();
                   }}
                   onChange={(event) => {
-                    const value = event.target.value
-                      ? (event.target.value as VersionedUrl)
-                      : null;
+                    const value = event.target.value ? (event.target.value as VersionedUrl) : null;
 
                     onSelectConversionTarget(value);
                     onClose();
@@ -145,10 +141,7 @@ export const ConversionMenu = ({
                   value={activeConversion?.dataTypeId ?? ""}
                 >
                   {activeConversion && (
-                    <MenuItem
-                      value={undefined}
-                      sx={{ color: ({ palette }) => palette.red[70] }}
-                    >
+                    <MenuItem value={undefined} sx={{ color: ({ palette }) => palette.red[70] }}>
                       Show original values
                     </MenuItem>
                   )}
@@ -164,10 +157,7 @@ export const ConversionMenu = ({
                   {columnKey &&
                     conversionTargetsByColumnKey[columnKey]?.map(
                       (target: { dataTypeId: VersionedUrl; title: string }) => (
-                        <MenuItem
-                          key={target.dataTypeId}
-                          value={target.dataTypeId}
-                        >
+                        <MenuItem key={target.dataTypeId} value={target.dataTypeId}>
                           {target.title}
                         </MenuItem>
                       ),

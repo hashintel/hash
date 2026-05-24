@@ -17,10 +17,7 @@ export const Root = withProvider(Carousel.Root, "root", {
   defaultProps: { spacing: "16px" },
 });
 export const RootProvider = withProvider(Carousel.RootProvider, "root");
-export const AutoplayTrigger = withContext(
-  Carousel.AutoplayTrigger,
-  "autoplayTrigger",
-);
+export const AutoplayTrigger = withContext(Carousel.AutoplayTrigger, "autoplayTrigger");
 export const Control = withContext(Carousel.Control, "control");
 export const Indicator = withContext(Carousel.Indicator, "indicator");
 export const Item = withContext(Carousel.Item, "item");
@@ -28,10 +25,7 @@ export const ItemGroup = withContext(Carousel.ItemGroup, "itemGroup");
 export const NextTrigger = withContext(Carousel.NextTrigger, "nextTrigger");
 export const PrevTrigger = withContext(Carousel.PrevTrigger, "prevTrigger");
 
-const StyledIndicatorGroup = withContext(
-  Carousel.IndicatorGroup,
-  "indicatorGroup",
-);
+const StyledIndicatorGroup = withContext(Carousel.IndicatorGroup, "indicatorGroup");
 export const IndicatorGroup = forwardRef<
   HTMLDivElement,
   ComponentProps<typeof StyledIndicatorGroup>

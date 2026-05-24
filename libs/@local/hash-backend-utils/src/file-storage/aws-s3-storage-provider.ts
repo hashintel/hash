@@ -1,8 +1,4 @@
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import mime from "mime-types";
 
@@ -40,18 +36,13 @@ export class AwsS3StorageProvider implements FileStorageProvider {
   private region: string;
   public storageType: StorageType = "AWS_S3";
 
-  constructor({
-    bucket,
-    credentials,
-    region,
-  }: AwsS3StorageProviderConstructorArgs) {
+  constructor({ bucket, credentials, region }: AwsS3StorageProviderConstructorArgs) {
     // optional environment variable if using a non-AWS S3 compatible service
     const bucketEndpoint = process.env.AWS_S3_UPLOADS_ENDPOINT;
 
     this.bucket = bucket;
     this.endpoint = bucketEndpoint;
-    this.forcePathStyle =
-      process.env.AWS_S3_UPLOADS_FORCE_PATH_STYLE === "true";
+    this.forcePathStyle = process.env.AWS_S3_UPLOADS_FORCE_PATH_STYLE === "true";
     this.region = region;
 
     /**
@@ -88,49 +79,41 @@ export class AwsS3StorageProvider implements FileStorageProvider {
           "https://hash.ai/@h/types/property-type/file-storage-bucket/": {
             value: this.bucket,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           ...(this.endpoint
             ? {
-                "https://hash.ai/@h/types/property-type/file-storage-endpoint/":
-                  {
-                    value: this.endpoint,
-                    metadata: {
-                      dataTypeId:
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                    },
+                "https://hash.ai/@h/types/property-type/file-storage-endpoint/": {
+                  value: this.endpoint,
+                  metadata: {
+                    dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                   },
+                },
               }
             : {}),
-          "https://hash.ai/@h/types/property-type/file-storage-force-path-style/":
-            {
-              value: !!this.forcePathStyle,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-              },
+          "https://hash.ai/@h/types/property-type/file-storage-force-path-style/": {
+            value: !!this.forcePathStyle,
+            metadata: {
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             },
+          },
           "https://hash.ai/@h/types/property-type/file-storage-key/": {
             value: params.key,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/file-storage-provider/": {
             value: this.storageType,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/file-storage-region/": {
             value: this.region,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         } satisfies Pick<
@@ -149,12 +132,8 @@ export class AwsS3StorageProvider implements FileStorageProvider {
 
   async presignDownload(params: PresignedDownloadRequest): Promise<Url> {
     const { key, entity } = params;
-    const {
-      fileStorageBucket,
-      fileStorageEndpoint,
-      fileStorageRegion,
-      fileStorageForcePathStyle,
-    } = simplifyProperties(entity.properties);
+    const { fileStorageBucket, fileStorageEndpoint, fileStorageRegion, fileStorageForcePathStyle } =
+      simplifyProperties(entity.properties);
 
     let client = this.client;
 

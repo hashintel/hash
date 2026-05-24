@@ -3,12 +3,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 
 import { Portal } from "@ark-ui/react/portal";
-import {
-  createToaster,
-  Toast,
-  Toaster as ArkToaster,
-  useToastContext,
-} from "@ark-ui/react/toast";
+import { createToaster, Toast, Toaster as ArkToaster, useToastContext } from "@ark-ui/react/toast";
 import { CheckCircleIcon, CircleAlertIcon, CircleXIcon } from "lucide-react";
 import { forwardRef } from "react";
 
@@ -76,13 +71,9 @@ export const Toaster = () => {
             <Stack gap="3" alignItems="start">
               <Stack gap="1">
                 {toast.title && <Title>{toast.title}</Title>}
-                {toast.description && (
-                  <Description>{toast.description}</Description>
-                )}
+                {toast.description && <Description>{toast.description}</Description>}
               </Stack>
-              {toast.action && (
-                <ActionTrigger>{toast.action.label}</ActionTrigger>
-              )}
+              {toast.action && <ActionTrigger>{toast.action.label}</ActionTrigger>}
             </Stack>
             {toast.closable && (
               <CloseTrigger asChild>

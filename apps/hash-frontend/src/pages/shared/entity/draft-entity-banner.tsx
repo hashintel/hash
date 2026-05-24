@@ -50,8 +50,7 @@ export const DraftEntityBanner: FunctionComponent<{
   onDraftPublished,
   owningShortname,
 }) => {
-  const isUpdate =
-    !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+  const isUpdate = !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
 
   return (
     <Box
@@ -86,10 +85,7 @@ export const DraftEntityBanner: FunctionComponent<{
           />
           This is a{" "}
           <strong>
-            draft{" "}
-            {isUpdate
-              ? `update to ${draftEntity.linkData ? "a " : "an "}`
-              : "new "}
+            draft {isUpdate ? `update to ${draftEntity.linkData ? "a " : "an "}` : "new "}
             {draftEntity.linkData ? "link" : "entity"}
           </strong>
           {isUpdate && (

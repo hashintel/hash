@@ -5,10 +5,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { logger } from "../../../../logger";
-import {
-  createOrg,
-  getOrgByShortname,
-} from "../../../knowledge/system-types/org";
+import { createOrg, getOrgByShortname } from "../../../knowledge/system-types/org";
 import {
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
@@ -17,11 +14,7 @@ import {
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   if (isSelfHostedInstance) {
     /**
      * Functionality is only relevant to hosted HASH, i.e. the instance at https://[app].hash.ai
@@ -33,19 +26,15 @@ const migrate: MigrationFunction = async ({
    * Create the entity type to hold information about a user's potential use(s) of HASH
    */
 
-  const rolePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Role",
-        description: "The name of someone or something's role.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
+  const rolePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Role",
+      description: "The name of someone or something's role.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   const intendedUsePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -53,8 +42,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Intended Use",
-        description:
-          "The name or description of someone's intended use of something",
+        description: "The name or description of someone's intended use of something",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "h",
@@ -68,8 +56,7 @@ const migrate: MigrationFunction = async ({
     {
       propertyTypeDefinition: {
         title: "Current Approach",
-        description:
-          "The name or description of the current approach to something",
+        description: "The name or description of the current approach to something",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       webShortname: "h",
@@ -91,14 +78,15 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _prospectiveUserDefinitionEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
+  const _prospectiveUserDefinitionEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
       entityTypeDefinition: {
         title: "Prospective User",
         titlePlural: "Prospective Users",
         icon: "/icons/types/user-plus.svg",
-        description:
-          "Information about a prospective user of an application or system",
+        description: "Information about a prospective user of an application or system",
         labelProperty: systemPropertyTypes.email.propertyTypeBaseUrl,
         properties: [
           {
@@ -135,7 +123,8 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   /**
    * Create an `@example` org
@@ -150,13 +139,9 @@ const migrate: MigrationFunction = async ({
       name: "Example",
       websiteUrl: "https://example.com",
       orgEntityTypeVersion:
-        migrationState.entityTypeVersions[
-          systemEntityTypes.organization.entityTypeBaseUrl
-        ],
+        migrationState.entityTypeVersions[systemEntityTypes.organization.entityTypeBaseUrl],
       machineEntityTypeVersion:
-        migrationState.entityTypeVersions[
-          systemEntityTypes.machine.entityTypeBaseUrl
-        ],
+        migrationState.entityTypeVersions[systemEntityTypes.machine.entityTypeBaseUrl],
     });
     logger.info("Created @example org");
   }

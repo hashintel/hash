@@ -26,11 +26,7 @@ const config = new TldrawEditorConfig({
   tools: [BlockTool],
 });
 
-export const CanvasPageBlock = ({
-  contents,
-}: {
-  contents: BlockCollectionContentItem[];
-}) => {
+export const CanvasPageBlock = ({ contents }: { contents: BlockCollectionContentItem[] }) => {
   const { query } = useRouter();
 
   const { value: initialBlocks } = useUserBlocks();
@@ -94,10 +90,8 @@ export const CanvasPageBlock = ({
           rotation,
           props: {
             blockLoaderProps: {
-              blockEntityId:
-                blockEntity.blockChildEntity.metadata.recordId.entityId,
-              blockEntityTypeId:
-                blockEntity.blockChildEntity.metadata.entityTypeIds,
+              blockEntityId: blockEntity.blockChildEntity.metadata.recordId.entityId,
+              blockEntityTypeId: blockEntity.blockChildEntity.metadata.entityTypeIds,
               wrappingEntityId: blockEntity.metadata.recordId.entityId,
               blockMetadata: blocks[blockEntity.componentId]!.meta,
               readonly: false,

@@ -22,9 +22,7 @@ const getCellText = async (
   // wait until glide-grid updates the cell texts (on the invisible accessibility table)
   await sleep(500);
 
-  const text = await canvas
-    .getByTestId(`glide-cell-${colIndex}-${rowIndex}`)
-    .textContent();
+  const text = await canvas.getByTestId(`glide-cell-${colIndex}-${rowIndex}`).textContent();
   return text;
 };
 
@@ -93,8 +91,7 @@ const clickOnValueCell = async (
   }
 
   /** The Y offset for the center of the requested row */
-  const cellY =
-    canvasPos.y + gridRowHeight * (rowIndex + 1) + gridRowHeight / 2;
+  const cellY = canvasPos.y + gridRowHeight * (rowIndex + 1) + gridRowHeight / 2;
 
   /** The X offset for somewhere in the second column, which holds property values */
   const cellX = canvasPos.x + 300;
@@ -114,16 +111,12 @@ test("user can update values on property table", async ({ page }) => {
 
   await page.getByRole("button", { name: "Add a type" }).click();
 
-  await page
-    .getByPlaceholder("Search for an entity type")
-    .fill("GitHub Account");
+  await page.getByPlaceholder("Search for an entity type").fill("GitHub Account");
 
   // select 'GitHub Account' as the type for this entity
   await page.getByTestId("selector-autocomplete-option").first().click();
 
-  const propertyTableCanvas = page
-    .locator(".dvn-underlay > canvas:first-of-type")
-    .first();
+  const propertyTableCanvas = page.locator(".dvn-underlay > canvas:first-of-type").first();
 
   await clickOnValueCell(page, propertyTableCanvas, 0);
 
@@ -143,9 +136,7 @@ test("user can update values on property table", async ({ page }) => {
   expect(cell1Text).toBe(profileUrl);
 });
 
-test("both the link and properties tables renders some content", async ({
-  page,
-}) => {
+test("both the link and properties tables renders some content", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("text=Get support")).toBeVisible();
 
@@ -158,24 +149,17 @@ test("both the link and properties tables renders some content", async ({
   /**
    * Get the `Document` type ('document format' appears in its description but not that of other types mentioning 'Document')
    */
-  await page
-    .getByPlaceholder("Search for an entity type")
-    .fill("document format");
+  await page.getByPlaceholder("Search for an entity type").fill("document format");
 
   await page.getByTestId("selector-autocomplete-option").first().click();
 
-  const linkTableCanvas = page
-    .locator(".dvn-underlay > canvas:first-of-type")
-    .nth(1);
+  const linkTableCanvas = page.locator(".dvn-underlay > canvas:first-of-type").nth(1);
 
-  const linkTableHasRenderedContent =
-    await checkIfCellContainsNonWhitePixels(linkTableCanvas);
+  const linkTableHasRenderedContent = await checkIfCellContainsNonWhitePixels(linkTableCanvas);
 
   expect(linkTableHasRenderedContent).toEqual(true);
 
-  const propertyTableCanvas = page
-    .locator(".dvn-underlay > canvas:first-of-type")
-    .first();
+  const propertyTableCanvas = page.locator(".dvn-underlay > canvas:first-of-type").first();
 
   const propertyTableHasRenderedContent =
     await checkIfCellContainsNonWhitePixels(propertyTableCanvas);

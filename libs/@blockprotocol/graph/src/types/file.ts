@@ -1,8 +1,4 @@
-import type {
-  Entity,
-  PropertyObjectWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { Entity, PropertyObjectWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 
 export type FileAtUrlData = {
   // Optionally describe the file
@@ -22,12 +18,10 @@ export type FileData = {
 
 export type UploadFileData = FileAtUrlData | FileData;
 
-export const isFileAtUrlData = (
-  fileData: UploadFileData,
-): fileData is FileAtUrlData => "url" in fileData;
+export const isFileAtUrlData = (fileData: UploadFileData): fileData is FileAtUrlData =>
+  "url" in fileData;
 
-export const isFileData = (fileData: UploadFileData): fileData is FileData =>
-  "file" in fileData;
+export const isFileData = (fileData: UploadFileData): fileData is FileData => "file" in fileData;
 
 // @todo - auto-generate this from File type in blockprotocol.org
 export type RemoteFileEntityProperties = {

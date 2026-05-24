@@ -115,9 +115,7 @@ describe("Petrinaut core actions", () => {
     const definition = instance.definition.get();
     expect(definition.places.map((place) => place.id)).toEqual(["place-2"]);
     expect(definition.transitions[0]!.inputArcs).toEqual([]);
-    expect(definition.transitions[0]!.outputArcs).toEqual([
-      { placeId: "place-2", weight: 1 },
-    ]);
+    expect(definition.transitions[0]!.outputArcs).toEqual([{ placeId: "place-2", weight: 1 }]);
   });
 
   test("updates arc endpoints granularly", () => {
@@ -479,9 +477,7 @@ describe("Petrinaut core actions", () => {
       instance.addScenario({
         id: "scenario-1",
         name: "Scenario",
-        scenarioParameters: [
-          { type: "real", identifier: "LaunchRate", default: 1 },
-        ],
+        scenarioParameters: [{ type: "real", identifier: "LaunchRate", default: 1 }],
         parameterOverrides: {},
         initialState: { type: "per_place", content: {} },
       }),

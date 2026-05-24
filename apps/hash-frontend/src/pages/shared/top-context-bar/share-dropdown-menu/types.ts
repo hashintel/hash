@@ -3,19 +3,13 @@ import type { GetEntityAuthorizationRelationshipsQuery } from "../../../../graph
 export type AuthorizationRelationship =
   GetEntityAuthorizationRelationshipsQuery["getEntityAuthorizationRelationships"][number];
 
-export type AccountAuthorizationRelationship = Omit<
-  AuthorizationRelationship,
-  "subject"
-> & {
+export type AccountAuthorizationRelationship = Omit<AuthorizationRelationship, "subject"> & {
   subject: Exclude<
     AuthorizationRelationship["subject"],
     { __typename: "PublicAuthorizationSubject" }
   >;
 };
 
-export type PublicAuthorizationRelationship = Omit<
-  AuthorizationRelationship,
-  "subject"
-> & {
+export type PublicAuthorizationRelationship = Omit<AuthorizationRelationship, "subject"> & {
   subject: { __typename: "PublicAuthorizationSubject"; public: boolean };
 };

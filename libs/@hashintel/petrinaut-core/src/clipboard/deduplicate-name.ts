@@ -4,10 +4,7 @@
  * If the name ends with a number (e.g. "Place3"), the suffix increments from that
  * number. Otherwise a "2" suffix is appended (e.g. "Foo" → "Foo2").
  */
-export function deduplicateName(
-  name: string,
-  existingNames: Set<string>,
-): string {
+export function deduplicateName(name: string, existingNames: Set<string>): string {
   if (!existingNames.has(name)) {
     return name;
   }

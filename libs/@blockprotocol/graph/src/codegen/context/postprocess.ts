@@ -7,12 +7,7 @@ import type {
 } from "../shared.js";
 import type { CompileContext } from "./compile.js";
 import type { TypeDependencyMap } from "./shared.js";
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { DataType, EntityType, PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 type IdentifierSource = { definingPath: string } & (
   | {
@@ -34,10 +29,7 @@ export type IdentifierSources =
   | { locallyImportable: true; source: IdentifierSource }
   | { locallyImportable: false; source: IdentifierSource[] };
 
-const externalIdentifiersToSource: Record<
-  IdentifierForExternalImport,
-  IdentifierSources
-> = {
+const externalIdentifiersToSource: Record<IdentifierForExternalImport, IdentifierSources> = {
   Entity: {
     locallyImportable: true,
     source: {
@@ -90,10 +82,7 @@ export class PostprocessContext {
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
   readonly metadataSchemas: Record<VersionedUrl, JsonSchema>;
-  readonly allTypes: Record<
-    VersionedUrl,
-    DataType | PropertyType | EntityType | JsonSchema
-  >;
+  readonly allTypes: Record<VersionedUrl, DataType | PropertyType | EntityType | JsonSchema>;
 
   readonly typeDependencyMap: TypeDependencyMap;
 
@@ -101,10 +90,7 @@ export class PostprocessContext {
   readonly linkTypeMap: Record<keyof typeof this.entityTypes, boolean>;
 
   /** Map of sourceTypeIds to their compiled schemas */
-  readonly typeIdsToCompiledTypes: Record<
-    keyof typeof this.allTypes,
-    CompiledTsType
-  >;
+  readonly typeIdsToCompiledTypes: Record<keyof typeof this.allTypes, CompiledTsType>;
 
   /**
    * Map of TypeScript identifiers, to their source (the file that exports them) and the contents required to define
@@ -145,11 +131,7 @@ export class PostprocessContext {
   }
 
   logInfo(message: string) {
-    if (
-      this.logLevel === "info" ||
-      this.logLevel === "debug" ||
-      this.logLevel === "trace"
-    ) {
+    if (this.logLevel === "info" || this.logLevel === "debug" || this.logLevel === "trace") {
       // eslint-disable-next-line no-console
       console.log(`INFO: ${message}`);
     }
@@ -216,9 +198,7 @@ export class PostprocessContext {
         throw new Error(
           `Internal error: ambiguous source definitions for identifier '${identifier}', where it's locally defined in \
           ${definingPath} but also exported from \
-          ${existingMap.source
-            .map((existingSource) => existingSource.definingPath)
-            .join(", ")}}`,
+          ${existingMap.source.map((existingSource) => existingSource.definingPath).join(", ")}}`,
         );
       }
 

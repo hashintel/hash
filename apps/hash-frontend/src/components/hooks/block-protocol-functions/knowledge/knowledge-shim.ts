@@ -19,12 +19,7 @@ import type {
   Subgraph,
   UploadFileData as BpUploadFileData,
 } from "@blockprotocol/graph";
-import type {
-  EntityId,
-  LinkData,
-  PropertyObject,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityId, LinkData, PropertyObject, VersionedUrl } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {

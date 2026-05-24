@@ -23,8 +23,7 @@ const TypeId: unique symbol = Symbol(
 
 export type TypeId = typeof TypeId;
 
-export interface RequestBegin
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface RequestBegin extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly subsystem: SubsystemDescriptor.SubsystemDescriptor;
@@ -33,10 +32,7 @@ export interface RequestBegin
   readonly payload: Payload.Payload;
 }
 
-const RequestBeginProto: Omit<
-  RequestBegin,
-  "subsystem" | "procedure" | "payload"
-> = {
+const RequestBeginProto: Omit<RequestBegin, "subsystem" | "procedure" | "payload"> = {
   [TypeId]: TypeId,
 
   [Equal.symbol](this: RequestBegin, that: Equal.Equal) {
@@ -86,8 +82,7 @@ export const make = (
   subsystem: SubsystemDescriptor.SubsystemDescriptor,
   procedure: ProcedureDescriptor.ProcedureDescriptor,
   payload: Payload.Payload,
-): RequestBegin =>
-  createProto(RequestBeginProto, { subsystem, procedure, payload });
+): RequestBegin => createProto(RequestBeginProto, { subsystem, procedure, payload });
 
 export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
 

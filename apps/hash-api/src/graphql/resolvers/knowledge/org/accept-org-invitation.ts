@@ -10,10 +10,7 @@ import {
   getEntityIncomingLinks,
   getLatestEntityById,
 } from "../../../../graph/knowledge/primitive/entity";
-import {
-  getOrgById,
-  type Org,
-} from "../../../../graph/knowledge/system-types/org";
+import { getOrgById, type Org } from "../../../../graph/knowledge/system-types/org";
 import {
   getUserVerifiedEmails,
   isUserMemberOfOrg,
@@ -23,10 +20,7 @@ import { systemAccountId } from "../../../../graph/system-account";
 import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
-import type {
-  AcceptInvitationResult,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { AcceptInvitationResult, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
@@ -53,13 +47,9 @@ export const acceptOrgInvitationResolver: ResolverFn<
   };
 
   try {
-    invitation = await getLatestEntityById(
-      context,
-      systemAccountAuthentication,
-      {
-        entityId: orgInvitationEntityId,
-      },
-    );
+    invitation = await getLatestEntityById(context, systemAccountAuthentication, {
+      entityId: orgInvitationEntityId,
+    });
   } catch {
     throw Error.notFound("Invitation not found");
   }
@@ -67,22 +57,16 @@ export const acceptOrgInvitationResolver: ResolverFn<
   let isForUser: boolean;
 
   if (isInvitationByEmail(invitation)) {
-    const verifiedEmails = await getUserVerifiedEmails(
-      context,
-      graphQLContext.authentication,
-      {
-        user,
-      },
-    );
+    const verifiedEmails = await getUserVerifiedEmails(context, graphQLContext.authentication, {
+      user,
+    });
 
     isForUser = verifiedEmails.includes(
       invitation.properties["https://hash.ai/@h/types/property-type/email/"],
     );
   } else if (isInvitationByShortname(invitation)) {
     isForUser =
-      invitation.properties[
-        "https://hash.ai/@h/types/property-type/shortname/"
-      ] === user.shortname;
+      invitation.properties["https://hash.ai/@h/types/property-type/shortname/"] === user.shortname;
   } else {
     throw Error.invalidInvitationType(
       `Invalid invitation type ${invitation.metadata.entityTypeIds.join(", ")}`,
@@ -112,27 +96,15 @@ export const acceptOrgInvitationResolver: ResolverFn<
     throw Error.notFound("Invitation link not found");
   }
 
-  const isAlreadyAMember = await isUserMemberOfOrg(
-    context,
-    graphQLContext.authentication,
-    {
-      userEntityId: user.entity.metadata.recordId.entityId,
-      orgEntityUuid: extractWebIdFromEntityId(invitation.entityId),
-    },
-  );
+  const isAlreadyAMember = await isUserMemberOfOrg(context, graphQLContext.authentication, {
+    userEntityId: user.entity.metadata.recordId.entityId,
+    orgEntityUuid: extractWebIdFromEntityId(invitation.entityId),
+  });
 
   const archiveInvitation = () =>
     Promise.all([
-      invitation.archive(
-        context.graphApi,
-        systemAccountAuthentication,
-        context.provenance,
-      ),
-      invitationLink.archive(
-        context.graphApi,
-        systemAccountAuthentication,
-        context.provenance,
-      ),
+      invitation.archive(context.graphApi, systemAccountAuthentication, context.provenance),
+      invitationLink.archive(context.graphApi, systemAccountAuthentication, context.provenance),
     ]);
 
   if (isAlreadyAMember) {
@@ -158,11 +130,8 @@ export const acceptOrgInvitationResolver: ResolverFn<
   }
 
   if (
-    new Date(
-      invitation.properties[
-        "https://hash.ai/@h/types/property-type/expired-at/"
-      ],
-    ) < new Date()
+    new Date(invitation.properties["https://hash.ai/@h/types/property-type/expired-at/"]) <
+    new Date()
   ) {
     await archiveInvitation();
 
@@ -182,21 +151,15 @@ export const acceptOrgInvitationResolver: ResolverFn<
    * Although the creator must have been an administrator of the organization to issue the invitation,
    * they may have been removed as an admin since, in which case the link is no longer valid.
    */
-  const creatorIsOrgAdmin = await getActorGroupRole(
-    context.graphApi,
-    systemAccountAuthentication,
-    {
-      actorId: linkCreator,
-      actorGroupId: orgWebId,
-    },
-  ).then((role) => role === "administrator");
+  const creatorIsOrgAdmin = await getActorGroupRole(context.graphApi, systemAccountAuthentication, {
+    actorId: linkCreator,
+    actorGroupId: orgWebId,
+  }).then((role) => role === "administrator");
 
   if (!creatorIsOrgAdmin) {
     await archiveInvitation();
 
-    throw Error.forbidden(
-      "Invitation issuer is not an administrator of the organization",
-    );
+    throw Error.forbidden("Invitation issuer is not an administrator of the organization");
   }
 
   const membershipCreationAuthentication = {

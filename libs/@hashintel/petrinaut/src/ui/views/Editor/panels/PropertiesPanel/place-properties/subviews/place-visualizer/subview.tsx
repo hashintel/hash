@@ -2,10 +2,7 @@ import { use, useMemo, useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import {
-  DEFAULT_VISUALIZER_CODE,
-  generateDefaultVisualizerCode,
-} from "@hashintel/petrinaut-core";
+import { DEFAULT_VISUALIZER_CODE, generateDefaultVisualizerCode } from "@hashintel/petrinaut-core";
 
 import {
   mergeParameterValues,
@@ -120,16 +117,11 @@ const VisualizerPreview: React.FC = () => {
 
     const tokenValues = Array.from(placeTokenValues.values);
 
-    for (
-      let tokenIndex = 0;
-      tokenIndex < placeTokenValues.count;
-      tokenIndex++
-    ) {
+    for (let tokenIndex = 0; tokenIndex < placeTokenValues.count; tokenIndex++) {
       const token: Record<string, number> = {};
       for (let colIndex = 0; colIndex < dimensions; colIndex++) {
         const dimensionName = placeType.elements[colIndex]!.name;
-        token[dimensionName] =
-          tokenValues[tokenIndex * dimensions + colIndex] ?? 0;
+        token[dimensionName] = tokenValues[tokenIndex * dimensions + colIndex] ?? 0;
       }
       tokens.push(token);
     }
@@ -178,8 +170,8 @@ const PlaceVisualizerContent: React.FC = () => {
   if (!hasVisualizer) {
     return (
       <div className={messageStyle}>
-        Enable the visualizer to define a custom token visualization for this
-        place, viewable when a simulation is running.
+        Enable the visualizer to define a custom token visualization for this place, viewable when a
+        simulation is running.
       </div>
     );
   }
@@ -238,9 +230,7 @@ const VisualizerHeaderAction: React.FC = () => {
     code: string;
   } | null>(null);
   const savedVisualizerCode =
-    savedVisualizerCodeState?.placeId === place.id
-      ? savedVisualizerCodeState.code
-      : undefined;
+    savedVisualizerCodeState?.placeId === place.id ? savedVisualizerCodeState.code : undefined;
 
   const hasVisualizer = place.visualizerCode !== undefined;
 
@@ -256,8 +246,7 @@ const VisualizerHeaderAction: React.FC = () => {
               updatePlace({
                 placeId: place.id,
                 update: {
-                  visualizerCode:
-                    savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
+                  visualizerCode: savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
                 },
               });
             } else {
@@ -310,10 +299,7 @@ const VisualizerHeaderAction: React.FC = () => {
             {
               id: "generate-ai",
               label: (
-                <Tooltip
-                  content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-                  display="inline"
-                >
+                <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON} display="inline">
                   <div className={aiMenuItemStyle}>
                     <Icon name="sparkles" size="sm" />
                     Generate with AI
@@ -335,8 +321,7 @@ const VisualizerHeaderAction: React.FC = () => {
 export const placeVisualizerSubView: SubView = {
   id: "place-visualizer",
   title: "Visualizer",
-  tooltip:
-    "Custom visualization of tokens in this place, defined by visualizer code.",
+  tooltip: "Custom visualization of tokens in this place, defined by visualizer code.",
   component: PlaceVisualizerContent,
   renderHeaderAction: () => <VisualizerHeaderAction />,
   alwaysShowHeaderAction: true,

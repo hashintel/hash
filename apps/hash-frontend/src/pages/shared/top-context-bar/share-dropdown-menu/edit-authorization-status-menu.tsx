@@ -11,11 +11,7 @@ import {
   styled,
   Tooltip,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useMemo } from "react";
 
 import { AuthorizationSubjectKind } from "../../../../graphql/api-types.gen";
@@ -56,10 +52,7 @@ const PrivacyStatusMenuItem = styled(MenuItem)(({ theme }) => ({
   },
 }));
 
-export type EntityAuthorizationStatus =
-  | "public"
-  | "shared-with-others"
-  | "private";
+export type EntityAuthorizationStatus = "public" | "shared-with-others" | "private";
 
 export const entityAuthorizationStatusIcons = {
   public: <GlobeRegularIcon />,
@@ -94,11 +87,10 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
     AddEntityViewerMutationVariables
   >(addEntityViewerMutation, { refetchQueries });
 
-  const [removeEntityViewer, { loading: loadingRemoveEntityViewer }] =
-    useMutation<
-      RemoveEntityViewerMutation,
-      RemoveEntityViewerMutationVariables
-    >(removeEntityViewerMutation, { refetchQueries });
+  const [removeEntityViewer, { loading: loadingRemoveEntityViewer }] = useMutation<
+    RemoveEntityViewerMutation,
+    RemoveEntityViewerMutationVariables
+  >(removeEntityViewerMutation, { refetchQueries });
 
   const removePublicViewer = useCallback(async () => {
     await removeEntityViewer({
@@ -164,13 +156,7 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
         onClick: addPublicViewer,
       },
     ].flat();
-  }, [
-    isSharedWithOthers,
-    loading,
-    removePublicViewer,
-    addPublicViewer,
-    entity,
-  ]);
+  }, [isSharedWithOthers, loading, removePublicViewer, addPublicViewer, entity]);
 
   return (
     <>
@@ -202,32 +188,28 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
             : "Shared with others"}
       </Button>
       <Menu {...bindMenu(privacyStatusPopupState)}>
-        {menuItems.map(
-          ({ label, status, disabled, tooltipText, onClick, description }) => {
-            const content = (
-              <PrivacyStatusMenuItem
-                key={status}
-                disabled={disabled}
-                selected={status === authorizationStatus}
-                onClick={onClick}
-                title={tooltipText}
-              >
-                <ListItemIcon>
-                  {entityAuthorizationStatusIcons[status]}
-                </ListItemIcon>
-                <ListItemText primary={label} secondary={description} />
-              </PrivacyStatusMenuItem>
-            );
+        {menuItems.map(({ label, status, disabled, tooltipText, onClick, description }) => {
+          const content = (
+            <PrivacyStatusMenuItem
+              key={status}
+              disabled={disabled}
+              selected={status === authorizationStatus}
+              onClick={onClick}
+              title={tooltipText}
+            >
+              <ListItemIcon>{entityAuthorizationStatusIcons[status]}</ListItemIcon>
+              <ListItemText primary={label} secondary={description} />
+            </PrivacyStatusMenuItem>
+          );
 
-            return tooltipText ? (
-              <Tooltip key={status} title={tooltipText}>
-                <Box>{content}</Box>
-              </Tooltip>
-            ) : (
-              content
-            );
-          },
-        )}
+          return tooltipText ? (
+            <Tooltip key={status} title={tooltipText}>
+              <Box>{content}</Box>
+            </Tooltip>
+          ) : (
+            content
+          );
+        })}
       </Menu>
     </>
   );

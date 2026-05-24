@@ -9,14 +9,8 @@ import {
 
 import type { GraphApi } from "@local/hash-graph-client";
 
-export const createCommonFlowActivities = ({
-  graphApiClient,
-}: {
-  graphApiClient: GraphApi;
-}) => ({
-  userHasPermissionToRunFlowInWebActivity(
-    params: UserHasPermissionToRunFlowInWebActivityParams,
-  ) {
+export const createCommonFlowActivities = ({ graphApiClient }: { graphApiClient: GraphApi }) => ({
+  userHasPermissionToRunFlowInWebActivity(params: UserHasPermissionToRunFlowInWebActivityParams) {
     return userHasPermissionToRunFlowInWebActivity({
       graphApiClient,
       ...params,

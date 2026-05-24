@@ -78,13 +78,7 @@ const EncoderProto: Omit<EncoderImpl, "encode"> = {
 export const Encoder = GenericTag<Encoder>(TypeId.description!);
 
 export const make = <E = EncodingError, R = never>(
-  encode: <
-    SchemaType,
-    SchemaEncoded,
-    SchemaContext,
-    StreamError,
-    StreamContext,
-  >(
+  encode: <SchemaType, SchemaEncoded, SchemaContext, StreamError, StreamContext>(
     input: Stream.Stream<SchemaType, StreamError, StreamContext>,
     schema: Schema.Schema<SchemaType, SchemaEncoded, SchemaContext>,
   ) => Stream.Stream<

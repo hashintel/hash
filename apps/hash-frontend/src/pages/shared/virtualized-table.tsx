@@ -9,17 +9,11 @@ import TableRow from "@mui/material/TableRow";
 import { forwardRef, useCallback, useMemo } from "react";
 import { TableVirtuoso } from "react-virtuoso";
 
-import {
-  HeaderContent,
-  virtualizedTableHeaderHeight,
-} from "./virtualized-table/header";
+import { HeaderContent, virtualizedTableHeaderHeight } from "./virtualized-table/header";
 
 import type { ColumnMetadata } from "./virtualized-table/header";
 import type { TableFilterProps } from "./virtualized-table/header/filter";
-import type {
-  TableSortProps,
-  VirtualizedTableSort,
-} from "./virtualized-table/header/sort";
+import type { TableSortProps, VirtualizedTableSort } from "./virtualized-table/header/sort";
 import type { SxProps, Theme } from "@mui/material";
 import type { ComponentPropsWithoutRef, ReactElement } from "react";
 import type { TableComponents } from "react-virtuoso";
@@ -65,20 +59,18 @@ const VirtuosoTableComponents: TableComponents<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   VirtualizedTableContext<any, any>
 > = {
-  Scroller: forwardRef<HTMLDivElement>(
-    (props: ComponentPropsWithoutRef<"div">, ref) => (
-      <TableContainer
-        {...props}
-        ref={ref}
-        sx={{
-          background: "white",
-          borderRadius,
-          height: "100%",
-          border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        }}
-      />
-    ),
-  ),
+  Scroller: forwardRef<HTMLDivElement>((props: ComponentPropsWithoutRef<"div">, ref) => (
+    <TableContainer
+      {...props}
+      ref={ref}
+      sx={{
+        background: "white",
+        borderRadius,
+        height: "100%",
+        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+      }}
+    />
+  )),
   Table: (props) => (
     <Table
       {...props}
@@ -99,9 +91,7 @@ const VirtuosoTableComponents: TableComponents<
   )),
   TableRow,
   TableBody: forwardRef<HTMLTableSectionElement>(
-    (props: ComponentPropsWithoutRef<"tbody">, ref) => (
-      <TableBody {...props} ref={ref} />
-    ),
+    (props: ComponentPropsWithoutRef<"tbody">, ref) => <TableBody {...props} ref={ref} />,
   ),
 };
 
@@ -167,15 +157,7 @@ export const VirtualizedTable = <
             setSort,
           })
         : null,
-    [
-      columns,
-      fixedColumns,
-      filterDefinitions,
-      filterValues,
-      setFilterValues,
-      sort,
-      setSort,
-    ],
+    [columns, fixedColumns, filterDefinitions, filterValues, setFilterValues, sort, setSort],
   );
 
   const components = useMemo(

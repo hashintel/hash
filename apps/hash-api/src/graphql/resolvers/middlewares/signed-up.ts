@@ -8,9 +8,7 @@ export const signedUpMiddleware: ResolverMiddleware<
   Record<string, unknown>
 > = (next) => (obj, args, ctx: LoggedInGraphQLContext, info) => {
   if (!ctx.user.isAccountSignupComplete) {
-    throw Error.forbidden(
-      "You must complete the sign-up process to perform this action.",
-    );
+    throw Error.forbidden("You must complete the sign-up process to perform this action.");
   }
   return next(obj, args, ctx, info);
 };

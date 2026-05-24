@@ -1,7 +1,4 @@
-import {
-  ActivityCancellationType,
-  proxyActivities,
-} from "@temporalio/workflow";
+import { ActivityCancellationType, proxyActivities } from "@temporalio/workflow";
 
 import { processFlowWorkflow } from "@local/hash-backend-utils/flows/process-flow-workflow";
 import { type AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -15,10 +12,7 @@ import type {
   RunAiFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import type {
-  FlowDefinition,
-  FlowTrigger,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinition, FlowTrigger } from "@local/hash-isomorphic-utils/flows/types";
 
 type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
 
@@ -29,9 +23,7 @@ type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
  * - [ideally] the activity has checks for cancellation at appropriate points in its execution and bails out of work
  * - [ideally] the activity includes state with its heartbeat and checks the lastHeartbeatDetails to resume from previous state
  */
-const activitiesHandlingCancellation: FlowActivityId[] = [
-  "researchEntitiesAction",
-];
+const activitiesHandlingCancellation: FlowActivityId[] = ["researchEntitiesAction"];
 
 const activitiesHeartbeating: FlowActivityId[] = [
   ...activitiesHandlingCancellation,
@@ -44,9 +36,7 @@ const proxyFlowActivity: ProxyFlowActivity<
 > = (params) => {
   const { actionName, maximumAttempts, activityId } = params;
 
-  const { [actionName]: action } = proxyActivities<
-    ReturnType<typeof createFlowActivities>
-  >({
+  const { [actionName]: action } = proxyActivities<ReturnType<typeof createFlowActivities>>({
     cancellationType: activitiesHandlingCancellation.includes(actionName)
       ? ActivityCancellationType.WAIT_CANCELLATION_COMPLETED
       : ActivityCancellationType.ABANDON,

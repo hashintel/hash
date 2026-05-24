@@ -10,12 +10,7 @@ import {
 
 // Re-export for back-compat with existing consumers that import these from
 // the simulation context module.
-export type {
-  InitialMarking,
-  InitialPlaceMarking,
-  SimulationFrameReader,
-  SimulationFrameState,
-};
+export type { InitialMarking, InitialPlaceMarking, SimulationFrameReader, SimulationFrameState };
 
 /**
  * Current state of the simulation lifecycle, as the editor UI consumes it.
@@ -25,12 +20,7 @@ export type {
  * has six values including `Initializing` and `Ready`. The provider maps
  * between the two.
  */
-export type SimulationState =
-  | "NotRun"
-  | "Running"
-  | "Complete"
-  | "Error"
-  | "Paused";
+export type SimulationState = "NotRun" | "Running" | "Complete" | "Error" | "Paused";
 
 /**
  * The combined simulation context containing both state and actions.
@@ -112,10 +102,7 @@ export type SimulationContextValue = {
    * @param endIndex - The ending frame index (exclusive). If omitted, returns to the end.
    * @returns Promise resolving to array of frame readers in the range
    */
-  getFramesInRange: (
-    startIndex: number,
-    endIndex?: number,
-  ) => Promise<SimulationFrameReader[]>;
+  getFramesInRange: (startIndex: number, endIndex?: number) => Promise<SimulationFrameReader[]>;
 
   /**
    * ID of the currently selected scenario, or `null` for no scenario.
@@ -163,10 +150,7 @@ export type SimulationContextValue = {
    * Update backpressure configuration at runtime.
    * Called by PlaybackProvider when playMode changes.
    */
-  setBackpressure: (params: {
-    maxFramesAhead?: number;
-    batchSize?: number;
-  }) => void;
+  setBackpressure: (params: { maxFramesAhead?: number; batchSize?: number }) => void;
   /**
    * Acknowledge receipt of frames up to the given frame number.
    * Used for backpressure control - the worker will pause computation
@@ -209,6 +193,4 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   ack: () => {},
 };
 
-export const SimulationContext = createContext<SimulationContextValue>(
-  DEFAULT_CONTEXT_VALUE,
-);
+export const SimulationContext = createContext<SimulationContextValue>(DEFAULT_CONTEXT_VALUE);

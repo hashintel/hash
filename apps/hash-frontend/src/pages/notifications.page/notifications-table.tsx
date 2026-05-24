@@ -10,13 +10,7 @@ import {
   tableRowClasses,
   Typography,
 } from "@mui/material";
-import {
-  differenceInDays,
-  differenceInMinutes,
-  format,
-  isThisYear,
-  isToday,
-} from "date-fns";
+import { differenceInDays, differenceInMinutes, format, isThisYear, isToday } from "date-fns";
 import { useCallback, useMemo } from "react";
 
 import {
@@ -110,16 +104,10 @@ const GraphChangeNotificationContent = ({
   return (
     <Typography component="span">
       HASH AI {operation}d{" "}
-      <Link
-        href={targetHref ?? ""}
-        noLinkStyle
-        onClick={handleNotificationClick}
-      >
+      <Link href={targetHref ?? ""} noLinkStyle onClick={handleNotificationClick}>
         {occurredInEntityLabel}
       </Link>{" "}
-      {extractDraftIdFromEntityId(occurredInEntity.metadata.recordId.entityId)
-        ? "as draft"
-        : ""}
+      {extractDraftIdFromEntityId(occurredInEntity.metadata.recordId.entityId) ? "as draft" : ""}
     </Typography>
   );
 };
@@ -153,20 +141,14 @@ const PageRelatedNotificationContent = ({
           : kind === "page-mention"
             ? "mentioned you in "
             : "mentioned you in a comment on "}
-      <Link
-        noLinkStyle
-        href={targetHref ?? ""}
-        onClick={handleNotificationClick}
-      >
+      <Link noLinkStyle href={targetHref ?? ""} onClick={handleNotificationClick}>
         {pageTitle}
       </Link>
     </>
   );
 };
 
-const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
-  notification,
-}) => {
+const NotificationRow: FunctionComponent<{ notification: Notification }> = ({ notification }) => {
   const { markNotificationAsRead } = useNotificationCount();
   const { refetch } = useNotificationsWithLinks();
 
@@ -178,10 +160,7 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   }, [markNotificationAsRead, notification, refetch]);
 
   const webId = useMemo(
-    () =>
-      extractWebIdFromEntityId(
-        notification.occurredInEntity.metadata.recordId.entityId,
-      ),
+    () => extractWebIdFromEntityId(notification.occurredInEntity.metadata.recordId.entityId),
     [notification],
   );
 
@@ -233,9 +212,7 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
 
     if (isToday(createdAt)) {
       if (numberOfMinutesAgo < 60) {
-        return `${numberOfMinutesAgo} minute${
-          numberOfMinutesAgo > 1 ? "s" : ""
-        } ago`;
+        return `${numberOfMinutesAgo} minute${numberOfMinutesAgo > 1 ? "s" : ""} ago`;
       }
       const numberOfHoursAgo = Math.floor(numberOfMinutesAgo / 60);
       return `${numberOfHoursAgo} hour${numberOfHoursAgo > 1 ? "s" : ""} ago`;
@@ -256,9 +233,7 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   return (
     <TableRow
       sx={{
-        background: notification.readAt
-          ? ({ palette }) => palette.gray[20]
-          : undefined,
+        background: notification.readAt ? ({ palette }) => palette.gray[20] : undefined,
         opacity: notification.readAt ? 0.6 : 1,
       }}
     >
@@ -346,10 +321,9 @@ export const NotificationsTable = () => {
       </TableHead>
       <TableBody
         sx={{
-          [`> .${tableRowClasses.root}:last-of-type > .${tableCellClasses.root}`]:
-            {
-              borderBottomWidth: 0,
-            },
+          [`> .${tableRowClasses.root}:last-of-type > .${tableCellClasses.root}`]: {
+            borderBottomWidth: 0,
+          },
         }}
       >
         {notifications ? (

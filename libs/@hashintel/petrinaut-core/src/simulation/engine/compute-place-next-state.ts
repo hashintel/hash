@@ -22,16 +22,10 @@ export function computePlaceNextState(
   dt: number,
 ): Float64Array {
   if (odeType !== "euler") {
-    throw new Error(
-      `ODE type ${odeType} not implemented yet. Use Euler method.`,
-    );
+    throw new Error(`ODE type ${odeType} not implemented yet. Use Euler method.`);
   }
 
-  const derivatives = differentialEquation(
-    placeState,
-    dimensions,
-    numberOfTokens,
-  );
+  const derivatives = differentialEquation(placeState, dimensions, numberOfTokens);
 
   return (
     placeState

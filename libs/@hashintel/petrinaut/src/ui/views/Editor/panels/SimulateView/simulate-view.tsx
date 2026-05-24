@@ -3,10 +3,7 @@ import { use } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  EditorContext,
-  type SimulateViewMode,
-} from "../../../../../react/state/editor-context";
+import { EditorContext, type SimulateViewMode } from "../../../../../react/state/editor-context";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
@@ -72,8 +69,7 @@ const views = {
 // -- Component -----------------------------------------------------------------
 
 export const SimulateView = () => {
-  const { simulateViewMode: mode, setSimulateViewMode: setMode } =
-    use(EditorContext);
+  const { simulateViewMode: mode, setSimulateViewMode: setMode } = use(EditorContext);
   const ActiveView = views[mode];
 
   return (

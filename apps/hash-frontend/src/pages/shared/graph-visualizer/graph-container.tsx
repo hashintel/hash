@@ -25,9 +25,10 @@ import type {
 } from "./graph-container/shared/config-control";
 import type { GraphVizFilters } from "./graph-container/shared/filter-control";
 
-export type GraphContainerProps<
-  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
-> = Omit<GraphLoaderProps, "config"> & {
+export type GraphContainerProps<NodeSizing extends DynamicNodeSizing | StaticNodeSizing> = Omit<
+  GraphLoaderProps,
+  "config"
+> & {
   defaultConfig: GraphVizConfig<NodeSizing>;
   defaultFilters?: GraphVizFilters;
   /**
@@ -125,10 +126,7 @@ export const GraphContainer = memo(
     );
 
     return (
-      <FullScreenContextProvider
-        fullScreenMode={fullScreenMode}
-        graphContainerRef={containerRef}
-      >
+      <FullScreenContextProvider fullScreenMode={fullScreenMode} graphContainerRef={containerRef}>
         <Box
           ref={containerRef}
           sx={{
@@ -157,11 +155,7 @@ export const GraphContainer = memo(
               <SearchControl nodes={nodes} />
               <ConfigControl />
               <FilterControl defaultFilters={defaultFilters} nodes={nodes} />
-              <Stack
-                direction="row"
-                gap={1}
-                sx={{ position: "absolute", bottom: 8, right: 8 }}
-              >
+              <Stack direction="row" gap={1} sx={{ position: "absolute", bottom: 8, right: 8 }}>
                 <FullScreenButton />
                 <ZoomControl />
               </Stack>

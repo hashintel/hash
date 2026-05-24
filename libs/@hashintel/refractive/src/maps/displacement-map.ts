@@ -22,10 +22,7 @@ export function calculateDisplacementMapRadius(
       return null;
     }
     const kSqrt = Math.sqrt(k);
-    return [
-      -(eta * dot + kSqrt) * normalX,
-      eta - (eta * dot + kSqrt) * normalY,
-    ] as const;
+    return [-(eta * dot + kSqrt) * normalX, eta - (eta * dot + kSqrt) * normalY] as const;
   }
 
   return Array.from({ length: samples }, (_, i) => {
@@ -90,8 +87,7 @@ export function calculateDisplacementMap(props: {
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
 
-      const ratio =
-        bezel > radius ? distanceFromBorderRatio : distanceFromBorder / bezel;
+      const ratio = bezel > radius ? distanceFromBorderRatio : distanceFromBorder / bezel;
 
       const bezelIndex = Math.round(ratio * precomputedDisplacementMap.length);
       const distance = precomputedDisplacementMap[bezelIndex] ?? 0;

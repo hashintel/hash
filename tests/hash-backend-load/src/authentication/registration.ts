@@ -4,10 +4,7 @@ import { v4 as uuid } from "uuid";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 
-import {
-  completeUserRegistration,
-  getUserByKratosIdentityId,
-} from "../graph/user";
+import { completeUserRegistration, getUserByKratosIdentityId } from "../graph/user";
 import { startSpan } from "../tracing/sdk";
 import { getOryKratosClient } from "./kratos";
 
@@ -15,10 +12,7 @@ import type { TracingContext } from "../tracing/sdk";
 import type { ActionFn } from "../types";
 import type { SessionContext } from "./kratos";
 
-export const signupUser: ActionFn<SessionContext, TracingContext> = async (
-  context,
-  events,
-) =>
+export const signupUser: ActionFn<SessionContext, TracingContext> = async (context, events) =>
   startSpan("signup-user", context, async () => {
     const startTime = Date.now();
     const oryKratosClient = getOryKratosClient();
@@ -71,27 +65,20 @@ export const signupUser: ActionFn<SessionContext, TracingContext> = async (
 
     const timeAfterUpdateFlow = Date.now();
     events.emit("counter", "kratos.signup", 1);
-    events.emit(
-      "histogram",
-      "kratos.signup_time",
-      timeAfterUpdateFlow - startTime,
-    );
+    events.emit("histogram", "kratos.signup_time", timeAfterUpdateFlow - startTime);
 
     if (!fullRegistration.session || !fullRegistration.session_token) {
       throw new Error("Registration failed");
     }
 
-    const user = await tracer.startActiveSpan(
-      "get-user-by-kratos-identity-id",
-      async (span) => {
-        const userEntity = await getUserByKratosIdentityId({
-          authentication: { actorId: publicUserAccountId },
-          kratosIdentityId: fullRegistration.identity.id,
-        });
-        span.end();
-        return userEntity;
-      },
-    );
+    const user = await tracer.startActiveSpan("get-user-by-kratos-identity-id", async (span) => {
+      const userEntity = await getUserByKratosIdentityId({
+        authentication: { actorId: publicUserAccountId },
+        kratosIdentityId: fullRegistration.identity.id,
+      });
+      span.end();
+      return userEntity;
+    });
     if (!user) {
       throw new Error("User not found");
     }
@@ -110,10 +97,10 @@ export const signupUser: ActionFn<SessionContext, TracingContext> = async (
     };
   });
 
-export const completeRegistration: ActionFn<
-  SessionContext,
-  TracingContext
-> = async (context, events) =>
+export const completeRegistration: ActionFn<SessionContext, TracingContext> = async (
+  context,
+  events,
+) =>
   startSpan("complete-registration", context, async () => {
     if (!context.vars.session) {
       throw new Error("Session not found");
@@ -139,11 +126,7 @@ export const completeRegistration: ActionFn<
     });
     const endTime = Date.now();
     events.emit("counter", "graph.complete_registration", 1);
-    events.emit(
-      "histogram",
-      "graph.complete_registration_time",
-      endTime - startTime,
-    );
+    events.emit("histogram", "graph.complete_registration_time", endTime - startTime);
 
     context.vars.session.user.shortname = shortname;
     context.vars.session.user.displayName = displayName;

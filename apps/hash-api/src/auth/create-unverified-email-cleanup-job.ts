@@ -34,9 +34,7 @@ const parsePositiveIntegerEnv = (
 
   const parsedValue = Number.parseInt(rawValue, 10);
   if (Number.isNaN(parsedValue) || parsedValue <= 0) {
-    throw new Error(
-      `${envVarName} must be a positive integer, got "${rawValue}"`,
-    );
+    throw new Error(`${envVarName} must be a positive integer, got "${rawValue}"`);
   }
 
   return parsedValue;
@@ -80,9 +78,8 @@ const isPrimaryEmailVerified = (identity: Identity): boolean => {
   }
 
   return (
-    identity.verifiable_addresses?.find(
-      ({ value }) => value === primaryEmailAddress,
-    )?.verified === true
+    identity.verifiable_addresses?.find(({ value }) => value === primaryEmailAddress)?.verified ===
+    true
   );
 };
 
@@ -93,9 +90,7 @@ export const createUnverifiedEmailCleanupJob = ({
   context: ImpureGraphContext;
   logger: Logger;
 }) => {
-  const rolloutAt = parseRolloutDate(
-    process.env.HASH_EMAIL_VERIFICATION_ROLLOUT_AT,
-  );
+  const rolloutAt = parseRolloutDate(process.env.HASH_EMAIL_VERIFICATION_ROLLOUT_AT);
 
   const releaseTtlHours = parsePositiveIntegerEnv(
     process.env.HASH_EMAIL_VERIFICATION_RELEASE_TTL_HOURS,
@@ -116,28 +111,21 @@ export const createUnverifiedEmailCleanupJob = ({
     const now = Date.now();
     const authentication = { actorId: systemAccountId };
 
-    const { entities: userEntities } = await queryEntities<UserEntity>(
-      context,
-      authentication,
-      {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              {
-                ignoreParents: true,
-              },
-            ),
-            {
-              equal: [{ path: ["archived"] }, { parameter: false }],
-            },
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
+    const { entities: userEntities } = await queryEntities<UserEntity>(context, authentication, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(systemEntityTypes.user.entityTypeId, {
+            ignoreParents: true,
+          }),
+          {
+            equal: [{ path: ["archived"] }, { parameter: false }],
+          },
+        ],
       },
-    );
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
+    });
 
     let releasedEmailCount = 0;
 
@@ -174,11 +162,7 @@ export const createUnverifiedEmailCleanupJob = ({
           continue;
         }
 
-        await user.entity.archive(
-          context.graphApi,
-          authentication,
-          context.provenance,
-        );
+        await user.entity.archive(context.graphApi, authentication, context.provenance);
         await deleteKratosIdentity({
           kratosIdentityId: user.kratosIdentityId,
         });

@@ -21,10 +21,9 @@ test.skip(
       {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.user.entityTypeId,
-              { ignoreParents: true },
-            ),
+            generateVersionedUrlMatchingFilter(systemEntityTypes.user.entityTypeId, {
+              ignoreParents: true,
+            }),
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,

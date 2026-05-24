@@ -133,11 +133,7 @@ export const checkUserPermissionsOnEntityTypeResolver: ResolverFn<
   LoggedInGraphQLContext,
   QueryCheckUserPermissionsOnEntityTypeArgs
 > = async (_, params, { dataSources, authentication, provenance }) =>
-  checkPermissionsOnEntityType(
-    { ...dataSources, provenance },
-    authentication,
-    params,
-  );
+  checkPermissionsOnEntityType({ ...dataSources, provenance }, authentication, params);
 
 export const archiveEntityTypeResolver: ResolverFn<
   Promise<OntologyTemporalMetadata>,

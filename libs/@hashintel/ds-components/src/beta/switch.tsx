@@ -28,41 +28,27 @@ interface IndicatorProps extends ComponentProps<typeof StyledIndicator> {
 }
 
 const StyledIndicator = withContext(ark.span, "indicator");
-export const Indicator = forwardRef<HTMLSpanElement, IndicatorProps>(
-  (props, ref) => {
-    const { fallback, children, ...rest } = props;
-    const api = useSwitchContext();
-    return (
-      <StyledIndicator
-        ref={ref}
-        data-checked={api.checked ? "" : undefined}
-        {...rest}
-      >
-        {api.checked ? children : fallback}
-      </StyledIndicator>
-    );
-  },
-);
+export const Indicator = forwardRef<HTMLSpanElement, IndicatorProps>((props, ref) => {
+  const { fallback, children, ...rest } = props;
+  const api = useSwitchContext();
+  return (
+    <StyledIndicator ref={ref} data-checked={api.checked ? "" : undefined} {...rest}>
+      {api.checked ? children : fallback}
+    </StyledIndicator>
+  );
+});
 
-interface ThumbIndicatorProps extends ComponentProps<
-  typeof StyledThumbIndicator
-> {
+interface ThumbIndicatorProps extends ComponentProps<typeof StyledThumbIndicator> {
   fallback?: React.ReactNode | undefined;
 }
 
 const StyledThumbIndicator = styled(ark.span);
-export const ThumbIndicator = forwardRef<HTMLSpanElement, ThumbIndicatorProps>(
-  (props, ref) => {
-    const { fallback, children, ...rest } = props;
-    const api = useSwitchContext();
-    return (
-      <StyledThumbIndicator
-        ref={ref}
-        data-checked={api.checked ? "" : undefined}
-        {...rest}
-      >
-        {api.checked ? children : fallback}
-      </StyledThumbIndicator>
-    );
-  },
-);
+export const ThumbIndicator = forwardRef<HTMLSpanElement, ThumbIndicatorProps>((props, ref) => {
+  const { fallback, children, ...rest } = props;
+  const api = useSwitchContext();
+  return (
+    <StyledThumbIndicator ref={ref} data-checked={api.checked ? "" : undefined} {...rest}>
+      {api.checked ? children : fallback}
+    </StyledThumbIndicator>
+  );
+});

@@ -12,11 +12,8 @@ const Page: NextPageWithLayout = () => {
 
   const initialData = {
     extendsDataTypeId:
-      typeof router.query.extends === "string"
-        ? (router.query.extends as VersionedUrl)
-        : undefined,
-    title:
-      typeof router.query.name === "string" ? router.query.name : undefined,
+      typeof router.query.extends === "string" ? (router.query.extends as VersionedUrl) : undefined,
+    title: typeof router.query.name === "string" ? router.query.name : undefined,
   };
 
   return (

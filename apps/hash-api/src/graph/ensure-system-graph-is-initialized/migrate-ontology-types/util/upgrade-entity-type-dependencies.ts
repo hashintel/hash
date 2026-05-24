@@ -1,11 +1,7 @@
 import { atLeastOne, extractBaseUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 
-import type {
-  EntityType,
-  EntityTypeReference,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityType, EntityTypeReference, VersionedUrl } from "@blockprotocol/type-system";
 
 export const replaceEntityTypeReference = ({
   reference,
@@ -17,8 +13,7 @@ export const replaceEntityTypeReference = ({
   for (const upgradedEntityTypeId of upgradedEntityTypeIds) {
     const baseUrlToMatch = extractBaseUrl(upgradedEntityTypeId);
 
-    const isDestinationToUpgrade =
-      extractBaseUrl(reference.$ref) === baseUrlToMatch;
+    const isDestinationToUpgrade = extractBaseUrl(reference.$ref) === baseUrlToMatch;
 
     if (isDestinationToUpgrade) {
       return {
@@ -55,38 +50,39 @@ export const upgradeEntityTypeDependencies = ({
           ),
         )
       : undefined,
-    links: typedEntries(schema.links ?? {}).reduce<
-      NonNullable<EntityType["links"]>
-    >((accumulator, [uncheckedLinkTypeId, linkSchema]) => {
-      const oneOf =
-        "oneOf" in linkSchema.items
-          ? atLeastOne(
-              linkSchema.items.oneOf.map((reference) =>
-                replaceEntityTypeReference({
-                  reference,
-                  upgradedEntityTypeIds,
-                }),
-              ),
-            )
-          : undefined;
+    links: typedEntries(schema.links ?? {}).reduce<NonNullable<EntityType["links"]>>(
+      (accumulator, [uncheckedLinkTypeId, linkSchema]) => {
+        const oneOf =
+          "oneOf" in linkSchema.items
+            ? atLeastOne(
+                linkSchema.items.oneOf.map((reference) =>
+                  replaceEntityTypeReference({
+                    reference,
+                    upgradedEntityTypeIds,
+                  }),
+                ),
+              )
+            : undefined;
 
-      const schemaWithUpdatedDestinations = {
-        ...linkSchema,
-        items: oneOf ? { oneOf } : ({} as Record<string, never>),
-      };
+        const schemaWithUpdatedDestinations = {
+          ...linkSchema,
+          items: oneOf ? { oneOf } : ({} as Record<string, never>),
+        };
 
-      let linkTypeId = uncheckedLinkTypeId;
-      for (const upgradedEntityTypeId of upgradedEntityTypeIds) {
-        const linkTypeBaseUrl = extractBaseUrl(uncheckedLinkTypeId);
-        const upgradedEntityTypeBaseUrl = extractBaseUrl(upgradedEntityTypeId);
+        let linkTypeId = uncheckedLinkTypeId;
+        for (const upgradedEntityTypeId of upgradedEntityTypeIds) {
+          const linkTypeBaseUrl = extractBaseUrl(uncheckedLinkTypeId);
+          const upgradedEntityTypeBaseUrl = extractBaseUrl(upgradedEntityTypeId);
 
-        if (linkTypeBaseUrl === upgradedEntityTypeBaseUrl) {
-          linkTypeId = upgradedEntityTypeId;
+          if (linkTypeBaseUrl === upgradedEntityTypeBaseUrl) {
+            linkTypeId = upgradedEntityTypeId;
+          }
         }
-      }
 
-      accumulator[linkTypeId] = schemaWithUpdatedDestinations;
-      return accumulator;
-    }, {}),
+        accumulator[linkTypeId] = schemaWithUpdatedDestinations;
+        return accumulator;
+      },
+      {},
+    ),
   };
 };

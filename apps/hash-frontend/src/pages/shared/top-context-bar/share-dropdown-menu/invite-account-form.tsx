@@ -1,9 +1,4 @@
-import {
-  autocompleteClasses,
-  Box,
-  outlinedInputClasses,
-  Typography,
-} from "@mui/material";
+import { autocompleteClasses, Box, outlinedInputClasses, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
 import { Autocomplete, Avatar } from "@hashintel/design-system";
@@ -15,16 +10,8 @@ import { useUsersWithLinks } from "../../../../components/hooks/use-users-with-l
 import { Button } from "../../../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 
-import type {
-  MinimalOrg,
-  MinimalUser,
-  Org,
-  User,
-} from "../../../../lib/user-and-org";
-import type {
-  ActorEntityUuid,
-  ActorGroupEntityUuid,
-} from "@blockprotocol/type-system";
+import type { MinimalOrg, MinimalUser, Org, User } from "../../../../lib/user-and-org";
+import type { ActorEntityUuid, ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
 
 export const InviteAccountForm: FunctionComponent<{
@@ -42,9 +29,7 @@ export const InviteAccountForm: FunctionComponent<{
   const { orgs: minimalOrgs } = useOrgs();
 
   const { orgs } = useOrgsWithLinks({
-    orgAccountGroupIds: minimalOrgs?.map(
-      (org) => org.webId as ActorGroupEntityUuid,
-    ),
+    orgAccountGroupIds: minimalOrgs?.map((org) => org.webId as ActorGroupEntityUuid),
   });
   const { users } = useUsersWithLinks({
     userAccountIds: minimalUsers?.map((user) => user.accountId),
@@ -56,9 +41,7 @@ export const InviteAccountForm: FunctionComponent<{
         (account) =>
           !excludeAccountIds ||
           !excludeAccountIds.includes(
-            account.kind === "user"
-              ? account.accountId
-              : (account.webId as ActorGroupEntityUuid),
+            account.kind === "user" ? account.accountId : (account.webId as ActorGroupEntityUuid),
           ),
       ),
     [excludeAccountIds, orgs, minimalOrgs, users, minimalUsers],
@@ -78,12 +61,7 @@ export const InviteAccountForm: FunctionComponent<{
   );
 
   return (
-    <Box
-      component="form"
-      display="flex"
-      columnGap={0.75}
-      onSubmit={handleSubmit}
-    >
+    <Box component="form" display="flex" columnGap={0.75} onSubmit={handleSubmit}>
       <Autocomplete<User | MinimalUser | Org | MinimalOrg | null, false, false>
         inputProps={{
           endAdornment: null,
@@ -104,9 +82,7 @@ export const InviteAccountForm: FunctionComponent<{
         onInputChange={(_, value) => setSearch(value)}
         onChange={(_, account) => setSelectedAccount(account)}
         getOptionLabel={(option) =>
-          option?.kind === "user"
-            ? (option.displayName ?? "")
-            : (option?.name ?? "")
+          option?.kind === "user" ? (option.displayName ?? "") : (option?.name ?? "")
         }
         renderOption={(props, option) => {
           if (!option) {
@@ -115,25 +91,19 @@ export const InviteAccountForm: FunctionComponent<{
 
           const avatarSrc =
             "hasAvatar" in option && option.hasAvatar
-              ? getImageUrlFromEntityProperties(
-                  option.hasAvatar.imageEntity.properties,
-                )
+              ? getImageUrlFromEntityProperties(option.hasAvatar.imageEntity.properties)
               : undefined;
 
           return (
             <Box component="li" {...props}>
               <Avatar
                 src={avatarSrc}
-                title={
-                  option.kind === "user" ? option.displayName : option.name
-                }
+                title={option.kind === "user" ? option.displayName : option.name}
                 size={28}
                 sx={{ marginRight: 1 }}
                 borderRadius={option.kind === "org" ? "4px" : undefined}
               />
-              <Typography>
-                {option.kind === "user" ? option.displayName : option.name}
-              </Typography>
+              <Typography>{option.kind === "user" ? option.displayName : option.name}</Typography>
             </Box>
           );
         }}

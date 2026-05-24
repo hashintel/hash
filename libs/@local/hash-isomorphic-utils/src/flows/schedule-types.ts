@@ -85,8 +85,7 @@ export type UpdateFlowScheduleInput = {
 /**
  * The default schedule overlap policy.
  */
-export const defaultScheduleOverlapPolicy: ScheduleOverlapPolicyDataType =
-  "CANCEL_OTHER";
+export const defaultScheduleOverlapPolicy: ScheduleOverlapPolicyDataType = "CANCEL_OTHER";
 
 /**
  * The default pause on failure setting.

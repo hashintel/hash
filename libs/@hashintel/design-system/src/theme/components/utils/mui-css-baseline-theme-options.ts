@@ -1,7 +1,4 @@
-import {
-  fluidFontClassName,
-  fluidTypographyStyles,
-} from "../../../fluid-fonts";
+import { fluidFontClassName, fluidTypographyStyles } from "../../../fluid-fonts";
 import { customColors } from "../../palette";
 
 import type { Components } from "@mui/material";

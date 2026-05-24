@@ -51,21 +51,16 @@ const triggerDefinitionsAsConst = {
       },
     ],
   },
-} as const satisfies Record<
+} as const satisfies Record<TriggerDefinitionId, DeepReadOnly<TriggerDefinition>>;
+
+export type OutputNameForTrigger<T extends keyof typeof triggerDefinitionsAsConst> =
+  (typeof triggerDefinitionsAsConst)[T] extends {
+    outputs: { name: string }[];
+  }
+    ? (typeof triggerDefinitionsAsConst)[T]["outputs"][number]["name"]
+    : never;
+
+export const triggerDefinitions = triggerDefinitionsAsConst as unknown as Record<
   TriggerDefinitionId,
-  DeepReadOnly<TriggerDefinition>
+  TriggerDefinition
 >;
-
-export type OutputNameForTrigger<
-  T extends keyof typeof triggerDefinitionsAsConst,
-> = (typeof triggerDefinitionsAsConst)[T] extends {
-  outputs: { name: string }[];
-}
-  ? (typeof triggerDefinitionsAsConst)[T]["outputs"][number]["name"]
-  : never;
-
-export const triggerDefinitions =
-  triggerDefinitionsAsConst as unknown as Record<
-    TriggerDefinitionId,
-    TriggerDefinition
-  >;

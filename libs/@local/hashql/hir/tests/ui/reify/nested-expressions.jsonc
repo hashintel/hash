@@ -4,10 +4,5 @@
   "let",
   "x",
   { "#literal": 10 },
-  [
-    "let",
-    "y",
-    { "#literal": 20 },
-    ["+", "x", ["*", "y", { "#literal": 2, "#type": "Number" }]]
-  ]
+  ["let", "y", { "#literal": 20 }, ["+", "x", ["*", "y", { "#literal": 2, "#type": "Number" }]]]
 ]

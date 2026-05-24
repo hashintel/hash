@@ -20,13 +20,9 @@ export type GetWebSearchResultsResponse = Omit<
 const mapWebSearchResults = (
   webSearchResults: GetWebSearchResults200ResponseWebSearchResultsInner[],
 ): GetWebSearchResultsResponse[] =>
-  webSearchResults.map(
-    (webSearchResult) => webSearchResult as GetWebSearchResultsResponse,
-  );
+  webSearchResults.map((webSearchResult) => webSearchResult as GetWebSearchResultsResponse);
 
-export const webSearchAction: AiFlowActionActivity<"webSearch"> = async ({
-  inputs,
-}) => {
+export const webSearchAction: AiFlowActionActivity<"webSearch"> = async ({ inputs }) => {
   const { query, numberOfSearchResults } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "webSearch",

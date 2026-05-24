@@ -1,7 +1,4 @@
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getBreadthFirstEntityTypesAndParents, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   compareOntologyTypeVersions,
   componentsFromVersionedUrl,
@@ -9,10 +6,7 @@ import {
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import {
-  propertyObjectToPatches,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
+import { propertyObjectToPatches, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -48,9 +42,7 @@ export const upgradeWebEntities = async ({
   migrationState: MigrationState;
   migrateProperties?: Record<
     BaseUrl,
-    (
-      previousProperties: PropertyObjectWithMetadata,
-    ) => PropertyObjectWithMetadata
+    (previousProperties: PropertyObjectWithMetadata) => PropertyObjectWithMetadata
   >;
   webId: WebId;
 }) => {
@@ -65,47 +57,43 @@ export const upgradeWebEntities = async ({
 
   const webBotAuthentication = { actorId: webBotAccountId as ActorEntityUuid };
 
-  const { subgraph } = await queryEntitySubgraph(
-    context,
-    webBotAuthentication,
-    {
-      filter: {
-        all: [
-          {
-            any: entityTypeBaseUrls.map((baseUrl) => ({
-              all: [
-                {
-                  equal: [
-                    { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-                    { parameter: baseUrl },
-                  ],
-                },
-                {
-                  less: [
-                    { path: ["type(inheritanceDepth = 0)", "version"] },
-                    { parameter: migrationState.entityTypeVersions[baseUrl] },
-                  ],
-                },
-              ],
-            })),
-          },
-          {
-            equal: [
-              { path: ["webId"] },
+  const { subgraph } = await queryEntitySubgraph(context, webBotAuthentication, {
+    filter: {
+      all: [
+        {
+          any: entityTypeBaseUrls.map((baseUrl) => ({
+            all: [
               {
-                parameter: webId,
+                equal: [
+                  { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                  { parameter: baseUrl },
+                ],
+              },
+              {
+                less: [
+                  { path: ["type(inheritanceDepth = 0)", "version"] },
+                  { parameter: migrationState.entityTypeVersions[baseUrl] },
+                ],
               },
             ],
-          },
-        ],
-      },
-      graphResolveDepths: almostFullOntologyResolveDepths,
-      traversalPaths: [],
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: true,
-      includePermissions: false,
+          })),
+        },
+        {
+          equal: [
+            { path: ["webId"] },
+            {
+              parameter: webId,
+            },
+          ],
+        },
+      ],
     },
-  );
+    graphResolveDepths: almostFullOntologyResolveDepths,
+    traversalPaths: [],
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: true,
+    includePermissions: false,
+  });
 
   const existingEntities = getRoots(subgraph);
 
@@ -124,8 +112,7 @@ export const upgradeWebEntities = async ({
        * Multiple upgrades may apply to an entity – we apply one at a time.
        */
       for (const baseUrlBeingUpgraded of entityTypeBaseUrls) {
-        const newVersion =
-          migrationState.entityTypeVersions[baseUrlBeingUpgraded];
+        const newVersion = migrationState.entityTypeVersions[baseUrlBeingUpgraded];
 
         if (typeof newVersion === "undefined") {
           throw new Error(
@@ -139,21 +126,14 @@ export const upgradeWebEntities = async ({
 
         if (
           !matchingTypeRecordId ||
-          compareOntologyTypeVersions(
-            matchingTypeRecordId.version,
-            newVersion,
-          ) >= 0
+          compareOntologyTypeVersions(matchingTypeRecordId.version, newVersion) >= 0
         ) {
           continue;
         }
 
-        const newEntityTypeId = versionedUrlFromComponents(
-          baseUrlBeingUpgraded,
-          newVersion,
-        );
+        const newEntityTypeId = versionedUrlFromComponents(baseUrlBeingUpgraded, newVersion);
 
-        const migratePropertiesFunction =
-          migrateProperties?.[baseUrlBeingUpgraded];
+        const migratePropertiesFunction = migrateProperties?.[baseUrlBeingUpgraded];
 
         let updateAuthentication = webBotAuthentication;
 
@@ -161,10 +141,8 @@ export const upgradeWebEntities = async ({
          * Determine the actor that should update the entity.
          */
         if (
-          baseUrlBeingUpgraded ===
-            systemEntityTypes.userSecret.entityTypeBaseUrl ||
-          baseUrlBeingUpgraded ===
-            systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl ||
+          baseUrlBeingUpgraded === systemEntityTypes.userSecret.entityTypeBaseUrl ||
+          baseUrlBeingUpgraded === systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl ||
           baseUrlBeingUpgraded === googleEntityTypes.account.entityTypeBaseUrl
         ) {
           /**
@@ -173,9 +151,7 @@ export const upgradeWebEntities = async ({
           updateAuthentication = {
             actorId: entity.metadata.provenance.createdById,
           };
-        } else if (
-          baseUrlBeingUpgraded === systemEntityTypes.machine.entityTypeBaseUrl
-        ) {
+        } else if (baseUrlBeingUpgraded === systemEntityTypes.machine.entityTypeBaseUrl) {
           /**
            * If we are updating machine entities, we use the account ID
            * of the machine user as the actor for the update.
@@ -196,8 +172,7 @@ export const upgradeWebEntities = async ({
           entity,
           entityTypeIds: mustHaveAtLeastOne(
             entity.metadata.entityTypeIds.map((entityTypeId) => {
-              const { baseUrl, version } =
-                componentsFromVersionedUrl(entityTypeId);
+              const { baseUrl, version } = componentsFromVersionedUrl(entityTypeId);
 
               if (baseUrl === baseUrlBeingUpgraded) {
                 return newEntityTypeId;
@@ -207,9 +182,7 @@ export const upgradeWebEntities = async ({
             }),
           ),
           propertyPatches: migratePropertiesFunction
-            ? propertyObjectToPatches(
-                migratePropertiesFunction(entity.propertiesWithMetadata),
-              )
+            ? propertyObjectToPatches(migratePropertiesFunction(entity.propertiesWithMetadata))
             : undefined,
         });
       }

@@ -15,11 +15,7 @@ import type { MigrationFunction } from "../types";
 import type { Entity } from "@blockprotocol/type-system";
 import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /** Step 1: Create an entity type that describes a chargeable service */
   const serviceNamePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -110,39 +106,33 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const serviceUnitCost = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Service Unit Cost",
-        description: "The unit cost of a service",
-        possibleValues: [
-          {
-            propertyTypeObjectProperties: {
-              [inputUnitCostPropertyType.metadata.recordId.baseUrl]: {
-                $ref: inputUnitCostPropertyType.schema.$id,
-              },
-              [outputUnitCostPropertyType.metadata.recordId.baseUrl]: {
-                $ref: outputUnitCostPropertyType.schema.$id,
-              },
-              [appliesFromPropertyType.metadata.recordId.baseUrl]: {
-                $ref: appliesFromPropertyType.schema.$id,
-              },
-              [appliesUntilPropertyType.metadata.recordId.baseUrl]: {
-                $ref: appliesUntilPropertyType.schema.$id,
-              },
+  const serviceUnitCost = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Service Unit Cost",
+      description: "The unit cost of a service",
+      possibleValues: [
+        {
+          propertyTypeObjectProperties: {
+            [inputUnitCostPropertyType.metadata.recordId.baseUrl]: {
+              $ref: inputUnitCostPropertyType.schema.$id,
             },
-            propertyTypeObjectRequiredProperties: [
-              appliesFromPropertyType.metadata.recordId.baseUrl,
-            ],
+            [outputUnitCostPropertyType.metadata.recordId.baseUrl]: {
+              $ref: outputUnitCostPropertyType.schema.$id,
+            },
+            [appliesFromPropertyType.metadata.recordId.baseUrl]: {
+              $ref: appliesFromPropertyType.schema.$id,
+            },
+            [appliesUntilPropertyType.metadata.recordId.baseUrl]: {
+              $ref: appliesUntilPropertyType.schema.$id,
+            },
           },
-        ],
-      },
-      webShortname: "h",
-      migrationState,
+          propertyTypeObjectRequiredProperties: [appliesFromPropertyType.metadata.recordId.baseUrl],
+        },
+      ],
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   const serviceFeatureEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -193,39 +183,31 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const createdLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Created",
-        inverse: {
-          title: "Created By",
-        },
-        description: "The thing that something created.",
+  const createdLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Created",
+      inverse: {
+        title: "Created By",
       },
-      webShortname: "h",
-      migrationState,
+      description: "The thing that something created.",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
-  const updatedLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Updated",
-        inverse: {
-          title: "Updated By",
-        },
-        description: "The thing that something created.",
+  const updatedLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Updated",
+      inverse: {
+        title: "Updated By",
       },
-      webShortname: "h",
-      migrationState,
+      description: "The thing that something created.",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   const inputUnitCountPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -360,39 +342,21 @@ const migrate: MigrationFunction = async ({
     shortname: "h",
   });
   if (!hashOrg) {
-    throw new Error(
-      "Org with shortname 'h' does not exist by migration 007, but it should.",
-    );
+    throw new Error("Org with shortname 'h' does not exist by migration 007, but it should.");
   }
   const hashWebId = hashOrg.webId;
 
-  const existingServiceFeatureEntities = (await getEntitiesByType(
-    context,
-    authentication,
-    {
-      entityTypeId: serviceFeatureEntityType.schema.$id,
-    },
-  )) as Entity<ServiceFeature>[];
+  const existingServiceFeatureEntities = (await getEntitiesByType(context, authentication, {
+    entityTypeId: serviceFeatureEntityType.schema.$id,
+  })) as Entity<ServiceFeature>[];
 
-  for (const {
-    serviceName,
-    featureName,
-    inputUnitCost,
-    outputUnitCost,
-  } of initialServices) {
-    const existingServiceFeatureEntity = existingServiceFeatureEntities.find(
-      (entity) => {
-        const {
-          serviceName: serviceNameProperty,
-          featureName: featureNameProperty,
-        } = simplifyProperties(entity.properties);
+  for (const { serviceName, featureName, inputUnitCost, outputUnitCost } of initialServices) {
+    const existingServiceFeatureEntity = existingServiceFeatureEntities.find((entity) => {
+      const { serviceName: serviceNameProperty, featureName: featureNameProperty } =
+        simplifyProperties(entity.properties);
 
-        return (
-          serviceNameProperty === serviceName &&
-          featureNameProperty === featureName
-        );
-      },
-    );
+      return serviceNameProperty === serviceName && featureNameProperty === featureName;
+    });
 
     if (existingServiceFeatureEntity) {
       logger.debug(
@@ -401,28 +365,22 @@ const migrate: MigrationFunction = async ({
       continue;
     }
 
-    logger.info(
-      `Creating service feature entity for ${serviceName}:${featureName}`,
-    );
+    logger.info(`Creating service feature entity for ${serviceName}:${featureName}`);
 
     await createEntity<ServiceFeature>(context, authentication, {
-      entityTypeIds: [
-        serviceFeatureEntityType.schema.$id,
-      ] as ServiceFeature["entityTypeIds"],
+      entityTypeIds: [serviceFeatureEntityType.schema.$id] as ServiceFeature["entityTypeIds"],
       properties: {
         value: {
           "https://hash.ai/@h/types/property-type/service-name/": {
             value: serviceName,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/feature-name/": {
             value: featureName,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/service-unit-cost/": {
@@ -446,8 +404,7 @@ const migrate: MigrationFunction = async ({
                   "https://hash.ai/@h/types/property-type/applies-from/": {
                     value: new Date("2023-12-20").toISOString(),
                     metadata: {
-                      dataTypeId:
-                        "https://hash.ai/@h/types/data-type/datetime/v/1",
+                      dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
                     },
                   },
                 },

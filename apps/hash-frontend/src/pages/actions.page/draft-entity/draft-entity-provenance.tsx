@@ -61,9 +61,7 @@ export const DraftEntityProvenance: FunctionComponent<{
       <DraftEntityChip
         sx={{ marginRight: 1 }}
         icon={
-          createdBy &&
-          createdBy.kind === "machine" &&
-          createdBy.displayName === "HASH AI" ? (
+          createdBy && createdBy.kind === "machine" && createdBy.displayName === "HASH AI" ? (
             <WandMagicSparklesIcon />
           ) : (
             <UserIcon />

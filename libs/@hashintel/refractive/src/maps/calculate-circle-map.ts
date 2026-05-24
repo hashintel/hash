@@ -44,11 +44,7 @@ export function calculateCircleMap(props: {
 
       // Virtual x value
       // When not on sides, value is 0 to stretch circle into rounded rectangle.
-      const x = isOnLeftSide
-        ? x1 - radius
-        : isOnRightSide
-          ? x1 - radius - widthBetweenRadiuses
-          : 0;
+      const x = isOnLeftSide ? x1 - radius : isOnRightSide ? x1 - radius - widthBetweenRadiuses : 0;
 
       // Virtual y value
       // When not on sides, value is 0 to stretch circle into rounded rectangle.
@@ -71,8 +67,7 @@ export function calculateCircleMap(props: {
         const distanceFromBorderRatio = distanceFromBorder / radius;
         const angle = Math.atan2(y, x);
         // H-5525: Fix antialiasing calculation
-        const opacity =
-          distanceToCenterSquared > radiusSquared ? 1 - distanceFromBorder : 1;
+        const opacity = distanceToCenterSquared > radiusSquared ? 1 - distanceFromBorder : 1;
 
         processPixel(
           x,

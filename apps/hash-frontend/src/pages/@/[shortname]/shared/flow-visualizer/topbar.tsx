@@ -1,11 +1,5 @@
 import { useMutation } from "@apollo/client";
-import {
-  Box,
-  CircularProgress,
-  outlinedInputClasses,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, CircularProgress, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
@@ -74,9 +68,7 @@ export const topbarHeight = 50;
 
 const generateRunLabel = (run: Pick<FlowRun, "closedAt">) =>
   `Run ${
-    run.closedAt
-      ? ` – ${format(new Date(run.closedAt), "yyyy-MM-dd h:mm a")}`
-      : " – in progress"
+    run.closedAt ? ` – ${format(new Date(run.closedAt), "yyyy-MM-dd h:mm a")}` : " – in progress"
   }`;
 
 const TopbarButton = ({
@@ -98,8 +90,7 @@ const TopbarButton = ({
       onClick={onClick}
       size="xs"
       sx={({ palette, transitions }) => ({
-        background:
-          background === "black" ? palette.common.black : palette.blue[70],
+        background: background === "black" ? palette.common.black : palette.blue[70],
         pl: "14px",
         pr: 2,
         "&:disabled": {
@@ -129,8 +120,7 @@ const TopbarButton = ({
       ) : (
         <Icon
           sx={{
-            fill: ({ palette }) =>
-              background === "black" ? palette.gray[70] : palette.blue[30],
+            fill: ({ palette }) => (background === "black" ? palette.gray[70] : palette.blue[30]),
             fontSize: 14,
             mr: 1,
             transition: ({ transitions }) => transitions.create("fill"),
@@ -167,15 +157,13 @@ export const Topbar = ({
 
   const [cancelling, setCancelling] = useState(false);
 
-  const { flowDefinitions, selectedFlowDefinitionId } =
-    useFlowDefinitionsContext();
+  const { flowDefinitions, selectedFlowDefinitionId } = useFlowDefinitionsContext();
 
   const { flowRuns, selectedFlowRunId, selectedFlowRun } = useFlowRunsContext();
 
-  const [cancelFlow] = useMutation<
-    CancelFlowMutation,
-    CancelFlowMutationVariables
-  >(cancelFlowMutation);
+  const [cancelFlow] = useMutation<CancelFlowMutation, CancelFlowMutationVariables>(
+    cancelFlowMutation,
+  );
 
   const onCancelFlowClicked = useCallback(async () => {
     if (selectedFlowRunId) {
@@ -199,10 +187,7 @@ export const Topbar = ({
   const getOwner = useGetOwnerForEntity();
 
   const runOptions = useMemo(
-    () =>
-      flowRuns.filter(
-        (run) => run.flowDefinitionId === selectedFlowDefinitionId,
-      ),
+    () => flowRuns.filter((run) => run.flowDefinitionId === selectedFlowDefinitionId),
     [flowRuns, selectedFlowDefinitionId],
   );
 
@@ -270,10 +255,7 @@ export const Topbar = ({
               }}
             >
               {flowDefinitions.map((flow) => (
-                <MenuItem
-                  key={flow.flowDefinitionId}
-                  value={flow.flowDefinitionId}
-                >
+                <MenuItem key={flow.flowDefinitionId} value={flow.flowDefinitionId}>
                   {flow.name}
                 </MenuItem>
               ))}
@@ -304,9 +286,7 @@ export const Topbar = ({
                     return;
                   }
 
-                  const flowRun = flowRuns.find(
-                    (run) => run.flowRunId === value,
-                  );
+                  const flowRun = flowRuns.find((run) => run.flowRunId === value);
                   if (!flowRun) {
                     throw new Error(`Flow run with id ${value} not found`);
                   }

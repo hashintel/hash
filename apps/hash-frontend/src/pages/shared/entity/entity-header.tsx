@@ -2,14 +2,8 @@ import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 import { type ReactNode, useRef } from "react";
 
-import {
-  extractDraftIdFromEntityId,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
-import {
-  ArrowUpRightFromSquareRegularIcon,
-  EntityOrTypeIcon,
-} from "@hashintel/design-system";
+import { extractDraftIdFromEntityId, extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import { ArrowUpRightFromSquareRegularIcon, EntityOrTypeIcon } from "@hashintel/design-system";
 import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 
@@ -59,9 +53,7 @@ export const EntityHeader = ({
 }) => {
   const { shortname } = useUserOrOrgShortnameByWebId({
     webId:
-      entity && !isLocalDraft
-        ? extractWebIdFromEntityId(entity.metadata.recordId.entityId)
-        : null,
+      entity && !isLocalDraft ? extractWebIdFromEntityId(entity.metadata.recordId.entityId) : null,
   });
 
   const icon = closedMultiEntityType
@@ -137,10 +129,7 @@ export const EntityHeader = ({
         sx={({ palette }) => ({ background: palette.common.white })}
       >
         <Container sx={{ ...(isInSlide ? inSlideContainerStyles : {}) }}>
-          <Stack
-            direction="row"
-            sx={{ color: lightTitle ? "gray.50" : "gray.90", mt: 1 }}
-          >
+          <Stack direction="row" sx={{ color: lightTitle ? "gray.50" : "gray.90", mt: 1 }}>
             {entityNameTextSize !== null && (
               <EntityOrTypeIcon
                 entity={entity ?? null}
@@ -165,35 +154,32 @@ export const EntityHeader = ({
               >
                 {entityLabel}
               </Typography>
-              {entityPath &&
-                isInSlide &&
-                !hideOpenInNew &&
-                entityNameTextSize !== null && (
-                  <Link
-                    href={entityPath}
-                    target="_blank"
+              {entityPath && isInSlide && !hideOpenInNew && entityNameTextSize !== null && (
+                <Link
+                  href={entityPath}
+                  target="_blank"
+                  sx={{
+                    position: "absolute",
+                    left: entityNameTextSize.lastLineWidth + 20,
+                    top:
+                      entityNameTextSize.lastLineTop +
+                      /**
+                       * The vertical center of the text plus offset half the icon size
+                       */
+                      (entityNameTextSize.lineHeight / 2 - 12),
+                  }}
+                >
+                  <ArrowUpRightFromSquareRegularIcon
                     sx={{
-                      position: "absolute",
-                      left: entityNameTextSize.lastLineWidth + 20,
-                      top:
-                        entityNameTextSize.lastLineTop +
-                        /**
-                         * The vertical center of the text plus offset half the icon size
-                         */
-                        (entityNameTextSize.lineHeight / 2 - 12),
+                      fill: ({ palette }) => palette.blue[50],
+                      fontSize: 24,
+                      "&:hover": {
+                        fill: ({ palette }) => palette.blue[70],
+                      },
                     }}
-                  >
-                    <ArrowUpRightFromSquareRegularIcon
-                      sx={{
-                        fill: ({ palette }) => palette.blue[50],
-                        fontSize: 24,
-                        "&:hover": {
-                          fill: ({ palette }) => palette.blue[70],
-                        },
-                      }}
-                    />
-                  </Link>
-                )}
+                  />
+                </Link>
+              )}
             </Box>
           </Stack>
           {showTabs && entityPath && (

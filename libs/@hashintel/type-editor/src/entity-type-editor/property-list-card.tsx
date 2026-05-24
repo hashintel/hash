@@ -1,33 +1,11 @@
 import { faList } from "@fortawesome/free-solid-svg-icons";
-import {
-  Checkbox,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-} from "@mui/material";
+import { Checkbox, TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import {
-  useCallback,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  Controller,
-  useFieldArray,
-  useFormContext,
-  useWatch,
-} from "react-hook-form";
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import {
-  FontAwesomeIcon,
-  PropertyTypeIcon,
-  StyledPlusCircleIcon,
-} from "@hashintel/design-system";
+import { FontAwesomeIcon, PropertyTypeIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
 
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
 import { usePropertyTypesOptions } from "../shared/property-types-options-context";
@@ -105,10 +83,7 @@ export const PropertyTypeRow = ({
   const ontologyFunctions = useOntologyFunctions();
   const isReadonly = useIsReadonly();
 
-  const [currentVersion, latestVersion] = useTypeVersions(
-    propertyId,
-    propertyTypesOptions,
-  );
+  const [currentVersion, latestVersion] = useTypeVersions(propertyId, propertyTypesOptions);
 
   if (!propertySchema) {
     throw new Error(`Property type with ${propertyId} not found in options`);
@@ -145,15 +120,11 @@ export const PropertyTypeRow = ({
         property={propertySchema}
         isArray={isArray}
         isRequired={isRequired}
-        allowArraysTableCell={
-          <MultipleValuesCell index={propertyIndex} variant="property" />
-        }
+        allowArraysTableCell={<MultipleValuesCell index={propertyIndex} variant="property" />}
         requiredTableCell={
           <EntityTypeTableCenteredCell width={REQUIRED_CELL_WIDTH}>
             <Controller
-              render={({ field: { value, ...field } }) => (
-                <Checkbox {...field} checked={value} />
-              )}
+              render={({ field: { value, ...field } }) => <Checkbox {...field} checked={value} />}
               control={control}
               name={`properties.${propertyIndex}.required`}
             />
@@ -222,25 +193,14 @@ const InsertPropertyField = (
     [propertyTypeOptions],
   );
 
-  const { properties: inheritedProperties } =
-    useInheritedValuesForCurrentDraft();
+  const { properties: inheritedProperties } = useInheritedValuesForCurrentDraft();
 
   const filteredPropertyTypes = useFilterTypeOptions({
-    typesToExclude: [
-      ...properties,
-      ...inheritedProperties,
-      { $id: linkEntityTypeUrl },
-    ],
+    typesToExclude: [...properties, ...inheritedProperties, { $id: linkEntityTypeUrl }],
     typeOptions: propertyTypeSchemas,
   });
 
-  return (
-    <InsertTypeField
-      {...props}
-      options={filteredPropertyTypes}
-      variant="property type"
-    />
-  );
+  return <InsertTypeField {...props} options={filteredPropertyTypes} variant="property type" />;
 };
 
 const propertyDefaultValues = (): PropertyTypeFormValues => ({
@@ -251,8 +211,7 @@ const propertyDefaultValues = (): PropertyTypeFormValues => ({
 });
 
 export const PropertyListCard = () => {
-  const { control, getValues, setValue } =
-    useFormContext<EntityTypeEditorFormData>();
+  const { control, getValues, setValue } = useFormContext<EntityTypeEditorFormData>();
   const {
     fields: unsortedFields,
     append,
@@ -268,8 +227,7 @@ export const PropertyListCard = () => {
 
   const isReadonly = useIsReadonly();
 
-  const { properties: inheritedProperties } =
-    useInheritedValuesForCurrentDraft();
+  const { properties: inheritedProperties } = useInheritedValuesForCurrentDraft();
 
   const fields = useMemo(
     () =>
@@ -352,16 +310,12 @@ export const PropertyListCard = () => {
         icon={<FontAwesomeIcon icon={faList} sx={{ fontSize: 24 }} />}
         headline={isReadonly ? <>No properties defined</> : <>Add a property</>}
         description={
-          <>
-            Properties store individual pieces of information about some aspect
-            of an entity
-          </>
+          <>Properties store individual pieces of information about some aspect of an entity</>
         }
         subDescription={
           <>
-            e.g. a <strong>person</strong> entity might have a{" "}
-            <strong>date of birth</strong> property which expects a{" "}
-            <strong>date</strong>
+            e.g. a <strong>person</strong> entity might have a <strong>date of birth</strong>{" "}
+            property which expects a <strong>date</strong>
           </>
         }
       />
@@ -378,10 +332,7 @@ export const PropertyListCard = () => {
             Allow multiple{" "}
             <QuestionIcon
               tooltip={
-                <>
-                  Allowing multiple permits the entry of more than one value for
-                  a given property
-                </>
+                <>Allowing multiple permits the entry of more than one value for a given property</>
               }
             />
           </EntityTypeTableCenteredCell>
@@ -392,10 +343,7 @@ export const PropertyListCard = () => {
       <TableBody>
         {fields.map(({ field, index }) =>
           "inheritanceChain" in field ? (
-            <InheritedPropertyRow
-              key={field.$id}
-              inheritedPropertyData={field}
-            />
+            <InheritedPropertyRow key={field.$id} inheritedPropertyData={field} />
           ) : (
             <PropertyTypeRow
               key={field.id}
@@ -439,9 +387,8 @@ export const PropertyListCard = () => {
                       }}
                       tooltip={
                         <>
-                          You should only create a new property type if you
-                          can't find an existing one which corresponds to the
-                          information you're trying to capture.
+                          You should only create a new property type if you can't find an existing
+                          one which corresponds to the information you're trying to capture.
                         </>
                       }
                     />

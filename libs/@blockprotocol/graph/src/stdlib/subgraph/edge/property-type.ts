@@ -1,13 +1,7 @@
-import {
-  isConstrainsPropertiesOnEdge,
-  isConstrainsValuesOnEdge,
-} from "../../../types/subgraph.js";
+import { isConstrainsPropertiesOnEdge, isConstrainsValuesOnEdge } from "../../../types/subgraph.js";
 import { getOntologyEndpointsForOntologyOutwardEdge } from "./shared.js";
 
-import type {
-  OntologyTypeVertexId,
-  Subgraph,
-} from "../../../types/subgraph.js";
+import type { OntologyTypeVertexId, Subgraph } from "../../../types/subgraph.js";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 /**
@@ -40,8 +34,4 @@ export const getDataTypesReferencedByPropertyType = (
   subgraph: Subgraph,
   propertyTypeId: OntologyTypeVertexId | VersionedUrl,
 ): OntologyTypeVertexId[] =>
-  getOntologyEndpointsForOntologyOutwardEdge(
-    subgraph,
-    propertyTypeId,
-    isConstrainsValuesOnEdge,
-  );
+  getOntologyEndpointsForOntologyOutwardEdge(subgraph, propertyTypeId, isConstrainsValuesOnEdge);

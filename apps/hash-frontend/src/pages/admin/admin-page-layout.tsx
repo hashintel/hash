@@ -1,12 +1,7 @@
 import { faPerson } from "@fortawesome/free-solid-svg-icons";
 import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import {
-  type PropsWithChildren,
-  type ReactElement,
-  useEffect,
-  useMemo,
-} from "react";
+import { type PropsWithChildren, type ReactElement, useEffect, useMemo } from "react";
 
 import { FontAwesomeIcon } from "@hashintel/design-system";
 
@@ -41,8 +36,7 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
       menuItems.find(
         (item) =>
           item.href === router.asPath ||
-          (item.activeIfPathStartsWith &&
-            router.asPath.startsWith(item.activeIfPathStartsWith)),
+          (item.activeIfPathStartsWith && router.asPath.startsWith(item.activeIfPathStartsWith)),
       ),
     [router],
   );
@@ -71,9 +65,7 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
             title: "Instance Administration",
             id: "instance-administration",
           },
-          currentMenuItem
-            ? { title: currentMenuItem.label, id: currentMenuItem.href }
-            : [],
+          currentMenuItem ? { title: currentMenuItem.label, id: currentMenuItem.href } : [],
         ].flat()}
       />
       <Box sx={({ palette }) => ({ background: palette.common.white, py: 3 })}>
@@ -85,11 +77,7 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
       </Box>
       <Container sx={{ ...containerSx, py: 6 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <SettingsSidebar
-            heading="Instance"
-            menuItems={menuItems}
-            width={120}
-          />
+          <SettingsSidebar heading="Instance" menuItems={menuItems} width={120} />
           <Box sx={{ flex: 1 }}>{children}</Box>
         </Box>
       </Container>

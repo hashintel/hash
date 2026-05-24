@@ -38,8 +38,7 @@ const CustomHandle = ({
   source,
   type,
 }: HandleProps & { offset: number; onClick: () => void } & InputOrOutput) => {
-  const hardcodedValue =
-    source?.kind === "hardcoded" ? source.payload.value : null;
+  const hardcodedValue = source?.kind === "hardcoded" ? source.payload.value : null;
 
   return (
     <Box className="nodrag" sx={{ cursor: "pointer" }}>
@@ -93,8 +92,7 @@ export const Handles = ({
   stepId: string;
   stepStatusName: SimpleStatus;
 }) => {
-  const [selectedProperty, setSelectedProperty] =
-    useState<InputOrOutput | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<InputOrOutput | null>(null);
 
   const edges = useEdges();
 
@@ -104,14 +102,12 @@ export const Handles = ({
 
   const showAllDependencies = false;
 
-  const outputs: Output[] = (actionDefinition?.outputs ?? []).map(
-    ({ array, name, required }) => ({
-      array,
-      kind: "output",
-      name,
-      required,
-    }),
-  );
+  const outputs: Output[] = (actionDefinition?.outputs ?? []).map(({ array, name, required }) => ({
+    array,
+    kind: "output",
+    name,
+    required,
+  }));
 
   const hideOutputHandle =
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- toggling to be added in follow up
@@ -120,9 +116,7 @@ export const Handles = ({
   const inputs: Input[] = [];
 
   for (const input of actionDefinition?.inputs ?? []) {
-    const existingSource = inputSources.find(
-      (source) => source.inputName === input.name,
-    );
+    const existingSource = inputSources.find((source) => source.inputName === input.name);
 
     inputs.push({
       name: input.name,
@@ -171,11 +165,7 @@ export const Handles = ({
           />
         )}
         {!hideOutputHandle && !!outputs.length && (
-          <Handle
-            type="source"
-            position={Position.Right}
-            style={{ ...handleStyle, right: -6 }}
-          />
+          <Handle type="source" position={Position.Right} style={{ ...handleStyle, right: -6 }} />
         )}
       </>
     );
@@ -185,9 +175,7 @@ export const Handles = ({
     <>
       {selectedProperty && (
         <Modal open onClose={() => setSelectedProperty(null)}>
-          <Typography sx={{ fontWeight: 600 }}>
-            {selectedProperty.name}
-          </Typography>
+          <Typography sx={{ fontWeight: 600 }}>{selectedProperty.name}</Typography>
         </Modal>
       )}
       <Box>

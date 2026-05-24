@@ -70,8 +70,7 @@ const answerTools: LlmToolDefinition[] = [
         },
         confidence: {
           type: "number",
-          description:
-            "Confidence score of the answer, expressed as a number between 0 and 1.",
+          description: "Confidence score of the answer, expressed as a number between 0 and 1.",
         },
       },
       required: ["explanation"],
@@ -165,8 +164,7 @@ const callModel = async (
     outputs: AiActionStepOutput<"answerQuestion">[];
   }>
 > => {
-  const { flowEntityId, userAuthentication, stepId, webId } =
-    await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -303,10 +301,7 @@ const callModel = async (
           `Model is running code with explanation:\n\n${explanation}\n\nThe code:\n${code}\n`,
         );
 
-        const { stdout, stderr, artifacts } = await runPythonCode(
-          code,
-          context,
-        );
+        const { stdout, stderr, artifacts } = await runPythonCode(code, context);
 
         const toolResponseMessage = stderr
           ? `The code you provided generated an error, and you now work to fix it: ${stderr}`
@@ -372,11 +367,7 @@ const callModel = async (
 
   if (responseMessages.length) {
     return callModel(
-      [
-        ...messages,
-        ...mapLlmMessageToOpenAiMessages({ message }),
-        ...responseMessages,
-      ],
+      [...messages, ...mapLlmMessageToOpenAiMessages({ message }), ...responseMessages],
       context,
       codeUsed,
       iteration + 1,
@@ -390,20 +381,14 @@ const callModel = async (
   };
 
   return callModel(
-    [
-      ...messages,
-      ...mapLlmMessageToOpenAiMessages({ message }),
-      responseMessage,
-    ],
+    [...messages, ...mapLlmMessageToOpenAiMessages({ message }), responseMessage],
     context,
     codeUsed,
     iteration + 1,
   );
 };
 
-export const answerQuestionAction: AiFlowActionActivity<
-  "answerQuestion"
-> = async ({ inputs }) => {
+export const answerQuestionAction: AiFlowActionActivity<"answerQuestion"> = async ({ inputs }) => {
   const {
     context,
     entities: entitiesInput,
@@ -417,11 +402,7 @@ export const answerQuestionAction: AiFlowActionActivity<
 
   // Resolve the stored ref to get the array of PersistedEntitiesMetadata
   const inputEntities = entitiesInput
-    ? await resolvePayloadValue(
-        getStorageProvider(),
-        "PersistedEntitiesMetadata",
-        entitiesInput,
-      )
+    ? await resolvePayloadValue(getStorageProvider(), "PersistedEntitiesMetadata", entitiesInput)
     : undefined;
 
   const entities = inputEntities
@@ -454,9 +435,7 @@ export const answerQuestionAction: AiFlowActionActivity<
             equal: [
               { path: ["uuid"] },
               {
-                parameter: extractEntityUuidFromEntityId(
-                  entity.metadata.recordId.entityId,
-                ),
+                parameter: extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
               },
             ],
           })),
@@ -498,8 +477,7 @@ export const answerQuestionAction: AiFlowActionActivity<
       },
     );
 
-    const { entities: simpleEntities, entityTypes: simpleTypes } =
-      getSimpleGraph(subgraph);
+    const { entities: simpleEntities, entityTypes: simpleTypes } = getSimpleGraph(subgraph);
 
     contextToUpload = JSON.stringify({
       entities: simpleEntities,
@@ -513,10 +491,7 @@ export const answerQuestionAction: AiFlowActionActivity<
     const requestId = Context.current().info.workflowExecution.workflowId;
 
     const sandbox = await Sandbox.create({ template: "base" });
-    contextFilePath = await sandbox.uploadFile(
-      Buffer.from(contextToUpload),
-      requestId,
-    );
+    contextFilePath = await sandbox.uploadFile(Buffer.from(contextToUpload), requestId);
 
     await sandbox.close();
   }
@@ -524,9 +499,7 @@ export const answerQuestionAction: AiFlowActionActivity<
   const messages: OpenAI.ChatCompletionCreateParams["messages"] = [
     {
       role: "user",
-      content: dedent(
-        `The question your boss asks about the data: ${question}`,
-      ),
+      content: dedent(`The question your boss asks about the data: ${question}`),
     },
   ];
 

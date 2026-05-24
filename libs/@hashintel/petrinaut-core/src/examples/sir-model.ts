@@ -59,8 +59,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           },
         ],
         lambdaType: "stochastic",
-        lambdaCode:
-          "export default Lambda((tokens, parameters) => parameters.infection_rate)",
+        lambdaCode: "export default Lambda((tokens, parameters) => parameters.infection_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    Infected: [{}, {}],\n  };\n});",
         x: -10 * GRID_SIZE,
@@ -83,8 +82,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
           },
         ],
         lambdaType: "stochastic",
-        lambdaCode:
-          "export default Lambda((tokens, parameters) => parameters.recovery_rate)",
+        lambdaCode: "export default Lambda((tokens, parameters) => parameters.recovery_rate)",
         transitionKernelCode:
           "export default TransitionKernel(() => {\n  return {\n    Recovered: [{}],\n  };\n});",
         x: 6 * GRID_SIZE,
@@ -126,8 +124,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         initialState: {
           type: "per_place",
           content: {
-            place__susceptible:
-              "scenario.population * (1 - scenario.infected_ratio)",
+            place__susceptible: "scenario.population * (1 - scenario.infected_ratio)",
             place__infected: "scenario.population * scenario.infected_ratio",
             place__recovered: "0",
           },
@@ -149,8 +146,7 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         initialState: {
           type: "per_place",
           content: {
-            place__susceptible:
-              "scenario.population * (1 - scenario.infected_ratio)",
+            place__susceptible: "scenario.population * (1 - scenario.infected_ratio)",
             place__infected: "scenario.population * scenario.infected_ratio",
             place__recovered: "0",
           },

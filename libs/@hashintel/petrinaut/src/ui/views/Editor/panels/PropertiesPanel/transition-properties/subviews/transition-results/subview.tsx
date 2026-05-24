@@ -36,8 +36,7 @@ const messageStyle = css({
 });
 
 const ResultsHeaderAction: React.FC = () => {
-  const { transition, places, types, updateTransition } =
-    useTransitionPropertiesContext();
+  const { transition, places, types, updateTransition } = useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
 
   if (globalMode !== "edit") {
@@ -110,10 +109,7 @@ const ResultsHeaderAction: React.FC = () => {
             updateTransition({
               transitionId: transition.id,
               update: {
-                transitionKernelCode: generateDefaultTransitionKernelCode(
-                  inputs,
-                  outputs,
-                ),
+                transitionKernelCode: generateDefaultTransitionKernelCode(inputs, outputs),
               },
             });
           },
@@ -121,10 +117,7 @@ const ResultsHeaderAction: React.FC = () => {
         {
           id: "generate-ai",
           label: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              display="inline"
-            >
+            <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON} display="inline">
               <div className={aiMenuItemStyle}>
                 <Icon name="sparkles" size="sm" />
                 Generate with AI
@@ -142,8 +135,7 @@ const ResultsHeaderAction: React.FC = () => {
 };
 
 const TransitionResultsContent: React.FC = () => {
-  const { transition, places, isReadOnly, updateTransition } =
-    useTransitionPropertiesContext();
+  const { transition, places, isReadOnly, updateTransition } = useTransitionPropertiesContext();
 
   const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
     const place = places.find((p) => p.id === arc.placeId);
@@ -153,9 +145,8 @@ const TransitionResultsContent: React.FC = () => {
   if (!hasOutputPlaceWithType) {
     return (
       <div className={messageStyle}>
-        The Transition Results section is not available because none of the
-        output places have a type defined. To enable this feature, assign a type
-        to at least one output place.
+        The Transition Results section is not available because none of the output places have a
+        type defined. To enable this feature, assign a type to at least one output place.
       </div>
     );
   }

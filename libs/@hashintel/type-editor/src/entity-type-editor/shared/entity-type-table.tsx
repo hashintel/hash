@@ -101,9 +101,7 @@ const flashAnimation = memoize(
 
 export const useFlashRow = () => {
   const [flashingRows, setFlashingRows] = useState<string[]>([]);
-  const flashingTimeouts = useRef<
-    Record<string, ReturnType<typeof setTimeout>>
-  >({});
+  const flashingTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const flashRow = (row: string) => {
     setFlashingRows([...flashingRows, row]);
@@ -262,11 +260,7 @@ const getScrollParent = (node: HTMLElement | null): HTMLElement | null => {
   return getScrollParent(node.parentNode as HTMLElement | null);
 };
 
-export const EntityTypeTableHeaderRow = ({
-  children,
-}: {
-  children: ReactNode;
-}) => {
+export const EntityTypeTableHeaderRow = ({ children }: { children: ReactNode }) => {
   return (
     <Typography
       component={TableRow}
@@ -439,8 +433,7 @@ export const EntityTypeTable = ({ children }: { children: ReactNode }) => {
             position: "relative",
             marginTop: "var(--footer-top-offset)",
             // table padding is handled by the footer row
-            marginBottom:
-              "calc(0px - var(--footer-top-offset) - var(--table-padding))",
+            marginBottom: "calc(0px - var(--footer-top-offset) - var(--table-padding))",
 
             "> *": {
               // Used by footer to help with its sticky styling

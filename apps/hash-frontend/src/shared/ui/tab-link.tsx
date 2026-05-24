@@ -63,9 +63,7 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
         >
           {loading ? (
             <LoadingSpinner
-              color={
-                active ? theme.palette.primary.main : theme.palette.gray[60]
-              }
+              color={active ? theme.palette.primary.main : theme.palette.gray[60]}
               size={14}
               thickness={6}
             />

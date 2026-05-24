@@ -1,7 +1,4 @@
-import type {
-  TemporalBound,
-  TemporalInterval,
-} from "@blockprotocol/type-system";
+import type { TemporalBound, TemporalInterval } from "@blockprotocol/type-system";
 
 export const compareBounds = (
   left: TemporalBound,
@@ -46,12 +43,8 @@ export const compareBounds = (
       right.kind === "exclusive" &&
       leftType === "end" &&
       rightType === "start") ||
-    (left.kind === "exclusive" &&
-      right.kind === "inclusive" &&
-      leftType === "end") ||
-    (left.kind === "inclusive" &&
-      right.kind === "exclusive" &&
-      rightType === "start")
+    (left.kind === "exclusive" && right.kind === "inclusive" && leftType === "end") ||
+    (left.kind === "inclusive" && right.kind === "exclusive" && rightType === "start")
   ) {
     return -1;
   }
@@ -63,21 +56,15 @@ export const compareBounds = (
       right.kind === "exclusive" &&
       leftType === "start" &&
       rightType === "end") ||
-    (left.kind === "exclusive" &&
-      right.kind === "inclusive" &&
-      leftType === "start") ||
-    (left.kind === "inclusive" &&
-      right.kind === "exclusive" &&
-      rightType === "end")
+    (left.kind === "exclusive" && right.kind === "inclusive" && leftType === "start") ||
+    (left.kind === "inclusive" && right.kind === "exclusive" && rightType === "end")
   ) {
     return 1;
   }
   throw new Error(
     `Implementation error, failed to compare bounds.\nLHS: ${JSON.stringify(
       left,
-    )}\nLHS Type: ${leftType}\nRHS: ${JSON.stringify(
-      right,
-    )}\nRHS Type: ${rightType}`,
+    )}\nLHS Type: ${leftType}\nRHS: ${JSON.stringify(right)}\nRHS Type: ${rightType}`,
   );
 };
 
@@ -90,10 +77,7 @@ export const compareBounds = (
  * @param left - The first bound of the comparison (order is unimportant)
  * @param right - The second bound of the comparison
  */
-export const boundIsAdjacentToBound = (
-  left: TemporalBound,
-  right: TemporalBound,
-): boolean => {
+export const boundIsAdjacentToBound = (left: TemporalBound, right: TemporalBound): boolean => {
   if (
     (left.kind === "inclusive" && right.kind === "exclusive") ||
     (left.kind === "exclusive" && right.kind === "inclusive")

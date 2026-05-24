@@ -3,9 +3,7 @@ import { Data, Either, Function, pipe, Pipeable } from "effect";
 import { createProto } from "../utils.js";
 import * as MutableBytes from "./MutableBytes.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/binary/MutableBuffer",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/binary/MutableBuffer");
 
 export type TypeId = typeof TypeId;
 
@@ -14,9 +12,7 @@ export interface MutableBuffer<T> extends Pipeable.Pipeable {
   readonly mode: T;
 }
 
-const Read: unique symbol = Symbol(
-  "@local/harpc-client/binary/MutableBuffer/Read",
-);
+const Read: unique symbol = Symbol("@local/harpc-client/binary/MutableBuffer/Read");
 
 export type Read = typeof Read;
 
@@ -24,22 +20,18 @@ export type ReadBuffer = MutableBuffer<Read>;
 
 export type ReadResult<T, E = UnexpectedEndOfBufferError> = Either.Either<T, E>;
 
-const Write: unique symbol = Symbol(
-  "@local/harpc-client/binary/MutableBuffer/Write",
-);
+const Write: unique symbol = Symbol("@local/harpc-client/binary/MutableBuffer/Write");
 
 export type Write = typeof Write;
 
 export type WriteBuffer = MutableBuffer<Write>;
 
-export type WriteResult<E = UnexpectedEndOfBufferError> = Either.Either<
-  WriteBuffer,
-  E
->;
+export type WriteResult<E = UnexpectedEndOfBufferError> = Either.Either<WriteBuffer, E>;
 
-export class UnexpectedEndOfBufferError extends Data.TaggedError(
-  "UnexpectedEndOfBufferError",
-)<{ index: number; length: number }> {
+export class UnexpectedEndOfBufferError extends Data.TaggedError("UnexpectedEndOfBufferError")<{
+  index: number;
+  length: number;
+}> {
   get message(): string {
     return `Unexpected end of buffer at index ${this.index} of length ${this.length}`;
   }
@@ -50,10 +42,7 @@ interface MutableBufferImpl<T> extends MutableBuffer<T> {
   index: number;
 }
 
-const MutableBufferProto: Omit<
-  MutableBufferImpl<unknown>,
-  "bytes" | "index" | "mode"
-> = {
+const MutableBufferProto: Omit<MutableBufferImpl<unknown>, "bytes" | "index" | "mode"> = {
   [TypeId]: TypeId,
 
   pipe() {
@@ -79,10 +68,7 @@ export const makeRead = (bytes: MutableBytes.MutableBytes): ReadBuffer =>
 
 export const makeWrite = (buffer?: MutableBytes.MutableBytes): WriteBuffer =>
   makeUnchecked(
-    MutableBytes.require(
-      buffer ?? MutableBytes.make({ initialCapacity: 64 * 1024 }),
-      64 * 1024,
-    ),
+    MutableBytes.require(buffer ?? MutableBytes.make({ initialCapacity: 64 * 1024 }), 64 * 1024),
     Write,
   );
 
@@ -235,10 +221,7 @@ export const getSlice = (self: ReadBuffer, byteLength: number) =>
     Either.map(() => {
       const impl = self as MutableBufferImpl<Read>;
 
-      const slice = MutableBytes.asArray(impl.bytes).slice(
-        impl.index,
-        impl.index + byteLength,
-      );
+      const slice = MutableBytes.asArray(impl.bytes).slice(impl.index, impl.index + byteLength);
 
       // clone the buffer
       const clone = new ArrayBuffer(byteLength);
@@ -255,9 +238,7 @@ export const getSlice = (self: ReadBuffer, byteLength: number) =>
 export const advance = Function.dual<
   (
     length: number,
-  ) => <T>(
-    self: MutableBuffer<T>,
-  ) => Either.Either<MutableBuffer<T>, UnexpectedEndOfBufferError>,
+  ) => <T>(self: MutableBuffer<T>) => Either.Either<MutableBuffer<T>, UnexpectedEndOfBufferError>,
   <T>(
     self: MutableBuffer<T>,
     length: number,

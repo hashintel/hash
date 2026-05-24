@@ -12,20 +12,18 @@ export interface PinInputProps extends StyledPinInput.RootProps {
   attached?: boolean;
 }
 
-export const PinInput = forwardRef<HTMLInputElement, PinInputProps>(
-  (props, ref) => {
-    const { count = 4, inputProps, rootRef, attached, ...rest } = props;
-    return (
-      <StyledPinInput.Root ref={rootRef} {...rest}>
-        <StyledPinInput.HiddenInput ref={ref} {...inputProps} />
-        <StyledPinInput.Control>
-          <Group attached={attached}>
-            {Array.from({ length: count }).map((_, index) => (
-              <StyledPinInput.Input key={index} index={index} />
-            ))}
-          </Group>
-        </StyledPinInput.Control>
-      </StyledPinInput.Root>
-    );
-  },
-);
+export const PinInput = forwardRef<HTMLInputElement, PinInputProps>((props, ref) => {
+  const { count = 4, inputProps, rootRef, attached, ...rest } = props;
+  return (
+    <StyledPinInput.Root ref={rootRef} {...rest}>
+      <StyledPinInput.HiddenInput ref={ref} {...inputProps} />
+      <StyledPinInput.Control>
+        <Group attached={attached}>
+          {Array.from({ length: count }).map((_, index) => (
+            <StyledPinInput.Input key={index} index={index} />
+          ))}
+        </Group>
+      </StyledPinInput.Control>
+    </StyledPinInput.Root>
+  );
+});

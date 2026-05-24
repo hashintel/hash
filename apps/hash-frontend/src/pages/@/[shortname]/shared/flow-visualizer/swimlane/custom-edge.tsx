@@ -40,7 +40,5 @@ export const CustomEdge = ({
     };
   }, [sourceStatus]);
 
-  return (
-    <BaseEdge id={id} markerEnd={markerEnd} path={edgePath} style={style} />
-  );
+  return <BaseEdge id={id} markerEnd={markerEnd} path={edgePath} style={style} />;
 };

@@ -10,18 +10,10 @@ export type CloseButtonProps = IconButtonProps;
 // IconButton produces a union type too complex for TS in this context
 const TypedIconButton = IconButton as React.ComponentType<any>;
 
-export const CloseButton = forwardRef<HTMLButtonElement, CloseButtonProps>(
-  (props, ref) => {
-    return (
-      <TypedIconButton
-        variant="plain"
-        colorPalette="gray"
-        aria-label="Close"
-        ref={ref}
-        {...props}
-      >
-        {props.children ?? <XIcon />}
-      </TypedIconButton>
-    );
-  },
-);
+export const CloseButton = forwardRef<HTMLButtonElement, CloseButtonProps>((props, ref) => {
+  return (
+    <TypedIconButton variant="plain" colorPalette="gray" aria-label="Close" ref={ref} {...props}>
+      {props.children ?? <XIcon />}
+    </TypedIconButton>
+  );
+});

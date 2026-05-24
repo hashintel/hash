@@ -1,13 +1,6 @@
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-} from "@blockprotocol/type-system";
+import type { DataType, EntityType, PropertyType } from "@blockprotocol/type-system";
 
-const isObjectWithKindString = (
-  obj: unknown,
-  kind: string,
-): obj is { kind: string } => {
+const isObjectWithKindString = (obj: unknown, kind: string): obj is { kind: string } => {
   return (
     typeof obj === "object" &&
     obj !== null &&

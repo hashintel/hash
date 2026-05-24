@@ -16,36 +16,34 @@ type ChipGroupProps = {
 // </ChipGroup>
 //
 
-export const ChipGroup = forwardRef<HTMLDivElement, ChipGroupProps>(
-  ({ children }, ref) => {
-    return (
-      <Box
-        ref={ref}
-        sx={({ palette }) => ({
-          display: "flex",
-          // Don't remove the radius if there's
-          // only 1 child
-          // i.e this scenario =>
-          // <ChipGroup>
-          //   <Chip />
-          // </ChipGroup>
-          ...(Children.count(children) > 0 && {
-            [` .${chipClasses.root}`]: {
-              "&:not(:last-of-type)": {
-                borderTopRightRadius: 0,
-                borderBottomRightRadius: 0,
-                borderRight: `2px solid ${palette.white}`,
-              },
-              "&:not(:first-of-type)": {
-                borderTopLeftRadius: 0,
-                borderBottomLeftRadius: 0,
-              },
+export const ChipGroup = forwardRef<HTMLDivElement, ChipGroupProps>(({ children }, ref) => {
+  return (
+    <Box
+      ref={ref}
+      sx={({ palette }) => ({
+        display: "flex",
+        // Don't remove the radius if there's
+        // only 1 child
+        // i.e this scenario =>
+        // <ChipGroup>
+        //   <Chip />
+        // </ChipGroup>
+        ...(Children.count(children) > 0 && {
+          [` .${chipClasses.root}`]: {
+            "&:not(:last-of-type)": {
+              borderTopRightRadius: 0,
+              borderBottomRightRadius: 0,
+              borderRight: `2px solid ${palette.white}`,
             },
-          }),
-        })}
-      >
-        {children}
-      </Box>
-    );
-  },
-);
+            "&:not(:first-of-type)": {
+              borderTopLeftRadius: 0,
+              borderBottomLeftRadius: 0,
+            },
+          },
+        }),
+      })}
+    >
+      {children}
+    </Box>
+  );
+});

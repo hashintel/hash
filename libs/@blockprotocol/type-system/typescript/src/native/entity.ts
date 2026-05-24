@@ -16,11 +16,7 @@ import type {
   PropertyWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system-rs";
-import type {
-  DraftId,
-  EntityUuid,
-  WebId,
-} from "@blockprotocol/type-system-rs/types";
+import type { DraftId, EntityUuid, WebId } from "@blockprotocol/type-system-rs/types";
 
 export type TypeIdsAndPropertiesForEntity = {
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
@@ -33,17 +29,13 @@ export type TypeIdsAndPropertiesForEntity = {
  * both of which the Rust->TS codegen does not support.
  */
 export type EntityMetadata<
-  TypeIds extends [VersionedUrl, ...VersionedUrl[]] = [
-    VersionedUrl,
-    ...VersionedUrl[],
-  ],
+  TypeIds extends [VersionedUrl, ...VersionedUrl[]] = [VersionedUrl, ...VersionedUrl[]],
 > = Omit<RustEntityMetadata, "entityTypeIds"> & {
   entityTypeIds: TypeIds;
 };
 
 export interface Entity<
-  TypeIdsAndProperties extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  TypeIdsAndProperties extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > {
   metadata: EntityMetadata;
 
@@ -66,8 +58,7 @@ export interface Entity<
 }
 
 export interface LinkEntity<
-  TypeIdsAndProperties extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  TypeIdsAndProperties extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > extends Entity<TypeIdsAndProperties> {
   linkData: LinkData;
 }
@@ -99,9 +90,7 @@ export const entityIdFromComponents = (
   return `${base}${ENTITY_ID_DELIMITER}${draftId}` as EntityId;
 };
 
-export const splitEntityId = (
-  entityId: EntityId,
-): [WebId, EntityUuid, DraftId?] => {
+export const splitEntityId = (entityId: EntityId): [WebId, EntityUuid, DraftId?] => {
   const [webId, entityUuid, draftId] = entityId.split(ENTITY_ID_DELIMITER);
   return [webId as WebId, entityUuid as EntityUuid, draftId as DraftId];
 };
@@ -115,31 +104,21 @@ export const extractWebIdFromEntityId = (entityId: EntityId): WebId => {
   return splitEntityId(entityId)[0];
 };
 
-export const extractEntityUuidFromEntityId = (
-  entityId: EntityId,
-): EntityUuid => {
+export const extractEntityUuidFromEntityId = (entityId: EntityId): EntityUuid => {
   return splitEntityId(entityId)[1];
 };
 
-export const extractDraftIdFromEntityId = (
-  entityId: EntityId,
-): DraftId | undefined => {
+export const extractDraftIdFromEntityId = (entityId: EntityId): DraftId | undefined => {
   return splitEntityId(entityId)[2];
 };
 
-export const isValueMetadata = (
-  metadata: PropertyMetadata,
-): metadata is PropertyValueMetadata =>
+export const isValueMetadata = (metadata: PropertyMetadata): metadata is PropertyValueMetadata =>
   !!metadata.metadata && "dataTypeId" in metadata.metadata;
 
-export const isArrayMetadata = (
-  metadata: PropertyMetadata,
-): metadata is PropertyArrayMetadata =>
+export const isArrayMetadata = (metadata: PropertyMetadata): metadata is PropertyArrayMetadata =>
   !isValueMetadata(metadata) && Array.isArray(metadata.value);
 
-export const isObjectMetadata = (
-  metadata: PropertyMetadata,
-): metadata is PropertyObjectMetadata =>
+export const isObjectMetadata = (metadata: PropertyMetadata): metadata is PropertyObjectMetadata =>
   !isValueMetadata(metadata) && !Array.isArray(metadata.value);
 
 export const isValueWithMetadata = (

@@ -15,9 +15,7 @@ export const enterRequestSpan: BeforeRequestFn<
   // eslint-disable-next-line no-param-reassign
   requestParams.headers ??= {};
   opentelemetry.propagation.inject(
-    context.scenario.tracing.startRequest(
-      requestParams.name ?? requestParams.url,
-    ),
+    context.scenario.tracing.startRequest(requestParams.name ?? requestParams.url),
     requestParams.headers,
   );
 };

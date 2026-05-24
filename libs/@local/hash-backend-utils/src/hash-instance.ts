@@ -1,9 +1,6 @@
 import { backOff } from "exponential-backoff";
 
-import {
-  type ActorEntityUuid,
-  extractBaseUrl,
-} from "@blockprotocol/type-system";
+import { type ActorEntityUuid, extractBaseUrl } from "@blockprotocol/type-system";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -31,8 +28,7 @@ export const getHashInstanceFromEntity = ({
   if (
     !entity.metadata.entityTypeIds.some(
       (entityTypeId) =>
-        extractBaseUrl(entityTypeId) ===
-        systemEntityTypes.hashInstance.entityTypeBaseUrl,
+        extractBaseUrl(entityTypeId) === systemEntityTypes.hashInstance.entityTypeBaseUrl,
     )
   ) {
     throw new EntityTypeMismatchError(

@@ -20,14 +20,7 @@ export type ChipProps = {
 
 export const Chip = forwardRef<HTMLDivElement, ChipProps>(
   (
-    {
-      sx = [],
-      icon: startIcon,
-      color = "gray",
-      hasCircleStartIcon,
-      rectangular,
-      ...props
-    },
+    { sx = [], icon: startIcon, color = "gray", hasCircleStartIcon, rectangular, ...props },
     ref,
   ) => {
     return (
@@ -50,9 +43,7 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>(
           }),
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
-        icon={
-          hasCircleStartIcon ? <FontAwesomeIcon icon={faCircle} /> : startIcon
-        }
+        icon={hasCircleStartIcon ? <FontAwesomeIcon icon={faCircle} /> : startIcon}
         {...props}
       />
     );

@@ -14,8 +14,7 @@ export const useIsReadonlyModeForApp = () => {
   const router = useRouter();
   const { authenticatedUser } = useAuthInfo();
 
-  const isReadonlyMode =
-    "readonly" in router.query || !authenticatedUser?.accountSignupComplete;
+  const isReadonlyMode = "readonly" in router.query || !authenticatedUser?.accountSignupComplete;
 
   return isReadonlyMode;
 };

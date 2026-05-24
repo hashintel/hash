@@ -24,8 +24,7 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
   await page.waitForURL((url) => {
     return (
       url.pathname === "/entities" &&
-      url.search ===
-        "?entityTypeIdOrBaseUrl=https://hash.ai/@h/types/entity-type/document/"
+      url.search === "?entityTypeIdOrBaseUrl=https://hash.ai/@h/types/entity-type/document/"
     );
   });
 

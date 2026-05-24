@@ -20,10 +20,7 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import type {
-  ArchiveDataTypeParams,
-  UnarchiveDataTypeParams,
-} from "@local/hash-graph-client";
+import type { ArchiveDataTypeParams, UnarchiveDataTypeParams } from "@local/hash-graph-client";
 import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
 import type {
   ConstructDataTypeParams,
@@ -78,17 +75,14 @@ export const createDataType: ImpureGraphFunction<
     ...params.schema,
   };
 
-  const { data: metadata } = await graphApi.createDataType(
-    authentication.actorId,
-    {
-      schema,
-      provenance: {
-        ...ctx.provenance,
-        ...params.provenance,
-      },
-      conversions: conversions ?? {},
+  const { data: metadata } = await graphApi.createDataType(authentication.actorId, {
+    schema,
+    provenance: {
+      ...ctx.provenance,
+      ...params.provenance,
     },
-  );
+    conversions: conversions ?? {},
+  });
 
   return { schema, metadata: metadata as unknown as DataTypeMetadata };
 };
@@ -140,9 +134,7 @@ export const updateDataType: ImpureGraphFunction<
       ...schema,
       // TODO: Avoid casting through `unknown` when new codegen is in place
       //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
-      $id: ontologyTypeRecordIdToVersionedUrl(
-        recordId as unknown as OntologyTypeRecordId,
-      ),
+      $id: ontologyTypeRecordIdToVersionedUrl(recordId as unknown as OntologyTypeRecordId),
     },
     // TODO: Avoid casting through `unknown` when new codegen is in place
     //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
@@ -160,10 +152,7 @@ export const archiveDataType: ImpureGraphFunction<
   ArchiveDataTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.archiveDataType(
-    actorId,
-    params,
-  );
+  const { data: temporalMetadata } = await graphApi.archiveDataType(actorId, params);
 
   return temporalMetadata as OntologyTemporalMetadata;
 };

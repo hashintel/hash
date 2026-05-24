@@ -1,10 +1,4 @@
-import type {
-  Entity,
-  EntityId,
-  MachineId,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { Entity, EntityId, MachineId, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { IntegrationFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -42,9 +36,7 @@ export type UpdateHashEntityFromLinearData = <
   webId: WebId;
 }) => Promise<void>;
 
-export type ReadLinearTeamsWorkflow = (params: {
-  apiKey: string;
-}) => Promise<Team[]>;
+export type ReadLinearTeamsWorkflow = (params: { apiKey: string }) => Promise<Team[]>;
 
 export type SyncWebWorkflow = (params: {
   authentication: { actorId: MachineId };

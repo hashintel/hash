@@ -6,11 +6,7 @@ import {
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "./panel-defaults";
 
-import type {
-  BottomPanelTab,
-  CursorMode,
-  TimelineChartType,
-} from "./editor-context";
+import type { BottomPanelTab, CursorMode, TimelineChartType } from "./editor-context";
 
 export type ArcRendering = "smoothstep" | "bezier" | "custom";
 
@@ -21,10 +17,7 @@ export type SubViewSectionSettings = {
 };
 
 /** Outer key: container name, inner key: subview ID */
-export type SubViewPanelsSettings = Record<
-  string,
-  Record<string, SubViewSectionSettings>
->;
+export type SubViewPanelsSettings = Record<string, Record<string, SubViewSectionSettings>>;
 
 export type UserSettings = {
   showAnimations: boolean;
@@ -113,6 +106,4 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   updateSubViewSection: () => {},
 };
 
-export const UserSettingsContext = createContext<UserSettingsContextValue>(
-  DEFAULT_CONTEXT_VALUE,
-);
+export const UserSettingsContext = createContext<UserSettingsContextValue>(DEFAULT_CONTEXT_VALUE);

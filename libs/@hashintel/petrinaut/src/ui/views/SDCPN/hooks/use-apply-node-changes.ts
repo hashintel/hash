@@ -47,9 +47,7 @@ export function useApplyNodeChanges() {
       if (change.type === "position") {
         if (change.dragging) {
           const rawPosition = change.position ?? { x: 0, y: 0 };
-          const position = snapToGrid
-            ? snapPositionToGrid(rawPosition)
-            : rawPosition;
+          const position = snapToGrid ? snapPositionToGrid(rawPosition) : rawPosition;
           updateDraggingStateByNodeId((existing) => ({
             ...existing,
             [change.id]: { dragging: true, position },
@@ -85,15 +83,10 @@ export function useApplyNodeChanges() {
     if (selectionChanged) {
       setSelection((prevSelection) => {
         const hasNonCanvasItems = Array.from(prevSelection.values()).some(
-          (item) =>
-            item.type !== "place" &&
-            item.type !== "transition" &&
-            item.type !== "arc",
+          (item) => item.type !== "place" && item.type !== "transition" && item.type !== "arc",
         );
 
-        const base: SelectionMap = new Map(
-          hasNonCanvasItems ? [] : prevSelection,
-        );
+        const base: SelectionMap = new Map(hasNonCanvasItems ? [] : prevSelection);
 
         let changed = hasNonCanvasItems && prevSelection.size > 0;
 

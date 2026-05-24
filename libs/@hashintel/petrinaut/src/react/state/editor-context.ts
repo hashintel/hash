@@ -16,10 +16,7 @@ export type DraggingStateByNodeId = Record<
 type EditorGlobalMode = "edit" | "simulate";
 type EditorEditionMode = "cursor" | "add-place" | "add-transition";
 export type CursorMode = "select" | "pan";
-export type BottomPanelTab =
-  | "diagnostics"
-  | "simulation-settings"
-  | "simulation-timeline";
+export type BottomPanelTab = "diagnostics" | "simulation-settings" | "simulation-timeline";
 
 export type TimelineChartType = "run" | "stacked";
 
@@ -100,9 +97,7 @@ export type EditorActions = {
   isNotSelectedConnection: (id: string) => boolean;
   /** Map of all items connected to the current selection, keyed by id. */
   selectedConnections: SelectionMap;
-  setSelection: (
-    selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
-  ) => void;
+  setSelection: (selection: SelectionMap | ((prev: SelectionMap) => SelectionMap)) => void;
   selectItem: (item: SelectionItem) => void;
   toggleItem: (item: SelectionItem) => void;
   clearSelection: () => void;
@@ -194,6 +189,4 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   __reinitialize: () => {},
 };
 
-export const EditorContext = createContext<EditorContextValue>(
-  DEFAULT_CONTEXT_VALUE,
-);
+export const EditorContext = createContext<EditorContextValue>(DEFAULT_CONTEXT_VALUE);

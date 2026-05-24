@@ -1,22 +1,10 @@
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { faClose, faList } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  buttonClasses,
-  chipClasses,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, buttonClasses, chipClasses, Stack, Tooltip, Typography } from "@mui/material";
 import uniqueId from "lodash.uniqueid";
 import { useFormContext, useWatch } from "react-hook-form";
 
-import {
-  Button,
-  Chip,
-  faCube,
-  FontAwesomeIcon,
-} from "@hashintel/design-system";
+import { Button, Chip, faCube, FontAwesomeIcon } from "@hashintel/design-system";
 import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { getDefaultExpectedValue } from "../../shared/default-expected-value";
@@ -77,10 +65,8 @@ const ExpectedValueBuilder: FunctionComponent<ExpectedValueBuilderProps> = ({
 };
 
 export const CustomExpectedValueBuilder: FunctionComponent = () => {
-  const { handleSave, handleCancelCustomBuilder } =
-    useExpectedValueSelectorContext();
-  const { getValues, setValue, control } =
-    useFormContext<ExpectedValueSelectorFormValues>();
+  const { handleSave, handleCancelCustomBuilder } = useExpectedValueSelectorContext();
+  const { getValues, setValue, control } = useFormContext<ExpectedValueSelectorFormValues>();
 
   const customExpectedValueId = useWatch({
     control,
@@ -102,10 +88,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
       >
         <Stack direction="row" justifyContent="space-between">
           <Stack direction="row" gap={1} alignItems="center">
-            <Typography
-              variant="smallCaps"
-              sx={{ color: ({ palette }) => palette.gray[70] }}
-            >
+            <Typography variant="smallCaps" sx={{ color: ({ palette }) => palette.gray[70] }}>
               Specify a custom expected value
             </Typography>
             <Tooltip
@@ -149,8 +132,8 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
           variant="smallTextLabels"
           sx={{ paddingTop: 1.25, color: ({ palette }) => palette.gray[70] }}
         >
-          Advanced users can specify property objects as well as arrays of data
-          types as expected values.
+          Advanced users can specify property objects as well as arrays of data types as expected
+          values.
         </Typography>
       </Stack>
 
@@ -204,11 +187,7 @@ export const CustomExpectedValueBuilder: FunctionComponent = () => {
                 >
                   CONTAINS
                 </Typography>
-                <CustomChip
-                  color="purple"
-                  label="PROPERTY TYPES"
-                  borderColor="#FFF"
-                />
+                <CustomChip color="purple" label="PROPERTY TYPES" borderColor="#FFF" />
               </Stack>
             </Stack>
 

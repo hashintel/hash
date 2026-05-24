@@ -33,9 +33,7 @@ type VariableNameValidationSuccess = {
   name: string;
 };
 
-type VariableNameValidationResult =
-  | VariableNameValidationSuccess
-  | VariableNameValidationError;
+type VariableNameValidationResult = VariableNameValidationSuccess | VariableNameValidationError;
 
 /**
  * Validate a variable name for a parameter.
@@ -43,9 +41,7 @@ type VariableNameValidationResult =
  *
  * FE-521: Also enforce in MutationProvider and surface in Diagnostics tab.
  */
-export function validateVariableName(
-  input: string,
-): VariableNameValidationResult {
+export function validateVariableName(input: string): VariableNameValidationResult {
   const result = variableNameSchema.safeParse(input);
 
   if (result.success) {

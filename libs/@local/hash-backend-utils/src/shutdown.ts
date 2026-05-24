@@ -51,9 +51,7 @@ export class GracefulShutdown {
       }
     }
     if (wasError) {
-      this.logger.error(
-        "There were errors during the shutdown procedure. Please check the logs.",
-      );
+      this.logger.error("There were errors during the shutdown procedure. Please check the logs.");
       process.exit(1);
     }
     this.logger.debug("Shutdown successful");

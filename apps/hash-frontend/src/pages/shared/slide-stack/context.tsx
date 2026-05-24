@@ -10,9 +10,7 @@ type SlideStackContextData = {
   slideContainerRef?: RefObject<HTMLDivElement | null> | null;
 };
 
-export const SlideStackContext = createContext<SlideStackContextData | null>(
-  null,
-);
+export const SlideStackContext = createContext<SlideStackContextData | null>(null);
 
 export const useSlideStack = () => {
   const context = useContext(SlideStackContext);

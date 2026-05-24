@@ -6,10 +6,7 @@ export const jsdoc = (config: readonly ESConfig[]): readonly ESConfig[] =>
   Array.appendAll(config, [
     {
       rules: {
-        "jsdoc/require-description": [
-          "error",
-          { exemptedBy: ["inheritdoc", "internal"] },
-        ],
+        "jsdoc/require-description": ["error", { exemptedBy: ["inheritdoc", "internal"] }],
         // conflicts with tsdoc
         "jsdoc/check-tag-names": "off",
       },

@@ -2,10 +2,7 @@ import { Box } from "@mui/material";
 
 import { InferEntitiesAction } from "./one-off/infer-entities-action";
 import { QuickNoteAction } from "./one-off/quick-note-action";
-import {
-  generateTabPanelA11yProps,
-  type TabPanelProps,
-} from "./shared/tab-props";
+import { generateTabPanelA11yProps, type TabPanelProps } from "./shared/tab-props";
 
 import type { LocalStorage } from "../../../../shared/storage";
 import type { Tabs } from "webextension-polyfill";

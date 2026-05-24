@@ -7,12 +7,7 @@
     "let",
     "a",
     { "#literal": 1 },
-    [
-      "let",
-      "b",
-      { "#literal": 2 },
-      ["let", "c", { "#literal": 3 }, { "#list": ["a", "b", "c"] }]
-    ]
+    ["let", "b", { "#literal": 2 }, ["let", "c", { "#literal": 3 }, { "#list": ["a", "b", "c"] }]]
   ],
   { "#literal": 0 }
 ]

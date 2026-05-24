@@ -2,18 +2,11 @@ import { Stack, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
 import { memo } from "react";
 
-import {
-  CircleOneRegularIcon,
-  LightbulbOnRegularIcon,
-} from "@hashintel/design-system";
+import { CircleOneRegularIcon, LightbulbOnRegularIcon } from "@hashintel/design-system";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { Link } from "../../../../shared/ui/link";
-import {
-  FlowStatusChip,
-  flowTableCellSx,
-  FlowTableChip,
-} from "../../../shared/flow-tables";
+import { FlowStatusChip, flowTableCellSx, FlowTableChip } from "../../../shared/flow-tables";
 
 import type { SimpleFlowRunStatus } from "../../../shared/flow-tables";
 import type { EntityUuid } from "@blockprotocol/type-system";
@@ -40,14 +33,7 @@ export const goalRowSx = {
 };
 
 export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
-  const {
-    name,
-    lastEventTimestamp,
-    openInputRequests,
-    web,
-    flowRunId,
-    status,
-  } = goalSummary;
+  const { name, lastEventTimestamp, openInputRequests, web, flowRunId, status } = goalSummary;
 
   const inputRequired = openInputRequests > 0;
 
@@ -57,20 +43,15 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
       alignItems="center"
       sx={{
         ...goalRowSx,
-        background: ({ palette }) =>
-          inputRequired ? palette.yellow[10] : palette.common.white,
+        background: ({ palette }) => (inputRequired ? palette.yellow[10] : palette.common.white),
       }}
     >
       <Typography mr={2} sx={{ fontSize: 14 }}>
         Research
       </Typography>
-      {status !== "Running" && (
-        <FlowStatusChip status={status} sx={{ mr: 2.2 }} />
-      )}
+      {status !== "Running" && <FlowStatusChip status={status} sx={{ mr: 2.2 }} />}
       <FlowTableChip>
-        <CircleOneRegularIcon
-          sx={{ fill: ({ palette }) => palette.blue[70], fontSize: 12 }}
-        />
+        <CircleOneRegularIcon sx={{ fill: ({ palette }) => palette.blue[70], fontSize: 12 }} />
         One-off
       </FlowTableChip>
 
@@ -87,10 +68,7 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
       >
         {name}
       </Link>
-      <Typography
-        mr={2.5}
-        sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}
-      >
+      <Typography mr={2.5} sx={{ fontSize: 14, color: ({ palette }) => palette.gray[80] }}>
         last event{" "}
         {formatDistance(new Date(lastEventTimestamp), new Date(), {
           addSuffix: true,

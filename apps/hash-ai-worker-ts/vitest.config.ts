@@ -8,10 +8,7 @@ import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 export default defineConfig(({ mode }) => {
   return {
     test: {
-      env:
-        process.env.TEST_AI === "true"
-          ? loadEnv(mode, monorepoRootDir, "")
-          : undefined,
+      env: process.env.TEST_AI === "true" ? loadEnv(mode, monorepoRootDir, "") : undefined,
       coverage: {
         enabled: process.env.TEST_COVERAGE === "true",
         provider: "istanbul",

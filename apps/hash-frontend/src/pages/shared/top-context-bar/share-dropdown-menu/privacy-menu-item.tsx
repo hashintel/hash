@@ -1,9 +1,4 @@
-import {
-  listItemIconClasses,
-  listItemTextClasses,
-  menuItemClasses,
-  styled,
-} from "@mui/material";
+import { listItemIconClasses, listItemTextClasses, menuItemClasses, styled } from "@mui/material";
 
 import { MenuItem } from "../../../../shared/ui";
 

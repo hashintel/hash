@@ -7,10 +7,7 @@ import { TextField } from "@hashintel/design-system";
 
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
-import {
-  gatherUiNodeValuesFromFlow,
-  oryKratosClient,
-} from "./shared/ory-kratos";
+import { gatherUiNodeValuesFromFlow, oryKratosClient } from "./shared/ory-kratos";
 import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 
 import type { NextPageWithLayout } from "../shared/layout";
@@ -69,14 +66,9 @@ const ChangePasswordPage: NextPageWithLayout = () => {
     void router
       // On submission, add the flow ID to the URL but do not navigate. This prevents the user loosing
       // their data when they reload the page.
-      .push(
-        `/change-password`,
-        { query: { flow: flow.id } },
-        { shallow: true },
-      );
+      .push(`/change-password`, { query: { flow: flow.id } }, { shallow: true });
 
-    const { csrf_token } =
-      gatherUiNodeValuesFromFlow<"settingsWithPassword">(flow);
+    const { csrf_token } = gatherUiNodeValuesFromFlow<"settingsWithPassword">(flow);
 
     oryKratosClient
       .updateSettingsFlow({
@@ -106,8 +98,7 @@ const ChangePasswordPage: NextPageWithLayout = () => {
   };
 
   const passwordInputUiNode = flow?.ui.nodes.find(
-    ({ attributes }) =>
-      isUiNodeInputAttributes(attributes) && attributes.name === "password",
+    ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "password",
   );
 
   return (
@@ -134,9 +125,7 @@ const ChangePasswordPage: NextPageWithLayout = () => {
           placeholder="Enter your new password"
           value={updatedPassword}
           onChange={({ target }) => setUpdatedPassword(target.value)}
-          error={
-            !!passwordInputUiNode?.messages.find(({ type }) => type === "error")
-          }
+          error={!!passwordInputUiNode?.messages.find(({ type }) => type === "error")}
           helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
             <Typography key={id}>{text}</Typography>
           ))}

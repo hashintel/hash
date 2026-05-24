@@ -6,11 +6,6 @@
 [
   "if",
   { "#literal": true },
-  [
-    "if",
-    { "#literal": false },
-    { "#literal": "inner-then" },
-    { "#literal": "inner-else" }
-  ],
+  ["if", { "#literal": false }, { "#literal": "inner-then" }, { "#literal": "inner-else" }],
   { "#literal": "outer-else" }
 ]

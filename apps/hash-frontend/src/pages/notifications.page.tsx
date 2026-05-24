@@ -1,9 +1,4 @@
-import {
-  breadcrumbsClasses,
-  buttonClasses,
-  Container,
-  Typography,
-} from "@mui/material";
+import { breadcrumbsClasses, buttonClasses, Container, Typography } from "@mui/material";
 import { NextSeo } from "next-seo";
 
 import { BellLightIcon } from "@hashintel/design-system";

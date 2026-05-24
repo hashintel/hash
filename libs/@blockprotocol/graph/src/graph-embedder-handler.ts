@@ -14,10 +14,7 @@ import type {
  * Register callbacks in the constructor or afterwards using the 'on' method to react to messages from the block.
  * Call the relevant methods to send messages to the block.
  */
-export class GraphEmbedderHandler
-  extends ModuleHandler
-  implements GraphEmbedderMessages
-{
+export class GraphEmbedderHandler extends ModuleHandler implements GraphEmbedderMessages {
   private _blockEntitySubgraph: Subgraph<EntityRootType>;
   // private _linkedQueries?: LinkedQueries;
   private _readonly?: boolean;

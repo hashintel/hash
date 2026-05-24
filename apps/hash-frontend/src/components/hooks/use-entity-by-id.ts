@@ -14,10 +14,7 @@ import type {
   QueryEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import type {
-  EntityTraversalPath,
-  GraphResolveDepths,
-} from "@rust/hash-graph-store/types";
+import type { EntityTraversalPath, GraphResolveDepths } from "@rust/hash-graph-store/types";
 
 export const useEntityById = ({
   entityId,
@@ -37,39 +34,39 @@ export const useEntityById = ({
   permissions?: EntityPermissionsMap;
 } => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
-  const { data, loading } = useQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
-    variables: {
-      request: {
-        filter: {
-          all: [
-            {
-              equal: [{ path: ["webId"] }, { parameter: webId }],
-            },
-            {
-              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
-            },
-            ...(draftId
-              ? [
-                  {
-                    equal: [{ path: ["draftId"] }, { parameter: draftId }],
-                  },
-                ]
-              : []),
-          ],
+  const { data, loading } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
+    {
+      variables: {
+        request: {
+          filter: {
+            all: [
+              {
+                equal: [{ path: ["webId"] }, { parameter: webId }],
+              },
+              {
+                equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+              },
+              ...(draftId
+                ? [
+                    {
+                      equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                    },
+                  ]
+                : []),
+            ],
+          },
+          graphResolveDepths,
+          traversalPaths,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: !!draftId,
+          includePermissions,
         },
-        graphResolveDepths,
-        traversalPaths,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: !!draftId,
-        includePermissions,
       },
+      fetchPolicy: "cache-and-network",
+      pollInterval,
     },
-    fetchPolicy: "cache-and-network",
-    pollInterval,
-  });
+  );
 
   return useMemo(() => {
     const response = data

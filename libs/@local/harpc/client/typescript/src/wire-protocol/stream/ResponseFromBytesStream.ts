@@ -3,9 +3,7 @@ import { Data, Effect, Option, pipe, Stream } from "effect";
 import { MutableBytes, MutableBuffer } from "../../binary/index.js";
 import { Response } from "../models/response/index.js";
 
-export class IncompleteResponseError extends Data.TaggedError(
-  "IncompleteResponseError",
-)<{
+export class IncompleteResponseError extends Data.TaggedError("IncompleteResponseError")<{
   length: number;
 }> {
   get message() {
@@ -50,9 +48,7 @@ const tryDecodePacket = Effect.fn("tryDecodePacket")(function* (
   return Option.some(response);
 });
 
-const tryDecode = Effect.fn("tryDecode")(function* (
-  scratch: MutableBytes.MutableBytes,
-) {
+const tryDecode = Effect.fn("tryDecode")(function* (scratch: MutableBytes.MutableBytes) {
   let shouldContinue = true;
   const output: Response.Response[] = [];
 
@@ -74,11 +70,7 @@ const tryDecode = Effect.fn("tryDecode")(function* (
 
 export const make = <E, R>(
   stream: Stream.Stream<ArrayBuffer, E, R>,
-): Stream.Stream<
-  Response.Response,
-  E | Response.DecodeError | IncompleteResponseError,
-  R
-> => {
+): Stream.Stream<Response.Response, E | Response.DecodeError | IncompleteResponseError, R> => {
   const scratch = makeScratch();
 
   return pipe(
@@ -89,9 +81,7 @@ export const make = <E, R>(
         .map((byte) => {
           const char = String.fromCharCode(byte);
 
-          return char.match(/[a-z0-9]/i)
-            ? char
-            : `0x${byte.toString(16).padStart(2, "0")}`;
+          return char.match(/[a-z0-9]/i) ? char : `0x${byte.toString(16).padStart(2, "0")}`;
         })
         .join(" ");
 

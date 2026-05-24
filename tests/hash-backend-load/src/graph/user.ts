@@ -71,10 +71,7 @@ export const getUserByKratosIdentityId = async (params: {
     filter: {
       equal: [
         {
-          path: [
-            "properties",
-            systemPropertyTypes.kratosIdentityId.propertyTypeBaseUrl,
-          ],
+          path: ["properties", systemPropertyTypes.kratosIdentityId.propertyTypeBaseUrl],
         },
         { parameter: params.kratosIdentityId },
       ],
@@ -93,9 +90,7 @@ export const completeUserRegistration = async (params: {
     kratosIdentityId: params.kratosIdentityId,
   });
   if (!user) {
-    throw new Error(
-      `No user with Kratos ID "${params.kratosIdentityId}" found.`,
-    );
+    throw new Error(`No user with Kratos ID "${params.kratosIdentityId}" found.`);
   }
 
   return user.patch(getGraphApiClient(), authentication, {
@@ -106,8 +101,7 @@ export const completeUserRegistration = async (params: {
         property: {
           value: params.shortname,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
       },
@@ -117,15 +111,12 @@ export const completeUserRegistration = async (params: {
         property: {
           value: params.displayName,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
       },
     ],
-    additionalAllowedPropertyBaseUrls: new Set([
-      systemPropertyTypes.shortname.propertyTypeBaseUrl,
-    ]),
+    additionalAllowedPropertyBaseUrls: new Set([systemPropertyTypes.shortname.propertyTypeBaseUrl]),
     provenance: {
       actorType: "machine",
       origin: {

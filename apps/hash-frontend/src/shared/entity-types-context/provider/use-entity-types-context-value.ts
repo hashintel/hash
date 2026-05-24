@@ -3,24 +3,13 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { getEntityTypes } from "@blockprotocol/graph/stdlib";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
-import {
-  getParentIds,
-  isSpecialEntityType,
-} from "../shared/is-special-entity-type";
+import { getParentIds, isSpecialEntityType } from "../shared/is-special-entity-type";
 
-import type {
-  EntityTypesContextValue,
-  SpecialEntityTypeRecord,
-} from "../shared/context-types";
-import type {
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityTypesContextValue, SpecialEntityTypeRecord } from "../shared/context-types";
+import type { EntityTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 
 export const useEntityTypesContextValue = (): EntityTypesContextValue => {
-  const [types, setTypes] = useState<
-    Omit<EntityTypesContextValue, "refetch" | "ensureFetched">
-  >({
+  const [types, setTypes] = useState<Omit<EntityTypesContextValue, "refetch" | "ensureFetched">>({
     entityTypes: null,
     isSpecialEntityTypeLookup: null,
     includesSpecialEntityTypes: null,
@@ -57,8 +46,9 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     const subgraph = res.data;
     const entityTypes = subgraph ? getEntityTypes(subgraph) : [];
 
-    const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> =
-      Object.fromEntries(entityTypes.map((type) => [type.schema.$id, type]));
+    const typesByVersion: Record<VersionedUrl, EntityTypeWithMetadata> = Object.fromEntries(
+      entityTypes.map((type) => [type.schema.$id, type]),
+    );
 
     const isSpecialEntityTypeLookup = Object.fromEntries(
       entityTypes.map((type) => [
@@ -68,15 +58,10 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
     );
 
     const entityTypeParentIds = Object.fromEntries(
-      entityTypes.map((type) => [
-        type.schema.$id,
-        getParentIds(type.schema, typesByVersion),
-      ]),
+      entityTypes.map((type) => [type.schema.$id, getParentIds(type.schema, typesByVersion)]),
     );
 
-    const includesSpecialEntityTypes = (
-      entityTypeIds: VersionedUrl[],
-    ): SpecialEntityTypeRecord => {
+    const includesSpecialEntityTypes = (entityTypeIds: VersionedUrl[]): SpecialEntityTypeRecord => {
       const specialTypeRecord: SpecialEntityTypeRecord = {
         isFile: false,
         isImage: false,
@@ -88,8 +73,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
 
         if (record) {
           specialTypeRecord.isFile = specialTypeRecord.isFile || record.isFile;
-          specialTypeRecord.isImage =
-            specialTypeRecord.isImage || record.isImage;
+          specialTypeRecord.isImage = specialTypeRecord.isImage || record.isImage;
           specialTypeRecord.isLink = specialTypeRecord.isLink || record.isLink;
         }
       }

@@ -72,13 +72,7 @@ export const ImageField = ({
               </GrayToBlueIconButton>{" "}
             </Box>
           ) : null}
-          {!readonly && (
-            <FileUploadDropzone
-              image
-              multiple={false}
-              onFilesProvided={setNewImage}
-            />
-          )}
+          {!readonly && <FileUploadDropzone image multiple={false} onFilesProvided={setNewImage} />}
         </>
       ) : (
         <>

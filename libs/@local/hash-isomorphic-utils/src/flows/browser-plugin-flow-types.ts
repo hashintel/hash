@@ -52,11 +52,9 @@ export type ManualInferenceTriggerInputs = Subtype<
 
 type BaseInferenceArguments = { webId: WebId };
 
-export type AutomaticInferenceArguments = AutomaticInferenceTriggerInputs &
-  BaseInferenceArguments;
+export type AutomaticInferenceArguments = AutomaticInferenceTriggerInputs & BaseInferenceArguments;
 
-export type ManualInferenceArguments = ManualInferenceTriggerInputs &
-  BaseInferenceArguments;
+export type ManualInferenceArguments = ManualInferenceTriggerInputs & BaseInferenceArguments;
 
 export const browserInferenceFlowOutput = {
   name: "persistedEntities",

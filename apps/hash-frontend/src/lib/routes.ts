@@ -8,7 +8,5 @@ export const constructPageRelativeUrl = (params: {
   highlightedBlockEntityId?: EntityId;
 }): string =>
   `/@${params.workspaceShortname}/${params.pageEntityUuid}${
-    params.highlightedBlockEntityId
-      ? `#${getBlockDomId(params.highlightedBlockEntityId)}`
-      : ``
+    params.highlightedBlockEntityId ? `#${getBlockDomId(params.highlightedBlockEntityId)}` : ``
   }`;

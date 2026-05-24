@@ -83,10 +83,7 @@ Use `:` prefix for named/labeled arguments.
 **Object syntax:**
 
 ```jsonc
-[
-  "greet",
-  { ":name": { "#literal": "Alice" }, ":greeting": { "#literal": "Hello" } },
-]
+["greet", { ":name": { "#literal": "Alice" }, ":greeting": { "#literal": "Hello" } }]
 ```
 
 **Shorthand string syntax:**

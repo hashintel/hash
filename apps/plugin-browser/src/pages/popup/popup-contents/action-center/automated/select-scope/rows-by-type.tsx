@@ -15,16 +15,8 @@ type RuleByType = {
   restrictToDomains: string[];
 };
 
-const RowByType = (
-  props: Omit<CommonRowsProps, "draftRule"> & { rule: RuleByType },
-) => {
-  const {
-    domainOptions,
-    setDraftRule,
-    rule,
-    inferenceConfig,
-    setInferenceConfig,
-  } = props;
+const RowByType = (props: Omit<CommonRowsProps, "draftRule"> & { rule: RuleByType }) => {
+  const { domainOptions, setDraftRule, rule, inferenceConfig, setInferenceConfig } = props;
 
   const { rules } = inferenceConfig;
 
@@ -41,10 +33,7 @@ const RowByType = (
       restrictToDomains: string[];
     }) => {
       const rulesByType = rules.reduce<
-        Record<
-          VersionedUrl,
-          LocalStorage["automaticInferenceConfig"]["rules"][0]
-        >
+        Record<VersionedUrl, LocalStorage["automaticInferenceConfig"]["rules"][0]>
       >(
         (acc, existingRule) => ({
           ...acc,
@@ -73,26 +62,18 @@ const RowByType = (
        * For each of the (a) new user-selected entity type id, and (b) entity type ids linked to it,
        * check for existing rules and update them with the new domains.
        */
-      for (const entityTypeIdToUpdate of [
-        ...(newLinkedEntityTypeIds ?? []),
-        newEntityTypeId,
-      ]) {
+      for (const entityTypeIdToUpdate of [...(newLinkedEntityTypeIds ?? []), newEntityTypeId]) {
         /**
          * We want to merge in any domains assigned to an existing rule with this type,
          * unless it's the previous version of THIS rule, in which case we don't (as it prevents removing domains).
          */
         const duplicateRuleForType =
-          entityTypeIdToUpdate !== entityTypeId
-            ? rulesByType[entityTypeIdToUpdate]
-            : undefined;
+          entityTypeIdToUpdate !== entityTypeId ? rulesByType[entityTypeIdToUpdate] : undefined;
 
         rulesByType[entityTypeIdToUpdate] = {
           entityTypeId: entityTypeIdToUpdate,
           restrictToDomains: Array.from(
-            new Set([
-              ...restrictToDomains,
-              ...(duplicateRuleForType?.restrictToDomains ?? []),
-            ]),
+            new Set([...restrictToDomains, ...(duplicateRuleForType?.restrictToDomains ?? [])]),
           ),
         };
       }
@@ -171,13 +152,7 @@ const RowByType = (
 };
 
 export const RowsByType = (props: CommonRowsProps) => {
-  const {
-    domainOptions,
-    draftRule,
-    setDraftRule,
-    inferenceConfig,
-    setInferenceConfig,
-  } = props;
+  const { domainOptions, draftRule, setDraftRule, inferenceConfig, setInferenceConfig } = props;
 
   const { rules } = inferenceConfig;
 

@@ -220,9 +220,7 @@ describe("User model class", () => {
     });
 
     try {
-      const { data: loginFlow } = await kratosFrontendApi.createNativeLoginFlow(
-        {},
-      );
+      const { data: loginFlow } = await kratosFrontendApi.createNativeLoginFlow({});
 
       const { data: login } = await kratosFrontendApi.updateLoginFlow({
         flow: loginFlow.id,
@@ -239,10 +237,9 @@ describe("User model class", () => {
         throw new Error("Expected Kratos to return a native session token.");
       }
 
-      const { data: settingsFlow } =
-        await kratosFrontendApi.createNativeSettingsFlow({
-          xSessionToken: sessionToken,
-        });
+      const { data: settingsFlow } = await kratosFrontendApi.createNativeSettingsFlow({
+        xSessionToken: sessionToken,
+      });
 
       await expect(
         kratosFrontendApi.updateSettingsFlow({
@@ -275,15 +272,9 @@ describe("User model class", () => {
 
   it("can join an org", async () => {
     const authentication = { actorId: systemAccountId };
-    const testOrg = await createTestOrg(
-      graphContext,
-      authentication,
-      "userModelTest",
-    );
+    const testOrg = await createTestOrg(graphContext, authentication, "userModelTest");
 
-    const orgEntityUuid = extractEntityUuidFromEntityId(
-      testOrg.entity.metadata.recordId.entityId,
-    );
+    const orgEntityUuid = extractEntityUuidFromEntityId(testOrg.entity.metadata.recordId.entityId);
 
     expect(
       await isUserMemberOfOrg(graphContext, authentication, {
@@ -306,16 +297,11 @@ describe("User model class", () => {
 
     // Save for deletion tests: the is-member-of link lives in the org's web
     orgEntityId = testOrg.entity.metadata.recordId.entityId;
-    const memberships = await getUserOrgMemberships(
-      graphContext,
-      authentication,
-      {
-        userEntityId: createdUser.entity.metadata.recordId.entityId,
-      },
-    );
+    const memberships = await getUserOrgMemberships(graphContext, authentication, {
+      userEntityId: createdUser.entity.metadata.recordId.entityId,
+    });
     expect(memberships).toHaveLength(1);
-    membershipLinkEntityId =
-      memberships[0]!.linkEntity.metadata.recordId.entityId;
+    membershipLinkEntityId = memberships[0]!.linkEntity.metadata.recordId.entityId;
   });
 
   it("can read the user-web roles", async () => {
@@ -329,12 +315,10 @@ describe("User model class", () => {
 
     expect(Object.keys(UserWebRoleMap).length).toStrictEqual(2);
 
-    const userWebRoles = Object.values(UserWebRoleMap).map(
-      ({ webId, name }) => ({
-        webId,
-        name,
-      }),
-    );
+    const userWebRoles = Object.values(UserWebRoleMap).map(({ webId, name }) => ({
+      webId,
+      name,
+    }));
 
     expect(userWebRoles).toContainEqual({
       webId: createdUser.accountId,
@@ -349,12 +333,8 @@ describe("User model class", () => {
   it("rejects replacing the entire property object via empty path", async () => {
     const authentication = { actorId: createdUser.accountId };
 
-    const maliciousProperties = structuredClone(
-      createdUser.entity.propertiesWithMetadata,
-    );
-    maliciousProperties.value[
-      "https://hash.ai/@h/types/property-type/enabled-feature-flags/"
-    ] = {
+    const maliciousProperties = structuredClone(createdUser.entity.propertiesWithMetadata);
+    maliciousProperties.value["https://hash.ai/@h/types/property-type/enabled-feature-flags/"] = {
       value: [
         {
           value: "admin-flag",
@@ -376,9 +356,7 @@ describe("User model class", () => {
           },
         ],
       }),
-    ).rejects.toThrowError(
-      "Cannot replace the entire property object on a user entity",
-    );
+    ).rejects.toThrowError("Cannot replace the entire property object on a user entity");
   });
 
   let incompleteUser: User;
@@ -536,9 +514,7 @@ describe("User model class", () => {
                 equal: [
                   { path: ["uuid"] },
                   {
-                    parameter: extractEntityUuidFromEntityId(
-                      membershipLinkEntityId,
-                    ),
+                    parameter: extractEntityUuidFromEntityId(membershipLinkEntityId),
                   },
                 ],
               },
@@ -572,9 +548,7 @@ describe("User model class", () => {
                 equal: [
                   { path: ["uuid"] },
                   {
-                    parameter: extractEntityUuidFromEntityId(
-                      membershipLinkEntityId,
-                    ),
+                    parameter: extractEntityUuidFromEntityId(membershipLinkEntityId),
                   },
                 ],
               },
@@ -596,9 +570,7 @@ describe("User model class", () => {
 
       expect(entities.length).toBe(1);
       const archivedLink = entities[entities.length - 1]!;
-      expect(
-        archivedLink.metadata.provenance.edition.archivedById,
-      ).toBeDefined();
+      expect(archivedLink.metadata.provenance.edition.archivedById).toBeDefined();
     });
 
     it("can delete a user by email", async () => {

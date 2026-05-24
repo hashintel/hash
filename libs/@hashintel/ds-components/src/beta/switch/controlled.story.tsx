@@ -7,10 +7,7 @@ import * as Switch from "../switch";
 export const App = () => {
   const [checked, setChecked] = useState(false);
   return (
-    <Switch.Root
-      checked={checked}
-      onCheckedChange={(e) => setChecked(e.checked)}
-    >
+    <Switch.Root checked={checked} onCheckedChange={(e) => setChecked(e.checked)}>
       <Switch.Control>
         <Switch.Thumb />
       </Switch.Control>

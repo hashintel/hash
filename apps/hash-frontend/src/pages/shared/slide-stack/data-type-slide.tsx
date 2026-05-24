@@ -1,9 +1,6 @@
 import { type FunctionComponent } from "react";
 
-import {
-  componentsFromVersionedUrl,
-  type VersionedUrl,
-} from "@blockprotocol/type-system";
+import { componentsFromVersionedUrl, type VersionedUrl } from "@blockprotocol/type-system";
 
 import { DataType } from "../data-type";
 

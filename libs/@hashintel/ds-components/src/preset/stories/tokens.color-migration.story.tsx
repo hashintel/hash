@@ -159,9 +159,7 @@ const RadixSwatch = ({ step }: { step: string }) => {
 };
 
 export const ColorMappings: Story = () => {
-  const radixIndex = Object.fromEntries(
-    RADIX_STEPS.map((step, i) => [step, i]),
-  );
+  const radixIndex = Object.fromEntries(RADIX_STEPS.map((step, i) => [step, i]));
 
   const figmaPositioned = FIGMA_STEPS.map((figmaStep) => {
     const radixStep = FIGMA_TO_RADIX_MAP[figmaStep];
@@ -187,9 +185,9 @@ export const ColorMappings: Story = () => {
             maxWidth: "[700px]",
           })}
         >
-          The radix neutral scale is shown on top. Below it, legacy Figma gray
-          chips are positioned under their mapped radix step. Edit
-          FIGMA_TO_RADIX_MAP in the story source to adjust the alignment.
+          The radix neutral scale is shown on top. Below it, legacy Figma gray chips are positioned
+          under their mapped radix step. Edit FIGMA_TO_RADIX_MAP in the story source to adjust the
+          alignment.
         </p>
       </VStack>
 
@@ -218,9 +216,7 @@ export const ColorMappings: Story = () => {
         {/* Row 3: Figma gray, placed in mapped columns */}
         <span className={labelStyles}>figma gray</span>
         {RADIX_STEPS.map((radixStep) => {
-          const figmaStep = figmaPositioned.find(
-            (f) => f.radixStep === radixStep,
-          );
+          const figmaStep = figmaPositioned.find((f) => f.radixStep === radixStep);
           return figmaStep ? (
             <FigmaSwatch key={radixStep} step={figmaStep.figmaStep} />
           ) : (
@@ -249,9 +245,7 @@ export const ColorMappings: Story = () => {
           })}
         >
           Edit{" "}
-          <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
-            FIGMA_TO_RADIX_MAP
-          </code>{" "}
+          <code className={css({ fontFamily: "mono", textStyle: "xs" })}>FIGMA_TO_RADIX_MAP</code>{" "}
           in{" "}
           <code className={css({ fontFamily: "mono", textStyle: "xs" })}>
             colors.comparison.story.tsx

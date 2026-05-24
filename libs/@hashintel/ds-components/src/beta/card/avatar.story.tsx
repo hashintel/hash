@@ -28,8 +28,7 @@ export const App = () => {
       </Card.Header>
       <Card.Body>
         <Card.Description>
-          Nate Foss has requested to join your team. You can approve or decline
-          their request.
+          Nate Foss has requested to join your team. You can approve or decline their request.
         </Card.Description>
       </Card.Body>
       <Card.Footer>

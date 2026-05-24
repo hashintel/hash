@@ -2,10 +2,7 @@ import { Box } from "@mui/material";
 import { produce } from "immer";
 import { useMemo, useState } from "react";
 
-import {
-  currentTimestamp,
-  extractDraftIdFromEntityId,
-} from "@blockprotocol/type-system";
+import { currentTimestamp, extractDraftIdFromEntityId } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import { getImageUrlFromEntityProperties } from "../../../../../../get-file-properties";
@@ -19,11 +16,7 @@ import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 import { LinkedEntitySelector } from "./linked-entity-selector";
 
 import type { LinkedWithCell } from "../linked-with-cell";
-import type {
-  ActorEntityUuid,
-  EntityId,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 
 /**
@@ -81,29 +74,20 @@ export const createDraftLinkEntity = ({
     },
   });
 
-export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
-  props,
-) => {
-  const { entity, draftLinksToCreate, setDraftLinksToCreate, readonly } =
-    useEntityEditor();
+export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (props) => {
+  const { entity, draftLinksToCreate, setDraftLinksToCreate, readonly } = useEntityEditor();
   const markLinkEntityToArchive = useMarkLinkEntityToArchive();
 
   const { value: cell, onFinishedEditing, onChange } = props;
-  const {
-    expectedEntityTypes,
-    linkAndTargetEntities,
-    linkEntityTypeId,
-    linkTitle,
-    maxItems,
-  } = cell.data.linkRow;
+  const { expectedEntityTypes, linkAndTargetEntities, linkEntityTypeId, linkTitle, maxItems } =
+    cell.data.linkRow;
 
   const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
 
   const onSelect = (selectedEntity: HashEntity, entityLabel: string) => {
     const alreadyLinked = linkAndTargetEntities.find(
       ({ rightEntity }) =>
-        rightEntity.metadata.recordId.entityId ===
-        selectedEntity.metadata.recordId.entityId,
+        rightEntity.metadata.recordId.entityId === selectedEntity.metadata.recordId.entityId,
     );
 
     // if same entity is already linked, do nothing
@@ -142,79 +126,63 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     onChange(newCell);
   };
 
-  const sortedLinkAndTargetEntities = sortLinkAndTargetEntities(
-    linkAndTargetEntities,
-  );
+  const sortedLinkAndTargetEntities = sortLinkAndTargetEntities(linkAndTargetEntities);
 
-  const canAddMore =
-    maxItems === undefined || linkAndTargetEntities.length < maxItems;
+  const canAddMore = maxItems === undefined || linkAndTargetEntities.length < maxItems;
 
   const linkedEntityIds = useMemo(
-    () =>
-      linkAndTargetEntities.map(
-        ({ rightEntity }) => rightEntity.metadata.recordId.entityId,
-      ),
+    () => linkAndTargetEntities.map(({ rightEntity }) => rightEntity.metadata.recordId.entityId),
     [linkAndTargetEntities],
   );
 
   return (
     <GridEditorWrapper>
       <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
-        {sortedLinkAndTargetEntities.map(
-          ({ rightEntity, linkEntity, rightEntityLabel }) => {
-            const linkEntityId = linkEntity.metadata.recordId.entityId;
+        {sortedLinkAndTargetEntities.map(({ rightEntity, linkEntity, rightEntityLabel }) => {
+          const linkEntityId = linkEntity.metadata.recordId.entityId;
 
-            const isUncreatedDraftLink = draftLinksToCreate.some(
-              (draftLink) =>
-                draftLink.linkEntity.metadata.recordId.entityId ===
-                linkEntityId,
-            );
+          const isUncreatedDraftLink = draftLinksToCreate.some(
+            (draftLink) => draftLink.linkEntity.metadata.recordId.entityId === linkEntityId,
+          );
 
-            return (
-              <LinkedEntityListRow
-                key={linkEntityId}
-                closeEditor={onFinishedEditing}
-                entityId={
-                  isUncreatedDraftLink
-                    ? /**
-                       * If the link hasn't yet been created, we can't open it in the slideover. So we open the target entity instead.
-                       * In case the link entity HAS been created, it's more useful to open the link entity itself (to be able to see any attributes on the link).
-                       * Ideally we'd be able to also be able to edit the properties of the draft link entity.
-                       */
-                      rightEntity.metadata.recordId.entityId
-                    : linkEntityId
-                }
-                imageSrc={getImageUrlFromEntityProperties(
-                  rightEntity.properties,
-                )}
-                title={rightEntityLabel}
-                onDelete={() => {
-                  const newCell = produce(cell, (draftCell) => {
-                    draftCell.data.linkRow.linkAndTargetEntities =
-                      draftCell.data.linkRow.linkAndTargetEntities.filter(
-                        (item) =>
-                          item.linkEntity.metadata.recordId.entityId !==
-                          linkEntityId,
-                      );
-                  });
+          return (
+            <LinkedEntityListRow
+              key={linkEntityId}
+              closeEditor={onFinishedEditing}
+              entityId={
+                isUncreatedDraftLink
+                  ? /**
+                     * If the link hasn't yet been created, we can't open it in the slideover. So we open the target entity instead.
+                     * In case the link entity HAS been created, it's more useful to open the link entity itself (to be able to see any attributes on the link).
+                     * Ideally we'd be able to also be able to edit the properties of the draft link entity.
+                     */
+                    rightEntity.metadata.recordId.entityId
+                  : linkEntityId
+              }
+              imageSrc={getImageUrlFromEntityProperties(rightEntity.properties)}
+              title={rightEntityLabel}
+              onDelete={() => {
+                const newCell = produce(cell, (draftCell) => {
+                  draftCell.data.linkRow.linkAndTargetEntities =
+                    draftCell.data.linkRow.linkAndTargetEntities.filter(
+                      (item) => item.linkEntity.metadata.recordId.entityId !== linkEntityId,
+                    );
+                });
 
-                  onChange(newCell);
+                onChange(newCell);
 
-                  markLinkEntityToArchive(linkEntityId);
-                }}
-              />
-            );
-          },
-        )}
+                markLinkEntityToArchive(linkEntityId);
+              }}
+            />
+          );
+        })}
       </Box>
       {!canAddMore && <MaxItemsReached limit={maxItems} />}
       {canAddMore &&
         !readonly &&
         (addingLink ? (
           <LinkedEntitySelector
-            includeDrafts={
-              !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
-            }
+            includeDrafts={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
             onSelect={onSelect}
             onFinishedEditing={onFinishedEditing}
             expectedEntityTypes={expectedEntityTypes}

@@ -17,10 +17,7 @@ const updatePackageJson = () => {
 
   delete packageJson.devDependencies;
 
-  fs.writeFileSync(
-    packageJsonPath,
-    `${JSON.stringify(packageJson, null, 2)}\n`,
-  );
+  fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 };
 
 const main = () => {

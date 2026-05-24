@@ -5,9 +5,7 @@ import type { CustomCell, DrawArgs, Theme } from "@glideapps/glide-data-grid";
 /**
  * @returns vertical center of a grid cell, relative to the visible grid area
  */
-export const getYCenter = (
-  args: Pick<DrawArgs<CustomCell>, "rect" | "ctx"> & { theme: Theme },
-) => {
+export const getYCenter = (args: Pick<DrawArgs<CustomCell>, "rect" | "ctx"> & { theme: Theme }) => {
   const { rect, ctx, theme } = args;
   const { y, height } = rect;
 
@@ -18,8 +16,7 @@ export const getYCenter = (
  * @param atFirstColumn first columns has extra padding for the chevron icon on the left side
  * @returns cell horizontal padding
  */
-export const getCellHorizontalPadding = (atFirstColumn?: boolean) =>
-  atFirstColumn ? 42 : 22;
+export const getCellHorizontalPadding = (atFirstColumn?: boolean) => (atFirstColumn ? 42 : 22);
 
 export type BlankCell = CustomCell<{ kind: "blank-cell" }>;
 

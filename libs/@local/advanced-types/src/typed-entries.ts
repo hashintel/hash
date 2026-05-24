@@ -19,10 +19,7 @@ type ObjectEntry<T extends Record<string, unknown>> = T extends object
   : never;
 
 // Source: https://dev.to/harry0000/a-bit-convenient-typescript-type-definitions-for-objectentries-d6g
-export type Entry<T extends Record<string, unknown>> = T extends readonly [
-  unknown,
-  ...unknown[],
-]
+export type Entry<T extends Record<string, unknown>> = T extends readonly [unknown, ...unknown[]]
   ? TupleEntry<T>
   : T extends ReadonlyArray<infer U>
     ? [`${number}`, U]
@@ -36,15 +33,11 @@ export function typedEntries<T extends Record<string, unknown>>(
 }
 
 /** `Object.keys` analogue which returns a well-typed array */
-export const typedKeys = <T extends Record<string, unknown>>(
-  object: T,
-): Entry<T>[0][] => {
+export const typedKeys = <T extends Record<string, unknown>>(object: T): Entry<T>[0][] => {
   return Object.keys(object) as Entry<T>[0][];
 };
 
 /** `Object.values` analogue which returns a well-typed array */
-export const typedValues = <T extends Record<string, unknown>>(
-  object: T,
-): Entry<T>[1][] => {
+export const typedValues = <T extends Record<string, unknown>>(object: T): Entry<T>[1][] => {
   return Object.values(object);
 };

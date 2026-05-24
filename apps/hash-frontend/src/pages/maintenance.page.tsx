@@ -7,10 +7,7 @@ import {
   UserPlusRegularIcon,
 } from "@hashintel/design-system";
 
-import {
-  getLayoutWithSidebar,
-  type NextPageWithLayout,
-} from "../shared/layout";
+import { getLayoutWithSidebar, type NextPageWithLayout } from "../shared/layout";
 import { HEADER_HEIGHT } from "../shared/layout/layout-with-header/page-header";
 import { Link } from "../shared/ui/link";
 
@@ -22,8 +19,7 @@ const ReloadButton = ({ color }: { color: "blue" | "white" }) => {
       sx={{
         borderRadius: 2,
         mt: 5,
-        boxShadow:
-          color === "white" ? ({ boxShadows }) => boxShadows.md : undefined,
+        boxShadow: color === "white" ? ({ boxShadows }) => boxShadows.md : undefined,
         fontWeight: 600,
       }}
       variant={color === "white" ? "tertiary_quiet" : "primary"}
@@ -31,8 +27,7 @@ const ReloadButton = ({ color }: { color: "blue" | "white" }) => {
       Reload page
       <ArrowsRotateRegularIcon
         sx={{
-          fill: ({ palette }) =>
-            color === "white" ? palette.blue[70] : palette.blue[40],
+          fill: ({ palette }) => (color === "white" ? palette.blue[70] : palette.blue[40]),
           fontSize: 14,
           ml: 1.5,
         }}
@@ -71,8 +66,8 @@ const NewUserFallback = () => {
           mb: 2,
         }}
       >
-        We’re currently upgrading HASH’s servers. You’ll be able to finish
-        signing up when we’re done.
+        We’re currently upgrading HASH’s servers. You’ll be able to finish signing up when we’re
+        done.
       </Typography>
       <Typography
         component="p"
@@ -110,10 +105,7 @@ const DefaultFallback = () => {
       >
         <strong>New users:</strong>
         {" you can still "}
-        <Link
-          href="https://hash.ai?signup"
-          sx={{ fontWeight: 600, textDecoration: "none" }}
-        >
+        <Link href="https://hash.ai?signup" sx={{ fontWeight: 600, textDecoration: "none" }}>
           sign up for updates
         </Link>{" "}
         as we complete this upgrade
@@ -157,8 +149,7 @@ const DefaultFallback = () => {
 };
 
 const MaintenancePage: NextPageWithLayout = () => {
-  const isSignup =
-    typeof window !== "undefined" && window.location.search.includes("email=");
+  const isSignup = typeof window !== "undefined" && window.location.search.includes("email=");
 
   return (
     <Box

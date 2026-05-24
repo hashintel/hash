@@ -3,11 +3,6 @@
 [
   "if",
   { "#literal": true },
-  [
-    "let",
-    "a",
-    { "#literal": 42 },
-    ["let", "tup", { "#tuple": ["a"] }, "tup.0"]
-  ],
+  ["let", "a", { "#literal": 42 }, ["let", "tup", { "#tuple": ["a"] }, "tup.0"]],
   { "#literal": 0 }
 ]

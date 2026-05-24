@@ -13,9 +13,7 @@ export type OutgoingLinkEdge = Subtype<
   }
 >;
 
-export const isOutgoingLinkEdge = (
-  outwardEdge: OutwardEdge,
-): outwardEdge is OutgoingLinkEdge => {
+export const isOutgoingLinkEdge = (outwardEdge: OutwardEdge): outwardEdge is OutgoingLinkEdge => {
   return outwardEdge.kind === "HAS_LEFT_ENTITY" && outwardEdge.reversed;
 };
 
@@ -28,9 +26,7 @@ export type HasLeftEntityEdge = Subtype<
   }
 >;
 
-export const isHasLeftEntityEdge = (
-  outwardEdge: OutwardEdge,
-): outwardEdge is HasLeftEntityEdge => {
+export const isHasLeftEntityEdge = (outwardEdge: OutwardEdge): outwardEdge is HasLeftEntityEdge => {
   return outwardEdge.kind === "HAS_LEFT_ENTITY" && !outwardEdge.reversed;
 };
 
@@ -58,9 +54,7 @@ export type IncomingLinkEdge = Subtype<
   }
 >;
 
-export const isIncomingLinkEdge = (
-  outwardEdge: OutwardEdge,
-): outwardEdge is IncomingLinkEdge => {
+export const isIncomingLinkEdge = (outwardEdge: OutwardEdge): outwardEdge is IncomingLinkEdge => {
   return outwardEdge.kind === "HAS_RIGHT_ENTITY" && outwardEdge.reversed;
 };
 
@@ -73,9 +67,7 @@ export type IsOfTypeEdge = Subtype<
   }
 >;
 
-export const isIsOfTypeEdge = (
-  outwardEdge: OutwardEdge,
-): outwardEdge is IsOfTypeEdge => {
+export const isIsOfTypeEdge = (outwardEdge: OutwardEdge): outwardEdge is IsOfTypeEdge => {
   return outwardEdge.kind === "IS_OF_TYPE" && !outwardEdge.reversed;
 };
 

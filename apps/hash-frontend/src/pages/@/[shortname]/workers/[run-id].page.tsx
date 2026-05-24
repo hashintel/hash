@@ -2,14 +2,8 @@ import { useRouter } from "next/router";
 
 import { getLayoutWithSidebar } from "../../../../shared/layout";
 import { FlowDefinitionsContextProvider } from "../../../shared/flow-definitions-context";
-import {
-  FlowRunsContextProvider,
-  useFlowRunsContext,
-} from "../../../shared/flow-runs-context";
-import {
-  FlowRunVisualizerSkeleton,
-  FlowVisualizer,
-} from "../shared/flow-visualizer";
+import { FlowRunsContextProvider, useFlowRunsContext } from "../../../shared/flow-runs-context";
+import { FlowRunVisualizerSkeleton, FlowVisualizer } from "../shared/flow-visualizer";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import type { EntityUuid } from "@blockprotocol/type-system";

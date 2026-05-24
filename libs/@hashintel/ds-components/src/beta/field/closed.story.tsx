@@ -10,8 +10,7 @@ export interface FieldProps extends Omit<StyledField.RootProps, "label"> {
 }
 
 export const Field = forwardRef<HTMLDivElement, FieldProps>((props, ref) => {
-  const { label, children, helperText, errorText, optionalText, ...rest } =
-    props;
+  const { label, children, helperText, errorText, optionalText, ...rest } = props;
   return (
     <StyledField.Root ref={ref} {...rest}>
       {label && (
@@ -21,9 +20,7 @@ export const Field = forwardRef<HTMLDivElement, FieldProps>((props, ref) => {
         </StyledField.Label>
       )}
       {children}
-      {helperText && (
-        <StyledField.HelperText>{helperText}</StyledField.HelperText>
-      )}
+      {helperText && <StyledField.HelperText>{helperText}</StyledField.HelperText>}
       <StyledField.ErrorText>{errorText}</StyledField.ErrorText>
     </StyledField.Root>
   );

@@ -5,9 +5,7 @@ import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 /**
  * Preprocesses the AI review response to fix a common formatting issue (arrays being returned as strings)
  */
-export const fixJsonFormatting = (
-  response: unknown,
-): Record<string, unknown> => {
+export const fixJsonFormatting = (response: unknown): Record<string, unknown> => {
   if (typeof response !== "object" || response === null) {
     throw new Error("AI review response is not an object");
   }
@@ -48,17 +46,13 @@ export const fixJsonFormatting = (
             const arrayItems = items.map((item) => {
               // Add back the curly braces
               const objectStr = item.startsWith("{") ? item : `{${item}`;
-              const fullObjectStr = objectStr.endsWith("}")
-                ? objectStr
-                : `${objectStr}}`;
+              const fullObjectStr = objectStr.endsWith("}") ? objectStr : `${objectStr}}`;
 
               try {
                 // Use type assertion to avoid unsafe return
                 return JSON.parse(fullObjectStr) as Record<string, unknown>;
               } catch {
-                console.error(
-                  chalk.red(`Failed to parse object: ${fullObjectStr}`),
-                );
+                console.error(chalk.red(`Failed to parse object: ${fullObjectStr}`));
                 process.exit(1);
                 return null;
               }
@@ -98,11 +92,7 @@ export const fixJsonFormatting = (
           }
         } catch (manualError) {
           console.error(
-            chalk.red(
-              `Failed manual conversion for key "${key}": ${stringifyError(
-                manualError,
-              )}`,
-            ),
+            chalk.red(`Failed manual conversion for key "${key}": ${stringifyError(manualError)}`),
           );
 
           process.exit(1);

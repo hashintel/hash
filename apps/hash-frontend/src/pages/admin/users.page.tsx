@@ -1,18 +1,9 @@
 import { useMutation } from "@apollo/client";
-import {
-  Box,
-  type SxProps,
-  TableCell,
-  type Theme,
-  Typography,
-} from "@mui/material";
+import { Box, type SxProps, TableCell, type Theme, Typography } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 
 import { Chip, Select } from "@hashintel/design-system";
-import {
-  type FeatureFlag,
-  featureFlags,
-} from "@local/hash-isomorphic-utils/feature-flags";
+import { type FeatureFlag, featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   blockProtocolDataTypes,
   systemPropertyTypes,
@@ -37,10 +28,7 @@ import type {
 } from "../../graphql/api-types.gen";
 import type { NextPageWithLayout } from "../../shared/layout";
 import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
-import type {
-  EntityId,
-  PropertyArrayWithMetadata,
-} from "@blockprotocol/type-system";
+import type { EntityId, PropertyArrayWithMetadata } from "@blockprotocol/type-system";
 
 const noValueTableCellContent = (
   <Typography component="i" sx={{ color: ({ palette }) => palette.gray[50] }}>
@@ -54,12 +42,7 @@ const cellSx: SxProps<Theme> = {
   height: 40,
 };
 
-type FieldId =
-  | "shortname"
-  | "displayName"
-  | "email"
-  | "createdAt"
-  | "enabledFeatureFlags";
+type FieldId = "shortname" | "displayName" | "email" | "createdAt" | "enabledFeatureFlags";
 
 const columns: VirtualizedTableColumn<FieldId>[] = [
   {
@@ -105,39 +88,25 @@ type UserRowData = {
 };
 
 const TableRow = memo(({ user }: { user: UserRowData }) => {
-  const {
-    shortname,
-    displayName,
-    email,
-    createdAt,
-    enabledFeatureFlags,
-    refetchUsers,
-  } = user;
+  const { shortname, displayName, email, createdAt, enabledFeatureFlags, refetchUsers } = user;
 
-  const { refetch: refetchAuthenticatedUser, authenticatedUser } =
-    useAuthenticatedUser();
+  const { refetch: refetchAuthenticatedUser, authenticatedUser } = useAuthenticatedUser();
 
-  const [updateEntity] = useMutation<
-    UpdateEntityMutation,
-    UpdateEntityMutationVariables
-  >(updateEntityMutation, {
-    onCompleted: refetchUsers,
-  });
+  const [updateEntity] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
+    updateEntityMutation,
+    {
+      onCompleted: refetchUsers,
+    },
+  );
 
   const [selectOpen, setSelectOpen] = useState(false);
 
   return (
     <>
       <TableCell sx={cellSx}>
-        {shortname ? (
-          <Link href={`/@${shortname}`}>@{shortname}</Link>
-        ) : (
-          noValueTableCellContent
-        )}
+        {shortname ? <Link href={`/@${shortname}`}>@{shortname}</Link> : noValueTableCellContent}
       </TableCell>
-      <TableCell sx={cellSx}>
-        {displayName ?? noValueTableCellContent}
-      </TableCell>
+      <TableCell sx={cellSx}>{displayName ?? noValueTableCellContent}</TableCell>
       <TableCell sx={cellSx}>{email}</TableCell>
       <TableCell sx={cellSx}>{new Date(createdAt).toISOString()}</TableCell>
       <TableCell sx={cellSx}>
@@ -151,21 +120,15 @@ const TableRow = memo(({ user }: { user: UserRowData }) => {
                   entityId: user.entityId,
                   propertyPatches: [
                     {
-                      path: [
-                        systemPropertyTypes.enabledFeatureFlags
-                          .propertyTypeBaseUrl,
-                      ],
+                      path: [systemPropertyTypes.enabledFeatureFlags.propertyTypeBaseUrl],
                       op: "add",
                       property: {
-                        value: (event.target.value as string[]).map(
-                          (featureFlag) => ({
-                            value: featureFlag,
-                            metadata: {
-                              dataTypeId:
-                                blockProtocolDataTypes.text.dataTypeId,
-                            },
-                          }),
-                        ),
+                        value: (event.target.value as string[]).map((featureFlag) => ({
+                          value: featureFlag,
+                          metadata: {
+                            dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                          },
+                        })),
                       } satisfies PropertyArrayWithMetadata,
                     },
                   ],
@@ -175,10 +138,7 @@ const TableRow = memo(({ user }: { user: UserRowData }) => {
 
             setSelectOpen(false);
 
-            if (
-              authenticatedUser.entity.metadata.recordId.entityId ===
-              user.entityId
-            ) {
+            if (authenticatedUser.entity.metadata.recordId.entityId === user.entityId) {
               void refetchAuthenticatedUser();
             }
 
@@ -221,10 +181,9 @@ const TableRow = memo(({ user }: { user: UserRowData }) => {
   );
 });
 
-const createRowContent: CreateVirtualizedRowContentFn<UserRowData> = (
-  _index,
-  row,
-) => <TableRow user={row.data} />;
+const createRowContent: CreateVirtualizedRowContentFn<UserRowData> = (_index, row) => (
+  <TableRow user={row.data} />
+);
 
 const AdminUsersPage: NextPageWithLayout = () => {
   const { users, refetch } = useUsers();
@@ -249,10 +208,7 @@ const AdminUsersPage: NextPageWithLayout = () => {
             (user.entity.properties[
               "https://hash.ai/@h/types/property-type/enabled-feature-flags/"
             ] as FeatureFlag[] | undefined) ?? [],
-          email:
-            user.entity.properties[
-              "https://hash.ai/@h/types/property-type/email/"
-            ][0],
+          email: user.entity.properties["https://hash.ai/@h/types/property-type/email/"][0],
           createdAt: user.entity.metadata.provenance.createdAtDecisionTime,
           entityId: user.entity.metadata.recordId.entityId,
           refetchUsers: refetch,
@@ -264,25 +220,17 @@ const AdminUsersPage: NextPageWithLayout = () => {
 
         if (field === "enabledFeatureFlags") {
           return (
-            (a.data.enabledFeatureFlags.length -
-              b.data.enabledFeatureFlags.length) *
-            direction
+            (a.data.enabledFeatureFlags.length - b.data.enabledFeatureFlags.length) * direction
           );
         }
 
-        return (
-          (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
-        );
+        return (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction;
       });
   }, [users, refetch, sort]);
 
   return (
     <>
-      <Typography
-        variant="smallCaps"
-        sx={{ marginBottom: 1, ml: 0.5 }}
-        component="div"
-      >
+      <Typography variant="smallCaps" sx={{ marginBottom: 1, ml: 0.5 }} component="div">
         Registered Users {users ? `(${users.length})` : ""}
       </Typography>
       <Box sx={{ height: 600 }}>

@@ -35,16 +35,13 @@ const LogoutButton = styled((props: ButtonProps) => (
 const VerifyEmailPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { logout } = useLogoutFlow();
-  const { authenticatedUser, emailVerificationStatusKnown, refetch } =
-    useAuthInfo();
+  const { authenticatedUser, emailVerificationStatusKnown, refetch } = useAuthInfo();
 
   const primaryEmailVerified =
     authenticatedUser?.emails.find(({ primary }) => primary)?.verified ?? false;
 
-  const urlCode =
-    typeof router.query.code === "string" ? router.query.code : undefined;
-  const urlFlowId =
-    typeof router.query.flow === "string" ? router.query.flow : undefined;
+  const urlCode = typeof router.query.code === "string" ? router.query.code : undefined;
+  const urlFlowId = typeof router.query.flow === "string" ? router.query.flow : undefined;
 
   const [autoVerifying, setAutoVerifying] = useState(false);
   const [autoVerifyError, setAutoVerifyError] = useState<string>();
@@ -68,13 +65,7 @@ const VerifyEmailPage: NextPageWithLayout = () => {
       }`;
       void router.replace(`/signin?return_to=${encodeURIComponent(returnTo)}`);
     }
-  }, [
-    authenticatedUser,
-    emailVerificationStatusKnown,
-    router,
-    urlCode,
-    urlFlowId,
-  ]);
+  }, [authenticatedUser, emailVerificationStatusKnown, router, urlCode, urlFlowId]);
 
   /**
    * When the page is loaded with both `code` and `flow` query params (e.g.
@@ -131,13 +122,10 @@ const VerifyEmailPage: NextPageWithLayout = () => {
         }
       })
       .catch((error: AxiosError) => {
-        const flowData = error.response?.data as
-          | Partial<VerificationFlow>
-          | undefined;
+        const flowData = error.response?.data as Partial<VerificationFlow> | undefined;
         const errorMessages =
-          flowData?.ui?.messages
-            ?.filter(({ type }) => type === "error")
-            .map(({ text }) => text) ?? [];
+          flowData?.ui?.messages?.filter(({ type }) => type === "error").map(({ text }) => text) ??
+          [];
 
         setAutoVerifyError(
           errorMessages.length > 0
@@ -149,14 +137,7 @@ const VerifyEmailPage: NextPageWithLayout = () => {
         // Strip the code and flow params from the URL so we don't retry
         void router.replace("/verification", undefined, { shallow: true });
       });
-  }, [
-    urlCode,
-    urlFlowId,
-    authenticatedUser,
-    primaryEmailVerified,
-    refetch,
-    router,
-  ]);
+  }, [urlCode, urlFlowId, authenticatedUser, primaryEmailVerified, refetch, router]);
 
   if (primaryEmailVerified) {
     return null;
@@ -170,11 +151,7 @@ const VerifyEmailPage: NextPageWithLayout = () => {
 
   if (autoVerifying) {
     return (
-      <AuthLayout
-        headerEndAdornment={
-          <LogoutButton onClick={logout}>Log out</LogoutButton>
-        }
-      >
+      <AuthLayout headerEndAdornment={<LogoutButton onClick={logout}>Log out</LogoutButton>}>
         <Box
           sx={{
             display: "flex",
@@ -184,9 +161,7 @@ const VerifyEmailPage: NextPageWithLayout = () => {
           }}
         >
           <CircularProgress size={32} />
-          <Typography
-            sx={{ fontSize: 16, color: ({ palette }) => palette.gray[70] }}
-          >
+          <Typography sx={{ fontSize: 16, color: ({ palette }) => palette.gray[70] }}>
             Verifying your email...
           </Typography>
         </Box>
@@ -195,9 +170,7 @@ const VerifyEmailPage: NextPageWithLayout = () => {
   }
 
   return (
-    <AuthLayout
-      headerEndAdornment={<LogoutButton onClick={logout}>Log out</LogoutButton>}
-    >
+    <AuthLayout headerEndAdornment={<LogoutButton onClick={logout}>Log out</LogoutButton>}>
       <Box sx={{ maxWidth: 600 }}>
         <VerifyEmailStep
           email={authenticatedUser.emails[0]?.address ?? ""}

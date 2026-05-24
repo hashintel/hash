@@ -14,10 +14,9 @@ export const useBlockProtocolUpdateEntityType = (
 ): {
   updateEntityType: UpdateEntityTypeMessageCallback;
 } => {
-  const [updateFn] = useMutation<
-    UpdateEntityTypeMutation,
-    UpdateEntityTypeMutationVariables
-  >(updateEntityTypeMutation);
+  const [updateFn] = useMutation<UpdateEntityTypeMutation, UpdateEntityTypeMutationVariables>(
+    updateEntityTypeMutation,
+  );
 
   const updateEntityType: UpdateEntityTypeMessageCallback = useCallback(
     async ({ data }) => {

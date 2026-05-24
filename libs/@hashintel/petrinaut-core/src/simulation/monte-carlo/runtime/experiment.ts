@@ -4,16 +4,9 @@ import type { AbortSignalLike } from "../../../environment";
 import type { ReadableStore } from "../../../handle";
 import type { EventStream } from "../../../instance";
 import type { SDCPN } from "../../../types/sdcpn";
-import type {
-  InitialMarking,
-  SimulationTransport,
-  WorkerFactory,
-} from "../../api";
+import type { InitialMarking, SimulationTransport, WorkerFactory } from "../../api";
 import type { PlaceTokenCountDistributionFrame } from "../metrics";
-import type {
-  MonteCarloToMainMessage,
-  MonteCarloWorkerProgress,
-} from "../worker/messages";
+import type { MonteCarloToMainMessage, MonteCarloWorkerProgress } from "../worker/messages";
 
 export type MonteCarloExperimentState =
   | "Initializing"
@@ -258,9 +251,7 @@ export function createMonteCarloExperiment(
       });
     } catch (error) {
       rejectBeforeReady(
-        error instanceof Error
-          ? error
-          : new Error("Failed to initialize Monte Carlo experiment"),
+        error instanceof Error ? error : new Error("Failed to initialize Monte Carlo experiment"),
       );
     }
   });

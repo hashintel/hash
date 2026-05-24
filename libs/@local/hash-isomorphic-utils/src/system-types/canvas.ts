@@ -123,8 +123,7 @@ export type CanvasHasSpatiallyPositionedContentLink = {
   rightEntity: Block;
 };
 
-export type CanvasOutgoingLinkAndTarget =
-  CanvasHasSpatiallyPositionedContentLink;
+export type CanvasOutgoingLinkAndTarget = CanvasHasSpatiallyPositionedContentLink;
 
 export type CanvasOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/has-spatially-positioned-content/v/1": CanvasHasSpatiallyPositionedContentLink;
@@ -144,9 +143,7 @@ export type CanvasPropertiesWithMetadata = PagePropertiesWithMetadata & {
  * Something contained at a spatial position by something
  */
 export type HasSpatiallyPositionedContent = {
-  entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/has-spatially-positioned-content/v/1",
-  ];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/has-spatially-positioned-content/v/1"];
   properties: HasSpatiallyPositionedContentProperties;
   propertiesWithMetadata: HasSpatiallyPositionedContentPropertiesWithMetadata;
 };
@@ -166,33 +163,30 @@ export type HasSpatiallyPositionedContentProperties = LinkProperties & {
   "https://hash.ai/@h/types/property-type/y-position/": YPositionPropertyValue;
 };
 
-export type HasSpatiallyPositionedContentPropertiesWithMetadata =
-  LinkPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {
-      "https://hash.ai/@h/types/property-type/height-in-pixels/": HeightInPixelsPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/rotation-in-rads/": RotationInRadsPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/width-in-pixels/": WidthInPixelsPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/x-position/": XPositionPropertyValueWithMetadata;
-      "https://hash.ai/@h/types/property-type/y-position/": YPositionPropertyValueWithMetadata;
-    };
+export type HasSpatiallyPositionedContentPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/height-in-pixels/": HeightInPixelsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/rotation-in-rads/": RotationInRadsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/width-in-pixels/": WidthInPixelsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/x-position/": XPositionPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/y-position/": YPositionPropertyValueWithMetadata;
   };
+};
 
 /**
  * The height of something in pixels.
  */
 export type HeightInPixelsPropertyValue = NumberDataType;
 
-export type HeightInPixelsPropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+export type HeightInPixelsPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * The rotation of something in radians.
  */
 export type RotationInRadsPropertyValue = NumberDataType;
 
-export type RotationInRadsPropertyValueWithMetadata =
-  NumberDataTypeWithMetadata;
+export type RotationInRadsPropertyValueWithMetadata = NumberDataTypeWithMetadata;
 
 /**
  * The width of something in pixels.

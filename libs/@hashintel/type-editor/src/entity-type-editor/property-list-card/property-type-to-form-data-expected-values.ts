@@ -14,17 +14,11 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-export const propertyTypeToFormDataExpectedValues = (
-  property: PropertyType,
-) => {
+export const propertyTypeToFormDataExpectedValues = (property: PropertyType) => {
   const descriptors: ExpectedValue[] = [];
-  const customExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"] =
-    {};
+  const customExpectedValues: PropertyTypeFormValues["flattenedCustomExpectedValueList"] = {};
 
-  const processProperties = (
-    { oneOf }: OneOfSchema<PropertyValues>,
-    parentId?: string,
-  ) => {
+  const processProperties = ({ oneOf }: OneOfSchema<PropertyValues>, parentId?: string) => {
     for (const expectedValue of oneOf) {
       const id = uniqueId();
 
@@ -55,12 +49,8 @@ export const propertyTypeToFormDataExpectedValues = (
                 typeId: "array",
                 infinity: !("maxItems" in expectedValue),
                 itemIds: [],
-                minItems:
-                  expectedValue.minItems ??
-                  arrayExpectedValueDataDefaults.minItems,
-                maxItems:
-                  expectedValue.maxItems ??
-                  arrayExpectedValueDataDefaults.maxItems,
+                minItems: expectedValue.minItems ?? arrayExpectedValueDataDefaults.minItems,
+                maxItems: expectedValue.maxItems ?? arrayExpectedValueDataDefaults.maxItems,
               },
               ...(parentId ? { parentId } : {}),
             };
@@ -73,27 +63,22 @@ export const propertyTypeToFormDataExpectedValues = (
               id,
               data: {
                 typeId: "object",
-                properties: Object.values(expectedValue.properties).flatMap(
-                  (itemProperty) => {
-                    let propertyId: VersionedUrl;
-                    let allowArrays = false;
-                    if ("type" in itemProperty) {
-                      allowArrays = true;
-                      propertyId = itemProperty.items.$ref;
-                    } else {
-                      propertyId = itemProperty.$ref;
-                    }
+                properties: Object.values(expectedValue.properties).flatMap((itemProperty) => {
+                  let propertyId: VersionedUrl;
+                  let allowArrays = false;
+                  if ("type" in itemProperty) {
+                    allowArrays = true;
+                    propertyId = itemProperty.items.$ref;
+                  } else {
+                    propertyId = itemProperty.$ref;
+                  }
 
-                    return {
-                      id: propertyId,
-                      allowArrays,
-                      required:
-                        expectedValue.required?.includes(
-                          extractBaseUrl(propertyId),
-                        ) ?? false,
-                    };
-                  },
-                ),
+                  return {
+                    id: propertyId,
+                    allowArrays,
+                    required: expectedValue.required?.includes(extractBaseUrl(propertyId)) ?? false,
+                  };
+                }),
               },
               ...(parentId ? { parentId } : {}),
             };

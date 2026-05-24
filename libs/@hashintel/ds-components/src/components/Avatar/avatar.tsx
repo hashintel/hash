@@ -34,9 +34,7 @@ export interface AvatarProps {
     image?: string;
   };
   /** Callback when image loading status changes */
-  onStatusChange?: (details: {
-    status: "error" | "loaded" | "loading";
-  }) => void;
+  onStatusChange?: (details: { status: "error" | "loaded" | "loading" }) => void;
   /** ID for the avatar */
   id?: string;
 }
@@ -380,10 +378,7 @@ export const Avatar: React.FC<AvatarProps> = ({
           })}
         >
           {indicator.image && (
-            <BaseAvatar.Image
-              src={indicator.image}
-              className={avatarIndicatorImageRecipe()}
-            />
+            <BaseAvatar.Image src={indicator.image} className={avatarIndicatorImageRecipe()} />
           )}
         </BaseAvatar.Root>
       )}

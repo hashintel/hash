@@ -9,17 +9,13 @@ import type {
 } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
 
-export type EntityTypesByVersionedUrl = Record<
-  VersionedUrl,
-  EntityTypeWithMetadata
->;
+export type EntityTypesByVersionedUrl = Record<VersionedUrl, EntityTypeWithMetadata>;
 export type EntityTypesContextValue = {
   entityTypes: EntityTypesByVersionedUrl;
   linkTypes: EntityTypesByVersionedUrl;
 };
 
-export const EntityTypesOptionsContext =
-  createContext<EntityTypesContextValue | null>(null);
+export const EntityTypesOptionsContext = createContext<EntityTypesContextValue | null>(null);
 
 export const useEntityTypesOptionsContextValue = (
   entityTypes: Record<VersionedUrl, EntityTypeWithMetadata>,
@@ -34,8 +30,7 @@ export const useEntityTypesOptionsContextValue = (
           ? linkEntityTypesRecord
           : nonLinkEntityTypesRecord;
 
-      let parentRefObjects: EntityTypeReference[] =
-        entityType.schema.allOf ?? [];
+      let parentRefObjects: EntityTypeReference[] = entityType.schema.allOf ?? [];
 
       while (parentRefObjects.length) {
         if (parentRefObjects.find(({ $ref }) => $ref === linkEntityTypeUrl)) {

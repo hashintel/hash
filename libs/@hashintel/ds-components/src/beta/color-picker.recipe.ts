@@ -92,6 +92,4 @@ const colorPickerSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const colorPickerSlotRecipe = sva(colorPickerSlotRecipeDefinition);
 
-export type ColorPickerSlotRecipeProps = RecipeVariantProps<
-  typeof colorPickerSlotRecipe
->;
+export type ColorPickerSlotRecipeProps = RecipeVariantProps<typeof colorPickerSlotRecipe>;

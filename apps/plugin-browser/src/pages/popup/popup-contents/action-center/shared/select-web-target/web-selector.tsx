@@ -63,11 +63,7 @@ export const WebSelector = ({
     {
       avatarComponent: (
         // Creating the component here reduces loading state in the dropdown
-        <Avatar
-          avatar={user.avatar}
-          name={user.properties.displayName}
-          size={16}
-        />
+        <Avatar avatar={user.avatar} name={user.properties.displayName} size={16} />
       ),
       label: "My web",
       name: user.properties.displayName,
@@ -75,11 +71,7 @@ export const WebSelector = ({
     },
     ...user.orgs.map((org) => ({
       avatarComponent: (
-        <Avatar
-          avatar={org.avatar}
-          name={org.properties.organizationName}
-          size={16}
-        />
+        <Avatar avatar={org.avatar} name={org.properties.organizationName} size={16} />
       ),
       label: org.properties.organizationName,
       name: org.properties.organizationName,
@@ -87,9 +79,7 @@ export const WebSelector = ({
     })),
   ];
 
-  const selectedWeb = options.find(
-    (option) => option.value === selectedWebWebId,
-  );
+  const selectedWeb = options.find((option) => option.value === selectedWebWebId);
 
   return (
     <Autocomplete
@@ -113,8 +103,7 @@ export const WebSelector = ({
         startAdornment: selectedWeb?.avatarComponent,
         sx: {
           ...inputPropsSx({ inputHeight }),
-          backgroundColor: ({ palette }) =>
-            active ? "inherit" : palette.gray[10],
+          backgroundColor: ({ palette }) => (active ? "inherit" : palette.gray[10]),
         },
       }}
       multiple={false}
@@ -123,12 +112,7 @@ export const WebSelector = ({
       }}
       options={options}
       renderOption={(props, option) => (
-        <MenuItem
-          {...props}
-          key={option.value}
-          value={option.value}
-          sx={menuItemSx}
-        >
+        <MenuItem {...props} key={option.value} value={option.value} sx={menuItemSx}>
           <RenderOptionContent {...option} />
         </MenuItem>
       )}

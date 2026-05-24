@@ -2,10 +2,7 @@ import { useLazyQuery } from "@apollo/client";
 import { useCallback } from "react";
 
 import { currentTimestamp, splitEntityId } from "@blockprotocol/type-system";
-import {
-  deserializeQueryEntitySubgraphResponse,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitySubgraphResponse, HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -17,11 +14,7 @@ import type {
   QueryEntitySubgraphQueryVariables,
   SubgraphAndPermissions as SubgraphAndPermissionsGQL,
 } from "../graphql/api-types.gen";
-import type {
-  EntityRootType,
-  KnowledgeGraphVertices,
-  Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, KnowledgeGraphVertices, Subgraph } from "@blockprotocol/graph";
 import type {
   ActorEntityUuid,
   EntityEditionId,
@@ -202,15 +195,11 @@ export const useFetchBlockSubgraph = (): ((
         .then(({ data, error }) => {
           if (!data) {
             throw new Error(
-              `Could not get entity ${blockEntityId}: ${
-                error ? error.message : "unknown error"
-              }`,
+              `Could not get entity ${blockEntityId}: ${error ? error.message : "unknown error"}`,
             );
           }
 
-          const response = deserializeQueryEntitySubgraphResponse(
-            data.queryEntitySubgraph,
-          );
+          const response = deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph);
 
           return {
             subgraph: response.subgraph,

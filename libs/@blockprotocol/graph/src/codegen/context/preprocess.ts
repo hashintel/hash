@@ -2,12 +2,7 @@ import type { ProcessedCodegenParameters } from "../parameters.js";
 import type { JsonSchema, LogLevel } from "../shared.js";
 import type { InitializeContext } from "./initialize.js";
 import type { TypeDependencyMap } from "./shared.js";
-import type {
-  DataType,
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { DataType, EntityType, PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 export class PreprocessContext {
   readonly parameters: ProcessedCodegenParameters;
@@ -17,10 +12,7 @@ export class PreprocessContext {
   readonly propertyTypes: Record<VersionedUrl, PropertyType>;
   readonly entityTypes: Record<VersionedUrl, EntityType>;
   readonly metadataSchemas: Record<VersionedUrl, JsonSchema>;
-  readonly allTypes: Record<
-    VersionedUrl,
-    DataType | PropertyType | EntityType | JsonSchema
-  >;
+  readonly allTypes: Record<VersionedUrl, DataType | PropertyType | EntityType | JsonSchema>;
 
   readonly typeDependencyMap: TypeDependencyMap;
 
@@ -53,11 +45,7 @@ export class PreprocessContext {
   }
 
   logInfo(message: string) {
-    if (
-      this.logLevel === "info" ||
-      this.logLevel === "debug" ||
-      this.logLevel === "trace"
-    ) {
+    if (this.logLevel === "info" || this.logLevel === "debug" || this.logLevel === "trace") {
       // eslint-disable-next-line no-console
       console.log(`INFO: ${message}`);
     }

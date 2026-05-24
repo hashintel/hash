@@ -4,12 +4,7 @@ import { dropCursor } from "prosemirror-dropcursor";
 import { EditorState } from "prosemirror-state";
 
 import { createEntityStorePlugin } from "./entity-store-plugin.js";
-import {
-  createSchema,
-  formatKeymap,
-  pageEditorNodes,
-  textTokenNodes,
-} from "./prosemirror.js";
+import { createSchema, formatKeymap, pageEditorNodes, textTokenNodes } from "./prosemirror.js";
 import { wrapEntitiesPlugin } from "./wrap-entities-plugin.js";
 
 import type { WebId } from "@blockprotocol/type-system";

@@ -35,9 +35,7 @@ const getLabelPropertyValue = (
     const label = entity.properties[labelProperty];
 
     if (label) {
-      return label && typeof label === "object"
-        ? JSON.stringify(label)
-        : label.toString();
+      return label && typeof label === "object" ? JSON.stringify(label) : label.toString();
     }
   }
 };
@@ -118,10 +116,7 @@ export const generateEntityLabel = (
     }
 
     for (const typeToCheck of entityTypesAndAncestors ?? []) {
-      const label = getLabelPropertyValue(
-        entity,
-        typeToCheck.schema.labelProperty,
-      );
+      const label = getLabelPropertyValue(entity, typeToCheck.schema.labelProperty);
 
       if (label) {
         return label;
@@ -150,10 +145,7 @@ export const generateEntityLabel = (
     }
   }
 
-  const simplifiedProperties = simplifyProperties(entity.properties) as Record<
-    string,
-    Property
-  >;
+  const simplifiedProperties = simplifyProperties(entity.properties) as Record<string, Property>;
 
   // fallback to some likely display name properties
   const options = [
@@ -168,26 +160,20 @@ export const generateEntityLabel = (
   ];
 
   for (const option of options) {
-    if (
-      simplifiedProperties[option] &&
-      typeof simplifiedProperties[option] === "string"
-    ) {
+    if (simplifiedProperties[option] && typeof simplifiedProperties[option] === "string") {
       return simplifiedProperties[option];
     }
   }
 
   const firstName =
-    simplifiedProperties.firstName &&
-    typeof simplifiedProperties.firstName === "string"
+    simplifiedProperties.firstName && typeof simplifiedProperties.firstName === "string"
       ? simplifiedProperties.firstName
       : undefined;
 
   const lastName =
-    simplifiedProperties.lastName &&
-    typeof simplifiedProperties.lastName === "string"
+    simplifiedProperties.lastName && typeof simplifiedProperties.lastName === "string"
       ? simplifiedProperties.lastName
-      : simplifiedProperties.familyName &&
-          typeof simplifiedProperties.familyName === "string"
+      : simplifiedProperties.familyName && typeof simplifiedProperties.familyName === "string"
         ? simplifiedProperties.familyName
         : undefined;
 
@@ -229,32 +215,18 @@ export const generateLinkEntityLabel = (
     return entityLabel;
   }
 
-  const leftEntity = getEntityRevision(
-    entitySubgraph,
-    entity.linkData.leftEntityId,
-  );
+  const leftEntity = getEntityRevision(entitySubgraph, entity.linkData.leftEntityId);
   if (!leftEntity) {
     return entityLabel;
   }
 
-  const rightEntity = getEntityRevision(
-    entitySubgraph,
-    entity.linkData.rightEntityId,
-  );
+  const rightEntity = getEntityRevision(entitySubgraph, entity.linkData.rightEntityId);
   if (!rightEntity) {
     return entityLabel;
   }
 
-  let typeForLeftEntity:
-    | PartialEntityType
-    | ClosedMultiEntityType
-    | Subgraph
-    | undefined;
-  let typeForRightEntity:
-    | PartialEntityType
-    | ClosedMultiEntityType
-    | Subgraph
-    | undefined;
+  let typeForLeftEntity: PartialEntityType | ClosedMultiEntityType | Subgraph | undefined;
+  let typeForRightEntity: PartialEntityType | ClosedMultiEntityType | Subgraph | undefined;
 
   if (!closedTypeData) {
     typeForLeftEntity = entitySubgraph;
@@ -267,9 +239,7 @@ export const generateLinkEntityLabel = (
       );
     } catch {
       typeForLeftEntity =
-        closedTypeData.entityTypeDefinitions.entityTypes[
-          leftEntity.metadata.entityTypeIds[0]
-        ];
+        closedTypeData.entityTypeDefinitions.entityTypes[leftEntity.metadata.entityTypeIds[0]];
     }
 
     try {
@@ -279,24 +249,16 @@ export const generateLinkEntityLabel = (
       );
     } catch {
       typeForRightEntity =
-        closedTypeData.entityTypeDefinitions.entityTypes[
-          rightEntity.metadata.entityTypeIds[0]
-        ];
+        closedTypeData.entityTypeDefinitions.entityTypes[rightEntity.metadata.entityTypeIds[0]];
     }
 
     if (!typeForLeftEntity || !typeForRightEntity) {
-      throw new Error(
-        `Type definitions for left or right entity not found in closed type data`,
-      );
+      throw new Error(`Type definitions for left or right entity not found in closed type data`);
     }
   }
 
   const leftLabel = generateEntityLabel(typeForLeftEntity, leftEntity, false);
-  const rightLabel = generateEntityLabel(
-    typeForRightEntity,
-    rightEntity,
-    false,
-  );
+  const rightLabel = generateEntityLabel(typeForRightEntity, rightEntity, false);
 
   return `${leftLabel} - ${entityLabel} - ${rightLabel}`;
 };

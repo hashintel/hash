@@ -83,8 +83,7 @@ export const FlowRunSidebar = ({
   }, [name]);
 
   const researchPrompt = selectedFlowRun?.inputs[0].flowTrigger.outputs?.find(
-    (input) =>
-      input.outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
+    (input) => input.outputName === ("Research guidance" satisfies GoalFlowTriggerInput),
   )?.payload.value as string | undefined;
 
   return (
@@ -154,11 +153,8 @@ export const FlowRunSidebar = ({
                       sx={{
                         color: ({ palette }) => palette.gray[50],
                         fontSize: 14,
-                        transform: !showResearchPrompt
-                          ? "rotate(-90deg)"
-                          : "translateY(-1px)",
-                        transition: ({ transitions }) =>
-                          transitions.create("transform"),
+                        transform: !showResearchPrompt ? "rotate(-90deg)" : "translateY(-1px)",
+                        transition: ({ transitions }) => transitions.create("transform"),
                       }}
                     />
                   </Box>
@@ -192,10 +188,7 @@ export const FlowRunSidebar = ({
               "& svg": { fontSize: 12 },
             }}
           >
-            <Typography
-              variant="smallCaps"
-              sx={{ color: ({ palette }) => palette.blue[70] }}
-            >
+            <Typography variant="smallCaps" sx={{ color: ({ palette }) => palette.blue[70] }}>
               View
             </Typography>
             <ArrowUpRightRegularIcon
@@ -209,10 +202,7 @@ export const FlowRunSidebar = ({
         <SidebarSection>
           <Box>
             {groups.map((groupData) => (
-              <GroupStatus
-                key={groupData.group?.groupId ?? "ungrouped"}
-                groupData={groupData}
-              />
+              <GroupStatus key={groupData.group?.groupId ?? "ungrouped"} groupData={groupData} />
             ))}
           </Box>
         </SidebarSection>
@@ -247,11 +237,8 @@ export const FlowRunSidebar = ({
                 sx={{
                   color: ({ palette }) => palette.gray[50],
                   height: 14,
-                  transform: !showUsageBreakdown
-                    ? "rotate(-90deg)"
-                    : "translateY(-1px)",
-                  transition: ({ transitions }) =>
-                    transitions.create("transform"),
+                  transform: !showUsageBreakdown ? "rotate(-90deg)" : "translateY(-1px)",
+                  transition: ({ transitions }) => transitions.create("transform"),
                 }}
               />
             </Stack>
@@ -261,8 +248,7 @@ export const FlowRunSidebar = ({
                   pb: 0.5,
                   mb: 0.5,
                   mt: 0.5,
-                  borderBottom: ({ palette }) =>
-                    `1px solid ${palette.gray[30]}`,
+                  borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
                 }}
               >
                 {usage.recordsByServiceFeature
@@ -274,9 +260,7 @@ export const FlowRunSidebar = ({
                         sx={{ color: ({ palette }) => palette.gray[50] }}
                       >
                         <Box component="span" fontWeight={500}>
-                          {record.featureName
-                            .replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "")
-                            .trim()}
+                          {record.featureName.replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "").trim()}
                           :
                         </Box>{" "}
                         ${record.totalCostInUsd.toFixed(2)}

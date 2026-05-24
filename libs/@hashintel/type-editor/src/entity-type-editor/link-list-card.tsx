@@ -1,26 +1,9 @@
-import {
-  Box,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-} from "@mui/material";
+import { Box, TableBody, TableCell, TableFooter, TableHead } from "@mui/material";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import {
-  useCallback,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 
-import {
-  GraphIcon,
-  LinkTypeIcon,
-  StyledPlusCircleIcon,
-} from "@hashintel/design-system";
+import { GraphIcon, LinkTypeIcon, StyledPlusCircleIcon } from "@hashintel/design-system";
 
 import { useEntityTypesOptions } from "../shared/entity-types-options-context";
 import { useOntologyFunctions } from "../shared/ontology-functions-context";
@@ -118,10 +101,7 @@ const LinkTypeRow = ({
 
   const linkSchema = linkTypes[linkId]?.schema;
 
-  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(
-    linkId,
-    linkTypes,
-  );
+  const [currentVersion, latestVersion, baseUrl] = useTypeVersions(linkId, linkTypes);
 
   if (!linkSchema) {
     throw new Error(`Link entity type with ${linkId} not found in options`);
@@ -250,24 +230,14 @@ const InsertLinkField = (
     typeOptions: linkTypes,
   });
 
-  return (
-    <InsertTypeField
-      {...props}
-      options={filteredLinkTypes}
-      variant="link type"
-    />
-  );
+  return <InsertTypeField {...props} options={filteredLinkTypes} variant="link type" />;
 };
 
 const linkDefaultValues = () => ({ name: "", description: "" });
 
 export const LinkListCard = () => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
-  const {
-    fields: unsortedFields,
-    append,
-    remove,
-  } = useFieldArray({ control, name: "links" });
+  const { fields: unsortedFields, append, remove } = useFieldArray({ control, name: "links" });
   const { linkTypes } = useEntityTypesOptions();
 
   const ontologyFunctions = useOntologyFunctions();
@@ -338,10 +308,7 @@ export const LinkListCard = () => {
     handleAddEntityType(res.data.schema);
   };
 
-  const linkDirtyFields = useCallback(
-    () => (searchText ? { name: searchText } : {}),
-    [searchText],
-  );
+  const linkDirtyFields = useCallback(() => (searchText ? { name: searchText } : {}), [searchText]);
 
   if (!addingNewLink && fields.length === 0) {
     return (
@@ -359,15 +326,13 @@ export const LinkListCard = () => {
         headline={isReadonly ? <>No links defined</> : <>Add a link</>}
         description={
           <>
-            Links contain information about connections or relationships between
-            different entities
+            Links contain information about connections or relationships between different entities
           </>
         }
         subDescription={
           <>
-            e.g. a <strong>company</strong> entity might have a{" "}
-            <strong>CEO</strong> link which points to a <strong>person</strong>{" "}
-            entity
+            e.g. a <strong>company</strong> entity might have a <strong>CEO</strong> link which
+            points to a <strong>person</strong> entity
           </>
         }
       />
@@ -437,9 +402,8 @@ export const LinkListCard = () => {
                       }}
                       tooltip={
                         <>
-                          You should only create a new link type if you can't
-                          find an existing one which corresponds to the
-                          relationship you're trying to capture.
+                          You should only create a new link type if you can't find an existing one
+                          which corresponds to the relationship you're trying to capture.
                         </>
                       }
                     />

@@ -14,10 +14,9 @@ export const useBlockProtocolArchiveEntity = (
 ): {
   archiveEntity: ArchiveEntityMessageCallback;
 } => {
-  const [archiveEntityFn] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const [archiveEntityFn] = useMutation<ArchiveEntityMutation, ArchiveEntityMutationVariables>(
+    archiveEntityMutation,
+  );
 
   const archiveEntity: ArchiveEntityMessageCallback = useCallback(
     async ({ data }) => {

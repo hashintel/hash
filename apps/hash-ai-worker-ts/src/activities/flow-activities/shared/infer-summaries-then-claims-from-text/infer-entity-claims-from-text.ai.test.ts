@@ -30,18 +30,14 @@ test(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: [
-        "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
-      ],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
     });
 
-    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
-      .schema;
+    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!.schema;
 
-    const url =
-      "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url;
+    const url = "https://www.londonstockexchange.com/indices/ftse-350/constituents/table" as Url;
 
     const webPage = await getWebPageActivity({
       url,
@@ -68,9 +64,7 @@ test(
           name: "MOLTEN VENTURES PLC ORD GBP0.01",
           summary:
             "MOLTEN VENTURES PLC is a technology investment company that invests in early-stage technology businesses.",
-          entityTypeIds: [
-            "https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1",
-          ],
+          entityTypeIds: ["https://hash.ai/@h/types/entity-type/stock-market-constituent/v/1"],
         },
       ],
       potentialObjectEntities: [],
@@ -103,11 +97,9 @@ test(
       graphApiClient,
     });
 
-    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
-      .schema;
+    const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!.schema;
 
-    const url =
-      "https://www.nvidia.com/de-de/geforce/graphics-cards/40-series/rtx-4090/" as Url;
+    const url = "https://www.nvidia.com/de-de/geforce/graphics-cards/40-series/rtx-4090/" as Url;
 
     const webPage = await getWebPageActivity({
       url,
@@ -133,9 +125,7 @@ test(
           localId: generateEntityId("6675a4ca-2282-4823-a4ff-d65d87218ebd"),
           name: "GeForce RTX 4090",
           summary: "The GeForce RTX 4090 is a high-end graphics card.",
-          entityTypeIds: [
-            "https://hash.ai/@h/types/entity-type/graphics-card/v/1",
-          ],
+          entityTypeIds: ["https://hash.ai/@h/types/entity-type/graphics-card/v/1"],
         },
       ],
       potentialObjectEntities: [],

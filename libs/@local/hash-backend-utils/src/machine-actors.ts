@@ -1,10 +1,7 @@
 import { backOff } from "exponential-backoff";
 
 import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  getAiByIdentifier,
-  getMachineByIdentifier,
-} from "@local/hash-graph-sdk/principal/actor";
+import { getAiByIdentifier, getMachineByIdentifier } from "@local/hash-graph-sdk/principal/actor";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -30,9 +27,7 @@ export type WebMachineActorIdentifier = `system-${WebId}`;
 
 export type GlobalMachineActorIdentifier = SystemTypeWebShortname;
 
-export type MachineActorIdentifier =
-  | GlobalMachineActorIdentifier
-  | WebMachineActorIdentifier;
+export type MachineActorIdentifier = GlobalMachineActorIdentifier | WebMachineActorIdentifier;
 
 export type AiActorIdentifier = "hash-ai";
 
@@ -88,10 +83,7 @@ export const getMachineEntityByIdentifier = async (
             {
               equal: [
                 {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl,
-                  ],
+                  path: ["properties", systemPropertyTypes.machineIdentifier.propertyTypeBaseUrl],
                 },
                 { parameter: identifier },
               ],
@@ -175,19 +167,16 @@ export const createMachineActorEntity = async (
       webId,
       properties: {
         value: {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-            {
-              value: displayName,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-              },
+          "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+            value: displayName,
+            metadata: {
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
+          },
           "https://hash.ai/@h/types/property-type/machine-identifier/": {
             value: identifier,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         },

@@ -4,10 +4,7 @@ import {
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import {
-  getEntityTypeById,
-  hasPermissionForEntityTypes,
-} from "@local/hash-graph-sdk/entity-type";
+import { getEntityTypeById, hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -113,16 +110,13 @@ export const createEntityType: ImpureGraphFunction<
 
   const { graphApi } = ctx;
 
-  const { data: metadata } = await graphApi.createEntityType(
-    authentication.actorId,
-    {
-      schema,
-      provenance: {
-        ...ctx.provenance,
-        ...params.provenance,
-      },
+  const { data: metadata } = await graphApi.createEntityType(authentication.actorId, {
+    schema,
+    provenance: {
+      ...ctx.provenance,
+      ...params.provenance,
     },
-  );
+  });
 
   // TODO: Avoid casting through `unknown` when new codegen is in place
   //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
@@ -222,9 +216,7 @@ export const updateEntityTypes: ImpureGraphFunction<
     const input = entityTypeUpdates[index];
 
     if (!input) {
-      throw new Error(
-        `Entity type update metadata index ${index} not present in input array`,
-      );
+      throw new Error(`Entity type update metadata index ${index} not present in input array`);
     }
 
     return {
@@ -252,24 +244,16 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { allOf } = params;
 
-  if (
-    allOf?.some(
-      ({ $ref }) => $ref === blockProtocolEntityTypes.link.entityTypeId,
-    )
-  ) {
+  if (allOf?.some(({ $ref }) => $ref === blockProtocolEntityTypes.link.entityTypeId)) {
     return true;
   }
 
   const parentTypes = await Promise.all(
     (allOf ?? []).map(async ({ $ref }) => {
-      const parentEntityType = await getEntityTypeById(
-        context.graphApi,
-        authentication,
-        {
-          entityTypeId: $ref,
-          temporalAxes: currentTimeInstantTemporalAxes,
-        },
-      );
+      const parentEntityType = await getEntityTypeById(context.graphApi, authentication, {
+        entityTypeId: $ref,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      });
       if (!parentEntityType) {
         throw new NotFoundError(`Could not find entity type with ID ${$ref}`);
       }
@@ -279,14 +263,12 @@ export const isEntityTypeLinkEntityType: ImpureGraphFunction<
 
   return new Promise((resolve) => {
     const promises = parentTypes.map((parent) =>
-      isEntityTypeLinkEntityType(context, authentication, parent.schema).then(
-        (isLinkType) => {
-          if (isLinkType) {
-            // Resolve as soon as we have encountered a link type, instead of waiting for all parent types to be checked
-            resolve(true);
-          }
-        },
-      ),
+      isEntityTypeLinkEntityType(context, authentication, parent.schema).then((isLinkType) => {
+        if (isLinkType) {
+          // Resolve as soon as we have encountered a link type, instead of waiting for all parent types to be checked
+          resolve(true);
+        }
+      }),
     );
 
     void Promise.all(promises).then(() =>
@@ -306,10 +288,7 @@ export const archiveEntityType: ImpureGraphFunction<
   ArchiveEntityTypeParams,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.archiveEntityType(
-    actorId,
-    params,
-  );
+  const { data: temporalMetadata } = await graphApi.archiveEntityType(actorId, params);
 
   return temporalMetadata as OntologyTemporalMetadata;
 };
@@ -324,10 +303,10 @@ export const unarchiveEntityType: ImpureGraphFunction<
   Omit<UnarchiveEntityTypeParams, "provenance">,
   Promise<OntologyTemporalMetadata>
 > = async ({ graphApi, provenance }, { actorId }, params) => {
-  const { data: temporalMetadata } = await graphApi.unarchiveEntityType(
-    actorId,
-    { ...params, provenance },
-  );
+  const { data: temporalMetadata } = await graphApi.unarchiveEntityType(actorId, {
+    ...params,
+    provenance,
+  });
 
   return temporalMetadata as OntologyTemporalMetadata;
 };

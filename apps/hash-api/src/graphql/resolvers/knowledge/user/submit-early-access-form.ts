@@ -5,10 +5,7 @@ import { createEntity } from "../../../../graph/knowledge/primitive/entity";
 import { systemAccountId } from "../../../../graph/system-account";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
-import type {
-  MutationSubmitEarlyAccessFormArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { MutationSubmitEarlyAccessFormArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { WebId } from "@blockprotocol/type-system";
 import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
@@ -36,13 +33,9 @@ export const submitEarlyAccessFormResolver: ResolverFn<
       properties: {
         value: {
           "https://hash.ai/@h/types/property-type/current-approach/": {
-            value:
-              properties[
-                "https://hash.ai/@h/types/property-type/current-approach/"
-              ],
+            value: properties["https://hash.ai/@h/types/property-type/current-approach/"],
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/email/": {
@@ -52,37 +45,27 @@ export const submitEarlyAccessFormResolver: ResolverFn<
             },
           },
           "https://hash.ai/@h/types/property-type/intended-use/": {
-            value:
-              properties[
-                "https://hash.ai/@h/types/property-type/intended-use/"
-              ],
+            value: properties["https://hash.ai/@h/types/property-type/intended-use/"],
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/role/": {
             value: properties["https://hash.ai/@h/types/property-type/role/"],
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/website-url/": {
-            value:
-              properties["https://hash.ai/@h/types/property-type/website-url/"],
+            value: properties["https://hash.ai/@h/types/property-type/website-url/"],
             metadata: {
               dataTypeId: "https://hash.ai/@h/types/data-type/uri/v/1",
             },
           },
           "https://hash.ai/@h/types/property-type/willing-to-pay/": {
-            value:
-              properties[
-                "https://hash.ai/@h/types/property-type/willing-to-pay/"
-              ],
+            value: properties["https://hash.ai/@h/types/property-type/willing-to-pay/"],
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
           },
         },

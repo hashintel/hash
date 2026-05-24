@@ -3,10 +3,7 @@ import { use, useEffect, useRef } from "react";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../react/simulation/context";
-import {
-  type BottomPanelTab,
-  EditorContext,
-} from "../../../../../react/state/editor-context";
+import { type BottomPanelTab, EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { Button } from "../../../../components/button";
 import { GlassPanel } from "../../../../components/glass-panel";
@@ -20,10 +17,7 @@ import {
   MIN_BOTTOM_PANEL_HEIGHT,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import {
-  BOTTOM_PANEL_SUBVIEWS,
-  SIMULATION_ONLY_SUBVIEWS,
-} from "../../../../constants/ui-subviews";
+import { BOTTOM_PANEL_SUBVIEWS, SIMULATION_ONLY_SUBVIEWS } from "../../../../constants/ui-subviews";
 
 const glassPanelBaseStyle = css({
   position: "absolute",
@@ -94,9 +88,7 @@ export const BottomPanel: React.FC = () => {
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);
   const isSimulationActive =
-    simulationState === "Running" ||
-    simulationState === "Paused" ||
-    simulationState === "Complete";
+    simulationState === "Running" || simulationState === "Paused" || simulationState === "Complete";
 
   // Track previous simulation state to detect when simulation starts
   const prevSimulationActiveRef = useRef(isSimulationActive);
@@ -120,11 +112,7 @@ export const BottomPanel: React.FC = () => {
 
     // Simulation just stopped (transition from active to inactive)
     // If the current tab is simulation-only, fall back to diagnostics
-    if (
-      !isSimulationActive &&
-      wasActive &&
-      activeTab === "simulation-timeline"
-    ) {
+    if (!isSimulationActive && wasActive && activeTab === "simulation-timeline") {
       setActiveTab("diagnostics");
     }
   }, [isSimulationActive, setBottomPanelOpen, setActiveTab, activeTab]);
@@ -136,9 +124,7 @@ export const BottomPanel: React.FC = () => {
   // Calculate left position based on left sidebar visibility.
   // The sidebar is visible when explicitly opened OR when search is active.
   const isSidebarVisible = isLeftSidebarOpen || isSearchOpen;
-  const leftOffset = isSidebarVisible
-    ? leftSidebarWidth + PANEL_MARGIN * 2
-    : PANEL_MARGIN;
+  const leftOffset = isSidebarVisible ? leftSidebarWidth + PANEL_MARGIN * 2 : PANEL_MARGIN;
 
   const { keepPanelsMounted } = use(UserSettingsContext);
 
@@ -148,10 +134,7 @@ export const BottomPanel: React.FC = () => {
 
   return (
     <GlassPanel
-      className={cx(
-        glassPanelBaseStyle,
-        panelStyle({ open: isOpen, animating: isPanelAnimating }),
-      )}
+      className={cx(glassPanelBaseStyle, panelStyle({ open: isOpen, animating: isPanelAnimating }))}
       style={{
         bottom: PANEL_MARGIN,
         left: leftOffset,
@@ -175,10 +158,7 @@ export const BottomPanel: React.FC = () => {
           onTabChange={handleTabChange}
         />
         <div className={headerRightStyle}>
-          <HorizontalTabsHeaderAction
-            subViews={subViews}
-            activeTabId={activeTab}
-          />
+          <HorizontalTabsHeaderAction subViews={subViews} activeTabId={activeTab} />
           <Button
             size="xxs"
             variant="ghost"

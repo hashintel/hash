@@ -26,18 +26,12 @@ const hasEnumConstraint = (dataType: object): boolean => {
  * This transformation only affects TypeScript generation – the original
  * semantic inheritance relationship is preserved in the type system.
  */
-export const removeRedundantDataTypeInheritance = (
-  context: PreprocessContext,
-) => {
-  context.logDebug(
-    "Removing redundant inheritance from data types with enum constraints",
-  );
+export const removeRedundantDataTypeInheritance = (context: PreprocessContext) => {
+  context.logDebug("Removing redundant inheritance from data types with enum constraints");
 
   for (const dataType of typedValues(context.dataTypes)) {
     if (hasEnumConstraint(dataType) && "allOf" in dataType) {
-      context.logTrace(
-        `Removing allOf from ${dataType.$id} as it has enum constraints`,
-      );
+      context.logTrace(`Removing allOf from ${dataType.$id} as it has enum constraints`);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- intentionally modifying the schema
       delete (dataType as any).allOf;
     }

@@ -57,11 +57,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       // The :focus CSS styling applied to the button
       const focusStyles: CSSObject = { outline: "none" };
 
-      const focusBorderOffset =
-        buttonFocusBorderOffset[variant === "primary" ? "lg" : "md"];
+      const focusBorderOffset = buttonFocusBorderOffset[variant === "primary" ? "lg" : "md"];
 
-      const focusBorderWidth =
-        buttonFocusBorderWidth[variant === "primary" ? "lg" : "md"];
+      const focusBorderWidth = buttonFocusBorderWidth[variant === "primary" ? "lg" : "md"];
 
       // The :focus-visible:after CSS styling applied to the button
       const focusVisibleAfterStyles: CSSObject = {
@@ -72,9 +70,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         bottom: -focusBorderOffset,
         right: -focusBorderOffset,
         border: `${focusBorderWidth}px solid`,
-        borderRadius:
-          buttonBorderRadius[size === "large" ? "lg" : "md"] +
-          focusBorderOffset,
+        borderRadius: buttonBorderRadius[size === "large" ? "lg" : "md"] + focusBorderOffset,
         borderColor: theme.palette.blue["70"],
       };
 
@@ -138,8 +134,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           width: "100%",
           height: "100%",
           opacity: 0,
-          background:
-            "linear-gradient(270deg, #037CF5 0%, #00B2FF 100%), #0775E3",
+          background: "linear-gradient(270deg, #037CF5 0%, #00B2FF 100%), #0775E3",
           transition: theme.transitions.create("opacity"),
           zIndex: -1,
         };

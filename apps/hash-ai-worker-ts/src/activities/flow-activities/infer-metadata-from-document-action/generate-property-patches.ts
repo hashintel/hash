@@ -27,8 +27,7 @@ export const generateDocumentPropertyPatches = ({
     property: {
       value: numberOfPages,
       metadata: {
-        dataTypeId:
-          "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
         provenance,
       },
     } satisfies NumberOfPagesPropertyValueWithMetadata,

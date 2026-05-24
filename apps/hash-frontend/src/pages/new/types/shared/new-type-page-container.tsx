@@ -13,10 +13,7 @@ type NewTypePageContainerProps = {
   kind: "entity" | "link" | "data";
 };
 
-export const NewTypePageContainer = ({
-  form,
-  kind,
-}: NewTypePageContainerProps) => {
+export const NewTypePageContainer = ({ form, kind }: NewTypePageContainerProps) => {
   const { activeWorkspace } = useContext(WorkspaceContext);
 
   if (!activeWorkspace) {
@@ -57,13 +54,7 @@ export const NewTypePageContainer = ({
           </Container>
         </Box>
       </Box>
-      <Box
-        flex={1}
-        bgcolor="gray.10"
-        borderTop={1}
-        borderColor="gray.20"
-        pt={5}
-      >
+      <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20" pt={5}>
         <Container>{form}</Container>
       </Box>
     </Stack>

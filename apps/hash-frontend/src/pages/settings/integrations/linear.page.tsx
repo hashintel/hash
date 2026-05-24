@@ -36,25 +36,18 @@ const DataAccess: FunctionComponent<{
 
   const router = useRouter();
 
-  const [
-    syncLinearIntegrationWithWebs,
-    { loading: loadingSyncLinearIntegrationWithWorkspaces },
-  ] = useMutation<
-    SyncLinearIntegrationWithWebsMutation,
-    SyncLinearIntegrationWithWebsMutationVariables
-  >(syncLinearIntegrationWithWebsMutation, { awaitRefetchQueries: true });
+  const [syncLinearIntegrationWithWebs, { loading: loadingSyncLinearIntegrationWithWorkspaces }] =
+    useMutation<
+      SyncLinearIntegrationWithWebsMutation,
+      SyncLinearIntegrationWithWebsMutationVariables
+    >(syncLinearIntegrationWithWebsMutation, { awaitRefetchQueries: true });
 
   const possibleWorkspaces = useMemo(
-    () => [
-      authenticatedUser,
-      ...authenticatedUser.memberOf.map(({ org }) => org),
-    ],
+    () => [authenticatedUser, ...authenticatedUser.memberOf.map(({ org }) => org)],
     [authenticatedUser],
   );
 
-  const [linearOrganizations, setLinearOrganizations] = useState<
-    LinearOrganizationTeamsWithWebs[]
-  >(
+  const [linearOrganizations, setLinearOrganizations] = useState<LinearOrganizationTeamsWithWebs[]>(
     connectedLinearOrganizations.map(
       mapLinearOrganizationToLinearOrganizationTeamsWithWebs({
         linearIntegrations,
@@ -67,9 +60,7 @@ const DataAccess: FunctionComponent<{
       linearIntegrations.map(({ entity }) => {
         const { linearOrgId } = simplifyProperties(entity.properties);
 
-        const linearOrganization = linearOrganizations.find(
-          ({ id }) => id === linearOrgId,
-        )!;
+        const linearOrganization = linearOrganizations.find(({ id }) => id === linearOrgId)!;
 
         return syncLinearIntegrationWithWebs({
           variables: {
@@ -95,10 +86,9 @@ const DataAccess: FunctionComponent<{
   return (
     <Box py={3} px={4}>
       <Typography variant="smallTextParagraphs">
-        The contents of <strong>Linear Workspaces</strong> which are visible to
-        you can be made available to one or more <strong>HASH webs</strong> you
-        belong to. Access can also be granted on a{" "}
-        <strong>per-Linear Team</strong> basis.
+        The contents of <strong>Linear Workspaces</strong> which are visible to you can be made
+        available to one or more <strong>HASH webs</strong> you belong to. Access can also be
+        granted on a <strong>per-Linear Team</strong> basis.
       </Typography>
       <Box my={2}>
         <SelectLinearTeamsTable
@@ -120,14 +110,10 @@ const DataAccess: FunctionComponent<{
 };
 
 const LinearIntegrationsPage: NextPageWithLayout = () => {
-  const { linearIntegrations, connectedLinearOrganizations } =
-    useLinearIntegrations();
+  const { linearIntegrations, connectedLinearOrganizations } = useLinearIntegrations();
 
   return (
-    <SettingsPageContainer
-      heading={<LinearHeader />}
-      sectionLabel="Data access"
-    >
+    <SettingsPageContainer heading={<LinearHeader />} sectionLabel="Data access">
       {connectedLinearOrganizations.length > 0 ? (
         <>
           {/* <LinearConnections

@@ -2,10 +2,7 @@ import { forwardRef } from "react";
 
 import { styled } from "@hashintel/ds-helpers/jsx";
 
-import type {
-  HTMLStyledProps,
-  SystemStyleObject,
-} from "@hashintel/ds-helpers/types";
+import type { HTMLStyledProps, SystemStyleObject } from "@hashintel/ds-helpers/types";
 
 interface ImageOptions {
   /**
@@ -28,7 +25,5 @@ const StyledImage = styled("img");
 
 export const Image = forwardRef<HTMLImageElement, ImageProps>((props, ref) => {
   const { align, fit = "cover", ...rest } = props;
-  return (
-    <StyledImage ref={ref} objectFit={fit} objectPosition={align} {...rest} />
-  );
+  return <StyledImage ref={ref} objectFit={fit} objectPosition={align} {...rest} />;
 });

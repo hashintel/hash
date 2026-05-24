@@ -16,11 +16,7 @@ export type Path = {
   valueForSelector: string;
 };
 
-export const simplePathSorts = [
-  "Alphabetical",
-  "Length",
-  "Significance",
-] as const;
+export const simplePathSorts = ["Alphabetical", "Length", "Significance"] as const;
 
 export type SimplePathSort = (typeof simplePathSorts)[number];
 

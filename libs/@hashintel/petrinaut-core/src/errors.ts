@@ -14,10 +14,7 @@ export class SDCPNItemError extends Error {
     // Maintains proper stack trace for where our error was thrown
     const captureStackTrace = (
       Error as ErrorConstructor & {
-        captureStackTrace?: (
-          target: object,
-          constructor?: typeof SDCPNItemError,
-        ) => void;
+        captureStackTrace?: (target: object, constructor?: typeof SDCPNItemError) => void;
       }
     ).captureStackTrace;
     captureStackTrace?.(this, SDCPNItemError);

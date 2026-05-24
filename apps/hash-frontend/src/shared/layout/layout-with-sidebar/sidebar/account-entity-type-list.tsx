@@ -28,9 +28,7 @@ type AccountEntityTypeListProps = {
   webId: string;
 };
 
-export const AccountEntityTypeList: FunctionComponent<
-  AccountEntityTypeListProps
-> = ({ webId }) => {
+export const AccountEntityTypeList: FunctionComponent<AccountEntityTypeListProps> = ({ webId }) => {
   const preferences = useUserPreferences();
 
   const [expanded, setExpanded] = useState<boolean>(
@@ -69,9 +67,7 @@ export const AccountEntityTypeList: FunctionComponent<
   const accountEntityTypes = useMemo(() => {
     if (latestEntityTypes) {
       return latestEntityTypes.filter(
-        (root) =>
-          isOwnedOntologyElementMetadata(root.metadata) &&
-          root.metadata.webId === webId,
+        (root) => isOwnedOntologyElementMetadata(root.metadata) && root.metadata.webId === webId,
       );
     }
 
@@ -123,11 +119,7 @@ export const AccountEntityTypeList: FunctionComponent<
                     },
                   })}
                 >
-                  {sortType === "asc" ? (
-                    <ArrowDownAZRegularIcon />
-                  ) : (
-                    <ArrowUpZARegularIcon />
-                  )}
+                  {sortType === "asc" ? <ArrowDownAZRegularIcon /> : <ArrowUpZARegularIcon />}
                 </IconButton>
               </Tooltip>
             </Fade>
@@ -162,10 +154,7 @@ export const AccountEntityTypeList: FunctionComponent<
             <TransitionGroup>
               {filteredEntityTypes.map((root) => (
                 <Collapse key={root.schema.$id}>
-                  <EntityOrTypeSidebarItem
-                    entityType={root.schema}
-                    variant="entity-type"
-                  />
+                  <EntityOrTypeSidebarItem entityType={root.schema} variant="entity-type" />
                 </Collapse>
               ))}
             </TransitionGroup>
@@ -201,14 +190,7 @@ export const AccountEntityTypeList: FunctionComponent<
               }),
             })}
           >
-            <Box
-              display="flex"
-              alignItems="center"
-              flex={1}
-              mr={0.25}
-              pl={2}
-              position="relative"
-            >
+            <Box display="flex" alignItems="center" flex={1} mr={0.25} pl={2} position="relative">
               <ViewAllLink
                 href="/types"
                 sx={{
@@ -216,8 +198,7 @@ export const AccountEntityTypeList: FunctionComponent<
                   marginLeft: -1.5,
                   flex: 1,
                   opacity: searchVisible ? 0 : 1,
-                  transition: ({ transitions }) =>
-                    transitions.create("opacity"),
+                  transition: ({ transitions }) => transitions.create("opacity"),
                 }}
               >
                 View all types

@@ -1,14 +1,8 @@
-import {
-  getCommentById,
-  resolveComment,
-} from "../../../../graph/knowledge/system-types/comment";
+import { getCommentById, resolveComment } from "../../../../graph/knowledge/system-types/comment";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapCommentToGQL } from "../graphql-mapping";
 
-import type {
-  MutationResolveCommentArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { MutationResolveCommentArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { UnresolvedCommentGQL } from "../graphql-mapping";
 

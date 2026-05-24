@@ -29,13 +29,7 @@ const bundles: RollupOptions[] = [
       }),
       nodeResolve(),
     ],
-    external: [
-      /^@local\/.*/,
-      /^@ory\/.*/,
-      /^@opentelemetry\/.*/,
-      "dotenv-flow",
-      "uuid",
-    ],
+    external: [/^@local\/.*/, /^@ory\/.*/, /^@opentelemetry\/.*/, "dotenv-flow", "uuid"],
   },
 ];
 export default bundles;

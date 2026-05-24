@@ -35,6 +35,4 @@ const splitterSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const splitterSlotRecipe = sva(splitterSlotRecipeDefinition);
 
-export type SplitterSlotRecipeProps = RecipeVariantProps<
-  typeof splitterSlotRecipe
->;
+export type SplitterSlotRecipeProps = RecipeVariantProps<typeof splitterSlotRecipe>;

@@ -108,10 +108,9 @@ export type NoteProperties = BlockCollectionProperties & {
   "https://hash.ai/@h/types/property-type/archived/"?: ArchivedPropertyValue;
 };
 
-export type NotePropertiesWithMetadata =
-  BlockCollectionPropertiesWithMetadata & {
-    metadata?: ObjectMetadata;
-    value: {
-      "https://hash.ai/@h/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
-    };
+export type NotePropertiesWithMetadata = BlockCollectionPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
   };
+};

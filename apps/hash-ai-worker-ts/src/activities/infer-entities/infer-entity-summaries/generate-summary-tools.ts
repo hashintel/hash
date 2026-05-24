@@ -6,10 +6,7 @@ import { generateToolLinkFields } from "../shared/generate-propose-entities-tool
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
-import type {
-  DereferencedEntityTypesByTypeId,
-  ProposedEntitySummary,
-} from "../inference-types.js";
+import type { DereferencedEntityTypesByTypeId, ProposedEntitySummary } from "../inference-types.js";
 import type { JsonObject } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
@@ -37,20 +34,14 @@ export const validateEntitySummariesByType = (params: {
   const { parsedJson, entityTypesById, existingSummaries } = params;
   const errorMessages: string[] = [];
 
-  const validSummariesWithLinksUnchecked: ProposedEntitySummary[] = [
-    ...existingSummaries,
-  ];
+  const validSummariesWithLinksUnchecked: ProposedEntitySummary[] = [...existingSummaries];
 
-  for (const [entityTypeId, summaryEntitiesForType] of typedEntries(
-    parsedJson,
-  )) {
+  for (const [entityTypeId, summaryEntitiesForType] of typedEntries(parsedJson)) {
     const typeIdValidationResult = validateVersionedUrl(entityTypeId);
 
     if (typeIdValidationResult.type !== "Ok") {
       errorMessages.push(
-        `The value '${stringify(
-          entityTypeId,
-        )}' for entityTypeId is not a valid versionedUrl`,
+        `The value '${stringify(entityTypeId)}' for entityTypeId is not a valid versionedUrl`,
       );
       continue;
     }
@@ -86,9 +77,7 @@ export const validateEntitySummariesByType = (params: {
 
       if (typeof entitySummary.entityId !== "number") {
         errorMessages.push(
-          `entityId must be a number, but is ${stringify(
-            entitySummary.entityId,
-          )}`,
+          `entityId must be a number, but is ${stringify(entitySummary.entityId)}`,
         );
         currentEntityIsValid = false;
       }
@@ -145,17 +134,13 @@ export const validateEntitySummariesByType = (params: {
   }
 
   return {
-    errorMessage:
-      errorMessages.length > 0 ? errorMessages.join("\n") : undefined,
+    errorMessage: errorMessages.length > 0 ? errorMessages.join("\n") : undefined,
     validSummaries,
   };
 };
 
 type CouldNotInferEntitiesReturnKey = "reason";
-type CouldNotInferEntitiesSchemaOrObject = Record<
-  CouldNotInferEntitiesReturnKey,
-  unknown
->;
+type CouldNotInferEntitiesSchemaOrObject = Record<CouldNotInferEntitiesReturnKey, unknown>;
 
 export type CouldNotInferEntitiesReturn = Subtype<
   CouldNotInferEntitiesSchemaOrObject,

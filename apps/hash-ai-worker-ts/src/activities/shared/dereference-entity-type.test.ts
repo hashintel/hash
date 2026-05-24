@@ -39,8 +39,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_VALUES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
+            baseId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
             revisionId: "1",
           },
         },
@@ -48,8 +47,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_VALUES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/number/",
+            baseId: "https://blockprotocol.org/@blockprotocol/types/data-type/number/",
             revisionId: "1",
           },
         },
@@ -61,8 +59,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_VALUES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+            baseId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
             revisionId: "1",
           },
         },
@@ -74,8 +71,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_VALUES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+            baseId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
             revisionId: "1",
           },
         },
@@ -131,8 +127,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_PROPERTIES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://hash.ai/@test/types/property-type/notes-and-summary/",
+            baseId: "https://hash.ai/@test/types/property-type/notes-and-summary/",
             revisionId: "1",
           },
         },
@@ -144,8 +139,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_VALUES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+            baseId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
             revisionId: "1",
           },
         },
@@ -157,8 +151,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_VALUES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+            baseId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
             revisionId: "1",
           },
         },
@@ -170,8 +163,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_VALUES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+            baseId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
             revisionId: "1",
           },
         },
@@ -183,8 +175,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           kind: "CONSTRAINS_VALUES_ON",
           reversed: false,
           rightEndpoint: {
-            baseId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
+            baseId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
             revisionId: "1",
           },
         },
@@ -203,8 +194,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "dataType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
             kind: "dataType",
             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             title: "Text",
@@ -213,8 +203,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+              baseUrl: "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
               version: "1",
             },
             provenance: {
@@ -247,13 +236,11 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "propertyType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
             $id: "https://hash.ai/@test/types/property-type/notes-and-summary/v/1",
             title: "Notes And Summary",
-            description:
-              "A property object which contains an array of notes, and a summary",
+            description: "A property object which contains an array of notes, and a summary",
             oneOf: [
               {
                 type: "object",
@@ -273,8 +260,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl:
-                "https://hash.ai/@test/types/property-type/notes-and-summary/",
+              baseUrl: "https://hash.ai/@test/types/property-type/notes-and-summary/",
               version: "1",
             },
             provenance: {
@@ -307,13 +293,11 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "entityType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
             kind: "entityType",
             $id: "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
             title: "Property Values Demo",
-            description:
-              "A type with various permutations of expected property value types",
+            description: "A type with various permutations of expected property value types",
             type: "object",
             properties: {
               "https://hash.ai/@h/types/property-type/deleted-at/": {
@@ -349,8 +333,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl:
-                "https://hash.ai/@test/types/entity-type/property-values-demo/",
+              baseUrl: "https://hash.ai/@test/types/entity-type/property-values-demo/",
               version: "4",
             },
             provenance: {
@@ -383,8 +366,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "dataType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
             kind: "dataType",
             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
             title: "Number",
@@ -393,8 +375,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/number/",
+              baseUrl: "https://blockprotocol.org/@blockprotocol/types/data-type/number/",
               version: "1",
             },
             provenance: {
@@ -427,8 +408,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "propertyType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
             $id: "https://hash.ai/@test/types/property-type/mixed-array/v/3",
             title: "Mixed Array",
@@ -524,8 +504,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "propertyType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
             $id: "https://hash.ai/@h/types/property-type/archived/v/1",
             title: "Archived",
@@ -571,8 +550,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "propertyType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
             $id: "https://hash.ai/@h/types/property-type/expired-at/v/1",
             title: "Expired At",
@@ -618,8 +596,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "propertyType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
             $id: "https://hash.ai/@h/types/property-type/summary/v/1",
             title: "Summary",
@@ -665,8 +642,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "propertyType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
             $id: "https://hash.ai/@h/types/property-type/organization-name/v/1",
             title: "Organization Name",
@@ -679,8 +655,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl:
-                "https://hash.ai/@h/types/property-type/organization-name/",
+              baseUrl: "https://hash.ai/@h/types/property-type/organization-name/",
               version: "1",
             },
             provenance: {
@@ -713,8 +688,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "propertyType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
             $id: "https://hash.ai/@h/types/property-type/deleted-at/v/1",
             title: "Deleted At",
@@ -760,8 +734,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "dataType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
             kind: "dataType",
             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             title: "Boolean",
@@ -770,8 +743,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           },
           metadata: {
             recordId: {
-              baseUrl:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
+              baseUrl: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
               version: "1",
             },
             provenance: {
@@ -804,8 +776,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
         kind: "propertyType",
         inner: {
           schema: {
-            $schema:
-              "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+            $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
             kind: "propertyType",
             $id: "https://hash.ai/@d/types/property-type/notes/v/1",
             title: "Notes",
@@ -851,15 +822,12 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
 
 const expectedResult = {
   isLink: false,
-  parentIds: [
-    "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
-  ],
+  parentIds: ["https://hash.ai/@test/types/entity-type/property-values-demo/v/4"],
   schema: {
     $id: "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
     additionalProperties: false,
     title: "Property Values Demo",
-    description:
-      "A type with various permutations of expected property value types",
+    description: "A type with various permutations of expected property value types",
     links: {
       "https://hash.ai/@h/types/entity-type/has-parent/v/1": {
         type: "array",
@@ -894,8 +862,7 @@ const expectedResult = {
       "https://hash.ai/@test/types/property-type/notes-and-summary/": {
         $id: "https://hash.ai/@test/types/property-type/notes-and-summary/v/1",
         title: "Notes And Summary",
-        description:
-          "A property object which contains an array of notes, and a summary",
+        description: "A property object which contains an array of notes, and a summary",
         oneOf: [
           {
             additionalProperties: false,
@@ -957,8 +924,7 @@ const expectedResult = {
               oneOf: [
                 {
                   $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                  description:
-                    "An arithmetical value (in the Real number system)",
+                  description: "An arithmetical value (in the Real number system)",
                   title: "Number",
                   type: "number",
                 },
@@ -970,8 +936,7 @@ const expectedResult = {
                       items: {
                         $id: "https://hash.ai/@h/types/property-type/expired-at/v/1",
                         title: "Expired At",
-                        description:
-                          "Stringified timestamp of when something expired.",
+                        description: "Stringified timestamp of when something expired.",
                         oneOf: [
                           {
                             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -985,8 +950,7 @@ const expectedResult = {
                     "https://hash.ai/@h/types/property-type/archived/": {
                       $id: "https://hash.ai/@h/types/property-type/archived/v/1",
                       title: "Archived",
-                      description:
-                        "Whether or not something has been archived.",
+                      description: "Whether or not something has been archived.",
                       oneOf: [
                         {
                           $id: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
@@ -1004,8 +968,7 @@ const expectedResult = {
                     oneOf: [
                       {
                         $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                        description:
-                          "An arithmetical value (in the Real number system)",
+                        description: "An arithmetical value (in the Real number system)",
                         title: "Number",
                         type: "number",
                       },
@@ -1070,12 +1033,10 @@ describe("The dereferenceEntityType function", () => {
   it("correctly dereferences an entity type", () => {
     const {
       simplifiedPropertyTypeMappings: _simplifiedPropertyTypeMappings,
-      reverseSimplifiedPropertyTypeMappings:
-        _reverseSimplifiedPropertyTypeMappings,
+      reverseSimplifiedPropertyTypeMappings: _reverseSimplifiedPropertyTypeMappings,
       ...result
     } = dereferenceEntityType({
-      entityTypeId:
-        "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
+      entityTypeId: "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
       subgraph: {
         ...testSubgraph,
         vertices: mapGraphApiVerticesToVertices(testSubgraph.vertices),

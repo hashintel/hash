@@ -42,12 +42,9 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
       request: {
         filter: {
           all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.claim.entityTypeId,
-              {
-                ignoreParents: true,
-              },
-            ),
+            generateVersionedUrlMatchingFilter(systemEntityTypes.claim.entityTypeId, {
+              ignoreParents: true,
+            }),
             {
               equal: [
                 {
@@ -55,10 +52,7 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
                 },
                 {
                   parameter: selectedFlowRun
-                    ? entityIdFromComponents(
-                        selectedFlowRun.webId,
-                        selectedFlowRun.flowRunId,
-                      )
+                    ? entityIdFromComponents(selectedFlowRun.webId, selectedFlowRun.flowRunId)
                     : "never",
                 },
               ],

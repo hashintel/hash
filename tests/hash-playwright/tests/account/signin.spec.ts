@@ -9,10 +9,7 @@ import { createUserAndCompleteSignup } from "../shared/signup-utils";
 import { testUsers } from "../shared/test-users";
 
 test("user can sign in with password", async ({ page }) => {
-  const credentials = await createUserAndCompleteSignup(
-    page,
-    testUsers.signinTest,
-  );
+  const credentials = await createUserAndCompleteSignup(page, testUsers.signinTest);
 
   await clearSessionCookies(page);
   await expectSignedOut(page);

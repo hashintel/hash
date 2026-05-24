@@ -14,21 +14,13 @@ type AccountUsageProps = {
 
 const USAGE_OPTIONS = [
   {
-    icon: (
-      <HumanGreetingIcon
-        style={{ marginBottom: "1.5rem", width: "5rem", height: "5rem" }}
-      />
-    ),
+    icon: <HumanGreetingIcon style={{ marginBottom: "1.5rem", width: "5rem", height: "5rem" }} />,
     title: "By myself",
     description: "Create a personal knowledge graph",
     value: "BY_THEMSELVES",
   },
   {
-    icon: (
-      <PeopleIcon
-        style={{ marginBottom: "1.5rem", width: "5rem", height: "5rem" }}
-      />
-    ),
+    icon: <PeopleIcon style={{ marginBottom: "1.5rem", width: "5rem", height: "5rem" }} />,
     title: "With a team",
     description: "Share your graph in whole or part",
     value: "BY_THEMSELVES",
@@ -145,8 +137,7 @@ export const AccountUsage: FunctionComponent<AccountUsageProps> = ({
         style={{
           alignItems: "center",
           backgroundColor: "#EC4899",
-          backgroundImage:
-            "background-image: linear-gradient(to right, var(--tw-gradient-stops))",
+          backgroundImage: "background-image: linear-gradient(to right, var(--tw-gradient-stops))",
           borderRadius: "0.5rem",
           borderStyle: "none",
           color: "#ffffff",

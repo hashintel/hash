@@ -178,9 +178,7 @@ function isValidColorName(colorName: string): boolean {
  */
 function getColorNames(): ColorName[] {
   const allColors = Object.keys(radixColors).filter(isValidColorName);
-  return allColors.filter((name) =>
-    INCLUDED_COLORS.some((included) => name === included),
-  );
+  return allColors.filter((name) => INCLUDED_COLORS.some((included) => name === included));
 }
 
 /**
@@ -196,9 +194,7 @@ function getColorTokens(color: string): {
   Object.keys(radixColors)
     .filter((key) => key.startsWith(color) && !/\d/.test(key))
     .forEach((key) => {
-      const scale = (radixColors as Record<string, Record<string, string>>)[
-        key
-      ];
+      const scale = (radixColors as Record<string, Record<string, string>>)[key];
       if (!scale) return;
       const target = key.includes("Dark") ? dark : light;
 
@@ -219,10 +215,7 @@ function getColorTokens(color: string): {
  * Half-steps (s05, s15, ..., s115) are interpolated in OKLCH between adjacent steps.
  * Step s125/a125 is extrapolated from the OKLCH delta between s115/a115 and s120/a120.
  */
-function generateBaseTokens(
-  light: ColorScale,
-  dark: ColorScale,
-): Record<string, unknown> {
+function generateBaseTokens(light: ColorScale, dark: ColorScale): Record<string, unknown> {
   const tokens: Record<string, unknown> = {};
 
   const lightValues: string[] = ["#ffffff"];
@@ -278,10 +271,7 @@ function generateBaseTokens(
       const halfKey = `a${String(i * 10 + 5).padStart(2, "0")}`;
       tokens[halfKey] = {
         value: {
-          _light: interpolateColor(
-            lightAlphaValues[i]!,
-            lightAlphaValues[i + 1]!,
-          ),
+          _light: interpolateColor(lightAlphaValues[i]!, lightAlphaValues[i + 1]!),
           _dark: interpolateColor(darkAlphaValues[i]!, darkAlphaValues[i + 1]!),
         },
       };
@@ -289,10 +279,7 @@ function generateBaseTokens(
   }
 
   // a125: extrapolate from a115 → a120 delta
-  const lightA115 = interpolateColor(
-    lightAlphaValues[11]!,
-    lightAlphaValues[12]!,
-  );
+  const lightA115 = interpolateColor(lightAlphaValues[11]!, lightAlphaValues[12]!);
   const darkA115 = interpolateColor(darkAlphaValues[11]!, darkAlphaValues[12]!);
   const alphaEdgeKey = "a125";
 
@@ -309,11 +296,7 @@ function generateBaseTokens(
 /**
  * Generate tokens for a color (just the base scale).
  */
-function generateColorTokens(
-  color: string,
-  outputName: string,
-  kind: PaletteKind,
-): ColorTokens {
+function generateColorTokens(color: string, outputName: string, kind: PaletteKind): ColorTokens {
   const { light, dark } = getColorTokens(color);
   const baseTokens = generateBaseTokens(light, dark);
   return withSemantics(outputName, baseTokens, kind);
@@ -364,15 +347,11 @@ function formatTokensForOutput(tokens: ColorTokens): string {
 
     let entries = Object.entries(value);
     if (sortKeys) {
-      entries = entries.sort(
-        ([a], [b]) => tokenKeySortOrder(a) - tokenKeySortOrder(b),
-      );
+      entries = entries.sort(([a], [b]) => tokenKeySortOrder(a) - tokenKeySortOrder(b));
     }
     const formatted = entries
       .map(([key, val]) => {
-        const keyStr = VALID_IDENTIFIER_RE.test(key)
-          ? key
-          : JSON.stringify(key);
+        const keyStr = VALID_IDENTIFIER_RE.test(key) ? key : JSON.stringify(key);
         return `${keyStr}: ${formatValue(val)}`;
       })
       .join(", ");
@@ -411,19 +390,10 @@ function writeColorFile(palette: ColorPalette): void {
  * Scales use a00-a120 with half-steps (a05, a15, ..., a115) interpolated in OKLCH.
  */
 function generateStaticColorTokens(): string {
-  const blackAlphas = [
-    0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95,
-  ];
-  const whiteAlphas = [
-    0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95,
-  ];
+  const blackAlphas = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95];
+  const whiteAlphas = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95];
 
-  function buildStaticLines(
-    r: number,
-    g: number,
-    b: number,
-    alphas: number[],
-  ): string {
+  function buildStaticLines(r: number, g: number, b: number, alphas: number[]): string {
     const lines: string[] = [];
     for (let i = 0; i < alphas.length; i++) {
       const key = `a${String(i * 10).padStart(2, "0")}`;
@@ -438,10 +408,7 @@ function generateStaticColorTokens(): string {
         const halfKey = `a${String(i * 10 + 5).padStart(2, "0")}`;
         const currentVal = `rgba(${r}, ${g}, ${b}, ${a})`;
         const nextVal = `rgba(${r}, ${g}, ${b}, ${alphas[i + 1]})`;
-        const mid = interpolateColorRgba(
-          a === 0 ? "transparent" : currentVal,
-          nextVal,
-        );
+        const mid = interpolateColorRgba(a === 0 ? "transparent" : currentVal, nextVal);
         lines.push(`  ${halfKey}: { value: "${mid}" },`);
       }
     }
@@ -450,10 +417,7 @@ function generateStaticColorTokens(): string {
     const lastIdx = alphas.length - 1;
     const prevIdx = lastIdx - 1;
     const a115Val = `rgba(${r}, ${g}, ${b}, ${alphas[prevIdx]})`;
-    const a115Mid = interpolateColorRgba(
-      a115Val,
-      `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`,
-    );
+    const a115Mid = interpolateColorRgba(a115Val, `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`);
     const a120Val = `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`;
     const extrapolated = extrapolateColorRgba(a115Mid, a120Val);
     lines.push(`  a125: { value: "${extrapolated}" },`);

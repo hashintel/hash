@@ -14,32 +14,18 @@ describe("rewriteRelativeSpecifiers", () => {
     const newFilePath = "/repo/src/beta/text.stories.ts";
     const moveMap = new Map<string, string>();
 
-    const nextSource = rewriteRelativeSpecifiers(
-      sourceText,
-      oldFilePath,
-      newFilePath,
-      moveMap,
-    );
+    const nextSource = rewriteRelativeSpecifiers(sourceText, oldFilePath, newFilePath, moveMap);
 
-    expect(nextSource).toBe(
-      'export { App as basic } from "./text/basic.story";\n',
-    );
+    expect(nextSource).toBe('export { App as basic } from "./text/basic.story";\n');
   });
 
   it("rewrites story imports when the component root file moves to src/beta", () => {
     const sourceText = 'import { Text } from "./text";\n';
     const oldFilePath = "/repo/src/beta/text/basic.story.tsx";
     const newFilePath = oldFilePath;
-    const moveMap = new Map<string, string>([
-      ["/repo/src/beta/text/text", "/repo/src/beta/text"],
-    ]);
+    const moveMap = new Map<string, string>([["/repo/src/beta/text/text", "/repo/src/beta/text"]]);
 
-    const nextSource = rewriteRelativeSpecifiers(
-      sourceText,
-      oldFilePath,
-      newFilePath,
-      moveMap,
-    );
+    const nextSource = rewriteRelativeSpecifiers(sourceText, oldFilePath, newFilePath, moveMap);
 
     expect(nextSource).toBe('import { Text } from "../text";\n');
   });
@@ -53,12 +39,7 @@ describe("rewriteRelativeSpecifiers", () => {
       ["/repo/src/beta/text/text.recipe", "/repo/src/beta/text.recipe"],
     ]);
 
-    const nextSource = rewriteRelativeSpecifiers(
-      sourceText,
-      oldFilePath,
-      newFilePath,
-      moveMap,
-    );
+    const nextSource = rewriteRelativeSpecifiers(sourceText, oldFilePath, newFilePath, moveMap);
 
     expect(nextSource).toBe('import { textRecipe } from "./text.recipe";\n');
   });
@@ -81,9 +62,7 @@ describe("migrateRecipeModule", () => {
     expect(nextSource).toContain(
       'import { cva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";',
     );
-    expect(nextSource).toContain(
-      "export const textRecipe = cva(textRecipeDefinition);",
-    );
+    expect(nextSource).toContain("export const textRecipe = cva(textRecipeDefinition);");
     expect(nextSource).toContain(
       "export type TextRecipeProps = RecipeVariantProps<typeof textRecipe>;",
     );
@@ -105,9 +84,7 @@ describe("migrateRecipeModule", () => {
 
     const nextSource = migrateRecipeModule(sourceText, "tooltip", true);
 
-    expect(nextSource).toContain(
-      'import { tooltipAnatomy } from "@ark-ui/react/anatomy";',
-    );
+    expect(nextSource).toContain('import { tooltipAnatomy } from "@ark-ui/react/anatomy";');
     expect(nextSource).toContain(
       'import { sva, type RecipeVariantProps } from "@hashintel/ds-helpers/css";',
     );
@@ -138,9 +115,7 @@ describe("migrateComponentModule", () => {
 
     expect(nextSource).toContain('import { textRecipe } from "./text.recipe";');
     expect(nextSource).toContain("const Field = styled(ark.text, textRecipe);");
-    expect(nextSource).toContain(
-      'export const Text = styled("p", textRecipe);',
-    );
+    expect(nextSource).toContain('export const Text = styled("p", textRecipe);');
   });
 
   it("switches generated slot recipe imports to local slot recipe imports", () => {
@@ -153,9 +128,7 @@ describe("migrateComponentModule", () => {
 
     const nextSource = migrateComponentModule(sourceText, "tooltip");
 
-    expect(nextSource).toContain(
-      'import { tooltipSlotRecipe } from "./tooltip.recipe";',
-    );
+    expect(nextSource).toContain('import { tooltipSlotRecipe } from "./tooltip.recipe";');
     expect(nextSource).toContain(
       "const { withRootProvider } = createStyleContext(tooltipSlotRecipe);",
     );

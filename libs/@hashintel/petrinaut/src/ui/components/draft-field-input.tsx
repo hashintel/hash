@@ -3,9 +3,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useDraftField } from "../hooks/use-draft-field";
 import { Input } from "./input";
 
-type ValidationResult =
-  | { valid: true; name: string }
-  | { valid: false; error: string };
+type ValidationResult = { valid: true; name: string } | { valid: false; error: string };
 
 interface DraftFieldInputProps {
   /** Stable identifier of the entity owning this field; switching it discards stale drafts. */

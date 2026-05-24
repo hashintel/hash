@@ -22,13 +22,9 @@ export const getBlockProtocolBlocksResolver: ResolverFn<
   });
 
   if (res.status === 401) {
-    throw Error.forbidden(
-      `Invalid BLOCK_PROTOCOL_API_KEY for ${blockProtocolHubOrigin}`,
-    );
+    throw Error.forbidden(`Invalid BLOCK_PROTOCOL_API_KEY for ${blockProtocolHubOrigin}`);
   } else if (res.status !== 200) {
-    throw Error.internal(
-      `Could not fetch blocks from Block Protocol Hub: ${res.statusText}`,
-    );
+    throw Error.internal(`Could not fetch blocks from Block Protocol Hub: ${res.statusText}`);
   }
 
   const { results } = await (res.json() as Promise<{

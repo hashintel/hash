@@ -43,10 +43,7 @@ export const otelSetup: ReturnType<typeof registerOpenTelemetry> = (() => {
       throw error;
     }
     // eslint-disable-next-line no-console
-    console.error(
-      "OpenTelemetry bootstrap failed; AI worker will start without telemetry.",
-      error,
-    );
+    console.error("OpenTelemetry bootstrap failed; AI worker will start without telemetry.", error);
     return undefined;
   }
 })();

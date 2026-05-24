@@ -11,11 +11,7 @@ import { PageLightIcon } from "./icons/page-light-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
-import type {
-  Entity,
-  EntityTypeWithMetadata,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { Entity, EntityTypeWithMetadata, VersionedUrl } from "@blockprotocol/type-system";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { JSX, ReactElement } from "react";
 
@@ -27,9 +23,7 @@ export const entityTypeIcons: Record<VersionedUrl, ReactElement> = {
   [systemEntityTypes.organization.entityTypeId]: (
     <UsersRegularIcon sx={{ fontSize: 14, position: "relative", top: 1 }} />
   ),
-  [systemEntityTypes.document.entityTypeId]: (
-    <PageLightIcon sx={{ fontSize: 13 }} />
-  ),
+  [systemEntityTypes.document.entityTypeId]: <PageLightIcon sx={{ fontSize: 13 }} />,
   [systemEntityTypes.canvas.entityTypeId]: <CanvasIcon sx={{ fontSize: 12 }} />,
 };
 
@@ -42,9 +36,7 @@ export const useEntityIcon = (params: {
   return useMemo(() => {
     if (entity) {
       if (includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
-        const { icon: customPageIcon } = simplifyProperties(
-          entity.properties as PageProperties,
-        );
+        const { icon: customPageIcon } = simplifyProperties(entity.properties as PageProperties);
 
         if (typeof customPageIcon === "string") {
           return (

@@ -2,10 +2,7 @@ import { queryGraphQlApi as queryApi } from "@local/hash-isomorphic-utils/query-
 
 import { getFromLocalStorage } from "./storage";
 
-export const queryGraphQlApi = async <
-  ReturnData,
-  Variables extends Record<string, unknown>,
->(
+export const queryGraphQlApi = async <ReturnData, Variables extends Record<string, unknown>>(
   query: string,
   variables?: Variables,
 ): Promise<{ data: ReturnData }> => {

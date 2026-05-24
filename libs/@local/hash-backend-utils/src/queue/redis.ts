@@ -89,10 +89,7 @@ export class RedisQueueExclusiveConsumer<
     if (this.queueOwned === undefined) {
       return;
     }
-    await this.#client.expire(
-      this.#ownerKey(name),
-      QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS / 1000,
-    );
+    await this.#client.expire(this.#ownerKey(name), QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS / 1000);
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive (because of await)
     if (this.queueOwned) {
       this.queueOwned.lastUpdated = Date.now();
@@ -135,10 +132,7 @@ export class RedisQueueExclusiveConsumer<
         // Set this consumer as the owner. There may be a race condition where two
         // consumers attempt to acquire ownership of a free queue at the same time. By
         // using `setnx` we can set the key only if it does not already have a value.
-        const isSet = await this.#client.setNX(
-          this.#ownerKey(name),
-          this.#consumerId,
-        );
+        const isSet = await this.#client.setNX(this.#ownerKey(name), this.#consumerId);
         if (!isSet) {
           continue;
         }
@@ -204,11 +198,7 @@ export class RedisQueueExclusiveConsumer<
           timeoutMs === 0
           ? await this.#client.brPopLPush(name, processingName, 0)
           : // Block with timeout
-            await this.#client.brPopLPush(
-              name,
-              processingName,
-              timeoutMs / 1000,
-            );
+            await this.#client.brPopLPush(name, processingName, timeoutMs / 1000);
 
     if (!item) {
       // The timeout was reached.
@@ -223,10 +213,7 @@ export class RedisQueueExclusiveConsumer<
     return result;
   }
 
-  async popBlocking<T>(
-    name: string,
-    cb: (item: string) => Promise<T>,
-  ): Promise<T> {
+  async popBlocking<T>(name: string, cb: (item: string) => Promise<T>): Promise<T> {
     return (await this.#pop(name, 0, cb))!;
   }
 

@@ -67,19 +67,13 @@ export const generateUseEntityTypeEntitiesFilter = ({
             any: [
               {
                 exists: {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.archived.propertyTypeBaseUrl,
-                  ],
+                  path: ["properties", systemPropertyTypes.archived.propertyTypeBaseUrl],
                 },
               },
               {
                 equal: [
                   {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.archived.propertyTypeBaseUrl,
-                    ],
+                    path: ["properties", systemPropertyTypes.archived.propertyTypeBaseUrl],
                   },
                   { parameter: false },
                 ],
@@ -109,27 +103,19 @@ export const generateUseEntityTypeEntitiesFilter = ({
     ...(entityTypeBaseUrl
       ? [
           {
-            equal: [
-              { path: ["type", "baseUrl"] },
-              { parameter: entityTypeBaseUrl },
-            ],
+            equal: [{ path: ["type", "baseUrl"] }, { parameter: entityTypeBaseUrl }],
           },
         ]
       : entityTypeIds?.length
         ? [
             {
               any: entityTypeIds.map((entityTypeId) => ({
-                equal: [
-                  { path: ["type", "versionedUrl"] },
-                  { parameter: entityTypeId },
-                ],
+                equal: [{ path: ["type", "versionedUrl"] }, { parameter: entityTypeId }],
               })),
             },
           ]
         : []),
-    ...(!entityTypeIds && !entityTypeBaseUrl
-      ? [ignoreNoisySystemTypesFilter]
-      : []),
+    ...(!entityTypeIds && !entityTypeBaseUrl ? [ignoreNoisySystemTypesFilter] : []),
   ],
 });
 
@@ -220,24 +206,19 @@ export const useEntityTypeEntities = (
   });
 
   const hadCachedContent = useMemo(
-    () =>
-      !!apolloClient.readQuery({ query: queryEntitySubgraphQuery, variables }),
+    () => !!apolloClient.readQuery({ query: queryEntitySubgraphQuery, variables }),
     [variables],
   );
 
   const subgraph = useMemo(
     () =>
       data?.queryEntitySubgraph
-        ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph)
-            .subgraph
+        ? deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph
         : undefined,
     [data?.queryEntitySubgraph],
   );
 
-  const entities = useMemo(
-    () => (subgraph ? getRoots(subgraph) : undefined),
-    [subgraph],
-  );
+  const entities = useMemo(() => (subgraph ? getRoots(subgraph) : undefined), [subgraph]);
 
   return {
     ...data?.queryEntitySubgraph,

@@ -36,11 +36,7 @@ They can do this by doing the following:
 
     ```ts
     // some-service-workspace/typedefs/status-payloads.ts
-    export {
-      ErrorInfo,
-      RequestInfo,
-      ResourceInfo,
-    } from "@local/status/type-defs/status-payloads";
+    export { ErrorInfo, RequestInfo, ResourceInfo } from "@local/status/type-defs/status-payloads";
     export type MyServiceSpecificPayload = {
       // ...
     };

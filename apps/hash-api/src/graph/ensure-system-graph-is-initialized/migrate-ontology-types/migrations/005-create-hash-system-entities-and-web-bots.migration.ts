@@ -10,22 +10,12 @@ import {
 import { logger } from "../../../../logger";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
 import { systemAccountId } from "../../../system-account";
-import {
-  ensureSystemWebEntitiesExist,
-  owningWebs,
-} from "../../system-webs-and-entities";
-import {
-  getCurrentHashSystemEntityTypeId,
-  getExistingUsersAndOrgs,
-} from "../util";
+import { ensureSystemWebEntitiesExist, owningWebs } from "../../system-webs-and-entities";
+import { getCurrentHashSystemEntityTypeId, getExistingUsersAndOrgs } from "../util";
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  authentication,
-  context,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ authentication, context, migrationState }) => {
   /**
    * This migration creates entities that are required in later migration scripts.
    * Other system entities (belonging to non-hash webs) are created in {@link ensureSystemEntitiesExist}
@@ -90,16 +80,10 @@ const migrate: MigrationFunction = async ({
    * This step is only required to transition instances existing prior to Dec 2023, and can be deleted once they have been migrated.
    */
 
-  const { users, orgs } = await getExistingUsersAndOrgs(
-    context,
-    authentication,
-    {},
-  );
+  const { users, orgs } = await getExistingUsersAndOrgs(context, authentication, {});
 
   for (const principal of users.concat(orgs)) {
-    const webId = extractWebIdFromEntityId(
-      principal.metadata.recordId.entityId,
-    );
+    const webId = extractWebIdFromEntityId(principal.metadata.recordId.entityId);
     const webMachine = await getWebMachineEntity(context, authentication, {
       webId,
     });

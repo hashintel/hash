@@ -5,10 +5,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
-import {
-  EditEmojiIconButton,
-  iconVariantSizes,
-} from "./edit-emoji-icon-button";
+import { EditEmojiIconButton, iconVariantSizes } from "./edit-emoji-icon-button";
 import { CanvasIcon } from "./icons/canvas-icon";
 import { useUpdatePageIcon } from "./use-update-page-icon";
 

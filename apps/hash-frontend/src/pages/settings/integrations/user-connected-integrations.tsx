@@ -1,11 +1,4 @@
-import {
-  Box,
-  Stack,
-  TableBody,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Box, Stack, TableBody, TableHead, TableRow, Typography } from "@mui/material";
 
 import { LinearLogo } from "../../../shared/icons/linear-logo";
 import { SettingsTable } from "../shared/settings-table";
@@ -14,8 +7,7 @@ import { useLinearIntegrations } from "./linear/use-linear-integrations";
 import { UserIntegrationContextMenu } from "./user-connected-integrations/integration-context-menu";
 
 export const UserConnectedIntegrations = () => {
-  const { linearIntegrations, connectedLinearOrganizations } =
-    useLinearIntegrations();
+  const { linearIntegrations, connectedLinearOrganizations } = useLinearIntegrations();
 
   if (!linearIntegrations.length) {
     return null;
@@ -65,9 +57,7 @@ export const UserConnectedIntegrations = () => {
                   </Stack>
                 </SettingsTableCell>
                 <SettingsTableCell>
-                  {integration.syncedWithWebs
-                    .map((web) => web.webName)
-                    .join(", ")}
+                  {integration.syncedWithWebs.map((web) => web.webName).join(", ")}
                 </SettingsTableCell>
                 <SettingsTableCell>
                   <UserIntegrationContextMenu integrationType="linear" />

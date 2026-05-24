@@ -2,16 +2,9 @@ import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
 
 import { isPropertyTypeVertex } from "../../../types/subgraph/vertices.js";
 import { typedValues } from "../../../util/typed-entries.js";
-import {
-  getBreadthFirstEntityTypesAndParents,
-  getEntityTypeById,
-} from "./entity-type.js";
+import { getBreadthFirstEntityTypesAndParents, getEntityTypeById } from "./entity-type.js";
 
-import type {
-  OntologyTypeVertexId,
-  OntologyVertices,
-  Subgraph,
-} from "../../../types/subgraph.js";
+import type { OntologyTypeVertexId, OntologyVertices, Subgraph } from "../../../types/subgraph.js";
 import type {
   BaseUrl,
   EntityType,
@@ -27,9 +20,7 @@ import type {
  *
  * @param subgraph
  */
-export const getPropertyTypes = (
-  subgraph: Subgraph,
-): PropertyTypeWithMetadata[] => {
+export const getPropertyTypes = (subgraph: Subgraph): PropertyTypeWithMetadata[] => {
   return typedValues(subgraph.vertices).flatMap((versionObject) =>
     typedValues(versionObject)
       .filter(isPropertyTypeVertex)
@@ -49,13 +40,8 @@ export const getPropertyTypeById = (
   subgraph: Subgraph,
   propertyTypeId: VersionedUrl,
 ): PropertyTypeWithMetadata | undefined => {
-  const [baseUrl, version] = [
-    extractBaseUrl(propertyTypeId),
-    extractVersion(propertyTypeId),
-  ];
-  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[
-    version.toString()
-  ];
+  const [baseUrl, version] = [extractBaseUrl(propertyTypeId), extractVersion(propertyTypeId)];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version.toString()];
 
   if (!vertex) {
     return undefined;
@@ -129,25 +115,16 @@ export const getPropertyTypeForEntity = (
   propertyType: PropertyType;
   refSchema: EntityType["properties"][BaseUrl];
 } => {
-  const entityTypeAndParents = getBreadthFirstEntityTypesAndParents(
-    subgraph,
-    entityTypeIds,
-  );
+  const entityTypeAndParents = getBreadthFirstEntityTypesAndParents(subgraph, entityTypeIds);
 
   for (const entityType of entityTypeAndParents) {
     const refSchema = entityType.schema.properties[propertyBaseUrl];
 
     if (refSchema) {
-      const propertyTypeId =
-        "items" in refSchema ? refSchema.items.$ref : refSchema.$ref;
-      const propertyTypeWithMetadata = getPropertyTypeById(
-        subgraph,
-        propertyTypeId,
-      );
+      const propertyTypeId = "items" in refSchema ? refSchema.items.$ref : refSchema.$ref;
+      const propertyTypeWithMetadata = getPropertyTypeById(subgraph, propertyTypeId);
       if (!propertyTypeWithMetadata) {
-        throw new Error(
-          `Property type ${propertyTypeId} not found in subgraph`,
-        );
+        throw new Error(`Property type ${propertyTypeId} not found in subgraph`);
       }
       return {
         propertyType: propertyTypeWithMetadata.schema,
@@ -185,9 +162,7 @@ const addPropertyTypesToMapFromReferences = (
 ) => {
   for (const referenceObject of propertyReferenceObjects) {
     const propertyUrl =
-      "items" in referenceObject
-        ? referenceObject.items.$ref
-        : referenceObject.$ref;
+      "items" in referenceObject ? referenceObject.items.$ref : referenceObject.$ref;
 
     if (!propertyTypesMap.has(propertyUrl)) {
       const propertyType = getPropertyTypeById(subgraph, propertyUrl);
@@ -245,11 +220,7 @@ export const getPropertyTypesForEntityType = (
       );
     }
 
-    getPropertyTypesForEntityType(
-      parentEntityType.schema,
-      subgraph,
-      propertyTypesMap,
-    );
+    getPropertyTypesForEntityType(parentEntityType.schema, subgraph, propertyTypesMap);
   }
 
   return propertyTypesMap;

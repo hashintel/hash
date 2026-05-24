@@ -27,15 +27,13 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [inviteUserToOrg] = useMutation<
-    InviteUserToOrgMutation,
-    InviteUserToOrgMutationVariables
-  >(inviteUserToOrgMutation);
+  const [inviteUserToOrg] = useMutation<InviteUserToOrgMutation, InviteUserToOrgMutationVariables>(
+    inviteUserToOrgMutation,
+  );
 
-  const [queryEntities] = useLazyQuery<
-    QueryEntitiesQuery,
-    QueryEntitiesQueryVariables
-  >(queryEntitiesQuery);
+  const [queryEntities] = useLazyQuery<QueryEntitiesQuery, QueryEntitiesQueryVariables>(
+    queryEntitiesQuery,
+  );
 
   const { refetch: refetchAuthenticatedUser } = useAuthenticatedUser();
 
@@ -54,11 +52,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     const isEmail = shortnameOrEmail.includes("@");
 
-    if (
-      org.memberships.find(
-        (membership) => membership.user.shortname === shortnameOrEmail,
-      )
-    ) {
+    if (org.memberships.find((membership) => membership.user.shortname === shortnameOrEmail)) {
       setError("Already a member");
       setLoading(false);
       return;

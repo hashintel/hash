@@ -392,10 +392,8 @@ export default Dynamics((tokens, parameters) => {
           "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "14",
           // Forwarded from scenario parameters
           "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
-          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
-            "scenario.satellite_initial_altitude",
-          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
-            "scenario.satellite_initial_velocity",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.satellite_initial_velocity",
         },
         initialState: { type: "per_place", content: {} },
       },
@@ -421,10 +419,8 @@ export default Dynamics((tokens, parameters) => {
           "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "400000",
           "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "50",
           "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
-          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
-            "scenario.satellite_initial_altitude",
-          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
-            "scenario.satellite_initial_velocity",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.satellite_initial_velocity",
         },
         initialState: { type: "per_place", content: {} },
       },
@@ -450,10 +446,8 @@ export default Dynamics((tokens, parameters) => {
           "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "43000",
           "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "27",
           "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
-          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
-            "scenario.satellite_initial_altitude",
-          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
-            "scenario.satellite_initial_velocity",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.satellite_initial_velocity",
         },
         initialState: { type: "per_place", content: {} },
       },
@@ -479,10 +473,8 @@ export default Dynamics((tokens, parameters) => {
           "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a": "5000000",
           "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c": "80",
           "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c": "scenario.launch_rate",
-          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b":
-            "scenario.satellite_initial_altitude",
-          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d":
-            "scenario.satellite_initial_velocity",
+          "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b": "scenario.satellite_initial_altitude",
+          "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d": "scenario.satellite_initial_velocity",
         },
         initialState: { type: "per_place", content: {} },
       },

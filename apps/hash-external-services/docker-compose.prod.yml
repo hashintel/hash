@@ -133,14 +133,7 @@ services:
       RUST_BACKTRACE: 0
     healthcheck:
       test:
-        [
-          "CMD",
-          "/hash-graph",
-          "server",
-          "--healthcheck",
-          "--api-port",
-          "${HASH_GRAPH_HTTP_PORT}",
-        ]
+        ["CMD", "/hash-graph", "server", "--healthcheck", "--api-port", "${HASH_GRAPH_HTTP_PORT}"]
       interval: 2s
       timeout: 2s
       retries: 10

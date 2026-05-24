@@ -46,15 +46,11 @@ describe("shouldSkipKey", () => {
 
 describe("cleanDescription", () => {
   it("removes leading braced content and newlines", () => {
-    expect(cleanDescription("{gray-300}\ninputs, button border")).toBe(
-      "inputs, button border",
-    );
+    expect(cleanDescription("{gray-300}\ninputs, button border")).toBe("inputs, button border");
   });
 
   it("removes leading braced content with spaces and newlines", () => {
-    expect(cleanDescription("{gray-200}\ncontainer borders")).toBe(
-      "container borders",
-    );
+    expect(cleanDescription("{gray-200}\ncontainer borders")).toBe("container borders");
   });
 
   it("preserves plain descriptions", () => {

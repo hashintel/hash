@@ -1,8 +1,6 @@
 import chalk from "chalk";
 import { z } from "zod";
-import zodToJsonSchema, {
-  type JsonSchema7ObjectType,
-} from "zod-to-json-schema";
+import zodToJsonSchema, { type JsonSchema7ObjectType } from "zod-to-json-schema";
 
 import { sleep } from "../shared/time";
 
@@ -16,9 +14,7 @@ export const NewDiffCommentSchema = z.object({
     .describe(
       "Provide a comment on the specific part of the diff. Use ```suggestion```s if you have a specific implementation to suggest.",
     ),
-  filePath: z
-    .string()
-    .describe("The path to the file that the comment is about."),
+  filePath: z.string().describe("The path to the file that the comment is about."),
   position: z
     .number()
     .int()
@@ -174,9 +170,7 @@ File path: ${thread.path}
 Position in diff: ${thread.position}
 Resolved: ${thread.isResolved}
   <Replies>
-  ${thread.replies
-    .map((reply) => `Author (@${reply.author}): ${reply.body}`)
-    .join("\n---\n")}
+  ${thread.replies.map((reply) => `Author (@${reply.author}): ${reply.body}`).join("\n---\n")}
   </Replies>
 </Comment>`,
   )
@@ -204,9 +198,7 @@ Now please submit your review. Remember that a 'request changes' decision will b
       ],
     });
 
-    const toolUseBlock = response.content.find(
-      (block) => block.type === "tool_use",
-    );
+    const toolUseBlock = response.content.find((block) => block.type === "tool_use");
 
     if (!toolUseBlock) {
       throw new Error("No tool use block found in PR review response");
@@ -228,14 +220,10 @@ Now please submit your review. Remember that a 'request changes' decision will b
           try {
             processedInput[key] = JSON.parse(value);
             console.info(
-              chalk.white(
-                `Model provided string for key "${key}", automatically parsed as JSON`,
-              ),
+              chalk.white(`Model provided string for key "${key}", automatically parsed as JSON`),
             );
           } catch {
-            console.error(
-              chalk.red(`Failed to parse string as JSON for key "${key}"`),
-            );
+            console.error(chalk.red(`Failed to parse string as JSON for key "${key}"`));
           }
         }
       }
@@ -258,8 +246,7 @@ Now please submit your review. Remember that a 'request changes' decision will b
         linearTickets,
         prDiff,
         prOverview,
-        previousErrors:
-          "Your last review didn't meet the response schema – please try again.",
+        previousErrors: "Your last review didn't meet the response schema – please try again.",
       });
     }
   } catch {
@@ -274,8 +261,7 @@ Now please submit your review. Remember that a 'request changes' decision will b
       linearTickets,
       prDiff,
       prOverview,
-      previousErrors:
-        "An error occurred while generating your review. Please try again.",
+      previousErrors: "An error occurred while generating your review. Please try again.",
     });
   }
 };

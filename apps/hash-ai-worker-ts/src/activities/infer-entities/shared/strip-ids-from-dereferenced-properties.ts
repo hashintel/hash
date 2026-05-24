@@ -31,10 +31,7 @@ export const stripIdsFromDereferencedProperties = (params: {
           items: {
             ...itemsWithoutId,
             oneOf: itemsWithoutId.oneOf.map((oneOfValue) => {
-              if (
-                typeof oneOfValue === "object" &&
-                "properties" in oneOfValue
-              ) {
+              if (typeof oneOfValue === "object" && "properties" in oneOfValue) {
                 return {
                   ...oneOfValue,
                   properties: stripIdsFromDereferencedProperties({

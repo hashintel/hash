@@ -15,9 +15,7 @@ import type { Org } from "../../lib/user-and-org";
 import type { SidebarItemData } from "./settings-layout/settings-sidebar";
 import type { PropsWithChildren, ReactElement } from "react";
 
-const generateMenuLinks = (
-  organizations: { org: Org }[],
-): SidebarItemData[] => {
+const generateMenuLinks = (organizations: { org: Org }[]): SidebarItemData[] => {
   const organizationItems: SidebarItemData[] = organizations
     .sort(({ org: a }, { org: b }) => a.name.localeCompare(b.name))
     .map(({ org }) => [
@@ -74,8 +72,7 @@ const generateMenuLinks = (
     item.children = menuItems.filter(
       (child) =>
         child.parentHref === item.href ||
-        (item.activeIfPathStartsWith &&
-          child.parentHref === item.activeIfPathStartsWith),
+        (item.activeIfPathStartsWith && child.parentHref === item.activeIfPathStartsWith),
     );
   }
 
@@ -112,8 +109,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
           // eslint-disable-next-line no-loop-func
           (item) =>
             item.href === href ||
-            (item.activeIfPathStartsWith &&
-              item.activeIfPathStartsWith === href),
+            (item.activeIfPathStartsWith && item.activeIfPathStartsWith === href),
         );
 
         if (!currentPage) {
@@ -146,11 +142,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
 
   return (
     <LayoutWithSidebar fullWidth>
-      <TopContextBar
-        crumbs={breadcrumbs}
-        defaultCrumbIcon={null}
-        scrollToTop={() => {}}
-      />
+      <TopContextBar crumbs={breadcrumbs} defaultCrumbIcon={null} scrollToTop={() => {}} />
       <Box sx={({ palette }) => ({ background: palette.common.white, py: 3 })}>
         <Typography variant="h4" sx={{ ...containerSx }}>
           Settings

@@ -17,10 +17,7 @@ import type {
   UserId,
   WebId,
 } from "@blockprotocol/type-system";
-import type {
-  UserSecretService,
-  VaultClient,
-} from "@local/hash-backend-utils/vault";
+import type { UserSecretService, VaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -66,9 +63,7 @@ type CreateUserSecretParams<T extends object> = {
  * - the ONLY _editor_ of both the secret and the link is the provided managingBotAccountId.
  * - the ONLY _viewer_ of the secret and the link is the userAccountId (apart from the managingBotAccountId).
  */
-export const createUserSecret = async <
-  T extends object = Record<"value", string>,
->(
+export const createUserSecret = async <T extends object = Record<"value", string>>(
   params: CreateUserSecretParams<T>,
 ): Promise<EntityId> => {
   const {
@@ -96,8 +91,7 @@ export const createUserSecret = async <
       "https://hash.ai/@h/types/property-type/connection-source-name/": {
         value: service,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
       "https://hash.ai/@h/types/property-type/expired-at/": {
@@ -109,8 +103,7 @@ export const createUserSecret = async <
       "https://hash.ai/@h/types/property-type/vault-path/": {
         value: vaultPath,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
     },
@@ -148,11 +141,7 @@ export const createUserSecret = async <
     await Promise.all(
       linkAndSecretPairs.flatMap(({ userSecret, usesUserSecretLink }) => [
         userSecret.archive(graphApi, managingBotAuthentication, provenance),
-        usesUserSecretLink.archive(
-          graphApi,
-          managingBotAuthentication,
-          provenance,
-        ),
+        usesUserSecretLink.archive(graphApi, managingBotAuthentication, provenance),
       ]),
     );
   }
@@ -184,32 +173,28 @@ export const createUserSecret = async <
   );
 
   /** Link the user secret to the Google Account */
-  await createLinkEntity<UsesUserSecret>(
-    { graphApi, provenance },
-    authentication,
-    {
-      webId: userAccountId as WebId,
-      entityUuid: usesUserSecretEntityUuid,
-      properties: { value: {} },
-      linkData: {
-        leftEntityId: sourceIntegrationEntityId,
-        rightEntityId: userSecretEntity.metadata.recordId.entityId,
-      },
-      entityTypeIds: [systemLinkEntityTypes.usesUserSecret.linkEntityTypeId],
-      policies: [
-        {
-          name: `user-secret-entity-${usesUserSecretEntityUuid}`,
-          principal: {
-            type: "actor",
-            actorType: "machine",
-            id: managingBotAccountId,
-          },
-          effect: "permit",
-          actions: ["viewEntity", "updateEntity", "archiveEntity"],
-        },
-      ],
+  await createLinkEntity<UsesUserSecret>({ graphApi, provenance }, authentication, {
+    webId: userAccountId as WebId,
+    entityUuid: usesUserSecretEntityUuid,
+    properties: { value: {} },
+    linkData: {
+      leftEntityId: sourceIntegrationEntityId,
+      rightEntityId: userSecretEntity.metadata.recordId.entityId,
     },
-  );
+    entityTypeIds: [systemLinkEntityTypes.usesUserSecret.linkEntityTypeId],
+    policies: [
+      {
+        name: `user-secret-entity-${usesUserSecretEntityUuid}`,
+        principal: {
+          type: "actor",
+          actorType: "machine",
+          id: managingBotAccountId,
+        },
+        effect: "permit",
+        actions: ["viewEntity", "updateEntity", "archiveEntity"],
+      },
+    ],
+  });
 
   return userSecretEntity.metadata.recordId.entityId;
 };

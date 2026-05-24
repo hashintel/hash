@@ -1,2 +1,1 @@
-export const getBlockDomId = (blockEntityId: string) =>
-  `entity-${blockEntityId}`;
+export const getBlockDomId = (blockEntityId: string) => `entity-${blockEntityId}`;

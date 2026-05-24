@@ -1,10 +1,5 @@
 import { faPlus, faSearch } from "@fortawesome/free-solid-svg-icons";
-import {
-  Autocomplete,
-  autocompleteClasses,
-  Box,
-  inputBaseClasses,
-} from "@mui/material";
+import { Autocomplete, autocompleteClasses, Box, inputBaseClasses } from "@mui/material";
 import { useRef, useState } from "react";
 
 import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
@@ -31,8 +26,7 @@ export const CustomExpectedValueSelector = <
   renderOption,
   ...props
 }: CustomExpectedValueSelectorProps<T>) => {
-  const [autocompleteElem, setAutocompleteElem] =
-    useState<HTMLDivElement | null>(null);
+  const [autocompleteElem, setAutocompleteElem] = useState<HTMLDivElement | null>(null);
   const textFieldRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -65,8 +59,7 @@ export const CustomExpectedValueSelector = <
       renderOption={renderOption}
       renderInput={({ InputProps, ...otherProps }) => {
         const expanded =
-          textFieldRef.current === document.activeElement ||
-          textFieldRef.current?.value;
+          textFieldRef.current === document.activeElement || textFieldRef.current?.value;
 
         return (
           <TextField
@@ -121,9 +114,7 @@ export const CustomExpectedValueSelector = <
                 />
               ),
             }}
-            placeholder={
-              !expanded ? inputLabel : "Start typing to see more options..."
-            }
+            placeholder={!expanded ? inputLabel : "Start typing to see more options..."}
           />
         );
       }}

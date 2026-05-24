@@ -25,26 +25,18 @@ const permittedAnthropicModels = [
 
 export type PermittedAnthropicModel = (typeof permittedAnthropicModels)[number];
 
-export const isPermittedAnthropicModel = (
-  model: string,
-): model is PermittedAnthropicModel =>
+export const isPermittedAnthropicModel = (model: string): model is PermittedAnthropicModel =>
   permittedAnthropicModels.includes(model as PermittedAnthropicModel);
 
 /** @see https://docs.anthropic.com/claude/docs/models-overview#model-comparison */
-export const anthropicMessageModelToContextWindow: Record<
-  PermittedAnthropicModel,
-  number
-> = {
+export const anthropicMessageModelToContextWindow: Record<PermittedAnthropicModel, number> = {
   "claude-haiku-4-5-20251001": 200_000,
   "claude-opus-4-6": 200_000,
   "claude-sonnet-4-6": 200_000,
 };
 
 /** @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison */
-export const anthropicMessageModelToMaxOutput: Record<
-  PermittedAnthropicModel,
-  number
-> = {
+export const anthropicMessageModelToMaxOutput: Record<PermittedAnthropicModel, number> = {
   // actually 64k, but we should implement streaming mode to handle higher.
   "claude-haiku-4-5-20251001": 12_000,
   // actually 128k, but we should implement streaming mode to handle higher.
@@ -67,12 +59,8 @@ export type AnthropicMessagesCreateResponse = Message & {
   provider: AnthropicApiProvider;
 };
 
-const awsAccessKey = getRequiredEnv(
-  "HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID",
-);
-const awsSecretKey = getRequiredEnv(
-  "HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY",
-);
+const awsAccessKey = getRequiredEnv("HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID");
+const awsSecretKey = getRequiredEnv("HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY");
 /**
  * Currently this is the only region supporting Claude 3 Opus.
  */
@@ -90,14 +78,12 @@ type AnthropicBedrockModel =
   | "anthropic.claude-sonnet-4-6";
 
 /** @see https://docs.anthropic.com/en/api/claude-on-amazon-bedrock#api-model-names */
-export const anthropicModelToBedrockModel: Record<
-  PermittedAnthropicModel,
-  AnthropicBedrockModel
-> = {
-  "claude-haiku-4-5-20251001": "anthropic.claude-haiku-4-5-20251001-v1:0",
-  "claude-opus-4-6": "anthropic.claude-opus-4-6-v1",
-  "claude-sonnet-4-6": "anthropic.claude-sonnet-4-6",
-};
+export const anthropicModelToBedrockModel: Record<PermittedAnthropicModel, AnthropicBedrockModel> =
+  {
+    "claude-haiku-4-5-20251001": "anthropic.claude-haiku-4-5-20251001-v1:0",
+    "claude-opus-4-6": "anthropic.claude-opus-4-6-v1",
+    "claude-sonnet-4-6": "anthropic.claude-sonnet-4-6",
+  };
 
 export type AnthropicApiProvider = "anthropic" | "amazon-bedrock";
 

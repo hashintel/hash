@@ -7,12 +7,7 @@ import "uplot/dist/uPlot.min.css";
 import { useLatest } from "../../../../../../../react/hooks/use-latest";
 import { useStableCallback } from "../../../../../../../react/hooks/use-stable-callback";
 import { PlaybackContext } from "../../../../../../../react/playback/context";
-import {
-  tooltipDotStyle,
-  tooltipLabelStyle,
-  tooltipStyle,
-  tooltipValueStyle,
-} from "./styles";
+import { tooltipDotStyle, tooltipLabelStyle, tooltipStyle, tooltipValueStyle } from "./styles";
 
 import type { TimelineChartType } from "../../../../../../../react/state/editor-context";
 import type { StreamingStore, TimelineSeriesMeta } from "./types";
@@ -148,12 +143,7 @@ function resolveHoverTarget(
     if (top == null || top < 0) {
       return null;
     }
-    const hit = hitTestStackedBand(
-      store,
-      hiddenSeries,
-      idx,
-      u.posToVal(top, "y"),
-    );
+    const hit = hitTestStackedBand(store, hiddenSeries, idx, u.posToVal(top, "y"));
     if (!hit) {
       return null;
     }
@@ -287,13 +277,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
   let focused = -1;
 
   const updateTooltip = (u: uPlot) => {
-    const hit = resolveHoverTarget(
-      u,
-      storeRef.current,
-      chartType,
-      hiddenSeries,
-      focused,
-    );
+    const hit = resolveHoverTarget(u, storeRef.current, chartType, hiddenSeries, focused);
     if (!hit) {
       t.root.style.display = "none";
       return;
@@ -305,9 +289,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
   let bands: uPlot.Band[] | undefined;
 
   if (chartType === "stacked") {
-    const visible = store.series
-      .filter((p) => !hiddenSeries.has(p.seriesId))
-      .reverse();
+    const visible = store.series.filter((p) => !hiddenSeries.has(p.seriesId)).reverse();
     for (const p of visible) {
       series.push({
         label: p.seriesName,
@@ -418,10 +400,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
   };
 }
 
-function attachRulerScrubbing(
-  u: uPlot,
-  onScrub: (frameIndex: number) => void,
-): () => void {
+function attachRulerScrubbing(u: uPlot, onScrub: (frameIndex: number) => void): () => void {
   let dragging = false;
   let overRect: DOMRect | null = null;
 
@@ -441,10 +420,7 @@ function attachRulerScrubbing(
 
   const onMove = (e: PointerEvent) => {
     if (dragging && overRect) {
-      const x = Math.max(
-        0,
-        Math.min(e.clientX - overRect.left, overRect.width),
-      );
+      const x = Math.max(0, Math.min(e.clientX - overRect.left, overRect.width));
       onScrub(u.posToIdx(x));
     }
   };
@@ -476,14 +452,7 @@ export const UPlotChart: FC<{
   totalFrames: number;
   currentFrameIndex: number;
   className?: string;
-}> = ({
-  store,
-  chartType,
-  hiddenSeries,
-  totalFrames,
-  currentFrameIndex,
-  className,
-}) => {
+}> = ({ store, chartType, hiddenSeries, totalFrames, currentFrameIndex, className }) => {
   "use no memo";
 
   const { setCurrentViewedFrame } = use(PlaybackContext);
@@ -552,15 +521,7 @@ export const UPlotChart: FC<{
       u.destroy();
       chartRef.current = null;
     };
-  }, [
-    chartType,
-    hiddenSeries,
-    store,
-    store.series.length,
-    storeRef,
-    hasSize,
-    onScrub,
-  ]);
+  }, [chartType, hiddenSeries, store, store.series.length, storeRef, hasSize, onScrub]);
 
   useEffect(() => {
     if (chartRef.current && size && size.width > 0 && size.height > 0) {

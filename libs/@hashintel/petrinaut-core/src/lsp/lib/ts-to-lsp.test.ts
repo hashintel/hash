@@ -1,15 +1,8 @@
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import {
-  CompletionItemKind,
-  DiagnosticSeverity,
-} from "vscode-languageserver-types";
+import { CompletionItemKind, DiagnosticSeverity } from "vscode-languageserver-types";
 
-import {
-  serializeDiagnostic,
-  toCompletionItemKind,
-  toLspSeverity,
-} from "./ts-to-lsp";
+import { serializeDiagnostic, toCompletionItemKind, toLspSeverity } from "./ts-to-lsp";
 
 describe("toLspSeverity", () => {
   it.for([
@@ -22,12 +15,9 @@ describe("toLspSeverity", () => {
       label: "Message",
     },
     { category: 99, expected: DiagnosticSeverity.Error, label: "unknown" },
-  ])(
-    "maps TS $label ($category) to LSP severity $expected",
-    ({ category, expected }) => {
-      expect(toLspSeverity(category)).toBe(expected);
-    },
-  );
+  ])("maps TS $label ($category) to LSP severity $expected", ({ category, expected }) => {
+    expect(toLspSeverity(category)).toBe(expected);
+  });
 });
 
 describe("toCompletionItemKind", () => {
@@ -58,20 +48,15 @@ describe("toCompletionItemKind", () => {
     { tsKind: "keyword", expected: CompletionItemKind.Keyword },
     { tsKind: "string", expected: CompletionItemKind.Value },
     { tsKind: "unknown-kind", expected: CompletionItemKind.Text },
-  ])(
-    'maps "$tsKind" to CompletionItemKind $expected',
-    ({ tsKind, expected }) => {
-      expect(toCompletionItemKind(tsKind)).toBe(expected);
-    },
-  );
+  ])('maps "$tsKind" to CompletionItemKind $expected', ({ tsKind, expected }) => {
+    expect(toCompletionItemKind(tsKind)).toBe(expected);
+  });
 });
 
 describe("serializeDiagnostic", () => {
   const fileContent = "const x = 1;\nconst y = 2;\n";
 
-  function makeTsDiagnostic(
-    overrides: Partial<ts.Diagnostic> = {},
-  ): ts.Diagnostic {
+  function makeTsDiagnostic(overrides: Partial<ts.Diagnostic> = {}): ts.Diagnostic {
     return {
       file: undefined,
       start: 0,

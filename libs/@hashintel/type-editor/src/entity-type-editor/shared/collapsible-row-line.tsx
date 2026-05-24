@@ -7,10 +7,7 @@ type CollapsibleRowLineProps = {
   depth: number;
 };
 
-export const CollapsibleRowLine = ({
-  height,
-  depth,
-}: CollapsibleRowLineProps) => (
+export const CollapsibleRowLine = ({ height, depth }: CollapsibleRowLineProps) => (
   <Box
     sx={{
       boxSizing: "content-box",

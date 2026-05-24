@@ -95,8 +95,7 @@ const createSavePlugin = (
         if (!tr.getMeta(pluginKey)?.skipSave) {
           if (
             oldState.doc !== newState.doc ||
-            entityStorePluginState(oldState) !==
-              entityStorePluginState(newState)
+            entityStorePluginState(oldState) !== entityStorePluginState(newState)
           ) {
             writeDebounce();
           }

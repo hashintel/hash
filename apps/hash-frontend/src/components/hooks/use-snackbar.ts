@@ -19,27 +19,19 @@ type EnqueueWithoutVariant = (
 
 type SnackbarVariants = Record<VariantType, EnqueueWithoutVariant>;
 
-const variantTypes: VariantType[] = [
-  "default",
-  "error",
-  "info",
-  "success",
-  "warning",
-];
+const variantTypes: VariantType[] = ["default", "error", "info", "success", "warning"];
 
-const generateSnackbarVariants = (
-  enqueueSnackbar: ProviderContext["enqueueSnackbar"],
-) => {
+const generateSnackbarVariants = (enqueueSnackbar: ProviderContext["enqueueSnackbar"]) => {
   /**
    * we map a `EnqueueWithoutVariant` function to each variant,
    * which is `enqueueSnackbar`, but with a pre-defined `variant`
    * */
   const entries = variantTypes.map(
     (variant) =>
-      [
-        variant,
-        (message, options) => enqueueSnackbar(message, { ...options, variant }),
-      ] as [VariantType, EnqueueWithoutVariant],
+      [variant, (message, options) => enqueueSnackbar(message, { ...options, variant })] as [
+        VariantType,
+        EnqueueWithoutVariant,
+      ],
   );
 
   /** we use entries to generate the object with `EnqueueWithoutVariant` function of each variant
@@ -60,8 +52,5 @@ export const useSnackbar = (): SnackbarManager => {
     [enqueueSnackbar],
   );
 
-  return useMemo(
-    () => ({ closeSnackbar, triggerSnackbar }),
-    [closeSnackbar, triggerSnackbar],
-  );
+  return useMemo(() => ({ closeSnackbar, triggerSnackbar }), [closeSnackbar, triggerSnackbar]);
 };

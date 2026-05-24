@@ -67,11 +67,7 @@ describe("Hash Instance", () => {
   let authentication: AuthenticationContext;
 
   it("can determine if user is hash admin", async () => {
-    testHashInstanceAdmin = await createTestUser(
-      graphContext,
-      "hashInstTest",
-      logger,
-    );
+    testHashInstanceAdmin = await createTestUser(graphContext, "hashInstTest", logger);
     authentication = { actorId: testHashInstanceAdmin.accountId };
 
     expect(

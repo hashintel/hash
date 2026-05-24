@@ -21,10 +21,7 @@ interface MutableBytesImpl extends MutableBytes {
   readonly growthStrategy: GrowthStrategy;
 }
 
-const MutableBytesProto: Omit<
-  MutableBytesImpl,
-  "inner" | "initialCapacity" | "growthStrategy"
-> = {
+const MutableBytesProto: Omit<MutableBytesImpl, "inner" | "initialCapacity" | "growthStrategy"> = {
   [TypeId]: TypeId,
 
   length: 0,
@@ -58,9 +55,7 @@ export const make = (options?: MakeOptions): MutableBytes =>
       growthStrategy: options?.growthStrategy ?? "doubling",
     },
     {
-      inner: new ArrayBuffer(
-        options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY,
-      ),
+      inner: new ArrayBuffer(options?.initialCapacity ?? DEFAULT_INITIAL_CAPACITY),
     },
   ) satisfies MutableBytesImpl as MutableBytes;
 
@@ -73,10 +68,7 @@ interface FromOptions {
   readonly growthStrategy?: GrowthStrategy;
 }
 
-export const from = (
-  buffer: ArrayBuffer,
-  options?: FromOptions,
-): MutableBytes =>
+export const from = (buffer: ArrayBuffer, options?: FromOptions): MutableBytes =>
   createProto(
     MutableBytesProto,
     {
@@ -89,8 +81,7 @@ export const from = (
     },
   ) satisfies MutableBytesImpl as MutableBytes;
 
-export const capacity = (self: MutableBytes) =>
-  (self as MutableBytesImpl).inner.byteLength;
+export const capacity = (self: MutableBytes) => (self as MutableBytesImpl).inner.byteLength;
 
 export const length = (self: MutableBytes) => (self as MutableBytesImpl).length;
 
@@ -125,9 +116,7 @@ const requiredCapacity = (self: MutableBytes, minimum: number) => {
         () =>
           next +
           // if the initialCapacity is 0 we should use the default, otherwise this turns into an infinite loop
-          (impl.initialCapacity === 0
-            ? DEFAULT_INITIAL_CAPACITY
-            : impl.initialCapacity),
+          (impl.initialCapacity === 0 ? DEFAULT_INITIAL_CAPACITY : impl.initialCapacity),
       ),
       // eslint-disable-next-line @typescript-eslint/no-loop-func
       Match.when(Match.is("exponential"), () => next ** 2),
@@ -170,20 +159,14 @@ export const asDataView = (self: MutableBytes) => {
   return new DataView(impl.inner, 0, length(self));
 };
 
-export const appendArray = (
-  self: MutableBytes,
-  ...bytes: readonly Uint8Array[]
-) => {
+export const appendArray = (self: MutableBytes, ...bytes: readonly Uint8Array[]) => {
   const impl = self as MutableBytesImpl;
 
   if (bytes.length === 0) {
     return self;
   }
 
-  const totalLength = bytes.reduce(
-    (accumulator, b) => accumulator + b.byteLength,
-    0,
-  );
+  const totalLength = bytes.reduce((accumulator, b) => accumulator + b.byteLength, 0);
 
   reserve(self, totalLength);
 
@@ -195,25 +178,17 @@ export const appendArray = (
   return self;
 };
 
-export const appendBuffer = (
-  self: MutableBytes,
-  ...buffers: readonly ArrayBuffer[]
-) => appendArray(self, ...buffers.map((buffer) => new Uint8Array(buffer)));
+export const appendBuffer = (self: MutableBytes, ...buffers: readonly ArrayBuffer[]) =>
+  appendArray(self, ...buffers.map((buffer) => new Uint8Array(buffer)));
 
-export const append = (
-  self: MutableBytes,
-  ...other: readonly MutableBytes[]
-) => {
+export const append = (self: MutableBytes, ...other: readonly MutableBytes[]) => {
   const impl = self as MutableBytesImpl;
 
   if (other.length === 0) {
     return self;
   }
 
-  const totalLength = other.reduce(
-    (accumulator, b) => accumulator + length(b),
-    0,
-  );
+  const totalLength = other.reduce((accumulator, b) => accumulator + length(b), 0);
 
   reserve(self, totalLength);
 

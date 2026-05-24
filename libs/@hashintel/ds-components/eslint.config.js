@@ -3,8 +3,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 
 import { createBase, disableRules } from "@local/eslint/deprecated";
 
-const disableTypeCheckedRules =
-  typescriptEslint.configs["disable-type-checked"]?.rules ?? {};
+const disableTypeCheckedRules = typescriptEslint.configs["disable-type-checked"]?.rules ?? {};
 
 export default [
   {
@@ -30,8 +29,7 @@ export default [
           patterns: [
             {
               group: ["@local/*"],
-              message:
-                "You cannot use unpublished local packages in a published package.",
+              message: "You cannot use unpublished local packages in a published package.",
             },
           ],
         },

@@ -31,10 +31,7 @@ export const App = () => {
             <Dialog.Body>
               <HoverCard.Root>
                 <HoverCard.Trigger asChild>
-                  <Link
-                    href="https://twitter.com/grizzly_codes/"
-                    target="_blank"
-                  >
+                  <Link href="https://twitter.com/grizzly_codes/" target="_blank">
                     @grizzly_codes
                   </Link>
                 </HoverCard.Trigger>

@@ -2,17 +2,11 @@ import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { updateEntity } from "../../../../graph/knowledge/primitive/entity";
-import {
-  getPageById,
-  getPageFromEntity,
-} from "../../../../graph/knowledge/system-types/page";
+import { getPageById, getPageFromEntity } from "../../../../graph/knowledge/system-types/page";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { mapPageToGQL } from "../graphql-mapping";
 
-import type {
-  MutationUpdatePageArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { MutationUpdatePageArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { UnresolvedPageGQL } from "../graphql-mapping";
 
@@ -29,20 +23,17 @@ export const updatePageResolver: ResolverFn<
 
   const updatedPageEntity = await updateEntity(context, authentication, {
     entity: page.entity,
-    propertyPatches: Object.entries(updatedProperties).map(
-      ([propertyName, value]) => {
-        const propertyTypeBaseUrl =
-          systemPropertyTypes[
-            propertyName as keyof MutationUpdatePageArgs["updatedProperties"]
-          ].propertyTypeBaseUrl;
+    propertyPatches: Object.entries(updatedProperties).map(([propertyName, value]) => {
+      const propertyTypeBaseUrl =
+        systemPropertyTypes[propertyName as keyof MutationUpdatePageArgs["updatedProperties"]]
+          .propertyTypeBaseUrl;
 
-        return {
-          op: "add",
-          path: [propertyTypeBaseUrl],
-          property: mergePropertiesAndMetadata(value, undefined),
-        };
-      },
-    ),
+      return {
+        op: "add",
+        path: [propertyTypeBaseUrl],
+        property: mergePropertiesAndMetadata(value, undefined),
+      };
+    }),
   });
 
   return mapPageToGQL(getPageFromEntity({ entity: updatedPageEntity }));

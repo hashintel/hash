@@ -47,9 +47,7 @@ export const getReferencedIdsFromPropertyType = (
         // property type object definition
         for (const propertyDefinition of Object.values(oneOfValue.properties)) {
           if ("items" in propertyDefinition) {
-            constrainsPropertiesOnPropertyTypes.add(
-              propertyDefinition.items.$ref,
-            );
+            constrainsPropertiesOnPropertyTypes.add(propertyDefinition.items.$ref);
           } else {
             constrainsPropertiesOnPropertyTypes.add(propertyDefinition.$ref);
           }
@@ -63,13 +61,12 @@ export const getReferencedIdsFromPropertyType = (
     return { constrainsValuesOnDataTypes, constrainsPropertiesOnPropertyTypes };
   };
 
-  const { constrainsValuesOnDataTypes, constrainsPropertiesOnPropertyTypes } =
-    recurseOneOf(propertyType.oneOf);
+  const { constrainsValuesOnDataTypes, constrainsPropertiesOnPropertyTypes } = recurseOneOf(
+    propertyType.oneOf,
+  );
 
   return {
     constrainsValuesOnDataTypes: [...constrainsValuesOnDataTypes],
-    constrainsPropertiesOnPropertyTypes: [
-      ...constrainsPropertiesOnPropertyTypes,
-    ],
+    constrainsPropertiesOnPropertyTypes: [...constrainsPropertiesOnPropertyTypes],
   };
 };

@@ -55,11 +55,7 @@ export const Paragraph = ({ children }: { children?: ReactNode }) => {
   }
 
   return (
-    <Typography
-      variant="regularTextParagraphs"
-      component="p"
-      sx={ParagraphSxProps}
-    >
+    <Typography variant="regularTextParagraphs" component="p" sx={ParagraphSxProps}>
       {children}
     </Typography>
   );

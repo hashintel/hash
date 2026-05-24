@@ -42,9 +42,7 @@ export const App = () => {
                           <DatePicker.TableRow key={id}>
                             {week.map((day, id) => (
                               <DatePicker.TableCell key={id} value={day}>
-                                <DatePicker.TableCellTrigger>
-                                  {day.day}
-                                </DatePicker.TableCellTrigger>
+                                <DatePicker.TableCellTrigger>{day.day}</DatePicker.TableCellTrigger>
                               </DatePicker.TableCell>
                             ))}
                           </DatePicker.TableRow>
@@ -73,10 +71,7 @@ export const App = () => {
                           .map((months, id: number) => (
                             <DatePicker.TableRow key={id}>
                               {months.map((month, id: number) => (
-                                <DatePicker.TableCell
-                                  key={id}
-                                  value={month.value}
-                                >
+                                <DatePicker.TableCell key={id} value={month.value}>
                                   <DatePicker.TableCellTrigger>
                                     {month.label}
                                   </DatePicker.TableCellTrigger>
@@ -103,22 +98,17 @@ export const App = () => {
                     </DatePicker.ViewControl>
                     <DatePicker.Table>
                       <DatePicker.TableBody>
-                        {datePicker
-                          .getYearsGrid({ columns: 4 })
-                          .map((years, id: number) => (
-                            <DatePicker.TableRow key={id}>
-                              {years.map((year, id: number) => (
-                                <DatePicker.TableCell
-                                  key={id}
-                                  value={year.value}
-                                >
-                                  <DatePicker.TableCellTrigger>
-                                    {year.label}
-                                  </DatePicker.TableCellTrigger>
-                                </DatePicker.TableCell>
-                              ))}
-                            </DatePicker.TableRow>
-                          ))}
+                        {datePicker.getYearsGrid({ columns: 4 }).map((years, id: number) => (
+                          <DatePicker.TableRow key={id}>
+                            {years.map((year, id: number) => (
+                              <DatePicker.TableCell key={id} value={year.value}>
+                                <DatePicker.TableCellTrigger>
+                                  {year.label}
+                                </DatePicker.TableCellTrigger>
+                              </DatePicker.TableCell>
+                            ))}
+                          </DatePicker.TableRow>
+                        ))}
                       </DatePicker.TableBody>
                     </DatePicker.Table>
                   </>

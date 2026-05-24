@@ -37,10 +37,7 @@ import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
 import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
 import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
 
-import type {
-  EntityDefinition,
-  LinkedEntityDefinition,
-} from "../../../graphql/api-types.gen";
+import type { EntityDefinition, LinkedEntityDefinition } from "../../../graphql/api-types.gen";
 import type { ImpureGraphFunction } from "../../context-types";
 import type {
   BaseUrl,
@@ -74,36 +71,29 @@ import type { TraversalPath } from "@rust/hash-graph-store/types";
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = PropertyObject[BaseUrl];
 
-type CreateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> =
+type CreateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> = ImpureGraphFunction<
+  Omit<CreateEntityParameters<Properties>, "linkData" | "provenance"> & {
+    outgoingLinks?: (Omit<CreateEntityParameters, "linkData" | "provenance"> & {
+      linkData: Omit<LinkData, "leftEntityId">;
+    })[];
+  },
+  Promise<HashEntity<Properties>>
+>;
+
+type CreateEntityWithLinksFunction<Properties extends TypeIdsAndPropertiesForEntity> =
   ImpureGraphFunction<
     Omit<CreateEntityParameters<Properties>, "linkData" | "provenance"> & {
-      outgoingLinks?: (Omit<
-        CreateEntityParameters,
-        "linkData" | "provenance"
-      > & {
-        linkData: Omit<LinkData, "leftEntityId">;
-      })[];
+      linkedEntities?: LinkedEntityDefinition[];
     },
-    Promise<HashEntity<Properties>>
+    Promise<HashEntity<Properties>>,
+    false,
+    true
   >;
-
-type CreateEntityWithLinksFunction<
-  Properties extends TypeIdsAndPropertiesForEntity,
-> = ImpureGraphFunction<
-  Omit<CreateEntityParameters<Properties>, "linkData" | "provenance"> & {
-    linkedEntities?: LinkedEntityDefinition[];
-  },
-  Promise<HashEntity<Properties>>,
-  false,
-  true
->;
 
 /**
  * Create an entity.
  */
-export const createEntity = async <
-  Properties extends TypeIdsAndPropertiesForEntity,
->(
+export const createEntity = async <Properties extends TypeIdsAndPropertiesForEntity>(
   ...args: Parameters<CreateEntityFunction<Properties>>
 ): ReturnType<CreateEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
@@ -116,12 +106,11 @@ export const createEntity = async <
 
   for (const beforeCreateHook of beforeCreateEntityHooks) {
     if (createParams.entityTypeIds.includes(beforeCreateHook.entityTypeId)) {
-      const { properties: hookReturnedProperties } =
-        await beforeCreateHook.callback({
-          context,
-          properties,
-          authentication,
-        });
+      const { properties: hookReturnedProperties } = await beforeCreateHook.callback({
+        context,
+        properties,
+        authentication,
+      });
 
       properties = hookReturnedProperties;
     }
@@ -160,15 +149,14 @@ export const createEntity = async <
   return entity;
 };
 
-export const countEntities: ImpureGraphFunction<
-  CountEntitiesParams,
-  Promise<number>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi.countEntities(actorId, params).then(({ data }) => data);
+export const countEntities: ImpureGraphFunction<CountEntitiesParams, Promise<number>> = async (
+  { graphApi },
+  { actorId },
+  params,
+) => graphApi.countEntities(actorId, params).then(({ data }) => data);
 
 type GetLatestEntityByIdFunction<
-  Properties extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = ImpureGraphFunction<
   {
     entityId: EntityId;
@@ -196,8 +184,7 @@ type GetLatestEntityByIdFunction<
  *   fault
  */
 export const getLatestEntityById = async <
-  Properties extends TypeIdsAndPropertiesForEntity =
-    TypeIdsAndPropertiesForEntity,
+  Properties extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 >(
   ...args: Parameters<GetLatestEntityByIdFunction<Properties>>
 ): ReturnType<GetLatestEntityByIdFunction<Properties>> => {
@@ -335,9 +322,7 @@ export const canUserReadEntity: ImpureGraphFunction<
 /**
  * Create an entity along with any new/existing entities specified through links.
  */
-export const createEntityWithLinks = async <
-  Properties extends TypeIdsAndPropertiesForEntity,
->(
+export const createEntityWithLinks = async <Properties extends TypeIdsAndPropertiesForEntity>(
   ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
 ): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
   const [context, authentication, params] = args;
@@ -367,10 +352,7 @@ export const createEntityWithLinks = async <
     entitiesInTree.map(async (definition) => {
       const { existingEntityId, parentIndex, meta } = definition;
 
-      if (
-        !existingEntityId &&
-        (!definition.entityProperties || !definition.entityTypeIds)
-      ) {
+      if (!existingEntityId && (!definition.entityProperties || !definition.entityTypeIds)) {
         throw new Error(
           `One of existingEntityId or (entityProperties && entityTypeIds) must be provided in linked entity definition: ${JSON.stringify(
             definition,
@@ -391,8 +373,7 @@ export const createEntityWithLinks = async <
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
             properties: definition.entityProperties!,
-            entityTypeIds:
-              definition.entityTypeIds as Properties["entityTypeIds"],
+            entityTypeIds: definition.entityTypeIds as Properties["entityTypeIds"],
           });
 
       return {
@@ -434,8 +415,7 @@ export const createEntityWithLinks = async <
           entityTypeIds: [link.meta.linkEntityTypeId],
           draft:
             /** If either side of the link is a draft entity, the link entity must be draft also */
-            params.draft ||
-            !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+            params.draft || !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
         });
       }
     }),
@@ -444,26 +424,23 @@ export const createEntityWithLinks = async <
   return rootEntity;
 };
 
-type UpdateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> =
-  ImpureGraphFunction<
-    {
-      entity: HashEntity<Properties>;
-      entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
-      propertyPatches?: PropertyPatchOperation[];
-      draft?: boolean;
-      archived?: boolean;
-    },
-    Promise<HashEntity<Properties>>,
-    false,
-    true
-  >;
+type UpdateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> = ImpureGraphFunction<
+  {
+    entity: HashEntity<Properties>;
+    entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
+    propertyPatches?: PropertyPatchOperation[];
+    draft?: boolean;
+    archived?: boolean;
+  },
+  Promise<HashEntity<Properties>>,
+  false,
+  true
+>;
 
 /**
  * Update an entity.
  */
-export const updateEntity = async <
-  Properties extends TypeIdsAndPropertiesForEntity,
->(
+export const updateEntity = async <Properties extends TypeIdsAndPropertiesForEntity>(
   ...args: Parameters<UpdateEntityFunction<Properties>>
 ): ReturnType<UpdateEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
@@ -493,9 +470,7 @@ export const updateEntity = async <
    */
   const additionalAllowedUrls = new Set([enabledFeatureFlagsPropertyBaseUrl]);
 
-  const { shortname } = simplifyProperties<UserProperties>(
-    entity.properties as UserProperties,
-  );
+  const { shortname } = simplifyProperties<UserProperties>(entity.properties as UserProperties);
   if (!shortname) {
     additionalAllowedUrls.add(shortnamePropertyBaseUrl);
   }
@@ -611,12 +586,7 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
   },
   Promise<HashLinkEntity[]>
 > = async (context, authentication, params) => {
-  const {
-    entityId,
-    linkEntityTypeVersionedUrl,
-    rightEntityId,
-    includeDrafts = false,
-  } = params;
+  const { entityId, linkEntityTypeVersionedUrl, rightEntityId, includeDrafts = false } = params;
 
   const filter: Filter = {
     all: [
@@ -750,10 +720,7 @@ export const hasPermissionForEntities: ImpureGraphFunction<
     HasPermissionForEntitiesParams,
     {
       entityIds: EntityId[];
-      action: Subtype<
-        ActionName,
-        "viewEntity" | "updateEntity" | "archiveEntity"
-      >;
+      action: Subtype<ActionName, "viewEntity" | "updateEntity" | "archiveEntity">;
       temporalAxes: QueryTemporalAxesUnresolved;
       includeDrafts: boolean;
     }
@@ -762,18 +729,12 @@ export const hasPermissionForEntities: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .hasPermissionForEntities(actorId, params)
-    .then(
-      ({ data }) =>
-        data as Record<EntityId, [EntityEditionId, ...EntityEditionId[]]>,
-    );
+    .then(({ data }) => data as Record<EntityId, [EntityEditionId, ...EntityEditionId[]]>);
 
 export const checkEntityPermission: ImpureGraphFunction<
   {
     entityId: EntityId;
-    permission: Subtype<
-      ActionName,
-      "viewEntity" | "updateEntity" | "archiveEntity"
-    >;
+    permission: Subtype<ActionName, "viewEntity" | "updateEntity" | "archiveEntity">;
   },
   Promise<boolean>
 > = async (context, authentication, params) =>
@@ -814,9 +775,7 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
             { actorId },
             {
               actorId,
-              actorGroupId: extractEntityUuidFromEntityId(entityId) as
-                | WebId
-                | TeamId,
+              actorGroupId: extractEntityUuidFromEntityId(entityId) as WebId | TeamId,
             },
           ).then((role) => role === "administrator")
       : null,
@@ -854,13 +813,8 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
   const userPermissionsOnEntities: UserPermissionsOnEntities = {};
   await Promise.all(
     entities.map(async (entity) => {
-      const permissions = await checkPermissionsOnEntity(
-        graphContext,
-        authentication,
-        { entity },
-      );
-      userPermissionsOnEntities[entity.metadata.recordId.entityId] =
-        permissions;
+      const permissions = await checkPermissionsOnEntity(graphContext, authentication, { entity });
+      userPermissionsOnEntities[entity.metadata.recordId.entityId] = permissions;
     }),
   );
 

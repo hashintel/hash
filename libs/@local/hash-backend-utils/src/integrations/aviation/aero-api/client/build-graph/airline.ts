@@ -28,19 +28,16 @@ export const mapAirline: MappingFunction<AeroApiAirlineInput, HashAirline> = (
   const properties: HashAirline["propertiesWithMetadata"] = {
     value: {
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
-        value:
-          input.operator ?? input.operator_icao ?? input.operator_iata ?? "",
+        value: input.operator ?? input.operator_icao ?? input.operator_iata ?? "",
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           provenance,
         },
       },
       "https://hash.ai/@h/types/property-type/icao-code/": {
         value: input.operator_icao!,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           provenance,
         },
       },
@@ -48,8 +45,7 @@ export const mapAirline: MappingFunction<AeroApiAirlineInput, HashAirline> = (
         "https://hash.ai/@h/types/property-type/iata-code/": {
           value: input.operator_iata,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             provenance,
           },
         },

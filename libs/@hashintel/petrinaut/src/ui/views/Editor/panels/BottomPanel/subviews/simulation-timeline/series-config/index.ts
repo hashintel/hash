@@ -28,14 +28,7 @@ export function buildTimelineSeriesConfig(args: {
   selectedMetric: Metric | null;
   compiledMetric: CompiledMetric | null;
 }): TimelineSeriesConfig {
-  const {
-    timelineView,
-    places,
-    types,
-    transitions,
-    selectedMetric,
-    compiledMetric,
-  } = args;
+  const { timelineView, places, types, transitions, selectedMetric, compiledMetric } = args;
 
   switch (timelineView.kind) {
     case "metric":

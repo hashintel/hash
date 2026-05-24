@@ -3,11 +3,7 @@ import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import {
-  extractBaseUrl,
-  extractVersion,
-  isValueMetadata,
-} from "@blockprotocol/type-system";
+import { extractBaseUrl, extractVersion, isValueMetadata } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 
 import type { EntityDiff } from "../../../../../graphql/api-types.gen";
@@ -23,8 +19,8 @@ import type {
 } from "@blockprotocol/type-system";
 
 export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
-  const firstEditionIdentifier = [...(subgraph.roots as EntityVertexId[])].sort(
-    (a, b) => (a.revisionId < b.revisionId ? -1 : 1),
+  const firstEditionIdentifier = [...(subgraph.roots as EntityVertexId[])].sort((a, b) =>
+    a.revisionId < b.revisionId ? -1 : 1,
   )[0];
 
   if (!firstEditionIdentifier) {
@@ -43,11 +39,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
 
   const events: HistoryEvent[] = [];
 
-  for (
-    let changedEntityIndex = diffs.length - 1;
-    changedEntityIndex >= 0;
-    changedEntityIndex--
-  ) {
+  for (let changedEntityIndex = diffs.length - 1; changedEntityIndex >= 0; changedEntityIndex--) {
     const diffData = diffs[changedEntityIndex]!;
 
     const changedEntityEdition = getEntityRevision(
@@ -57,9 +49,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     );
 
     if (!changedEntityEdition) {
-      throw new Error(
-        `Could not find entity with id ${diffData.input.secondEntityId} in subgraph`,
-      );
+      throw new Error(`Could not find entity with id ${diffData.input.secondEntityId} in subgraph`);
     }
 
     const previousEntityEdition = getEntityRevision(
@@ -69,9 +59,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     );
 
     if (!previousEntityEdition) {
-      throw new Error(
-        `Could not find entity with id ${diffData.input.firstEntityId} in subgraph`,
-      );
+      throw new Error(`Could not find entity with id ${diffData.input.firstEntityId} in subgraph`);
     }
 
     /**
@@ -81,15 +69,11 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
 
     let subChangeNumber = 1;
 
-    const timestamp =
-      changedEntityEdition.metadata.temporalVersioning.decisionTime.start.limit;
+    const timestamp = changedEntityEdition.metadata.temporalVersioning.decisionTime.start.limit;
 
     const editionProvenance = changedEntityEdition.metadata.provenance.edition;
 
-    if (
-      changedEntityEdition.metadata.archived !==
-      previousEntityEdition.metadata.archived
-    ) {
+    if (changedEntityEdition.metadata.archived !== previousEntityEdition.metadata.archived) {
       events.push({
         type: "archive-status-change",
         newArchiveStatus: changedEntityEdition.metadata.archived,
@@ -104,38 +88,28 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     if (diffData.diff.entityTypeIds) {
       const upgradedFromEntityTypeIds: VersionedUrl[] = [];
 
-      const diffsWithAdditionsFirst = [...diffData.diff.entityTypeIds].sort(
-        (a) => {
-          return a.op === "added" ? -1 : 1;
-        },
-      );
+      const diffsWithAdditionsFirst = [...diffData.diff.entityTypeIds].sort((a) => {
+        return a.op === "added" ? -1 : 1;
+      });
 
       for (const entityTypeDiff of diffsWithAdditionsFirst) {
         const addedOrRemovedTypeId =
           entityTypeDiff.op === "added"
             ? (entityTypeDiff.added as VersionedUrl)
             : (entityTypeDiff.removed as VersionedUrl);
-        const addedOrRemovedType = getEntityTypeById(
-          subgraph,
-          addedOrRemovedTypeId,
-        );
+        const addedOrRemovedType = getEntityTypeById(subgraph, addedOrRemovedTypeId);
 
         if (!addedOrRemovedType) {
-          throw new Error(
-            `Could not find entity type with id ${addedOrRemovedTypeId} in subgraph`,
-          );
+          throw new Error(`Could not find entity type with id ${addedOrRemovedTypeId} in subgraph`);
         }
 
         if (entityTypeDiff.op === "added") {
           const baseUrl = extractBaseUrl(entityTypeDiff.added as VersionedUrl);
 
           const removedOldVersion = diffData.diff.entityTypeIds.find(
-            (
-              entityTypeIdDiff,
-            ): entityTypeIdDiff is EntityTypeIdDiff & { op: "removed" } =>
+            (entityTypeIdDiff): entityTypeIdDiff is EntityTypeIdDiff & { op: "removed" } =>
               entityTypeIdDiff.op === "removed" &&
-              extractBaseUrl(entityTypeIdDiff.removed as VersionedUrl) ===
-                baseUrl,
+              extractBaseUrl(entityTypeIdDiff.removed as VersionedUrl) === baseUrl,
           );
           if (removedOldVersion) {
             upgradedFromEntityTypeIds.push(removedOldVersion.removed);
@@ -152,9 +126,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
             entityType: {
               title: addedOrRemovedType.schema.title,
               version: addedOrRemovedType.metadata.recordId.version,
-              oldVersion: removedOldVersion
-                ? extractVersion(removedOldVersion.removed)
-                : undefined,
+              oldVersion: removedOldVersion ? extractVersion(removedOldVersion.removed) : undefined,
             },
           });
         } else {
@@ -182,9 +154,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
 
     if (diffData.diff.properties) {
       for (const propertyDiff of diffData.diff.properties as PropertyDiff[]) {
-        const propertyMetadata = changedEntityEdition.propertyMetadata(
-          propertyDiff.path,
-        );
+        const propertyMetadata = changedEntityEdition.propertyMetadata(propertyDiff.path);
 
         if (!propertyMetadata) {
           continue;
@@ -209,9 +179,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
               property: propertyProvenance,
             },
             propertyType: propertyTypeWithMetadata.propertyType,
-            timestamp:
-              changedEntityEdition.metadata.temporalVersioning.decisionTime
-                .start.limit,
+            timestamp: changedEntityEdition.metadata.temporalVersioning.decisionTime.start.limit,
             type: "property-update",
             diff: propertyDiff,
           });
@@ -237,9 +205,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     }
   }
 
-  for (const [index, [key, value]] of typedEntries(
-    firstEntityEdition.properties,
-  ).entries()) {
+  for (const [index, [key, value]] of typedEntries(firstEntityEdition.properties).entries()) {
     const propertyMetadata = firstEntityEdition.propertyMetadata([key]);
 
     if (!propertyMetadata || !isValueMetadata(propertyMetadata)) {
@@ -290,9 +256,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     const firstEntityType = getEntityTypeById(subgraph, entityTypeId);
 
     if (!firstEntityType) {
-      throw new Error(
-        `Could not find entity type with id ${entityTypeId} in subgraph`,
-      );
+      throw new Error(`Could not find entity type with id ${entityTypeId} in subgraph`);
     }
 
     firstEntityTypes.push(firstEntityType);

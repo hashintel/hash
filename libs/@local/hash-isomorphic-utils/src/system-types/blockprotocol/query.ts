@@ -2,11 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
+import type { Confidence, ObjectMetadata, PropertyProvenance } from "@blockprotocol/type-system";
 
 /**
  * An opaque, untyped JSON object
@@ -27,9 +23,7 @@ export type ObjectDataTypeMetadata = {
  * A structured query for data, including e.g. the types of filters to be applied in order to produce the data.
  */
 export type Query = {
-  entityTypeIds: [
-    "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
-  ];
+  entityTypeIds: ["https://blockprotocol.org/@hash/types/entity-type/query/v/1"];
   properties: QueryProperties;
   propertiesWithMetadata: QueryPropertiesWithMetadata;
 };

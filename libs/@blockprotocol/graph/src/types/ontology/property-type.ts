@@ -1,9 +1,5 @@
 import type { QueryOperationInput } from "../entity.js";
-import type {
-  GraphResolveDepths,
-  PropertyTypeRootType,
-  Subgraph,
-} from "../subgraph.js";
+import type { GraphResolveDepths, PropertyTypeRootType, Subgraph } from "../subgraph.js";
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 
 export type QueryPropertyTypesData = {
@@ -12,11 +8,10 @@ export type QueryPropertyTypesData = {
   >;
 };
 
-export type QueryPropertyTypesResult<T extends Subgraph<PropertyTypeRootType>> =
-  {
-    results: T[];
-    operation: QueryOperationInput;
-  };
+export type QueryPropertyTypesResult<T extends Subgraph<PropertyTypeRootType>> = {
+  results: T[];
+  operation: QueryOperationInput;
+};
 
 export type GetPropertyTypeData = {
   propertyTypeId: VersionedUrl;

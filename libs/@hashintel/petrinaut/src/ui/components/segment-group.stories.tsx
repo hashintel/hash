@@ -34,15 +34,11 @@ const basicOptions: SegmentOption[] = [
 ];
 
 export const Default: Story = {
-  render: () => (
-    <SegmentGroupStory initialValue="code" options={basicOptions} />
-  ),
+  render: () => <SegmentGroupStory initialValue="code" options={basicOptions} />,
 };
 
 export const Small: Story = {
-  render: () => (
-    <SegmentGroupStory initialValue="code" options={basicOptions} size="sm" />
-  ),
+  render: () => <SegmentGroupStory initialValue="code" options={basicOptions} size="sm" />,
 };
 
 const iconOptions: SegmentOption[] = [
@@ -85,9 +81,7 @@ const iconOnlyOptions: SegmentOption[] = [
 ];
 
 export const WithIconsOnly: Story = {
-  render: () => (
-    <SegmentGroupStory initialValue="edit" options={iconOnlyOptions} />
-  ),
+  render: () => <SegmentGroupStory initialValue="edit" options={iconOnlyOptions} />,
 };
 
 export const WithDisabledItems: Story = {
@@ -116,9 +110,7 @@ export const WithDisabledItems: Story = {
 };
 
 export const Disabled: Story = {
-  render: () => (
-    <SegmentGroupStory initialValue="code" options={basicOptions} disabled />
-  ),
+  render: () => <SegmentGroupStory initialValue="code" options={basicOptions} disabled />,
 };
 
 export const TwoOptions: Story = {

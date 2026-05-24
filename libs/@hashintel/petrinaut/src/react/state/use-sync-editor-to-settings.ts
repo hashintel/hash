@@ -2,11 +2,7 @@ import { use, useEffect, useRef } from "react";
 
 import { UserSettingsContext } from "./user-settings-context";
 
-import type {
-  BottomPanelTab,
-  CursorMode,
-  TimelineChartType,
-} from "./editor-context";
+import type { BottomPanelTab, CursorMode, TimelineChartType } from "./editor-context";
 
 /**
  * Debounced sync of EditorState panel-display values → UserSettingsContext.

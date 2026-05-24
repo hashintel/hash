@@ -8,10 +8,7 @@ import { VectorStoreIndex } from "llamaindex";
 import md5 from "md5";
 
 import { logger } from "../../../../shared/activity-logger.js";
-import {
-  createStorageContext,
-  persistStorageContext,
-} from "./simple-storage-context.js";
+import { createStorageContext, persistStorageContext } from "./simple-storage-context.js";
 
 import type { ReadableStream } from "node:stream/web";
 
@@ -58,15 +55,11 @@ export const indexPdfFile = async (params: {
     try {
       const fileStream = createWriteStream(filePath);
       await stream.finished(
-        Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(
-          fileStream,
-        ),
+        Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(fileStream),
       );
     } catch (error) {
       await fs.unlink(filePath);
-      throw new Error(
-        `Failed to write file to file system: ${(error as Error).message}`,
-      );
+      throw new Error(`Failed to write file to file system: ${(error as Error).message}`);
     }
 
     logger.info("PDF File downloaded successfully");

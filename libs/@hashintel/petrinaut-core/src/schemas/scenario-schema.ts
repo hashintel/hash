@@ -36,15 +36,10 @@ const initialStateSchema = z
     z
       .strictObject({
         type: z.literal("per_place"),
-        content: z
-          .record(
-            z.string(),
-            z.union([z.string(), z.array(z.array(z.number()))]),
-          )
-          .meta({
-            description:
-              'Map from place ID to initial tokens for that place. For uncoloured places, use a string expression that evaluates to the initial token count, for example "scenario.population * scenario.initial_ratio". For coloured places, use number[][] token rows.',
-          }),
+        content: z.record(z.string(), z.union([z.string(), z.array(z.array(z.number()))])).meta({
+          description:
+            'Map from place ID to initial tokens for that place. For uncoloured places, use a string expression that evaluates to the initial token count, for example "scenario.population * scenario.initial_ratio". For coloured places, use number[][] token rows.',
+        }),
       })
       .meta({
         description:

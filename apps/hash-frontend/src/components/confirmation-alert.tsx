@@ -35,9 +35,7 @@ export const ConfirmationAlert: FunctionComponent<ConfirmationAlertProps> = ({
       >
         <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            {children}
-          </DialogContentText>
+          <DialogContentText id="alert-dialog-description">{children}</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>

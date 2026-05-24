@@ -31,67 +31,58 @@ export const TodaySection = forwardRef<
     refetchQuickNotes: () => Promise<void>;
     navigateDown?: () => void;
   }
->(
-  (
-    { quickNoteEntities, quickNotesSubgraph, refetchQuickNotes, navigateDown },
-    ref,
-  ) => {
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    const [creatingQuickNote, setCreatingQuickNote] = useState<HashEntity>();
+>(({ quickNoteEntities, quickNotesSubgraph, refetchQuickNotes, navigateDown }, ref) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [creatingQuickNote, setCreatingQuickNote] = useState<HashEntity>();
 
-    const latestQuickNoteEntityWithEmptyContents = useMemo(() => {
-      if (!quickNoteEntities || typeof quickNotesSubgraph === "undefined") {
-        return undefined;
-      }
+  const latestQuickNoteEntityWithEmptyContents = useMemo(() => {
+    if (!quickNoteEntities || typeof quickNotesSubgraph === "undefined") {
+      return undefined;
+    }
 
-      const latestQuickNoteEntity = quickNoteEntities[0];
+    const latestQuickNoteEntity = quickNoteEntities[0];
 
-      if (!latestQuickNoteEntity || !quickNotesSubgraph) {
-        return null;
-      }
-
-      const contents = getBlockCollectionContents({
-        blockCollectionEntityId:
-          latestQuickNoteEntity.metadata.recordId.entityId,
-        blockCollectionSubgraph: quickNotesSubgraph,
-      });
-
-      if (isBlockCollectionContentsEmpty({ contents })) {
-        return latestQuickNoteEntity;
-      }
+    if (!latestQuickNoteEntity || !quickNotesSubgraph) {
       return null;
-    }, [quickNoteEntities, quickNotesSubgraph]);
+    }
 
-    const displayedQuickNoteEntities = useMemo(
-      () =>
-        quickNoteEntities?.filter(
-          (quickNoteEntity) =>
-            (!creatingQuickNote ||
-              quickNoteEntity.metadata.recordId.entityId !==
-                creatingQuickNote.metadata.recordId.entityId) &&
-            (!latestQuickNoteEntityWithEmptyContents ||
-              latestQuickNoteEntityWithEmptyContents.metadata.recordId
-                .entityId !== quickNoteEntity.metadata.recordId.entityId),
-        ),
-      [
-        quickNoteEntities,
-        creatingQuickNote,
-        latestQuickNoteEntityWithEmptyContents,
-      ],
-    );
+    const contents = getBlockCollectionContents({
+      blockCollectionEntityId: latestQuickNoteEntity.metadata.recordId.entityId,
+      blockCollectionSubgraph: quickNotesSubgraph,
+    });
 
-    return (
-      <NotesSectionWrapper ref={ref}>
-        <TimestampColumn
-          heading="Today"
-          subheading={format(new Date(), "yyyy-MM-dd")}
-          isCollapsed={isCollapsed}
-          toggleIsCollapsed={() => setIsCollapsed(!isCollapsed)}
-          navigateDown={navigateDown}
-        />
-        <Box flexGrow={1}>
-          <NotesWrapper sx={{ padding: ({ spacing }) => spacing(3.25, 4.5) }}>
-            {/*
+    if (isBlockCollectionContentsEmpty({ contents })) {
+      return latestQuickNoteEntity;
+    }
+    return null;
+  }, [quickNoteEntities, quickNotesSubgraph]);
+
+  const displayedQuickNoteEntities = useMemo(
+    () =>
+      quickNoteEntities?.filter(
+        (quickNoteEntity) =>
+          (!creatingQuickNote ||
+            quickNoteEntity.metadata.recordId.entityId !==
+              creatingQuickNote.metadata.recordId.entityId) &&
+          (!latestQuickNoteEntityWithEmptyContents ||
+            latestQuickNoteEntityWithEmptyContents.metadata.recordId.entityId !==
+              quickNoteEntity.metadata.recordId.entityId),
+      ),
+    [quickNoteEntities, creatingQuickNote, latestQuickNoteEntityWithEmptyContents],
+  );
+
+  return (
+    <NotesSectionWrapper ref={ref}>
+      <TimestampColumn
+        heading="Today"
+        subheading={format(new Date(), "yyyy-MM-dd")}
+        isCollapsed={isCollapsed}
+        toggleIsCollapsed={() => setIsCollapsed(!isCollapsed)}
+        navigateDown={navigateDown}
+      />
+      <Box flexGrow={1}>
+        <NotesWrapper sx={{ padding: ({ spacing }) => spacing(3.25, 4.5) }}>
+          {/*
             If the last created quick note is empty, we re-use it to populate the
             create quick note form. This prevents the quick notes page from creating
             a new quick note on every page load.
@@ -101,18 +92,18 @@ export const TodaySection = forwardRef<
             `BlockCollection` component to support rendering the input without
             a block collection entity having been persisted yet.
             */}
-            <CreateQuickNote
-              initialQuickNoteEntity={latestQuickNoteEntityWithEmptyContents}
-              initialQuickNoteEntitySubgraph={
-                latestQuickNoteEntityWithEmptyContents && quickNotesSubgraph
-                  ? quickNotesSubgraph
-                  : undefined
-              }
-              refetchQuickNotes={refetchQuickNotes}
-              onCreatingQuickNote={setCreatingQuickNote}
-            />
-            {/* @todo: add these chips when they do something specific to the note */}
-            {/* <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
+          <CreateQuickNote
+            initialQuickNoteEntity={latestQuickNoteEntityWithEmptyContents}
+            initialQuickNoteEntitySubgraph={
+              latestQuickNoteEntityWithEmptyContents && quickNotesSubgraph
+                ? quickNotesSubgraph
+                : undefined
+            }
+            refetchQuickNotes={refetchQuickNotes}
+            onCreatingQuickNote={setCreatingQuickNote}
+          />
+          {/* @todo: add these chips when they do something specific to the note */}
+          {/* <Divider sx={{ borderColor: ({ palette }) => palette.gray[20] }} />
             <Box display="flex" marginTop={2.25}>
               <Box display="flex" alignItems="center" gap={1.5}>
                 <Typography
@@ -141,34 +132,32 @@ export const TodaySection = forwardRef<
                 />
               </Box>
             </Box> */}
-          </NotesWrapper>
-          <Collapse in={!isCollapsed}>
-            {displayedQuickNoteEntities &&
-            displayedQuickNoteEntities.length > 0 ? (
-              <NotesWrapper marginTop={3}>
-                {displayedQuickNoteEntities.map((quickNoteEntity, index) => (
-                  <Fragment key={quickNoteEntity.metadata.recordId.entityId}>
-                    {index !== 0 ? (
-                      <Divider
-                        sx={{
-                          backgroundColor: ({ palette }) => palette.gray[30],
-                        }}
-                      />
-                    ) : null}
-                    <Box paddingY={3.25} paddingX={4.5}>
-                      <EditableQuickNote
-                        quickNoteEntity={quickNoteEntity}
-                        quickNoteSubgraph={quickNotesSubgraph ?? undefined}
-                        refetchQuickNotes={refetchQuickNotes}
-                      />
-                    </Box>
-                  </Fragment>
-                ))}
-              </NotesWrapper>
-            ) : null}
-          </Collapse>
-        </Box>
-      </NotesSectionWrapper>
-    );
-  },
-);
+        </NotesWrapper>
+        <Collapse in={!isCollapsed}>
+          {displayedQuickNoteEntities && displayedQuickNoteEntities.length > 0 ? (
+            <NotesWrapper marginTop={3}>
+              {displayedQuickNoteEntities.map((quickNoteEntity, index) => (
+                <Fragment key={quickNoteEntity.metadata.recordId.entityId}>
+                  {index !== 0 ? (
+                    <Divider
+                      sx={{
+                        backgroundColor: ({ palette }) => palette.gray[30],
+                      }}
+                    />
+                  ) : null}
+                  <Box paddingY={3.25} paddingX={4.5}>
+                    <EditableQuickNote
+                      quickNoteEntity={quickNoteEntity}
+                      quickNoteSubgraph={quickNotesSubgraph ?? undefined}
+                      refetchQuickNotes={refetchQuickNotes}
+                    />
+                  </Box>
+                </Fragment>
+              ))}
+            </NotesWrapper>
+          ) : null}
+        </Collapse>
+      </Box>
+    </NotesSectionWrapper>
+  );
+});

@@ -14,11 +14,7 @@ export const cancelFlow: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationResetFlowArgs
-> = async (
-  _,
-  { flowUuid },
-  { authentication, dataSources, provenance, temporal, user },
-) => {
+> = async (_, { flowUuid }, { authentication, dataSources, provenance, temporal, user }) => {
   const flow = await getFlowRunEntityById({
     flowRunId: flowUuid as EntityUuid,
     graphApiClient: dataSources.graphApi,

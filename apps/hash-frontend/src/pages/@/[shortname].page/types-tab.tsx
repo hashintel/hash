@@ -11,11 +11,7 @@ export const TypesTab = ({
   types,
 }: {
   loading: boolean;
-  types: (
-    | PropertyTypeWithMetadata
-    | EntityTypeWithMetadata
-    | DataTypeWithMetadata
-  )[];
+  types: (PropertyTypeWithMetadata | EntityTypeWithMetadata | DataTypeWithMetadata)[];
 }) => {
   return <TypesTable loading={loading} onlyOneWeb types={types} kind="all" />;
 };

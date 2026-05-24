@@ -1,10 +1,6 @@
 import type { Edges } from "./subgraph/edges.js";
 import type { SubgraphTemporalAxes } from "./subgraph/temporal-axes.js";
-import type {
-  EntityVertexId,
-  OntologyTypeVertexId,
-  Vertices,
-} from "./subgraph/vertices.js";
+import type { EntityVertexId, OntologyTypeVertexId, Vertices } from "./subgraph/vertices.js";
 import type {
   DataTypeWithMetadata,
   Entity,

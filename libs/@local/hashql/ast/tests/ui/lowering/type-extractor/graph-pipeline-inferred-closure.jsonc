@@ -15,10 +15,7 @@
         "vertex.id.entity_id.entity_uuid",
         [
           "::graph::types::knowledge::entity::EntityUuid",
-          [
-            "::core::uuid::Uuid",
-            { "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f" }
-          ]
+          ["::core::uuid::Uuid", { "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f" }]
         ]
       ]
     ]

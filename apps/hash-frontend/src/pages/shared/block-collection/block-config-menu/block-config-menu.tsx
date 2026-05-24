@@ -1,11 +1,5 @@
 import { useHotkeys } from "@mantine/hooks";
-import {
-  Box,
-  Checkbox,
-  FormControlLabel,
-  Popover,
-  Typography,
-} from "@mui/material";
+import { Box, Checkbox, FormControlLabel, Popover, Typography } from "@mui/material";
 import { get } from "lodash";
 import { bindPopover } from "material-ui-popup-state/hooks";
 import { useEffect, useRef, useState } from "react";
@@ -20,17 +14,12 @@ import type { JsonSchema } from "@local/hash-isomorphic-utils/json-utils";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { ChangeEvent, ForwardedRef, FunctionComponent } from "react";
 
-const extractConfigPropertySchemas = (
-  blockSchema: JsonSchema,
-): [string, JsonSchema][] =>
+const extractConfigPropertySchemas = (blockSchema: JsonSchema): [string, JsonSchema][] =>
   Object.entries(blockSchema.properties ?? {}).filter(([name]) =>
     blockSchema.configProperties?.includes(name),
   );
 
-const resolvePropertySchema = (
-  $ref: string,
-  rootSchema: JsonSchema,
-): JsonSchema => {
+const resolvePropertySchema = ($ref: string, rootSchema: JsonSchema): JsonSchema => {
   if ($ref.startsWith("#/")) {
     const deepObjectPath = $ref.split("/").slice(1).join(".");
     return get(rootSchema, deepObjectPath);
@@ -54,16 +43,12 @@ const ConfigurationInput: FunctionComponent<{
     : propertySchema;
   const { enum: enumList, format, type } = resolvedPropertySchema;
 
-  const updateProperty = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const updateProperty = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { value: newValue } = event.target;
     // If a type is a number or an array that accepts a number, convert to a number
     if (
       type === "number" ||
-      (Array.isArray(type) &&
-        type.includes("string") &&
-        type.includes("number"))
+      (Array.isArray(type) && type.includes("string") && type.includes("number"))
     ) {
       onChange(Number.isNaN(+newValue) ? newValue : Number(newValue));
     } else {
@@ -138,11 +123,7 @@ const ConfigurationInput: FunctionComponent<{
     );
   }
 
-  if (
-    Array.isArray(type) &&
-    type.includes("string") &&
-    type.includes("number")
-  ) {
+  if (Array.isArray(type) && type.includes("string") && type.includes("number")) {
     return (
       <TextField
         label={name}
@@ -194,9 +175,7 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
 
   const configProperties = extractConfigPropertySchemas(blockSchema ?? {});
 
-  const entityData = blockEntity?.blockChildEntity.properties as
-    | JsonObject
-    | undefined;
+  const entityData = blockEntity?.blockChildEntity.properties as JsonObject | undefined;
 
   if (anchorRef && typeof anchorRef === "function") {
     throw new Error(
@@ -222,9 +201,7 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
           />
         </Box>
       ))}
-      {!configProperties.length && (
-        <Box sx={{ mt: 2 }}>No block config properties available.</Box>
-      )}
+      {!configProperties.length && <Box sx={{ mt: 2 }}>No block config properties available.</Box>}
     </Popover>
   );
 };

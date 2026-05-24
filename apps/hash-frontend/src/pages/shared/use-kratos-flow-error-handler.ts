@@ -66,8 +66,7 @@ export const useKratosErrorHandler = <K extends keyof Flows>(props: {
             return;
           case "session_refresh_required": {
             // We need to re-authenticate to perform this action
-            const { redirect_browser_to } =
-              kratosError as NeedsPrivilegedSessionError;
+            const { redirect_browser_to } = kratosError as NeedsPrivilegedSessionError;
 
             if (redirect_browser_to) {
               await followKratosRedirect(redirect_browser_to);
@@ -82,17 +81,13 @@ export const useKratosErrorHandler = <K extends keyof Flows>(props: {
             return;
           case "self_service_flow_expired":
             // If flow has expired, request a new one
-            setErrorMessage(
-              "Your interaction expired, please fill out the form again.",
-            );
+            setErrorMessage("Your interaction expired, please fill out the form again.");
             setFlow(undefined);
             await router.push(flowUiPath);
             return;
           case "security_csrf_violation":
             // A CSRF violation occurred. Best to just refresh the flow!
-            setErrorMessage(
-              "A security violation was detected, please fill out the form again.",
-            );
+            setErrorMessage("A security violation was detected, please fill out the form again.");
             setFlow(undefined);
             await router.push(flowUiPath);
             return;
@@ -103,8 +98,7 @@ export const useKratosErrorHandler = <K extends keyof Flows>(props: {
             return;
           case "browser_location_change_required": {
             // Ory Kratos asked us to point the user to this URL
-            const { redirect_browser_to } =
-              kratosError as ErrorBrowserLocationChangeRequired;
+            const { redirect_browser_to } = kratosError as ErrorBrowserLocationChangeRequired;
 
             if (redirect_browser_to) {
               await followKratosRedirect(redirect_browser_to);

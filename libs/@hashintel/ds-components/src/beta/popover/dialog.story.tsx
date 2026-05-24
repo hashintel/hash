@@ -22,8 +22,7 @@ export const App = () => {
               <Dialog.Title>Popover in Dialog</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
-              This popover is inside a dialog. Click the button below to open
-              the
+              This popover is inside a dialog. Click the button below to open the
             </Dialog.Body>
             <Dialog.Footer>
               <Dialog.ActionTrigger asChild>

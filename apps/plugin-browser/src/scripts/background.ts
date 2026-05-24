@@ -3,20 +3,10 @@ import browser from "webextension-polyfill";
 import { setDisabledBadge, setEnabledBadge } from "../shared/badge";
 import { getUser } from "../shared/get-user";
 import { isWellFormattedMessage } from "../shared/messages";
-import {
-  clearLocalStorage,
-  getFromLocalStorage,
-  setInLocalStorage,
-} from "../shared/storage";
-import {
-  cancelInferEntities,
-  inferEntities,
-} from "./background/infer-entities";
+import { clearLocalStorage, getFromLocalStorage, setInLocalStorage } from "../shared/storage";
+import { cancelInferEntities, inferEntities } from "./background/infer-entities";
 
-import type {
-  GetTabContentRequest,
-  GetTabContentReturn,
-} from "../shared/messages";
+import type { GetTabContentRequest, GetTabContentReturn } from "../shared/messages";
 
 /**
  * This is the service worker for the extension.
@@ -38,10 +28,7 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
 });
 
 browser.runtime.onMessage.addListener(
-  async (
-    message: unknown,
-    sender: browser.Runtime.MessageSender,
-  ): Promise<unknown> => {
+  async (message: unknown, sender: browser.Runtime.MessageSender): Promise<unknown> => {
     if (!isWellFormattedMessage(message)) {
       return `Unrecognised message format ${String(message)}`;
     }
@@ -73,42 +60,34 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             setTimeout(resolve, 2_000);
           });
 
-          const webPage = await browser.tabs.sendMessage<
-            GetTabContentRequest,
-            GetTabContentReturn
-          >(tabId, {
-            type: "get-tab-content",
-          });
-
-          const applicableRules = automaticInferenceConfig.rules.filter(
-            ({ restrictToDomains }) => {
-              const pageHostname = new URL(webPage.url).hostname;
-
-              if (
-                pageHostname === "app.hash.ai" ||
-                pageHostname === "hash.ai"
-              ) {
-                return false;
-              }
-
-              return (
-                restrictToDomains.length === 0 ||
-                restrictToDomains.some(
-                  (domainToMatch) =>
-                    pageHostname === domainToMatch ||
-                    pageHostname.endsWith(`.${domainToMatch}`),
-                )
-              );
+          const webPage = await browser.tabs.sendMessage<GetTabContentRequest, GetTabContentReturn>(
+            tabId,
+            {
+              type: "get-tab-content",
             },
           );
+
+          const applicableRules = automaticInferenceConfig.rules.filter(({ restrictToDomains }) => {
+            const pageHostname = new URL(webPage.url).hostname;
+
+            if (pageHostname === "app.hash.ai" || pageHostname === "hash.ai") {
+              return false;
+            }
+
+            return (
+              restrictToDomains.length === 0 ||
+              restrictToDomains.some(
+                (domainToMatch) =>
+                  pageHostname === domainToMatch || pageHostname.endsWith(`.${domainToMatch}`),
+              )
+            );
+          });
 
           if (applicableRules.length === 0) {
             return;
           }
 
-          const entityTypeIdsToInfer = applicableRules.map(
-            ({ entityTypeId }) => entityTypeId,
-          );
+          const entityTypeIdsToInfer = applicableRules.map(({ entityTypeId }) => entityTypeId);
 
           void inferEntities(
             {

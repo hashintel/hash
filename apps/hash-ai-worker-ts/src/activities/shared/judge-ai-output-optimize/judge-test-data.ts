@@ -19,8 +19,7 @@ type JudgeTest = {
     expectedCorrections: CorrectedValue[];
     nonInferrableFieldPaths: string[][];
   };
-  inputData: Required<Pick<LlmParams, "messages" | "tools">> &
-    Pick<LlmParams, "systemPrompt">;
+  inputData: Required<Pick<LlmParams, "messages" | "tools">> & Pick<LlmParams, "systemPrompt">;
 };
 
 const baseJsonPath = ["content", "0", "input", "documentMetadata"];
@@ -84,14 +83,12 @@ export const judgeTestData: JudgeTest[] = [
         {
           jsonPath: generateJsonPath(["study-arm"]),
           type: "correct-missing",
-          isProvidedValueCorrect: (value) =>
-            Array.isArray(value) && value.length > 0,
+          isProvidedValueCorrect: (value) => Array.isArray(value) && value.length > 0,
         },
         {
           jsonPath: generateJsonPath(["outcome-measure"]),
           type: "correct-missing",
-          isProvidedValueCorrect: (value) =>
-            Array.isArray(value) && value.length > 0,
+          isProvidedValueCorrect: (value) => Array.isArray(value) && value.length > 0,
         },
         {
           jsonPath: generateJsonPath(["authors"]),
@@ -112,10 +109,7 @@ export const judgeTestData: JudgeTest[] = [
                 return false;
               }
 
-              if (
-                !name.includes("Sarah Young") &&
-                !name.includes("Lori McDermott")
-              ) {
+              if (!name.includes("Sarah Young") && !name.includes("Lori McDermott")) {
                 return false;
               }
             }
@@ -145,14 +139,12 @@ export const judgeTestData: JudgeTest[] = [
                 properties: {
                   "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/":
                     "study_record_ISRCTN15438979_2025-01-20.pdf",
-                  "https://hash.ai/@h/types/property-type/file-storage-region/":
-                    "local",
+                  "https://hash.ai/@h/types/property-type/file-storage-region/": "local",
                   "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/":
                     "study_record_ISRCTN15438979_2025-01-20.pdf",
                   "https://hash.ai/@h/types/property-type/file-storage-endpoint/":
                     "http://localhost:9000",
-                  "https://hash.ai/@h/types/property-type/file-storage-provider/":
-                    "AWS_S3",
+                  "https://hash.ai/@h/types/property-type/file-storage-provider/": "AWS_S3",
                   "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
                     "http://localhost:5001/file/files/f89989c3-c5b9-4662-9cff-651384f4a0da~4043537b-6fc0-4d1b-95b5-2c84d03e9bbf/0050a41f-113e-409c-a54c-d46d89ba103b/study_record_ISRCTN15438979_2025-01-20.pdf",
                   "https://hash.ai/@h/types/property-type/file-storage-key/":
@@ -160,8 +152,7 @@ export const judgeTestData: JudgeTest[] = [
                   "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/": 45633,
                   "https://hash.ai/@h/types/property-type/upload-completed-at/":
                     "2025-01-31T18:20:01.069Z",
-                  "https://hash.ai/@h/types/property-type/file-storage-bucket/":
-                    "dev-hash-bucket",
+                  "https://hash.ai/@h/types/property-type/file-storage-bucket/": "dev-hash-bucket",
                   "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/":
                     "application/pdf",
                   "https://hash.ai/@h/types/property-type/file-storage-force-path-style/": true,
@@ -227,8 +218,7 @@ export const judgeTestData: JudgeTest[] = [
                   ],
                   "actual-study-start-date": "2024-07-01",
                   isrctn: "ISRCTN15438979",
-                  entityTypeId:
-                    "https://hash.ai/@h/types/entity-type/study-record/v/1",
+                  entityTypeId: "https://hash.ai/@h/types/entity-type/study-record/v/1",
                   location: "Canada",
                   "study-type": "Safety, Efficacy",
                   doi: "10.1186/ISRCTN15438979",
@@ -268,9 +258,7 @@ export const judgeTestData: JudgeTest[] = [
                     properties: {
                       entityTypeId: {
                         type: "STRING",
-                        enum: [
-                          "https://hash.ai/@h/types/entity-type/study-record/v/1",
-                        ],
+                        enum: ["https://hash.ai/@h/types/entity-type/study-record/v/1"],
                       },
                       objective: {
                         type: "array",
@@ -307,8 +295,7 @@ export const judgeTestData: JudgeTest[] = [
                       isrctn: {
                         $id: "https://hash.ai/@h/types/property-type/isrctn/v/1",
                         title: "ISRCTN",
-                        description:
-                          "The ISRCTN Registry identifier for something.",
+                        description: "The ISRCTN Registry identifier for something.",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/isrctn/v/1",
@@ -335,8 +322,7 @@ export const judgeTestData: JudgeTest[] = [
                       doi: {
                         $id: "https://hash.ai/@h/types/property-type/doi/v/1",
                         title: "DOI",
-                        description:
-                          "The Digital Object Identifier (DOI) of an object",
+                        description: "The Digital Object Identifier (DOI) of an object",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/doi/v/1",
@@ -356,8 +342,7 @@ export const judgeTestData: JudgeTest[] = [
                           {
                             $id: "https://hash.ai/@h/types/data-type/uri/v/1",
                             title: "URI",
-                            description:
-                              "A unique identifier for a resource (e.g. a URL, or URN).",
+                            description: "A unique identifier for a resource (e.g. a URL, or URN).",
                             type: "string",
                             format: "uri",
                           },
@@ -419,8 +404,7 @@ export const judgeTestData: JudgeTest[] = [
                                     {
                                       $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                                       title: "Text",
-                                      description:
-                                        "An ordered sequence of characters",
+                                      description: "An ordered sequence of characters",
                                       type: "string",
                                     },
                                   ],
@@ -434,8 +418,7 @@ export const judgeTestData: JudgeTest[] = [
                                     {
                                       $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                                       title: "Text",
-                                      description:
-                                        "An ordered sequence of characters",
+                                      description: "An ordered sequence of characters",
                                       type: "string",
                                     },
                                   ],
@@ -449,8 +432,7 @@ export const judgeTestData: JudgeTest[] = [
                                     {
                                       $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                                       title: "Text",
-                                      description:
-                                        "An ordered sequence of characters",
+                                      description: "An ordered sequence of characters",
                                       type: "string",
                                     },
                                   ],
@@ -516,8 +498,7 @@ export const judgeTestData: JudgeTest[] = [
                         items: {
                           $id: "https://hash.ai/@h/types/property-type/outcome-measure/v/1",
                           title: "Outcome Measure",
-                          description:
-                            "A measurement used to evaluate the outcome of a trial",
+                          description: "A measurement used to evaluate the outcome of a trial",
                           oneOf: [
                             {
                               properties: {
@@ -530,8 +511,7 @@ export const judgeTestData: JudgeTest[] = [
                                     {
                                       $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                                       title: "Text",
-                                      description:
-                                        "An ordered sequence of characters",
+                                      description: "An ordered sequence of characters",
                                       type: "string",
                                     },
                                   ],
@@ -545,8 +525,7 @@ export const judgeTestData: JudgeTest[] = [
                                     {
                                       $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                                       title: "Text",
-                                      description:
-                                        "An ordered sequence of characters",
+                                      description: "An ordered sequence of characters",
                                       type: "string",
                                     },
                                   ],
@@ -560,8 +539,7 @@ export const judgeTestData: JudgeTest[] = [
                                     {
                                       $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                                       title: "Text",
-                                      description:
-                                        "An ordered sequence of characters",
+                                      description: "An ordered sequence of characters",
                                       type: "string",
                                     },
                                   ],
@@ -656,8 +634,7 @@ export const judgeTestData: JudgeTest[] = [
                       "actual-enrollment": {
                         $id: "https://hash.ai/@h/types/property-type/actual-enrollment/v/1",
                         title: "Actual Enrollment",
-                        description:
-                          "The actual number of participants enrolled in something.",
+                        description: "The actual number of participants enrolled in something.",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/integer/v/1",
@@ -721,8 +698,7 @@ export const judgeTestData: JudgeTest[] = [
                       location: {
                         $id: "https://hash.ai/@h/types/property-type/location/v/1",
                         title: "Location",
-                        description:
-                          "A location for something, expressed as a single string",
+                        description: "A location for something, expressed as a single string",
                         oneOf: [
                           {
                             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -753,8 +729,7 @@ export const judgeTestData: JudgeTest[] = [
                           {
                             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                             title: "Number",
-                            description:
-                              "An arithmetical value (in the Real number system)",
+                            description: "An arithmetical value (in the Real number system)",
                             type: "number",
                           },
                         ],
@@ -762,8 +737,7 @@ export const judgeTestData: JudgeTest[] = [
                       "publication-year": {
                         $id: "https://hash.ai/@h/types/property-type/publication-year/v/1",
                         title: "Publication Year",
-                        description:
-                          "The year in which something was first published.",
+                        description: "The year in which something was first published.",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
@@ -787,12 +761,7 @@ export const judgeTestData: JudgeTest[] = [
                         ],
                       },
                     },
-                    required: [
-                      "methodology",
-                      "objective",
-                      "title",
-                      "entityTypeId",
-                    ],
+                    required: ["methodology", "objective", "title", "entityTypeId"],
                   },
                   {
                     type: "object",
@@ -823,8 +792,7 @@ export const judgeTestData: JudgeTest[] = [
                           {
                             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                             title: "Number",
-                            description:
-                              "An arithmetical value (in the Real number system)",
+                            description: "An arithmetical value (in the Real number system)",
                             type: "number",
                           },
                         ],
@@ -832,8 +800,7 @@ export const judgeTestData: JudgeTest[] = [
                       "publication-year": {
                         $id: "https://hash.ai/@h/types/property-type/publication-year/v/1",
                         title: "Publication Year",
-                        description:
-                          "The year in which something was first published.",
+                        description: "The year in which something was first published.",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
@@ -865,9 +832,7 @@ export const judgeTestData: JudgeTest[] = [
                     properties: {
                       entityTypeId: {
                         type: "STRING",
-                        enum: [
-                          "https://hash.ai/@h/types/entity-type/academic-paper/v/1",
-                        ],
+                        enum: ["https://hash.ai/@h/types/entity-type/academic-paper/v/1"],
                       },
                       "doi-link": {
                         $id: "https://hash.ai/@h/types/property-type/doi-link/v/1",
@@ -878,8 +843,7 @@ export const judgeTestData: JudgeTest[] = [
                           {
                             $id: "https://hash.ai/@h/types/data-type/uri/v/1",
                             title: "URI",
-                            description:
-                              "A unique identifier for a resource (e.g. a URL, or URN).",
+                            description: "A unique identifier for a resource (e.g. a URL, or URN).",
                             type: "string",
                             format: "uri",
                           },
@@ -916,8 +880,7 @@ export const judgeTestData: JudgeTest[] = [
                       doi: {
                         $id: "https://hash.ai/@h/types/property-type/doi/v/1",
                         title: "DOI",
-                        description:
-                          "The Digital Object Identifier (DOI) of an object",
+                        description: "The Digital Object Identifier (DOI) of an object",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/doi/v/1",
@@ -976,8 +939,7 @@ export const judgeTestData: JudgeTest[] = [
                           {
                             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                             title: "Number",
-                            description:
-                              "An arithmetical value (in the Real number system)",
+                            description: "An arithmetical value (in the Real number system)",
                             type: "number",
                           },
                         ],
@@ -985,8 +947,7 @@ export const judgeTestData: JudgeTest[] = [
                       "publication-year": {
                         $id: "https://hash.ai/@h/types/property-type/publication-year/v/1",
                         title: "Publication Year",
-                        description:
-                          "The year in which something was first published.",
+                        description: "The year in which something was first published.",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/calendar-year/v/1",
@@ -1010,8 +971,7 @@ export const judgeTestData: JudgeTest[] = [
                       isbn: {
                         $id: "https://hash.ai/@h/types/property-type/isbn/v/1",
                         title: "ISBN",
-                        description:
-                          "The International Standard Book Number (ISBN) of a book",
+                        description: "The International Standard Book Number (ISBN) of a book",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/isbn/v/1",
@@ -1043,8 +1003,7 @@ export const judgeTestData: JudgeTest[] = [
                           {
                             $id: "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
                             title: "Number",
-                            description:
-                              "An arithmetical value (in the Real number system)",
+                            description: "An arithmetical value (in the Real number system)",
                             type: "number",
                           },
                         ],
@@ -1052,8 +1011,7 @@ export const judgeTestData: JudgeTest[] = [
                       "publication-year": {
                         $id: "https://hash.ai/@h/types/property-type/publication-year/v/1",
                         title: "Publication Year",
-                        description:
-                          "The year in which something was first published.",
+                        description: "The year in which something was first published.",
                         oneOf: [
                           {
                             $id: "https://hash.ai/@h/types/data-type/calendar-year/v/1",

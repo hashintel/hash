@@ -20,15 +20,11 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
 
   await page.waitForURL("**/signup");
 
-  await expect(
-    page.locator('[placeholder="Enter your email address"]'),
-  ).toBeVisible();
+  await expect(page.locator('[placeholder="Enter your email address"]')).toBeVisible();
 
   await expect(page.locator('button:has-text("Sign up")')).toBeVisible();
 
-  await expect(
-    page.locator("text=Already have an account? Sign in"),
-  ).toBeVisible();
+  await expect(page.locator("text=Already have an account? Sign in")).toBeVisible();
 
   // Can click the sign in button in the header
 
@@ -51,31 +47,23 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.waitForURL("**/signin");
 });
 
-testTolerateConsoleErrors(
-  "incorrect credentials are handled",
-  async ({ page }) => {
-    await page.goto("/");
+testTolerateConsoleErrors("incorrect credentials are handled", async ({ page }) => {
+  await page.goto("/");
 
-    await page.locator("text=Sign In").nth(0).click();
+  await page.locator("text=Sign In").nth(0).click();
 
-    await page.waitForURL("**/signin");
+  await page.waitForURL("**/signin");
 
-    await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
+  await expect(page.locator("text=SIGN IN TO YOUR ACCOUNT")).toBeVisible();
 
-    await page.fill(
-      '[placeholder="Enter your email address"]',
-      "helloworld@example.com",
-    );
+  await page.fill('[placeholder="Enter your email address"]', "helloworld@example.com");
 
-    await page.fill('[type="password"]', "password");
+  await page.fill('[type="password"]', "password");
 
-    await page.click('button:has-text("Submit")');
+  await page.click('button:has-text("Submit")');
 
-    await expect(
-      page.locator("text=The provided credentials are invalid"),
-    ).toBeVisible();
-  },
-);
+  await expect(page.locator("text=The provided credentials are invalid")).toBeVisible();
+});
 
 test("guest user redirected to login page", async ({ page }) => {
   await page.goto("/non/existing/page");

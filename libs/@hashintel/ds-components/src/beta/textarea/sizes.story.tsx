@@ -8,12 +8,7 @@ export const App = () => {
   return (
     <Stack gap="4">
       {sizes.map((size, index) => (
-        <Textarea
-          key={size}
-          placeholder={`size (${size})`}
-          size={size}
-          rows={index + 1}
-        />
+        <Textarea key={size} placeholder={`size (${size})`} size={size} rows={index + 1} />
       ))}
     </Stack>
   );

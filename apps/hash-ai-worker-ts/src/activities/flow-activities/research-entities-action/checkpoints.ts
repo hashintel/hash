@@ -10,10 +10,7 @@ import { logger } from "../../shared/activity-logger.js";
 import { getTemporalClient } from "../../shared/get-flow-context.js";
 import { flushLogs, logProgress } from "../../shared/log-progress.js";
 
-import type {
-  FlowSignal,
-  ResearchActionCheckpointState,
-} from "../../../shared/signals.js";
+import type { FlowSignal, ResearchActionCheckpointState } from "../../../shared/signals.js";
 import type { CoordinatingAgentState } from "./shared/coordinators.js";
 
 /**
@@ -31,9 +28,7 @@ import type { CoordinatingAgentState } from "./shared/coordinators.js";
  *
  * This means that heartbeats (and the included details) may be recorded at a lower frequency than the interval here.
  */
-export const heartbeatAndWaitCancellation = async (
-  state: CoordinatingAgentState,
-) => {
+export const heartbeatAndWaitCancellation = async (state: CoordinatingAgentState) => {
   const secondsBetweenHeartbeats = heartbeatTimeoutSeconds - 5;
 
   const heartbeatInterval = setInterval(() => {
@@ -59,9 +54,7 @@ export const heartbeatAndWaitCancellation = async (
  *   – the better and more idiomatic Temporal solution is to split it up into multiple activities,
  *     probably with the 'researchEntitiesAction' becoming a child workflow that calls activities (or its own child workflows).
  */
-export const createCheckpoint = async (
-  checkpointData: ResearchActionCheckpointState,
-) => {
+export const createCheckpoint = async (checkpointData: ResearchActionCheckpointState) => {
   await flushLogs();
 
   Context.current().heartbeat(checkpointData);
@@ -122,22 +115,18 @@ export const getCheckpoint = async () => {
       }
 
       if (
-        event.eventType ===
-        proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED
+        event.eventType === proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED
       ) {
         if (
           event.workflowTaskFailedEventAttributes?.cause ===
           proto.temporal.api.enums.v1.WorkflowTaskFailedCause
             .WORKFLOW_TASK_FAILED_CAUSE_RESET_WORKFLOW
         ) {
-          checkpointId =
-            event.workflowTaskFailedEventAttributes.failure?.message;
+          checkpointId = event.workflowTaskFailedEventAttributes.failure?.message;
         }
       }
     }
   }
 
-  return Context.current().info.heartbeatDetails as
-    | ResearchActionCheckpointState
-    | undefined;
+  return Context.current().info.heartbeatDetails as ResearchActionCheckpointState | undefined;
 };

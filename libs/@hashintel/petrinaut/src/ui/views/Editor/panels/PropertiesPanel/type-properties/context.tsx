@@ -12,15 +12,12 @@ export interface TypePropertiesContextValue {
   moveTypeElement: MutationContextValue["moveTypeElement"];
 }
 
-export const TypePropertiesContext =
-  createContext<TypePropertiesContextValue | null>(null);
+export const TypePropertiesContext = createContext<TypePropertiesContextValue | null>(null);
 
 export const useTypePropertiesContext = (): TypePropertiesContextValue => {
   const context = use(TypePropertiesContext);
   if (!context) {
-    throw new Error(
-      "useTypePropertiesContext must be used within TypeProperties",
-    );
+    throw new Error("useTypePropertiesContext must be used within TypeProperties");
   }
   return context;
 };

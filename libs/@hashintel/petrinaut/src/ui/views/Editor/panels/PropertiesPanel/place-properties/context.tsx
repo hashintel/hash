@@ -20,8 +20,7 @@ interface PlacePropertiesContextValue {
   updatePlace: MutationContextValue["updatePlace"];
 }
 
-const PlacePropertiesContext =
-  createContext<PlacePropertiesContextValue | null>(null);
+const PlacePropertiesContext = createContext<PlacePropertiesContextValue | null>(null);
 
 /**
  * Hook to access the place properties context.
@@ -30,9 +29,7 @@ const PlacePropertiesContext =
 export const usePlacePropertiesContext = (): PlacePropertiesContextValue => {
   const context = use(PlacePropertiesContext);
   if (!context) {
-    throw new Error(
-      "usePlacePropertiesContext must be used within a PlacePropertiesProvider",
-    );
+    throw new Error("usePlacePropertiesContext must be used within a PlacePropertiesProvider");
   }
   return context;
 };
@@ -49,13 +46,16 @@ interface PlacePropertiesProviderProps {
 /**
  * Provider component that makes place data available to subview components.
  */
-export const PlacePropertiesProvider: React.FC<
-  PlacePropertiesProviderProps
-> = ({ place, placeType, types, isReadOnly, updatePlace, children }) => {
+export const PlacePropertiesProvider: React.FC<PlacePropertiesProviderProps> = ({
+  place,
+  placeType,
+  types,
+  isReadOnly,
+  updatePlace,
+  children,
+}) => {
   return (
-    <PlacePropertiesContext
-      value={{ place, placeType, types, isReadOnly, updatePlace }}
-    >
+    <PlacePropertiesContext value={{ place, placeType, types, isReadOnly, updatePlace }}>
       {children}
     </PlacePropertiesContext>
   );

@@ -1,8 +1,4 @@
-import type {
-  BaseUrl,
-  EntityType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, EntityType, VersionedUrl } from "@blockprotocol/type-system";
 
 type EntityTypeEditorTypeData = {
   $id: VersionedUrl;

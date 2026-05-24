@@ -48,9 +48,7 @@ const InternetSetting = ({
           sx={{
             "& .MuiSvgIcon-root": { fontSize: 18 },
             mr: 1,
-            "& rect": disabled
-              ? { fill: ({ palette }) => palette.gray[40] }
-              : undefined,
+            "& rect": disabled ? { fill: ({ palette }) => palette.gray[40] } : undefined,
           }}
         />
         <Box
@@ -58,8 +56,7 @@ const InternetSetting = ({
           htmlFor={checkboxId}
           sx={{
             fontSize: 14,
-            color: ({ palette }) =>
-              disabled ? palette.gray[50] : palette.common.black,
+            color: ({ palette }) => (disabled ? palette.gray[50] : palette.common.black),
             cursor: "pointer",
           }}
         >
@@ -82,8 +79,7 @@ const InternetSetting = ({
       <Typography
         sx={{
           fontSize: 14,
-          color: ({ palette }) =>
-            disabled ? palette.gray[40] : palette.gray[60],
+          color: ({ palette }) => (disabled ? palette.gray[40] : palette.gray[60]),
           lineHeight: 1,
           ml: 3.3,
           mt: 0.3,
@@ -125,9 +121,7 @@ const BrowserPlugin = ({
 }: {
   browserPluginSettings: FlowInternetAccessSettings["browserPlugin"];
   disabled: boolean;
-  setBrowserPluginSettings: (
-    settings: FlowInternetAccessSettings["browserPlugin"],
-  ) => void;
+  setBrowserPluginSettings: (settings: FlowInternetAccessSettings["browserPlugin"]) => void;
 }) => {
   return (
     <InternetSetting
@@ -151,16 +145,10 @@ type InternetSettingsProps = {
   setSettings: Dispatch<SetStateAction<FlowInternetAccessSettings>>;
 };
 
-export const InternetSettings = ({
-  settings,
-  setSettings,
-}: InternetSettingsProps) => {
+export const InternetSettings = ({ settings, setSettings }: InternetSettingsProps) => {
   return (
     <Box>
-      <InternetAccess
-        internetAccessSettings={settings}
-        setInternetAccessSettings={setSettings}
-      />
+      <InternetAccess internetAccessSettings={settings} setInternetAccessSettings={setSettings} />
       <Box sx={{ mt: 1 }}>
         <BrowserPlugin
           browserPluginSettings={settings.browserPlugin}

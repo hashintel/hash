@@ -34,18 +34,7 @@ const __dirname = dirname(__filename);
 
 const secretsPath = path.join(__dirname, `secrets.${env.NODE_ENV}.js`);
 
-const fileExtensions = [
-  "jpg",
-  "jpeg",
-  "png",
-  "gif",
-  "eot",
-  "otf",
-  "svg",
-  "ttf",
-  "woff",
-  "woff2",
-];
+const fileExtensions = ["jpg", "jpeg", "png", "gif", "eot", "otf", "svg", "ttf", "woff", "woff2"];
 
 if (fileSystem.existsSync(secretsPath)) {
   alias.secrets = secretsPath;
@@ -127,9 +116,7 @@ const options = {
             loader: "ts-loader",
             options: {
               getCustomTransformers: () => ({
-                before: [isDevelopment && ReactRefreshTypeScript()].filter(
-                  Boolean,
-                ),
+                before: [isDevelopment && ReactRefreshTypeScript()].filter(Boolean),
               }),
               transpileOnly: isDevelopment,
             },
@@ -178,8 +165,7 @@ const options = {
     plugins: isDevelopment
       ? [
           new TsconfigPathsPlugin({
-            configFile:
-              "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+            configFile: "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
           }),
         ]
       : [],
@@ -219,10 +205,7 @@ const options = {
               for (const [size, iconPath] of Object.entries(json.icons)) {
                 json.icons[size] = iconPath.replace(".png", "-dev.png");
               }
-              json.action.default_icon = json.action.default_icon.replace(
-                ".png",
-                "-dev.png",
-              );
+              json.action.default_icon = json.action.default_icon.replace(".png", "-dev.png");
             }
 
             if (isDevelopment) {

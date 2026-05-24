@@ -36,9 +36,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
 }) => {
   const [flow, setFlow] = useState<VerificationFlow>();
   const [code, setCode] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(
-    initialError,
-  );
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(initialError);
   const [sendingCode, setSendingCode] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
 
@@ -64,8 +62,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
 
   const extractCodeValue = useCallback((nextFlow: VerificationFlow) => {
     const codeInputNode = nextFlow.ui.nodes.find(
-      ({ attributes }) =>
-        isUiNodeInputAttributes(attributes) && attributes.name === "code",
+      ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "code",
     );
 
     if (
@@ -119,8 +116,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
   const codeInputUiNode = useMemo(
     () =>
       flow?.ui.nodes.find(
-        ({ attributes }) =>
-          isUiNodeInputAttributes(attributes) && attributes.name === "code",
+        ({ attributes }) => isUiNodeInputAttributes(attributes) && attributes.name === "code",
       ),
     [flow],
   );
@@ -137,12 +133,10 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
 
       const getFlowForSubmission = flow
         ? Promise.resolve(flow)
-        : oryKratosClient
-            .getVerificationFlow({ id: activeFlowId })
-            .then(({ data }) => {
-              setFlow(data);
-              return data;
-            });
+        : oryKratosClient.getVerificationFlow({ id: activeFlowId }).then(({ data }) => {
+            setFlow(data);
+            return data;
+          });
 
       void getFlowForSubmission
         .then((resolvedFlow) =>
@@ -205,9 +199,8 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
           `Enter the verification code sent to ${email}`
         ) : (
           <>
-            We've sent a verification code to <strong>{email}</strong>. Click
-            the link in the email to verify instantly, or request a new code
-            below to enter manually.
+            We've sent a verification code to <strong>{email}</strong>. Click the link in the email
+            to verify instantly, or request a new code below to enter manually.
           </>
         )}
       </Typography>
@@ -237,9 +230,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
                   submitCode(value);
                 }
               }}
-              error={
-                !!codeInputUiNode?.messages.find(({ type }) => type === "error")
-              }
+              error={!!codeInputUiNode?.messages.find(({ type }) => type === "error")}
               helperText={codeInputUiNode?.messages.map(({ id, text }) => (
                 <Typography key={id}>{text}</Typography>
               ))}
@@ -250,10 +241,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
                 pattern: "[0-9]{6}",
               }}
             />
-            <Button
-              type="submit"
-              disabled={!code || verifyingCode || sendingCode}
-            >
+            <Button type="submit" disabled={!code || verifyingCode || sendingCode}>
               {verifyingCode ? "Verifying..." : "Verify"}
             </Button>
             <Button
@@ -266,11 +254,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
             </Button>
           </>
         ) : (
-          <Button
-            type="button"
-            onClick={createAndSendVerificationCode}
-            disabled={sendingCode}
-          >
+          <Button type="button" onClick={createAndSendVerificationCode} disabled={sendingCode}>
             {sendingCode ? "Sending..." : "Send a new verification code"}
           </Button>
         )}
@@ -279,8 +263,7 @@ export const VerifyEmailStep: FunctionComponent<VerifyEmailStepProps> = ({
             key={id}
             sx={{
               fontSize: 14,
-              color: ({ palette }) =>
-                type === "error" ? palette.error.main : palette.gray[70],
+              color: ({ palette }) => (type === "error" ? palette.error.main : palette.gray[70]),
             }}
           >
             {text}

@@ -19,9 +19,7 @@ const empty = (): SDCPN => ({
   differentialEquations: [],
 });
 
-function makeProgress(
-  overrides: Partial<MonteCarloWorkerProgress> = {},
-): MonteCarloWorkerProgress {
+function makeProgress(overrides: Partial<MonteCarloWorkerProgress> = {}): MonteCarloWorkerProgress {
   return {
     activeRuns: 1,
     advancedRuns: 1,
@@ -35,9 +33,7 @@ function makeProgress(
   };
 }
 
-function makeDistributionFrame(
-  frameNumber: number,
-): PlaceTokenCountDistributionFrame {
+function makeDistributionFrame(frameNumber: number): PlaceTokenCountDistributionFrame {
   return {
     frameNumber,
     time: frameNumber,
@@ -87,9 +83,7 @@ function makeMockTransport() {
   };
 }
 
-function createExperimentWithMockTransport(mock: {
-  transport: SimulationTransport;
-}) {
+function createExperimentWithMockTransport(mock: { transport: SimulationTransport }) {
   return createMonteCarloExperiment({
     transport: mock.transport,
     sdcpn: empty(),
@@ -179,11 +173,7 @@ describe("createMonteCarloExperiment", () => {
     experiment.start();
     experiment.cancel();
 
-    expect(mock.sent.map((message) => message.type)).toEqual([
-      "init",
-      "start",
-      "cancel",
-    ]);
+    expect(mock.sent.map((message) => message.type)).toEqual(["init", "start", "cancel"]);
 
     experiment.dispose();
   });

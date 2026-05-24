@@ -8,11 +8,7 @@ import {
   validateVersionedUrl,
 } from "../src/main.js";
 
-import type {
-  BaseUrl,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "../src/main.js";
+import type { BaseUrl, OntologyTypeVersion, VersionedUrl } from "../src/main.js";
 
 const invalidBaseUrlCases: string[] = [
   "http://example.com",
@@ -63,37 +59,25 @@ describe("validateVersionedUrl", () => {
     expect(validateVersionedUrl(input)).toEqual({ type: "Ok", inner: input });
   });
 
-  test.each(invalidVersionedUrlCases)(
-    "validateVersionedUrl(%s) returns errors",
-    (input) => {
-      expect(validateVersionedUrl(input)).toMatchSnapshot();
-    },
-  );
+  test.each(invalidVersionedUrlCases)("validateVersionedUrl(%s) returns errors", (input) => {
+    expect(validateVersionedUrl(input)).toMatchSnapshot();
+  });
 });
 
 const extractBaseUrlCases: [VersionedUrl, BaseUrl][] = [
   ["http://example.com/v/0" as VersionedUrl, "http://example.com/" as BaseUrl],
-  [
-    "http://example.com/sandwich/v/1" as VersionedUrl,
-    "http://example.com/sandwich/" as BaseUrl,
-  ],
+  ["http://example.com/sandwich/v/1" as VersionedUrl, "http://example.com/sandwich/" as BaseUrl],
   [
     "file://localhost/documents/myfolder/v/10" as VersionedUrl,
     "file://localhost/documents/myfolder/" as BaseUrl,
   ],
-  [
-    "ftp://rms@example.com/foo/v/5" as VersionedUrl,
-    "ftp://rms@example.com/foo/" as BaseUrl,
-  ],
+  ["ftp://rms@example.com/foo/v/5" as VersionedUrl, "ftp://rms@example.com/foo/" as BaseUrl],
 ];
 
 describe("extractBaseUrl", () => {
-  test.each(extractBaseUrlCases)(
-    "`extractBaseUrl(%s)` succeeds",
-    (input, expected) => {
-      expect(extractBaseUrl(input)).toEqual(expected);
-    },
-  );
+  test.each(extractBaseUrlCases)("`extractBaseUrl(%s)` succeeds", (input, expected) => {
+    expect(extractBaseUrl(input)).toEqual(expected);
+  });
 });
 
 const extractVersionCases: [VersionedUrl, string][] = [
@@ -104,12 +88,9 @@ const extractVersionCases: [VersionedUrl, string][] = [
 ];
 
 describe("extractVersion", () => {
-  test.each(extractVersionCases)(
-    "`extractVersion(%s)` succeeds",
-    (input, expected) => {
-      expect(extractVersion(input)).toEqual(expected);
-    },
-  );
+  test.each(extractVersionCases)("`extractVersion(%s)` succeeds", (input, expected) => {
+    expect(extractVersion(input)).toEqual(expected);
+  });
 });
 
 describe("Draft version support", () => {
@@ -136,14 +117,8 @@ describe("Draft version support", () => {
 
   describe("extractVersion with drafts", () => {
     test.each([
-      [
-        "http://example.com/v/1-draft.abc12345.1" as VersionedUrl,
-        "1-draft.abc12345.1",
-      ],
-      [
-        "http://example.com/v/2-draft.xyz98765.999" as VersionedUrl,
-        "2-draft.xyz98765.999",
-      ],
+      ["http://example.com/v/1-draft.abc12345.1" as VersionedUrl, "1-draft.abc12345.1"],
+      ["http://example.com/v/2-draft.xyz98765.999" as VersionedUrl, "2-draft.xyz98765.999"],
     ])("extractVersion(%s) returns draft version", (input, expected) => {
       expect(extractVersion(input).toString()).toEqual(expected);
     });
@@ -152,24 +127,15 @@ describe("Draft version support", () => {
   describe("compareOntologyTypeVersions with SemVer", () => {
     test("compares major versions correctly", () => {
       expect(
-        compareOntologyTypeVersions(
-          "1" as OntologyTypeVersion,
-          "2" as OntologyTypeVersion,
-        ),
+        compareOntologyTypeVersions("1" as OntologyTypeVersion, "2" as OntologyTypeVersion),
       ).toBe(-1);
 
       expect(
-        compareOntologyTypeVersions(
-          "3" as OntologyTypeVersion,
-          "2" as OntologyTypeVersion,
-        ),
+        compareOntologyTypeVersions("3" as OntologyTypeVersion, "2" as OntologyTypeVersion),
       ).toBe(1);
 
       expect(
-        compareOntologyTypeVersions(
-          "2" as OntologyTypeVersion,
-          "2" as OntologyTypeVersion,
-        ),
+        compareOntologyTypeVersions("2" as OntologyTypeVersion, "2" as OntologyTypeVersion),
       ).toBe(0);
     });
 
@@ -322,27 +288,19 @@ describe("Draft version support", () => {
       // The parser should reject special characters and non-ASCII characters
 
       // Special characters in lane - rejected
-      const result1 = validateVersionedUrl(
-        "https://example.com/type/v/1-draft.abc,def.123",
-      );
+      const result1 = validateVersionedUrl("https://example.com/type/v/1-draft.abc,def.123");
       expect(result1.type).toBe("Err");
 
       // Unicode characters - rejected
-      const result2 = validateVersionedUrl(
-        "https://example.com/type/v/2-draft.lane🚀test.5",
-      );
+      const result2 = validateVersionedUrl("https://example.com/type/v/2-draft.lane🚀test.5");
       expect(result2.type).toBe("Err");
 
       // Empty lane - rejected (this fails the regex match itself)
-      const result3 = validateVersionedUrl(
-        "https://example.com/type/v/3-draft..1",
-      );
+      const result3 = validateVersionedUrl("https://example.com/type/v/3-draft..1");
       expect(result3.type).toBe("Err");
 
       // Spaces - rejected
-      const result4 = validateVersionedUrl(
-        "https://example.com/type/v/4-draft.lane 123.1",
-      );
+      const result4 = validateVersionedUrl("https://example.com/type/v/4-draft.lane 123.1");
       expect(result4.type).toBe("Err");
     });
 
@@ -350,18 +308,14 @@ describe("Draft version support", () => {
       // SemVer allows multiple identifiers separated by dots
       // e.g., "draft.lane.with.dots" is valid as it becomes ["draft", "lane", "with", "dots"]
 
-      const result1 = validateVersionedUrl(
-        "https://example.com/type/v/1-draft.lane.with.dots.5",
-      );
+      const result1 = validateVersionedUrl("https://example.com/type/v/1-draft.lane.with.dots.5");
       expect(result1.type).toBe("Ok");
       if (result1.type === "Ok") {
         expect(extractVersion(result1.inner)).toBe("1-draft.lane.with.dots.5");
       }
 
       // Another example with numeric segments
-      const result2 = validateVersionedUrl(
-        "https://example.com/type/v/2-draft.v1.alpha.3.10",
-      );
+      const result2 = validateVersionedUrl("https://example.com/type/v/2-draft.v1.alpha.3.10");
       expect(result2.type).toBe("Ok");
       if (result2.type === "Ok") {
         expect(extractVersion(result2.inner)).toBe("2-draft.v1.alpha.3.10");

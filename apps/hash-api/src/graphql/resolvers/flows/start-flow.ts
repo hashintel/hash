@@ -1,10 +1,7 @@
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
-import {
-  type MutationStartFlowArgs,
-  type ResolverFn,
-} from "../../api-types.gen";
+import { type MutationStartFlowArgs, type ResolverFn } from "../../api-types.gen";
 import * as Error from "../../error";
 
 import type { LoggedInGraphQLContext } from "../../context";
@@ -19,11 +16,7 @@ export const startFlow: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationStartFlowArgs
-> = async (
-  _,
-  { dataSources, flowTrigger, flowDefinition, flowType, webId },
-  graphQLContext,
-) => {
+> = async (_, { dataSources, flowTrigger, flowDefinition, flowType, webId }, graphQLContext) => {
   const { temporal, user } = graphQLContext;
 
   if (flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {

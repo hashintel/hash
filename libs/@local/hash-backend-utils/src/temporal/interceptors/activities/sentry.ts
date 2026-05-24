@@ -1,10 +1,7 @@
 import * as Sentry from "@sentry/node";
 
 import type { Context } from "@temporalio/activity";
-import type {
-  ActivityExecuteInput,
-  ActivityInboundCallsInterceptor,
-} from "@temporalio/worker";
+import type { ActivityExecuteInput, ActivityInboundCallsInterceptor } from "@temporalio/worker";
 import type { Next } from "@temporalio/workflow";
 
 export class SentryActivityInboundInterceptor implements ActivityInboundCallsInterceptor {
@@ -38,8 +35,7 @@ export class SentryActivityInboundInterceptor implements ActivityInboundCallsInt
               runId: this.context.info.workflowExecution.runId,
               attempt: this.context.info.attempt,
               scheduledTimestamp: this.context.info.scheduledTimestampMs,
-              scheduleToCloseTimeout:
-                this.context.info.scheduleToCloseTimeoutMs,
+              scheduleToCloseTimeout: this.context.info.scheduleToCloseTimeoutMs,
               startToCloseTimeout: this.context.info.startToCloseTimeoutMs,
               heartbeatTimeout: this.context.info.heartbeatTimeoutMs,
             },

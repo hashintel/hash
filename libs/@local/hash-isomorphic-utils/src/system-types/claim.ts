@@ -47,9 +47,7 @@ export type ClaimHasSubjectLink = {
   rightEntity: Entity;
 };
 
-export type ClaimOutgoingLinkAndTarget =
-  | ClaimHasObjectLink
-  | ClaimHasSubjectLink;
+export type ClaimOutgoingLinkAndTarget = ClaimHasObjectLink | ClaimHasSubjectLink;
 
 export type ClaimOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/has-object/v/1": ClaimHasObjectLink;

@@ -26,10 +26,7 @@ export const BooleanInput = ({
         label={value ? "True" : "False"}
         icon={
           <Tooltip title="Boolean" placement="top">
-            <FontAwesomeIcon
-              icon={value ? faSquareCheck : faSquare}
-              sx={{ zIndex: 1 }}
-            />
+            <FontAwesomeIcon icon={value ? faSquareCheck : faSquare} sx={{ zIndex: 1 }} />
           </Tooltip>
         }
       />
@@ -57,11 +54,7 @@ export const BooleanInput = ({
             color: "gray.70",
           }}
         >
-          <Typography
-            sx={{ fontSize: 11 }}
-            variant="smallCaps"
-            fontWeight={700}
-          >
+          <Typography sx={{ fontSize: 11 }} variant="smallCaps" fontWeight={700}>
             Change
           </Typography>
           <FontAwesomeIcon icon={faRightLeft} sx={{ fontSize: 10 }} />

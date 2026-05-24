@@ -16,156 +16,116 @@ import {
 
 import type { MigrationFunction } from "../types";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
-  const doiDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
-        title: "DOI",
-        titlePlural: "DOIs",
-        description:
-          "A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.",
-        type: "string",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
+  const doiDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+      title: "DOI",
+      titlePlural: "DOIs",
+      description:
+        "A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.",
+      type: "string",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const doiPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "DOI",
-        description: "The Digital Object Identifier (DOI) of an object",
-        possibleValues: [{ dataTypeId: doiDataType.schema.$id }],
-      },
-      migrationState,
-      webShortname: "h",
+  const doiPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "DOI",
+      description: "The Digital Object Identifier (DOI) of an object",
+      possibleValues: [{ dataTypeId: doiDataType.schema.$id }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const uriDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "uri",
     migrationState,
   });
 
-  const doiLinkPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "DOI Link",
-        description:
-          "A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it",
-        possibleValues: [{ dataTypeId: uriDataTypeId }],
-      },
-      migrationState,
-      webShortname: "h",
+  const doiLinkPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "DOI Link",
+      description:
+        "A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it",
+      possibleValues: [{ dataTypeId: uriDataTypeId }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const isbnDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
-        title: "ISBN",
-        titlePlural: "ISBNs",
-        description:
-          "International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.",
-        type: "string",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const isbnDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+      title: "ISBN",
+      titlePlural: "ISBNs",
+      description:
+        "International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.",
+      type: "string",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const isbnPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "ISBN",
-        description: "The International Standard Book Number (ISBN) of a book",
-        possibleValues: [{ dataTypeId: isbnDataType.schema.$id }],
-      },
-      migrationState,
-      webShortname: "h",
+  const isbnPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "ISBN",
+      description: "The International Standard Book Number (ISBN) of a book",
+      possibleValues: [{ dataTypeId: isbnDataType.schema.$id }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const summaryPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Summary",
-        description: "An overview or synopsis of something.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
+  const summaryPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Summary",
+      description: "An overview or synopsis of something.",
+      possibleValues: [{ primitiveDataType: "text" }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const integerDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        title: "Integer",
-        description:
-          "The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).",
-        multipleOf: 1,
-        type: "number",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const integerDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+      title: "Integer",
+      description:
+        "The number zero (0), a positive natural number (e.g. 1, 2, 3), or the negation of a positive natural number (e.g. -1, -2, -3).",
+      multipleOf: 1,
+      type: "number",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const calendarYearDataType = await createSystemDataTypeIfNotExists(
-    context,
-    authentication,
-    {
-      dataTypeDefinition: {
-        allOf: [{ $ref: integerDataType.schema.$id }],
-        title: "Calendar Year",
-        description: "A year in the Gregorian calendar.",
-        type: "number",
-      },
-      conversions: {},
-      migrationState,
-      webShortname: "h",
+  const calendarYearDataType = await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      allOf: [{ $ref: integerDataType.schema.$id }],
+      title: "Calendar Year",
+      description: "A year in the Gregorian calendar.",
+      type: "number",
     },
-  );
+    conversions: {},
+    migrationState,
+    webShortname: "h",
+  });
 
-  const publicationYear = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Publication Year",
-        description: "The year in which something was first published.",
-        possibleValues: [{ dataTypeId: calendarYearDataType.schema.$id }],
-      },
-      migrationState,
-      webShortname: "h",
+  const publicationYear = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Publication Year",
+      description: "The year in which something was first published.",
+      possibleValues: [{ dataTypeId: calendarYearDataType.schema.$id }],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const methodologyPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -182,32 +142,30 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const experimentalSubjectPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
-      propertyTypeDefinition: {
-        title: "Experimental Subject",
-        description:
-          "The type of participant or observed entity in an experiment or study.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    });
-
-  const findingPropertyType = await createSystemPropertyTypeIfNotExists(
+  const experimentalSubjectPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Finding",
-        description:
-          "The results or conclusion of an experiment, research project, investigation, etc.",
+        title: "Experimental Subject",
+        description: "The type of participant or observed entity in an experiment or study.",
         possibleValues: [{ primitiveDataType: "text" }],
       },
       migrationState,
       webShortname: "h",
     },
   );
+
+  const findingPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Finding",
+      description:
+        "The results or conclusion of an experiment, research project, investigation, etc.",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    migrationState,
+    webShortname: "h",
+  });
 
   /** @todo H-3619: Infer info on publisher and link to docs */
   // const _publishedByLinkEntityType = await createSystemEntityTypeIfNotExists(
@@ -245,48 +203,40 @@ const migrate: MigrationFunction = async ({
   //   },
   // );
 
-  const affiliatedWith = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
+  const affiliatedWith = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Affiliated With",
+      inverse: {
         title: "Affiliated With",
-        inverse: {
-          title: "Affiliated With",
-        },
-        description: "Something that something is affiliated with.",
       },
-      migrationState,
-      webShortname: "h",
+      description: "Something that something is affiliated with.",
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const institutionEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Institution",
-        titlePlural: "Institutions",
-        icon: "/icons/types/building-columns.svg",
-        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
-        description:
-          "An organization dedicated to a specific purpose, such as education, research, or public service, and structured with formal systems of governance and operation.",
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const institutionEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Institution",
+      titlePlural: "Institutions",
+      icon: "/icons/types/building-columns.svg",
+      labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+      description:
+        "An organization dedicated to a specific purpose, such as education, research, or public service, and structured with formal systems of governance and operation.",
+      properties: [
+        {
+          propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+          required: true,
+        },
+        {
+          propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   /** @todo H-3619: Infer info on publication venue and link to docs */
   // const archiveEntityType = await createSystemEntityTypeIfNotExists(
@@ -351,46 +301,42 @@ const migrate: MigrationFunction = async ({
   //   },
   // );
 
-  const personEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Person",
-        /**
-         * @todo when updating this, add plural title and set SVG icon
-         */
-        icon: "👤",
-        /** @todo improve this desc */
-        description: "A human being",
-        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
-        properties: [
-          {
-            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
-            required: true,
-          },
-          {
-            propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
-          },
-          {
-            propertyType: getCurrentHashPropertyTypeId({
-              propertyTypeKey: "email",
-              migrationState,
-            }),
-            array: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            destinationEntityTypes: [institutionEntityType.schema.$id],
-            linkEntityType: affiliatedWith.schema.$id,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const personEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Person",
+      /**
+       * @todo when updating this, add plural title and set SVG icon
+       */
+      icon: "👤",
+      /** @todo improve this desc */
+      description: "A human being",
+      labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+      properties: [
+        {
+          propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+          required: true,
+        },
+        {
+          propertyType: blockProtocolPropertyTypes.description.propertyTypeId,
+        },
+        {
+          propertyType: getCurrentHashPropertyTypeId({
+            propertyTypeKey: "email",
+            migrationState,
+          }),
+          array: true,
+        },
+      ],
+      outgoingLinks: [
+        {
+          destinationEntityTypes: [institutionEntityType.schema.$id],
+          linkEntityType: affiliatedWith.schema.$id,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const numberOfPagesPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -411,67 +357,59 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const docEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        title: "Doc",
-        description: "A written work, such as a book or article.",
-        icon: "/types/icons/page-lines.svg",
-        titlePlural: "Docs",
-        labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
-        properties: [
-          {
-            propertyType: getCurrentHashPropertyTypeId({
-              propertyTypeKey: "title",
-              migrationState,
-            }),
-            required: true,
-          },
-          {
-            propertyType: summaryPropertyType.schema.$id,
-          },
-          {
-            propertyType: numberOfPagesPropertyType.schema.$id,
-          },
-          {
-            propertyType: publicationYear.schema.$id,
-          },
-        ],
-        outgoingLinks: [
-          {
-            destinationEntityTypes: [personEntityType.schema.$id],
-            linkEntityType: authoredByLinkEntityTypeId,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const docEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      title: "Doc",
+      description: "A written work, such as a book or article.",
+      icon: "/types/icons/page-lines.svg",
+      titlePlural: "Docs",
+      labelProperty: systemPropertyTypes.title.propertyTypeBaseUrl,
+      properties: [
+        {
+          propertyType: getCurrentHashPropertyTypeId({
+            propertyTypeKey: "title",
+            migrationState,
+          }),
+          required: true,
+        },
+        {
+          propertyType: summaryPropertyType.schema.$id,
+        },
+        {
+          propertyType: numberOfPagesPropertyType.schema.$id,
+        },
+        {
+          propertyType: publicationYear.schema.$id,
+        },
+      ],
+      outgoingLinks: [
+        {
+          destinationEntityTypes: [personEntityType.schema.$id],
+          linkEntityType: authoredByLinkEntityTypeId,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
-  const _bookEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [docEntityType.schema.$id],
-        title: "Book",
-        titlePlural: "Books",
-        icon: "/icons/types/book.svg",
-        description:
-          "A written work, typically longer than an article, often published in print form.",
-        properties: [
-          {
-            propertyType: isbnPropertyType.schema.$id,
-          },
-        ],
-      },
-      migrationState,
-      webShortname: "h",
+  const _bookEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [docEntityType.schema.$id],
+      title: "Book",
+      titlePlural: "Books",
+      icon: "/icons/types/book.svg",
+      description:
+        "A written work, typically longer than an article, often published in print form.",
+      properties: [
+        {
+          propertyType: isbnPropertyType.schema.$id,
+        },
+      ],
     },
-  );
+    migrationState,
+    webShortname: "h",
+  });
 
   const _academicPaperEntityType = await createSystemEntityTypeIfNotExists(
     context,

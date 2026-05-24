@@ -33,10 +33,7 @@ import {
 } from "../primitive/link-entity";
 import { getCommentFromEntity } from "./comment";
 
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type { Comment } from "./comment";
 import type { Entity, EntityId } from "@blockprotocol/type-system";
 import type {
@@ -49,14 +46,8 @@ export type Block = {
   entity: HashEntity<BlockEntity>;
 };
 
-function assertBlockEntity(
-  entity: HashEntity,
-): asserts entity is HashEntity<BlockEntity> {
-  if (
-    !entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.block.entityTypeId,
-    )
-  ) {
+function assertBlockEntity(entity: HashEntity): asserts entity is HashEntity<BlockEntity> {
+  if (!entity.metadata.entityTypeIds.includes(systemEntityTypes.block.entityTypeId)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.block.entityTypeId,
@@ -65,10 +56,9 @@ function assertBlockEntity(
   }
 }
 
-export const getBlockFromEntity: PureGraphFunction<
-  { entity: HashEntity },
-  Block
-> = ({ entity }) => {
+export const getBlockFromEntity: PureGraphFunction<{ entity: HashEntity }, Block> = ({
+  entity,
+}) => {
   assertBlockEntity(entity);
 
   const { componentId } = simplifyProperties(entity.properties);
@@ -84,10 +74,11 @@ export const getBlockFromEntity: PureGraphFunction<
  *
  * @param params.entityId - the entity id of the block
  */
-export const getBlockById: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<Block>
-> = async (ctx, authentication, { entityId }) => {
+export const getBlockById: ImpureGraphFunction<{ entityId: EntityId }, Promise<Block>> = async (
+  ctx,
+  authentication,
+  { entityId },
+) => {
   const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getBlockFromEntity({ entity });
@@ -117,8 +108,7 @@ export const createBlock: ImpureGraphFunction<
         "https://hash.ai/@h/types/property-type/component-id/": {
           value: componentId,
           metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
       },
@@ -144,19 +134,15 @@ export const createBlock: ImpureGraphFunction<
  *
  * @param params.block - the block
  */
-export const getBlockData: ImpureGraphFunction<
-  { block: Block },
-  Promise<HashEntity>
-> = async (ctx, authentication, { block }) => {
-  const outgoingBlockDataLinks = await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: block.entity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl:
-        systemLinkEntityTypes.hasData.linkEntityTypeId,
-    },
-  );
+export const getBlockData: ImpureGraphFunction<{ block: Block }, Promise<HashEntity>> = async (
+  ctx,
+  authentication,
+  { block },
+) => {
+  const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, authentication, {
+    entityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: systemLinkEntityTypes.hasData.linkEntityTypeId,
+  });
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];
 
@@ -186,15 +172,10 @@ export const updateBlockDataEntity: ImpureGraphFunction<
   Promise<void>
 > = async (ctx, authentication, params) => {
   const { block, newBlockDataEntity } = params;
-  const outgoingBlockDataLinks = await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: block.entity.metadata.recordId.entityId,
-      linkEntityTypeVersionedUrl:
-        systemLinkEntityTypes.hasData.linkEntityTypeId,
-    },
-  );
+  const outgoingBlockDataLinks = await getEntityOutgoingLinks(ctx, authentication, {
+    entityId: block.entity.metadata.recordId.entityId,
+    linkEntityTypeVersionedUrl: systemLinkEntityTypes.hasData.linkEntityTypeId,
+  });
 
   const outgoingBlockDataLink = outgoingBlockDataLinks[0];
 
@@ -204,13 +185,9 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     );
   }
 
-  const existingBlockDataEntity = await getLinkEntityRightEntity(
-    ctx,
-    authentication,
-    {
-      linkEntity: outgoingBlockDataLink,
-    },
-  );
+  const existingBlockDataEntity = await getLinkEntityRightEntity(ctx, authentication, {
+    linkEntity: outgoingBlockDataLink,
+  });
 
   if (
     existingBlockDataEntity.metadata.recordId.entityId ===
@@ -221,11 +198,7 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     );
   }
 
-  await outgoingBlockDataLink.archive(
-    ctx.graphApi,
-    authentication,
-    ctx.provenance,
-  );
+  await outgoingBlockDataLink.archive(ctx.graphApi, authentication, ctx.provenance);
 
   await createLinkEntity(ctx, authentication, {
     webId: extractWebIdFromEntityId(block.entity.metadata.recordId.entityId),
@@ -243,10 +216,11 @@ export const updateBlockDataEntity: ImpureGraphFunction<
  *
  * @param params.block - the block
  */
-export const getBlockComments: ImpureGraphFunction<
-  { block: Block },
-  Promise<Comment[]>
-> = async (ctx, authentication, { block }) => {
+export const getBlockComments: ImpureGraphFunction<{ block: Block }, Promise<Comment[]>> = async (
+  ctx,
+  authentication,
+  { block },
+) => {
   const blockCommentLinks = await getEntityIncomingLinks(ctx, authentication, {
     entityId: block.entity.metadata.recordId.entityId,
     linkEntityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
@@ -273,24 +247,19 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const { block, includeDrafts = false } = params;
 
-  const blockEntityUuid = extractEntityUuidFromEntityId(
-    block.entity.metadata.recordId.entityId,
-  );
+  const blockEntityUuid = extractEntityUuidFromEntityId(block.entity.metadata.recordId.entityId);
 
   const matchingContainsLinks = await queryEntities(context, authentication, {
     filter: {
       all: [
         contentLinkTypeFilter,
         {
-          equal: [
-            { path: ["rightEntity", "uuid"] },
-            { parameter: blockEntityUuid },
-          ],
+          equal: [{ path: ["rightEntity", "uuid"] }, { parameter: blockEntityUuid }],
         },
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.blockCollection.entityTypeId,
-          { ignoreParents: false, pathPrefix: ["leftEntity"] },
-        ),
+        generateVersionedUrlMatchingFilter(systemEntityTypes.blockCollection.entityTypeId, {
+          ignoreParents: false,
+          pathPrefix: ["leftEntity"],
+        }),
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
@@ -303,13 +272,9 @@ export const getBlockCollectionByBlock: ImpureGraphFunction<
   const [matchingContainsLink] = matchingContainsLinks;
 
   if (matchingContainsLink) {
-    const blockCollectionEntity = await getLatestEntityById(
-      context,
-      authentication,
-      {
-        entityId: matchingContainsLink.linkData.leftEntityId,
-      },
-    );
+    const blockCollectionEntity = await getLatestEntityById(context, authentication, {
+      entityId: matchingContainsLink.linkData.leftEntityId,
+    });
 
     return blockCollectionEntity;
   }

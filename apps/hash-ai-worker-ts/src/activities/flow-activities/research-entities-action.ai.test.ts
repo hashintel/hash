@@ -1,11 +1,5 @@
 import "../../shared/testing-utilities/mock-get-flow-context.js";
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -44,10 +38,7 @@ export const retrievePreviousState = (params: {
   return JSON.parse(latestFileContent) as CoordinatingAgentState;
 };
 
-const persistState = (params: {
-  state: CoordinatingAgentState;
-  testName: string;
-}) => {
+const persistState = (params: { state: CoordinatingAgentState; testName: string }) => {
   const { state, testName } = params;
 
   const directoryPath = `${baseDirectoryPath}/${testName}`;
@@ -82,8 +73,7 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "google-subsidiaries" }),
+        persistState: (state) => persistState({ state, testName: "google-subsidiaries" }),
         resumeFromState: retrievePreviousState({
           testName: "google-subsidiaries",
         }),
@@ -120,8 +110,7 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "sora-authors" }),
+        persistState: (state) => persistState({ state, testName: "sora-authors" }),
         resumeFromState: retrievePreviousState({
           testName: "sora-authors",
         }),
@@ -158,8 +147,7 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "ben-werner" }),
+        persistState: (state) => persistState({ state, testName: "ben-werner" }),
         // resumeFromState: retrievePreviousState({ testName: "ben-werner" }),
       },
     });
@@ -180,8 +168,7 @@ test.skip(
           inputName: "prompt",
           payload: {
             kind: "Text",
-            value:
-              'Find information about a person called "Tim Brooks", an employee at OpenAI',
+            value: 'Find information about a person called "Tim Brooks", an employee at OpenAI',
           },
         },
         {
@@ -194,8 +181,7 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "tim-brooks" }),
+        persistState: (state) => persistState({ state, testName: "tim-brooks" }),
         resumeFromState: retrievePreviousState({ testName: "tim-brooks" }),
       },
     });
@@ -223,16 +209,13 @@ test.skip(
           inputName: "entityTypeIds",
           payload: {
             kind: "VersionedUrl",
-            value: [
-              "https://hash.ai/@h/types/entity-type/large-language-model/v/1",
-            ],
+            value: ["https://hash.ai/@h/types/entity-type/large-language-model/v/1"],
           },
         },
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "openai-llm" }),
+        persistState: (state) => persistState({ state, testName: "openai-llm" }),
         resumeFromState: retrievePreviousState({ testName: "openai-llm" }),
       },
     });
@@ -253,8 +236,7 @@ test.skip(
           inputName: "prompt",
           payload: {
             kind: "Text",
-            value:
-              "Find a comparison of graphics cards which can be used for running AI models",
+            value: "Find a comparison of graphics cards which can be used for running AI models",
           },
         },
         {
@@ -267,8 +249,7 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "graphics-cards" }),
+        persistState: (state) => persistState({ state, testName: "graphics-cards" }),
         resumeFromState: retrievePreviousState({ testName: "graphics-cards" }),
       },
     });

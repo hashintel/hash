@@ -3,8 +3,7 @@ import { useEntityEditor } from "../entity-editor/entity-editor-context";
 import type { EntityId } from "@blockprotocol/type-system";
 
 export const useMarkLinkEntityToArchive = () => {
-  const { draftLinksToCreate, setDraftLinksToCreate, setDraftLinksToArchive } =
-    useEntityEditor();
+  const { draftLinksToCreate, setDraftLinksToCreate, setDraftLinksToArchive } = useEntityEditor();
 
   const markLinkEntityToArchive = (linkEntityId: EntityId) => {
     const foundIndex = draftLinksToCreate.findIndex(

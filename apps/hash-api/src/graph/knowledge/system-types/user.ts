@@ -6,20 +6,10 @@ import {
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
-import {
-  type HashEntity,
-  queryEntities,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
-import {
-  addActorGroupMember,
-  createUserActor,
-} from "@local/hash-graph-sdk/principal/actor-group";
+import { type HashEntity, queryEntities, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
+import { addActorGroupMember, createUserActor } from "@local/hash-graph-sdk/principal/actor-group";
 import { getInstanceAdminsTeam } from "@local/hash-graph-sdk/principal/hash-instance-admins";
-import {
-  type FeatureFlag,
-  featureFlags,
-} from "@local/hash-isomorphic-utils/feature-flags";
+import { type FeatureFlag, featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -31,37 +21,20 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import {
-  getVerifiedEmailsFromKratosIdentity,
-  kratosIdentityApi,
-} from "../../../auth/ory-kratos";
+import { getVerifiedEmailsFromKratosIdentity, kratosIdentityApi } from "../../../auth/ory-kratos";
 import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
 import { systemAccountId } from "../../system-account";
-import {
-  createEntity,
-  getEntityOutgoingLinks,
-  getLatestEntityById,
-} from "../primitive/entity";
-import {
-  shortnameIsInvalid,
-  shortnameIsRestricted,
-  shortnameIsTaken,
-} from "./account.fields";
+import { createEntity, getEntityOutgoingLinks, getLatestEntityById } from "../primitive/entity";
+import { shortnameIsInvalid, shortnameIsRestricted, shortnameIsTaken } from "./account.fields";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
   getOrgMembershipOrg,
 } from "./org-membership";
 
-import type {
-  KratosUserIdentity,
-  KratosUserIdentityTraits,
-} from "../../../auth/ory-kratos";
-import type {
-  ImpureGraphFunction,
-  PureGraphFunction,
-} from "../../context-types";
+import type { KratosUserIdentity, KratosUserIdentityTraits } from "../../../auth/ory-kratos";
+import type { ImpureGraphFunction, PureGraphFunction } from "../../context-types";
 import type { OrgMembership } from "./org-membership";
 import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
@@ -94,14 +67,11 @@ function assertFeatureFlags(
 
 function isUserEntity(entity: HashEntity): entity is HashEntity<UserEntity> {
   return entity.metadata.entityTypeIds.some(
-    (entityTypeId) =>
-      extractBaseUrl(entityTypeId) === systemEntityTypes.user.entityTypeBaseUrl,
+    (entityTypeId) => extractBaseUrl(entityTypeId) === systemEntityTypes.user.entityTypeBaseUrl,
   );
 }
 
-function assertUserEntity(
-  entity: HashEntity,
-): asserts entity is HashEntity<UserEntity> {
+function assertUserEntity(entity: HashEntity): asserts entity is HashEntity<UserEntity> {
   if (!isUserEntity(entity)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
@@ -115,26 +85,23 @@ function assertUserEntity(
  * Fetch user emails from Kratos identity traits.
  * This is the source of truth for emails since DB-level masking hides them from non-owners.
  */
-const getEmailsFromKratos = async (
-  kratosIdentityId: string,
-): Promise<string[]> => {
+const getEmailsFromKratos = async (kratosIdentityId: string): Promise<string[]> => {
   try {
     const { data: identity } = await kratosIdentityApi.getIdentity({
       id: kratosIdentityId,
     });
     return (identity.traits as KratosUserIdentityTraits).emails;
   } catch (error) {
-    logger.warn(
-      `Failed to fetch emails from Kratos for identity ${kratosIdentityId}: ${error}`,
-    );
+    logger.warn(`Failed to fetch emails from Kratos for identity ${kratosIdentityId}: ${error}`);
     return [];
   }
 };
 
-export const getUserVerifiedEmails: ImpureGraphFunction<
-  { user: User },
-  Promise<string[]>
-> = async (_, __, { user }) => {
+export const getUserVerifiedEmails: ImpureGraphFunction<{ user: User }, Promise<string[]>> = async (
+  _,
+  __,
+  { user },
+) => {
   const { data: identity } = await kratosIdentityApi.getIdentity({
     id: user.kratosIdentityId,
   });
@@ -174,10 +141,7 @@ export const checkEmailVerificationAndUsageStatus = async (
   }
 };
 
-export const getUserFromEntity: PureGraphFunction<
-  { entity: HashEntity },
-  User
-> = ({ entity }) => {
+export const getUserFromEntity: PureGraphFunction<{ entity: HashEntity }, User> = ({ entity }) => {
   assertUserEntity(entity);
 
   const {
@@ -195,9 +159,7 @@ export const getUserFromEntity: PureGraphFunction<
   assertFeatureFlags(enabledFeatureFlags);
 
   return {
-    accountId: extractWebIdFromEntityId(
-      entity.metadata.recordId.entityId,
-    ) as UserId,
+    accountId: extractWebIdFromEntityId(entity.metadata.recordId.entityId) as UserId,
     displayName,
     emails,
     enabledFeatureFlags,
@@ -233,8 +195,7 @@ export const getUser: ImpureGraphFunction<
   const knownShortname = "shortname" in params ? params.shortname : null;
 
   let emails = "emails" in params ? params.emails : undefined;
-  const kratosIdentityId =
-    "kratosIdentityId" in params ? params.kratosIdentityId : null;
+  const kratosIdentityId = "kratosIdentityId" in params ? params.kratosIdentityId : null;
 
   let entity: HashEntity<UserEntity>;
 
@@ -258,10 +219,7 @@ export const getUser: ImpureGraphFunction<
       queryFilter = {
         equal: [
           {
-            path: [
-              "properties",
-              systemPropertyTypes.kratosIdentityId.propertyTypeBaseUrl,
-            ],
+            path: ["properties", systemPropertyTypes.kratosIdentityId.propertyTypeBaseUrl],
           },
           { parameter: kratosIdentityId },
         ],
@@ -270,10 +228,7 @@ export const getUser: ImpureGraphFunction<
       queryFilter = {
         equal: [
           {
-            path: [
-              "properties",
-              systemPropertyTypes.shortname.propertyTypeBaseUrl,
-            ],
+            path: ["properties", systemPropertyTypes.shortname.propertyTypeBaseUrl],
           },
           { parameter: knownShortname?.trim().toLowerCase() },
         ],
@@ -285,12 +240,9 @@ export const getUser: ImpureGraphFunction<
     } = await queryEntities<UserEntity>(context, authentication, {
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            {
-              ignoreParents: true,
-            },
-          ),
+          generateVersionedUrlMatchingFilter(systemEntityTypes.user.entityTypeId, {
+            ignoreParents: true,
+          }),
           queryFilter,
         ],
       },
@@ -314,26 +266,20 @@ export const getUser: ImpureGraphFunction<
 
   emails ??= atLeastOne(
     await getEmailsFromKratos(
-      entity.properties[
-        "https://hash.ai/@h/types/property-type/kratos-identity-id/"
-      ],
+      entity.properties["https://hash.ai/@h/types/property-type/kratos-identity-id/"],
     ),
   );
 
   if (!emails) {
     throw new Error(
       `Critical: No email found for user with kratos identity id: ${
-        entity.properties[
-          "https://hash.ai/@h/types/property-type/kratos-identity-id/"
-        ]
+        entity.properties["https://hash.ai/@h/types/property-type/kratos-identity-id/"]
       }`,
     );
   }
   entity.properties["https://hash.ai/@h/types/property-type/email/"] = emails;
 
-  entity.propertiesMetadata.value[
-    systemPropertyTypes.email.propertyTypeBaseUrl
-  ] ??= {
+  entity.propertiesMetadata.value[systemPropertyTypes.email.propertyTypeBaseUrl] ??= {
     value: [
       {
         metadata: {
@@ -383,9 +329,7 @@ export const createUser: ImpureGraphFunction<
   });
 
   if (existingUserWithKratosIdentityId) {
-    throw new Error(
-      `A user entity with kratos identity id "${kratosIdentityId}" already exists.`,
-    );
+    throw new Error(`A user entity with kratos identity id "${kratosIdentityId}" already exists.`);
   }
 
   if (shortname) {
@@ -397,22 +341,16 @@ export const createUser: ImpureGraphFunction<
       shortnameIsRestricted({ shortname }) ||
       (await shortnameIsTaken(ctx, authentication, { shortname }))
     ) {
-      throw new Error(
-        `An account with shortname "${shortname}" already exists.`,
-      );
+      throw new Error(`An account with shortname "${shortname}" already exists.`);
     }
   }
 
   const userShouldHavePermissionsOnWeb = !!shortname && !!displayName;
 
-  const { userId, machineId } = await createUserActor(
-    ctx.graphApi,
-    authentication,
-    {
-      shortname,
-      registrationComplete: userShouldHavePermissionsOnWeb,
-    },
-  );
+  const { userId, machineId } = await createUserActor(ctx.graphApi, authentication, {
+    shortname,
+    registrationComplete: userShouldHavePermissionsOnWeb,
+  });
 
   await createWebMachineActorEntity(ctx, {
     webId: userId,
@@ -433,8 +371,7 @@ export const createUser: ImpureGraphFunction<
       "https://hash.ai/@h/types/property-type/kratos-identity-id/": {
         value: kratosIdentityId,
         metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
       ...(shortname !== undefined
@@ -442,22 +379,19 @@ export const createUser: ImpureGraphFunction<
             "https://hash.ai/@h/types/property-type/shortname/": {
               value: shortname.trim().toLowerCase(),
               metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
             },
           }
         : {}),
       ...(displayName !== undefined
         ? {
-            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
-              {
-                value: displayName,
-                metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                },
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+              value: displayName,
+              metadata: {
+                dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
               },
+            },
           }
         : {}),
       ...(enabledFeatureFlags !== undefined
@@ -466,8 +400,7 @@ export const createUser: ImpureGraphFunction<
               value: enabledFeatureFlags.map((flag) => ({
                 value: flag,
                 metadata: {
-                  dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               })),
             },
@@ -586,15 +519,10 @@ export const getUserOrgMemberships: ImpureGraphFunction<
   { userEntityId: EntityId },
   Promise<OrgMembership[]>
 > = async (ctx, authentication, { userEntityId }) => {
-  const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(
-    ctx,
-    authentication,
-    {
-      entityId: userEntityId,
-      linkEntityTypeVersionedUrl:
-        systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-    },
-  );
+  const outgoingOrgMembershipLinkEntities = await getEntityOutgoingLinks(ctx, authentication, {
+    entityId: userEntityId,
+    linkEntityTypeVersionedUrl: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+  });
 
   return outgoingOrgMembershipLinkEntities.map((linkEntity) =>
     getOrgMembershipFromLinkEntity({ linkEntity }),
@@ -611,11 +539,7 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
   { userEntityId: EntityId; orgEntityUuid: EntityUuid },
   Promise<boolean>
 > = async (ctx, authentication, params) => {
-  const orgMemberships = await getUserOrgMemberships(
-    ctx,
-    authentication,
-    params,
-  );
+  const orgMemberships = await getUserOrgMemberships(ctx, authentication, params);
 
   const orgs = await Promise.all(
     orgMemberships.map((orgMembership) =>
@@ -627,8 +551,7 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
 
   return !!orgs.find(
     (org) =>
-      extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
-      params.orgEntityUuid,
+      extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) === params.orgEntityUuid,
   );
 };
 
@@ -654,9 +577,7 @@ export const getUserPendingInvitations: ImpureGraphFunction<
       temporalAxes: currentTimeInstantTemporalAxes,
       filter: {
         all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.invitation.entityTypeId,
-          ),
+          generateVersionedUrlMatchingFilter(systemEntityTypes.invitation.entityTypeId),
           {
             equal: [
               {
@@ -670,10 +591,7 @@ export const getUserPendingInvitations: ImpureGraphFunction<
               ...user.emails.map((email) => ({
                 equal: [
                   {
-                    path: [
-                      "properties",
-                      systemPropertyTypes.email.propertyTypeBaseUrl,
-                    ],
+                    path: ["properties", systemPropertyTypes.email.propertyTypeBaseUrl],
                   },
                   { parameter: email },
                 ],
@@ -683,10 +601,7 @@ export const getUserPendingInvitations: ImpureGraphFunction<
                     {
                       equal: [
                         {
-                          path: [
-                            "properties",
-                            systemPropertyTypes.shortname.propertyTypeBaseUrl,
-                          ],
+                          path: ["properties", systemPropertyTypes.shortname.propertyTypeBaseUrl],
                         },
                         { parameter: user.shortname },
                       ],

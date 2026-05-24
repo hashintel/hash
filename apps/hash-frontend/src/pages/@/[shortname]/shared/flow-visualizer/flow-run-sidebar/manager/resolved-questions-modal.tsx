@@ -5,13 +5,7 @@ import { Modal } from "../../../../../../../shared/ui/modal";
 
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 
-const ResolvedQuestion = ({
-  answer,
-  question,
-}: {
-  answer: string;
-  question: string;
-}) => {
+const ResolvedQuestion = ({ answer, question }: { answer: string; question: string }) => {
   return (
     <Box mb={3}>
       <Typography

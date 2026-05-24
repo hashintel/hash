@@ -46,15 +46,13 @@ export const getLinearOrganizationResolver: ResolverFn<
     id: organization.id,
     logoUrl: organization.logoUrl,
     name: organization.name,
-    teams: teams.map(
-      ({ id, name, description, color, icon, private: _private }) => ({
-        id,
-        name,
-        description,
-        color,
-        icon,
-        private: _private,
-      }),
-    ),
+    teams: teams.map(({ id, name, description, color, icon, private: _private }) => ({
+      id,
+      name,
+      description,
+      color,
+      icon,
+      private: _private,
+    })),
   };
 };

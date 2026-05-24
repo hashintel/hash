@@ -29,10 +29,7 @@ import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/bloc
 import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import type { WebId } from "@blockprotocol/type-system";
-import type {
-  HasIndexedContent,
-  Text,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+import type { HasIndexedContent, Text } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const logger = new Logger({
   environment: "test",
@@ -71,8 +68,9 @@ describe("Page", () => {
       entityTypeIds: [systemEntityTypes.text.entityTypeId],
       properties: {
         value: {
-          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
-            { value: [] },
+          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": {
+            value: [],
+          },
         },
       },
     });
@@ -125,9 +123,7 @@ describe("Page", () => {
     const expectedInitialBlocks = [initialBlock1, initialBlock2];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
-    expect(initialBlocks).toEqual(
-      expect.arrayContaining(expectedInitialBlocks),
-    );
+    expect(initialBlocks).toEqual(expect.arrayContaining(expectedInitialBlocks));
   });
 
   it("can get a page by its entity id", async () => {
@@ -143,25 +139,17 @@ describe("Page", () => {
   it("can get all pages in a workspace", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const allPages = await getAllPagesInWorkspace(
-      graphContext,
-      authentication,
-      {
-        webId: testUser.accountId as WebId,
-      },
-    );
+    const allPages = await getAllPagesInWorkspace(graphContext, authentication, {
+      webId: testUser.accountId as WebId,
+    });
 
     expect(
       allPages.sort((a, b) =>
-        a.entity.metadata.recordId.entityId.localeCompare(
-          b.entity.metadata.recordId.entityId,
-        ),
+        a.entity.metadata.recordId.entityId.localeCompare(b.entity.metadata.recordId.entityId),
       ),
     ).toEqual(
       [testPage, testPage2].sort((a, b) =>
-        a.entity.metadata.recordId.entityId.localeCompare(
-          b.entity.metadata.recordId.entityId,
-        ),
+        a.entity.metadata.recordId.entityId.localeCompare(b.entity.metadata.recordId.entityId),
       ),
     );
   });
@@ -178,9 +166,7 @@ describe("Page", () => {
       type: "document",
     });
 
-    expect(
-      await getPageParentPage(graphContext, authentication, { page: testPage }),
-    ).toBeNull();
+    expect(await getPageParentPage(graphContext, authentication, { page: testPage })).toBeNull();
 
     await setPageParentPage(graphContext, authentication, {
       page: testPage,
@@ -188,9 +174,9 @@ describe("Page", () => {
       prevFractionalIndex: null,
       nextIndex: null,
     });
-    expect(
-      await getPageParentPage(graphContext, authentication, { page: testPage }),
-    ).toEqual(parentPage);
+    expect(await getPageParentPage(graphContext, authentication, { page: testPage })).toEqual(
+      parentPage,
+    );
   });
 
   let testBlock1: Block;
@@ -211,82 +197,55 @@ describe("Page", () => {
 
     const firstBlock = await createTestBlock();
 
-    testPageForBlockManipulation = await createPage(
-      graphContext,
-      authentication,
-      {
-        initialBlocks: [firstBlock],
-        webId: testUser.accountId as WebId,
-        title: "Test Page for Block Manipulation",
-        type: "document",
-      },
-    );
+    testPageForBlockManipulation = await createPage(graphContext, authentication, {
+      initialBlocks: [firstBlock],
+      webId: testUser.accountId as WebId,
+      title: "Test Page for Block Manipulation",
+      type: "document",
+    });
 
     const existingBlocks = await getPageBlocks(graphContext, authentication, {
-      pageEntityId:
-        testPageForBlockManipulation.entity.metadata.recordId.entityId,
+      pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
       type: "document",
     });
 
     expect(existingBlocks).toHaveLength(1);
 
     testBlock1 = existingBlocks[0]!.rightEntity!;
-    testBlockLink1 = new HashLinkEntity<HasIndexedContent>(
-      existingBlocks[0]!.linkEntity,
-    );
+    testBlockLink1 = new HashLinkEntity<HasIndexedContent>(existingBlocks[0]!.linkEntity);
 
-    [testBlock2, testBlock3] = await Promise.all([
-      createTestBlock(),
-      createTestBlock(),
-    ]);
+    [testBlock2, testBlock3] = await Promise.all([createTestBlock(), createTestBlock()]);
 
     // insert block at specified position
-    testBlockLink2 = (await addBlockToBlockCollection(
-      graphContext,
-      authentication,
-      {
-        blockCollectionEntityId:
-          testPageForBlockManipulation.entity.metadata.recordId.entityId,
-        block: testBlock2,
-        position: {
-          indexPosition: {
-            "https://hash.ai/@h/types/property-type/fractional-index/":
-              generateKeyBetween(
-                testBlockLink1.properties[
-                  "https://hash.ai/@h/types/property-type/fractional-index/"
-                ],
-                null,
-              ),
-          },
+    testBlockLink2 = (await addBlockToBlockCollection(graphContext, authentication, {
+      blockCollectionEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
+      block: testBlock2,
+      position: {
+        indexPosition: {
+          "https://hash.ai/@h/types/property-type/fractional-index/": generateKeyBetween(
+            testBlockLink1.properties["https://hash.ai/@h/types/property-type/fractional-index/"],
+            null,
+          ),
         },
       },
-    )) as unknown as HashLinkEntity<HasIndexedContent>;
+    })) as unknown as HashLinkEntity<HasIndexedContent>;
 
-    testBlockLink3 = (await addBlockToBlockCollection(
-      graphContext,
-      authentication,
-      {
-        blockCollectionEntityId:
-          testPageForBlockManipulation.entity.metadata.recordId.entityId,
-        block: testBlock3,
-        position: {
-          indexPosition: {
-            "https://hash.ai/@h/types/property-type/fractional-index/":
-              generateKeyBetween(
-                testBlockLink2.properties[
-                  "https://hash.ai/@h/types/property-type/fractional-index/"
-                ],
-                null,
-              ),
-          },
+    testBlockLink3 = (await addBlockToBlockCollection(graphContext, authentication, {
+      blockCollectionEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
+      block: testBlock3,
+      position: {
+        indexPosition: {
+          "https://hash.ai/@h/types/property-type/fractional-index/": generateKeyBetween(
+            testBlockLink2.properties["https://hash.ai/@h/types/property-type/fractional-index/"],
+            null,
+          ),
         },
       },
-    )) as unknown as HashLinkEntity<HasIndexedContent>;
+    })) as unknown as HashLinkEntity<HasIndexedContent>;
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId:
-          testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
@@ -301,9 +260,7 @@ describe("Page", () => {
 
     firstKey = generateKeyBetween(
       null,
-      testBlockLink1.properties[
-        "https://hash.ai/@h/types/property-type/fractional-index/"
-      ],
+      testBlockLink1.properties["https://hash.ai/@h/types/property-type/fractional-index/"],
     );
 
     await moveBlockInBlockCollection(graphContext, authentication, {
@@ -317,40 +274,36 @@ describe("Page", () => {
 
     const initialBlocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId:
-          testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
     const expectedInitialBlocks = [testBlock3, testBlock2, testBlock1];
 
     expect(initialBlocks).toHaveLength(expectedInitialBlocks.length);
-    expect(initialBlocks).toEqual(
-      expect.arrayContaining(expectedInitialBlocks),
-    );
+    expect(initialBlocks).toEqual(expect.arrayContaining(expectedInitialBlocks));
 
     await moveBlockInBlockCollection(graphContext, authentication, {
       linkEntityId: testBlockLink1.metadata.recordId.entityId,
       position: {
         indexPosition: {
-          "https://hash.ai/@h/types/property-type/fractional-index/":
-            generateKeyBetween(null, firstKey),
+          "https://hash.ai/@h/types/property-type/fractional-index/": generateKeyBetween(
+            null,
+            firstKey,
+          ),
         },
       },
     });
 
     const updatedBlocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId:
-          testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);
     const expectedUpdatedBlocks = [testBlock1, testBlock2, testBlock3];
     expect(updatedBlocks).toHaveLength(expectedUpdatedBlocks.length);
-    expect(updatedBlocks).toEqual(
-      expect.arrayContaining(expectedUpdatedBlocks),
-    );
+    expect(updatedBlocks).toEqual(expect.arrayContaining(expectedUpdatedBlocks));
   });
 
   it("can remove blocks", async () => {
@@ -362,8 +315,7 @@ describe("Page", () => {
 
     const blocks = (
       await getPageBlocks(graphContext, authentication, {
-        pageEntityId:
-          testPageForBlockManipulation.entity.metadata.recordId.entityId,
+        pageEntityId: testPageForBlockManipulation.entity.metadata.recordId.entityId,
         type: "document",
       })
     ).map((contentItem) => contentItem.rightEntity);

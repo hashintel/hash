@@ -18,9 +18,7 @@ export const createTextEditorView = (
   new EditorView(renderNode, {
     ...editorProps,
     state,
-    clipboardTextSerializer: clipboardTextSerializer(
-      state.schema.nodes.hardBreak,
-    ),
+    clipboardTextSerializer: clipboardTextSerializer(state.schema.nodes.hardBreak),
     nodeViews: {
       ...(editorProps?.nodeViews ?? {}),
       mention: mentionNodeView(renderPortal, webId),

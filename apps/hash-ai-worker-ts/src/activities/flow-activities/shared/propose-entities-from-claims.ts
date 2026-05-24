@@ -10,10 +10,7 @@ import type { ExistingEntitySummary } from "../research-entities-action/coordina
 import type { Claim } from "./claims.js";
 import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { BaseUrl } from "@blockprotocol/type-system";
-import type {
-  ProposedEntity,
-  WorkerIdentifiers,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { ProposedEntity, WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 export const proposeEntitiesFromClaims = async (params: {
   entitySummaries: LocalEntitySummary[];
@@ -43,9 +40,7 @@ export const proposeEntitiesFromClaims = async (params: {
 
         if (!entityType) {
           throw new Error(
-            `Could not find entity type for entity summary: ${JSON.stringify(
-              entitySummary,
-            )}`,
+            `Could not find entity type for entity summary: ${JSON.stringify(entitySummary)}`,
           );
         }
 
@@ -74,14 +69,12 @@ export const proposeEntitiesFromClaims = async (params: {
             _,
             {
               schema,
-              simplifiedPropertyTypeMappings:
-                outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
+              simplifiedPropertyTypeMappings: outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
             },
           ]) => {
             return {
               schema,
-              simplifiedPropertyTypeMappings:
-                outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
+              simplifiedPropertyTypeMappings: outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
             };
           },
         );
@@ -90,14 +83,11 @@ export const proposeEntitiesFromClaims = async (params: {
         ...potentialLinkTargetEntitySummaries,
         ...(existingEntitySummaries ?? []),
       ].filter((potentialTargetEntitySummary) => {
-        const someClaimIncludesTargetEntityAsObject =
-          claimsWithEntityAsSubject.some((claim) =>
-            "localId" in potentialTargetEntitySummary
-              ? claim.objectEntityLocalId ===
-                potentialTargetEntitySummary.localId
-              : claim.objectEntityLocalId ===
-                potentialTargetEntitySummary.entityId,
-          );
+        const someClaimIncludesTargetEntityAsObject = claimsWithEntityAsSubject.some((claim) =>
+          "localId" in potentialTargetEntitySummary
+            ? claim.objectEntityLocalId === potentialTargetEntitySummary.localId
+            : claim.objectEntityLocalId === potentialTargetEntitySummary.entityId,
+        );
 
         const entityIsValidTarget = entityTypes
           .flatMap((entityType) => Object.values(entityType.schema.links ?? {}))
@@ -111,9 +101,7 @@ export const proposeEntitiesFromClaims = async (params: {
                 /**
                  * @todo H-3363 account for parent types
                  */
-                potentialTargetEntitySummary.entityTypeIds.includes(
-                  schema.$ref,
-                ),
+                potentialTargetEntitySummary.entityTypeIds.includes(schema.$ref),
               )
             );
           });
@@ -133,9 +121,7 @@ export const proposeEntitiesFromClaims = async (params: {
           isObjectOf: claimsWithEntityAsObject,
           isSubjectOf: claimsWithEntityAsSubject,
         },
-        dereferencedEntityTypes: entityTypes.map(
-          (entityType) => entityType.schema,
-        ),
+        dereferencedEntityTypes: entityTypes.map((entityType) => entityType.schema),
         simplifiedPropertyTypeMappings: entityTypes.reduce(
           (prev, entityType) => ({
             ...prev,
@@ -148,24 +134,19 @@ export const proposeEntitiesFromClaims = async (params: {
          * target for the link.
          */
         proposeOutgoingLinkEntityTypes:
-          possibleOutgoingLinkTargetEntitySummaries.length > 0
-            ? possibleLinkTypesFromEntity
-            : [],
+          possibleOutgoingLinkTargetEntitySummaries.length > 0 ? possibleLinkTypesFromEntity : [],
         possibleOutgoingLinkTargetEntitySummaries,
       });
 
       if (proposeEntityFromClaimsStatus.status !== "ok") {
         logger.error(
-          `Failed to propose entity from claims: ${stringify(
-            proposeEntityFromClaimsStatus,
-          )}`,
+          `Failed to propose entity from claims: ${stringify(proposeEntityFromClaimsStatus)}`,
         );
 
         return [];
       }
 
-      const { proposedEntity, proposedOutgoingLinkEntities } =
-        proposeEntityFromClaimsStatus;
+      const { proposedEntity, proposedOutgoingLinkEntities } = proposeEntityFromClaimsStatus;
 
       return [proposedEntity, ...proposedOutgoingLinkEntities];
     }),

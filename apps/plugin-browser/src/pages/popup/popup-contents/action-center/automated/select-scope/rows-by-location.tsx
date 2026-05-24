@@ -15,16 +15,8 @@ type RuleByLocation = {
   restrictToDomain?: string;
 };
 
-const RowByLocation = (
-  props: Omit<CommonRowsProps, "draftRule"> & { rule: RuleByLocation },
-) => {
-  const {
-    domainOptions,
-    setDraftRule,
-    rule,
-    inferenceConfig,
-    setInferenceConfig,
-  } = props;
+const RowByLocation = (props: Omit<CommonRowsProps, "draftRule"> & { rule: RuleByLocation }) => {
+  const { domainOptions, setDraftRule, rule, inferenceConfig, setInferenceConfig } = props;
 
   const { rules } = inferenceConfig;
 
@@ -33,10 +25,7 @@ const RowByLocation = (
   const updateDomain = useCallback(
     (newDomain: string) => {
       const rulesByType = rules.reduce<
-        Record<
-          VersionedUrl,
-          LocalStorage["automaticInferenceConfig"]["rules"][0]
-        >
+        Record<VersionedUrl, LocalStorage["automaticInferenceConfig"]["rules"][0]>
       >(
         (acc, existingRule) => ({
           ...acc,
@@ -47,9 +36,7 @@ const RowByLocation = (
 
       if (entityTypeIds.length === 0) {
         // This is a draft rule that must remain draft, as there's no entityTypeId set
-        const ruleForDomain = rules.find((rle) =>
-          rle.restrictToDomains.includes(newDomain),
-        );
+        const ruleForDomain = rules.find((rle) => rle.restrictToDomains.includes(newDomain));
         if (ruleForDomain) {
           // We've already got a rule including this domain, so we can just remove the draft rule
           setDraftRule(null);
@@ -102,23 +89,13 @@ const RowByLocation = (
         rules: Object.values(rulesByType),
       });
     },
-    [
-      entityTypeIds,
-      restrictToDomain,
-      inferenceConfig,
-      setInferenceConfig,
-      setDraftRule,
-      rules,
-    ],
+    [entityTypeIds, restrictToDomain, inferenceConfig, setInferenceConfig, setDraftRule, rules],
   );
 
   const updateEntityTypeIds = useCallback(
     (newEntityTypeIds: VersionedUrl[]) => {
       const rulesByType = rules.reduce<
-        Record<
-          VersionedUrl,
-          LocalStorage["automaticInferenceConfig"]["rules"][0]
-        >
+        Record<VersionedUrl, LocalStorage["automaticInferenceConfig"]["rules"][0]>
       >(
         (acc, existingRule) => ({
           ...acc,
@@ -197,14 +174,7 @@ const RowByLocation = (
         setDraftRule(null);
       }
     },
-    [
-      entityTypeIds,
-      restrictToDomain,
-      inferenceConfig,
-      setInferenceConfig,
-      rules,
-      setDraftRule,
-    ],
+    [entityTypeIds, restrictToDomain, inferenceConfig, setInferenceConfig, rules, setDraftRule],
   );
 
   const removeRule = () => {
@@ -252,14 +222,8 @@ const RowByLocation = (
         <EntityTypeSelector
           inputHeight="auto"
           multiple
-          setTargetEntityTypeIds={({
-            selectedEntityTypeIds,
-            linkedEntityTypeIds,
-          }) => {
-            updateEntityTypeIds([
-              ...selectedEntityTypeIds,
-              ...linkedEntityTypeIds,
-            ]);
+          setTargetEntityTypeIds={({ selectedEntityTypeIds, linkedEntityTypeIds }) => {
+            updateEntityTypeIds([...selectedEntityTypeIds, ...linkedEntityTypeIds]);
           }}
           targetEntityTypeIds={entityTypeIds}
         />
@@ -276,13 +240,7 @@ const RowByLocation = (
 };
 
 export const RowsByLocation = (props: CommonRowsProps) => {
-  const {
-    domainOptions,
-    draftRule,
-    setDraftRule,
-    inferenceConfig,
-    setInferenceConfig,
-  } = props;
+  const { domainOptions, draftRule, setDraftRule, inferenceConfig, setInferenceConfig } = props;
 
   const { rules } = inferenceConfig;
 
@@ -290,12 +248,8 @@ export const RowsByLocation = (props: CommonRowsProps) => {
     const sortedRules: RuleByLocation[] = [];
 
     for (const rule of rules) {
-      for (const domain of rule.restrictToDomains.length > 0
-        ? rule.restrictToDomains
-        : [""]) {
-        const existingRule = sortedRules.find(
-          (rle) => rle.restrictToDomain === domain,
-        );
+      for (const domain of rule.restrictToDomains.length > 0 ? rule.restrictToDomains : [""]) {
+        const existingRule = sortedRules.find((rle) => rle.restrictToDomain === domain);
         if (existingRule) {
           existingRule.entityTypeIds.push(rule.entityTypeId);
           existingRule.entityTypeIds.sort();
@@ -337,9 +291,7 @@ export const RowsByLocation = (props: CommonRowsProps) => {
           domainOptions={domainOptions}
           key={
             rule.restrictToDomain ??
-            (rule.entityTypeIds.length
-              ? "anywhere-saved-rule"
-              : "draft-rule-no-domain")
+            (rule.entityTypeIds.length ? "anywhere-saved-rule" : "draft-rule-no-domain")
           }
           inferenceConfig={inferenceConfig}
           setInferenceConfig={setInferenceConfig}

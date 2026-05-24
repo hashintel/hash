@@ -7,10 +7,7 @@ import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 
 import { useIsReadonly } from "../../shared/read-only-context";
 import { ArrowTurnDownRightIcon } from "../shared/arrow-turn-down-right-icon";
-import {
-  CollapsibleRowLine,
-  ROW_DEPTH_INDENTATION,
-} from "../shared/collapsible-row-line";
+import { CollapsibleRowLine, ROW_DEPTH_INDENTATION } from "../shared/collapsible-row-line";
 import { EntityTypeTableTitleCellText } from "../shared/entity-type-table";
 import { useInheritedValuesForCurrentDraft } from "../shared/use-inherited-values";
 import { VersionUpgradeIndicator } from "../shared/version-upgrade-indicator";
@@ -52,8 +49,7 @@ export const PropertyTitleCell = ({
 }: PropertyTitleCellProps) => {
   const isReadonly = useIsReadonly();
 
-  const { labelProperty: inheritedLabelProperty } =
-    useInheritedValuesForCurrentDraft();
+  const { labelProperty: inheritedLabelProperty } = useInheritedValuesForCurrentDraft();
 
   const labelProperty = useWatch<EntityTypeEditorFormData>({
     name: "labelProperty",
@@ -94,18 +90,11 @@ export const PropertyTitleCell = ({
         sx={{
           paddingLeft: (depth - 1) * 3,
           transition: ({ transitions }) => transitions.create("transform"),
-          transform:
-            expanded !== undefined && depth === 0
-              ? "translateX(-20px)"
-              : "none",
+          transform: expanded !== undefined && depth === 0 ? "translateX(-20px)" : "none",
           whiteSpace: "nowrap",
         }}
       >
-        <Collapse
-          orientation="horizontal"
-          in={expanded !== undefined}
-          sx={{ height: 1 }}
-        >
+        <Collapse orientation="horizontal" in={expanded !== undefined} sx={{ height: 1 }}>
           <IconButton
             onClick={() => setExpanded?.(!expanded)}
             size="xs"
@@ -127,9 +116,7 @@ export const PropertyTitleCell = ({
         <Tooltip
           title={
             inheritanceChain
-              ? `Inherited from ${
-                  inheritanceChain[inheritanceChain.length - 1]!.schema.title
-                }`
+              ? `Inherited from ${inheritanceChain[inheritanceChain.length - 1]!.schema.title}`
               : ""
           }
         >
@@ -174,10 +161,7 @@ export const PropertyTitleCell = ({
           />
         </Fade>
 
-        {depth === 0 &&
-        currentVersion !== latestVersion &&
-        !inheritanceChain &&
-        !isReadonly ? (
+        {depth === 0 && currentVersion !== latestVersion && !inheritanceChain && !isReadonly ? (
           <VersionUpgradeIndicator
             currentVersion={currentVersion}
             latestVersion={latestVersion}

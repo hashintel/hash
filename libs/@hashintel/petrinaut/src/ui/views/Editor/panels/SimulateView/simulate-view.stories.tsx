@@ -47,9 +47,7 @@ const portalContainerStyle = css({
 const SimulateViewStory = ({
   experiments,
 }: {
-  experiments: Parameters<
-    typeof FakeExperimentsProvider
-  >[0]["initialExperiments"];
+  experiments: Parameters<typeof FakeExperimentsProvider>[0]["initialExperiments"];
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
 
@@ -61,10 +59,7 @@ const SimulateViewStory = ({
             <FakeEditorProvider>
               <FakeExperimentsProvider initialExperiments={experiments}>
                 <div className={`${rootStyle} petrinaut-root`}>
-                  <div
-                    ref={portalContainerRef}
-                    className={portalContainerStyle}
-                  />
+                  <div ref={portalContainerRef} className={portalContainerStyle} />
                   <SimulateView />
                 </div>
               </FakeExperimentsProvider>
@@ -91,9 +86,7 @@ export const Multiple: Story = {
 export const Initializing: Story = {
   render: () => (
     <SimulateViewStory
-      experiments={[
-        makeExperiment(1, { status: "initializing", progress: null }),
-      ]}
+      experiments={[makeExperiment(1, { status: "initializing", progress: null })]}
     />
   ),
 };
@@ -118,9 +111,5 @@ export const InProgress: Story = {
 };
 
 export const Complete: Story = {
-  render: () => (
-    <SimulateViewStory
-      experiments={[makeExperiment(1, { status: "complete" })]}
-    />
-  ),
+  render: () => <SimulateViewStory experiments={[makeExperiment(1, { status: "complete" })]} />,
 };

@@ -1,15 +1,8 @@
 import dedent from "dedent";
 import sanitizeHtml from "sanitize-html";
 
-import {
-  type EntityId,
-  entityIdFromComponents,
-  type WebId,
-} from "@blockprotocol/type-system";
-import {
-  type HashEntity,
-  queryEntitySubgraph,
-} from "@local/hash-graph-sdk/entity";
+import { type EntityId, entityIdFromComponents, type WebId } from "@blockprotocol/type-system";
+import { type HashEntity, queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
@@ -26,10 +19,7 @@ import {
 
 import { createEntity } from "../../../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../../../graph/knowledge/primitive/link-entity";
-import {
-  getOrgById,
-  type Org,
-} from "../../../../graph/knowledge/system-types/org";
+import { getOrgById, type Org } from "../../../../graph/knowledge/system-types/org";
 import {
   checkEmailVerificationAndUsageStatus,
   getUser,
@@ -59,8 +49,7 @@ const sendOrgEmailInvitationToEmailAddress = async (params: {
   emailTransporter: EmailTransporter;
   isSignedUpUser: boolean;
 }): Promise<void> => {
-  const { org, invitationId, emailAddress, emailTransporter, isSignedUpUser } =
-    params;
+  const { org, invitationId, emailAddress, emailTransporter, isSignedUpUser } = params;
 
   const sanitizedOrgName = sanitizeHtml(org.orgName, {
     allowedTags: [],
@@ -143,10 +132,7 @@ const generateExistingInvitationFilter = (
             ],
           },
           {
-            parameter:
-              invitation.type === "email"
-                ? invitation.email
-                : invitation.shortname,
+            parameter: invitation.type === "email" ? invitation.email : invitation.shortname,
           },
         ],
       },
@@ -161,24 +147,17 @@ export const inviteUserToOrgResolver: ResolverFn<
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationInviteUserToOrgArgs
-> = async (
-  _,
-  { userEmail: unnormalisedUserEmail, userShortname, orgWebId },
-  graphQLContext,
-) => {
+> = async (_, { userEmail: unnormalisedUserEmail, userShortname, orgWebId }, graphQLContext) => {
   const { authentication } = graphQLContext;
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   let existingUserToInvite: User | null = null;
 
-  const userEmail = unnormalisedUserEmail
-    ? unnormalisedUserEmail.trim().toLowerCase()
-    : null;
+  const userEmail = unnormalisedUserEmail ? unnormalisedUserEmail.trim().toLowerCase() : null;
 
   if (userEmail) {
-    const emailCheckResult =
-      await checkEmailVerificationAndUsageStatus(userEmail);
+    const emailCheckResult = await checkEmailVerificationAndUsageStatus(userEmail);
 
     if (emailCheckResult.status !== "email-not-found") {
       const existingUser = await getUser(context, authentication, {
@@ -202,9 +181,7 @@ export const inviteUserToOrgResolver: ResolverFn<
   }
 
   if (!existingUserToInvite && !userEmail) {
-    throw Error.badRequest(
-      "Somehow no user found and no email address provided.",
-    );
+    throw Error.badRequest("Somehow no user found and no email address provided.");
   }
 
   const orgEntityId = entityIdFromComponents(orgWebId, orgWebId);
@@ -235,68 +212,50 @@ export const inviteUserToOrgResolver: ResolverFn<
   }).then((role) => role === "administrator");
 
   if (!isOrgAdmin) {
-    throw Error.forbidden(
-      "You must be an administrator to invite users to this organization",
-    );
+    throw Error.forbidden("You must be an administrator to invite users to this organization");
   }
 
-  const existingInvitations = await queryEntitySubgraph(
-    context,
-    authentication,
-    {
-      temporalAxes: currentTimeInstantTemporalAxes,
-      filter: generateExistingInvitationFilter(
-        orgWebId,
-        userEmail
-          ? {
-              type: "email",
-              email: userEmail,
-            }
-          : {
-              type: "shortname",
-              shortname: userShortname!,
-            },
-      ),
-      traversalPaths: [
-        {
-          edges: [
-            {
-              kind: "has-right-entity",
-              direction: "incoming",
-            },
-            {
-              kind: "has-left-entity",
-              direction: "outgoing",
-            },
-          ],
-        },
-      ],
-      includeDrafts: false,
-      includePermissions: false,
-    },
-  ).then(({ subgraph }) =>
+  const existingInvitations = await queryEntitySubgraph(context, authentication, {
+    temporalAxes: currentTimeInstantTemporalAxes,
+    filter: generateExistingInvitationFilter(
+      orgWebId,
+      userEmail
+        ? {
+            type: "email",
+            email: userEmail,
+          }
+        : {
+            type: "shortname",
+            shortname: userShortname!,
+          },
+    ),
+    traversalPaths: [
+      {
+        edges: [
+          {
+            kind: "has-right-entity",
+            direction: "incoming",
+          },
+          {
+            kind: "has-left-entity",
+            direction: "outgoing",
+          },
+        ],
+      },
+    ],
+    includeDrafts: false,
+    includePermissions: false,
+  }).then(({ subgraph }) =>
     getPendingOrgInvitationsFromSubgraph(context, authentication, subgraph),
   );
 
   let outstandingInvitationCount = existingInvitations.length;
 
-  for (const {
-    expiresAt,
-    invitationEntity,
-    linkEntity,
-  } of existingInvitations) {
+  for (const { expiresAt, invitationEntity, linkEntity } of existingInvitations) {
     if (new Date(expiresAt).valueOf() < new Date().valueOf() - 1000 * 60 * 60) {
       await Promise.all([
-        invitationEntity.archive(
-          context.graphApi,
-          authentication,
-          context.provenance,
-        ),
-        linkEntity.archive(
-          context.graphApi,
-          authentication,
-          context.provenance,
-        ),
+        invitationEntity.archive(context.graphApi, authentication, context.provenance),
+        linkEntity.archive(context.graphApi, authentication, context.provenance),
       ]);
 
       outstandingInvitationCount--;
@@ -323,47 +282,37 @@ export const inviteUserToOrgResolver: ResolverFn<
   };
 
   if (userEmail) {
-    invitation = await createEntity<InvitationViaEmail>(
-      context,
-      authentication,
-      {
-        entityTypeIds: [systemEntityTypes.invitationViaEmail.entityTypeId],
-        properties: {
-          value: {
-            "https://hash.ai/@h/types/property-type/expired-at/":
-              expiredAtProperty,
-            "https://hash.ai/@h/types/property-type/email/": {
-              value: userEmail,
-              metadata: {
-                dataTypeId: systemDataTypes.email.dataTypeId,
-              },
+    invitation = await createEntity<InvitationViaEmail>(context, authentication, {
+      entityTypeIds: [systemEntityTypes.invitationViaEmail.entityTypeId],
+      properties: {
+        value: {
+          "https://hash.ai/@h/types/property-type/expired-at/": expiredAtProperty,
+          "https://hash.ai/@h/types/property-type/email/": {
+            value: userEmail,
+            metadata: {
+              dataTypeId: systemDataTypes.email.dataTypeId,
             },
           },
         },
-        webId: orgWebId,
       },
-    );
+      webId: orgWebId,
+    });
   } else {
-    invitation = await createEntity<InvitationViaShortname>(
-      context,
-      authentication,
-      {
-        entityTypeIds: [systemEntityTypes.invitationViaShortname.entityTypeId],
-        properties: {
-          value: {
-            "https://hash.ai/@h/types/property-type/expired-at/":
-              expiredAtProperty,
-            "https://hash.ai/@h/types/property-type/shortname/": {
-              value: userShortname!,
-              metadata: {
-                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-              },
+    invitation = await createEntity<InvitationViaShortname>(context, authentication, {
+      entityTypeIds: [systemEntityTypes.invitationViaShortname.entityTypeId],
+      properties: {
+        value: {
+          "https://hash.ai/@h/types/property-type/expired-at/": expiredAtProperty,
+          "https://hash.ai/@h/types/property-type/shortname/": {
+            value: userShortname!,
+            metadata: {
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
             },
           },
         },
-        webId: orgWebId,
       },
-    );
+      webId: orgWebId,
+    });
   }
 
   await createLinkEntity<HasIssuedInvitation>(context, authentication, {
@@ -379,9 +328,7 @@ export const inviteUserToOrgResolver: ResolverFn<
   await sendOrgEmailInvitationToEmailAddress({
     org,
     invitationId: invitation.metadata.recordId.entityId,
-    emailAddress: existingUserToInvite
-      ? existingUserToInvite.emails[0]!
-      : userEmail!,
+    emailAddress: existingUserToInvite ? existingUserToInvite.emails[0]! : userEmail!,
     emailTransporter: graphQLContext.emailTransporter,
     isSignedUpUser: !!existingUserToInvite,
   });

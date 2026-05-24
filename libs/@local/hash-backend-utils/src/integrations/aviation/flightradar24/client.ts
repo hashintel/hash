@@ -66,9 +66,7 @@ async function fetchFlightradar24<T>(url: string): Promise<T> {
 
   if (!response.ok) {
     const errorData: unknown = await response.json();
-    const error = new Error(
-      `Flightradar24 API error: ${stringifyError(errorData)}`,
-    );
+    const error = new Error(`Flightradar24 API error: ${stringifyError(errorData)}`);
     (error as Error & { status: number }).status = response.status;
     throw error;
   }

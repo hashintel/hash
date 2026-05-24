@@ -104,22 +104,13 @@ export const buildSubgraph = (
     temporalAxes: subgraphTemporalAxes,
   };
 
-  const dataTypeVertexIds = addDataTypeVerticesToSubgraphByMutation(
-    subgraph,
-    data.dataTypes,
-  );
+  const dataTypeVertexIds = addDataTypeVerticesToSubgraphByMutation(subgraph, data.dataTypes);
   const propertyTypeVertexIds = addPropertyTypeVerticesToSubgraphByMutation(
     subgraph,
     data.propertyTypes,
   );
-  const entityTypeVertexIds = addEntityTypeVerticesToSubgraphByMutation(
-    subgraph,
-    data.entityTypes,
-  );
-  const entityVertexIds = addEntityVerticesToSubgraphByMutation(
-    subgraph,
-    data.entities,
-  );
+  const entityTypeVertexIds = addEntityTypeVerticesToSubgraphByMutation(subgraph, data.entityTypes);
+  const entityVertexIds = addEntityVerticesToSubgraphByMutation(subgraph, data.entities);
 
   inferDataTypeEdgesInSubgraphByMutation(subgraph, dataTypeVertexIds);
   inferPropertyTypeEdgesInSubgraphByMutation(subgraph, propertyTypeVertexIds);

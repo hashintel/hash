@@ -46,8 +46,7 @@ export const commentPlaceholderPlugin = (renderPortal: RenderPortal) =>
         const doc = state.doc;
 
         if (doc.content.size === 0) {
-          const placeholder =
-            commentPlaceholderPluginkey.getState(state)?.placeholder;
+          const placeholder = commentPlaceholderPluginkey.getState(state)?.placeholder;
 
           const placeholderDecoration = Decoration.widget(
             0,

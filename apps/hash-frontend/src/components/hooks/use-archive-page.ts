@@ -11,19 +11,16 @@ import { updatePage } from "../../graphql/queries/page.queries";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../pages/shared/block-collection-contents";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
 
-import type {
-  UpdatePageMutation,
-  UpdatePageMutationVariables,
-} from "../../graphql/api-types.gen";
+import type { UpdatePageMutation, UpdatePageMutationVariables } from "../../graphql/api-types.gen";
 import type { EntityId } from "@blockprotocol/type-system";
 
 export const useArchivePage = () => {
-  const [updatePageFn, { loading }] = useMutation<
-    UpdatePageMutation,
-    UpdatePageMutationVariables
-  >(updatePage, {
-    awaitRefetchQueries: false,
-  });
+  const [updatePageFn, { loading }] = useMutation<UpdatePageMutation, UpdatePageMutationVariables>(
+    updatePage,
+    {
+      awaitRefetchQueries: false,
+    },
+  );
 
   const getRefetchQueries = useCallback((pageEntityId: EntityId) => {
     const webId = extractWebIdFromEntityId(pageEntityId);

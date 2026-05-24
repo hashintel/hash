@@ -1,13 +1,6 @@
-import {
-  createEngineFrame,
-  materializeEngineFrame,
-} from "../frames/internal-frame";
+import { createEngineFrame, materializeEngineFrame } from "../frames/internal-frame";
 
-import type {
-  EngineFrame,
-  EngineFrameLayout,
-  EngineFrameSnapshot,
-} from "./types";
+import type { EngineFrame, EngineFrameLayout, EngineFrameSnapshot } from "./types";
 
 /**
  * Removes tokens from multiple places in the simulation frame.
@@ -41,9 +34,7 @@ export function removeTokensFromSimulationFrame(
   for (const [placeId, indices] of tokensToRemove) {
     const placeState = snapshot.places[placeId];
     if (!placeState) {
-      throw new Error(
-        `Place with ID ${placeId} not found in simulation frame.`,
-      );
+      throw new Error(`Place with ID ${placeId} not found in simulation frame.`);
     }
 
     // If zero dimensions (no type), we expect indices to be a number (count to remove)
@@ -114,9 +105,7 @@ export function removeTokensFromSimulationFrame(
 
   // Calculate offset adjustments for each place
   // We need to track cumulative size removed before each place's offset
-  const placesByOffset = Object.entries(snapshot.places).sort(
-    (a, b) => a[1].offset - b[1].offset,
-  );
+  const placesByOffset = Object.entries(snapshot.places).sort((a, b) => a[1].offset - b[1].offset);
 
   const newPlaces: EngineFrameSnapshot["places"] = { ...snapshot.places };
   let cumulativeRemoved = 0;

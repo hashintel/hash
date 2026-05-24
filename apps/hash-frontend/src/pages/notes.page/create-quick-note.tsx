@@ -79,9 +79,7 @@ export const CreateQuickNote: FunctionComponent<{
     const { data } = await getEntity({
       data: {
         entityId: createdQuickNoteEntity.metadata.recordId.entityId,
-        traversalPaths: [
-          getBlockCollectionTraversalPath({ blockDataDepth: 1 }),
-        ],
+        traversalPaths: [getBlockCollectionTraversalPath({ blockDataDepth: 1 })],
       },
     });
 
@@ -149,12 +147,7 @@ export const CreateQuickNote: FunctionComponent<{
             quickNoteEntity={quickNoteEntity}
             quickNoteSubgraph={quickNoteSubgraph}
           />
-          <Box
-            display="flex"
-            justifyContent="flex-end"
-            marginBottom={1}
-            onClick={handleCreateNew}
-          >
+          <Box display="flex" justifyContent="flex-end" marginBottom={1} onClick={handleCreateNew}>
             <Button
               variant="tertiary_quiet"
               size="xs"

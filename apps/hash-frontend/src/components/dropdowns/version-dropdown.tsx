@@ -29,9 +29,7 @@ export const VersionDropdown: FunctionComponent<VersionDropdownProps> = ({
         width: 200,
         borderRadius: "4px",
       }}
-      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-        onChange(event.target.value)
-      }
+      onChange={(event: ChangeEvent<HTMLSelectElement>) => onChange(event.target.value)}
       value={value}
     >
       {versions.map((version) => (

@@ -40,9 +40,7 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
       return (
         <TextField
           onChange={(event) => setValue(event.target.value)}
-          placeholder={`${
-            required ? "Required" : "Optional"
-          } to start the flow`}
+          placeholder={`${required ? "Required" : "Optional"} to start the flow`}
           sx={textFieldSx}
           value={payload.value}
         />
@@ -54,13 +52,9 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
       return (
         <TextField
           onChange={(event) =>
-            setValue(
-              event.target.value !== "" ? Number(event.target.value) : "",
-            )
+            setValue(event.target.value !== "" ? Number(event.target.value) : "")
           }
-          placeholder={`${
-            required ? "Required" : "Optional"
-          } to start the flow`}
+          placeholder={`${required ? "Required" : "Optional"} to start the flow`}
           sx={textFieldSx}
           type="number"
           value={payload.value}
@@ -96,9 +90,7 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           disableCreate
           inputHeight={inputHeight}
           multiple={array}
-          onSelect={(newValue) =>
-            setValue(Array.isArray(newValue) ? newValue : newValue)
-          }
+          onSelect={(newValue) => setValue(Array.isArray(newValue) ? newValue : newValue)}
           sx={{ height: inputHeight, maxWidth: "100%" }}
           value={payload.value}
         />
@@ -108,12 +100,7 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
       if (array || Array.isArray(payload.value)) {
         throw new Error("Selecting multiple Google accounts is not supported");
       }
-      return (
-        <GoogleAccountSelect
-          googleAccountId={payload.value}
-          setGoogleAccountId={setValue}
-        />
-      );
+      return <GoogleAccountSelect googleAccountId={payload.value} setGoogleAccountId={setValue} />;
     }
     case "GoogleSheet": {
       if (array || Array.isArray(payload.value)) {
@@ -128,9 +115,7 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
       return (
         <SelectOrNameGoogleSheet
           setGoogleSheet={setValue}
-          googleAccountId={
-            typeof googleAccountId === "string" ? googleAccountId : undefined
-          }
+          googleAccountId={typeof googleAccountId === "string" ? googleAccountId : undefined}
           googleSheet={payload.value}
         />
       );

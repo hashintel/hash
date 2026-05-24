@@ -4,11 +4,5 @@
   "let",
   "foo",
   { "#literal": 2 },
-  [
-    "fn",
-    { "#tuple": [] },
-    { "#struct": { "a": "Number" } },
-    "Boolean",
-    [">=", "a", "foo"]
-  ]
+  ["fn", { "#tuple": [] }, { "#struct": { "a": "Number" } }, "Boolean", [">=", "a", "foo"]]
 ]

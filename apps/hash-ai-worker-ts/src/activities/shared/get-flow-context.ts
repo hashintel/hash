@@ -45,9 +45,7 @@ export const getTemporalClient = async () => {
  * Get AI-specific workflow params from Temporal workflow history.
  * Extends the base workflow params with createEntitiesAsDraft and dataSources.
  */
-const getAiWorkflowParams = async (params: {
-  workflowId: string;
-}): Promise<AiWorkflowParams> => {
+const getAiWorkflowParams = async (params: { workflowId: string }): Promise<AiWorkflowParams> => {
   const { workflowId } = params;
 
   const cache = await getFlowContextCache();
@@ -77,9 +75,7 @@ const getAiWorkflowParams = async (params: {
     );
   }
 
-  const inputs = parseHistoryItemPayload(
-    workflowExecutionStartedEventAttributes.input,
-  );
+  const inputs = parseHistoryItemPayload(workflowExecutionStartedEventAttributes.input);
 
   if (!inputs) {
     throw new Error(
@@ -90,20 +86,17 @@ const getAiWorkflowParams = async (params: {
   const [runFlowWorkflowParams] = inputs as RunAiFlowWorkflowParams[];
 
   if (!runFlowWorkflowParams) {
-    throw new Error(
-      `No parameters of the "runFlow" workflow found for workflowId ${workflowId}`,
-    );
+    throw new Error(`No parameters of the "runFlow" workflow found for workflowId ${workflowId}`);
   }
 
-  const draftTriggerInputNames: (
-    | GoalFlowTriggerInput
-    | ManualInferenceTriggerInputName
-  )[] = ["Create as draft", "draft"];
+  const draftTriggerInputNames: (GoalFlowTriggerInput | ManualInferenceTriggerInputName)[] = [
+    "Create as draft",
+    "draft",
+  ];
 
-  const createEntitiesAsDraft =
-    !!runFlowWorkflowParams.flowTrigger.outputs?.find((output) =>
-      draftTriggerInputNames.includes(output.outputName as "draft"),
-    )?.payload.value;
+  const createEntitiesAsDraft = !!runFlowWorkflowParams.flowTrigger.outputs?.find((output) =>
+    draftTriggerInputNames.includes(output.outputName as "draft"),
+  )?.payload.value;
 
   const aiParams: AiWorkflowParams = {
     createEntitiesAsDraft,
@@ -201,10 +194,7 @@ export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
               ],
             },
             {
-              equal: [
-                { path: ["webId"] },
-                { parameter: extractWebIdFromEntityId(fileEntityId) },
-              ],
+              equal: [{ path: ["webId"] }, { parameter: extractWebIdFromEntityId(fileEntityId) }],
             },
             { equal: [{ path: ["archived"] }, { parameter: false }] },
           ],
@@ -228,16 +218,11 @@ export const getProvidedFiles = async (): Promise<HashEntity<File>[]> => {
  * - a URL from the database with spaces escaped (%20) may be played back with spaces
  * - a URL in the database may contain whitespace characters (e.g. NBSP / U+00A0 / 160) which are played back differently (U+0020 / 32)
  */
-export const areUrlsTheSameAfterNormalization = (
-  first: string,
-  second: string,
-) =>
+export const areUrlsTheSameAfterNormalization = (first: string, second: string) =>
   decodeURIComponent(normalizeWhitespace(first)) ===
   decodeURIComponent(normalizeWhitespace(second));
 
-export const getProvidedFileByUrl = async (
-  url: string,
-): Promise<HashEntity<File> | undefined> => {
+export const getProvidedFileByUrl = async (url: string): Promise<HashEntity<File> | undefined> => {
   const files = await getProvidedFiles();
   return files.find((file) => {
     /**
@@ -245,9 +230,7 @@ export const getProvidedFileByUrl = async (
      */
     return areUrlsTheSameAfterNormalization(
       url,
-      file.properties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
-      ],
+      file.properties["https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"],
     );
   });
 };
@@ -260,5 +243,4 @@ export const getProvidedFileByUrl = async (
  *
  * @see https://docs.temporal.io/activities#cancellation
  */
-export const isActivityCancelled = () =>
-  Context.current().cancellationSignal.aborted;
+export const isActivityCancelled = () => Context.current().cancellationSignal.aborted;

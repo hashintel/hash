@@ -33,39 +33,37 @@ export interface TooltipProps extends Omit<RootProps, "content"> {
   disabled?: boolean;
 }
 
-export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>(
-  (props, ref) => {
-    const {
-      showArrow,
-      children,
-      disabled,
-      portalled = true,
-      content,
-      contentProps,
-      portalRef,
-      ...rootProps
-    } = props;
+export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => {
+  const {
+    showArrow,
+    children,
+    disabled,
+    portalled = true,
+    content,
+    contentProps,
+    portalRef,
+    ...rootProps
+  } = props;
 
-    if (disabled) {
-      return children;
-    }
+  if (disabled) {
+    return children;
+  }
 
-    return (
-      <Root {...rootProps}>
-        <Trigger asChild>{children}</Trigger>
-        <Portal disabled={!portalled} container={portalRef}>
-          <Positioner>
-            <Content ref={ref} {...contentProps}>
-              {showArrow && (
-                <Arrow>
-                  <ArrowTip />
-                </Arrow>
-              )}
-              {content}
-            </Content>
-          </Positioner>
-        </Portal>
-      </Root>
-    );
-  },
-);
+  return (
+    <Root {...rootProps}>
+      <Trigger asChild>{children}</Trigger>
+      <Portal disabled={!portalled} container={portalRef}>
+        <Positioner>
+          <Content ref={ref} {...contentProps}>
+            {showArrow && (
+              <Arrow>
+                <ArrowTip />
+              </Arrow>
+            )}
+            {content}
+          </Content>
+        </Positioner>
+      </Portal>
+    </Root>
+  );
+});

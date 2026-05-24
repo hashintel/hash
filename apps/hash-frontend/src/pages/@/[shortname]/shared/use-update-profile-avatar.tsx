@@ -11,17 +11,13 @@ import { useAuthInfo } from "../../../shared/auth-info-context";
 import type { Org, User } from "../../../../lib/user-and-org";
 import type { WebId } from "@blockprotocol/type-system";
 
-export const useUpdateProfileAvatar = (props: {
-  profile?: User | Org;
-  profileName?: string;
-}) => {
+export const useUpdateProfileAvatar = (props: { profile?: User | Org; profileName?: string }) => {
   const { profile } = props;
   const [newAvatarImageUploading, setNewAvatarImageUploading] = useState(false);
 
   const existingAvatarImageEntity = profile?.hasAvatar?.imageEntity;
 
-  const webId =
-    profile?.kind === "user" ? (profile.accountId as WebId) : profile?.webId;
+  const webId = profile?.kind === "user" ? (profile.accountId as WebId) : profile?.webId;
 
   const { uploadFile } = useFileUploads();
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
@@ -34,8 +30,7 @@ export const useUpdateProfileAvatar = (props: {
       setNewAvatarImageUploading(true);
 
       const profileName =
-        props.profileName ??
-        (profile.kind === "user" ? profile.displayName : profile.name);
+        props.profileName ?? (profile.kind === "user" ? profile.displayName : profile.name);
 
       await uploadFile({
         webId,
@@ -47,8 +42,7 @@ export const useUpdateProfileAvatar = (props: {
           ...(existingAvatarImageEntity
             ? {
                 fileEntityUpdateInput: {
-                  existingFileEntityId:
-                    existingAvatarImageEntity.metadata.recordId.entityId,
+                  existingFileEntityId: existingAvatarImageEntity.metadata.recordId.entityId,
                 },
               }
             : {
@@ -62,8 +56,7 @@ export const useUpdateProfileAvatar = (props: {
           : {
               linkedEntityData: {
                 linkedEntityId: profile.entity.metadata.recordId.entityId,
-                linkEntityTypeId:
-                  systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
+                linkEntityTypeId: systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
               },
             }),
       });
@@ -74,14 +67,7 @@ export const useUpdateProfileAvatar = (props: {
 
       setNewAvatarImageUploading(false);
     },
-    [
-      existingAvatarImageEntity,
-      webId,
-      refetchUserAndOrgs,
-      props.profileName,
-      uploadFile,
-      profile,
-    ],
+    [existingAvatarImageEntity, webId, refetchUserAndOrgs, props.profileName, uploadFile, profile],
   );
 
   return { updateProfileAvatar, newAvatarImageUploading };

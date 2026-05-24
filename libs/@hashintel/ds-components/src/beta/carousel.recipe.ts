@@ -78,6 +78,4 @@ const carouselSlotRecipeDefinition = {
 // @ts-expect-error TODO(beta-graduation): invalid strict tokens remain in this beta recipe; remove before moving to src/components
 export const carouselSlotRecipe = sva(carouselSlotRecipeDefinition);
 
-export type CarouselSlotRecipeProps = RecipeVariantProps<
-  typeof carouselSlotRecipe
->;
+export type CarouselSlotRecipeProps = RecipeVariantProps<typeof carouselSlotRecipe>;

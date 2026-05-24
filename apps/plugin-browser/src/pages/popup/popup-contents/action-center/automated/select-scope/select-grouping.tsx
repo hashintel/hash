@@ -1,10 +1,6 @@
 import { Stack, Typography } from "@mui/material";
 
-import {
-  Autocomplete,
-  EntityTypeIcon,
-  MenuItem,
-} from "@hashintel/design-system";
+import { Autocomplete, EntityTypeIcon, MenuItem } from "@hashintel/design-system";
 
 import {
   darkModeBorderColor,
@@ -47,10 +43,7 @@ const iconSx: SxProps<Theme> = {
   fill: ({ palette }) => palette.gray[50],
 };
 
-const RenderOptionContent = ({
-  Icon,
-  label,
-}: Pick<GroupingOption, "Icon" | "label">) => {
+const RenderOptionContent = ({ Icon, label }: Pick<GroupingOption, "Icon" | "label">) => {
   return (
     <Stack direction="row" alignItems="center">
       <Icon sx={iconSx} />
@@ -110,12 +103,7 @@ export const SelectGrouping = ({
       }}
       options={groupingOptions}
       renderOption={(props, option) => (
-        <MenuItem
-          {...props}
-          key={option.value}
-          value={option.value}
-          sx={menuItemSx}
-        >
+        <MenuItem {...props} key={option.value} value={option.value} sx={menuItemSx}>
           <RenderOptionContent {...option} />
         </MenuItem>
       )}

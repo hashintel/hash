@@ -14,12 +14,7 @@ import {
 } from "@mui/material";
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  Controller,
-  useController,
-  useFormContext,
-  useWatch,
-} from "react-hook-form";
+import { Controller, useController, useFormContext, useWatch } from "react-hook-form";
 
 import {
   addPopperPositionClassPopperModifier,
@@ -36,10 +31,7 @@ import type { EntityTypeEditorFormData } from "../../shared/form-types";
 import type { BoxProps } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 
-const useFrozenValue = <T extends ReactNode>(
-  value: T,
-  isFrozen: boolean,
-): T => {
+const useFrozenValue = <T extends ReactNode>(value: T, isFrozen: boolean): T => {
   const [frozen, setFrozen] = useState(value);
 
   if (!isFrozen && frozen !== value) {
@@ -86,9 +78,7 @@ export const MultipleValuesControlContainer = ({
         height: 1,
         transition: transitions.create("border-color"),
         border: 1,
-        borderColor: `${
-          menuOpen ? palette.gray[40] : "transparent"
-        } !important`,
+        borderColor: `${menuOpen ? palette.gray[40] : "transparent"} !important`,
       })}
       {...props}
     >
@@ -162,9 +152,7 @@ export const MultipleValuesCell = ({
   const [multipleValuesMenuOpen, setMultipleValuesMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  const formPrefix = `${
-    variant === "property" ? "properties" : "links"
-  }.${index}` as const;
+  const formPrefix = `${variant === "property" ? "properties" : "links"}.${index}` as const;
 
   const [array, minValue, maxValue, infinity] = useWatch({
     control,
@@ -182,23 +170,13 @@ export const MultipleValuesCell = ({
   const [resetMaxValue, setResetMaxValue] = useState(maxValue);
   const [resetInfinity, setResetInfinity] = useState(infinity);
 
-  const menuOpenFrozenMinValue = useFrozenValue(
-    minValue,
-    !multipleValuesMenuOpen,
-  );
-  const menuOpenFrozenMaxValue = useFrozenValue(
-    maxValue,
-    !multipleValuesMenuOpen,
-  );
-  const menuOpenFrozenInfinity = useFrozenValue(
-    infinity,
-    !multipleValuesMenuOpen,
-  );
+  const menuOpenFrozenMinValue = useFrozenValue(minValue, !multipleValuesMenuOpen);
+  const menuOpenFrozenMaxValue = useFrozenValue(maxValue, !multipleValuesMenuOpen);
+  const menuOpenFrozenInfinity = useFrozenValue(infinity, !multipleValuesMenuOpen);
 
   const maximumFieldId = useId();
 
-  const [infinityCheckboxNode, setInfinityCheckboxNode] =
-    useState<HTMLDivElement | null>(null);
+  const [infinityCheckboxNode, setInfinityCheckboxNode] = useState<HTMLDivElement | null>(null);
 
   const arrayController = useController({
     control,
@@ -291,10 +269,7 @@ export const MultipleValuesCell = ({
             max={maxValue}
           />
           {canToggle ? null : (
-            <Collapse
-              in={hovered || multipleValuesMenuOpen}
-              orientation="horizontal"
-            >
+            <Collapse in={hovered || multipleValuesMenuOpen} orientation="horizontal">
               <FontAwesomeIcon
                 icon={faEdit}
                 sx={(theme) => ({
@@ -333,9 +308,7 @@ export const MultipleValuesCell = ({
           ]}
         >
           {({ TransitionProps }) => (
-            <ClickAwayListener
-              onClickAway={() => setMultipleValuesMenuOpen(false)}
-            >
+            <ClickAwayListener onClickAway={() => setMultipleValuesMenuOpen(false)}>
               <Fade {...TransitionProps}>
                 <Box
                   sx={[
@@ -364,9 +337,7 @@ export const MultipleValuesCell = ({
                             field.onChange(target.value);
                           } else {
                             min = Math.max(0, min);
-                            const max = Number.isNaN(maxValue)
-                              ? 0
-                              : Number(maxValue);
+                            const max = Number.isNaN(maxValue) ? 0 : Number(maxValue);
 
                             if (min > max) {
                               setValue(`${formPrefix}.maxValue`, min, {
@@ -433,9 +404,7 @@ export const MultipleValuesCell = ({
                               } else {
                                 max = Math.max(max, 0);
 
-                                const min = Number.isNaN(minValue)
-                                  ? 0
-                                  : Number(minValue);
+                                const min = Number.isNaN(minValue) ? 0 : Number(minValue);
                                 if (max < min) {
                                   setValue(`${formPrefix}.minValue`, max, {
                                     shouldDirty: true,
@@ -449,10 +418,7 @@ export const MultipleValuesCell = ({
                               if (evt.target.value === "") {
                                 setValue(
                                   `${formPrefix}.maxValue`,
-                                  Math.max(
-                                    1,
-                                    typeof minValue === "number" ? minValue : 0,
-                                  ),
+                                  Math.max(1, typeof minValue === "number" ? minValue : 0),
                                   { shouldDirty: true },
                                 );
                               }
@@ -488,16 +454,10 @@ export const MultipleValuesCell = ({
                     {...field}
                     checked={menuOpenFrozenInfinity}
                     onChange={(evt) => {
-                      if (
-                        typeof maxValue !== "number" ||
-                        typeof minValue !== "number"
-                      ) {
+                      if (typeof maxValue !== "number" || typeof minValue !== "number") {
                         setValue(
                           `${formPrefix}.maxValue`,
-                          Math.max(
-                            1,
-                            typeof minValue === "number" ? minValue : 0,
-                          ),
+                          Math.max(1, typeof minValue === "number" ? minValue : 0),
                           { shouldDirty: true },
                         );
                       } else if (maxValue < minValue) {

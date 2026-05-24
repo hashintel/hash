@@ -5,11 +5,7 @@ import { isPeerId, type PeerId } from "@libp2p/interface";
 import { type Ping, ping } from "@libp2p/ping";
 import { tcp } from "@libp2p/tcp";
 import { type DNS, dns as defaultDns } from "@multiformats/dns";
-import {
-  type Component,
-  multiaddr as makeMultiaddr,
-  registry,
-} from "@multiformats/multiaddr";
+import { type Component, multiaddr as makeMultiaddr, registry } from "@multiformats/multiaddr";
 import {
   Array,
   Cache,
@@ -38,11 +34,7 @@ import type { NonEmptyArray } from "effect/Array";
 interface TransportState {
   config: TransportConfig;
   dns: DNS;
-  cache: Cache.Cache<
-    HashableMultiaddr.HashableMultiaddr,
-    Option.Option<PeerId>,
-    TransportError
-  >;
+  cache: Cache.Cache<HashableMultiaddr.HashableMultiaddr, Option.Option<PeerId>, TransportError>;
 }
 
 /** @internal */
@@ -65,9 +57,9 @@ export class TransportError extends Data.TaggedError("TransportError")<{
 }
 
 /** @internal */
-export class InitializationError extends Data.TaggedError(
-  "InitializationError",
-)<{ cause: unknown }> {
+export class InitializationError extends Data.TaggedError("InitializationError")<{
+  cause: unknown;
+}> {
   get message() {
     return "Failed to initialize client";
   }
@@ -81,107 +73,93 @@ const DNS_CODES = [DNS_PROTOCOL.code, DNS4_PROTOCOL.code, DNS6_PROTOCOL.code];
 const IPV4_PROTOCOL = registry.getProtocol("ip4");
 const IPV6_PROTOCOL = registry.getProtocol("ip6");
 
-const resolveDnsMultiaddrSegment = Effect.fn("resolveDnsMultiaddrSegment")(
-  function* ({ code, value }: Component) {
-    if (!DNS_CODES.includes(code)) {
-      return [[code, value] as const];
-    }
+const resolveDnsMultiaddrSegment = Effect.fn("resolveDnsMultiaddrSegment")(function* ({
+  code,
+  value,
+}: Component) {
+  if (!DNS_CODES.includes(code)) {
+    return [[code, value] as const];
+  }
 
-    if (value === undefined) {
-      yield* Effect.logWarning(
-        "domain of dns segment is undefined, skipping",
-      ).pipe(Effect.annotateLogs({ code, value }));
-
-      return [[code, value] as const];
-    }
-
-    const hostname = value;
-    const types: Dns.RecordType[] = [];
-
-    if (code === DNS_PROTOCOL.code || code === DNS4_PROTOCOL.code) {
-      types.push("A");
-    }
-
-    if (code === DNS_PROTOCOL.code || code === DNS6_PROTOCOL.code) {
-      types.push("AAAA");
-    }
-
-    const records = yield* Dns.lookup(hostname, {
-      records: types as NonEmptyArray<Dns.RecordType>,
-    }).pipe(Effect.mapError((cause) => new TransportError({ cause })));
-
-    return pipe(
-      records,
-      Array.filterMap(
-        Match.type<Dns.DnsRecord>().pipe(
-          Match.when(
-            { type: "A" },
-            ({ address }) => [IPV4_PROTOCOL.code, address] as const,
-          ),
-          Match.when(
-            { type: "AAAA" },
-            ({ address }) => [IPV6_PROTOCOL.code, address] as const,
-          ),
-          Match.option,
-        ),
-      ),
+  if (value === undefined) {
+    yield* Effect.logWarning("domain of dns segment is undefined, skipping").pipe(
+      Effect.annotateLogs({ code, value }),
     );
-  },
-);
+
+    return [[code, value] as const];
+  }
+
+  const hostname = value;
+  const types: Dns.RecordType[] = [];
+
+  if (code === DNS_PROTOCOL.code || code === DNS4_PROTOCOL.code) {
+    types.push("A");
+  }
+
+  if (code === DNS_PROTOCOL.code || code === DNS6_PROTOCOL.code) {
+    types.push("AAAA");
+  }
+
+  const records = yield* Dns.lookup(hostname, {
+    records: types as NonEmptyArray<Dns.RecordType>,
+  }).pipe(Effect.mapError((cause) => new TransportError({ cause })));
+
+  return pipe(
+    records,
+    Array.filterMap(
+      Match.type<Dns.DnsRecord>().pipe(
+        Match.when({ type: "A" }, ({ address }) => [IPV4_PROTOCOL.code, address] as const),
+        Match.when({ type: "AAAA" }, ({ address }) => [IPV6_PROTOCOL.code, address] as const),
+        Match.option,
+      ),
+    ),
+  );
+});
 
 /**
  * Resolve DNS addresses in a multiaddr (excluding DNSADDR).
  *
  * @internal
  */
-const resolveDnsMultiaddr = Effect.fn("resolveDnsMultiaddr")(
-  (multiaddr: Multiaddr) =>
-    pipe(
-      Stream.fromIterable(multiaddr.getComponents()),
-      Stream.mapEffect(resolveDnsMultiaddrSegment, {
-        concurrency: "unbounded",
-      }),
-      Stream.runFold(
-        [] as (number | string | undefined)[][],
-        (accumulator, segments) => {
-          // we basically have a fan out approach here, meaning that if our output is:
-          // ["ip4", "127.0.0.1"], [["ip4", "192.168.178.1"], ["ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]] [["tcp", "4002"]]
-          // the result will be:
-          // ["ip4", "127.0.0.1", "ip4", "192.168.178.1", "tcp", "4002"]
-          // ["ip4", "127.0.0.1", "ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "tcp", "4002"]
-          // This is also known as a cartesian product
-          if (accumulator.length === 0) {
-            return Array.map(segments, (segment) => [...segment]);
-          }
+const resolveDnsMultiaddr = Effect.fn("resolveDnsMultiaddr")((multiaddr: Multiaddr) =>
+  pipe(
+    Stream.fromIterable(multiaddr.getComponents()),
+    Stream.mapEffect(resolveDnsMultiaddrSegment, {
+      concurrency: "unbounded",
+    }),
+    Stream.runFold([] as (number | string | undefined)[][], (accumulator, segments) => {
+      // we basically have a fan out approach here, meaning that if our output is:
+      // ["ip4", "127.0.0.1"], [["ip4", "192.168.178.1"], ["ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]] [["tcp", "4002"]]
+      // the result will be:
+      // ["ip4", "127.0.0.1", "ip4", "192.168.178.1", "tcp", "4002"]
+      // ["ip4", "127.0.0.1", "ip6", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "tcp", "4002"]
+      // This is also known as a cartesian product
+      if (accumulator.length === 0) {
+        return Array.map(segments, (segment) => [...segment]);
+      }
 
-          return Array.cartesianWith(accumulator, segments, (a, b) => [
-            ...a,
-            ...b,
-          ]);
-        },
-      ),
-      Effect.map(
-        Array.map(
-          flow(
-            Array.filter(Predicate.isNotUndefined),
-            Array.map((part) =>
-              Predicate.isNumber(part) ? registry.getProtocol(part).name : part,
-            ),
-            Array.map((part) => `/${part}`),
-            Array.join(""),
-            makeMultiaddr,
-          ),
-        ),
-      ),
-      Effect.tap((resolved) =>
-        Effect.logDebug("resolved DNS multiaddr").pipe(
-          Effect.annotateLogs({
-            multiaddr: multiaddr.toString(),
-            resolved,
-          }),
+      return Array.cartesianWith(accumulator, segments, (a, b) => [...a, ...b]);
+    }),
+    Effect.map(
+      Array.map(
+        flow(
+          Array.filter(Predicate.isNotUndefined),
+          Array.map((part) => (Predicate.isNumber(part) ? registry.getProtocol(part).name : part)),
+          Array.map((part) => `/${part}`),
+          Array.join(""),
+          makeMultiaddr,
         ),
       ),
     ),
+    Effect.tap((resolved) =>
+      Effect.logDebug("resolved DNS multiaddr").pipe(
+        Effect.annotateLogs({
+          multiaddr: multiaddr.toString(),
+          resolved,
+        }),
+      ),
+    ),
+  ),
 );
 
 const resolveMultiaddr = Effect.fn("resolveMultiaddr")((address: Multiaddr) =>
@@ -196,10 +174,7 @@ const resolveMultiaddr = Effect.fn("resolveMultiaddr")((address: Multiaddr) =>
   ),
 );
 
-const lookupPeer = Effect.fn("lookupPeer")(function* (
-  transport: Transport,
-  address: Multiaddr,
-) {
+const lookupPeer = Effect.fn("lookupPeer")(function* (transport: Transport, address: Multiaddr) {
   const resolved = yield* resolveMultiaddr(address);
 
   const peers = yield* Effect.tryPromise({
@@ -242,11 +217,7 @@ const lookupPeer = Effect.fn("lookupPeer")(function* (
 });
 
 const resolvePeer = Effect.fn("resolvePeer")(function* (
-  cache: Cache.Cache<
-    HashableMultiaddr.HashableMultiaddr,
-    Option.Option<PeerId>,
-    TransportError
-  >,
+  cache: Cache.Cache<HashableMultiaddr.HashableMultiaddr, Option.Option<PeerId>, TransportError>,
   address: Address,
 ) {
   if (isPeerId(address)) {
@@ -274,16 +245,13 @@ const resolvePeer = Effect.fn("resolvePeer")(function* (
 });
 
 /** @internal */
-export const connect = Effect.fn("connect")(function* (
-  transport: Transport,
-  address: Address,
-) {
+export const connect = Effect.fn("connect")(function* (transport: Transport, address: Address) {
   const peerId = yield* resolvePeer(transport.services.state.cache, address);
 
   if (Option.isSome(peerId)) {
-    yield* Effect.logTrace(
-      "peer has been dialed before, attempting to reuse connection",
-    ).pipe(Effect.annotateLogs({ peerId: peerId.value, address }));
+    yield* Effect.logTrace("peer has been dialed before, attempting to reuse connection").pipe(
+      Effect.annotateLogs({ peerId: peerId.value, address }),
+    );
 
     // we may have an existing connection
     const existingConnection = pipe(
@@ -369,16 +337,14 @@ export const make = Effect.fn("make")(function* (config?: TransportConfig) {
     HashableMultiaddr.HashableMultiaddr,
     Option.Option<PeerId>,
     TransportError
-  > = yield* Cache.make<
-    HashableMultiaddr.HashableMultiaddr,
-    Option.Option<PeerId>,
-    TransportError
-  >({
-    capacity: config?.dns?.cacheCapacity ?? 32,
-    timeToLive: config?.dns?.cacheTimeToLive ?? 5 * 60 * 1000,
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- this is fine, because we're using it only after it's defined, as the cache accesses the transport
-    lookup: (address) => lookupPeer(transport, address),
-  });
+  > = yield* Cache.make<HashableMultiaddr.HashableMultiaddr, Option.Option<PeerId>, TransportError>(
+    {
+      capacity: config?.dns?.cacheCapacity ?? 32,
+      timeToLive: config?.dns?.cacheTimeToLive ?? 5 * 60 * 1000,
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- this is fine, because we're using it only after it's defined, as the cache accesses the transport
+      lookup: (address) => lookupPeer(transport, address),
+    },
+  );
 
   const acquire = Effect.tryPromise({
     try: () =>

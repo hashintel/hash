@@ -6,11 +6,7 @@ import {
   extractVersion,
 } from "@blockprotocol/type-system";
 
-import type {
-  BaseUrl,
-  EntityType,
-  PropertyType,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, EntityType, PropertyType } from "@blockprotocol/type-system";
 
 /**
  * Return a list of types options, minus any exclusions, returning only the latest version of each

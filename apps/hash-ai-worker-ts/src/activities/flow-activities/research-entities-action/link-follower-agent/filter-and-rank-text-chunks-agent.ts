@@ -5,10 +5,7 @@ import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 
-import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
+import type { LlmMessage, LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmErrorResponse,
   LlmToolDefinition,
@@ -37,9 +34,7 @@ const systemPrompt = dedent(`
     before selecting chunks.
 `);
 
-const tools: LlmToolDefinition<
-  "submitRelevantOrderedTextChunks" | "terminate"
->[] = [
+const tools: LlmToolDefinition<"submitRelevantOrderedTextChunks" | "terminate">[] = [
   {
     name: "submitRelevantOrderedTextChunks",
     description:
@@ -130,8 +125,7 @@ export const filterAndRankTextChunksAgent = async (params: {
     }
   | LlmErrorResponse
 > => {
-  const { description, exampleText, textChunks, retryMessages, retryCount } =
-    params;
+  const { description, exampleText, textChunks, retryMessages, retryCount } = params;
 
   const textChunksWithIds = textChunks.map((text, index) => ({
     chunkId: index.toString(),
@@ -145,8 +139,7 @@ export const filterAndRankTextChunksAgent = async (params: {
     ${JSON.stringify(textChunksWithIds)}
   `);
 
-  const { flowEntityId, userAuthentication, stepId, webId } =
-    await getFlowContext();
+  const { flowEntityId, userAuthentication, stepId, webId } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -185,9 +178,7 @@ export const filterAndRankTextChunksAgent = async (params: {
 
   const { message } = llmResponse;
 
-  const retry = (retryParams: {
-    retryMessageContent: LlmUserMessage["content"];
-  }) => {
+  const retry = (retryParams: { retryMessageContent: LlmUserMessage["content"] }) => {
     if (retryCount && retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries" as const,
@@ -213,9 +204,7 @@ export const filterAndRankTextChunksAgent = async (params: {
 
   if (!toolCall) {
     return await retry({
-      retryMessageContent: [
-        { type: "text", text: "You haven't made a tool call." },
-      ],
+      retryMessageContent: [{ type: "text", text: "You haven't made a tool call." }],
     });
   }
 
@@ -232,10 +221,7 @@ export const filterAndRankTextChunksAgent = async (params: {
 
     const invalidChunkIds = relevantTextChunks
       .map(({ chunkId }) => chunkId)
-      .filter(
-        (chunkId) =>
-          !textChunksWithIds.some((chunk) => chunk.chunkId === chunkId),
-      );
+      .filter((chunkId) => !textChunksWithIds.some((chunk) => chunk.chunkId === chunkId));
 
     if (invalidChunkIds.length > 0) {
       return await retry({
@@ -257,8 +243,7 @@ export const filterAndRankTextChunksAgent = async (params: {
       .sort((a, b) => b.relevance - a.relevance)
       .map(
         ({ chunkId: relevantChunkId }) =>
-          textChunksWithIds.find(({ chunkId }) => chunkId === relevantChunkId)!
-            .text,
+          textChunksWithIds.find(({ chunkId }) => chunkId === relevantChunkId)!.text,
       );
 
     return {

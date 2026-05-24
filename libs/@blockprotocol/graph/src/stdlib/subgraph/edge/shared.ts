@@ -7,11 +7,7 @@ import type {
   OutwardEdge,
   Subgraph,
 } from "../../../types/subgraph.js";
-import type {
-  BaseUrl,
-  OntologyTypeVersion,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { BaseUrl, OntologyTypeVersion, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * This is a helper function to extract ontology edges given an `outwardEdgePredicate` function.
@@ -25,9 +21,7 @@ import type {
 export const getOntologyEndpointsForOntologyOutwardEdge = (
   subgraph: Subgraph,
   ontologyTypeId: OntologyTypeVertexId | VersionedUrl,
-  outwardEdgePredicate: (
-    outwardEdge: OutwardEdge,
-  ) => outwardEdge is OntologyToOntologyOutwardEdge,
+  outwardEdgePredicate: (outwardEdge: OutwardEdge) => outwardEdge is OntologyToOntologyOutwardEdge,
 ): OntologyTypeVertexId[] => {
   let baseUrl: BaseUrl;
   let revisionId: OntologyTypeVersion;
@@ -40,15 +34,11 @@ export const getOntologyEndpointsForOntologyOutwardEdge = (
     revisionId = ontologyTypeId.revisionId;
   }
 
-  const outwardEdges = (subgraph.edges as OntologyRootedEdges)[baseUrl]?.[
-    revisionId
-  ];
+  const outwardEdges = (subgraph.edges as OntologyRootedEdges)[baseUrl]?.[revisionId];
 
   if (outwardEdges === undefined) {
     return [];
   }
 
-  return outwardEdges
-    .filter(outwardEdgePredicate)
-    .map((outwardEdge) => outwardEdge.rightEndpoint);
+  return outwardEdges.filter(outwardEdgePredicate).map((outwardEdge) => outwardEdge.rightEndpoint);
 };

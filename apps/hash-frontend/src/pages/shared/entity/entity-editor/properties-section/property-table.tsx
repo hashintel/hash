@@ -20,20 +20,14 @@ interface PropertyTableProps {
   onSearchClose: () => void;
 }
 
-export const PropertyTable = ({
-  showSearch,
-  onSearchClose,
-}: PropertyTableProps) => {
+export const PropertyTable = ({ showSearch, onSearchClose }: PropertyTableProps) => {
   const gridRef = useRef<DataEditorRef>(null);
   const { togglePropertyExpand, propertyExpandStatus } = useEntityEditor();
   const [rows, sortAndFlattenRows] = useRows();
 
   const { tooltipElement, showTooltip, hideTooltip } = useGridTooltip(gridRef);
 
-  const createGetCellContent = useCreateGetCellContent(
-    showTooltip,
-    hideTooltip,
-  );
+  const createGetCellContent = useCreateGetCellContent(showTooltip, hideTooltip);
   const createOnCellEdited = useCreateOnCellEdited();
 
   const customRenderers = useMemo(

@@ -44,9 +44,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const createBlock = useCallback(
     async (blockMeta: HashBlockMeta) => {
-      const blockEntityTypeIds: [VersionedUrl] = [
-        blockMeta.schema as VersionedUrl,
-      ];
+      const blockEntityTypeIds: [VersionedUrl] = [blockMeta.schema as VersionedUrl];
 
       const width = defaultBlockWidth;
       const height = defaultBlockHeight;
@@ -55,9 +53,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
       const y = app.viewportPageCenter.y - height / 2;
 
       if (!webId) {
-        throw new Error(
-          "No webId available – possibly routeNamespace is not yet loaded",
-        );
+        throw new Error("No webId available – possibly routeNamespace is not yet loaded");
       }
 
       const { data } = await updateBlockCollectionContentsFn({
@@ -75,10 +71,8 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
                 position: {
                   // These defaults will be overridden when the user draws the shape on the canvas
                   canvasPosition: {
-                    "https://hash.ai/@h/types/property-type/width-in-pixels/":
-                      width,
-                    "https://hash.ai/@h/types/property-type/height-in-pixels/":
-                      height,
+                    "https://hash.ai/@h/types/property-type/width-in-pixels/": width,
+                    "https://hash.ai/@h/types/property-type/height-in-pixels/": height,
                     "https://hash.ai/@h/types/property-type/x-position/": x,
                     "https://hash.ai/@h/types/property-type/y-position/": y,
                     "https://hash.ai/@h/types/property-type/rotation-in-rads/": 0,
@@ -105,20 +99,15 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
       const blockCollection = {
         ...data.updateBlockCollectionContents.blockCollection,
-        contents:
-          data.updateBlockCollectionContents.blockCollection.contents.map(
-            (item) => ({
-              linkEntity: new HashLinkEntity(item.linkEntity) as
-                | HashLinkEntity<HasIndexedContent>
-                | HashLinkEntity<HasSpatiallyPositionedContent>,
-              rightEntity: {
-                ...item.rightEntity,
-                blockChildEntity: new HashEntity(
-                  item.rightEntity.blockChildEntity,
-                ),
-              },
-            }),
-          ),
+        contents: data.updateBlockCollectionContents.blockCollection.contents.map((item) => ({
+          linkEntity: new HashLinkEntity(item.linkEntity) as
+            | HashLinkEntity<HasIndexedContent>
+            | HashLinkEntity<HasSpatiallyPositionedContent>,
+          rightEntity: {
+            ...item.rightEntity,
+            blockChildEntity: new HashEntity(item.rightEntity.blockChildEntity),
+          },
+        })),
       } satisfies BlockCollection;
 
       const newBlock = blockCollection.contents.sort((a, b) =>

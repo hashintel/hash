@@ -3,10 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { recenterToFitViewport } from "./viewport";
 
-import type {
-  PetrinautReactFlowInstance,
-  NodeType,
-} from "../views/SDCPN/reactflow-types";
+import type { PetrinautReactFlowInstance, NodeType } from "../views/SDCPN/reactflow-types";
 
 const reactFlow = { getNodesBounds } as PetrinautReactFlowInstance;
 

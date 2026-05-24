@@ -8,10 +8,7 @@ import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { Step } from "prosemirror-transform";
 
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
-import {
-  EntityStore,
-  isBlockEntity,
-} from "@local/hash-isomorphic-utils/entity-store";
+import { EntityStore, isBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
@@ -30,9 +27,7 @@ import type { EditorView } from "prosemirror-view";
 
 // @todo check this
 const badVersion = (err: Error | StatusError) =>
-  err instanceof StatusError &&
-  err.status === 400 &&
-  /invalid version/i.test(err.message);
+  err instanceof StatusError && err.status === 400 && /invalid version/i.test(err.message);
 
 const repeat = <T>(val: T, count: number): T[] => {
   const result = [];
@@ -158,9 +153,7 @@ export class EditorConnection {
             currentState = this.view.state;
             nextVersion = 0;
           } else {
-            throw new Error(
-              "Cannot apply transaction without state to apply to",
-            );
+            throw new Error("Cannot apply transaction without state to apply to");
           }
         } else {
           currentState = this.state.edit;
@@ -241,11 +234,7 @@ export class EditorConnection {
 
         const componentIds = Object.values(data.store.saved)
           .filter(isBlockEntity)
-          .map(
-            (entity) =>
-              "componentId" in entity.properties &&
-              entity.properties?.componentId,
-          )
+          .map((entity) => "componentId" in entity.properties && entity.properties?.componentId)
           .filter(isString);
 
         return this.manager.ensureBlocksDefined(componentIds).then(() => data);
@@ -362,11 +351,7 @@ export class EditorConnection {
 
         this.closeRequest();
 
-        if (
-          tr ||
-          (typeof data.version !== "undefined" &&
-            data.version !== this.state.version)
-        ) {
+        if (tr || (typeof data.version !== "undefined" && data.version !== this.state.version)) {
           this.dispatch({
             type: "update",
             transaction: tr,
@@ -413,9 +398,7 @@ export class EditorConnection {
       steps: steps ? steps.steps.map((step) => step.toJSON()) : [],
       clientID: steps ? steps.clientID : 0,
       // @todo do something smarter
-      blockIds: Object.keys(editState.schema.nodes).filter((key) =>
-        key.startsWith("http"),
-      ),
+      blockIds: Object.keys(editState.schema.nodes).filter((key) => key.startsWith("http")),
       actions: actions.map((action) => action.action),
     });
     const removeActions = () => {
@@ -423,9 +406,7 @@ export class EditorConnection {
         this.sentActions.delete(action.id);
       }
     };
-    this.run(
-      POST(`${this.url}/events`, json, "application/json", removeActions),
-    ).then(
+    this.run(POST(`${this.url}/events`, json, "application/json", removeActions)).then(
       (data) => {
         if (!this.state.edit) {
           throw new Error("Cannot receive steps without state");

@@ -14,10 +14,7 @@ export const reauthenticate = async (
   const headers = {};
   opentelemetry.propagation.inject(opentelemetry.context.active(), headers);
 
-  const { data: loginFlow } = await oryKratosClient.createNativeLoginFlow(
-    {},
-    { headers },
-  );
+  const { data: loginFlow } = await oryKratosClient.createNativeLoginFlow({}, { headers });
   const { data: fullLogin } = await oryKratosClient.updateLoginFlow(
     {
       flow: loginFlow.id,

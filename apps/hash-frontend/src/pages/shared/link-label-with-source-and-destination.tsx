@@ -15,14 +15,8 @@ import {
   getOutgoingLinkAndTargetEntities,
   getPropertyTypeForEntity,
 } from "@blockprotocol/graph/stdlib";
-import {
-  extractEntityUuidFromEntityId,
-  extractVersion,
-} from "@blockprotocol/type-system";
-import {
-  EntityOrTypeIcon,
-  EyeSlashRegularIcon,
-} from "@hashintel/design-system";
+import { extractEntityUuidFromEntityId, extractVersion } from "@blockprotocol/type-system";
+import { EntityOrTypeIcon, EyeSlashRegularIcon } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import {
   getClosedMultiEntityTypeFromMap,
@@ -232,43 +226,28 @@ const LeftOrRightEntity: FunctionComponent<{
       return undefined;
     }
 
-    return typedEntries(entity.properties).flatMap(
-      ([baseUrl, propertyValue]) => {
-        const closedEntityType = closedMultiEntityTypesMap
-          ? getClosedMultiEntityTypeFromMap(
-              closedMultiEntityTypesMap,
-              entity.metadata.entityTypeIds,
+    return typedEntries(entity.properties).flatMap(([baseUrl, propertyValue]) => {
+      const closedEntityType = closedMultiEntityTypesMap
+        ? getClosedMultiEntityTypeFromMap(closedMultiEntityTypesMap, entity.metadata.entityTypeIds)
+        : null;
+
+      const propertyType =
+        closedEntityType && closedMultiEntityTypesDefinitions
+          ? getPropertyTypeForClosedMultiEntityType(
+              closedEntityType,
+              baseUrl,
+              closedMultiEntityTypesDefinitions,
             )
-          : null;
+          : getPropertyTypeForEntity(subgraph, entity.metadata.entityTypeIds, baseUrl).propertyType;
 
-        const propertyType =
-          closedEntityType && closedMultiEntityTypesDefinitions
-            ? getPropertyTypeForClosedMultiEntityType(
-                closedEntityType,
-                baseUrl,
-                closedMultiEntityTypesDefinitions,
-              )
-            : getPropertyTypeForEntity(
-                subgraph,
-                entity.metadata.entityTypeIds,
-                baseUrl,
-              ).propertyType;
+      const stringifiedPropertyValue = stringifyEntityPropertyValue(propertyValue);
 
-        const stringifiedPropertyValue =
-          stringifyEntityPropertyValue(propertyValue);
-
-        return {
-          propertyType,
-          stringifiedPropertyValue,
-        };
-      },
-    );
-  }, [
-    closedMultiEntityTypesMap,
-    closedMultiEntityTypesDefinitions,
-    entity,
-    subgraph,
-  ]);
+      return {
+        propertyType,
+        stringifiedPropertyValue,
+      };
+    });
+  }, [closedMultiEntityTypesMap, closedMultiEntityTypesDefinitions, entity, subgraph]);
 
   const outgoingLinkTypesAndTargetEntities = useMemo(() => {
     if (!entity) {
@@ -283,63 +262,49 @@ const LeftOrRightEntity: FunctionComponent<{
         linkEntityType: EntityTypeWithMetadata;
         rightEntities: Entity[];
       };
-    }>(
-      (
-        prev,
-        {
-          linkEntity: linkEntityRevisions,
-          rightEntity: rightEntityRevisions = [],
-        },
-      ) => {
-        const linkEntity = linkEntityRevisions[0];
-        const rightEntity = rightEntityRevisions[0];
+    }>((prev, { linkEntity: linkEntityRevisions, rightEntity: rightEntityRevisions = [] }) => {
+      const linkEntity = linkEntityRevisions[0];
+      const rightEntity = rightEntityRevisions[0];
 
-        if (!linkEntity || !rightEntity) {
+      if (!linkEntity || !rightEntity) {
+        return prev;
+      }
+
+      const linkEntityTypeId = linkEntity.metadata.entityTypeIds[0];
+      const linkEntityType = getEntityTypeById(subgraph, linkEntityTypeId);
+
+      if (!linkEntityType) {
+        return prev;
+      }
+
+      if (prev[linkEntityTypeId]) {
+        const targetAlreadyPresent = prev[linkEntityTypeId].rightEntities.some(
+          (existingRightEntity) =>
+            existingRightEntity.metadata.recordId.entityId ===
+            rightEntity.metadata.recordId.entityId,
+        );
+
+        if (targetAlreadyPresent) {
           return prev;
-        }
-
-        const linkEntityTypeId = linkEntity.metadata.entityTypeIds[0];
-        const linkEntityType = getEntityTypeById(subgraph, linkEntityTypeId);
-
-        if (!linkEntityType) {
-          return prev;
-        }
-
-        if (prev[linkEntityTypeId]) {
-          const targetAlreadyPresent = prev[
-            linkEntityTypeId
-          ].rightEntities.some(
-            (existingRightEntity) =>
-              existingRightEntity.metadata.recordId.entityId ===
-              rightEntity.metadata.recordId.entityId,
-          );
-
-          if (targetAlreadyPresent) {
-            return prev;
-          }
-
-          return {
-            ...prev,
-            [linkEntityTypeId]: {
-              linkEntityType,
-              rightEntities: [
-                ...prev[linkEntityTypeId].rightEntities,
-                rightEntity,
-              ],
-            },
-          };
         }
 
         return {
           ...prev,
           [linkEntityTypeId]: {
             linkEntityType,
-            rightEntities: [rightEntity],
+            rightEntities: [...prev[linkEntityTypeId].rightEntities, rightEntity],
           },
         };
-      },
-      {},
-    );
+      }
+
+      return {
+        ...prev,
+        [linkEntityTypeId]: {
+          linkEntityType,
+          rightEntities: [rightEntity],
+        },
+      };
+    }, {});
 
     return Object.values(outgoingLinksByLinkEntityType);
   }, [entity, subgraph]);
@@ -348,23 +313,15 @@ const LeftOrRightEntity: FunctionComponent<{
 
   const tooltipContent =
     (entityProperties && entityProperties.length > 0) ||
-    (outgoingLinkTypesAndTargetEntities &&
-      outgoingLinkTypesAndTargetEntities.length > 0) ? (
+    (outgoingLinkTypesAndTargetEntities && outgoingLinkTypesAndTargetEntities.length > 0) ? (
       <Box>
-        {[
-          ...(entityProperties ?? []),
-          ...(outgoingLinkTypesAndTargetEntities ?? []),
-        ]
+        {[...(entityProperties ?? []), ...(outgoingLinkTypesAndTargetEntities ?? [])]
           .sort((a, b) => {
             const aTitle =
-              "propertyType" in a
-                ? a.propertyType.title
-                : a.linkEntityType.schema.title;
+              "propertyType" in a ? a.propertyType.title : a.linkEntityType.schema.title;
 
             const bTitle =
-              "propertyType" in b
-                ? b.propertyType.title
-                : b.linkEntityType.schema.title;
+              "propertyType" in b ? b.propertyType.title : b.linkEntityType.schema.title;
 
             return aTitle.localeCompare(bTitle);
           })
@@ -406,17 +363,9 @@ const LeftOrRightEntity: FunctionComponent<{
                   {propertyOrOutgoingLink.stringifiedPropertyValue}
                 </Typography>
               ) : (
-                <Stack
-                  direction="row"
-                  columnGap={0.5}
-                  rowGap={0.5}
-                  flexWrap="wrap"
-                >
+                <Stack direction="row" columnGap={0.5} rowGap={0.5} flexWrap="wrap">
                   {propertyOrOutgoingLink.rightEntities.map((rightEntity) => {
-                    const rightEntityLabel = generateEntityLabel(
-                      subgraph,
-                      rightEntity,
-                    );
+                    const rightEntityLabel = generateEntityLabel(subgraph, rightEntity);
 
                     /**
                      * @todo H-3363 account for inheritance here (query for closed schema)
@@ -439,11 +388,7 @@ const LeftOrRightEntity: FunctionComponent<{
                           />
                         }
                         key={rightEntity.metadata.recordId.entityId}
-                        onClick={() =>
-                          onEntityClick?.(
-                            rightEntity.metadata.recordId.entityId,
-                          )
-                        }
+                        onClick={() => onEntityClick?.(rightEntity.metadata.recordId.entityId)}
                       />
                     );
                   })}
@@ -528,8 +473,7 @@ const LinkTypeInner = ({
             },
           }
         : {},
-      background: ({ palette }) =>
-        amongMultipleTypes ? palette.common.white : palette.gray[5],
+      background: ({ palette }) => (amongMultipleTypes ? palette.common.white : palette.gray[5]),
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -621,10 +565,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
             return entityType.schema;
           }),
       leftEntity: getEntityRevision(subgraph, linkEntity.linkData.leftEntityId),
-      rightEntity: getEntityRevision(
-        subgraph,
-        linkEntity.linkData.rightEntityId,
-      ),
+      rightEntity: getEntityRevision(subgraph, linkEntity.linkData.rightEntityId),
     };
   }, [closedMultiEntityTypesMap, linkEntity, subgraph]);
 
@@ -731,12 +672,9 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
                       index
                     ].parentElement!.parentElement!.getBoundingClientRect();
 
-                  const leftEntityRect =
-                    leftEntityRef.current?.getBoundingClientRect();
-                  const rightEntityRect =
-                    rightEntityRef.current?.getBoundingClientRect();
-                  const linkEntityRect =
-                    linkTypeRefs.current[index].getBoundingClientRect();
+                  const leftEntityRect = leftEntityRef.current?.getBoundingClientRect();
+                  const rightEntityRect = rightEntityRef.current?.getBoundingClientRect();
+                  const linkEntityRect = linkTypeRefs.current[index].getBoundingClientRect();
 
                   if (!leftEntityRect || !rightEntityRect) {
                     return null;
@@ -745,34 +683,22 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
                   // Calculate coordinates relative to the container for the origin and target of each line
                   const leftEntityRightCenter = {
                     x: leftEntityRect.right - containerRect.left,
-                    y:
-                      leftEntityRect.top +
-                      leftEntityRect.height / 2 -
-                      containerRect.top,
+                    y: leftEntityRect.top + leftEntityRect.height / 2 - containerRect.top,
                   };
 
                   const linkEntityLeftCenter = {
                     x: linkEntityRect.left - containerRect.left,
-                    y:
-                      linkEntityRect.top +
-                      linkEntityRect.height / 2 -
-                      containerRect.top,
+                    y: linkEntityRect.top + linkEntityRect.height / 2 - containerRect.top,
                   };
 
                   const rightEntityLeftCenter = {
                     x: rightEntityRect.left - containerRect.left,
-                    y:
-                      rightEntityRect.top +
-                      rightEntityRect.height / 2 -
-                      containerRect.top,
+                    y: rightEntityRect.top + rightEntityRect.height / 2 - containerRect.top,
                   };
 
                   const linkEntityRightCenter = {
                     x: linkEntityRect.right - containerRect.left,
-                    y:
-                      linkEntityRect.top +
-                      linkEntityRect.height / 2 -
-                      containerRect.top,
+                    y: linkEntityRect.top + linkEntityRect.height / 2 - containerRect.top,
                   };
 
                   return (

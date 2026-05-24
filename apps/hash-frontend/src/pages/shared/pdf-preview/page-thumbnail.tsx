@@ -12,12 +12,7 @@ type PageThumbnailProps = {
 };
 
 export const PageThumbnail = memo(
-  ({
-    height,
-    pageNumber,
-    selectedPageNumber,
-    setSelectedPageNumber,
-  }: PageThumbnailProps) => {
+  ({ height, pageNumber, selectedPageNumber, setSelectedPageNumber }: PageThumbnailProps) => {
     return (
       <Box
         sx={({ palette }) => ({
@@ -26,10 +21,7 @@ export const PageThumbnail = memo(
           outlineStyle: "solid",
           outlineOffset: 2,
           outlineWidth: 4,
-          outlineColor:
-            pageNumber === selectedPageNumber
-              ? palette.blue[20]
-              : "transparent",
+          outlineColor: pageNumber === selectedPageNumber ? palette.blue[20] : "transparent",
           width: thumbnailWidth,
           minHeight: height,
           height,

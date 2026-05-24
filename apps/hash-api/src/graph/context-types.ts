@@ -33,6 +33,4 @@ export type ImpureGraphFunction<
   params: Parameters,
 ) => ReturnType;
 
-export type PureGraphFunction<Parameters, ReturnType> = (
-  params: Parameters,
-) => ReturnType;
+export type PureGraphFunction<Parameters, ReturnType> = (params: Parameters) => ReturnType;

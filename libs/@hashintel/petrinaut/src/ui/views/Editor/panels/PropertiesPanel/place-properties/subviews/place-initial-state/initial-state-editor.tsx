@@ -51,9 +51,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       for (let i = 0; i < currentMarking.count; i++) {
         const tokenValues: number[] = [];
         for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-          tokenValues.push(
-            currentMarking.values[i * dimensions + colIndex] ?? 0,
-          );
+          tokenValues.push(currentMarking.values[i * dimensions + colIndex] ?? 0);
         }
         tokens.push(tokenValues);
       }
@@ -65,9 +63,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       return [];
     }
 
-    return marking.map((token) =>
-      columns.map((column) => token[column.name] ?? 0),
-    );
+    return marking.map((token) => columns.map((column) => token[column.name] ?? 0));
   }, [hasSimulation, currentFrameReader, placeId, columns, initialMarking]);
 
   // Convert spreadsheet rows back to serializable token records.
@@ -78,9 +74,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
     return (newData: number[][]) => {
       const tokens = newData.map((row) =>
-        Object.fromEntries(
-          columns.map((column, col) => [column.name, row[col] ?? 0]),
-        ),
+        Object.fromEntries(columns.map((column, col) => [column.name, row[col] ?? 0])),
       );
       setInitialMarking(placeId, tokens);
     };

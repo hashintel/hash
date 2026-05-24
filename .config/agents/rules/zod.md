@@ -32,10 +32,7 @@ Zod v4 stores metadata in registries (primarily `z.globalRegistry`). Use `.meta(
 
 ```typescript
 // ✅ Correct - .meta() at end of chain
-z.string()
-  .min(1)
-  .max(100)
-  .meta({ description: "User's full name", label: "Name" });
+z.string().min(1).max(100).meta({ description: "User's full name", label: "Name" });
 
 // ✅ Correct - .describe() shorthand for description only
 z.string().email().describe("Primary email address");

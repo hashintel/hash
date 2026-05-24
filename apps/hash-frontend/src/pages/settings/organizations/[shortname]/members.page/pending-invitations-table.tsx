@@ -1,19 +1,7 @@
 import { useMutation } from "@apollo/client";
-import {
-  Box,
-  ListItemText,
-  Menu,
-  TableBody,
-  TableHead,
-  TableRow,
-  Typography,
-} from "@mui/material";
+import { Box, ListItemText, Menu, TableBody, TableHead, TableRow, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
+import { bindMenu, bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 
 import { isInvitationByShortname } from "@local/hash-isomorphic-utils/organization";
 
@@ -66,10 +54,9 @@ const PendingInvitationRow = ({
   invitation: Org["invitations"][number];
   refetchOrg: () => void;
 }) => {
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const [archiveEntity] = useMutation<ArchiveEntityMutation, ArchiveEntityMutationVariables>(
+    archiveEntityMutation,
+  );
 
   const revokeInvitation = async () => {
     await Promise.all([

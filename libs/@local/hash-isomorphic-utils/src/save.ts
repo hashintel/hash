@@ -2,10 +2,7 @@ import { generateNKeysBetween } from "fractional-indexing";
 import { isEqual } from "lodash-es";
 import { v4 as uuid } from "uuid";
 
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
+import { getOutgoingLinkAndTargetEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type EntityId,
   splitEntityId,
@@ -18,21 +15,12 @@ import {
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 
-import {
-  getBlockCollectionTraversalPath,
-  sortBlockCollectionLinks,
-} from "./block-collection.js";
-import {
-  getDraftEntityByEntityId,
-  isDraftBlockEntity,
-} from "./entity-store.js";
+import { getBlockCollectionTraversalPath, sortBlockCollectionLinks } from "./block-collection.js";
+import { getDraftEntityByEntityId, isDraftBlockEntity } from "./entity-store.js";
 import { currentTimeInstantTemporalAxes } from "./graph-queries.js";
 import { updateBlockCollectionContents } from "./graphql/queries/block-collection.queries.js";
 import { queryEntitySubgraphQuery } from "./graphql/queries/entity.queries.js";
-import {
-  systemEntityTypes,
-  systemLinkEntityTypes,
-} from "./ontology-type-ids.js";
+import { systemEntityTypes, systemLinkEntityTypes } from "./ontology-type-ids.js";
 import { isEntityNode } from "./prosemirror.js";
 
 import type { ComponentIdHashBlockMap } from "./blocks.js";
@@ -84,9 +72,7 @@ const calculateSaveActions = (
   webId: WebId,
   blocksAndLinks: {
     blockEntity: GqlBlock;
-    contentLinkEntity: HashLinkEntity<
-      HasIndexedContent | HasSpatiallyPositionedContent
-    >;
+    contentLinkEntity: HashLinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>;
   }[],
   doc: Node,
   getEntityTypeForComponent: (componentId: string) => VersionedUrl,
@@ -156,17 +142,14 @@ const calculateSaveActions = (
        */
       const blockEntity = Object.values(store.draft).find(
         (entity): entity is DraftEntity<BlockEntity> =>
-          isDraftBlockEntity(entity) &&
-          entity.blockChildEntity?.draftId === draftEntity.draftId,
+          isDraftBlockEntity(entity) && entity.blockChildEntity?.draftId === draftEntity.draftId,
       );
 
       if (!blockEntity) {
         throw new Error("Cannot find parent entity");
       }
 
-      const entityTypeId = getEntityTypeForComponent(
-        blockEntity.componentId ?? "",
-      );
+      const entityTypeId = getEntityTypeForComponent(blockEntity.componentId ?? "");
 
       const action: UpdateBlockCollectionAction = {
         createEntity: {
@@ -174,10 +157,7 @@ const calculateSaveActions = (
           entityPlaceholderId: placeholderId,
           entity: {
             entityTypeIds: [entityTypeId],
-            entityProperties: mergePropertyObjectAndMetadata(
-              draftEntity.properties,
-              undefined,
-            ),
+            entityProperties: mergePropertyObjectAndMetadata(draftEntity.properties, undefined),
           },
         },
       };
@@ -211,11 +191,8 @@ const calculateSaveActions = (
     );
 
     const fractionalIndex =
-      "https://hash.ai/@h/types/property-type/fractional-index/" in
-      contentLinkEntity.properties
-        ? contentLinkEntity.properties[
-            "https://hash.ai/@h/types/property-type/fractional-index/"
-          ]
+      "https://hash.ai/@h/types/property-type/fractional-index/" in contentLinkEntity.properties
+        ? contentLinkEntity.properties["https://hash.ai/@h/types/property-type/fractional-index/"]
         : null;
 
     if (draftEntity) {
@@ -269,11 +246,7 @@ const calculateSaveActions = (
    *
    * @todo improve this to minimise the number of indices that need to be updated – H-1259
    */
-  const newFractionalIndexSeries = generateNKeysBetween(
-    null,
-    null,
-    afterBlockDraftIds.length,
-  );
+  const newFractionalIndexSeries = generateNKeysBetween(null, null, afterBlockDraftIds.length);
 
   /**
    * Check which of the latest blocks needs:
@@ -286,9 +259,7 @@ const calculateSaveActions = (
     const newFractionalIndex = newFractionalIndexSeries[i]!;
     const newValue = afterBlockDraftIds[i]!;
 
-    const oldValue = beforeBlockDraftIds.find(
-      ([draftId]) => draftId === afterDraftId,
-    );
+    const oldValue = beforeBlockDraftIds.find(([draftId]) => draftId === afterDraftId);
 
     const previousFractionalIndex = oldValue?.[1]?.fractionalIndex;
     if (
@@ -311,8 +282,7 @@ const calculateSaveActions = (
             linkEntityId: newValue[1].linkEntityId,
             position: {
               indexPosition: {
-                "https://hash.ai/@h/types/property-type/fractional-index/":
-                  newFractionalIndex,
+                "https://hash.ai/@h/types/property-type/fractional-index/": newFractionalIndex,
               },
             },
           },
@@ -335,9 +305,7 @@ const calculateSaveActions = (
     if (oldValue) {
       // We have an existing block – check if its child entity has changed and updated it if so
       if (!draftEntity.metadata.recordId.entityId) {
-        throw new Error(
-          `Draft entity with id ${draftEntity.draftId} has no saved entityId}`,
-        );
+        throw new Error(`Draft entity with id ${draftEntity.draftId} has no saved entityId}`);
       }
 
       const savedEntity = store.saved[draftEntity.metadata.recordId.entityId];
@@ -364,8 +332,7 @@ const calculateSaveActions = (
         actions.push({
           swapBlockData: {
             entityId: savedEntity.metadata.recordId.entityId,
-            newEntityEntityId:
-              newChildEntityForBlock.metadata.recordId.entityId,
+            newEntityEntityId: newChildEntityForBlock.metadata.recordId.entityId,
           },
         });
       }
@@ -388,8 +355,7 @@ const calculateSaveActions = (
           webId,
           position: {
             indexPosition: {
-              "https://hash.ai/@h/types/property-type/fractional-index/":
-                newFractionalIndex,
+              "https://hash.ai/@h/types/property-type/fractional-index/": newFractionalIndex,
             },
           },
           entity: {
@@ -408,9 +374,7 @@ const calculateSaveActions = (
    * Check the old saved blocks to remove any which are missing from the new list
    */
   for (const [beforeBlockDraftId, { linkEntityId }] of beforeBlockDraftIds) {
-    if (
-      !afterBlockDraftIds.find(([draftId]) => draftId === beforeBlockDraftId)
-    ) {
+    if (!afterBlockDraftIds.find(([draftId]) => draftId === beforeBlockDraftId)) {
       actions.push({
         removeBlock: {
           linkEntityId,
@@ -444,14 +408,8 @@ const mapEntityToGqlBlock = (
   entity: HashEntity<Block>,
   entitySubgraph: Subgraph<EntityRootType>,
 ): GqlBlock => {
-  if (
-    !entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.block.entityTypeId,
-    )
-  ) {
-    throw new Error(
-      `Entity with types ${entity.metadata.entityTypeIds.join(",")} is not a block`,
-    );
+  if (!entity.metadata.entityTypeIds.includes(systemEntityTypes.block.entityTypeId)) {
+    throw new Error(`Entity with types ${entity.metadata.entityTypeIds.join(",")} is not a block`);
   }
 
   const blockChildEntity = getOutgoingLinkAndTargetEntities(
@@ -471,8 +429,7 @@ const mapEntityToGqlBlock = (
     );
   }
 
-  const componentId =
-    entity.properties["https://hash.ai/@h/types/property-type/component-id/"];
+  const componentId = entity.properties["https://hash.ai/@h/types/property-type/component-id/"];
 
   return {
     blockChildEntity: new HashEntity(blockChildEntity).toJSON(),
@@ -518,9 +475,7 @@ export const save = async ({
                 : []),
             ],
           },
-          traversalPaths: [
-            getBlockCollectionTraversalPath({ blockDataDepth: 1 }),
-          ],
+          traversalPaths: [getBlockCollectionTraversalPath({ blockDataDepth: 1 })],
           temporalAxes: currentTimeInstantTemporalAxes,
           includeDrafts: !!draftId,
           includePermissions: false,
@@ -529,25 +484,18 @@ export const save = async ({
       fetchPolicy: "network-only",
     })
     .then(({ data }) => {
-      const subgraph = deserializeQueryEntitySubgraphResponse(
-        data.queryEntitySubgraph,
-      ).subgraph;
+      const subgraph = deserializeQueryEntitySubgraphResponse(data.queryEntitySubgraph).subgraph;
 
       const [blockCollectionEntity] = getRoots(subgraph);
 
       const blocksAndLinks = getOutgoingLinkAndTargetEntities<
         {
-          linkEntity: HashLinkEntity<
-            HasIndexedContent | HasSpatiallyPositionedContent
-          >[];
+          linkEntity: HashLinkEntity<HasIndexedContent | HasSpatiallyPositionedContent>[];
           rightEntity: HashEntity<Block>[];
         }[]
       >(subgraph, blockCollectionEntity!.metadata.recordId.entityId)
         .filter(
-          ({
-            linkEntity: linkEntityRevisions,
-            rightEntity: rightEntityRevisions,
-          }) =>
+          ({ linkEntity: linkEntityRevisions, rightEntity: rightEntityRevisions }) =>
             linkEntityRevisions[0] &&
             linkEntityRevisions[0].metadata.entityTypeIds.includes(
               systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
@@ -557,18 +505,11 @@ export const save = async ({
               systemEntityTypes.block.entityTypeId,
             ),
         )
-        .sort(({ linkEntity: a }, { linkEntity: b }) =>
-          sortBlockCollectionLinks(a[0]!, b[0]!),
-        )
-        .map(
-          ({
-            rightEntity: rightEntityRevisions,
-            linkEntity: linkEntityRevisions,
-          }) => ({
-            blockEntity: rightEntityRevisions[0]!,
-            contentLinkEntity: linkEntityRevisions[0]!,
-          }),
-        );
+        .sort(({ linkEntity: a }, { linkEntity: b }) => sortBlockCollectionLinks(a[0]!, b[0]!))
+        .map(({ rightEntity: rightEntityRevisions, linkEntity: linkEntityRevisions }) => ({
+          blockEntity: rightEntityRevisions[0]!,
+          contentLinkEntity: linkEntityRevisions[0]!,
+        }));
 
       return blocksAndLinks.map(({ blockEntity, contentLinkEntity }) => ({
         blockEntity: mapEntityToGqlBlock(blockEntity, subgraph),
@@ -612,15 +553,12 @@ export const save = async ({
       throw new Error("Failed");
     }
 
-    currentBlocks =
-      res.data.updateBlockCollectionContents.blockCollection.contents.map(
-        (contentItem) => ({
-          ...contentItem.rightEntity,
-          blockChildEntity: new HashEntity(
-            contentItem.rightEntity.blockChildEntity,
-          ),
-        }),
-      );
+    currentBlocks = res.data.updateBlockCollectionContents.blockCollection.contents.map(
+      (contentItem) => ({
+        ...contentItem.rightEntity,
+        blockChildEntity: new HashEntity(contentItem.rightEntity.blockChildEntity),
+      }),
+    );
     placeholders = res.data.updateBlockCollectionContents.placeholders;
   }
   const draftToEntityId = getDraftEntityIds(placeholders, placeholderToDraft);

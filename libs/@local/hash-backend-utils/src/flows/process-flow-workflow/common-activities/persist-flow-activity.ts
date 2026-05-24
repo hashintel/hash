@@ -35,14 +35,7 @@ export type PersistFlowActivityParams = {
 export const persistFlowActivity = async (
   params: PersistFlowActivityParams & { graphApiClient: GraphApi },
 ): Promise<{ flowEntityId: EntityId }> => {
-  const {
-    flow,
-    flowRunId,
-    graphApiClient,
-    stepIds,
-    userAuthentication,
-    webId,
-  } = params;
+  const { flow, flowRunId, graphApiClient, stepIds, userAuthentication, webId } = params;
 
   const { temporalWorkflowId } = flow;
 
@@ -50,34 +43,26 @@ export const persistFlowActivity = async (
 
   const {
     entities: [existingFlowEntity],
-  } = await queryEntities<FlowRunEntity>(
-    { graphApi: graphApiClient },
-    userAuthentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.workflowId.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: temporalWorkflowId },
-            ],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
+  } = await queryEntities<FlowRunEntity>({ graphApi: graphApiClient }, userAuthentication, {
+    filter: {
+      all: [
+        {
+          equal: [
+            {
+              path: ["properties", systemPropertyTypes.workflowId.propertyTypeBaseUrl],
+            },
+            { parameter: temporalWorkflowId },
+          ],
+        },
+        generateVersionedUrlMatchingFilter(systemEntityTypes.flowRun.entityTypeId, {
+          ignoreParents: true,
+        }),
+      ],
     },
-  );
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: false,
+    includePermissions: false,
+  });
 
   if (existingFlowEntity) {
     const flowEntityId = existingFlowEntity.metadata.recordId.entityId;
@@ -112,18 +97,14 @@ export const persistFlowActivity = async (
     } satisfies OriginProvenance,
   };
 
-  const newEntity = await HashEntity.create<FlowRun>(
-    graphApiClient,
-    userAuthentication,
-    {
-      entityUuid: flowRunId,
-      webId,
-      entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
-      properties: flowRunProperties,
-      provenance,
-      draft: false,
-    },
-  );
+  const newEntity = await HashEntity.create<FlowRun>(graphApiClient, userAuthentication, {
+    entityUuid: flowRunId,
+    webId,
+    entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
+    properties: flowRunProperties,
+    provenance,
+    draft: false,
+  });
 
   return { flowEntityId: newEntity.metadata.recordId.entityId };
 };

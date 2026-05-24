@@ -26,19 +26,13 @@ export const EntityOrTypeIcon = ({
     if (isLink) {
       return (
         <LinkTypeIcon
-          sx={[
-            { stroke: fill ?? "inherit", fontSize },
-            ...(Array.isArray(sx) ? sx : [sx]),
-          ]}
+          sx={[{ stroke: fill ?? "inherit", fontSize }, ...(Array.isArray(sx) ? sx : [sx])]}
         />
       );
     }
     return (
       <AsteriskRegularIcon
-        sx={[
-          { fill: fill ?? "inherit", fontSize },
-          ...(Array.isArray(sx) ? sx : [sx]),
-        ]}
+        sx={[{ fill: fill ?? "inherit", fontSize }, ...(Array.isArray(sx) ? sx : [sx])]}
       />
     );
   }
@@ -50,14 +44,8 @@ export const EntityOrTypeIcon = ({
     return icon;
   }
 
-  if (
-    icon.startsWith("http://") ||
-    icon.startsWith("https://") ||
-    icon.startsWith("/")
-  ) {
-    const iconUrl = icon.startsWith("/")
-      ? new URL(icon, window.location.origin).href
-      : icon;
+  if (icon.startsWith("http://") || icon.startsWith("https://") || icon.startsWith("/")) {
+    const iconUrl = icon.startsWith("/") ? new URL(icon, window.location.origin).href : icon;
 
     return (
       <Box
@@ -79,15 +67,12 @@ export const EntityOrTypeIcon = ({
    * Pages at least can have an emoji set for the 'icon' property, overriding the type's icon
    */
   const emojiIcon =
-    (entity?.properties[
-      "https://hash.ai/@h/types/property-type/icon/" as BaseUrl
-    ] as string | undefined) ?? icon;
+    (entity?.properties["https://hash.ai/@h/types/property-type/icon/" as BaseUrl] as
+      | string
+      | undefined) ?? icon;
 
   return (
-    <Typography
-      fontSize={fontSize}
-      sx={[{ lineHeight: 1 }, ...(Array.isArray(sx) ? sx : [sx])]}
-    >
+    <Typography fontSize={fontSize} sx={[{ lineHeight: 1 }, ...(Array.isArray(sx) ? sx : [sx])]}>
       {emojiIcon}
     </Typography>
   );

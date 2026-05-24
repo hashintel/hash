@@ -12,8 +12,7 @@ export const App = () => {
       <Card.Header>
         <Card.Title>Living room Sofa</Card.Title>
         <Card.Description>
-          This sofa is perfect for modern tropical spaces, baroque inspired
-          spaces.
+          This sofa is perfect for modern tropical spaces, baroque inspired spaces.
         </Card.Description>
       </Card.Header>
       <Card.Body />

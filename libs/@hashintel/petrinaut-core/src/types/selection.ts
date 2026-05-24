@@ -34,9 +34,7 @@ export type PanelTarget =
   | { kind: "single"; item: SelectionItem }
   | { kind: "multi"; items: SelectionItem[] };
 
-export function parseArcId(
-  arcId: string,
-): { sourceId: string; targetId: string } | null {
+export function parseArcId(arcId: string): { sourceId: string; targetId: string } | null {
   if (!arcId.startsWith(ARC_ID_PREFIX)) {
     return null;
   }

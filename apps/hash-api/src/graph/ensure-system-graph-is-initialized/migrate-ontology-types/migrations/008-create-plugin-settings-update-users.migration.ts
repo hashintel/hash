@@ -18,16 +18,14 @@ import {
 import type { MigrationFunction } from "../types";
 import type { BaseUrl, EntityType } from "@blockprotocol/type-system";
 
-const migrate: MigrationFunction = async ({
-  context,
-  authentication,
-  migrationState,
-}) => {
+const migrate: MigrationFunction = async ({ context, authentication, migrationState }) => {
   /**
    * Step 1. Create the Browser Plugin Settings entity type
    */
-  const manualInferenceConfigurationPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const manualInferenceConfigurationPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Manual Inference Configuration",
         description: "Configuration for a manual entity inference feature",
@@ -35,50 +33,47 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
-  const automaticInferenceConfigurationPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
+  const automaticInferenceConfigurationPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
       propertyTypeDefinition: {
         title: "Automatic Inference Configuration",
-        description:
-          "Configuration for an automatic or passive entity inference feature",
+        description: "Configuration for an automatic or passive entity inference feature",
         possibleValues: [{ primitiveDataType: "object" }],
       },
       webShortname: "h",
       migrationState,
-    });
-
-  const popupTabPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Browser Plugin Tab",
-        description: "A tab in the HASH browser plugin",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
     },
   );
 
-  const draftNotePropertyType = await createSystemPropertyTypeIfNotExists(
+  const popupTabPropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Browser Plugin Tab",
+      description: "A tab in the HASH browser plugin",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    webShortname: "h",
+    migrationState,
+  });
+
+  const draftNotePropertyType = await createSystemPropertyTypeIfNotExists(context, authentication, {
+    propertyTypeDefinition: {
+      title: "Draft Note",
+      description: "A working draft of a text note",
+      possibleValues: [{ primitiveDataType: "text" }],
+    },
+    webShortname: "h",
+    migrationState,
+  });
+
+  const browserPluginSettingsEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
-      propertyTypeDefinition: {
-        title: "Draft Note",
-        description: "A working draft of a text note",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
-    },
-  );
-
-  const browserPluginSettingsEntityType =
-    await createSystemEntityTypeIfNotExists(context, authentication, {
       entityTypeDefinition: {
         title: "Browser Plugin Settings",
         titlePlural: "Browser Plugin Settings",
@@ -104,24 +99,21 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-    });
+    },
+  );
 
   /**
    * Step 2: Create the 'has' link
    */
-  const hasLinkEntityType = await createSystemEntityTypeIfNotExists(
-    context,
-    authentication,
-    {
-      entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Has",
-        description: "Something that something has",
-      },
-      webShortname: "h",
-      migrationState,
+  const hasLinkEntityType = await createSystemEntityTypeIfNotExists(context, authentication, {
+    entityTypeDefinition: {
+      allOf: [blockProtocolEntityTypes.link.entityTypeId],
+      title: "Has",
+      description: "Something that something has",
     },
-  );
+    webShortname: "h",
+    migrationState,
+  });
 
   /** Step 3: Update the User entity type to link to the Browser Plugin Settings entity type */
   const currentUserEntityTypeId = getCurrentHashSystemEntityTypeId({
@@ -129,19 +121,13 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const userEntityType = await getEntityTypeById(
-    context.graphApi,
-    authentication,
-    {
-      entityTypeId: currentUserEntityTypeId,
-      temporalAxes: currentTimeInstantTemporalAxes,
-    },
-  );
+  const userEntityType = await getEntityTypeById(context.graphApi, authentication, {
+    entityTypeId: currentUserEntityTypeId,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
 
   if (!userEntityType) {
-    throw new NotFoundError(
-      `Could not find entity type with ID ${currentUserEntityTypeId}`,
-    );
+    throw new NotFoundError(`Could not find entity type with ID ${currentUserEntityTypeId}`);
   }
 
   const newUserEntityTypeSchema: EntityType = {
@@ -157,12 +143,15 @@ const migrate: MigrationFunction = async ({
     },
   };
 
-  const { updatedEntityTypeId: updatedUserEntityTypeId } =
-    await updateSystemEntityType(context, authentication, {
+  const { updatedEntityTypeId: updatedUserEntityTypeId } = await updateSystemEntityType(
+    context,
+    authentication,
+    {
       currentEntityTypeId: currentUserEntityTypeId,
       migrationState,
       newSchema: newUserEntityTypeSchema,
-    });
+    },
+  );
 
   /** Step 4: Update the dependencies of entity types which we've updated above */
   await upgradeDependenciesInHashEntityType(context, authentication, {

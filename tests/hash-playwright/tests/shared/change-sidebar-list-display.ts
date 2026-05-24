@@ -34,9 +34,7 @@ export const changeSidebarListDisplay = async ({
   await expect(toggle).toBeVisible();
 
   const alreadyCorrect =
-    displayAs === "list"
-      ? await toggle.isChecked()
-      : !(await toggle.isChecked());
+    displayAs === "list" ? await toggle.isChecked() : !(await toggle.isChecked());
 
   if (!alreadyCorrect) {
     const patchDone = waitForUpdateEntity(page);
@@ -83,9 +81,7 @@ export const expandSidebarSection = async ({
   // The NavLink renders: <div> <div>…header…</div> <div class="MuiCollapse-root">…</div> </div>
   // The Collapse's previousElementSibling contains the section header text.
   const isCollapsed = await sidebar.evaluate((sidebarEl, sectionName) => {
-    const collapse = Array.from(
-      sidebarEl.querySelectorAll(".MuiCollapse-root"),
-    ).find((col) => {
+    const collapse = Array.from(sidebarEl.querySelectorAll(".MuiCollapse-root")).find((col) => {
       const text = col.previousElementSibling?.textContent;
       return text != null && text.trim().startsWith(sectionName);
     });

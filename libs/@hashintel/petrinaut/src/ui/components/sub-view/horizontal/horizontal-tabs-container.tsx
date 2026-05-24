@@ -65,11 +65,7 @@ interface TabButtonProps {
   onClick: () => void;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({
-  subView,
-  isActive,
-  onClick,
-}) => {
+const TabButton: React.FC<TabButtonProps> = ({ subView, isActive, onClick }) => {
   const tabId = `tab-${subView.id}`;
   const tabpanelId = `tabpanel-${subView.id}`;
 
@@ -120,8 +116,7 @@ export const HorizontalTabsHeaderAction: React.FC<{
   subViews: SubView[];
   activeTabId: string;
 }> = ({ subViews, activeTabId }) => {
-  const activeSubView =
-    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
+  const activeSubView = subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
 
   if (!activeSubView?.renderHeaderAction) {
     return null;
@@ -138,8 +133,7 @@ export const HorizontalTabsContent: React.FC<{
   subViews: SubView[];
   activeTabId: string;
 }> = ({ subViews, activeTabId }) => {
-  const activeSubView =
-    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
+  const activeSubView = subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
 
   if (!activeSubView) {
     return null;

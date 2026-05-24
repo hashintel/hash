@@ -82,9 +82,7 @@ export const useEntitiesTableData = ({
           )) {
             combinedVisibleDataTypeIdsByPropertyBaseUrl[baseUrl] ??= new Set();
             combinedVisibleDataTypeIdsByPropertyBaseUrl[baseUrl] =
-              combinedVisibleDataTypeIdsByPropertyBaseUrl[baseUrl].union(
-                dataTypeIds,
-              );
+              combinedVisibleDataTypeIdsByPropertyBaseUrl[baseUrl].union(dataTypeIds);
           }
 
           const combinedEntityTypesWithMultipleVersionsPresent = new Set([
@@ -95,10 +93,7 @@ export const useEntitiesTableData = ({
           const addedColumnIds: Set<string> = new Set();
           const combinedColumns: EntitiesTableColumn[] = [];
 
-          for (const column of [
-            ...currentTableData.columns,
-            ...resultFromRows.columns,
-          ]) {
+          for (const column of [...currentTableData.columns, ...resultFromRows.columns]) {
             if (addedColumnIds.has(column.id)) {
               continue;
             }
@@ -164,10 +159,8 @@ export const useEntitiesTableData = ({
 
               return 0;
             }),
-            entityTypesWithMultipleVersionsPresent:
-              combinedEntityTypesWithMultipleVersionsPresent,
-            visibleDataTypeIdsByPropertyBaseUrl:
-              combinedVisibleDataTypeIdsByPropertyBaseUrl,
+            entityTypesWithMultipleVersionsPresent: combinedEntityTypesWithMultipleVersionsPresent,
+            visibleDataTypeIdsByPropertyBaseUrl: combinedVisibleDataTypeIdsByPropertyBaseUrl,
             visibleRowsFilterData: {
               ...resultFromRows.visibleRowsFilterData,
               sources: combinedSourcesFilter,

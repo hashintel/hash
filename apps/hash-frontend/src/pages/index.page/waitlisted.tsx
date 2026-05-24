@@ -43,12 +43,7 @@ const SelfHostedAccessDenied = () => (
     <HomepageBigText>You do not have access</HomepageBigText>
     <HomepageBigText>to this instance</HomepageBigText>
     <HomepageSmallCaps>Sign up for hosted HASH instead</HomepageSmallCaps>
-    <Button
-      href="https://hash.ai/signup"
-      variant="primary"
-      size="small"
-      sx={{ borderRadius: 2 }}
-    >
+    <Button href="https://hash.ai/signup" variant="primary" size="small" sx={{ borderRadius: 2 }}>
       Create an account
       <ArrowRightRegularIcon sx={{ fontSize: 14, ml: 1 }} />
     </Button>
@@ -61,30 +56,25 @@ export const Waitlisted = () => {
     { skip: isSelfHostedInstance },
   );
 
-  const [earlyAccessFormState, setEarlyAccessFormState] = useState<
-    "closed" | "open" | "submitted"
-  >("closed");
+  const [earlyAccessFormState, setEarlyAccessFormState] = useState<"closed" | "open" | "submitted">(
+    "closed",
+  );
 
-  useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(
-    countEntitiesQuery,
-    {
-      variables: {
-        request: {
-          filter: generateVersionedUrlMatchingFilter(
-            systemEntityTypes.prospectiveUser.entityTypeId,
-          ),
-          includeDrafts: false,
-          temporalAxes: currentTimeInstantTemporalAxes,
-        },
-      },
-      fetchPolicy: "cache-and-network",
-      onCompleted: (data) => {
-        if (data.countEntities > 0) {
-          setEarlyAccessFormState("submitted");
-        }
+  useQuery<CountEntitiesQuery, CountEntitiesQueryVariables>(countEntitiesQuery, {
+    variables: {
+      request: {
+        filter: generateVersionedUrlMatchingFilter(systemEntityTypes.prospectiveUser.entityTypeId),
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
       },
     },
-  );
+    fetchPolicy: "cache-and-network",
+    onCompleted: (data) => {
+      if (data.countEntities > 0) {
+        setEarlyAccessFormState("submitted");
+      }
+    },
+  });
 
   const position = waitlistPositionData?.getWaitlistPosition;
 
@@ -128,8 +118,7 @@ export const Waitlisted = () => {
                 <Box
                   component="span"
                   sx={{
-                    color: ({ palette }) =>
-                      position ? palette.teal[60] : "inherit",
+                    color: ({ palette }) => (position ? palette.teal[60] : "inherit"),
                   }}
                 >
                   {position ? `#${position}` : "currently"}
@@ -138,10 +127,7 @@ export const Waitlisted = () => {
               <HomepageBigText>on the waitlist</HomepageBigText>
               <HomepageSmallCaps>
                 Stay tuned
-                <Box
-                  component="span"
-                  sx={{ color: ({ palette }) => palette.teal[60], ml: 0.8 }}
-                >
+                <Box component="span" sx={{ color: ({ palette }) => palette.teal[60], ml: 0.8 }}>
                   for access
                 </Box>
               </HomepageSmallCaps>
@@ -149,9 +135,7 @@ export const Waitlisted = () => {
             </HomepageCard>
             <HomepageCard>
               <HomepageBigText>Skip the wait </HomepageBigText>
-              <HomepageBigText
-                sx={{ color: ({ palette }) => palette.blue[70] }}
-              >
+              <HomepageBigText sx={{ color: ({ palette }) => palette.blue[70] }}>
                 get early access
               </HomepageBigText>
               <HomepageSmallCaps>Jump the queue</HomepageSmallCaps>
@@ -190,12 +174,8 @@ export const Waitlisted = () => {
           </>
         )}
         <HomepageCard wide={isSelfHostedInstance}>
-          <HomepageBigText sx={{ fontWeight: 400 }}>
-            Install the{" "}
-          </HomepageBigText>
-          <HomepageBigText
-            sx={{ color: ({ palette }) => palette.aqua[70], fontWeight: 700 }}
-          >
+          <HomepageBigText sx={{ fontWeight: 400 }}>Install the </HomepageBigText>
+          <HomepageBigText sx={{ color: ({ palette }) => palette.aqua[70], fontWeight: 700 }}>
             HASH extension
           </HomepageBigText>
           <HomepageSmallCaps>Get ready</HomepageSmallCaps>

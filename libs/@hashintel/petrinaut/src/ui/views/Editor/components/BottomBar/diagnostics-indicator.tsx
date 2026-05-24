@@ -57,9 +57,7 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
       tooltip="Show Diagnostics"
       onClick={onClick}
       ariaLabel={
-        hasErrors
-          ? `${totalDiagnosticsCount} diagnostic issues found`
-          : "No diagnostic issues"
+        hasErrors ? `${totalDiagnosticsCount} diagnostic issues found` : "No diagnostic issues"
       }
       ariaExpanded={isExpanded}
     >

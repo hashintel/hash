@@ -8,10 +8,7 @@ import {
   type PlayMode,
 } from "@hashintel/petrinaut-core";
 
-import type {
-  SimulationFrameReader,
-  SimulationFrameState,
-} from "../simulation/context";
+import type { SimulationFrameReader, SimulationFrameState } from "../simulation/context";
 
 // Re-export the locked enums/helpers so existing UI consumers don't need to
 // know they live in /core now.
@@ -137,6 +134,4 @@ const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
   setPlayMode: () => {},
 };
 
-export const PlaybackContext = createContext<PlaybackContextValue>(
-  DEFAULT_CONTEXT_VALUE,
-);
+export const PlaybackContext = createContext<PlaybackContextValue>(DEFAULT_CONTEXT_VALUE);

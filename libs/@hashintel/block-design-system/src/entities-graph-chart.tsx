@@ -13,12 +13,7 @@ import type {
   PropertyObject,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type {
-  Chart,
-  ECOption,
-  GraphEdge,
-  GraphNode,
-} from "@hashintel/design-system";
+import type { Chart, ECOption, GraphEdge, GraphNode } from "@hashintel/design-system";
 import type { BoxProps } from "@mui/material";
 
 export type EntityForGraphChart = {
@@ -31,10 +26,7 @@ export type EntityForGraphChart = {
 /**
  * @todo move generateEntityLabel to a publishable package (currently in @local/hash-isomorphic-utils)
  */
-const generateEntityLabel = (
-  _subgraph: Subgraph,
-  entity: EntityForGraphChart,
-) => {
+const generateEntityLabel = (_subgraph: Subgraph, entity: EntityForGraphChart) => {
   return entity.metadata.recordId.entityId;
 };
 
@@ -66,8 +58,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
   const nonLinkEntities = useMemo(
     () =>
       entities?.filter(
-        (entity) =>
-          !entity.linkData && (filterEntity ? filterEntity(entity) : true),
+        (entity) => !entity.linkData && (filterEntity ? filterEntity(entity) : true),
       ),
     [entities, filterEntity],
   );
@@ -84,13 +75,11 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
               !!entity.linkData &&
               nonLinkEntities.some(
                 (nonLinkEntity) =>
-                  entity.linkData!.leftEntityId ===
-                  nonLinkEntity.metadata.recordId.entityId,
+                  entity.linkData!.leftEntityId === nonLinkEntity.metadata.recordId.entityId,
               ) &&
               nonLinkEntities.some(
                 (nonLinkEntity) =>
-                  entity.linkData!.rightEntityId ===
-                  nonLinkEntity.metadata.recordId.entityId,
+                  entity.linkData!.rightEntityId === nonLinkEntity.metadata.recordId.entityId,
               ),
           )
         : undefined,
@@ -101,13 +90,10 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
     if (chart) {
       chart.on("click", (params) => {
         if (
-          (params.dataType === "node" &&
-            (params.data as GraphNode).category === "entity") ||
-          (params.dataType === "edge" &&
-            isEntityId((params.data as GraphEdge).target as string))
+          (params.dataType === "node" && (params.data as GraphNode).category === "entity") ||
+          (params.dataType === "edge" && isEntityId((params.data as GraphEdge).target as string))
         ) {
-          const entityId = (params.data as GraphNode | GraphEdge)
-            .id as EntityId;
+          const entityId = (params.data as GraphNode | GraphEdge).id as EntityId;
 
           onEntityClick?.(entityId);
         } else if (
@@ -206,10 +192,7 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
 
     for (const linkEntity of linkEntities ?? []) {
       for (const entityTypeId of linkEntity.metadata.entityTypeIds) {
-        const linkEntityType = getEntityTypeById(
-          subgraphWithTypes,
-          entityTypeId,
-        );
+        const linkEntityType = getEntityTypeById(subgraphWithTypes, entityTypeId);
 
         edges.push({
           /** @todo: figure out why the right entity is the source and not the target */
@@ -247,15 +230,11 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
 
             if (linkEntity) {
               const leftEntity = entities?.find(
-                ({ metadata }) =>
-                  metadata.recordId.entityId ===
-                  linkEntity.linkData.leftEntityId,
+                ({ metadata }) => metadata.recordId.entityId === linkEntity.linkData.leftEntityId,
               );
 
               const rightEntity = entities?.find(
-                ({ metadata }) =>
-                  metadata.recordId.entityId ===
-                  linkEntity.linkData.rightEntityId,
+                ({ metadata }) => metadata.recordId.entityId === linkEntity.linkData.rightEntityId,
               );
 
               const linkEntityTypeTitle = getEntityTypeById(
@@ -264,21 +243,13 @@ export const EntitiesGraphChart = <T extends EntityForGraphChart>({
               )?.schema.title;
 
               return [
-                `<strong>${generateEntityLabel(
-                  subgraphWithTypes,
-                  leftEntity!,
-                )}</strong>`,
+                `<strong>${generateEntityLabel(subgraphWithTypes, leftEntity!)}</strong>`,
                 linkEntityTypeTitle?.toLowerCase(),
-                `<strong>${generateEntityLabel(
-                  subgraphWithTypes,
-                  rightEntity!,
-                )}</strong>`,
+                `<strong>${generateEntityLabel(subgraphWithTypes, rightEntity!)}</strong>`,
               ].join(" ");
             }
           } else {
-            const entity = entities?.find(
-              ({ metadata }) => metadata.recordId.entityId === id,
-            );
+            const entity = entities?.find(({ metadata }) => metadata.recordId.entityId === id);
 
             if (entity) {
               const entityType = getEntityTypeById(

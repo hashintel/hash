@@ -3,11 +3,7 @@ import { useClickOutside, useDebouncedState, useHotkeys } from "@mantine/hooks";
 import { Box, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import {
-  getEntityTypeById,
-  getRoots,
-  isEntityRootedSubgraph,
-} from "@blockprotocol/graph/stdlib";
+import { getEntityTypeById, getRoots, isEntityRootedSubgraph } from "@blockprotocol/graph/stdlib";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -137,9 +133,7 @@ const EntityResult: FunctionComponent<{
     <Link
       onClick={onClick}
       noLinkStyle
-      href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
-        entityId,
-      )}`}
+      href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(entityId)}`}
     >
       <ResultItem>
         {generateEntityLabel(subgraph, entity)}
@@ -163,11 +157,7 @@ const EntityTypeResult: FunctionComponent<{
   onClick: () => void;
 }> = ({ entityType, onClick }) => {
   return (
-    <Link
-      onClick={onClick}
-      noLinkStyle
-      href={generateLinkParameters(entityType.$id)}
-    >
+    <Link onClick={onClick} noLinkStyle href={generateLinkParameters(entityType.$id)}>
       <ResultItem>
         {entityType.title}
         <Chip color="aqua" label="Entity Type" sx={chipStyles} />
@@ -284,28 +274,21 @@ export const SearchBar: FunctionComponent = () => {
   });
 
   const deserializedEntitySubgraph = entityResultData
-    ? deserializeSubgraph<EntityRootType<HashEntity>>(
-        entityResultData.queryEntitySubgraph.subgraph,
-      )
+    ? deserializeSubgraph<EntityRootType<HashEntity>>(entityResultData.queryEntitySubgraph.subgraph)
     : undefined;
 
   const entitySubgraph =
-    deserializedEntitySubgraph &&
-    isEntityRootedSubgraph(deserializedEntitySubgraph)
+    deserializedEntitySubgraph && isEntityRootedSubgraph(deserializedEntitySubgraph)
       ? deserializedEntitySubgraph
       : undefined;
   const entityResults = entitySubgraph ? getRoots(entitySubgraph) : [];
 
   const entityTypeResults =
-    (entityTypeResultData &&
-      entityTypeResultData.queryEntityTypes.entityTypes) ??
-    [];
+    (entityTypeResultData && entityTypeResultData.queryEntityTypes.entityTypes) ?? [];
 
   useHotkeys([["Escape", () => setResultListVisible(false)]]);
 
-  const boxRef = useClickOutside<HTMLDivElement>(() =>
-    setResultListVisible(false),
-  );
+  const boxRef = useClickOutside<HTMLDivElement>(() => setResultListVisible(false));
 
   const isLoading = entityTypesLoading || entitiesLoading;
 

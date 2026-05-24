@@ -71,9 +71,7 @@ interface SimulationControlsProps {
   disabled?: boolean;
 }
 
-export const SimulationControls: React.FC<SimulationControlsProps> = ({
-  disabled = false,
-}) => {
+export const SimulationControls: React.FC<SimulationControlsProps> = ({ disabled = false }) => {
   const { dt, state: simulationState, reset } = use(SimulationContext);
 
   const {
@@ -105,8 +103,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   // Disable play button when at the last frame and simulation is complete or errored
   const isAtLastFrame = totalFrames > 0 && frameIndex >= totalFrames - 1;
   const isPlayDisabled =
-    isDisabled ||
-    ((isSimulationComplete || isSimulationErrored) && isAtLastFrame);
+    isDisabled || ((isSimulationComplete || isSimulationErrored) && isAtLastFrame);
 
   const getPlayPauseTooltip = () => {
     if (isDisabled) {
@@ -184,11 +181,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         disabled={isPlayDisabled}
         ariaLabel={getPlayPauseAriaLabel()}
       >
-        {isPlaybackPlaying ? (
-          <Icon name="pauseFilled" />
-        ) : (
-          <Icon name="playFilled" />
-        )}
+        {isPlaybackPlaying ? <Icon name="pauseFilled" /> : <Icon name="playFilled" />}
       </ToolbarButton>
 
       {/* Frame controls - only visible when simulation exists */}
@@ -208,9 +201,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             max={Math.max(0, totalFrames - 1)}
             value={frameIndex}
             disabled={isDisabled}
-            onChange={(event) =>
-              setCurrentViewedFrame(Number(event.target.value))
-            }
+            onChange={(event) => setCurrentViewedFrame(Number(event.target.value))}
             className={sliderStyle}
           />
 

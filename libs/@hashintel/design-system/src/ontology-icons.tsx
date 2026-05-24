@@ -6,54 +6,30 @@ import { LinkIcon } from "./icon-link";
 import type { SvgIconProps } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const DataTypeIcon: FunctionComponent<SvgIconProps> = ({
-  sx,
-  ...props
-}) => (
+export const DataTypeIcon: FunctionComponent<SvgIconProps> = ({ sx, ...props }) => (
   <BarcodeIcon
-    sx={[
-      ({ palette }) => ({ fill: palette.pink[80] }),
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
+    sx={[({ palette }) => ({ fill: palette.pink[80] }), ...(Array.isArray(sx) ? sx : [sx])]}
     {...props}
   />
 );
 
-export const EntityTypeIcon: FunctionComponent<SvgIconProps> = ({
-  sx,
-  ...props
-}) => (
+export const EntityTypeIcon: FunctionComponent<SvgIconProps> = ({ sx, ...props }) => (
   <AsteriskRegularIcon
-    sx={[
-      ({ palette }) => ({ fill: palette.blue[70] }),
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
+    sx={[({ palette }) => ({ fill: palette.blue[70] }), ...(Array.isArray(sx) ? sx : [sx])]}
     {...props}
   />
 );
 
-export const LinkTypeIcon: FunctionComponent<SvgIconProps> = ({
-  sx,
-  ...props
-}) => (
+export const LinkTypeIcon: FunctionComponent<SvgIconProps> = ({ sx, ...props }) => (
   <LinkIcon
-    sx={[
-      ({ palette }) => ({ stroke: palette.aqua[60] }),
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
+    sx={[({ palette }) => ({ stroke: palette.aqua[60] }), ...(Array.isArray(sx) ? sx : [sx])]}
     {...props}
   />
 );
 
-export const PropertyTypeIcon: FunctionComponent<SvgIconProps> = ({
-  sx,
-  ...props
-}) => (
+export const PropertyTypeIcon: FunctionComponent<SvgIconProps> = ({ sx, ...props }) => (
   <InputPipeIcon
-    sx={[
-      ({ palette }) => ({ color: palette.purple[60] }),
-      ...(Array.isArray(sx) ? sx : [sx]),
-    ]}
+    sx={[({ palette }) => ({ color: palette.purple[60] }), ...(Array.isArray(sx) ? sx : [sx])]}
     {...props}
   />
 );

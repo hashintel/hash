@@ -5,11 +5,7 @@ import type { ClientMessage, ServerMessage } from "./protocol";
 export async function createLanguageServerWorker(): Promise<
   WorkerLike<ClientMessage, ServerMessage>
 > {
-  const LanguageServerWorker =
-    await import("./language-server.worker.ts?worker&inline");
+  const LanguageServerWorker = await import("./language-server.worker.ts?worker&inline");
   // eslint-disable-next-line new-cap
-  return new LanguageServerWorker.default() as WorkerLike<
-    ClientMessage,
-    ServerMessage
-  >;
+  return new LanguageServerWorker.default() as WorkerLike<ClientMessage, ServerMessage>;
 }

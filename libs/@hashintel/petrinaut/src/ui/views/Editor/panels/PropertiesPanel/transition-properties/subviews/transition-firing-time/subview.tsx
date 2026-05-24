@@ -80,10 +80,7 @@ const FiringTimeHeaderAction: React.FC = () => {
         {
           id: "generate-ai",
           label: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              display="inline"
-            >
+            <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON} display="inline">
               <div className={aiMenuItemStyle}>
                 <Icon name="sparkles" size="sm" />
                 Generate with AI
@@ -101,8 +98,7 @@ const FiringTimeHeaderAction: React.FC = () => {
 };
 
 const TransitionFiringTimeContent: React.FC = () => {
-  const { transition, isReadOnly, updateTransition } =
-    useTransitionPropertiesContext();
+  const { transition, isReadOnly, updateTransition } = useTransitionPropertiesContext();
 
   return (
     <div className={contentStyle}>

@@ -33,27 +33,20 @@ export const createHashInstance: ImpureGraphFunction<
   Promise<HashInstance>
 > = async (ctx, authentication, params) => {
   // Ensure the hash instance entity has not already been created.
-  const existingHashInstance = await getHashInstance(ctx, authentication).catch(
-    (error: Error) => {
-      if (error instanceof NotFoundError) {
-        return null;
-      }
-      throw error;
-    },
-  );
+  const existingHashInstance = await getHashInstance(ctx, authentication).catch((error: Error) => {
+    if (error instanceof NotFoundError) {
+      return null;
+    }
+    throw error;
+  });
 
   if (existingHashInstance) {
     throw new Error("HASH instance entity already exists.");
   }
 
-  const { id: teamId, webId } = await getInstanceAdminsTeam(
-    ctx,
-    authentication,
-  );
+  const { id: teamId, webId } = await getInstanceAdminsTeam(ctx, authentication);
 
-  logger.info(
-    `Retrieved account group for hash instance admins with id: ${teamId}`,
-  );
+  logger.info(`Retrieved account group for hash instance admins with id: ${teamId}`);
 
   const instantiationPolicy = await createPolicy(ctx.graphApi, authentication, {
     name: "tmp-hash-instance-instantiate",
@@ -80,39 +73,30 @@ export const createHashInstance: ImpureGraphFunction<
           "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
             value: params.pagesAreEnabled ?? true,
             metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             },
           },
-          "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/":
-            {
-              value: params.userSelfRegistrationIsEnabled ?? true,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-              },
+          "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/": {
+            value: params.userSelfRegistrationIsEnabled ?? true,
+            metadata: {
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             },
-          "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/":
-            {
-              value: params.userRegistrationByInviteIsEnabled ?? true,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-              },
+          },
+          "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/": {
+            value: params.userRegistrationByInviteIsEnabled ?? true,
+            metadata: {
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             },
-          "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/":
-            {
-              value: params.orgSelfRegistrationIsEnabled ?? true,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-              },
+          },
+          "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/": {
+            value: params.orgSelfRegistrationIsEnabled ?? true,
+            metadata: {
+              dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
             },
+          },
         },
       },
-      entityTypeIds: [
-        params.hashInstanceEntityTypeId,
-      ] as HashInstanceEntity["entityTypeIds"],
+      entityTypeIds: [params.hashInstanceEntityTypeId] as HashInstanceEntity["entityTypeIds"],
     });
 
     return getHashInstanceFromEntity({ entity });

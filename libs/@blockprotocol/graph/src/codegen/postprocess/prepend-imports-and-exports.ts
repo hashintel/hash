@@ -4,10 +4,7 @@ import { mustBeDefined } from "../../util/must-be-defined.js";
 
 import type { PostprocessContext } from "../context/postprocess.js";
 
-const inlineSort = <T>(
-  array: T[],
-  sortCallback: (a: T, b: T) => number,
-): T[] => {
+const inlineSort = <T>(array: T[], sortCallback: (a: T, b: T) => number): T[] => {
   array.sort(sortCallback);
   return array;
 };
@@ -22,8 +19,7 @@ export const prependImportsAndExports = (context: PostprocessContext): void => {
 
   for (const [file, dependentIdentifiers] of inlineSort(
     Object.entries(context.filesToDependentIdentifiers),
-    ([fileA, _dependenciesA], [fileB, _dependenciesB]) =>
-      fileA.localeCompare(fileB),
+    ([fileA, _dependenciesA], [fileB, _dependenciesB]) => fileA.localeCompare(fileB),
   )) {
     const localImportIdentifiersByPath: Record<string, string[]> = {};
     const externalImportIdentifiersByPath: Record<string, string[]> = {};
@@ -35,9 +31,7 @@ export const prependImportsAndExports = (context: PostprocessContext): void => {
       );
 
       if (!sourceDefinition.locallyImportable) {
-        if (
-          sourceDefinition.source.find((source) => source.definingPath === file)
-        ) {
+        if (sourceDefinition.source.find((source) => source.definingPath === file)) {
           continue;
         }
 
@@ -75,13 +69,9 @@ export const prependImportsAndExports = (context: PostprocessContext): void => {
 
       const identifiersString = identifiers.join(", ");
 
-      context.logTrace(
-        `Adding external imports for ${file}: ${identifiersString}`,
-      );
+      context.logTrace(`Adding external imports for ${file}: ${identifiersString}`);
 
-      importStatements.push(
-        `import { ${identifiersString} } from "${importPath}"\n`,
-      );
+      importStatements.push(`import { ${identifiersString} } from "${importPath}"\n`);
     }
 
     // Put a newline between external and local imports
@@ -96,13 +86,9 @@ export const prependImportsAndExports = (context: PostprocessContext): void => {
       identifiers.sort();
 
       const identifiersString = identifiers.join(", ");
-      context.logTrace(
-        `Adding local imports for ${file}: ${identifiersString}`,
-      );
+      context.logTrace(`Adding local imports for ${file}: ${identifiersString}`);
 
-      importStatements.push(
-        `import { ${identifiersString} } from "${importPath}"\n`,
-      );
+      importStatements.push(`import { ${identifiersString} } from "${importPath}"\n`);
 
       context.logTrace(
         `Adding re-exports of locally defined types for ${file}: ${identifiersString}`,

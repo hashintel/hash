@@ -22,9 +22,9 @@ export const logProgressSignal = defineSignal<[ProgressLogSignal]>(
 /**
  * Send a request for external input
  */
-export const externalInputRequestSignal = defineSignal<
-  [ExternalInputRequestSignal]
->("externalInputRequest" satisfies FlowSignalType);
+export const externalInputRequestSignal = defineSignal<[ExternalInputRequestSignal]>(
+  "externalInputRequest" satisfies FlowSignalType,
+);
 
 /**
  * State from which to restore the 'research entities' action, which can be reset to at the user's request.
@@ -46,9 +46,9 @@ export type ResearchActionCheckpointSignal = ProgressLogBase & {
   checkpointId: string;
 };
 
-export const researchActionCheckpointSignal = defineSignal<
-  [ResearchActionCheckpointSignal]
->("researchActionCheckpoint" satisfies FlowSignalType);
+export const researchActionCheckpointSignal = defineSignal<[ResearchActionCheckpointSignal]>(
+  "researchActionCheckpoint" satisfies FlowSignalType,
+);
 
 /**
  * Stop a HASH AI worker (not the Temporal worker)

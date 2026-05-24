@@ -17,10 +17,7 @@ import { useFlowRuns } from "../shared/use-flow-runs";
 import { ArrowUpToLineIcon } from "./infer-entities-action/arrow-up-to-line-icon";
 import { CreateEntityIcon } from "./infer-entities-action/create-entity-icon";
 
-import type {
-  GetTabContentRequest,
-  GetTabContentReturn,
-} from "../../../../../shared/messages";
+import type { GetTabContentRequest, GetTabContentReturn } from "../../../../../shared/messages";
 import type { LocalStorage } from "../../../../../shared/storage";
 import type { Tabs } from "webextension-polyfill";
 
@@ -33,8 +30,7 @@ export const InferEntitiesAction = ({
 }) => {
   const [manualInferenceConfig, setManualInferenceConfig] = useStorageSync(
     "manualInferenceConfig",
-    createDefaultSettings({ userWebWebId: user.webWebId })
-      .manualInferenceConfig,
+    createDefaultSettings({ userWebWebId: user.webWebId }).manualInferenceConfig,
   );
 
   const [showAdditionalConfig, setShowAdditionalConfig] = useState(false);
@@ -46,9 +42,7 @@ export const InferEntitiesAction = ({
   const pendingInferenceRequest = useMemo(
     () =>
       flowRuns.some(({ status, webPage }) => {
-        return (
-          webPage.url === activeTab?.url && status === FlowRunStatus.Running
-        );
+        return webPage.url === activeTab?.url && status === FlowRunStatus.Running;
       }),
     [activeTab, flowRuns],
   );
@@ -102,19 +96,11 @@ export const InferEntitiesAction = ({
           <EntityTypeSelector
             inputHeight="auto"
             multiple
-            popperPlacement={
-              user.enabledFeatureFlags.includes("notes") ? "top" : "bottom"
-            }
-            setTargetEntityTypeIds={({
-              selectedEntityTypeIds,
-              linkedEntityTypeIds,
-            }) =>
+            popperPlacement={user.enabledFeatureFlags.includes("notes") ? "top" : "bottom"}
+            setTargetEntityTypeIds={({ selectedEntityTypeIds, linkedEntityTypeIds }) =>
               setManualInferenceConfig({
                 ...manualInferenceConfig,
-                targetEntityTypeIds: [
-                  ...selectedEntityTypeIds,
-                  ...linkedEntityTypeIds,
-                ],
+                targetEntityTypeIds: [...selectedEntityTypeIds, ...linkedEntityTypeIds],
               })
             }
             targetEntityTypeIds={targetEntityTypeIds}

@@ -16,14 +16,11 @@ import * as RequestBody from "./RequestBody.js";
 import * as RequestFlags from "./RequestFlags.js";
 import * as RequestHeader from "./RequestHeader.js";
 
-const TypeId: unique symbol = Symbol(
-  "@local/harpc-client/wire-protocol/models/request/Request",
-);
+const TypeId: unique symbol = Symbol("@local/harpc-client/wire-protocol/models/request/Request");
 
 export type TypeId = typeof TypeId;
 
-export interface Request
-  extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
+export interface Request extends Equal.Equal, Inspectable.Inspectable, Pipeable.Pipeable {
   readonly [TypeId]: TypeId;
 
   readonly header: RequestHeader.RequestHeader;
@@ -73,10 +70,8 @@ const RequestProto: Omit<Request, "header" | "body"> = {
   },
 };
 
-export const make = (
-  header: RequestHeader.RequestHeader,
-  body: RequestBody.RequestBody,
-): Request => createProto(RequestProto, { header, body });
+export const make = (header: RequestHeader.RequestHeader, body: RequestBody.RequestBody): Request =>
+  createProto(RequestProto, { header, body });
 
 /**
  *
@@ -113,18 +108,13 @@ export const decode = implDecode((buffer) =>
     const header = yield* RequestHeader.decode(buffer);
     const isBegin = RequestFlags.isBeginOfRequest(header.flags);
 
-    const body = yield* RequestBody.decode(
-      isBegin ? "RequestBegin" : "RequestFrame",
-    )(buffer);
+    const body = yield* RequestBody.decode(isBegin ? "RequestBegin" : "RequestFrame")(buffer);
 
     return make(header, body);
   }),
 );
 
-export const isRequest = (value: unknown): value is Request =>
-  Predicate.hasProperty(value, TypeId);
+export const isRequest = (value: unknown): value is Request => Predicate.hasProperty(value, TypeId);
 
 export const arbitrary = (fc: typeof FastCheck) =>
-  fc
-    .tuple(RequestHeader.arbitrary(fc), RequestBody.arbitrary(fc))
-    .map(Function.tupled(make));
+  fc.tuple(RequestHeader.arbitrary(fc), RequestBody.arbitrary(fc)).map(Function.tupled(make));

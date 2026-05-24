@@ -9,9 +9,11 @@ export type BlockSettingsButtonProps = {
   expanded?: boolean;
 } & ButtonProps;
 
-export const BlockSettingsButton: FunctionComponent<
-  BlockSettingsButtonProps
-> = ({ expanded = false, sx, ...props }) => {
+export const BlockSettingsButton: FunctionComponent<BlockSettingsButtonProps> = ({
+  expanded = false,
+  sx,
+  ...props
+}) => {
   return (
     <Button
       {...props}

@@ -1,8 +1,5 @@
 /* eslint-disable no-param-reassign -- Monte Carlo frame buffers are mutable by design. */
-import type {
-  EngineFrameLayout,
-  EngineFrameView,
-} from "../frames/internal-frame";
+import type { EngineFrameLayout, EngineFrameView } from "../frames/internal-frame";
 
 export type MonteCarloFrameBuffer = {
   buffer: ArrayBuffer;
@@ -31,16 +28,12 @@ function createViews(
   layout: EngineFrameLayout,
   buffer: ArrayBuffer,
   tokenValueCapacity: number,
-): Omit<
-  MonteCarloFrameBuffer,
-  "buffer" | "tokenValueCapacity" | "tokenValueCount"
-> {
+): Omit<MonteCarloFrameBuffer, "buffer" | "tokenValueCapacity" | "tokenValueCount"> {
   const placeCount = layout.placeIds.length;
   const transitionCount = layout.transitionIds.length;
 
   const placeCountsOffset = 0;
-  const placeOffsetsOffset =
-    placeCountsOffset + placeCount * Uint32Array.BYTES_PER_ELEMENT;
+  const placeOffsetsOffset = placeCountsOffset + placeCount * Uint32Array.BYTES_PER_ELEMENT;
   const transitionElapsedOffset = alignTo(
     placeOffsetsOffset + placeCount * Uint32Array.BYTES_PER_ELEMENT,
     Float64Array.BYTES_PER_ELEMENT,
@@ -48,11 +41,9 @@ function createViews(
   const transitionElapsedFramesOffset =
     transitionElapsedOffset + transitionCount * Float64Array.BYTES_PER_ELEMENT;
   const transitionFiringCountsOffset =
-    transitionElapsedFramesOffset +
-    transitionCount * Float64Array.BYTES_PER_ELEMENT;
+    transitionElapsedFramesOffset + transitionCount * Float64Array.BYTES_PER_ELEMENT;
   const transitionFiredFlagsOffset =
-    transitionFiringCountsOffset +
-    transitionCount * Uint32Array.BYTES_PER_ELEMENT;
+    transitionFiringCountsOffset + transitionCount * Uint32Array.BYTES_PER_ELEMENT;
   const tokenValuesOffset = alignTo(
     transitionFiredFlagsOffset + transitionCount * Uint8Array.BYTES_PER_ELEMENT,
     Float64Array.BYTES_PER_ELEMENT,
@@ -61,31 +52,15 @@ function createViews(
   return {
     placeCounts: new Uint32Array(buffer, placeCountsOffset, placeCount),
     placeOffsets: new Uint32Array(buffer, placeOffsetsOffset, placeCount),
-    transitionElapsed: new Float64Array(
-      buffer,
-      transitionElapsedOffset,
-      transitionCount,
-    ),
+    transitionElapsed: new Float64Array(buffer, transitionElapsedOffset, transitionCount),
     transitionElapsedFrames: new Float64Array(
       buffer,
       transitionElapsedFramesOffset,
       transitionCount,
     ),
-    transitionFiringCounts: new Uint32Array(
-      buffer,
-      transitionFiringCountsOffset,
-      transitionCount,
-    ),
-    transitionFiredFlags: new Uint8Array(
-      buffer,
-      transitionFiredFlagsOffset,
-      transitionCount,
-    ),
-    tokenValues: new Float64Array(
-      buffer,
-      tokenValuesOffset,
-      tokenValueCapacity,
-    ),
+    transitionFiringCounts: new Uint32Array(buffer, transitionFiringCountsOffset, transitionCount),
+    transitionFiredFlags: new Uint8Array(buffer, transitionFiredFlagsOffset, transitionCount),
+    tokenValues: new Float64Array(buffer, tokenValuesOffset, tokenValueCapacity),
   };
 }
 
@@ -103,10 +78,7 @@ export function getMonteCarloFrameBufferByteLength(
   const placeCount = layout.placeIds.length;
   const transitionCount = layout.transitionIds.length;
   const placeBytes = placeCount * Uint32Array.BYTES_PER_ELEMENT * 2;
-  const transitionElapsedOffset = alignTo(
-    placeBytes,
-    Float64Array.BYTES_PER_ELEMENT,
-  );
+  const transitionElapsedOffset = alignTo(placeBytes, Float64Array.BYTES_PER_ELEMENT);
   const transitionBytes =
     transitionCount * Float64Array.BYTES_PER_ELEMENT +
     transitionCount * Float64Array.BYTES_PER_ELEMENT +
@@ -117,9 +89,7 @@ export function getMonteCarloFrameBufferByteLength(
     Float64Array.BYTES_PER_ELEMENT,
   );
 
-  return (
-    tokenValuesOffset + tokenValueCapacity * Float64Array.BYTES_PER_ELEMENT
-  );
+  return tokenValuesOffset + tokenValueCapacity * Float64Array.BYTES_PER_ELEMENT;
 }
 
 /**
@@ -134,9 +104,7 @@ export function createMonteCarloFrameBuffer(
   tokenValueCapacity: number,
 ): MonteCarloFrameBuffer {
   const normalizedCapacity = Math.max(0, Math.ceil(tokenValueCapacity));
-  const buffer = new ArrayBuffer(
-    getMonteCarloFrameBufferByteLength(layout, normalizedCapacity),
-  );
+  const buffer = new ArrayBuffer(getMonteCarloFrameBufferByteLength(layout, normalizedCapacity));
 
   return {
     buffer,
@@ -169,9 +137,7 @@ export function copyMonteCarloFrameBuffer(
   target.transitionElapsed.set(source.transitionElapsed);
   target.transitionFiringCounts.set(source.transitionFiringCounts);
   target.transitionFiredFlags.set(source.transitionFiredFlags);
-  target.tokenValues.set(
-    source.tokenValues.subarray(0, source.tokenValueCount),
-  );
+  target.tokenValues.set(source.tokenValues.subarray(0, source.tokenValueCount));
   target.tokenValueCount = source.tokenValueCount;
 }
 
@@ -231,17 +197,12 @@ export function copyEngineFrameViewToMonteCarloFrameBuffer(
       throw new Error(`Transition ${transitionId} not found in source frame`);
     }
 
-    const elapsedFrames = Math.max(
-      0,
-      Math.round(transitionState.timeSinceLastFiringMs / dt),
-    );
+    const elapsedFrames = Math.max(0, Math.round(transitionState.timeSinceLastFiringMs / dt));
 
     target.transitionElapsedFrames[index] = elapsedFrames;
     target.transitionElapsed[index] = elapsedFrames * dt;
     target.transitionFiringCounts[index] = transitionState.firingCount;
-    target.transitionFiredFlags[index] = transitionState.firedInThisFrame
-      ? 1
-      : 0;
+    target.transitionFiredFlags[index] = transitionState.firedInThisFrame ? 1 : 0;
   }
 
   target.tokenValues.set(source.tokenValues);

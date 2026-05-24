@@ -15,9 +15,7 @@ const FlowDefinitionPage: NextPageWithLayout = () => {
   const routeFlowDefinitionId = query["flow-def-id"] as EntityUuid;
 
   return (
-    <FlowDefinitionsContextProvider
-      selectedFlowDefinitionId={routeFlowDefinitionId}
-    >
+    <FlowDefinitionsContextProvider selectedFlowDefinitionId={routeFlowDefinitionId}>
       <FlowRunsContextProvider selectedFlowRunId={null}>
         <FlowVisualizer />
       </FlowRunsContextProvider>

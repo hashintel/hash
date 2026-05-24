@@ -31,14 +31,9 @@ export const SelectOrNameGoogleSheet = ({
 
   const { addGoogleAccount, getAccessToken } = authContext;
 
-  const newSheetName =
-    googleSheet && "newSheetName" in googleSheet
-      ? googleSheet.newSheetName
-      : "";
+  const newSheetName = googleSheet && "newSheetName" in googleSheet ? googleSheet.newSheetName : "";
   const existingSpreadsheetId =
-    googleSheet && "spreadsheetId" in googleSheet
-      ? googleSheet.spreadsheetId
-      : null;
+    googleSheet && "spreadsheetId" in googleSheet ? googleSheet.spreadsheetId : null;
 
   return (
     <>
@@ -49,9 +44,7 @@ export const SelectOrNameGoogleSheet = ({
           close={() => setShowReauthModal(false)}
           type="info"
         >
-          <Typography>
-            Please log in with Google again to continue setting up the flow.
-          </Typography>
+          <Typography>Please log in with Google again to continue setting up the flow.</Typography>
         </AlertModal>
       )}
       {accessToken && (

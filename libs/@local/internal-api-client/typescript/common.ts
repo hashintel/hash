@@ -63,10 +63,7 @@ export const setApiKeyToObject = async function (
  *
  * @export
  */
-export const setBasicAuthToObject = function (
-  object: any,
-  configuration?: Configuration,
-) {
+export const setBasicAuthToObject = function (object: any, configuration?: Configuration) {
   if (configuration && (configuration.username || configuration.password)) {
     object["auth"] = {
       username: configuration.username,
@@ -79,10 +76,7 @@ export const setBasicAuthToObject = function (
  *
  * @export
  */
-export const setBearerAuthToObject = async function (
-  object: any,
-  configuration?: Configuration,
-) {
+export const setBearerAuthToObject = async function (object: any, configuration?: Configuration) {
   if (configuration && configuration.accessToken) {
     const accessToken =
       typeof configuration.accessToken === "function"
@@ -146,9 +140,7 @@ export const serializeDataIfNeeded = function (
     nonString && configuration && configuration.isJsonMime
       ? configuration.isJsonMime(requestOptions.headers["Content-Type"])
       : nonString;
-  return needsSerialization
-    ? JSON.stringify(value !== undefined ? value : {})
-    : value || "";
+  return needsSerialization ? JSON.stringify(value !== undefined ? value : {}) : value || "";
 };
 
 /**

@@ -8,10 +8,7 @@ import { useFetchEntityTypes } from "../../../../shared/entity-types-context/hoo
 import { BoxArchiveIcon } from "../../../../shared/icons/box-archive-icon";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { MenuItem } from "../../../../shared/ui/menu-item";
-import {
-  isItemEntityType,
-  useContextBarActionsContext,
-} from "../../../shared/top-context-bar";
+import { isItemEntityType, useContextBarActionsContext } from "../../../shared/top-context-bar";
 
 import type {
   ArchiveEntityTypeMutation,
@@ -51,14 +48,7 @@ export const ArchiveMenuItem: FunctionComponent<{
     }
     onItemChange();
     closeContextMenu();
-  }, [
-    closeContextMenu,
-    item,
-    archiveEntityType,
-    archivePage,
-    onItemChange,
-    refetchEntityTypes,
-  ]);
+  }, [closeContextMenu, item, archiveEntityType, archivePage, onItemChange, refetchEntityTypes]);
 
   return (
     <MenuItem onClick={handleArchive}>
@@ -67,11 +57,7 @@ export const ArchiveMenuItem: FunctionComponent<{
       </ListItemIcon>
       <ListItemText
         primary={`Archive ${
-          isItemEntityType(item)
-            ? "type"
-            : isEntityPageEntity(item)
-              ? "page"
-              : "entity"
+          isItemEntityType(item) ? "type" : isEntityPageEntity(item) ? "page" : "entity"
         }`}
       />
     </MenuItem>

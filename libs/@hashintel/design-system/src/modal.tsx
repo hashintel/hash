@@ -4,11 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { fluidFontClassName } from "./fluid-fonts";
 
-import type {
-  ModalProps as MuiModalProps,
-  SxProps,
-  Theme,
-} from "@mui/material";
+import type { ModalProps as MuiModalProps, SxProps, Theme } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 export type ModalProps = MuiModalProps & {

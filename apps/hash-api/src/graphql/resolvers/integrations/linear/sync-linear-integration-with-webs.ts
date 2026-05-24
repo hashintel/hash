@@ -17,16 +17,9 @@ import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/sy
 import { Linear } from "../../../../integrations/linear";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
-import type {
-  MutationSyncLinearIntegrationWithWebsArgs,
-  ResolverFn,
-} from "../../../api-types.gen";
+import type { MutationSyncLinearIntegrationWithWebsArgs, ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
-import type {
-  ActorEntityUuid,
-  Entity,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, Entity, WebId } from "@blockprotocol/type-system";
 
 export const syncLinearIntegrationWithWebsMutation: ResolverFn<
   Promise<Entity>,
@@ -42,13 +35,9 @@ export const syncLinearIntegrationWithWebsMutation: ResolverFn<
 
   const impureGraphContext = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const linearIntegration = await getLinearIntegrationById(
-    impureGraphContext,
-    authentication,
-    {
-      entityId: linearIntegrationEntityId,
-    },
-  );
+  const linearIntegration = await getLinearIntegrationById(impureGraphContext, authentication, {
+    entityId: linearIntegrationEntityId,
+  });
 
   const userAccountId = extractWebIdFromEntityId(
     linearIntegration.entity.metadata.recordId.entityId,
@@ -85,44 +74,31 @@ export const syncLinearIntegrationWithWebsMutation: ResolverFn<
 
   const duplicateWorkspaceSyncsToRemove = existingSyncedWebs.filter(
     ({ webEntity }) =>
-      !syncWithWebs.some(
-        ({ webEntityId }) =>
-          webEntity.metadata.recordId.entityId === webEntityId,
-      ),
+      !syncWithWebs.some(({ webEntityId }) => webEntity.metadata.recordId.entityId === webEntityId),
   );
 
-  const linearBotAccountId = await getMachineIdByIdentifier(
-    impureGraphContext,
-    authentication,
-    { identifier: "linear" },
-  );
+  const linearBotAccountId = await getMachineIdByIdentifier(impureGraphContext, authentication, {
+    identifier: "linear",
+  });
 
   if (!linearBotAccountId) {
     throw new NotFoundError("Failed to get linear bot");
   }
 
   await Promise.all([
-    ...duplicateWorkspaceSyncsToRemove.map(
-      async ({ syncLinearDataWithLinkEntity, webEntity }) => {
-        if (
-          webEntity.metadata.entityTypeIds.includes(
-            systemEntityTypes.organization.entityTypeId,
-          )
-        ) {
-          /** @todo: remove system account id as account group member if there are no other integrations */
-        }
+    ...duplicateWorkspaceSyncsToRemove.map(async ({ syncLinearDataWithLinkEntity, webEntity }) => {
+      if (webEntity.metadata.entityTypeIds.includes(systemEntityTypes.organization.entityTypeId)) {
+        /** @todo: remove system account id as account group member if there are no other integrations */
+      }
 
-        return syncLinearDataWithLinkEntity.archive(
-          impureGraphContext.graphApi,
-          authentication,
-          provenance,
-        );
-      },
-    ),
+      return syncLinearDataWithLinkEntity.archive(
+        impureGraphContext.graphApi,
+        authentication,
+        provenance,
+      );
+    }),
     ...syncWithWebs.map(async ({ webEntityId, linearTeamIds }) => {
-      const webId = extractEntityUuidFromEntityId(
-        webEntityId,
-      ) as string as WebId;
+      const webId = extractEntityUuidFromEntityId(webEntityId) as string as WebId;
 
       const userOrOrganizationEntity = await getLatestEntityById(
         impureGraphContext,

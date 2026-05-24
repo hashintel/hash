@@ -12,16 +12,7 @@ export default {
   argTypes: {
     colorScheme: {
       control: { type: "select" },
-      options: [
-        "gray",
-        "brand",
-        "green",
-        "orange",
-        "red",
-        "purple",
-        "pink",
-        "yellow",
-      ],
+      options: ["gray", "brand", "green", "orange", "red", "purple", "pink", "yellow"],
       description: "The color scheme of the badge",
     },
     size: {
@@ -233,12 +224,7 @@ export const AllCombinations: Story<BadgeProps> = () => {
             </Badge>
           ))}
           {sizes.map((size) => (
-            <Badge
-              key={`${size}-square`}
-              colorScheme={color}
-              size={size}
-              isSquare
-            >
+            <Badge key={`${size}-square`} colorScheme={color} size={size} isSquare>
               2
             </Badge>
           ))}

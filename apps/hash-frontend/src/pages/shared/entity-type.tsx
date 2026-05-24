@@ -44,10 +44,7 @@ import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { NotFound } from "./not-found";
 import { inSlideContainerStyles } from "./shared/slide-styles";
 import { TypeEditorSkeleton } from "./shared/type-editor-skeleton";
-import {
-  TypeDefinitionContainer,
-  typeHeaderContainerStyles,
-} from "./shared/type-editor-styling";
+import { TypeDefinitionContainer, typeHeaderContainerStyles } from "./shared/type-editor-styling";
 import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
@@ -92,10 +89,7 @@ const TypeDefinition = ({
   entityTypeBaseUrl: BaseUrl | null;
   isFile: boolean;
   isImage: boolean;
-  onNavigateToType: (
-    kind: "entityType" | "dataType",
-    url: VersionedUrl,
-  ) => void;
+  onNavigateToType: (kind: "entityType" | "dataType", url: VersionedUrl) => void;
   readonly: boolean;
 }) => {
   const { tab } = useEntityTypeTab();
@@ -183,17 +177,15 @@ export const EntityType = ({
   const isDirty = Object.keys(formMethods.formState.dirtyFields).length > 0;
   const isDraft = !!draftEntityType;
 
-  const { userPermissions, loading: loadingUserPermissions } =
-    useUserPermissionsOnEntityType(
-      isDraft ? undefined : entityType?.schema.$id,
-    );
+  const { userPermissions, loading: loadingUserPermissions } = useUserPermissionsOnEntityType(
+    isDraft ? undefined : entityType?.schema.$id,
+  );
 
   const [entityTypeDependents, setEntityTypeDependents] = useState<
     Record<BaseUrl, EntityTypeDependent>
   >({});
 
-  const [dependentsExcludedFromUpgrade, setDependentsExcludedFromUpgrade] =
-    useState<BaseUrl[]>([]);
+  const [dependentsExcludedFromUpgrade, setDependentsExcludedFromUpgrade] = useState<BaseUrl[]>([]);
 
   const { upgradableDependencies, entityTypesToUpgrade } = useMemo(
     () => ({
@@ -209,8 +201,7 @@ export const EntityType = ({
     [entityTypeDependents],
   );
 
-  const [showDependencyUpgradeModal, setShowDependencyUpgradeModal] =
-    useState(false);
+  const [showDependencyUpgradeModal, setShowDependencyUpgradeModal] = useState(false);
 
   const { getEntityTypeDependents, loading } = useGetEntityTypeDependents();
 
@@ -249,9 +240,7 @@ export const EntityType = ({
       reset(data);
     } else {
       if (!remoteEntityType) {
-        throw new Error(
-          "Cannot update entity type without existing entityType schema",
-        );
+        throw new Error("Cannot update entity type without existing entityType schema");
       }
 
       if (upgradableDependencies.length && !showDependencyUpgradeModal) {
@@ -263,9 +252,7 @@ export const EntityType = ({
 
       const currentEntityTypeId = entityType?.schema.$id;
       if (!currentEntityTypeId) {
-        throw new Error(
-          "Cannot update entity type without existing entityType schema",
-        );
+        throw new Error("Cannot update entity type without existing entityType schema");
       }
 
       /**
@@ -295,10 +282,7 @@ export const EntityType = ({
 
   const titleWrapperRef = useRef<HTMLDivElement>(null);
 
-  const onNavigateToType = (
-    kind: "entityType" | "dataType",
-    url: VersionedUrl,
-  ) => {
+  const onNavigateToType = (kind: "entityType" | "dataType", url: VersionedUrl) => {
     if (entityType && url === entityType.schema.$id) {
       titleWrapperRef.current?.scrollIntoView({ behavior: "smooth" });
     } else {
@@ -316,8 +300,8 @@ export const EntityType = ({
             External type not found in database
           </Typography>
           <Typography mb={3}>
-            This type wasn't created in this instance of HASH and isn't in use
-            by any types or entities in it.
+            This type wasn't created in this instance of HASH and isn't in use by any types or
+            entities in it.
           </Typography>
         </Container>
       );
@@ -344,9 +328,7 @@ export const EntityType = ({
     }
 
     if (!remoteEntityType) {
-      throw new Error(
-        "Cannot update entity type without existing entityType schema",
-      );
+      throw new Error("Cannot update entity type without existing entityType schema");
     }
 
     setShowDependencyUpgradeModal(false);
@@ -371,10 +353,7 @@ export const EntityType = ({
     const res = await updateEntityTypes(
       {
         ...rootType,
-        allOf: [
-          { $ref: blockProtocolEntityTypes.link.entityTypeId },
-          ...(rootType.allOf ?? []),
-        ],
+        allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }, ...(rootType.allOf ?? [])],
       },
       dependents,
     );
@@ -396,9 +375,7 @@ export const EntityType = ({
 
   return (
     <>
-      {!isInSlide && (
-        <NextSeo title={`${entityType.schema.title} | Entity Type`} />
-      )}
+      {!isInSlide && <NextSeo title={`${entityType.schema.title} | Entity Type`} />}
       <UpgradeDependentsModal
         dependents={entityTypeDependents}
         excludedDependencies={dependentsExcludedFromUpgrade}

@@ -35,16 +35,13 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const [linearOrganization, setLinearOrganization] =
-    useState<LinearOrganizationTeamsWithWebs>();
+  const [linearOrganization, setLinearOrganization] = useState<LinearOrganizationTeamsWithWebs>();
 
-  const [
-    syncLinearIntegrationWithWebs,
-    { loading: loadingSyncLinearIntegrationWithWorkspaces },
-  ] = useMutation<
-    SyncLinearIntegrationWithWebsMutation,
-    SyncLinearIntegrationWithWebsMutationVariables
-  >(syncLinearIntegrationWithWebsMutation);
+  const [syncLinearIntegrationWithWebs, { loading: loadingSyncLinearIntegrationWithWorkspaces }] =
+    useMutation<
+      SyncLinearIntegrationWithWebsMutation,
+      SyncLinearIntegrationWithWebsMutationVariables
+    >(syncLinearIntegrationWithWebsMutation);
 
   const [getLinearOrganization] = useLazyQuery<
     GetLinearOrganizationQuery,
@@ -64,8 +61,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
       }
 
       const linearIntegration = linearIntegrations.find(
-        ({ entity }) =>
-          entity.metadata.recordId.entityId === linearIntegrationEntityId,
+        ({ entity }) => entity.metadata.recordId.entityId === linearIntegrationEntityId,
       );
 
       if (!linearIntegration) {
@@ -73,9 +69,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         return;
       }
 
-      const { linearOrgId } = simplifyProperties(
-        linearIntegration.entity.properties,
-      );
+      const { linearOrgId } = simplifyProperties(linearIntegration.entity.properties);
 
       const { data } = await getLinearOrganization({
         variables: { linearOrgId },
@@ -93,18 +87,10 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         throw new Error("Could not get linear organization");
       }
     })();
-  }, [
-    linearIntegrations,
-    linearIntegrationEntityId,
-    router,
-    getLinearOrganization,
-  ]);
+  }, [linearIntegrations, linearIntegrationEntityId, router, getLinearOrganization]);
 
   const possibleWorkspaces = useMemo(
-    () => [
-      authenticatedUser,
-      ...authenticatedUser.memberOf.map(({ org }) => org),
-    ],
+    () => [authenticatedUser, ...authenticatedUser.memberOf.map(({ org }) => org)],
     [authenticatedUser],
   );
 
@@ -133,10 +119,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
   ]);
 
   return (
-    <SettingsPageContainer
-      heading={<LinearHeader />}
-      sectionLabel="Set up connection"
-    >
+    <SettingsPageContainer heading={<LinearHeader />} sectionLabel="Set up connection">
       {linearOrganization ? (
         <>
           <SelectLinearTeamsTable
@@ -147,13 +130,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
                 : setLinearOrganization(update[0])
             }
           />
-          <Box
-            display="flex"
-            justifyContent="flex-end"
-            columnGap={2}
-            py={2}
-            px={3}
-          >
+          <Box display="flex" justifyContent="flex-end" columnGap={2} py={2} px={3}>
             <Button variant="tertiary" size="small">
               Exit without granting access
             </Button>
@@ -168,9 +145,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         </>
       ) : (
         <Box p={2}>
-          <Typography variant="smallTextParagraphs">
-            Connecting to Linear...
-          </Typography>
+          <Typography variant="smallTextParagraphs">Connecting to Linear...</Typography>
         </Box>
       )}
     </SettingsPageContainer>

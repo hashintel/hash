@@ -8,9 +8,7 @@ import { radioCardGroupSlotRecipe } from "./radio-card-group.recipe";
 
 import type { ComponentProps } from "react";
 
-const { withProvider, withContext } = createStyleContext(
-  radioCardGroupSlotRecipe,
-);
+const { withProvider, withContext } = createStyleContext(radioCardGroupSlotRecipe);
 
 export type RootProps = ComponentProps<typeof Root>;
 export const Root = withProvider(RadioGroup.Root, "root");

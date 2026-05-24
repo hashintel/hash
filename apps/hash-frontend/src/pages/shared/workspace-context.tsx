@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { localStorageKeys } from "../../lib/config";
 import { useAuthInfo } from "./auth-info-context";
@@ -22,14 +15,11 @@ export type WorkspaceContextValue = {
 };
 
 const defaultWorkspaceContextValue: WorkspaceContextValue = {
-  updateActiveWorkspaceWebId: (_updateActiveWorkspaceWebId: string) =>
-    undefined,
+  updateActiveWorkspaceWebId: (_updateActiveWorkspaceWebId: string) => undefined,
   refetchActiveWorkspace: () => Promise.resolve(),
 };
 
-export const WorkspaceContext = createContext<WorkspaceContextValue>(
-  defaultWorkspaceContextValue,
-);
+export const WorkspaceContext = createContext<WorkspaceContextValue>(defaultWorkspaceContextValue);
 
 export const useActiveWorkspace = () => {
   return useContext(WorkspaceContext);
@@ -42,16 +32,10 @@ export const WorkspaceContextProvider: FunctionComponent<{
 
   const [activeWorkspaceWebId, setActiveWorkspaceWebId] = useState<WebId>();
 
-  const updateActiveWorkspaceWebId = useCallback(
-    (updatedActiveWorkspaceWebId: WebId) => {
-      localStorage.setItem(
-        localStorageKeys.workspaceWebId,
-        updatedActiveWorkspaceWebId,
-      );
-      setActiveWorkspaceWebId(updatedActiveWorkspaceWebId);
-    },
-    [],
-  );
+  const updateActiveWorkspaceWebId = useCallback((updatedActiveWorkspaceWebId: WebId) => {
+    localStorage.setItem(localStorageKeys.workspaceWebId, updatedActiveWorkspaceWebId);
+    setActiveWorkspaceWebId(updatedActiveWorkspaceWebId);
+  }, []);
 
   useEffect(() => {
     if (!activeWorkspaceWebId) {
@@ -59,9 +43,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
        * Initialize the `activeWorkspaceWebId` with what has been persisted
        * in `localStorage` (if anything)
        */
-      const localStorageInitialValue = localStorage.getItem(
-        localStorageKeys.workspaceWebId,
-      );
+      const localStorageInitialValue = localStorage.getItem(localStorageKeys.workspaceWebId);
 
       if (localStorageInitialValue) {
         setActiveWorkspaceWebId(localStorageInitialValue as WebId);
@@ -79,9 +61,8 @@ export const WorkspaceContextProvider: FunctionComponent<{
     const activeWorkspace =
       authenticatedUser && authenticatedUser.accountId === activeWorkspaceWebId
         ? authenticatedUser
-        : authenticatedUser?.memberOf.find(
-            ({ org: { webId } }) => webId === activeWorkspaceWebId,
-          )?.org;
+        : authenticatedUser?.memberOf.find(({ org: { webId } }) => webId === activeWorkspaceWebId)
+            ?.org;
 
     /**
      * If there is an `activeWorkspaceWebId` and an `authenticatedUser`, but
@@ -98,16 +79,9 @@ export const WorkspaceContextProvider: FunctionComponent<{
       updateActiveWorkspaceWebId,
       refetchActiveWorkspace: () => refetch().then(() => undefined),
     };
-  }, [
-    authenticatedUser,
-    activeWorkspaceWebId,
-    updateActiveWorkspaceWebId,
-    refetch,
-  ]);
+  }, [authenticatedUser, activeWorkspaceWebId, updateActiveWorkspaceWebId, refetch]);
 
   return (
-    <WorkspaceContext.Provider value={workspaceContextValue}>
-      {children}
-    </WorkspaceContext.Provider>
+    <WorkspaceContext.Provider value={workspaceContextValue}>{children}</WorkspaceContext.Provider>
   );
 };
