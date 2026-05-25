@@ -140,13 +140,22 @@ const toolHeaderIconStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  width: "[16px]",
-  height: "[16px]",
+  width: "[14px]",
+  height: "[14px]",
   borderRadius: "full",
   backgroundColor: "[#2a80c8]",
   color: "white",
   boxShadow: "[0px 0px 0px 1px white]",
   flexShrink: 0,
+  // The `arrow-right-arrow-left` glyph fills more of its 640×640 viewBox than
+  // the other tool-status icons (check/close), so even at `size="xs"` (12px)
+  // it looks crowded inside the 14px circle. Pull the inner svg back to a
+  // tighter visual size — descendant selector wins over the Icon recipe's
+  // own class-level width/height.
+  "& svg": {
+    width: "[9px]",
+    height: "[9px]",
+  },
 });
 
 const toolItemStyle = cva({

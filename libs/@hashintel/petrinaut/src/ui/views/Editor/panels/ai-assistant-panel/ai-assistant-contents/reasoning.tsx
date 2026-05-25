@@ -2,8 +2,8 @@ import { Collapsible } from "@ark-ui/react/collapsible";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
-import { Icon, LoadingSpinner } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { Icon } from "@hashintel/ds-components";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 import { markdownStyle } from "./shared/markdown-style";
@@ -27,7 +27,7 @@ const reasoningHeaderStyle = css({
   gap: "2",
   width: "full",
   height: "8",
-  paddingX: "2",
+  paddingX: "1",
   border: "none",
   borderRadius: "lg",
   backgroundColor: "[transparent]",
@@ -61,21 +61,60 @@ const reasoningHeadingStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  color: "neutral.s70",
+  color: "neutral.s80",
   fontWeight: "normal",
 });
 
-const reasoningBodyStyle = css({
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.a30",
-  borderRadius: "md",
-  backgroundColor: "neutral.s10",
-  padding: "2",
-  color: "neutral.s90",
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "[1.5]",
+// The elapsed-time span sits between two flexible siblings; without an
+// explicit `flex-shrink: 0` and `nowrap` it can collapse to zero width once
+// the heading appears and consumes the label-group's `flex: 1` budget.
+const reasoningElapsedStyle = css({
+  flexShrink: "[0]",
+  whiteSpace: "nowrap",
+  fontVariantNumeric: "tabular-nums",
+  color: "neutral.s80",
+  fontWeight: "normal",
+});
+
+const reasoningBodyStyle = cva({
+  base: {
+    position: "relative",
+    overflow: "hidden",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.a30",
+    borderRadius: "md",
+    backgroundColor: "neutral.s10",
+    padding: "2",
+    color: "neutral.s90",
+    fontSize: "sm",
+    fontWeight: "medium",
+    lineHeight: "[1.5]",
+  },
+  variants: {
+    streaming: {
+      true: {
+        // Subtle reflective sweep across the body so the user can see the
+        // step is still in progress without watching the elapsed-time
+        // counter. The gradient sits above the markdown content but is
+        // mostly transparent, so the text underneath stays readable.
+        _after: {
+          content: '""',
+          position: "absolute",
+          inset: "0",
+          borderRadius: "[inherit]",
+          background:
+            "[linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.55) 50%, transparent 65%)]",
+          backgroundSize: "[200% 100%]",
+          animationName: "shimmer",
+          animationDuration: "[2.4s]",
+          animationTimingFunction: "linear",
+          animationIterationCount: "[infinite]",
+          pointerEvents: "none",
+        },
+      },
+    },
+  },
 });
 
 const reasoningLoadingStyle = css({
@@ -84,12 +123,6 @@ const reasoningLoadingStyle = css({
   gap: "2",
   minHeight: "6",
   color: "neutral.s80",
-});
-
-const reasoningBodyWithEllipsisStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[6px]",
 });
 
 const formatElapsedTime = (elapsedMs: number): string => {
@@ -222,33 +255,36 @@ export const AiAssistantReasoning = ({
         <span className={reasoningLabelGroupStyle}>
           <span>Reasoning</span>
           {heading && (
-            <span className={reasoningHeadingStyle}>({heading})</span>
+            <span className={reasoningHeadingStyle}>
+              ({heading.toLowerCase()})
+            </span>
           )}
         </span>
         {elapsedTime !== undefined && (
-          <span aria-label={`Reasoning time ${elapsedTime}`}>
+          <span
+            className={reasoningElapsedStyle}
+            aria-label={`Reasoning time ${elapsedTime}`}
+          >
             {elapsedTime}
           </span>
         )}
         <Icon name="chevronUp" data-chevron size="sm" />
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
-        <div className={reasoningBodyStyle}>
+        <div className={reasoningBodyStyle({ streaming: isStreaming })}>
           {body ? (
-            <div className={reasoningBodyWithEllipsisStyle}>
-              <div className={markdownStyle}>
-                <ReactMarkdown>{body}</ReactMarkdown>
-              </div>
-              {isStreaming && <StreamingEllipsis />}
+            <div className={markdownStyle}>
+              <ReactMarkdown>{body}</ReactMarkdown>
             </div>
-          ) : (
-            <output
+          ) : isStreaming ? (
+            <div
               className={reasoningLoadingStyle}
               aria-label="Loading reasoning"
+              data-testid="reasoning-loading"
             >
-              <LoadingSpinner data-testid="reasoning-spinner" size="xs" />
-            </output>
-          )}
+              <StreamingEllipsis />
+            </div>
+          ) : null}
         </div>
       </Collapsible.Content>
     </Collapsible.Root>

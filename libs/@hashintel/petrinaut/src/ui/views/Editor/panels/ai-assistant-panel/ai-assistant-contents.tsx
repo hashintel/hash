@@ -11,12 +11,11 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { Button } from "../../../../components/button";
 import { Input } from "../../../../components/input";
-import { getActivePhaseLabel } from "./ai-assistant-contents/get-active-phase-label";
+import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
-  getMessageRenderItems,
-  isPartActive,
-} from "./ai-assistant-contents/get-message-render-items";
-import { MessageStatusFooter } from "./ai-assistant-contents/message-status-footer";
+  PromptChips,
+  type PromptChip,
+} from "./ai-assistant-contents/prompt-chips";
 import { AiAssistantReasoning } from "./ai-assistant-contents/reasoning";
 import { markdownStyle } from "./ai-assistant-contents/shared/markdown-style";
 import {
@@ -38,8 +37,10 @@ export type AiAssistantContentsProps = {
   onInputChange: (value: string) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
+  onSendPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
+  promptChips?: PromptChip[];
   rightOffset?: number;
   status: AiAssistantStatus;
 };
@@ -179,7 +180,6 @@ const emptyStyle = css({
 
 const messageStyle = cva({
   base: {
-    position: "relative",
     display: "flex",
     flexDirection: "column",
     gap: "2",
@@ -205,43 +205,7 @@ const messageStyle = cva({
         textAlign: "right",
       },
     },
-    activity: {
-      active: {},
-      complete: {},
-    },
   },
-  compoundVariants: [
-    {
-      role: "assistant",
-      activity: "active",
-      css: {
-        backgroundColor: "neutral.s00",
-        // Subtle reflective sweep to signal "something is happening" without
-        // requiring the user to watch the elapsed-time counter.
-        _after: {
-          content: '""',
-          position: "absolute",
-          inset: "0",
-          borderRadius: "[inherit]",
-          background:
-            "[linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.55) 50%, transparent 65%)]",
-          backgroundSize: "[200% 100%]",
-          animationName: "shimmer",
-          animationDuration: "[2.4s]",
-          animationTimingFunction: "linear",
-          animationIterationCount: "[infinite]",
-          pointerEvents: "none",
-        },
-      },
-    },
-    {
-      role: "assistant",
-      activity: "complete",
-      css: {
-        backgroundColor: "neutral.s10",
-      },
-    },
-  ],
 });
 
 const errorStyle = css({
@@ -254,6 +218,9 @@ const errorStyle = css({
 });
 
 const composerWrapStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
   padding: "2",
   backgroundColor: "neutral.bg.subtle",
   flexShrink: 0,
@@ -320,52 +287,27 @@ export const AiAssistantContents = ({
   onInputChange,
   onInteractiveToolSubmit,
   onSelectToolTarget,
+  onSendPrompt,
   onStop,
   onSubmit,
+  promptChips,
   rightOffset = 0,
   status,
 }: AiAssistantContentsProps) => {
   const isBusy = status === "submitted" || status === "streaming";
   const canSubmit = input.trim().length > 0 && !isBusy;
   const [assistantWidth, setAssistantWidth] = useState(420);
+  // In-memory only — resets when the panel is closed and reopened, so
+  // dismissing the chips is a single-session preference.
+  const [chipsDismissed, setChipsDismissed] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesScrollKey = getMessagesScrollKey(messages);
-
-  // Stall detection: track when we last observed the message tree change. When
-  // the busy state lingers without any chunk movement we surface a soft
-  // warning under the active message footer so users aren't left wondering
-  // whether the request has silently died.
-  //
-  // The ref starts as `null` because `Date.now()` is impure (lint rule) and
-  // calling it during render would produce non-idempotent component output;
-  // the mount-time effect below seeds it with the current timestamp. The
-  // tick happens inside an interval callback (not synchronously in the effect
-  // body) to avoid cascading-render warnings, and `effectiveStallMs` lets us
-  // derive the "no stall when idle" view without writing state on transitions.
-  const lastChunkAtRef = useRef<number | null>(null);
-  const [stallMs, setStallMs] = useState(0);
-
-  useEffect(() => {
-    lastChunkAtRef.current = Date.now();
-  }, [messagesScrollKey]);
-
-  useEffect(() => {
-    if (!isBusy) {
-      return;
-    }
-    const tick = () => {
-      const lastChunkAt = lastChunkAtRef.current;
-      if (lastChunkAt == null) {
-        return;
-      }
-      setStallMs(Math.max(0, Date.now() - lastChunkAt));
-    };
-    const intervalId = window.setInterval(tick, 1_000);
-    return () => window.clearInterval(intervalId);
-  }, [isBusy]);
-
-  const effectiveStallMs = isBusy ? stallMs : 0;
+  const showChips =
+    !chipsDismissed &&
+    onSendPrompt !== undefined &&
+    promptChips !== undefined &&
+    promptChips.length > 0;
 
   const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -463,26 +405,12 @@ export const AiAssistantContents = ({
           )}
           {messages.map((message) => {
             const role = message.role === "user" ? "user" : "assistant";
-            const assistantActivity = message.parts.some(isPartActive)
-              ? "active"
-              : "complete";
             const renderItems = getMessageRenderItems(message);
-            const showStatusFooter =
-              role === "assistant" && assistantActivity === "active";
-            const phaseLabel = showStatusFooter
-              ? getActivePhaseLabel(message)
-              : undefined;
 
             return (
               <div
                 key={message.id}
-                className={messageStyle({
-                  role,
-                  activity: assistantActivity,
-                })}
-                data-activity={
-                  role === "assistant" ? assistantActivity : undefined
-                }
+                className={messageStyle({ role })}
                 data-role={role}
               >
                 {renderItems.map((item) => {
@@ -518,12 +446,6 @@ export const AiAssistantContents = ({
                     }
                   }
                 })}
-                {showStatusFooter && (
-                  <MessageStatusFooter
-                    phaseLabel={phaseLabel}
-                    stallMs={effectiveStallMs}
-                  />
-                )}
               </div>
             );
           })}
@@ -531,47 +453,56 @@ export const AiAssistantContents = ({
           <div ref={messagesEndRef} />
         </div>
 
-        <form
-          className={composerWrapStyle}
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (canSubmit) {
-              onSubmit();
-            }
-          }}
-        >
-          <div className={composerStyle}>
-            <Input
-              ref={inputRef}
-              className={inputStyle}
-              size="sm"
-              value={input}
-              onChange={(event) => onInputChange(event.currentTarget.value)}
-              placeholder={
-                messages.length === 0
-                  ? "Get creating..."
-                  : "Continue iterating..."
+        <div className={composerWrapStyle}>
+          {showChips && (
+            <PromptChips
+              chips={promptChips}
+              disabled={isBusy}
+              onDismiss={() => setChipsDismissed(true)}
+              onSelect={(prompt) => onSendPrompt(prompt)}
+            />
+          )}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (canSubmit) {
+                onSubmit();
               }
-              aria-label="Message Petrinaut AI"
-            />
-            <Button
-              type={isBusy ? "button" : "submit"}
-              size="sm"
-              variant={isBusy ? "subtle" : "solid"}
-              tone={isBusy ? "neutral" : "brand"}
-              disabled={!isBusy && !canSubmit}
-              aria-label={isBusy ? "Stop AI response" : "Send message"}
-              onClick={() => {
-                if (isBusy) {
-                  onStop();
+            }}
+          >
+            <div className={composerStyle}>
+              <Input
+                ref={inputRef}
+                className={inputStyle}
+                size="sm"
+                value={input}
+                onChange={(event) => onInputChange(event.currentTarget.value)}
+                placeholder={
+                  messages.length === 0
+                    ? "Get creating..."
+                    : "Continue iterating..."
                 }
-              }}
-              iconName={isBusy ? "stopFilled" : "arrowUp"}
-              tooltip={isBusy ? "Stop AI response" : "Send message"}
-              tooltipDisplay="inline"
-            />
-          </div>
-        </form>
+                aria-label="Message Petrinaut AI"
+              />
+              <Button
+                type={isBusy ? "button" : "submit"}
+                size="sm"
+                variant={isBusy ? "subtle" : "solid"}
+                tone={isBusy ? "neutral" : "brand"}
+                disabled={!isBusy && !canSubmit}
+                aria-label={isBusy ? "Stop AI response" : "Send message"}
+                onClick={() => {
+                  if (isBusy) {
+                    onStop();
+                  }
+                }}
+                iconName={isBusy ? "stopFilled" : "arrowUp"}
+                tooltip={isBusy ? "Stop AI response" : "Send message"}
+                tooltipDisplay="inline"
+              />
+            </div>
+          </form>
+        </div>
       </div>
     </aside>
   );

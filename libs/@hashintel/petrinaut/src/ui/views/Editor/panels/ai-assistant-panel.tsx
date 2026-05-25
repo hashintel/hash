@@ -28,6 +28,10 @@ import {
 } from "../../../../react/state/use-read-only-reason";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
+import {
+  REVIEW_CHIPS,
+  STARTER_CHIPS,
+} from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
@@ -490,6 +494,19 @@ export const AiAssistantPanel = ({
     return null;
   }
 
+  const isNetEmpty =
+    petriNetDefinition.places.length === 0 &&
+    petriNetDefinition.transitions.length === 0;
+  // Empty + read-only is an unusual combination but the starter chips would
+  // all hit a read-only refusal — review chips still make sense (they only
+  // describe the net without mutating it).
+  const promptChips =
+    isNetEmpty && readOnlyReason !== null
+      ? []
+      : isNetEmpty
+        ? STARTER_CHIPS
+        : REVIEW_CHIPS;
+
   return (
     <AiAssistantContents
       error={streamError ?? error}
@@ -561,6 +578,15 @@ export const AiAssistantPanel = ({
           setSimulateViewMode,
         })
       }
+      onSendPrompt={(prompt) => {
+        const trimmed = prompt.trim();
+        if (!trimmed) {
+          return;
+        }
+        setInput("");
+        setStreamError(null);
+        void sendMessage({ text: trimmed });
+      }}
       onStop={() => void stop()}
       onSubmit={() => {
         const trimmed = input.trim();
@@ -571,6 +597,7 @@ export const AiAssistantPanel = ({
         setStreamError(null);
         void sendMessage({ text: trimmed });
       }}
+      promptChips={promptChips}
       rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
       status={status}
     />

@@ -8,8 +8,8 @@ const ellipsisStyle = css({
   color: "neutral.s70",
   "& > span": {
     display: "inline-block",
-    width: "[4px]",
-    height: "[4px]",
+    width: "[3px]",
+    height: "[3px]",
     borderRadius: "full",
     backgroundColor: "[currentColor]",
     animationName: "pulse",

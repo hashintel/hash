@@ -160,7 +160,7 @@ describe("AiAssistantContents", () => {
     window.cancelAnimationFrame = originalCancelAnimationFrame;
   });
 
-  test("renders a spinner for empty streaming reasoning", () => {
+  test("renders a streaming ellipsis for empty streaming reasoning", () => {
     const messages: PetrinautAiMessage[] = [
       {
         id: "assistant-1",
@@ -187,7 +187,7 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(screen.getByTestId("reasoning-spinner")).not.toBeNull();
+    expect(screen.getByTestId("reasoning-loading")).not.toBeNull();
     expect(screen.queryByText("Thinking...")).toBeNull();
   });
 

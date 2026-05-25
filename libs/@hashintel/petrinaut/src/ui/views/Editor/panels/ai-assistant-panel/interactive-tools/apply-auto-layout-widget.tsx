@@ -63,24 +63,14 @@ const ApplyAutoLayoutWidget = ({
   return (
     <div className={widgetStyle}>
       <span>
-        Petrinaut AI wants to auto-layout the net. This will reposition every
-        place and transition.
+        Petrinaut AI suggests running auto-layout on the net. This may
+        reposition places and transitions.
       </span>
       <div className={buttonsStyle}>
         <Button
           size="sm"
           variant="solid"
           tone="brand"
-          onClick={() =>
-            submit({ applied: false, reason: "User declined auto-layout." })
-          }
-        >
-          No, keep current layout
-        </Button>
-        <Button
-          size="sm"
-          variant="subtle"
-          tone="neutral"
           onClick={() =>
             submit({
               applied: true,
@@ -89,6 +79,16 @@ const ApplyAutoLayoutWidget = ({
           }
         >
           Yes, auto-layout
+        </Button>
+        <Button
+          size="sm"
+          variant="subtle"
+          tone="neutral"
+          onClick={() =>
+            submit({ applied: false, reason: "User declined auto-layout." })
+          }
+        >
+          No, keep current layout
         </Button>
       </div>
     </div>
