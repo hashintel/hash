@@ -322,7 +322,7 @@ impl Display for Int {
 impl PartialEq for Int {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.size == other.size && self.as_int() == other.as_int()
+        self.as_int() == other.as_int() && self.size == other.size
     }
 }
 
@@ -338,9 +338,9 @@ impl PartialOrd for Int {
 impl Ord for Int {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.size
-            .cmp(&other.size)
-            .then_with(|| self.as_int().cmp(&other.as_int()))
+        self.as_int()
+            .cmp(&other.as_int())
+            .then_with(|| self.size.cmp(&other.size))
     }
 }
 

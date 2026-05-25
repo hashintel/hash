@@ -278,6 +278,124 @@ fn const_fold_eq_bool_vs_int() {
     );
 }
 
+/// Regression: `bool_place == int(1)` must fold to `false`, not simplify to `bool_place`.
+///
+/// With structural typing, a Bool-typed place can be compared against an Int constant.
+/// The types have no intersection: booleans (size 1) can never equal integers (size 128).
+#[test]
+fn eq_bool_place_vs_int_constant_right() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Bool {
+        decl x: Bool, result: Bool;
+
+        bb0() {
+            result = bin.== x 1;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "eq_bool_place_vs_int_constant_right",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Same as above but with the constant on the left: `1 == bool_place`.
+#[test]
+fn eq_bool_place_vs_int_constant_left() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Bool {
+        decl x: Bool, result: Bool;
+
+        bb0() {
+            result = bin.== 1 x;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "eq_bool_place_vs_int_constant_left",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Regression: `bool_place != int(0)` must fold to `true`, not simplify to `bool_place`.
+///
+/// The Ne counterpart of the eq tests above. Bool and Int have no intersection,
+/// so they are always unequal.
+#[test]
+fn ne_bool_place_vs_int_constant_right() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Bool {
+        decl x: Bool, result: Bool;
+
+        bb0() {
+            result = bin.!= x 0;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "ne_bool_place_vs_int_constant_right",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Same as above but with the constant on the left: `0 != bool_place`.
+#[test]
+fn ne_bool_place_vs_int_constant_left() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Bool {
+        decl x: Bool, result: Bool;
+
+        bb0() {
+            result = bin.!= 0 x;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "ne_bool_place_vs_int_constant_left",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests constant folding for unary NOT.
 #[test]
 fn const_fold_unary_not() {

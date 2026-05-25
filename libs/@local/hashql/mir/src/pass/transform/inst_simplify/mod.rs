@@ -322,20 +322,28 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             }
             (BinOp::BitOr, _) => None,
             // true == rhs => rhs (boolean equivalence)
-            (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
+            (BinOp::Eq, 1) if is_bool && lhs.is_bool() => Some(RValue::Load(Operand::Place(rhs))),
             // false == rhs => !rhs == ~rhs (boolean equivalence)
-            (BinOp::Eq, 0) if is_bool => Some(RValue::Unary(Unary {
+            (BinOp::Eq, 0) if is_bool && lhs.is_bool() => Some(RValue::Unary(Unary {
                 op: UnOp::BitNot,
                 operand: Operand::Place(rhs),
             })),
+            // bool == int => false
+            (BinOp::Eq, _) if is_bool && !lhs.is_bool() => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(Int::FALSE))))
+            }
             (BinOp::Eq, _) => None,
             // false != rhs => rhs (boolean equivalence)
-            (BinOp::Ne, 0) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
+            (BinOp::Ne, 0) if is_bool && lhs.is_bool() => Some(RValue::Load(Operand::Place(rhs))),
             // true != rhs => !rhs == ~rhs (boolean equivalence)
-            (BinOp::Ne, 1) if is_bool => Some(RValue::Unary(Unary {
+            (BinOp::Ne, 1) if is_bool && lhs.is_bool() => Some(RValue::Unary(Unary {
                 op: UnOp::BitNot,
                 operand: Operand::Place(rhs),
             })),
+            // bool != int => true
+            (BinOp::Ne, _) if is_bool && !lhs.is_bool() => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(Int::TRUE))))
+            }
             (BinOp::Ne, _) => None,
             (BinOp::Lt, _) => None,
             (BinOp::Lte, _) => None,
@@ -373,7 +381,7 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             (BinOp::BitAnd, 0) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
             }
-            // 0 & lhs => 0 (annihilator)
+            // lhs & 0 => 0 (annihilator)
             (BinOp::BitAnd, 0) => Some(RValue::Load(Operand::Constant(Constant::Int(0.into())))),
             (BinOp::BitAnd, _) => None,
             // lhs | 0 => lhs (identity)
@@ -384,20 +392,28 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             }
             (BinOp::BitOr, _) => None,
             // lhs == true => lhs (boolean equivalence)
-            (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
+            (BinOp::Eq, 1) if is_bool && rhs.is_bool() => Some(RValue::Load(Operand::Place(lhs))),
             // lhs == false => !lhs == ~lhs (boolean equivalence)
-            (BinOp::Eq, 0) if is_bool => Some(RValue::Unary(Unary {
+            (BinOp::Eq, 0) if is_bool && rhs.is_bool() => Some(RValue::Unary(Unary {
                 op: UnOp::BitNot,
                 operand: Operand::Place(lhs),
             })),
+            // bool == int => false
+            (BinOp::Eq, _) if is_bool && !rhs.is_bool() => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(Int::FALSE))))
+            }
             (BinOp::Eq, _) => None,
             // lhs != false => lhs (boolean equivalence)
-            (BinOp::Ne, 0) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
+            (BinOp::Ne, 0) if is_bool && rhs.is_bool() => Some(RValue::Load(Operand::Place(lhs))),
             // lhs != true => !lhs == ~lhs (boolean equivalence)
-            (BinOp::Ne, 1) if is_bool => Some(RValue::Unary(Unary {
+            (BinOp::Ne, 1) if is_bool && rhs.is_bool() => Some(RValue::Unary(Unary {
                 op: UnOp::BitNot,
                 operand: Operand::Place(lhs),
             })),
+            // bool != int => true
+            (BinOp::Ne, _) if is_bool && !rhs.is_bool() => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(Int::TRUE))))
+            }
             (BinOp::Ne, _) => None,
             (BinOp::Lt, _) => None,
             (BinOp::Lte, _) => None,

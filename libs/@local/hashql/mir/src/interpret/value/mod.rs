@@ -472,6 +472,10 @@ impl<A: Allocator> Ord for Value<'_, A> {
             (Value::Integer(this), Value::Integer(other)) => this.cmp(other),
             (Value::Number(this), Value::Number(other)) => this.cmp(other),
 
+            // Bool is a separate type from Int/Number in the subtype lattice, so
+            // cross-type numeric comparison only applies to integers. Booleans fall
+            // through to discriminant ordering (which is fine: no well-typed program
+            // can observe the ordering between Bool and Number).
             (Value::Integer(this), Value::Number(other)) if !this.is_bool() => {
                 other.cmp_int(this).reverse()
             }
