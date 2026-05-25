@@ -20,7 +20,7 @@ const emptySDCPN: SDCPN = {
 const createInstance = (initial: SDCPN = emptySDCPN) =>
   createPetrinaut({
     document: createJsonDocHandle({
-      initial: JSON.parse(JSON.stringify(initial)),
+      initial: JSON.parse(JSON.stringify(initial)) as SDCPN,
     }),
   });
 
