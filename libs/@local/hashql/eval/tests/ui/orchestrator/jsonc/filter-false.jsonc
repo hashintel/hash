@@ -1,5 +1,5 @@
 // Filter that rejects all entities. Result should be an empty list.
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "temporal_axes", "_"]],

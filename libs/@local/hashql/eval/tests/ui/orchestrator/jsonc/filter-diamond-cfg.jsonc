@@ -2,7 +2,7 @@
 // If entity_uuid matches Alice, compare against Alice's full EntityId.
 // Otherwise compare entity_uuid against Bob's EntityUuid.
 // Expected result: Alice (first arm) and Bob (second arm).
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "temporal_axes", "_"]],

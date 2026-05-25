@@ -4,7 +4,7 @@
 //   AND entity_uuid != friend_link_uuid. Keeps Alice and Bob.
 // Second filter: keep only Alice (entity_uuid == alice_uuid).
 // Net result: only Alice survives.
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::body::filter",

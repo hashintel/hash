@@ -2,7 +2,7 @@
 //   entity_uuid (UUID/TEXT), web_id (UUID/TEXT), archived (BOOL).
 // All seeded entities share the same web_id. Combining all three
 // conditions selects only non-archived Alice.
-// biome-ignore format: readability
+// prettier-ignore
 ["::graph::tail::collect",
   ["::graph::body::filter",
     ["::graph::head::entities", ["input", "temporal_axes", "_"]],

@@ -1,5 +1,5 @@
 // Let binding propagation into filter body.
-// biome-ignore format: readability
+// prettier-ignore
 ["let", "target",
   ["input", "alice_uuid", "::graph::types::knowledge::entity::EntityUuid"],
   ["::graph::tail::collect",
