@@ -1,5 +1,5 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
-import { use, useEffect, useRef, useState } from "react";
+import { use, useLayoutEffect, useRef, useState } from "react";
 
 import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -15,6 +15,7 @@ import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
 import { Select } from "../../../../../components/select";
 import { Switch } from "../../../../../components/switch";
+import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
 import { useMetricLspSession } from "../metrics/metric-form";
@@ -29,7 +30,6 @@ import type {
   ScenarioParameter,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type { MouseEvent as ReactMouseEvent } from "react";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -43,13 +43,6 @@ const labelStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.s120",
-});
-
-const compactLabelStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  lineHeight: "[18px]",
 });
 
 const gridStyle = css({
@@ -121,7 +114,7 @@ const metricRowHeaderStyle = css({
 
 const metricHeaderMainStyle = css({
   display: "grid",
-  gridTemplateColumns: "[20px 24px minmax(0, 1fr) auto 28px]",
+  gridTemplateColumns: "[20px minmax(0, 1fr) minmax(160px, 220px)]",
   alignItems: "center",
   gap: "2",
   minWidth: "[0]",
@@ -141,62 +134,77 @@ const metricCollapseButtonStyle = css({
   cursor: "pointer",
 });
 
-const metricTitleButtonStyle = css({
-  minWidth: "[0]",
-  padding: "[0]",
-  border: "[none]",
-  background: "[transparent]",
-  color: "neutral.s120",
-  cursor: "pointer",
-  textAlign: "left",
+const metricCollapseIconStyle = css({
+  transition: "[transform 200ms ease-in-out]",
+  "&[data-state=open]": {
+    transform: "[rotate(90deg)]",
+  },
 });
 
-const metricIndexStyle = css({
-  display: "inline-flex",
+const metricTitleGroupStyle = css({
+  display: "flex",
   alignItems: "center",
-  justifyContent: "center",
-  width: "[22px]",
-  height: "[22px]",
-  borderRadius: "full",
-  backgroundColor: "neutral.s20",
-  color: "neutral.s90",
-  fontSize: "xs",
-  fontWeight: "semibold",
-});
-
-const metricTitleStyle = css({
-  display: "block",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  fontSize: "sm",
-  fontWeight: "semibold",
+  gap: "1",
+  minWidth: "[0]",
 });
 
 const metricTitleInputStyle = css({
   height: "[24px]",
   minWidth: "[0]",
+  flex: "1",
+  borderColor: "[transparent !important]",
+  backgroundColor: "[transparent !important]",
+  boxShadow: "[none !important]",
+  color: "neutral.s120",
+  fontSize: "sm",
+  fontWeight: "semibold",
+  paddingX: "1",
+  _hover: {
+    borderColor: "[{colors.neutral.bd.subtle.hover} !important]",
+    backgroundColor: "[{colors.neutral.s00} !important]",
+  },
+  _focus: {
+    borderColor: "[{colors.neutral.bd.subtle} !important]",
+    backgroundColor: "[{colors.neutral.s00} !important]",
+    boxShadow: "[0px 0px 0px 2px {colors.neutral.a25} !important]",
+  },
 });
 
-const metricKindBadgeStyle = css({
-  maxWidth: "[180px]",
+const metricKindSelectStyle = css({
+  minWidth: "[0]",
+});
+
+const metricKindTriggerStyle = css({
+  height: "[26px]",
+  borderColor: "[transparent]",
+  backgroundColor: "neutral.s10",
+  paddingX: "2",
+  _hover: {
+    borderColor: "neutral.bd.subtle",
+    backgroundColor: "neutral.s20",
+  },
+});
+
+const metricKindTriggerLabelStyle = css({
+  minWidth: "[0]",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  paddingX: "2",
-  paddingY: "1",
-  borderRadius: "md",
-  backgroundColor: "neutral.s20",
   color: "neutral.s100",
   fontSize: "xs",
   fontWeight: "medium",
+});
+
+const metricKindTriggerChevronStyle = css({
+  flexShrink: 0,
+  color: "neutral.s80",
 });
 
 const metricExpandedContentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "2",
-  padding: "[0 8px 8px]",
+  padding: "[0 16px 16px]",
 });
 
 const metricCollapsibleContentStyle = css({
@@ -211,79 +219,79 @@ const metricCollapsibleContentStyle = css({
   },
 });
 
-const metricMainFieldsStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[minmax(0, 220px)]",
-  gap: "2",
-});
-
-const metricControlsGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
-  gap: "2",
-});
-
-const metricCompactPanelStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  padding: "2",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "lg",
-  backgroundColor: "neutral.s10",
-});
-
-const metricCompactPanelGridStyle = css({
+const metricSpecificFieldsStyle = css({
   display: "grid",
   gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
   gap: "2",
 });
 
-const metricRunOutputFieldStyle = css({
-  gridColumn: "[span 2]",
+const metricOutputSectionStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  paddingTop: "2",
+  borderTopWidth: "[1px]",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.bd.subtle",
 });
 
-const metricRunOutputGroupStyle = css({
+const metricOutputTitleStyle = css({
+  fontSize: "sm",
+  fontWeight: "semibold",
+  color: "neutral.s120",
+});
+
+const metricOutputRowStyle = css({
   display: "grid",
-  gridTemplateColumns: "[minmax(180px, max-content) minmax(0, 1fr)]",
+  gridTemplateColumns: "[120px minmax(0, 1fr)]",
   alignItems: "center",
-  gap: "3",
-  minHeight: "[28px]",
-  padding: "[2px 8px]",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
+  gap: "2",
 });
 
-const metricRunOutputToggleStyle = css({
+const metricOutputLabelStyle = css({
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  gap: "2",
-  minWidth: "[180px]",
+  gap: "1",
+  color: "neutral.s120",
+  fontSize: "sm",
+  fontWeight: "medium",
 });
 
-const metricRunAggregationInlineStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[auto minmax(0, 1fr)]",
+const metricRunValuesControlsStyle = css({
+  display: "flex",
   alignItems: "center",
+  flexWrap: "wrap",
   gap: "2",
   minWidth: "[0]",
 });
 
-const metricInlineLabelStyle = css({
+const metricScalarToggleStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "2",
+  height: "[28px]",
+  paddingX: "2",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "lg",
+  backgroundColor: "neutral.s00",
+});
+
+const metricScalarToggleLabelStyle = css({
+  color: "neutral.s120",
   fontSize: "sm",
   fontWeight: "medium",
-  color: "neutral.s90",
   whiteSpace: "nowrap",
+  minWidth: "[0]",
+});
+
+const metricOutputSelectStyle = css({
+  width: "[160px]",
 });
 
 const metricDistributionHintStyle = css({
-  fontSize: "sm",
+  fontSize: "xs",
   color: "neutral.s80",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -321,9 +329,11 @@ const DEFAULT_SEED = "1";
 const DEFAULT_DT = "1";
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = "return 0;";
-const DEFAULT_TOKEN_COUNT_DISTRIBUTION_LABEL = "Token count per place";
 
-type ExperimentMetricKind = MonteCarloMetricSpec["kind"];
+type ExperimentMetricKind = Exclude<
+  MonteCarloMetricSpec["kind"],
+  "placeTokenCountDistribution"
+>;
 type ExperimentMetricRunOutputType = "distribution" | "scalar";
 type TransitionFiringMode = NonNullable<
   Extract<MonteCarloMetricSpec, { kind: "transitionFiringCount" }>["mode"]
@@ -384,8 +394,6 @@ const transitionModeOptions: { value: TransitionFiringMode; label: string }[] =
 
 function getMetricKindLabel(kind: ExperimentMetricKind): string {
   switch (kind) {
-    case "placeTokenCountDistribution":
-      return "Token count per place";
     case "placeTokenCountMean":
       return "Place tokens";
     case "transitionFiringCount":
@@ -398,10 +406,6 @@ function getMetricKindLabel(kind: ExperimentMetricKind): string {
 function getMetricSummaryLabel(metric: ExperimentMetricDraft): string {
   const kindLabel = getMetricKindLabel(metric.kind);
 
-  if (metric.kind === "placeTokenCountDistribution") {
-    return kindLabel;
-  }
-
   return `${kindLabel} - ${
     metric.runOutputType === "distribution" ? "Distribution" : "Scalar"
   }`;
@@ -412,8 +416,6 @@ function getDefaultMetricLabel(
   sdcpn: SDCPN
 ): string {
   switch (kind) {
-    case "placeTokenCountDistribution":
-      return DEFAULT_TOKEN_COUNT_DISTRIBUTION_LABEL;
     case "placeTokenCountMean":
       return sdcpn.places[0]
         ? `${sdcpn.places[0].name} tokens`
@@ -432,33 +434,22 @@ function canReplaceMetricLabel(label: string): boolean {
 
   return (
     trimmed === "" ||
-    trimmed === DEFAULT_TOKEN_COUNT_DISTRIBUTION_LABEL ||
     trimmed === "Custom metric" ||
     trimmed === "Place tokens" ||
     trimmed === "Transition firing"
   );
 }
 
-function createMetricKindOptions(sdcpn: SDCPN): {
+function createMetricKindOptions(): {
   value: ExperimentMetricKind;
   label: string;
 }[] {
   return [
+    { value: "placeTokenCountMean" as const, label: "Place tokens" },
     {
-      value: "placeTokenCountDistribution" as const,
-      label: "Token count per place",
+      value: "transitionFiringCount" as const,
+      label: "Transition firing",
     },
-    ...(sdcpn.places.length > 0
-      ? [{ value: "placeTokenCountMean" as const, label: "Place tokens" }]
-      : []),
-    ...(sdcpn.transitions.length > 0
-      ? [
-          {
-            value: "transitionFiringCount" as const,
-            label: "Transition firing",
-          },
-        ]
-      : []),
     { value: "expression", label: "Custom code" },
   ];
 }
@@ -466,11 +457,16 @@ function createMetricKindOptions(sdcpn: SDCPN): {
 function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
   const place = sdcpn.places[0];
   const transition = sdcpn.transitions[0];
+  const kind: ExperimentMetricKind = place
+    ? "placeTokenCountMean"
+    : transition
+      ? "transitionFiringCount"
+      : "expression";
 
   return {
     id: crypto.randomUUID(),
-    kind: "placeTokenCountDistribution",
-    label: DEFAULT_TOKEN_COUNT_DISTRIBUTION_LABEL,
+    kind,
+    label: getDefaultMetricLabel(kind, sdcpn),
     expanded: true,
     placeId: place?.id ?? "",
     transitionId: transition?.id ?? "",
@@ -514,13 +510,6 @@ function buildMetricSpecs(
     };
 
     switch (draft.kind) {
-      case "placeTokenCountDistribution": {
-        return {
-          id: draft.id,
-          label,
-          kind: "placeTokenCountDistribution",
-        };
-      }
       case "placeTokenCountMean": {
         if (!sdcpn.places.some((place) => place.id === draft.placeId)) {
           throw new Error(`Metric "${label}" needs a valid place`);
@@ -628,25 +617,23 @@ const ExperimentExpressionMetricEditor = ({
 };
 
 const ExperimentMetricRow = ({
-  index,
   metric,
   sdcpn,
   kindOptions,
+  autoFocusLabel,
   onChange,
   onRemove,
 }: {
-  index: number;
   metric: ExperimentMetricDraft;
   sdcpn: SDCPN;
   kindOptions: { value: ExperimentMetricKind; label: string }[];
+  autoFocusLabel: boolean;
   onChange: (metric: ExperimentMetricDraft) => void;
   onRemove: () => void;
 }) => {
   const { showAnimations } = use(UserSettingsContext);
-  const [isEditingLabel, setIsEditingLabel] = useState(false);
-  const [labelDraft, setLabelDraft] = useState(metric.label);
   const labelInputRef = useRef<HTMLInputElement>(null);
-  const skipNextLabelCommitRef = useRef(false);
+  const didAutoFocusLabelRef = useRef(false);
   const placeOptions = sdcpn.places.map((place) => ({
     value: place.id,
     label: place.name,
@@ -663,35 +650,39 @@ const ExperimentMetricRow = ({
     const nextLabel = canReplaceMetricLabel(metric.label)
       ? getDefaultMetricLabel(nextKind, sdcpn)
       : metric.label;
-
-    updateMetric({
+    const nextPatch: Partial<ExperimentMetricDraft> = {
       kind: nextKind,
       label: nextLabel,
-    });
+    };
+
+    if (
+      nextKind === "placeTokenCountMean" &&
+      !sdcpn.places.some((place) => place.id === metric.placeId)
+    ) {
+      nextPatch.placeId = sdcpn.places[0]?.id ?? "";
+    }
+
+    if (
+      nextKind === "transitionFiringCount" &&
+      !sdcpn.transitions.some(
+        (transition) => transition.id === metric.transitionId,
+      )
+    ) {
+      nextPatch.transitionId = sdcpn.transitions[0]?.id ?? "";
+    }
+
+    updateMetric(nextPatch);
   };
-  const commitLabel = () => {
-    if (skipNextLabelCommitRef.current) {
-      skipNextLabelCommitRef.current = false;
+
+  useLayoutEffect(() => {
+    if (!autoFocusLabel || didAutoFocusLabelRef.current) {
       return;
     }
 
-    updateMetric({ label: labelDraft });
-    setIsEditingLabel(false);
-  };
-  const cancelLabelEdit = () => {
-    skipNextLabelCommitRef.current = true;
-    setLabelDraft(metric.label);
-    setIsEditingLabel(false);
-  };
-
-  useEffect(() => {
-    if (!isEditingLabel) {
-      return;
-    }
-
+    didAutoFocusLabelRef.current = true;
     labelInputRef.current?.focus();
     labelInputRef.current?.select();
-  }, [isEditingLabel]);
+  }, [autoFocusLabel]);
 
   return (
     <Collapsible.Root
@@ -704,69 +695,46 @@ const ExperimentMetricRow = ({
           <Collapsible.Trigger className={metricCollapseButtonStyle} asChild>
             <button type="button" aria-label="Toggle metric">
               <Icon
-                name={metric.expanded ? "chevronDown" : "chevronRight"}
+                name="chevronRight"
                 size="xs"
+                className={metricCollapseIconStyle}
+                data-state={metric.expanded ? "open" : "closed"}
               />
             </button>
           </Collapsible.Trigger>
-          <span className={metricIndexStyle}>{index + 1}</span>
-          {isEditingLabel ? (
+          <div className={metricTitleGroupStyle}>
             <Input
               ref={labelInputRef}
               className={metricTitleInputStyle}
               size="xs"
-              value={labelDraft}
-              onBlur={commitLabel}
-              onChange={(event) => setLabelDraft(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  commitLabel();
-                }
-
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  cancelLabelEdit();
-                }
+              value={metric.label}
+              placeholder="Untitled metric"
+              aria-label="Metric label"
+              onChange={(event) => {
+                updateMetric({ label: event.currentTarget.value });
               }}
             />
-          ) : (
-            <Collapsible.Trigger className={metricTitleButtonStyle} asChild>
-              <button type="button">
-                <span className={metricTitleStyle}>
-                  {metric.label.trim() || "Untitled metric"}
-                </span>
-              </button>
-            </Collapsible.Trigger>
-          )}
-          <span className={metricKindBadgeStyle}>
-            {getMetricSummaryLabel(metric)}
-          </span>
-          <Button
-            aria-label={
-              isEditingLabel ? "Save metric label" : "Edit metric label"
-            }
-            iconName={isEditingLabel ? "check" : "pencil"}
+          </div>
+          <Select
+            value={metric.kind}
+            onValueChange={handleKindChange}
+            options={kindOptions}
             size="xs"
-            tone="neutral"
-            tooltip={isEditingLabel ? "Save metric label" : "Edit metric label"}
-            tooltipDisplay="inline"
-            variant="ghost"
-            onMouseDown={(event: ReactMouseEvent<HTMLButtonElement>) => {
-              if (isEditingLabel) {
-                event.preventDefault();
-              }
-            }}
-            onClick={() => {
-              if (isEditingLabel) {
-                commitLabel();
-                return;
-              }
-
-              skipNextLabelCommitRef.current = false;
-              setLabelDraft(metric.label);
-              setIsEditingLabel(true);
-            }}
+            className={metricKindSelectStyle}
+            triggerClassName={metricKindTriggerStyle}
+            portal={false}
+            renderTrigger={() => (
+              <>
+                <span className={metricKindTriggerLabelStyle}>
+                  {getMetricSummaryLabel(metric)}
+                </span>
+                <Icon
+                  name="chevronDown"
+                  size="xs"
+                  className={metricKindTriggerChevronStyle}
+                />
+              </>
+            )}
           />
         </div>
         <Button
@@ -787,63 +755,51 @@ const ExperimentMetricRow = ({
         )}
       >
         <div className={metricExpandedContentStyle}>
-          <div className={metricMainFieldsStyle}>
-            <div className={fieldStyle}>
-              <span className={labelStyle}>Type</span>
-              <Select
-                value={metric.kind}
-                onValueChange={handleKindChange}
-                options={kindOptions}
-                size="sm"
-                portal={false}
-              />
-            </div>
-          </div>
-
-          {metric.kind === "placeTokenCountMean" ? (
-            <div className={fieldStyle}>
-              <span className={labelStyle}>Place</span>
-              <Select
-                value={metric.placeId}
-                onValueChange={(value) => updateMetric({ placeId: value })}
-                options={placeOptions}
-                size="sm"
-                portal={false}
-              />
-            </div>
-          ) : null}
-
-          {metric.kind === "transitionFiringCount" ? (
-            <div className={metricCompactPanelStyle}>
-              <span className={compactLabelStyle}>Transition count</span>
-              <div className={metricCompactPanelGridStyle}>
+          {metric.kind === "placeTokenCountMean" ||
+          metric.kind === "transitionFiringCount" ? (
+            <div className={metricSpecificFieldsStyle}>
+              {metric.kind === "placeTokenCountMean" ? (
                 <div className={fieldStyle}>
-                  <span className={labelStyle}>Transition</span>
+                  <span className={labelStyle}>Place</span>
                   <Select
-                    value={metric.transitionId}
-                    onValueChange={(value) =>
-                      updateMetric({ transitionId: value })
-                    }
-                    options={transitionOptions}
+                    value={metric.placeId}
+                    onValueChange={(value) => updateMetric({ placeId: value })}
+                    options={placeOptions}
                     size="sm"
                     portal={false}
                   />
                 </div>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Count</span>
-                  <Select
-                    value={metric.transitionMode}
-                    onValueChange={(value) =>
-                      updateMetric({
-                        transitionMode: value as TransitionFiringMode,
-                      })
-                    }
-                    options={transitionModeOptions}
-                    size="sm"
-                    portal={false}
-                  />
-                </div>
-              </div>
+              ) : null}
+              {metric.kind === "transitionFiringCount" ? (
+                <>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Transition</span>
+                    <Select
+                      value={metric.transitionId}
+                      onValueChange={(value) =>
+                        updateMetric({ transitionId: value })
+                      }
+                      options={transitionOptions}
+                      size="sm"
+                      portal={false}
+                    />
+                  </div>
+                  <div className={fieldStyle}>
+                    <span className={labelStyle}>Count</span>
+                    <Select
+                      value={metric.transitionMode}
+                      onValueChange={(value) =>
+                        updateMetric({
+                          transitionMode: value as TransitionFiringMode,
+                        })
+                      }
+                      options={transitionModeOptions}
+                      size="sm"
+                      portal={false}
+                    />
+                  </div>
+                </>
+              ) : null}
             </div>
           ) : null}
 
@@ -854,82 +810,86 @@ const ExperimentMetricRow = ({
             />
           ) : null}
 
-          {metric.kind !== "placeTokenCountDistribution" ? (
-            <div className={metricCompactPanelStyle}>
-              <span className={compactLabelStyle}>Sampling and output</span>
-              <div className={metricControlsGridStyle}>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Runs</span>
-                  <Select
-                    value={metric.sampleRuns}
-                    onValueChange={(value) =>
+          <div className={metricOutputSectionStyle}>
+            <span className={metricOutputTitleStyle}>Output</span>
+            <div className={metricOutputRowStyle}>
+              <span className={metricOutputLabelStyle}>
+                Sample runs
+                <InfoIconTooltip tooltip="Which simulation runs contribute values at each frame." />
+              </span>
+              <Select
+                value={metric.sampleRuns}
+                onValueChange={(value) =>
+                  updateMetric({
+                    sampleRuns: value as MonteCarloUserDefinedMetricSampleRuns,
+                  })
+                }
+                options={sampleRunOptions}
+                size="sm"
+                className={metricOutputSelectStyle}
+                portal={false}
+              />
+            </div>
+            <div className={metricOutputRowStyle}>
+              <span className={metricOutputLabelStyle}>
+                Run values
+                <InfoIconTooltip tooltip="Choose whether sampled run values stay as a distribution or are reduced to one scalar." />
+              </span>
+              <div className={metricRunValuesControlsStyle}>
+                <div className={metricScalarToggleStyle}>
+                  <span className={metricScalarToggleLabelStyle}>
+                    Scalar aggregate
+                  </span>
+                  <Switch
+                    checked={metric.runOutputType === "scalar"}
+                    onCheckedChange={(checked) =>
                       updateMetric({
-                        sampleRuns:
-                          value as MonteCarloUserDefinedMetricSampleRuns,
+                        runOutputType: checked ? "scalar" : "distribution",
                       })
                     }
-                    options={sampleRunOptions}
-                    size="sm"
-                    portal={false}
                   />
                 </div>
-                <div className={cx(fieldStyle, metricRunOutputFieldStyle)}>
-                  <span className={labelStyle}>Run output</span>
-                  <div className={metricRunOutputGroupStyle}>
-                    <div className={metricRunOutputToggleStyle}>
-                      <span className={labelStyle}>Scalar aggregate</span>
-                      <Switch
-                        checked={metric.runOutputType === "scalar"}
-                        onCheckedChange={(checked) =>
-                          updateMetric({
-                            runOutputType: checked ? "scalar" : "distribution",
-                          })
-                        }
-                      />
-                    </div>
-                    {metric.runOutputType === "scalar" ? (
-                      <div className={metricRunAggregationInlineStyle}>
-                        <span className={metricInlineLabelStyle}>
-                          Run aggregation
-                        </span>
-                        <Select
-                          value={metric.aggregateRuns}
-                          onValueChange={(value) =>
-                            updateMetric({
-                              aggregateRuns:
-                                value as MonteCarloUserDefinedMetricAggregation,
-                            })
-                          }
-                          options={aggregateRunOptions}
-                          size="sm"
-                          portal={false}
-                        />
-                      </div>
-                    ) : (
-                      <span className={metricDistributionHintStyle}>
-                        Distribution across sampled runs
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className={fieldStyle}>
-                  <span className={labelStyle}>Time aggregation</span>
+                {metric.runOutputType === "scalar" ? (
                   <Select
-                    value={metric.aggregateTime}
+                    value={metric.aggregateRuns}
                     onValueChange={(value) =>
                       updateMetric({
-                        aggregateTime:
-                          value as MonteCarloUserDefinedMetricTimeAggregation,
+                        aggregateRuns:
+                          value as MonteCarloUserDefinedMetricAggregation,
                       })
                     }
-                    options={aggregateTimeOptions}
+                    options={aggregateRunOptions}
                     size="sm"
+                    className={metricOutputSelectStyle}
                     portal={false}
                   />
-                </div>
+                ) : (
+                  <span className={metricDistributionHintStyle}>
+                    Distribution across runs
+                  </span>
+                )}
               </div>
             </div>
-          ) : null}
+            <div className={metricOutputRowStyle}>
+              <span className={metricOutputLabelStyle}>
+                Time values
+                <InfoIconTooltip tooltip="Choose whether values are reported for each frame or aggregated over time." />
+              </span>
+              <Select
+                value={metric.aggregateTime}
+                onValueChange={(value) =>
+                  updateMetric({
+                    aggregateTime:
+                      value as MonteCarloUserDefinedMetricTimeAggregation,
+                  })
+                }
+                options={aggregateTimeOptions}
+                size="sm"
+                className={metricOutputSelectStyle}
+                portal={false}
+              />
+            </div>
+          </div>
         </div>
       </Collapsible.Content>
     </Collapsible.Root>
@@ -962,6 +922,9 @@ export const CreateExperimentDrawer = ({
   const [dt, setDt] = useState(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState(DEFAULT_MAX_TIME);
   const [metricDrafts, setMetricDrafts] = useState<ExperimentMetricDraft[]>([]);
+  const [metricLabelFocusId, setMetricLabelFocusId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -974,7 +937,7 @@ export const CreateExperimentDrawer = ({
     { value: DEFAULT_SCENARIO_VALUE, label: "(Default)" },
     ...scenarios.map((s) => ({ value: s.id, label: s.name })),
   ];
-  const metricKindOptions = createMetricKindOptions(petriNetDefinition);
+  const metricKindOptions = createMetricKindOptions();
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
@@ -985,6 +948,7 @@ export const CreateExperimentDrawer = ({
     setDt(DEFAULT_DT);
     setMaxTime(DEFAULT_MAX_TIME);
     setMetricDrafts([]);
+    setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
   };
@@ -1005,9 +969,12 @@ export const CreateExperimentDrawer = ({
   };
 
   const handleAddMetric = () => {
+    const nextMetric = createDefaultMetricDraft(petriNetDefinition);
+
+    setMetricLabelFocusId(nextMetric.id);
     setMetricDrafts((prev) => [
       ...prev.map((metric) => ({ ...metric, expanded: false })),
-      createDefaultMetricDraft(petriNetDefinition),
+      nextMetric,
     ]);
   };
 
@@ -1168,13 +1135,13 @@ export const CreateExperimentDrawer = ({
                   </Button>
                 </div>
 
-                {metricDrafts.map((metric, index) => (
+                {metricDrafts.map((metric) => (
                   <ExperimentMetricRow
                     key={metric.id}
-                    index={index}
                     metric={metric}
                     sdcpn={petriNetDefinition}
                     kindOptions={metricKindOptions}
+                    autoFocusLabel={metric.id === metricLabelFocusId}
                     onChange={handleMetricChange}
                     onRemove={() => handleMetricRemove(metric.id)}
                   />

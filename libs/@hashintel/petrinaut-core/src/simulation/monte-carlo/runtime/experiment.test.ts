@@ -4,7 +4,10 @@ import { createMonteCarloExperiment } from "./experiment";
 
 import type { SDCPN } from "../../../types/sdcpn";
 import type { SimulationTransport } from "../../api";
-import type { PlaceTokenCountDistributionFrame } from "../metrics";
+import type {
+  MonteCarloUserDefinedMetricFrame,
+  PlaceTokenCountDistributionFrame,
+} from "../metrics";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
@@ -53,6 +56,23 @@ function makeDistributionFrame(
         bins: [[frameNumber, 1]],
       },
     ],
+  };
+}
+
+function makeMetricFrame(
+  frameNumber: number,
+): MonteCarloUserDefinedMetricFrame {
+  return {
+    metricId: "constant",
+    label: "Constant",
+    outputType: "scalar",
+    frameNumber,
+    time: frameNumber,
+    value: frameNumber,
+    frameValue: frameNumber,
+    timeValue: null,
+    runSampleCount: 1,
+    timeSampleCount: frameNumber + 1,
   };
 }
 
@@ -165,6 +185,52 @@ describe("createMonteCarloExperiment", () => {
     expect(events).toHaveBeenCalledWith({
       type: "complete",
       progress: completeProgress,
+    });
+
+    experiment.dispose();
+  });
+
+  it("sends metric specs to the worker and appends metric frames", async () => {
+    const mock = makeMockTransport();
+    const metricSpecs = [
+      {
+        id: "constant",
+        label: "Constant",
+        kind: "expression",
+        code: "return 1;",
+      },
+    ] as const;
+    const promise = createMonteCarloExperiment({
+      transport: mock.transport,
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 10,
+      runCount: 1,
+      metricSpecs,
+    });
+
+    expect(mock.sent[0]).toMatchObject({
+      type: "init",
+      metricSpecs,
+    });
+
+    mock.simulate({ type: "ready" });
+    const experiment = await promise;
+    const firstFrame = makeMetricFrame(0);
+    const secondFrame = makeMetricFrame(1);
+    mock.simulate({
+      type: "metricFrames",
+      frames: [firstFrame, secondFrame],
+    });
+
+    expect(experiment.metrics.get()).toEqual({
+      frames: [firstFrame, secondFrame],
+      latestByMetricId: {
+        constant: secondFrame,
+      },
     });
 
     experiment.dispose();

@@ -71,13 +71,13 @@ export type CreateMonteCarloExperimentConfig =
           createWorker: WorkerFactory;
           transport?: never;
           metrics?: never;
-          metricSpecs?: never;
+          metricSpecs?: readonly MonteCarloMetricSpec[];
         }
       | {
           transport: SimulationTransport;
           createWorker?: never;
           metrics?: never;
-          metricSpecs?: never;
+          metricSpecs?: readonly MonteCarloMetricSpec[];
         }
       | {
           metrics: readonly MonteCarloUserDefinedMetricConfig[];
@@ -161,6 +161,22 @@ function createEmptyMetricsState(): MonteCarloExperimentMetrics {
   return {
     frames: [],
     latestByMetricId: {},
+  };
+}
+
+function appendMetricFrames(
+  state: MonteCarloExperimentMetrics,
+  nextFrames: readonly MonteCarloUserDefinedMetricFrame[],
+): MonteCarloExperimentMetrics {
+  const latestByMetricId = { ...state.latestByMetricId };
+
+  for (const frame of nextFrames) {
+    latestByMetricId[frame.metricId] = frame;
+  }
+
+  return {
+    frames: [...state.frames, ...nextFrames],
+    latestByMetricId,
   };
 }
 
@@ -417,7 +433,12 @@ export function createMonteCarloExperiment(
     return createLocalMonteCarloExperiment(config);
   }
 
-  if ("metricSpecs" in config && config.metricSpecs !== undefined) {
+  if (
+    "metricSpecs" in config &&
+    config.metricSpecs !== undefined &&
+    !("createWorker" in config) &&
+    !("transport" in config)
+  ) {
     const { metricSpecs, ...baseConfig } = config;
 
     return createLocalMonteCarloExperiment({
@@ -432,10 +453,18 @@ export function createMonteCarloExperiment(
     });
   }
 
-  const transport =
-    "transport" in config && config.transport !== undefined
-      ? config.transport
-      : createWorkerTransport(config.createWorker);
+  let transport: SimulationTransport;
+  if ("transport" in config && config.transport !== undefined) {
+    transport = config.transport;
+  } else if ("createWorker" in config && config.createWorker !== undefined) {
+    transport = createWorkerTransport(config.createWorker);
+  } else {
+    return Promise.reject(
+      new Error(
+        "Monte Carlo experiment requires a worker, transport, metrics, or local metric specs",
+      ),
+    );
+  }
   const status = createReadableStore<MonteCarloExperimentState>("Initializing");
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
   const distributions = createReadableStore<MonteCarloExperimentDistributions>({
@@ -543,6 +572,10 @@ export function createMonteCarloExperiment(
           });
           break;
         }
+        case "metricFrames": {
+          metrics.set(appendMetricFrames(metrics.get(), message.frames));
+          break;
+        }
         case "progress":
           progress.set(message.progress);
           break;
@@ -589,6 +622,7 @@ export function createMonteCarloExperiment(
         maxTime: config.maxTime,
         runCount: config.runCount,
         batchSize: config.batchSize,
+        metricSpecs: "metricSpecs" in config ? config.metricSpecs : undefined,
       });
     } catch (error) {
       rejectBeforeReady(

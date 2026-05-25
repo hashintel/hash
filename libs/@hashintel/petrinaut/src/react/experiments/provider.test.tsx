@@ -6,6 +6,7 @@ import { use } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  type MonteCarloUserDefinedMetricFrame,
   type PlaceTokenCountDistributionFrame,
   type SDCPN,
   type WorkerLike,
@@ -32,6 +33,14 @@ const EMPTY_SDCPN: SDCPN = {
   parameters: [],
   differentialEquations: [],
 };
+
+const TOKEN_COUNT_METRIC_SPEC = [
+  {
+    id: "token-counts",
+    label: "Token counts",
+    kind: "placeTokenCountDistribution",
+  },
+] as const;
 
 function makeProgress(
   overrides: Partial<MonteCarloWorkerProgress> = {},
@@ -65,6 +74,21 @@ function makeDistributionFrame(): PlaceTokenCountDistributionFrame {
         bins: [[1, 1]],
       },
     ],
+  };
+}
+
+function makeMetricFrame(): MonteCarloUserDefinedMetricFrame {
+  return {
+    metricId: "constant",
+    label: "Constant",
+    outputType: "scalar",
+    frameNumber: 0,
+    time: 0,
+    value: 1,
+    frameValue: 1,
+    timeValue: null,
+    runSampleCount: 2,
+    timeSampleCount: 1,
   };
 }
 
@@ -216,7 +240,7 @@ describe("ExperimentsProvider", () => {
         seed: 42,
         dt: 1,
         maxTime: 10,
-        metricSpecs: [],
+        metricSpecs: TOKEN_COUNT_METRIC_SPEC,
       });
 
       await flushWorkerSetup();
@@ -297,7 +321,7 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 10,
-          metricSpecs: [],
+          metricSpecs: TOKEN_COUNT_METRIC_SPEC,
         });
 
         await flushWorkerSetup();
@@ -346,13 +370,24 @@ describe("ExperimentsProvider", () => {
     }
   });
 
-  it("runs experiment metric specs locally", async () => {
+  it("runs experiment metric specs in the worker", async () => {
     const worker = new FakeMonteCarloWorker();
     const { getValue, renderResult } = renderExperimentsProvider(worker);
+    const metricSpecs = [
+      {
+        id: "constant",
+        label: "Constant",
+        kind: "expression",
+        code: "return 1;",
+        sampleRuns: "all",
+        aggregateRuns: "mean",
+        aggregateTime: "none",
+      },
+    ] as const;
 
     try {
       await act(async () => {
-        await getValue().createExperiment({
+        const createPromise = getValue().createExperiment({
           name: "Metric experiment",
           scenarioId: null,
           scenarioParameterValues: {},
@@ -360,21 +395,23 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 1,
-          metricSpecs: [
-            {
-              id: "constant",
-              label: "Constant",
-              kind: "expression",
-              code: "return 1;",
-              sampleRuns: "all",
-              aggregateRuns: "mean",
-              aggregateTime: "none",
-            },
-          ],
+          metricSpecs,
         });
+
+        await flushWorkerSetup();
+        expect(worker.sent[0]).toMatchObject({
+          type: "init",
+          metricSpecs,
+        });
+        worker.emit({ type: "ready" });
+        await createPromise;
       });
 
-      expect(worker.sent).toEqual([]);
+      const frame = makeMetricFrame();
+      await act(async () => {
+        worker.emit({ type: "metricFrames", frames: [frame] });
+      });
+
       expect(
         getValue().selectedExperiment?.latestMetricFramesById.constant,
       ).toEqual(
@@ -406,7 +443,7 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 10,
-          metricSpecs: [],
+          metricSpecs: TOKEN_COUNT_METRIC_SPEC,
         });
 
         await flushWorkerSetup();

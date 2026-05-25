@@ -127,6 +127,9 @@ function assertExperimentInput(input: CreateExperimentInput): void {
   if (!Number.isFinite(input.maxTime) || input.maxTime <= 0) {
     throw new Error("Max time must be a positive number");
   }
+  if (input.metricSpecs.length === 0) {
+    throw new Error("Define at least one metric");
+  }
 
   const metricIds = new Set<string>();
   for (const metricSpec of input.metricSpecs) {
@@ -336,18 +339,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         maxTime: input.maxTime,
         runCount: input.runCount,
       };
-      const needsLocalMetrics = input.metricSpecs.some(
-        (metricSpec) => metricSpec.kind !== "placeTokenCountDistribution",
-      );
-      const handle = needsLocalMetrics
-        ? await createMonteCarloExperiment({
-            ...experimentConfigBase,
-            metricSpecs: input.metricSpecs,
-          })
-        : await createMonteCarloExperiment({
-            ...experimentConfigBase,
-            createWorker: workerFactoryRef.current,
-          });
+      const handle = await createMonteCarloExperiment({
+        ...experimentConfigBase,
+        createWorker: workerFactoryRef.current,
+        metricSpecs: input.metricSpecs,
+      });
       registerExperimentHandle(experiment, handle);
       handle.start();
     } catch (error) {

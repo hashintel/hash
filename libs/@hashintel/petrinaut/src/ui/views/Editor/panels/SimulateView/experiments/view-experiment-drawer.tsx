@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use, useMemo } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -9,7 +9,7 @@ import {
 } from "../../../../../../react/experiments/context";
 import { Drawer } from "../../../../../components/drawer";
 import { Section, SectionList } from "../../../../../components/section";
-import { ExperimentTimeline } from "./experiment-timeline";
+import { ExperimentMetricTimeline } from "./experiment-metric-timeline";
 
 const bodyStyle = css({
   overflowY: "auto",
@@ -67,8 +67,8 @@ const errorStyle = css({
 });
 
 const metricGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(auto-fit, minmax(180px, 1fr))]",
+  display: "flex",
+  flexDirection: "column",
   gap: "3",
 });
 
@@ -84,25 +84,11 @@ const metricItemStyle = css({
   backgroundColor: "neutral.s00",
 });
 
-const metricValueStyle = css({
-  fontSize: "lg",
-  fontWeight: "semibold",
-  color: "neutral.s120",
-});
-
-const metricMetaStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-});
-
-const metricSubValueStyle = css({
-  fontSize: "xs",
-  color: "neutral.s90",
-});
-
 const footerSpacerStyle = css({
   flex: "1",
 });
+
+type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 function formatNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(3);
@@ -121,24 +107,6 @@ function formatStatus(experiment: ExperimentRecord): string {
     case "cancelled":
       return "Cancelled";
   }
-}
-
-function hasTokenCountDistributionMetric(
-  experiment: ExperimentRecord,
-): boolean {
-  return experiment.metricSpecs.some(
-    (metricSpec) => metricSpec.kind === "placeTokenCountDistribution",
-  );
-}
-
-function formatMetricFrameValue(
-  frame: ExperimentRecord["metricFrames"][number],
-): string {
-  if (frame.outputType === "distribution") {
-    return `${frame.bins.length} bin${frame.bins.length === 1 ? "" : "s"}`;
-  }
-
-  return frame.value === null ? "n/a" : formatNumber(frame.value);
 }
 
 const ExperimentSummary = ({
@@ -207,28 +175,33 @@ const ExperimentMetrics = ({
 }: {
   experiment: ExperimentRecord;
 }) => {
-  const metricFrames = Object.values(experiment.latestMetricFramesById);
+  const metricFrameGroups = useMemo(() => {
+    const groups = new Map<string, MetricFrame[]>();
 
-  if (metricFrames.length === 0) {
+    for (const frame of experiment.metricFrames) {
+      const frames = groups.get(frame.metricId) ?? [];
+      frames.push(frame);
+      groups.set(frame.metricId, frames);
+    }
+
+    return [...groups.values()];
+  }, [experiment.metricFrames]);
+
+  if (metricFrameGroups.length === 0) {
     return null;
   }
 
   return (
     <div className={metricGridStyle}>
-      {metricFrames.map((frame) => (
-        <div key={frame.metricId} className={metricItemStyle}>
-          <span className={statLabelStyle}>{frame.label}</span>
-          <span className={metricValueStyle}>
-            {formatMetricFrameValue(frame)}
-          </span>
-          {frame.outputType === "distribution" ? (
-            <span className={metricSubValueStyle}>Distribution</span>
-          ) : null}
-          <span className={metricMetaStyle}>
-            Frame {frame.frameNumber} - {frame.runSampleCount} runs
-          </span>
-        </div>
-      ))}
+      {metricFrameGroups.map((frames) => {
+        const latestFrame = frames.at(-1)!;
+
+        return (
+          <div key={latestFrame.metricId} className={metricItemStyle}>
+            <ExperimentMetricTimeline frames={frames} />
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -243,7 +216,6 @@ export const ViewExperimentDrawer = ({
   experiment: ExperimentRecord | undefined;
 }) => {
   const { cancelExperiment, removeExperiment } = use(ExperimentsContext);
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
 
   if (!experiment) {
     return (
@@ -255,8 +227,6 @@ export const ViewExperimentDrawer = ({
 
   const canCancel =
     experiment.status === "initializing" || experiment.status === "running";
-  const showTokenCountDistribution =
-    hasTokenCountDistributionMetric(experiment);
 
   return (
     <Drawer.Root open={open} onClose={onClose} className={drawerStyle}>
@@ -269,16 +239,7 @@ export const ViewExperimentDrawer = ({
             <Section title="Summary" collapsible defaultOpen>
               <ExperimentSummary experiment={experiment} />
             </Section>
-            {showTokenCountDistribution ? (
-              <Section title="Token count per place" collapsible defaultOpen>
-                <ExperimentTimeline
-                  experiment={experiment}
-                  placeId={selectedPlaceId}
-                  onPlaceIdChange={setSelectedPlaceId}
-                />
-              </Section>
-            ) : null}
-            {Object.keys(experiment.latestMetricFramesById).length > 0 ? (
+            {experiment.metricFrames.length > 0 ? (
               <Section title="Metrics" collapsible defaultOpen>
                 <ExperimentMetrics experiment={experiment} />
               </Section>

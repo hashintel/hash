@@ -66,6 +66,10 @@ const modeOptions: SegmentOption[] = [
   },
 ];
 
+const visibleModeOptions = modeOptions.filter(
+  (option) => option.value !== "metrics",
+);
+
 const views = {
   scenarios: ScenariosView,
   metrics: MetricsView,
@@ -77,14 +81,15 @@ const views = {
 export const SimulateView = () => {
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
-  const ActiveView = views[mode];
+  const visibleMode = mode === "metrics" ? "scenarios" : mode;
+  const ActiveView = views[visibleMode];
 
   return (
     <div className={containerStyle}>
       <div className={sidebarStyle}>
         <SegmentGroup
-          value={mode}
-          options={modeOptions}
+          value={visibleMode}
+          options={visibleModeOptions}
           onChange={(value) => setMode(value as SimulateViewMode)}
           orientation="vertical"
           size="sm"

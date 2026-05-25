@@ -6,6 +6,7 @@ export type {
   MonteCarloDistributionFramesMessage,
   MonteCarloErrorMessage,
   MonteCarloInitMessage,
+  MonteCarloMetricFramesMessage,
   MonteCarloProgressMessage,
   MonteCarloReadyMessage,
   MonteCarloStartMessage,

@@ -114,6 +114,7 @@ const placeholderStyle = css({
 const customTriggerWrapperStyle = css({
   display: "flex",
   alignItems: "center",
+  justifyContent: "space-between",
   gap: "2",
   width: "[100%]",
   minWidth: "[0]",
