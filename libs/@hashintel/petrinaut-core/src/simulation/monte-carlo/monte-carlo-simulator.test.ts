@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { createPlaceTokenCountDistributionMetric } from "./metrics";
+import {
+  createMonteCarloUserDefinedMetric,
+  createPlaceTokenCountDistributionMetric,
+} from "./metrics";
 import { createMonteCarloSimulator } from "./monte-carlo-simulator";
 
 import type { SDCPN } from "../../types/sdcpn";
@@ -256,6 +259,49 @@ describe("MonteCarloSimulator", () => {
     expect(distributionMetric.frames.at(-1)).toMatchObject({
       frameNumber: 10,
       time: 1,
+    });
+  });
+
+  it("supports user-defined scalar metrics with run and time aggregation", () => {
+    const sourceAverageMetric = createMonteCarloUserDefinedMetric({
+      id: "source-average",
+      label: "Average source tokens",
+      sampleRuns: "all",
+      aggregateRuns: "mean",
+      aggregateTime: "mean",
+      measure: ({ frame }) => frame.getPlaceTokenCount("source"),
+    });
+    const simulator = createMonteCarloSimulator({
+      sdcpn,
+      runCount: 2,
+      initialMarking: { source: 1 },
+      runs: [
+        { seed: 10, initialMarking: { source: 1 } },
+        { seed: 20, initialMarking: { source: 2 } },
+      ],
+      dt: 1,
+      maxTime: 20,
+      metrics: [sourceAverageMetric],
+    });
+
+    expect(sourceAverageMetric.getLatestFrame()).toMatchObject({
+      metricId: "source-average",
+      value: 1.5,
+      frameValue: 1.5,
+      timeValue: 1.5,
+      runSampleCount: 2,
+      timeSampleCount: 1,
+    });
+
+    simulator.advanceAll();
+
+    expect(sourceAverageMetric.getLatestFrame()).toMatchObject({
+      frameNumber: 1,
+      value: 1,
+      frameValue: 0.5,
+      timeValue: 1,
+      runSampleCount: 2,
+      timeSampleCount: 2,
     });
   });
 });

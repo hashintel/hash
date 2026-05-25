@@ -66,6 +66,40 @@ const errorStyle = css({
   whiteSpace: "pre-wrap",
 });
 
+const metricGridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[repeat(auto-fit, minmax(180px, 1fr))]",
+  gap: "3",
+});
+
+const metricItemStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  padding: "3",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "md",
+  backgroundColor: "neutral.s00",
+});
+
+const metricValueStyle = css({
+  fontSize: "lg",
+  fontWeight: "semibold",
+  color: "neutral.s120",
+});
+
+const metricMetaStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+});
+
+const metricSubValueStyle = css({
+  fontSize: "xs",
+  color: "neutral.s90",
+});
+
 const footerSpacerStyle = css({
   flex: "1",
 });
@@ -87,6 +121,24 @@ function formatStatus(experiment: ExperimentRecord): string {
     case "cancelled":
       return "Cancelled";
   }
+}
+
+function hasTokenCountDistributionMetric(
+  experiment: ExperimentRecord,
+): boolean {
+  return experiment.metricSpecs.some(
+    (metricSpec) => metricSpec.kind === "placeTokenCountDistribution",
+  );
+}
+
+function formatMetricFrameValue(
+  frame: ExperimentRecord["metricFrames"][number],
+): string {
+  if (frame.outputType === "distribution") {
+    return `${frame.bins.length} bin${frame.bins.length === 1 ? "" : "s"}`;
+  }
+
+  return frame.value === null ? "n/a" : formatNumber(frame.value);
 }
 
 const ExperimentSummary = ({
@@ -150,6 +202,37 @@ const ExperimentSummary = ({
   );
 };
 
+const ExperimentMetrics = ({
+  experiment,
+}: {
+  experiment: ExperimentRecord;
+}) => {
+  const metricFrames = Object.values(experiment.latestMetricFramesById);
+
+  if (metricFrames.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={metricGridStyle}>
+      {metricFrames.map((frame) => (
+        <div key={frame.metricId} className={metricItemStyle}>
+          <span className={statLabelStyle}>{frame.label}</span>
+          <span className={metricValueStyle}>
+            {formatMetricFrameValue(frame)}
+          </span>
+          {frame.outputType === "distribution" ? (
+            <span className={metricSubValueStyle}>Distribution</span>
+          ) : null}
+          <span className={metricMetaStyle}>
+            Frame {frame.frameNumber} - {frame.runSampleCount} runs
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const ViewExperimentDrawer = ({
   open,
   onClose,
@@ -172,11 +255,13 @@ export const ViewExperimentDrawer = ({
 
   const canCancel =
     experiment.status === "initializing" || experiment.status === "running";
+  const showTokenCountDistribution =
+    hasTokenCountDistributionMetric(experiment);
 
   return (
     <Drawer.Root open={open} onClose={onClose} className={drawerStyle}>
       <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="Monte Carlo token-count distributions streamed from the worker">
+        <Drawer.Header description="Monte Carlo token-count distributions and experiment metrics">
           {experiment.name}
         </Drawer.Header>
         <Drawer.Body className={bodyStyle}>
@@ -184,13 +269,20 @@ export const ViewExperimentDrawer = ({
             <Section title="Summary" collapsible defaultOpen>
               <ExperimentSummary experiment={experiment} />
             </Section>
-            <Section title="Token counts" collapsible defaultOpen>
-              <ExperimentTimeline
-                experiment={experiment}
-                placeId={selectedPlaceId}
-                onPlaceIdChange={setSelectedPlaceId}
-              />
-            </Section>
+            {showTokenCountDistribution ? (
+              <Section title="Token count per place" collapsible defaultOpen>
+                <ExperimentTimeline
+                  experiment={experiment}
+                  placeId={selectedPlaceId}
+                  onPlaceIdChange={setSelectedPlaceId}
+                />
+              </Section>
+            ) : null}
+            {Object.keys(experiment.latestMetricFramesById).length > 0 ? (
+              <Section title="Metrics" collapsible defaultOpen>
+                <ExperimentMetrics experiment={experiment} />
+              </Section>
+            ) : null}
           </SectionList>
         </Drawer.Body>
       </Drawer.Card>

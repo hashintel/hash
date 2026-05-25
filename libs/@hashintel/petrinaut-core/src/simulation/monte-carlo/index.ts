@@ -1,5 +1,12 @@
 export { createMonteCarloSimulator } from "./monte-carlo-simulator";
-export { createPlaceTokenCountDistributionMetric } from "./metrics";
+export {
+  addAllMonteCarloMetricValues,
+  createMonteCarloMetricHistogramAccumulator,
+  createMonteCarloMetricNumericAccumulator,
+  createMonteCarloUserDefinedMetricConfigsFromSpecs,
+  createMonteCarloUserDefinedMetric,
+  createPlaceTokenCountDistributionMetric,
+} from "./metrics";
 export { createMonteCarloExperiment } from "./runtime/experiment";
 export type {
   MonteCarloAdvanceResult,
@@ -13,8 +20,33 @@ export type {
 } from "./types";
 export type {
   MonteCarloActiveRunPlaceCountsVisitor,
+  MonteCarloExpressionMetricSpec,
   MonteCarloFrameMetric,
   MonteCarloFrameMetricContext,
+  MonteCarloMetricDistributionBinning,
+  MonteCarloMetricHistogramAccumulatorState,
+  MonteCarloMetricMonoid,
+  MonteCarloMetricNumericAccumulatorState,
+  MonteCarloMetricSpec,
+  MonteCarloMetricSpecBase,
+  MonteCarloMetricRunOutput,
+  MonteCarloMetricRunStatus,
+  MonteCarloMetricValueAccumulator,
+  MonteCarloPlaceTokenCountDistributionMetricSpec,
+  MonteCarloPlaceTokenCountMeanMetricSpec,
+  MonteCarloRunFrameMetricView,
+  MonteCarloRunFrameMetricVisitor,
+  MonteCarloTransitionFiringCountMetricSpec,
+  MonteCarloUserDefinedMetric,
+  MonteCarloUserDefinedMetricAggregation,
+  MonteCarloUserDefinedMetricConfig,
+  MonteCarloUserDefinedDistributionMetricFrame,
+  MonteCarloUserDefinedMetricDistributionBin,
+  MonteCarloUserDefinedMetricFrame,
+  MonteCarloUserDefinedMetricMeasureInput,
+  MonteCarloUserDefinedMetricSampleRuns,
+  MonteCarloUserDefinedScalarMetricFrame,
+  MonteCarloUserDefinedMetricTimeAggregation,
   PlaceTokenCountDistributionBin,
   PlaceTokenCountDistributionFrame,
   PlaceTokenCountDistributionMetric,
@@ -25,6 +57,7 @@ export type {
   MonteCarloExperiment,
   MonteCarloExperimentDistributions,
   MonteCarloExperimentEvent,
+  MonteCarloExperimentMetrics,
   MonteCarloExperimentState,
 } from "./runtime/experiment";
 export type { MonteCarloWorkerProgress } from "./worker/messages";

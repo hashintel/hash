@@ -82,6 +82,7 @@ export function makeExperiment(
     maxTime: 180,
     status,
     error: null,
+    metricSpecs: [],
     progress:
       status === "initializing"
         ? null
@@ -93,6 +94,8 @@ export function makeExperiment(
             frameNumber: status === "complete" ? 180 : 45,
           }),
     distributionFrames: [],
+    latestMetricFramesById: {},
+    metricFrames: [],
     ...overrides,
   };
 }
@@ -156,8 +159,11 @@ const createFakeExperiment = (
   maxTime: input.maxTime,
   status: "initializing",
   error: null,
+  metricSpecs: input.metricSpecs,
   progress: null,
   distributionFrames: [],
+  latestMetricFramesById: {},
+  metricFrames: [],
 });
 
 export function FakeExperimentsProvider({

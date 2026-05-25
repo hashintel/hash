@@ -170,6 +170,220 @@ describe("createMonteCarloExperiment", () => {
     experiment.dispose();
   });
 
+  it("runs locally when user-defined metrics are provided", async () => {
+    const experiment = await createMonteCarloExperiment({
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 2,
+      runCount: 2,
+      metrics: [
+        {
+          id: "frame-number",
+          label: "Frame number",
+          sampleRuns: "all",
+          aggregateRuns: "mean",
+          aggregateTime: "mean",
+          measure: ({ frame }) => frame.number,
+        },
+      ],
+    });
+
+    expect(experiment.status.get()).toBe("Ready");
+    expect(experiment.metrics.get().latestByMetricId["frame-number"]).toEqual(
+      expect.objectContaining({
+        value: 0,
+        frameValue: 0,
+        timeValue: 0,
+        runSampleCount: 2,
+      }),
+    );
+
+    const complete = new Promise<void>((resolve) => {
+      experiment.events.subscribe((event) => {
+        if (event.type === "complete") {
+          resolve();
+        }
+      });
+    });
+
+    experiment.start();
+    await complete;
+
+    expect(experiment.status.get()).toBe("Complete");
+    expect(experiment.metrics.get().latestByMetricId["frame-number"]).toEqual(
+      expect.objectContaining({
+        frameNumber: 1,
+        value: 0.5,
+        frameValue: 1,
+        timeValue: 0.5,
+        runSampleCount: 2,
+        timeSampleCount: 2,
+      }),
+    );
+  });
+
+  it("compiles experiment metric specs into local metrics", async () => {
+    const experiment = await createMonteCarloExperiment({
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 1,
+      runCount: 2,
+      metricSpecs: [
+        {
+          id: "constant",
+          label: "Constant",
+          kind: "expression",
+          code: "return 1;",
+          sampleRuns: "all",
+          aggregateRuns: "mean",
+          aggregateTime: "none",
+        },
+      ],
+    });
+
+    expect(experiment.metrics.get().latestByMetricId.constant).toEqual(
+      expect.objectContaining({
+        value: 1,
+        frameValue: 1,
+        runSampleCount: 2,
+      }),
+    );
+  });
+
+  it("collects token count distributions only when requested by metric specs", async () => {
+    const withoutDistribution = await createMonteCarloExperiment({
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 1,
+      runCount: 1,
+      metricSpecs: [
+        {
+          id: "constant",
+          label: "Constant",
+          kind: "expression",
+          code: "return 1;",
+        },
+      ],
+    });
+
+    expect(withoutDistribution.distributions.get().frames).toEqual([]);
+
+    const withDistribution = await createMonteCarloExperiment({
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 1,
+      runCount: 1,
+      metricSpecs: [
+        {
+          id: "token-counts",
+          label: "Token count per place",
+          kind: "placeTokenCountDistribution",
+        },
+      ],
+    });
+
+    expect(withDistribution.distributions.get().latest).toEqual(
+      expect.objectContaining({
+        frameNumber: 0,
+        places: [],
+      }),
+    );
+  });
+
+  it("keeps per-frame distributions for sampled metric values", async () => {
+    const experiment = await createMonteCarloExperiment({
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 1,
+      runCount: 2,
+      metricSpecs: [
+        {
+          id: "constant-distribution",
+          label: "Constant distribution",
+          kind: "expression",
+          code: "return 1;",
+          sampleRuns: "all",
+          runOutput: { type: "distribution" },
+        },
+      ],
+    });
+
+    expect(
+      experiment.metrics.get().latestByMetricId["constant-distribution"],
+    ).toEqual(
+      expect.objectContaining({
+        outputType: "distribution",
+        bins: [[1, 2]],
+        runSampleCount: 2,
+        value: null,
+      }),
+    );
+  });
+
+  it("can aggregate over time before keeping a run distribution", async () => {
+    const experiment = await createMonteCarloExperiment({
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 1,
+      maxTime: 2,
+      runCount: 2,
+      metrics: [
+        {
+          id: "time-distribution",
+          label: "Time distribution",
+          sampleRuns: "all",
+          runOutput: { type: "distribution" },
+          aggregateTime: "mean",
+          measure: ({ frame, runIndex }) => runIndex + frame.number,
+        },
+      ],
+    });
+
+    const complete = new Promise<void>((resolve) => {
+      experiment.events.subscribe((event) => {
+        if (event.type === "complete") {
+          resolve();
+        }
+      });
+    });
+
+    experiment.start();
+    await complete;
+
+    expect(
+      experiment.metrics.get().latestByMetricId["time-distribution"],
+    ).toEqual(
+      expect.objectContaining({
+        outputType: "distribution",
+        bins: [
+          [0.5, 1],
+          [1.5, 1],
+        ],
+        frameNumber: 1,
+        runSampleCount: 2,
+        timeSampleCount: 2,
+        value: null,
+      }),
+    );
+  });
+
   it("forwards start and cancel messages over the transport", async () => {
     const mock = makeMockTransport();
     const promise = createExperimentWithMockTransport(mock);

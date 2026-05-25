@@ -127,6 +127,23 @@ function assertExperimentInput(input: CreateExperimentInput): void {
   if (!Number.isFinite(input.maxTime) || input.maxTime <= 0) {
     throw new Error("Max time must be a positive number");
   }
+
+  const metricIds = new Set<string>();
+  for (const metricSpec of input.metricSpecs) {
+    if (metricSpec.id.trim() === "") {
+      throw new Error("Metric id is required");
+    }
+    if (metricIds.has(metricSpec.id)) {
+      throw new Error(`Metric id "${metricSpec.id}" is duplicated`);
+    }
+    metricIds.add(metricSpec.id);
+    if (metricSpec.label.trim() === "") {
+      throw new Error("Metric label is required");
+    }
+    if (metricSpec.kind === "expression" && metricSpec.code.trim() === "") {
+      throw new Error(`Metric "${metricSpec.label}" code is required`);
+    }
+  }
 }
 
 export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
@@ -190,6 +207,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const sync = () => {
       patchExperiment(experimentId, {
         distributionFrames: handle.distributions.get().frames,
+        latestMetricFramesById: handle.metrics.get().latestByMetricId,
+        metricFrames: handle.metrics.get().frames,
         progress: handle.progress.get(),
         status: mapExperimentStatus(handle.status.get()),
       });
@@ -198,6 +217,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const unsubscribeStatus = handle.status.subscribe(sync);
     const unsubscribeProgress = handle.progress.subscribe(sync);
     const unsubscribeDistributions = handle.distributions.subscribe(sync);
+    const unsubscribeMetrics = handle.metrics.subscribe(sync);
     const unsubscribeEvents = handle.events.subscribe((event) => {
       if (event.type === "error") {
         patchExperiment(experimentId, {
@@ -230,6 +250,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         unsubscribeStatus();
         unsubscribeProgress();
         unsubscribeDistributions();
+        unsubscribeMetrics();
         unsubscribeEvents();
       },
     });
@@ -295,15 +316,18 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       maxTime: input.maxTime,
       status: "initializing",
       error: null,
+      metricSpecs: input.metricSpecs,
       progress: null,
       distributionFrames: [],
+      latestMetricFramesById: {},
+      metricFrames: [],
     };
 
     setExperiments((prev) => [experiment, ...prev]);
     setSelectedExperimentId(experimentId);
 
     try {
-      const handle = await createMonteCarloExperiment({
+      const experimentConfigBase = {
         sdcpn,
         initialMarking,
         parameterValues,
@@ -311,8 +335,19 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         dt: input.dt,
         maxTime: input.maxTime,
         runCount: input.runCount,
-        createWorker: workerFactoryRef.current,
-      });
+      };
+      const needsLocalMetrics = input.metricSpecs.some(
+        (metricSpec) => metricSpec.kind !== "placeTokenCountDistribution",
+      );
+      const handle = needsLocalMetrics
+        ? await createMonteCarloExperiment({
+            ...experimentConfigBase,
+            metricSpecs: input.metricSpecs,
+          })
+        : await createMonteCarloExperiment({
+            ...experimentConfigBase,
+            createWorker: workerFactoryRef.current,
+          });
       registerExperimentHandle(experiment, handle);
       handle.start();
     } catch (error) {

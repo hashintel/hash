@@ -216,6 +216,7 @@ describe("ExperimentsProvider", () => {
         seed: 42,
         dt: 1,
         maxTime: 10,
+        metricSpecs: [],
       });
 
       await flushWorkerSetup();
@@ -296,6 +297,7 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 10,
+          metricSpecs: [],
         });
 
         await flushWorkerSetup();
@@ -344,6 +346,49 @@ describe("ExperimentsProvider", () => {
     }
   });
 
+  it("runs experiment metric specs locally", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+
+    try {
+      await act(async () => {
+        await getValue().createExperiment({
+          name: "Metric experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 2,
+          seed: 42,
+          dt: 1,
+          maxTime: 1,
+          metricSpecs: [
+            {
+              id: "constant",
+              label: "Constant",
+              kind: "expression",
+              code: "return 1;",
+              sampleRuns: "all",
+              aggregateRuns: "mean",
+              aggregateTime: "none",
+            },
+          ],
+        });
+      });
+
+      expect(worker.sent).toEqual([]);
+      expect(
+        getValue().selectedExperiment?.latestMetricFramesById.constant,
+      ).toEqual(
+        expect.objectContaining({
+          value: 1,
+          frameValue: 1,
+          runSampleCount: 2,
+        }),
+      );
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
   it("notifies when a Monte Carlo experiment errors", async () => {
     const addNotification = vi.fn(() => "notification-id");
     const worker = new FakeMonteCarloWorker();
@@ -361,6 +406,7 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 10,
+          metricSpecs: [],
         });
 
         await flushWorkerSetup();
