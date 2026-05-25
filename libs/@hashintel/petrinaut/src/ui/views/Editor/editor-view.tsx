@@ -121,6 +121,7 @@ export const EditorView = ({
     existingNets,
     loadPetriNet,
     petriNetDefinition,
+    petriNetId,
     title,
     setTitle,
   } = use(SDCPNContext);
@@ -447,6 +448,8 @@ export const EditorView = ({
 
               {aiAssistant && (
                 <AiAssistantPanel
+                  /** Reset state (e.g. initial messages) when the active net changes */
+                  key={petriNetId ?? "no-net"}
                   aiAssistant={aiAssistant}
                   initialMessage={pendingAiAssistantMessage}
                   onInitialMessageConsumed={() =>

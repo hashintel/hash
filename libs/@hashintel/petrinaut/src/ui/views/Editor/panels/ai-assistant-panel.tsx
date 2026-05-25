@@ -22,6 +22,7 @@ import {
   type EditorContextValue,
 } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import { simulateModeAllowedMutationNames } from "../../../../react/state/simulate-mode-allowed-mutation-names";
 import {
   formatReadOnlyReason,
   useReadOnlyReason,
@@ -400,16 +401,30 @@ export const AiAssistantPanel = ({
 
       const currentReadOnlyReason = readOnlyReasonRef.current;
       if (currentReadOnlyReason !== null) {
-        safelyAddToolOutput(addToolOutput, {
-          tool: toolName,
-          toolCallId: toolCall.toolCallId,
-          output: {
-            applied: false,
-            blocked: currentReadOnlyReason.kind,
-            reason: formatReadOnlyReason(currentReadOnlyReason),
-          } satisfies AiToolOutput,
-        });
-        return;
+        // Scenario and metric mutations stay live in simulate mode and
+        // during an active simulation — the Simulate panel itself drives
+        // them, so `usePetrinautMutations` only blocks them when the host
+        // is fully read-only. Mirror that here so the assistant can do
+        // what the UI already permits.
+        const isSimulateAllowedMutation =
+          isPetrinautAiMutationToolName(toolName) &&
+          simulateModeAllowedMutationNames.has(toolName);
+        const allowedDespiteReadOnly =
+          isSimulateAllowedMutation &&
+          currentReadOnlyReason.kind !== "host-readonly";
+
+        if (!allowedDespiteReadOnly) {
+          safelyAddToolOutput(addToolOutput, {
+            tool: toolName,
+            toolCallId: toolCall.toolCallId,
+            output: {
+              applied: false,
+              blocked: currentReadOnlyReason.kind,
+              reason: formatReadOnlyReason(currentReadOnlyReason),
+            } satisfies AiToolOutput,
+          });
+          return;
+        }
       }
 
       if (isPetrinautAiCommandToolName(toolName)) {

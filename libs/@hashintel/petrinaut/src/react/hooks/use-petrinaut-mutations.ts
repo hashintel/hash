@@ -2,23 +2,10 @@ import { use } from "react";
 
 import { PetrinautInstanceContext } from "../instance-context";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { simulateModeAllowedMutationNames } from "../state/simulate-mode-allowed-mutation-names";
 import { useIsReadOnly } from "../state/use-is-read-only";
 
 import type { PetrinautMutations } from "@hashintel/petrinaut-core";
-
-/**
- * Names of mutations that are allowed in simulate mode. Scenario and metric
- * CRUD are managed from the Simulate panel — only the host `readonly` flag
- * blocks them.
- */
-const SCENARIO_MUTATION_NAMES = new Set<keyof PetrinautMutations>([
-  "addScenario",
-  "updateScenario",
-  "removeScenario",
-  "addMetric",
-  "updateMetric",
-  "removeMetric",
-]);
 
 /**
  * React-facing bundle of atomic SDCPN mutations.
@@ -29,6 +16,8 @@ const SCENARIO_MUTATION_NAMES = new Set<keyof PetrinautMutations>([
  *   `readonly`, simulate mode, or an active simulation).
  * - Scenario/metric mutations only check the host `readonly` flag — they
  *   remain available in simulate mode where the Simulate panel manages them.
+ *   The list lives in {@link simulateModeAllowedMutationNames} so the AI
+ *   tool dispatcher stays in sync.
  *
  * Components MUST NOT reach for `usePetrinautInstance().mutations` directly;
  * the public `usePetrinautInstance()` return type narrows away the mutation
@@ -48,7 +37,7 @@ export function usePetrinautMutations(): PetrinautMutations {
   const withReadonlyGuard = <Name extends keyof PetrinautMutations>(
     name: Name,
   ): PetrinautMutations[Name] => {
-    const allowedInSimulate = SCENARIO_MUTATION_NAMES.has(name);
+    const allowedInSimulate = simulateModeAllowedMutationNames.has(name);
     const target = mutations[name] as (input: never) => void;
     const wrapped = ((input: never) => {
       if (allowedInSimulate ? readonly : isReadOnly) {
