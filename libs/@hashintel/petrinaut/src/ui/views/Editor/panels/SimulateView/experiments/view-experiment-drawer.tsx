@@ -231,7 +231,7 @@ export const ViewExperimentDrawer = ({
   return (
     <Drawer.Root open={open} onClose={onClose} className={drawerStyle}>
       <Drawer.Card onClose={onClose}>
-        <Drawer.Header description="Monte Carlo token-count distributions and experiment metrics">
+        <Drawer.Header description="Monte Carlo experiment metrics">
           {experiment.name}
         </Drawer.Header>
         <Drawer.Body className={bodyStyle}>

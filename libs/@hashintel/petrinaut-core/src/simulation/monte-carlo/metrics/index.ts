@@ -3,7 +3,6 @@ export {
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
 } from "./accumulators";
-export { createPlaceTokenCountDistributionMetric } from "./place-token-count-distribution";
 export { createMonteCarloUserDefinedMetricConfigsFromSpecs } from "./specs";
 export { createMonteCarloUserDefinedMetric } from "./user-defined";
 export type {
@@ -22,7 +21,6 @@ export type {
   MonteCarloMetricSpecBase,
   MonteCarloMetricRunOutput,
   MonteCarloMetricRunStatus,
-  MonteCarloPlaceTokenCountDistributionMetricSpec,
   MonteCarloPlaceTokenCountMeanMetricSpec,
   MonteCarloRunFrameMetricView,
   MonteCarloRunFrameMetricVisitor,
@@ -37,8 +35,4 @@ export type {
   MonteCarloUserDefinedMetricSampleRuns,
   MonteCarloUserDefinedScalarMetricFrame,
   MonteCarloUserDefinedMetricTimeAggregation,
-  PlaceTokenCountDistributionBin,
-  PlaceTokenCountDistributionFrame,
-  PlaceTokenCountDistributionMetric,
-  PlaceTokenCountDistributionPlace,
 } from "./types";

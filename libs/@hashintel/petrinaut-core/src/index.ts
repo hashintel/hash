@@ -97,7 +97,6 @@ export {
   createMonteCarloSimulator,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
-  createPlaceTokenCountDistributionMetric,
   createSimulation,
   createWorkerTransport,
 } from "./simulation";
@@ -122,7 +121,6 @@ export type {
   MonteCarloAdvanceResult,
   MonteCarloActiveRunPlaceCountsVisitor,
   MonteCarloExperiment,
-  MonteCarloExperimentDistributions,
   MonteCarloExperimentEvent,
   MonteCarloExperimentMetrics,
   MonteCarloExperimentState,
@@ -138,7 +136,6 @@ export type {
   MonteCarloMetricRunOutput,
   MonteCarloMetricRunStatus,
   MonteCarloMetricValueAccumulator,
-  MonteCarloPlaceTokenCountDistributionMetricSpec,
   MonteCarloPlaceTokenCountMeanMetricSpec,
   MonteCarloRunFrameMetricView,
   MonteCarloRunFrameMetricVisitor,
@@ -160,10 +157,6 @@ export type {
   MonteCarloUserDefinedScalarMetricFrame,
   MonteCarloUserDefinedMetricTimeAggregation,
   MonteCarloTransitionFiringCountMetricSpec,
-  PlaceTokenCountDistributionBin,
-  PlaceTokenCountDistributionFrame,
-  PlaceTokenCountDistributionMetric,
-  PlaceTokenCountDistributionPlace,
   MonteCarloWorkerProgress,
 } from "./simulation";
 

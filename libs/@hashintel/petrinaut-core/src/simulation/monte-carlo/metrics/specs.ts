@@ -55,8 +55,6 @@ export function createMonteCarloUserDefinedMetricConfigsFromSpecs(
     switch (spec.kind) {
       case "expression":
         return [createExpressionMetricConfig(spec, sdcpn)];
-      case "placeTokenCountDistribution":
-        return [];
       case "placeTokenCountMean":
         return [
           applyMetricSpecBase(spec, ({ frame }) =>

@@ -93,7 +93,6 @@ export function makeExperiment(
             time: status === "complete" ? 180 : 45,
             frameNumber: status === "complete" ? 180 : 45,
           }),
-    distributionFrames: [],
     latestMetricFramesById: {},
     metricFrames: [],
     ...overrides,
@@ -161,7 +160,6 @@ const createFakeExperiment = (
   error: null,
   metricSpecs: input.metricSpecs,
   progress: null,
-  distributionFrames: [],
   latestMetricFramesById: {},
   metricFrames: [],
 });

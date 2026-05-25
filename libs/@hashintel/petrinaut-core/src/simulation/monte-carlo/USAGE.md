@@ -7,11 +7,18 @@ experiment API for UI/runtime work that should run through a worker transport.
 
 ```ts
 import {
+  createMonteCarloUserDefinedMetric,
   createMonteCarloSimulator,
-  createPlaceTokenCountDistributionMetric,
 } from "@hashintel/petrinaut-core";
 
-const distributions = createPlaceTokenCountDistributionMetric();
+const sourceTokens = createMonteCarloUserDefinedMetric({
+  id: "source-tokens",
+  label: "Source tokens",
+  sampleRuns: "all",
+  aggregateRuns: "mean",
+  aggregateTime: "none",
+  measure: ({ frame }) => frame.getPlaceTokenCount("source"),
+});
 
 const simulator = createMonteCarloSimulator({
   sdcpn,
@@ -21,14 +28,14 @@ const simulator = createMonteCarloSimulator({
   seed: 1,
   dt: 1,
   maxTime: 100,
-  metrics: [distributions],
+  metrics: [sourceTokens],
 });
 
 const result = simulator.runUntilComplete();
 
 const summaries = simulator.getSummaries();
 const firstRun = simulator.getRunSnapshot(0);
-const latestDistribution = distributions.getLatestFrame();
+const latestMetric = sourceTokens.getLatestFrame();
 ```
 
 For incremental progress, call `advanceAll()` yourself:
@@ -82,17 +89,26 @@ const experiment = await createMonteCarloExperiment({
   runCount: 100,
   batchSize: 4,
   createWorker: createMonteCarloWorker,
+  metricSpecs: [
+    {
+      id: "source-tokens",
+      label: "Source tokens",
+      kind: "placeTokenCountMean",
+      placeId: "source",
+      sampleRuns: "all",
+      runOutput: { type: "scalar", aggregateRuns: "mean" },
+      aggregateTime: "none",
+    },
+  ],
 });
 
 const unsubscribeProgress = experiment.progress.subscribe((progress) => {
   console.log(progress);
 });
 
-const unsubscribeDistributions = experiment.distributions.subscribe(
-  ({ latest }) => {
-    console.log(latest);
-  },
-);
+const unsubscribeMetrics = experiment.metrics.subscribe((metrics) => {
+  console.log(metrics.latestByMetricId["source-tokens"]);
+});
 
 experiment.events.subscribe((event) => {
   if (event.type === "complete") {
@@ -104,7 +120,7 @@ experiment.start();
 
 // Later:
 unsubscribeProgress();
-unsubscribeDistributions();
+unsubscribeMetrics();
 experiment.dispose();
 ```
 
@@ -113,12 +129,12 @@ down the transport and should be called when the handle is no longer needed.
 
 ## Metrics
 
-Metrics implement `MonteCarloFrameMetric` and receive one frame context at
-frame zero, then after every batch where at least one run advanced.
+Metrics implement `MonteCarloFrameMetric` and receive one frame context at frame
+zero, then after every batch where at least one run advanced.
 
-`createPlaceTokenCountDistributionMetric()` records active-run histograms for
-each place. Complete and errored runs are excluded from later distribution
-frames, while their counts remain visible through simulator summaries/progress.
+Use `createMonteCarloUserDefinedMetric()` for callback-based metrics in direct
+simulator/local experiment code. Use `metricSpecs` for serializable experiment
+metrics that can run inside the Monte Carlo worker.
 
 ## Config Notes
 

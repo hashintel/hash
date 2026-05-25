@@ -330,10 +330,10 @@ const DEFAULT_DT = "1";
 const DEFAULT_MAX_TIME = "180";
 const DEFAULT_METRIC_CODE = "return 0;";
 
-type ExperimentMetricKind = Exclude<
-  MonteCarloMetricSpec["kind"],
-  "placeTokenCountDistribution"
->;
+type ExperimentMetricKind =
+  | "placeTokenCountMean"
+  | "transitionFiringCount"
+  | "expression";
 type ExperimentMetricRunOutputType = "distribution" | "scalar";
 type TransitionFiringMode = NonNullable<
   Extract<MonteCarloMetricSpec, { kind: "transitionFiringCount" }>["mode"]
@@ -429,15 +429,18 @@ function getDefaultMetricLabel(
   }
 }
 
-function canReplaceMetricLabel(label: string): boolean {
+function canReplaceMetricLabel(label: string, sdcpn: SDCPN): boolean {
   const trimmed = label.trim();
 
-  return (
-    trimmed === "" ||
-    trimmed === "Custom metric" ||
-    trimmed === "Place tokens" ||
-    trimmed === "Transition firing"
-  );
+  return new Set([
+    "",
+    "Custom metric",
+    "Place tokens",
+    "Transition firing",
+    getDefaultMetricLabel("placeTokenCountMean", sdcpn),
+    getDefaultMetricLabel("transitionFiringCount", sdcpn),
+    getDefaultMetricLabel("expression", sdcpn),
+  ]).has(trimmed);
 }
 
 function createMetricKindOptions(): {
@@ -647,7 +650,7 @@ const ExperimentMetricRow = ({
   };
   const handleKindChange = (value: string) => {
     const nextKind = value as ExperimentMetricKind;
-    const nextLabel = canReplaceMetricLabel(metric.label)
+    const nextLabel = canReplaceMetricLabel(metric.label, sdcpn)
       ? getDefaultMetricLabel(nextKind, sdcpn)
       : metric.label;
     const nextPatch: Partial<ExperimentMetricDraft> = {

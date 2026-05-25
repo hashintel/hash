@@ -66,14 +66,14 @@ accumulators.
 
 ```ts
 export type MonteCarloMetricSpec =
-  | PlaceTokenCountDistributionMetricSpec
+  | PlaceTokenHistogramMetricSpec
   | AveragePlaceTokenCountMetricSpec
   | TransitionThroughputMetricSpec;
 
 export type RunSampleMode = "active" | "completed" | "all";
 
-export type PlaceTokenCountDistributionMetricSpec = {
-  type: "placeTokenCountDistribution";
+export type PlaceTokenHistogramMetricSpec = {
+  type: "placeTokenHistogram";
   id: MonteCarloMetricId;
   title?: string;
   placeIds?: readonly string[];
@@ -279,8 +279,8 @@ export interface MonteCarloExperiment {
 This is the generalized form of the current place token count distribution.
 
 ```ts
-export function createPlaceTokenCountDistributionMetric(
-  spec: PlaceTokenCountDistributionMetricSpec,
+export function createPlaceTokenHistogramMetric(
+  spec: PlaceTokenHistogramMetricSpec,
 ): MonteCarloMetricAccumulator {
   const descriptor: MonteCarloMetricDescriptor = {
     id: spec.id,
@@ -525,7 +525,7 @@ export type MonteCarloMetricFactory<TSpec extends MonteCarloMetricSpec> = (
 ) => MonteCarloMetricAccumulator;
 
 export type MonteCarloMetricRegistry = {
-  placeTokenCountDistribution: MonteCarloMetricFactory<PlaceTokenCountDistributionMetricSpec>;
+  placeTokenHistogram: MonteCarloMetricFactory<PlaceTokenHistogramMetricSpec>;
   averagePlaceTokenCount: MonteCarloMetricFactory<AveragePlaceTokenCountMetricSpec>;
   transitionThroughput: MonteCarloMetricFactory<TransitionThroughputMetricSpec>;
 };
@@ -548,10 +548,10 @@ objects because it does not cross a serialization boundary.
    emission types next to the current metric types.
 2. Adapt the existing distribution metric to implement `drain()` and emit
    `MonteCarloMetricEmission`.
-3. Change worker messages from `distributionFrames` to `metricEmissions`.
+3. Change worker messages from metric-specific frame streams to generic
+   `metricEmissions`.
 4. Add `metrics` to `CreateMonteCarloExperimentConfig` as serializable specs.
-5. Keep the old `distributions` store temporarily as a compatibility adapter
-   over the new generic metric store.
+5. Expose metric results through one generic metric store.
 6. Add built-in average token count and transition throughput metrics.
 
 ## Open Questions

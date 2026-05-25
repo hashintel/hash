@@ -15,8 +15,8 @@ that runs the simulator behind a worker transport.
 | Frame storage       | `frame-buffer.ts`                                               | Stores one frame in an `ArrayBuffer` with typed-array views for place, transition, and token data. |
 | Step execution      | `advance-run.ts`, `frame-operations.ts`, `transition-effect.ts` | Applies dynamics, evaluates transitions, mutates token state, updates timers, and completes runs.  |
 | Helpers             | `layout.ts`, `time.ts`                                          | Resolve dense layout indices and derive time from frame numbers.                                   |
-| Metrics             | `metrics/`                                                      | Defines frame metric hooks and the place token count distribution metric.                          |
-| Runtime integration | `runtime/experiment.ts`, `worker/`                              | Wraps worker messages, progress stores, distributions, cancellation, and lifecycle events.         |
+| Metrics             | `metrics/`                                                      | Defines frame metric hooks, accumulators, specs, and user-defined metric adapters.                 |
+| Runtime integration | `runtime/experiment.ts`, `worker/`                              | Wraps worker messages, progress stores, metric frames, cancellation, and lifecycle events.         |
 | Tests               | `*.test.ts`                                                     | Cover simulator behavior, metrics, completion, and experiment transport behavior.                  |
 
 ## Dependencies
@@ -48,8 +48,9 @@ flowchart LR
   TransitionEffect --> UserCode["../authoring/user-code"]
 
   MetricExports --> MetricTypes
-  MetricExports --> DistributionMetric["metrics/place-token-count-distribution.ts"]
-  DistributionMetric --> MetricTypes
+  MetricExports --> Accumulators["metrics/accumulators.ts"]
+  MetricExports --> Specs["metrics/specs.ts"]
+  MetricExports --> UserDefined["metrics/user-defined.ts"]
 
   Experiment --> Transport["../runtime/transport"]
   Experiment --> Messages["worker/messages.ts"]
@@ -84,9 +85,9 @@ flowchart TB
   Timers --> Frames
 
   Orchestrator --> Metrics["Frame metrics"]
-  Metrics --> Distributions["Place token count distributions"]
+  Metrics --> MetricFrames["Scalar or distribution metric frames"]
 
-  ExperimentHandle --> Stores["status, progress, distributions, events"]
+  ExperimentHandle --> Stores["status, progress, metrics, events"]
 ```
 
 ## Execution Model

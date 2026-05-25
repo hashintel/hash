@@ -7,7 +7,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   type MonteCarloUserDefinedMetricFrame,
-  type PlaceTokenCountDistributionFrame,
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
@@ -34,11 +33,15 @@ const EMPTY_SDCPN: SDCPN = {
   differentialEquations: [],
 };
 
-const TOKEN_COUNT_METRIC_SPEC = [
+const CONSTANT_METRIC_SPEC = [
   {
-    id: "token-counts",
-    label: "Token counts",
-    kind: "placeTokenCountDistribution",
+    id: "constant",
+    label: "Constant",
+    kind: "expression",
+    code: "return 1;",
+    sampleRuns: "all",
+    aggregateRuns: "mean",
+    aggregateTime: "none",
   },
 ] as const;
 
@@ -55,25 +58,6 @@ function makeProgress(
     runCount: 1,
     time: 1,
     ...overrides,
-  };
-}
-
-function makeDistributionFrame(): PlaceTokenCountDistributionFrame {
-  return {
-    frameNumber: 1,
-    time: 1,
-    runCount: 1,
-    activeRunCount: 1,
-    completedRunCount: 0,
-    erroredRunCount: 0,
-    places: [
-      {
-        placeId: "place-a",
-        placeName: "Place A",
-        sampleCount: 1,
-        bins: [[1, 1]],
-      },
-    ],
   };
 }
 
@@ -240,7 +224,7 @@ describe("ExperimentsProvider", () => {
         seed: 42,
         dt: 1,
         maxTime: 10,
-        metricSpecs: TOKEN_COUNT_METRIC_SPEC,
+        metricSpecs: CONSTANT_METRIC_SPEC,
       });
 
       await flushWorkerSetup();
@@ -264,14 +248,17 @@ describe("ExperimentsProvider", () => {
     expect(getValue().selectedExperimentId).toBe(experimentId);
     expect(getValue().selectedExperiment?.status).toBe("running");
 
-    const frame = makeDistributionFrame();
+    const frame = makeMetricFrame();
     const progress = makeProgress();
     await act(async () => {
-      worker.emit({ type: "distributionFrames", frames: [frame] });
+      worker.emit({ type: "metricFrames", frames: [frame] });
       worker.emit({ type: "progress", progress });
     });
 
-    expect(getValue().selectedExperiment?.distributionFrames).toEqual([frame]);
+    expect(getValue().selectedExperiment?.metricFrames).toEqual([frame]);
+    expect(getValue().selectedExperiment?.latestMetricFramesById).toEqual({
+      constant: frame,
+    });
     expect(getValue().selectedExperiment?.progress).toEqual(progress);
 
     await act(async () => {
@@ -321,7 +308,7 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 10,
-          metricSpecs: TOKEN_COUNT_METRIC_SPEC,
+          metricSpecs: CONSTANT_METRIC_SPEC,
         });
 
         await flushWorkerSetup();
@@ -443,7 +430,7 @@ describe("ExperimentsProvider", () => {
           seed: 42,
           dt: 1,
           maxTime: 10,
-          metricSpecs: TOKEN_COUNT_METRIC_SPEC,
+          metricSpecs: CONSTANT_METRIC_SPEC,
         });
 
         await flushWorkerSetup();

@@ -209,7 +209,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     const sync = () => {
       patchExperiment(experimentId, {
-        distributionFrames: handle.distributions.get().frames,
         latestMetricFramesById: handle.metrics.get().latestByMetricId,
         metricFrames: handle.metrics.get().frames,
         progress: handle.progress.get(),
@@ -219,7 +218,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
     const unsubscribeStatus = handle.status.subscribe(sync);
     const unsubscribeProgress = handle.progress.subscribe(sync);
-    const unsubscribeDistributions = handle.distributions.subscribe(sync);
     const unsubscribeMetrics = handle.metrics.subscribe(sync);
     const unsubscribeEvents = handle.events.subscribe((event) => {
       if (event.type === "error") {
@@ -252,7 +250,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       off: () => {
         unsubscribeStatus();
         unsubscribeProgress();
-        unsubscribeDistributions();
         unsubscribeMetrics();
         unsubscribeEvents();
       },
@@ -321,7 +318,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       error: null,
       metricSpecs: input.metricSpecs,
       progress: null,
-      distributionFrames: [],
       latestMetricFramesById: {},
       metricFrames: [],
     };

@@ -3,14 +3,10 @@ import { SDCPNItemError } from "../../../errors";
 import {
   createMonteCarloUserDefinedMetric,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
-  createPlaceTokenCountDistributionMetric,
 } from "../metrics";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 
-import type {
-  MonteCarloUserDefinedMetric,
-  PlaceTokenCountDistributionMetric,
-} from "../metrics";
+import type { MonteCarloUserDefinedMetric } from "../metrics";
 import type { MonteCarloAdvanceResult, MonteCarloSimulator } from "../types";
 import type {
   MonteCarloInitMessage,
@@ -27,12 +23,10 @@ const workerRuntime = createWorkerThreadRuntime<
 const DEFAULT_BATCH_SIZE = 4;
 
 let simulator: MonteCarloSimulator | null = null;
-let distributionMetric: PlaceTokenCountDistributionMetric | null = null;
 let userMetrics: MonteCarloUserDefinedMetric[] = [];
 let isRunning = false;
 let isInitialized = false;
 let batchSize = DEFAULT_BATCH_SIZE;
-let lastSentDistributionFrameCount = 0;
 let lastSentMetricFrameCounts = new Map<string, number>();
 let latestProgress: MonteCarloWorkerProgress | null = null;
 
@@ -43,32 +37,28 @@ function postTypedMessage(message: MonteCarloToMainMessage): void {
 function progressFromResult(
   result: MonteCarloAdvanceResult,
 ): MonteCarloWorkerProgress {
-  const latestFrame = distributionMetric?.getLatestFrame();
-  const firstRunSummary = latestFrame ? null : simulator?.getRunSummary(0);
+  const firstRunSummary = simulator?.getRunSummary(0);
 
   return {
     ...result,
-    frameNumber: latestFrame?.frameNumber ?? firstRunSummary?.frameNumber ?? 0,
-    time: latestFrame?.time ?? firstRunSummary?.currentTime ?? 0,
-    runCount: latestFrame?.runCount ?? simulator?.runCount ?? 0,
+    frameNumber: firstRunSummary?.frameNumber ?? 0,
+    time: firstRunSummary?.currentTime ?? 0,
+    runCount: simulator?.runCount ?? 0,
   };
 }
 
 function initialProgress(runCount: number): MonteCarloWorkerProgress {
-  const latestFrame = distributionMetric?.getLatestFrame();
-  const summaries = latestFrame ? [] : (simulator?.getSummaries() ?? []);
-  const activeRuns =
-    latestFrame?.activeRunCount ??
-    summaries.filter(
-      (summary) => summary.status !== "complete" && summary.status !== "error",
-    ).length;
-  const completedRuns =
-    latestFrame?.completedRunCount ??
-    summaries.filter((summary) => summary.status === "complete").length;
-  const erroredRuns =
-    latestFrame?.erroredRunCount ??
-    summaries.filter((summary) => summary.status === "error").length;
-  const firstRunSummary = latestFrame ? null : summaries[0];
+  const summaries = simulator?.getSummaries() ?? [];
+  const activeRuns = summaries.filter(
+    (summary) => summary.status !== "complete" && summary.status !== "error",
+  ).length;
+  const completedRuns = summaries.filter(
+    (summary) => summary.status === "complete",
+  ).length;
+  const erroredRuns = summaries.filter(
+    (summary) => summary.status === "error",
+  ).length;
+  const firstRunSummary = summaries[0];
 
   return {
     activeRuns,
@@ -76,25 +66,10 @@ function initialProgress(runCount: number): MonteCarloWorkerProgress {
     allFinished: false,
     completedRuns,
     erroredRuns,
-    frameNumber: latestFrame?.frameNumber ?? firstRunSummary?.frameNumber ?? 0,
+    frameNumber: firstRunSummary?.frameNumber ?? 0,
     runCount,
-    time: latestFrame?.time ?? firstRunSummary?.currentTime ?? 0,
+    time: firstRunSummary?.currentTime ?? 0,
   };
-}
-
-function postPendingDistributionFrames(): void {
-  if (!distributionMetric) {
-    return;
-  }
-
-  const frames = distributionMetric.frames.slice(
-    lastSentDistributionFrameCount,
-  );
-  lastSentDistributionFrameCount = distributionMetric.frames.length;
-
-  if (frames.length > 0) {
-    postTypedMessage({ type: "distributionFrames", frames });
-  }
 }
 
 function postPendingMetricFrames(): void {
@@ -116,14 +91,6 @@ function postPendingMetricFrames(): void {
 
 function initialize(message: MonteCarloInitMessage): void {
   const metricSpecs = message.metricSpecs;
-  const shouldCollectPlaceTokenCountDistribution =
-    !metricSpecs ||
-    metricSpecs.some(
-      (metricSpec) => metricSpec.kind === "placeTokenCountDistribution",
-    );
-  distributionMetric = shouldCollectPlaceTokenCountDistribution
-    ? createPlaceTokenCountDistributionMetric()
-    : null;
   userMetrics = metricSpecs
     ? createMonteCarloUserDefinedMetricConfigsFromSpecs(
         metricSpecs,
@@ -138,19 +105,15 @@ function initialize(message: MonteCarloInitMessage): void {
     dt: message.dt,
     maxTime: message.maxTime,
     runCount: message.runCount,
-    metrics: distributionMetric
-      ? [distributionMetric, ...userMetrics]
-      : userMetrics,
+    metrics: userMetrics,
   });
   batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
   isInitialized = true;
   isRunning = false;
-  lastSentDistributionFrameCount = 0;
   lastSentMetricFrameCounts = new Map();
   latestProgress = initialProgress(message.runCount);
 
   postTypedMessage({ type: "ready" });
-  postPendingDistributionFrames();
   postPendingMetricFrames();
   postTypedMessage({ type: "progress", progress: latestProgress });
 }
@@ -173,7 +136,6 @@ async function computeLoop(): Promise<void> {
 
     if (result) {
       latestProgress = progressFromResult(result);
-      postPendingDistributionFrames();
       postPendingMetricFrames();
       postTypedMessage({ type: "progress", progress: latestProgress });
 
@@ -197,7 +159,6 @@ workerRuntime.onMessage((message) => {
         isInitialized = false;
         isRunning = false;
         simulator = null;
-        distributionMetric = null;
         userMetrics = [];
         postTypedMessage({
           type: "error",
@@ -243,7 +204,6 @@ workerRuntime.onMessage((message) => {
     case "cancel": {
       isRunning = false;
       simulator = null;
-      distributionMetric = null;
       isInitialized = false;
       postTypedMessage({ type: "cancelled", progress: latestProgress });
       break;

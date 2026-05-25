@@ -2,7 +2,6 @@ import { createWorkerTransport } from "../../runtime/transport";
 import {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
-  createPlaceTokenCountDistributionMetric,
 } from "../metrics";
 import { createMonteCarloSimulator } from "../monte-carlo-simulator";
 
@@ -20,8 +19,6 @@ import type {
   MonteCarloUserDefinedMetric,
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedMetricFrame,
-  PlaceTokenCountDistributionFrame,
-  PlaceTokenCountDistributionMetric,
 } from "../metrics";
 import type { MonteCarloAdvanceResult, MonteCarloSimulator } from "../types";
 import type {
@@ -36,11 +33,6 @@ export type MonteCarloExperimentState =
   | "Complete"
   | "Error"
   | "Cancelled";
-
-export type MonteCarloExperimentDistributions = {
-  frames: readonly PlaceTokenCountDistributionFrame[];
-  latest: PlaceTokenCountDistributionFrame | null;
-};
 
 export type MonteCarloExperimentMetrics = {
   frames: readonly MonteCarloUserDefinedMetricFrame[];
@@ -96,7 +88,6 @@ export type CreateMonteCarloExperimentConfig =
 export interface MonteCarloExperiment {
   readonly status: ReadableStore<MonteCarloExperimentState>;
   readonly progress: ReadableStore<MonteCarloWorkerProgress | null>;
-  readonly distributions: ReadableStore<MonteCarloExperimentDistributions>;
   readonly metrics: ReadableStore<MonteCarloExperimentMetrics>;
   readonly events: EventStream<MonteCarloExperimentEvent>;
 
@@ -183,40 +174,31 @@ function appendMetricFrames(
 function getProgressFromResult(
   result: MonteCarloAdvanceResult,
   simulator: MonteCarloSimulator,
-  distributionMetric: PlaceTokenCountDistributionMetric | null,
 ): MonteCarloWorkerProgress {
-  const latestDistributionFrame = distributionMetric?.getLatestFrame();
-  const firstRunSummary = latestDistributionFrame
-    ? null
-    : simulator.getRunSummary(0);
+  const firstRunSummary = simulator.getRunSummary(0);
 
   return {
     ...result,
-    frameNumber:
-      latestDistributionFrame?.frameNumber ?? firstRunSummary?.frameNumber ?? 0,
-    time: latestDistributionFrame?.time ?? firstRunSummary?.currentTime ?? 0,
-    runCount: latestDistributionFrame?.runCount ?? simulator.runCount,
+    frameNumber: firstRunSummary.frameNumber,
+    time: firstRunSummary.currentTime,
+    runCount: simulator.runCount,
   };
 }
 
 function getInitialProgress(
   simulator: MonteCarloSimulator,
-  distributionMetric: PlaceTokenCountDistributionMetric | null,
 ): MonteCarloWorkerProgress {
-  const latestDistributionFrame = distributionMetric?.getLatestFrame();
-  const summaries = latestDistributionFrame ? [] : simulator.getSummaries();
-  const activeRuns =
-    latestDistributionFrame?.activeRunCount ??
-    summaries.filter(
-      (summary) => summary.status !== "complete" && summary.status !== "error",
-    ).length;
-  const completedRuns =
-    latestDistributionFrame?.completedRunCount ??
-    summaries.filter((summary) => summary.status === "complete").length;
-  const erroredRuns =
-    latestDistributionFrame?.erroredRunCount ??
-    summaries.filter((summary) => summary.status === "error").length;
-  const firstRunSummary = latestDistributionFrame ? null : summaries[0];
+  const summaries = simulator.getSummaries();
+  const activeRuns = summaries.filter(
+    (summary) => summary.status !== "complete" && summary.status !== "error",
+  ).length;
+  const completedRuns = summaries.filter(
+    (summary) => summary.status === "complete",
+  ).length;
+  const erroredRuns = summaries.filter(
+    (summary) => summary.status === "error",
+  ).length;
+  const firstRunSummary = summaries[0];
 
   return {
     activeRuns,
@@ -224,10 +206,9 @@ function getInitialProgress(
     allFinished: false,
     completedRuns,
     erroredRuns,
-    frameNumber:
-      latestDistributionFrame?.frameNumber ?? firstRunSummary?.frameNumber ?? 0,
-    runCount: latestDistributionFrame?.runCount ?? simulator.runCount,
-    time: latestDistributionFrame?.time ?? firstRunSummary?.currentTime ?? 0,
+    frameNumber: firstRunSummary?.frameNumber ?? 0,
+    runCount: simulator.runCount,
+    time: firstRunSummary?.currentTime ?? 0,
   };
 }
 
@@ -252,16 +233,11 @@ function getMetricsState(
 
 function createLocalMonteCarloExperiment(
   config: CreateMonteCarloExperimentBaseConfig & {
-    collectPlaceTokenCountDistribution?: boolean;
     metrics: readonly MonteCarloUserDefinedMetricConfig[];
   },
 ): Promise<MonteCarloExperiment> {
   const status = createReadableStore<MonteCarloExperimentState>("Initializing");
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
-  const distributions = createReadableStore<MonteCarloExperimentDistributions>({
-    frames: [],
-    latest: null,
-  });
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
   );
@@ -271,16 +247,9 @@ function createLocalMonteCarloExperiment(
   let abortListener: (() => void) | null = null;
 
   try {
-    const distributionMetric =
-      config.collectPlaceTokenCountDistribution === false
-        ? null
-        : createPlaceTokenCountDistributionMetric();
     const userMetrics = config.metrics.map((metricConfig) =>
       createMonteCarloUserDefinedMetric(metricConfig),
     );
-    const frameMetrics = distributionMetric
-      ? [distributionMetric, ...userMetrics]
-      : userMetrics;
     const simulator = createMonteCarloSimulator({
       sdcpn: config.sdcpn,
       initialMarking: config.initialMarking,
@@ -289,20 +258,16 @@ function createLocalMonteCarloExperiment(
       dt: config.dt,
       maxTime: config.maxTime,
       runCount: config.runCount,
-      metrics: frameMetrics,
+      metrics: userMetrics,
     });
 
     const syncStores = (nextProgress: MonteCarloWorkerProgress | null) => {
-      const distributionFrames = distributionMetric?.frames ?? [];
-      distributions.set({
-        frames: distributionFrames,
-        latest: distributionFrames.at(-1) ?? null,
-      });
       metrics.set(getMetricsState(userMetrics));
       if (nextProgress) {
         progress.set(nextProgress);
       }
     };
+    const isStopped = () => !running || disposed;
 
     const cancel = () => {
       if (disposed || !running) {
@@ -339,12 +304,12 @@ function createLocalMonteCarloExperiment(
         }
 
         if (result) {
-          const nextProgress = getProgressFromResult(
-            result,
-            simulator,
-            distributionMetric,
-          );
+          const nextProgress = getProgressFromResult(result, simulator);
           syncStores(nextProgress);
+
+          if (isStopped()) {
+            return;
+          }
 
           if (result.allFinished) {
             running = false;
@@ -361,7 +326,6 @@ function createLocalMonteCarloExperiment(
     const handle: MonteCarloExperiment = {
       status,
       progress,
-      distributions,
       metrics,
       events,
       start() {
@@ -402,7 +366,7 @@ function createLocalMonteCarloExperiment(
       config.signal.addEventListener("abort", abortListener, { once: true });
     }
 
-    const initialProgress = getInitialProgress(simulator, distributionMetric);
+    const initialProgress = getInitialProgress(simulator);
     syncStores(initialProgress);
     status.set("Ready");
 
@@ -420,11 +384,10 @@ function createLocalMonteCarloExperiment(
 /**
  * Creates a Monte Carlo experiment handle for app/runtime use.
  *
- * The returned handle exposes status, progress, streamed distribution frames,
- * optional user-defined metric frames, lifecycle events, start/cancel controls,
- * and cleanup around the core Monte Carlo simulator. Worker-backed experiments
- * use a transport; metric callback configs and experiment metric specs run
- * locally because executable metric code cannot be posted to a worker.
+ * The returned handle exposes status, progress, streamed metric frames,
+ * lifecycle events, start/cancel controls, and cleanup around the core Monte
+ * Carlo simulator. Worker-backed experiments use a transport; metric specs are
+ * sent to the worker while executable metric callback configs run locally.
  */
 export function createMonteCarloExperiment(
   config: CreateMonteCarloExperimentConfig,
@@ -443,9 +406,6 @@ export function createMonteCarloExperiment(
 
     return createLocalMonteCarloExperiment({
       ...baseConfig,
-      collectPlaceTokenCountDistribution: metricSpecs.some(
-        (metricSpec) => metricSpec.kind === "placeTokenCountDistribution",
-      ),
       metrics: createMonteCarloUserDefinedMetricConfigsFromSpecs(
         metricSpecs,
         config.sdcpn,
@@ -467,10 +427,6 @@ export function createMonteCarloExperiment(
   }
   const status = createReadableStore<MonteCarloExperimentState>("Initializing");
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
-  const distributions = createReadableStore<MonteCarloExperimentDistributions>({
-    frames: [],
-    latest: null,
-  });
   const metrics = createReadableStore<MonteCarloExperimentMetrics>(
     createEmptyMetricsState(),
   );
@@ -531,7 +487,6 @@ export function createMonteCarloExperiment(
     const handle: MonteCarloExperiment = {
       status,
       progress,
-      distributions,
       metrics,
       events,
       start() {
@@ -562,14 +517,6 @@ export function createMonteCarloExperiment(
             settled = true;
             resolve(handle);
           }
-          break;
-        }
-        case "distributionFrames": {
-          const frames = [...distributions.get().frames, ...message.frames];
-          distributions.set({
-            frames,
-            latest: frames.at(-1) ?? null,
-          });
           break;
         }
         case "metricFrames": {

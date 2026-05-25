@@ -4,10 +4,7 @@ import { createMonteCarloExperiment } from "./experiment";
 
 import type { SDCPN } from "../../../types/sdcpn";
 import type { SimulationTransport } from "../../api";
-import type {
-  MonteCarloUserDefinedMetricFrame,
-  PlaceTokenCountDistributionFrame,
-} from "../metrics";
+import type { MonteCarloUserDefinedMetricFrame } from "../metrics";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
@@ -35,27 +32,6 @@ function makeProgress(
     runCount: 1,
     time: 1,
     ...overrides,
-  };
-}
-
-function makeDistributionFrame(
-  frameNumber: number,
-): PlaceTokenCountDistributionFrame {
-  return {
-    frameNumber,
-    time: frameNumber,
-    runCount: 1,
-    activeRunCount: 1,
-    completedRunCount: 0,
-    erroredRunCount: 0,
-    places: [
-      {
-        placeId: "place-a",
-        placeName: "Place A",
-        sampleCount: 1,
-        bins: [[frameNumber, 1]],
-      },
-    ],
   };
 }
 
@@ -143,7 +119,7 @@ describe("createMonteCarloExperiment", () => {
     experiment.dispose();
   });
 
-  it("updates progress, appends distribution frames, and emits completion", async () => {
+  it("updates progress and emits completion", async () => {
     const mock = makeMockTransport();
     const promise = createExperimentWithMockTransport(mock);
     mock.simulate({ type: "ready" });
@@ -154,18 +130,8 @@ describe("createMonteCarloExperiment", () => {
     experiment.status.subscribe((status) => statusUpdates.push(status));
     experiment.events.subscribe(events);
 
-    const firstFrame = makeDistributionFrame(1);
-    const secondFrame = makeDistributionFrame(2);
-    mock.simulate({
-      type: "distributionFrames",
-      frames: [firstFrame, secondFrame],
-    });
     mock.simulate({ type: "progress", progress: makeProgress() });
 
-    expect(experiment.distributions.get()).toEqual({
-      frames: [firstFrame, secondFrame],
-      latest: secondFrame,
-    });
     expect(experiment.progress.get()).toMatchObject({
       frameNumber: 1,
       time: 1,
@@ -318,52 +284,6 @@ describe("createMonteCarloExperiment", () => {
         value: 1,
         frameValue: 1,
         runSampleCount: 2,
-      }),
-    );
-  });
-
-  it("collects token count distributions only when requested by metric specs", async () => {
-    const withoutDistribution = await createMonteCarloExperiment({
-      sdcpn: empty(),
-      initialMarking: {},
-      parameterValues: {},
-      seed: 1,
-      dt: 1,
-      maxTime: 1,
-      runCount: 1,
-      metricSpecs: [
-        {
-          id: "constant",
-          label: "Constant",
-          kind: "expression",
-          code: "return 1;",
-        },
-      ],
-    });
-
-    expect(withoutDistribution.distributions.get().frames).toEqual([]);
-
-    const withDistribution = await createMonteCarloExperiment({
-      sdcpn: empty(),
-      initialMarking: {},
-      parameterValues: {},
-      seed: 1,
-      dt: 1,
-      maxTime: 1,
-      runCount: 1,
-      metricSpecs: [
-        {
-          id: "token-counts",
-          label: "Token count per place",
-          kind: "placeTokenCountDistribution",
-        },
-      ],
-    });
-
-    expect(withDistribution.distributions.get().latest).toEqual(
-      expect.objectContaining({
-        frameNumber: 0,
-        places: [],
       }),
     );
   });

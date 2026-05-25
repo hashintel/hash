@@ -3,7 +3,6 @@ import type { InitialMarking } from "../../api";
 import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
-  PlaceTokenCountDistributionFrame,
 } from "../metrics";
 import type { MonteCarloAdvanceResult } from "../types";
 
@@ -36,11 +35,6 @@ export type MonteCarloToWorkerMessage =
 export type MonteCarloProgressMessage = {
   type: "progress";
   progress: MonteCarloWorkerProgress;
-};
-
-export type MonteCarloDistributionFramesMessage = {
-  type: "distributionFrames";
-  frames: PlaceTokenCountDistributionFrame[];
 };
 
 export type MonteCarloMetricFramesMessage = {
@@ -77,7 +71,6 @@ export type MonteCarloWorkerProgress = MonteCarloAdvanceResult & {
 export type MonteCarloToMainMessage =
   | MonteCarloReadyMessage
   | MonteCarloProgressMessage
-  | MonteCarloDistributionFramesMessage
   | MonteCarloMetricFramesMessage
   | MonteCarloCompleteMessage
   | MonteCarloCancelledMessage

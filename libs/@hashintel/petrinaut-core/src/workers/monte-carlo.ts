@@ -3,7 +3,6 @@ export type {
   MonteCarloCancelMessage,
   MonteCarloCancelledMessage,
   MonteCarloCompleteMessage,
-  MonteCarloDistributionFramesMessage,
   MonteCarloErrorMessage,
   MonteCarloInitMessage,
   MonteCarloMetricFramesMessage,

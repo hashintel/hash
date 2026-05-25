@@ -138,11 +138,6 @@ export type MonteCarloPlaceTokenCountMeanMetricSpec =
     placeId: string;
   };
 
-export type MonteCarloPlaceTokenCountDistributionMetricSpec =
-  MonteCarloMetricSpecBase & {
-    kind: "placeTokenCountDistribution";
-  };
-
 export type MonteCarloTransitionFiringCountMetricSpec =
   MonteCarloMetricSpecBase & {
     kind: "transitionFiringCount";
@@ -161,7 +156,6 @@ export type MonteCarloExpressionMetricSpec = MonteCarloMetricSpecBase & {
 
 export type MonteCarloMetricSpec =
   | MonteCarloExpressionMetricSpec
-  | MonteCarloPlaceTokenCountDistributionMetricSpec
   | MonteCarloPlaceTokenCountMeanMetricSpec
   | MonteCarloTransitionFiringCountMetricSpec;
 
@@ -218,33 +212,5 @@ export type MonteCarloUserDefinedMetric = MonteCarloFrameMetric & {
   readonly label: string;
   readonly frames: readonly MonteCarloUserDefinedMetricFrame[];
   getLatestFrame: () => MonteCarloUserDefinedMetricFrame | null;
-  clear: () => void;
-};
-
-export type PlaceTokenCountDistributionBin = readonly [
-  tokenCount: number,
-  frequency: number,
-];
-
-export type PlaceTokenCountDistributionPlace = {
-  placeId: string;
-  placeName: string;
-  sampleCount: number;
-  bins: readonly PlaceTokenCountDistributionBin[];
-};
-
-export type PlaceTokenCountDistributionFrame = {
-  frameNumber: number;
-  time: number;
-  runCount: number;
-  activeRunCount: number;
-  completedRunCount: number;
-  erroredRunCount: number;
-  places: readonly PlaceTokenCountDistributionPlace[];
-};
-
-export type PlaceTokenCountDistributionMetric = MonteCarloFrameMetric & {
-  readonly frames: readonly PlaceTokenCountDistributionFrame[];
-  getLatestFrame: () => PlaceTokenCountDistributionFrame | null;
   clear: () => void;
 };

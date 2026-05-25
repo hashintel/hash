@@ -5,7 +5,6 @@ export {
   createMonteCarloMetricNumericAccumulator,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
-  createPlaceTokenCountDistributionMetric,
 } from "./metrics";
 export { createMonteCarloExperiment } from "./runtime/experiment";
 export type {
@@ -32,7 +31,6 @@ export type {
   MonteCarloMetricRunOutput,
   MonteCarloMetricRunStatus,
   MonteCarloMetricValueAccumulator,
-  MonteCarloPlaceTokenCountDistributionMetricSpec,
   MonteCarloPlaceTokenCountMeanMetricSpec,
   MonteCarloRunFrameMetricView,
   MonteCarloRunFrameMetricVisitor,
@@ -47,15 +45,10 @@ export type {
   MonteCarloUserDefinedMetricSampleRuns,
   MonteCarloUserDefinedScalarMetricFrame,
   MonteCarloUserDefinedMetricTimeAggregation,
-  PlaceTokenCountDistributionBin,
-  PlaceTokenCountDistributionFrame,
-  PlaceTokenCountDistributionMetric,
-  PlaceTokenCountDistributionPlace,
 } from "./metrics";
 export type {
   CreateMonteCarloExperimentConfig,
   MonteCarloExperiment,
-  MonteCarloExperimentDistributions,
   MonteCarloExperimentEvent,
   MonteCarloExperimentMetrics,
   MonteCarloExperimentState,

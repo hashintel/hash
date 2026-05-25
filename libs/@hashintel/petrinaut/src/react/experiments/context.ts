@@ -4,7 +4,6 @@ import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
-  PlaceTokenCountDistributionFrame,
 } from "@hashintel/petrinaut-core";
 
 export type ExperimentStatus =
@@ -39,7 +38,6 @@ export type ExperimentRecord = {
   error: string | null;
   metricSpecs: readonly MonteCarloMetricSpec[];
   progress: MonteCarloWorkerProgress | null;
-  distributionFrames: readonly PlaceTokenCountDistributionFrame[];
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
   latestMetricFramesById: Readonly<
     Record<string, MonteCarloUserDefinedMetricFrame>
