@@ -58,11 +58,6 @@ const paramTypeStyle = css({
   flexShrink: 0,
 });
 
-const scenarioSectionStyle = css({
-  position: "relative",
-  zIndex: 1,
-});
-
 const emptyParamsStyle = css({
   display: "flex",
   alignItems: "center",
@@ -261,12 +256,7 @@ export const CreateExperimentDrawer = ({
               </div>
             </Section>
 
-            <Section
-              title="Scenario"
-              collapsible
-              defaultOpen
-              className={scenarioSectionStyle}
-            >
+            <Section title="Scenario" collapsible defaultOpen>
               <div className={fieldStyle}>
                 <span className={labelStyle}>Scenario</span>
                 <Select
