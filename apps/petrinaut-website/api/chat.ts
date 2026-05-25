@@ -94,6 +94,10 @@ const checkRateLimit = (clientIp: string): boolean => {
           rateLimitBuckets.delete(key);
         }
       }
+      if (rateLimitBuckets.size >= RATE_LIMIT_MAX_TRACKED_CLIENTS) {
+        // If we've somehow hit the client cap, refuse the request.
+        return false;
+      }
     }
     rateLimitBuckets.set(clientIp, {
       count: 1,
