@@ -232,7 +232,6 @@ export const differentialEquationSchema = z
         "Module: `export default Dynamics((tokens, parameters) => …)`.",
         "`tokens` is THIS place's current tokens only — `Array<{ [elementName]: number }>` — NOT all places' tokens.",
         "MUST return an array of the SAME LENGTH where each entry is `{ [elementName]: derivative }` (i.e. dx/dt, NOT the new value).",
-        "The engine integrates with Euler: `next = current + derivative * dt`.",
         "Missing keys default to 0 silently, so return every element your colour type declares.",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.damage_per_second`).",
       ].join(" "),
