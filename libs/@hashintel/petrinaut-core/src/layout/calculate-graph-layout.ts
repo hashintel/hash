@@ -1,6 +1,6 @@
 import ELK from "elkjs";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { SDCPN } from "../types/sdcpn";
 import type { ElkNode } from "elkjs";
 
 /**
