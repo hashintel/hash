@@ -5,10 +5,11 @@
   },
   "buildCommand": "./vercel-build.sh",
   "installCommand": "./vercel-install.sh",
+  "devCommand": "turbo run build && yarn preview",
   "outputDirectory": "./dist",
   "functions": {
     "api/chat.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   }
 }

@@ -58,6 +58,7 @@ export const calculateGraphLayout = async (
     return {};
   }
 
+  // Build ELK nodes from places and transitions
   const elkNodes: ElkNode["children"] = [
     ...sdcpn.places.map((place) => ({
       id: place.id,
@@ -71,8 +72,10 @@ export const calculateGraphLayout = async (
     })),
   ];
 
+  // Build ELK edges from input and output arcs
   const elkEdges: ElkNode["edges"] = [];
   for (const transition of sdcpn.transitions) {
+    // Input arcs: place -> transition
     for (const inputArc of transition.inputArcs) {
       elkEdges.push({
         id: `arc__${inputArc.placeId}-${transition.id}`,
@@ -80,6 +83,7 @@ export const calculateGraphLayout = async (
         targets: [transition.id],
       });
     }
+    // Output arcs: transition -> place
     for (const outputArc of transition.outputArcs) {
       elkEdges.push({
         id: `arc__${transition.id}-${outputArc.placeId}`,

@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { AiAssistantSurface } from "./ai-assistant-surface";
+import { AiAssistantContents } from "./ai-assistant-contents";
 
 import type { PetrinautAiMessage } from "./types";
 
@@ -21,10 +21,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("AiAssistantSurface", () => {
+describe("AiAssistantContents", () => {
   test("renders the empty assistant state", () => {
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={[]}
         onClose={noop}
@@ -41,6 +41,8 @@ describe("AiAssistantSurface", () => {
   });
 
   test("renders streamed markdown and collapsed reasoning", () => {
+    const startedAt = Date.parse("2026-05-14T12:00:00Z");
+    const finishedAt = startedAt + 4_500;
     const messages: PetrinautAiMessage[] = [
       {
         id: "assistant-1",
@@ -50,6 +52,9 @@ describe("AiAssistantSurface", () => {
             type: "reasoning",
             state: "done",
             text: "Understanding the requested model.",
+            providerMetadata: {
+              petrinaut: { startedAt, finishedAt },
+            },
           },
           {
             type: "text",
@@ -61,7 +66,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -86,7 +91,7 @@ describe("AiAssistantSurface", () => {
     const onClearMessages = vi.fn();
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={[
           {
@@ -128,7 +133,7 @@ describe("AiAssistantSurface", () => {
     window.cancelAnimationFrame = () => {};
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={[
           {
@@ -171,7 +176,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -202,7 +207,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -237,7 +242,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     const { container } = render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -254,8 +259,9 @@ describe("AiAssistantSurface", () => {
   });
 
   test("right-aligns user text and renders active reasoning time", () => {
+    const startedAt = Date.parse("2026-05-14T12:00:00Z");
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-05-14T12:00:00Z"));
+    vi.setSystemTime(new Date(startedAt));
 
     const messages: PetrinautAiMessage[] = [
       {
@@ -271,13 +277,16 @@ describe("AiAssistantSurface", () => {
             type: "reasoning",
             state: "streaming",
             text: "Choosing the smallest valid place update.",
+            providerMetadata: {
+              petrinaut: { startedAt },
+            },
           },
         ],
       },
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -338,7 +347,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -404,7 +413,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -470,7 +479,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -545,7 +554,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -587,7 +596,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}
@@ -635,7 +644,7 @@ describe("AiAssistantSurface", () => {
     ];
 
     render(
-      <AiAssistantSurface
+      <AiAssistantContents
         input=""
         messages={messages}
         onClose={noop}

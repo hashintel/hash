@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { AiAssistantSurface } from "./ai-assistant-surface";
+import { AiAssistantContents } from "./ai-assistant-contents";
 
 import type { PetrinautAiMessage } from "./types";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -201,7 +201,7 @@ const Frame = ({
 
   return (
     <div style={{ height: "720px", position: "relative", width: "100%" }}>
-      <AiAssistantSurface
+      <AiAssistantContents
         error={error}
         input={input}
         messages={messages}

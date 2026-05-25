@@ -29,9 +29,9 @@ const petrinautApiDevPlugin = (): Plugin => ({
     // runtime treats it as a Web fetch handler in production. We mirror the
     // same shape here so dev and prod hit the same code path.
     const adapter = createServerAdapter(async (request) => {
-      const { default: api } = (await server.ssrLoadModule(
-        "/api/chat.ts",
-      )) as { default: { fetch: (request: Request) => Promise<Response> } };
+      const { default: api } = (await server.ssrLoadModule("/api/chat.ts")) as {
+        default: { fetch: (request: Request) => Promise<Response> };
+      };
 
       try {
         return await api.fetch(request);
@@ -68,9 +68,9 @@ export default defineConfig(({ mode }) => {
       cssMinify: "esbuild" as const,
     },
 
-    server: {
+    preview: {
       /** vercel dev will provide a PORT to run on */
-      port: process.env.PORT ? Number(process.env.PORT) : 5173,
+      port: process.env.PORT ? Number(process.env.PORT) : 4173,
     },
 
     plugins: [
@@ -90,7 +90,6 @@ export default defineConfig(({ mode }) => {
           }),
         ],
       }),
-
     ],
   };
 });

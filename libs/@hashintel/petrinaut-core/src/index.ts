@@ -56,7 +56,6 @@ export {
 export {
   colorSchema,
   createPetrinautAiWritableCallbacks,
-  createPetrinautMutationAiToolCallbacks,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -77,7 +76,6 @@ export type {
   PetrinautAiCommandToolName,
   PetrinautAiTool,
   PetrinautAiWritableCallbacks,
-  PetrinautMutationAiToolCallbacks,
   PetrinautAiToolInput,
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,

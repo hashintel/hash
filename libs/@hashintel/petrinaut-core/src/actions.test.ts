@@ -13,7 +13,15 @@ const emptySDCPN: SDCPN = {
   parameters: [],
 };
 
-const cloneSDCPN = (sdcpn: SDCPN): SDCPN => JSON.parse(JSON.stringify(sdcpn));
+const cloneSDCPN = (sdcpn: SDCPN): SDCPN =>
+  // `structuredClone` is available as a global in both Node and DOM, but we will need to
+  // configure TypeScript `types` to be at the intersection of both to avoid DOM dependencies in core.
+  // For now we define the type inline to avoid that issue in tests, which run in Node but still need to clone SDCPN documents.
+  (
+    globalThis as typeof globalThis & {
+      structuredClone: <Value>(value: Value) => Value;
+    }
+  ).structuredClone(sdcpn);
 
 const createInstance = (initial: SDCPN = emptySDCPN) =>
   createPetrinaut({

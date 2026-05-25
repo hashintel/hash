@@ -47,8 +47,7 @@ npx vercel dev             # builds + serves on http://localhost:3000
 
 Notes:
 
-- `vercel dev` runs the commands in [`vercel.json`](vercel.json), including [`vercel-build.sh`](vercel-build.sh). That script deletes the repo-root `.env` to work around mise picking it up - so do not keep anything you cannot regenerate there before running this locally.
-- `vercel dev` does not read your existing `dist/`; it rebuilds. If you specifically need to inspect the artifact you already produced, use option B.
+- `vercel dev` does not read your existing `dist/`; it rebuilds. If you specifically need to inspect the artifact you already produced, use option B (or amend the devCommand in vercel.json to remove the build step).
 
 ### Option B: `vite preview` + a sibling Node API server
 

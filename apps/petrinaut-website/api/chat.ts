@@ -209,7 +209,17 @@ const fetch = async (request: Request): Promise<Response> => {
     },
   });
 
-  return result.toUIMessageStreamResponse({ sendReasoning: true });
+  // `streamText`'s own `onError` only logs server-side — the
+  // `toUIMessageStreamResponse` `onError` is what propagates a visible error
+  // chunk to the client so `useChat` can surface a failure instead of just
+  // quietly transitioning the status back to `"ready"` on a truncated stream.
+  return result.toUIMessageStreamResponse({
+    sendReasoning: true,
+    onError: (error) => {
+      logChatFailure("AI response error", { error });
+      return error instanceof Error ? error.message : "AI request failed";
+    },
+  });
 };
 
 export default { fetch };

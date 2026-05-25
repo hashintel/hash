@@ -44,3 +44,22 @@ export type PetrinautAiMessage = UIMessage<
 >;
 
 export type PetrinautAiTransport = ChatTransport<PetrinautAiMessage>;
+
+/**
+ * Provider metadata shape that the Petrinaut server-side transport attaches to
+ * reasoning chunks so the UI can render an accurate elapsed time even after
+ * the panel has been closed and reopened.
+ *
+ * The keys live under a `petrinaut` namespace inside the standard AI SDK
+ * `providerMetadata` map. The SDK merges per-chunk metadata into the final
+ * reasoning part, so reading either timestamp from the persisted message is
+ * sufficient.
+ */
+export type PetrinautReasoningMetadata = {
+  petrinaut?: {
+    /** ms since epoch when the model started this reasoning summary. */
+    startedAt?: number;
+    /** ms since epoch when the model finished this reasoning summary. */
+    finishedAt?: number;
+  };
+};

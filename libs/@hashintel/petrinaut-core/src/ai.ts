@@ -144,14 +144,6 @@ export type PetrinautAiToolInput<Name extends PetrinautAiToolName> = z.input<
 >;
 
 /**
- * @deprecated Use {@link PetrinautAiWritableCallbacks}.
- */
-export type PetrinautMutationAiToolCallbacks = Pick<
-  Petrinaut["mutations"],
-  MutationActionName
->;
-
-/**
  * Writable tool callbacks exposed to the AI: every mutation, plus the subset
  * of commands registered in {@link aiCommandActionInputSchemas}. Read-only
  * tools (e.g. `getLatestNetDefinition`) are handled by the dispatcher
@@ -162,15 +154,6 @@ export type PetrinautAiWritableCallbacks = Pick<
   MutationActionName
 > &
   Pick<Petrinaut["commands"], AiCommandActionName>;
-
-/**
- * @deprecated Use {@link createPetrinautAiWritableCallbacks}.
- */
-export function createPetrinautMutationAiToolCallbacks(
-  instance: Petrinaut,
-): PetrinautMutationAiToolCallbacks {
-  return instance.mutations;
-}
 
 export function createPetrinautAiWritableCallbacks(
   instance: Petrinaut,
