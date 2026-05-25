@@ -146,6 +146,7 @@ export const EditorView = ({
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
   >(null);
+  const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
   const { compactNodes } = use(UserSettingsContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
@@ -375,6 +376,7 @@ export const EditorView = ({
   const showEmptyAiHero =
     aiAssistant !== undefined &&
     !isAiAssistantOpen &&
+    !isAiCtaDismissed &&
     isEmptySDCPN(petriNetDefinition);
 
   return (
@@ -423,6 +425,7 @@ export const EditorView = ({
               {showEmptyAiHero && (
                 <AiCtaModal
                   bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
+                  onDismiss={() => setIsAiCtaDismissed(true)}
                   onSubmit={(message) => {
                     setPendingAiAssistantMessage(message);
                     setAiAssistantOpen(true);

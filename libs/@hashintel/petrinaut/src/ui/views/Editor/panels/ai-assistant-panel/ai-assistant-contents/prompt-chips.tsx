@@ -17,25 +17,19 @@ export const STARTER_CHIPS: PromptChip[] = [
     id: "supply-chain",
     label: "Supply chain",
     prompt:
-      "Build a small supply-chain SDCPN — orders flowing through warehouses, in-transit, and delivered states. Interview me briefly about volumes and lead times first, then build it with a couple of useful metrics and scenarios.",
-  },
-  {
-    id: "manufacturing-line",
-    label: "Manufacturing line",
-    prompt:
-      "Build a small manufacturing line with stations, buffers, and rework. Ask me a couple of clarifying questions about throughput, cycle times, and failure rates first, then build it with relevant metrics and scenarios.",
+      "Build a supply-chain SDCPN — orders flowing through warehouses, in-transit, and delivered states. Interview me first for more details.",
   },
   {
     id: "epidemic",
     label: "Epidemic",
     prompt:
-      "Build an SIR-style epidemic model with susceptible, infected, and recovered places. Ask me briefly about population size and transmission/recovery rates, then add a couple of useful metrics (peak prevalence, attack rate) and a baseline-vs-intervention scenario.",
+      "Build an SIR-style epidemic model with susceptible, infected, and recovered places. Interview me first for more details.",
   },
   {
     id: "surprise-me",
     label: "Surprise me",
     prompt:
-      "Pick an interesting domain and build a small but complete SDCPN end-to-end — places, transitions, parameters, one or two scenarios, and a couple of metrics. Use sensible defaults throughout and tell me the choices you made.",
+      "Pick an interesting domain and build a small but complete SDCPN end-to-end — use all available features (including place visualizers).",
   },
 ];
 
@@ -48,19 +42,19 @@ export const REVIEW_CHIPS: PromptChip[] = [
     id: "suggest-improvements",
     label: "Suggest improvements",
     prompt:
-      "Review the current Petri net and suggest improvements. Look at naming, structure, missing transitions, parameter tunability, scenario coverage, and code quality. Don't make changes yet — just list the proposals so I can pick which to apply.",
+      "Review the current Petri net and suggest a few improvements. Don't make changes yet — let me choose.",
   },
   {
     id: "review-completeness",
     label: "Review completeness",
     prompt:
-      "Review the current Petri net for completeness. Are there states or transitions implied by the domain that I haven't modelled? Any places without producers or consumers? Inputs the simulation can't reach, or outputs that go nowhere? List any gaps you find.",
+      "Review the current Petri net for completeness. Anything implied by the domain that isn't modelled?",
   },
   {
     id: "explain-this-model",
     label: "Explain this model",
     prompt:
-      "Explain this Petri net in plain English — what the modelled process is, the role of each place and transition, what the parameters represent, what the scenarios are testing, and what the metrics measure. Aim for someone who's never seen this net before.",
+      "Explain this Petri net in plain terms — what the modelled process is, the role of each feature, etc.",
   },
 ];
 
@@ -86,6 +80,13 @@ const railStyle = css({
 
 const chipStyle = css({
   flexShrink: 0,
+  backgroundColor: "white",
+  _hover: {
+    backgroundColor: "neutral.s10",
+  },
+  _disabled: {
+    backgroundColor: "white",
+  },
 });
 
 const dismissStyle = css({

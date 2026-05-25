@@ -18,6 +18,7 @@ const aiCtaModalLayerStyle = css({
 });
 
 const aiCtaModalStyle = css({
+  position: "relative",
   pointerEvents: "auto",
   display: "flex",
   flexDirection: "column",
@@ -35,6 +36,12 @@ const aiCtaModalStyle = css({
   textAlign: "center",
   userSelect: "text",
   backdropFilter: "[blur(14px)]",
+});
+
+const aiCtaModalCloseStyle = css({
+  position: "absolute",
+  top: "3",
+  right: "3",
 });
 
 const aiCtaModalIconStyle = css({
@@ -100,23 +107,54 @@ const aiCtaModalInputStyle = css({
 
 export const AiCtaModal = ({
   bottomClearance,
+  onDismiss,
   onSubmit,
 }: {
   bottomClearance: number;
+  onDismiss: () => void;
   onSubmit: (message: string) => void;
 }) => {
   const [promptInput, setPromptInput] = useState("");
 
   const canSubmit = promptInput.trim().length > 0;
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (formRef.current?.contains(target)) {
+        return;
+      }
+      onDismiss();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onDismiss();
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown, true);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onDismiss]);
+
   return (
     <div className={aiCtaModalLayerStyle} style={{ bottom: bottomClearance }}>
       <form
+        ref={formRef}
         className={aiCtaModalStyle}
         onSubmit={(event) => {
           event.preventDefault();
@@ -128,6 +166,16 @@ export const AiCtaModal = ({
           onSubmit(trimmedInput);
         }}
       >
+        <Button
+          type="button"
+          size="xs"
+          variant="ghost"
+          className={aiCtaModalCloseStyle}
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          iconName="close"
+          tooltip="Dismiss"
+        />
         <div className={aiCtaModalIconStyle}>
           <AiAssistantIcon size={32} />
         </div>

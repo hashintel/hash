@@ -299,6 +299,12 @@ export const AiAssistantPanel = ({
     messages: aiAssistant.messages,
     transport: diagnosticsTransportState.transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    // Without throttling, every reasoning-delta / text-delta chunk triggers a
+    // full re-render of `AiAssistantContents`, and the SDK `structuredClone`s
+    // the active message on each one. For a long markdown reply that locks
+    // the main thread. 80ms still feels live (≈12 updates/sec) but lets the
+    // browser breathe between chunks.
+    experimental_throttle: 80,
     onError: (chatError) => {
       setStreamError(
         chatError instanceof Error ? chatError : new Error(String(chatError)),
@@ -494,18 +500,19 @@ export const AiAssistantPanel = ({
     return null;
   }
 
+  // Chips are only meaningful before a conversation has begun — once the
+  // user has typed or the AI has replied, they've signalled what they want
+  // and the chips become noise.
+  const hasConversation = messages.length > 0;
   const isNetEmpty =
     petriNetDefinition.places.length === 0 &&
     petriNetDefinition.transitions.length === 0;
-  // Empty + read-only is an unusual combination but the starter chips would
-  // all hit a read-only refusal — review chips still make sense (they only
-  // describe the net without mutating it).
-  const promptChips =
-    isNetEmpty && readOnlyReason !== null
+
+  const promptChips = isNetEmpty
+    ? hasConversation
       ? []
-      : isNetEmpty
-        ? STARTER_CHIPS
-        : REVIEW_CHIPS;
+      : STARTER_CHIPS
+    : REVIEW_CHIPS;
 
   return (
     <AiAssistantContents

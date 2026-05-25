@@ -15,7 +15,7 @@ import type { ReasoningMessagePart } from "./get-message-render-items";
 const reasoningGroupStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
+  gap: "1",
   borderRadius: "lg",
   backgroundColor: "neutral.bg.subtle",
   padding: "1",

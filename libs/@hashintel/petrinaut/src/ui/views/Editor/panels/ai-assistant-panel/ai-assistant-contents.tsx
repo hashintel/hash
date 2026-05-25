@@ -1,5 +1,7 @@
 import {
+  memo,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
   useEffect,
   useRef,
   useState,
@@ -45,12 +47,14 @@ export type AiAssistantContentsProps = {
   status: AiAssistantStatus;
 };
 
+const defaultAssistantWidth = 480;
+
 const shellStyle = css({
   position: "absolute",
   top: "0",
   right: "0",
   bottom: "0",
-  width: "[420px]",
+  width: `[${defaultAssistantWidth}px]`,
   maxWidth: "[calc(100vw - 32px)]",
   zIndex: 1090,
   padding: "2",
@@ -260,23 +264,103 @@ const inputStyle = css({
   },
 });
 
-const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string =>
-  messages
-    .map((message) =>
-      [
-        message.id,
-        message.parts
-          .map((part) => {
-            if (part.type === "text" || part.type === "reasoning") {
-              return `${part.type}:${part.state ?? ""}:${part.text}`;
-            }
+// The scroll effect only needs to know when *anything* changed — it doesn't
+// need to capture every byte of every part. Constant-time: look at the last
+// message and its last part. This runs on every render during streaming, so
+// concatenating every part's full text would burn meaningful CPU once
+// transcripts get long.
+const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
+  if (messages.length === 0) {
+    return "0";
+  }
+  const last = messages[messages.length - 1]!;
+  const lastPart = last.parts[last.parts.length - 1];
+  let partSignature = "";
+  if (lastPart) {
+    if (lastPart.type === "text" || lastPart.type === "reasoning") {
+      partSignature = `${lastPart.type}:${lastPart.state ?? ""}:${lastPart.text.length}`;
+    } else {
+      partSignature =
+        "state" in lastPart
+          ? `${lastPart.type}:${lastPart.state}`
+          : lastPart.type;
+    }
+  }
+  return `${messages.length}:${last.id}:${last.parts.length}:${partSignature}`;
+};
 
-            return "state" in part ? `${part.type}:${part.state}` : part.type;
-          })
-          .join(","),
-      ].join(":"),
-    )
-    .join("|");
+type MessageHandlersRef = RefObject<{
+  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
+  onSelectToolTarget?: (target: AiToolTarget) => void;
+}>;
+
+/**
+ * Per-message renderer wrapped in `React.memo`.
+ *
+ * The AI SDK rebuilds the `messages` array on every reasoning/text delta but
+ * uses `slice` for unchanged messages and only `structuredClone`s the active
+ * one. That gives every completed message a stable reference between chunks,
+ * so memoising by reference equality lets us skip re-rendering the whole transcript on
+ * every chunk — only the message currently being streamed has to re-render.
+ *
+ * Callbacks are forwarded via a ref so identity churn from the panel's inline
+ * arrow functions doesn't bust the memo.
+ */
+const AiAssistantMessage = memo(
+  ({
+    handlersRef,
+    message,
+  }: {
+    handlersRef: MessageHandlersRef;
+    message: PetrinautAiMessage;
+  }) => {
+    const role = message.role === "user" ? "user" : "assistant";
+    const renderItems = getMessageRenderItems(message);
+
+    return (
+      <div className={messageStyle({ role })} data-role={role}>
+        {renderItems.map((item) => {
+          switch (item.type) {
+            case "text":
+              return (
+                <div className={markdownStyle} key={item.key}>
+                  <ReactMarkdown>{item.part.text}</ReactMarkdown>
+                </div>
+              );
+            case "reasoning":
+              return (
+                <AiAssistantReasoning
+                  key={item.key}
+                  isStreaming={item.part.state === "streaming"}
+                  part={item.part}
+                />
+              );
+            case "tools":
+              return (
+                <AiAssistantToolList
+                  key={item.key}
+                  tools={item.tools}
+                  onInteractiveToolSubmit={(params) =>
+                    handlersRef.current.onInteractiveToolSubmit?.(params)
+                  }
+                  onSelectToolTarget={(target) =>
+                    handlersRef.current.onSelectToolTarget?.(target)
+                  }
+                />
+              );
+            default: {
+              const exhaustiveCheck: never = item;
+              throw new Error(
+                `Unknown message part: ${JSON.stringify(exhaustiveCheck)}`,
+              );
+            }
+          }
+        })}
+      </div>
+    );
+  },
+);
+AiAssistantMessage.displayName = "AiAssistantMessage";
 
 export const AiAssistantContents = ({
   error,
@@ -296,18 +380,34 @@ export const AiAssistantContents = ({
 }: AiAssistantContentsProps) => {
   const isBusy = status === "submitted" || status === "streaming";
   const canSubmit = input.trim().length > 0 && !isBusy;
-  const [assistantWidth, setAssistantWidth] = useState(420);
-  // In-memory only — resets when the panel is closed and reopened, so
-  // dismissing the chips is a single-session preference.
+
+  const [assistantWidth, setAssistantWidth] = useState(defaultAssistantWidth);
+
   const [chipsDismissed, setChipsDismissed] = useState(false);
+
   const inputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesScrollKey = getMessagesScrollKey(messages);
+
   const showChips =
     !chipsDismissed &&
     onSendPrompt !== undefined &&
     promptChips !== undefined &&
     promptChips.length > 0;
+
+  // Stable container for the per-render callbacks so `AiAssistantMessage`'s
+  // memo comparator doesn't see identity churn from the panel's inline
+  // arrow functions on every render. The ref itself is stable across renders,
+  // so memoised children never re-render due to handler changes — but we
+  // refresh `.current` in an effect so any new closure capture is picked up
+  // by the next event.
+  const handlersRef = useRef({
+    onInteractiveToolSubmit,
+    onSelectToolTarget,
+  });
+  useEffect(() => {
+    handlersRef.current = { onInteractiveToolSubmit, onSelectToolTarget };
+  });
 
   const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -337,7 +437,11 @@ export const AiAssistantContents = ({
     inputRef.current?.focus();
   }, []);
 
+  const hasScrolledOnceRef = useRef(false);
+
   useEffect(() => {
+    const isFirstScroll = !hasScrolledOnceRef.current;
+    hasScrolledOnceRef.current = true;
     const scrollToEnd = () => {
       // The inner optional chain (`scrollIntoView?.`) is intentional — jsdom
       // omits `Element.prototype.scrollIntoView`, so unit tests need the
@@ -345,7 +449,7 @@ export const AiAssistantContents = ({
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       messagesEndRef.current?.scrollIntoView?.({
         block: "end",
-        behavior: "smooth",
+        behavior: isFirstScroll ? "instant" : "smooth",
       });
     };
     const frameId = window.requestAnimationFrame(scrollToEnd);
@@ -403,52 +507,13 @@ export const AiAssistantContents = ({
               </div>
             </div>
           )}
-          {messages.map((message) => {
-            const role = message.role === "user" ? "user" : "assistant";
-            const renderItems = getMessageRenderItems(message);
-
-            return (
-              <div
-                key={message.id}
-                className={messageStyle({ role })}
-                data-role={role}
-              >
-                {renderItems.map((item) => {
-                  switch (item.type) {
-                    case "text":
-                      return (
-                        <div className={markdownStyle} key={item.key}>
-                          <ReactMarkdown>{item.part.text}</ReactMarkdown>
-                        </div>
-                      );
-                    case "reasoning":
-                      return (
-                        <AiAssistantReasoning
-                          key={item.key}
-                          isStreaming={item.part.state === "streaming"}
-                          part={item.part}
-                        />
-                      );
-                    case "tools":
-                      return (
-                        <AiAssistantToolList
-                          key={item.key}
-                          tools={item.tools}
-                          onInteractiveToolSubmit={onInteractiveToolSubmit}
-                          onSelectToolTarget={onSelectToolTarget}
-                        />
-                      );
-                    default: {
-                      const exhaustiveCheck: never = item;
-                      throw new Error(
-                        `Unknown message part: ${JSON.stringify(exhaustiveCheck)}`,
-                      );
-                    }
-                  }
-                })}
-              </div>
-            );
-          })}
+          {messages.map((message) => (
+            <AiAssistantMessage
+              key={message.id}
+              message={message}
+              handlersRef={handlersRef}
+            />
+          ))}
           {error && <div className={errorStyle}>{error.message}</div>}
           <div ref={messagesEndRef} />
         </div>
