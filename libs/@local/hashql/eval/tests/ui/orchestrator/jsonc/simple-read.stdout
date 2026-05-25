@@ -1,0 +1,34 @@
+[
+  {},
+  {},
+  {},
+  {},
+  {}
+]
+---
+query executed: body 2, block bb0
+row received
+filter started: body 1
+island entered: body 1, island 0, target interpreter
+filter accepted: body 1
+row accepted
+row received
+filter started: body 1
+island entered: body 1, island 0, target interpreter
+filter accepted: body 1
+row accepted
+row received
+filter started: body 1
+island entered: body 1, island 0, target interpreter
+filter accepted: body 1
+row accepted
+row received
+filter started: body 1
+island entered: body 1, island 0, target interpreter
+filter accepted: body 1
+row accepted
+row received
+filter started: body 1
+island entered: body 1, island 0, target interpreter
+filter accepted: body 1
+row accepted

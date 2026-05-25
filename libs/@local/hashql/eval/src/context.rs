@@ -11,6 +11,7 @@ use hashql_mir::{
         local::Local,
     },
     def::{DefId, DefIdSlice, DefIdVec},
+    intern::Interner,
     pass::{
         analysis::dataflow::{
             TraversalLivenessAnalysis,
@@ -50,6 +51,7 @@ impl<A: Allocator> Index<(DefId, BasicBlockId)> for LiveOut<A> {
 
 pub struct EvalContext<'ctx, 'heap, A: Allocator> {
     pub env: &'ctx Environment<'heap>,
+    pub interner: &'ctx Interner<'heap>,
 
     pub bodies: &'ctx DefIdSlice<Body<'heap>>,
     pub execution: &'ctx DefIdSlice<Option<ExecutionAnalysisResidual<A>>>,
@@ -62,6 +64,7 @@ pub struct EvalContext<'ctx, 'heap, A: Allocator> {
 impl<'ctx, 'heap, A: Allocator> EvalContext<'ctx, 'heap, A> {
     pub fn new_in<S: BumpAllocator>(
         env: &'ctx Environment<'heap>,
+        interner: &'ctx Interner<'heap>,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
         execution: &'ctx DefIdSlice<Option<ExecutionAnalysisResidual<A>>>,
         alloc: A,
@@ -109,6 +112,7 @@ impl<'ctx, 'heap, A: Allocator> EvalContext<'ctx, 'heap, A> {
 
         Self {
             env,
+            interner,
             bodies,
             execution,
             live_out: LiveOut(live_out),

@@ -36,4 +36,4 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
 }
 ==================== Island (entry: bb0, target: postgres) =====================
 
-CASE WHEN (($1)::int) = 0 THEN (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 1 THEN (ROW(((0)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 2 THEN (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) WHEN (($1)::int) = 3 THEN (ROW(((0)::boolean), NULL, NULL, NULL)::continuation) ELSE (ROW(((1)::boolean), NULL, NULL, NULL)::continuation) END
+CASE WHEN ((($1::jsonb))::int) IS NULL THEN (ROW(COALESCE(((FALSE)::boolean), FALSE), NULL, NULL, NULL)::continuation) WHEN ((($1::jsonb))::int) = 0 THEN (ROW(COALESCE(((1)::boolean), FALSE), NULL, NULL, NULL)::continuation) WHEN ((($1::jsonb))::int) = 1 THEN (ROW(COALESCE(((0)::boolean), FALSE), NULL, NULL, NULL)::continuation) WHEN ((($1::jsonb))::int) = 2 THEN (ROW(COALESCE(((1)::boolean), FALSE), NULL, NULL, NULL)::continuation) WHEN ((($1::jsonb))::int) = 3 THEN (ROW(COALESCE(((0)::boolean), FALSE), NULL, NULL, NULL)::continuation) ELSE (ROW(COALESCE(((1)::boolean), FALSE), NULL, NULL, NULL)::continuation) END
