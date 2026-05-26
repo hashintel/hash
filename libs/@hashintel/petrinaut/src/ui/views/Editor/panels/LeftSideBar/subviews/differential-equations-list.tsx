@@ -64,7 +64,7 @@ const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <Icon name="trash" />,
+          icon: <Icon name="trash" size="sm" />,
           destructive: true,
           disabled: isReadOnly,
           onClick: () => removeDifferentialEquation({ equationId: item.id }),
