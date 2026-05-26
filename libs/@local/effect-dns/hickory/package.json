@@ -15,7 +15,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "regenerate-packages": "napi create-npm-dir --target=.",
+    "regenerate-packages": "napi create-npm-dirs",
     "test:unit": "vitest --run"
   },
   "devDependencies": {
