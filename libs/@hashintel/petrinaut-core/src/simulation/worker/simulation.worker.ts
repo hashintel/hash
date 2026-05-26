@@ -100,7 +100,11 @@ async function computeLoop(): Promise<void> {
         simulation = updatedSimulation;
         const newFrame = simulation.frames[simulation.currentFrameNumber]!;
         framesToSend.push(
-          framePayloadFromEngineFrame(newFrame, simulation.currentTime),
+          framePayloadFromEngineFrame(
+            newFrame,
+            simulation.currentTime,
+            simulation.tokenValueCodec.snapshot(),
+          ),
         );
 
         // Check if simulation completed
@@ -184,6 +188,7 @@ workerRuntime.onMessage((message) => {
             frame: framePayloadFromEngineFrame(
               initialFrame,
               simulation.currentTime,
+              simulation.tokenValueCodec.snapshot(),
             ),
           });
         }

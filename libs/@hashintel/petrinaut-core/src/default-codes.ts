@@ -1,5 +1,22 @@
 import type { Color } from "./types/sdcpn";
 
+const defaultTokenAttributeSource = (
+  element: Color["elements"][number],
+): string => {
+  switch (element.type) {
+    case "boolean":
+      return "false";
+    case "uuid":
+      return '"00000000-0000-0000-0000-000000000000"';
+    case "integer":
+    case "real":
+      return "0";
+  }
+};
+
+const defaultDerivativeSource = (element: Color["elements"][number]): string =>
+  element.type === "real" ? "1" : "0";
+
 export function generateDefaultVisualizerCode(type: Color): string {
   return `// This function defines how to visualize the tokens in the place of type "${type.name}".
 // It receives the current tokens and parameters.
@@ -24,22 +41,22 @@ export default Visualization(({ tokens, parameters }) => {
 
 export function generateDefaultDifferentialEquationCode(type: Color): string {
   return `// This function defines the differential equation for the place of type "${type.name}".
-// The function receives the current tokens in all places and the parameters.
-// It should return the derivative of the token value in this place.
+// The function receives the current tokens in this place and the parameters.
+// It should return derivatives for real-valued token attributes in this place.
 export default Dynamics((tokens, parameters) => {
   return tokens.map(({ ${type.elements.map((el) => el.name).join(", ")} }) => {
     // ...Do some computation with input token here if needed
 
     return {
-      ${type.elements.map((el) => `${el.name}: 1`).join(",\n      ")}
-    }; // Example: all derivatives = 1
+      ${type.elements.map((el) => `${el.name}: ${defaultDerivativeSource(el)}`).join(",\n      ")}
+    }; // Example: real-valued derivatives = 1; discrete values are unchanged
   });
 });`;
 }
 
 export const DEFAULT_DIFFERENTIAL_EQUATION_CODE = `// This function defines the differential equation for the place.
-// The function receives the current tokens in all places and the parameters.
-// It should return the derivative of the token value in this place.
+// The function receives the current tokens in this place and the parameters.
+// It should return derivatives for real-valued token attributes in this place.
 export default Dynamics((tokens, parameters) => {
   return tokens.map(({ x, y }) => {
     return { x: 1, y: 1 }; // dx/dt = 1, dy/dt = 1
@@ -95,7 +112,7 @@ export default TransitionKernel((tokensByPlace, parameters) => {
       ${Array.from({ length: arc.weight })
         .map(
           () =>
-            `{ ${arc.type.elements.map((el) => `${el.name}: 0`).join(", ")} }`,
+            `{ ${arc.type.elements.map((el) => `${el.name}: ${defaultTokenAttributeSource(el)}`).join(", ")} }`,
         )
         .join(",\n      ")}
     ],`,

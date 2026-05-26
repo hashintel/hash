@@ -1,11 +1,15 @@
 import {
+  decodeTokenAttributeValue,
+  type EncodedDiscreteValues,
+} from "../engine/token-values";
+import {
   createEngineFrameLayout,
   readEngineFrame,
   type EngineFrame,
   type EngineFrameLayout,
 } from "./internal-frame";
 
-import type { SDCPN } from "../../types/sdcpn";
+import type { SDCPN, TokenRecord } from "../../types/sdcpn";
 import type {
   SimulationFrameReader,
   SimulationFrameState,
@@ -17,6 +21,7 @@ function createSimulationFrameReader(
   frame: EngineFrame,
   number: number,
   time: number,
+  discreteValues?: EncodedDiscreteValues,
 ): SimulationFrameReader {
   const frameView = readEngineFrame(layout, frame);
 
@@ -51,21 +56,25 @@ function createSimulationFrameReader(
 
       const { offset, count, dimensions } = placeState;
       const elements = color?.elements ?? [];
-      const tokens: Record<string, number>[] = [];
+      const tokens: TokenRecord[] = [];
       if (elements.length === 0 || dimensions === 0 || count === 0) {
         return tokens;
       }
 
       for (let tokenIndex = 0; tokenIndex < count; tokenIndex++) {
-        const token: Record<string, number> = {};
+        const token: TokenRecord = {};
         const base = offset + tokenIndex * dimensions;
         for (
           let dimensionIndex = 0;
           dimensionIndex < elements.length && dimensionIndex < dimensions;
           dimensionIndex++
         ) {
-          token[elements[dimensionIndex]!.name] =
-            frameView.tokenValues[base + dimensionIndex] ?? 0;
+          const element = elements[dimensionIndex]!;
+          token[element.name] = decodeTokenAttributeValue(
+            element,
+            frameView.tokenValues[base + dimensionIndex] ?? 0,
+            discreteValues,
+          );
         }
         tokens.push(token);
       }
@@ -90,9 +99,14 @@ function createSimulationFrameReader(
 
 export function compileSimulationFrameReader(
   sdcpn: Pick<SDCPN, "places" | "transitions" | "types">,
-): (frame: EngineFrame, number: number, time: number) => SimulationFrameReader {
+): (
+  frame: EngineFrame,
+  number: number,
+  time: number,
+  discreteValues?: EncodedDiscreteValues,
+) => SimulationFrameReader {
   const layout = createEngineFrameLayout(sdcpn);
 
-  return (frame, number, time) =>
-    createSimulationFrameReader(layout, frame, number, time);
+  return (frame, number, time, discreteValues) =>
+    createSimulationFrameReader(layout, frame, number, time, discreteValues);
 }

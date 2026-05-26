@@ -28,7 +28,7 @@ export function buildScenarioFromFormState(
           content: {
             // Uncolored places: expression strings (token count)
             ...state.initialTokenCounts,
-            // Colored places: number[][] (rows × elements), stored directly
+            // Colored places: rows × elements, stored directly
             ...state.initialTokenData,
           },
         },

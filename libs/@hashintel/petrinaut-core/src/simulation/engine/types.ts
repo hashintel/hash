@@ -11,11 +11,14 @@ import type {
   InputArcType,
   Place,
   SDCPN,
+  TokenAttributeValue,
+  TokenRecord,
   Transition,
 } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
+import type { TokenValueCodec } from "./token-values";
 
 /**
  * Runtime parameter values used during simulation execution.
@@ -36,10 +39,10 @@ export type DifferentialEquationFn = (
   numberOfTokens: number,
 ) => Float64Array;
 
-export type TransitionTokenValues = Record<string, Record<string, number>[]>;
+export type TransitionTokenValues = Record<string, TokenRecord[]>;
 export type TransitionKernelOutput = Record<
   string,
-  Record<string, number | RuntimeDistribution>[]
+  Record<string, TokenAttributeValue | RuntimeDistribution>[]
 >;
 
 /**
@@ -67,6 +70,7 @@ export type CompiledTransitionPlace = {
   placeName: string;
   weight: number;
   elementNames: readonly string[] | null;
+  elements: readonly Color["elements"][number][] | null;
 };
 
 export type CompiledTransitionInputPlace = CompiledTransitionPlace & {
@@ -119,6 +123,8 @@ export type SimulationInstance = {
   compiledTransitions: Map<string, CompiledTransition>;
   /** Resolved parameter values for this simulation run */
   parameterValues: ParameterValues;
+  /** Encodes/decodes discrete token values stored in numeric frame buffers. */
+  tokenValueCodec: TokenValueCodec;
   /** Time step for simulation advancement */
   dt: number;
   /** Maximum simulation time (immutable). Null means no limit. */

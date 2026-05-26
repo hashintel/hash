@@ -1,6 +1,14 @@
+import { coerceTokenRecord } from "../../engine/token-values";
 import { runSandboxed, SHADOWED_GLOBALS } from "../sandbox";
 
-import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
+import type {
+  Color,
+  Parameter,
+  Place,
+  Scenario,
+  TokenAttributeValue,
+  TokenRecord,
+} from "../../../types/sdcpn";
 import type { InitialMarking, InitialPlaceMarking } from "../../api";
 
 // -- Result types -------------------------------------------------------------
@@ -86,22 +94,22 @@ function evaluateExpression(
 }
 
 function tokenRecordsFromRows(
-  rows: number[][],
+  rows: TokenAttributeValue[][],
   elements: Color["elements"],
-): Record<string, number>[] {
+): TokenRecord[] {
   return rows.map((row) => {
-    const token: Record<string, number> = {};
+    const token: Record<string, unknown> = {};
     for (let i = 0; i < elements.length; i++) {
-      token[elements[i]!.name] = row[i] ?? 0;
+      token[elements[i]!.name] = row[i];
     }
-    return token;
+    return coerceTokenRecord(token, elements, "Scenario initial state token");
   });
 }
 
 function normalizeTokenRecords(
   tokens: unknown[],
   elements: Color["elements"],
-): Record<string, number>[] {
+): TokenRecord[] {
   return tokens.flatMap((rawToken) => {
     if (
       typeof rawToken !== "object" ||
@@ -112,18 +120,9 @@ function normalizeTokenRecords(
     }
 
     const source = rawToken as Record<string, unknown>;
-    const token: Record<string, number> = {};
-    const entries =
-      elements.length > 0
-        ? elements.map(
-            (element) => [element.name, source[element.name]] as const,
-          )
-        : Object.entries(source);
-
-    for (const [name, value] of entries) {
-      token[name] = Number(value ?? 0);
-    }
-    return [token];
+    return [
+      coerceTokenRecord(source, elements, "Scenario initial state token"),
+    ];
   });
 }
 
@@ -283,7 +282,7 @@ export function compileScenario(
     for (const [placeId, value] of Object.entries(
       scenario.initialState.content,
     )) {
-      // Colored places: number[][] stored directly by the UI.
+      // Colored places: row data stored directly by the UI.
       if (Array.isArray(value)) {
         const place = placeById.get(placeId);
         const color = place?.colorId ? typeById.get(place.colorId) : undefined;

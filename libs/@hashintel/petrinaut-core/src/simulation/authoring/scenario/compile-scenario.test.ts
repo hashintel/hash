@@ -329,6 +329,54 @@ describe("compileScenario", () => {
       }
     });
 
+    it("converts typed token row values to token records", () => {
+      const entityId = "45F588B6-0538-4FC9-9207-1DDFD7F65B64";
+      const result = compileScenario(
+        scenario({
+          initialState: {
+            type: "per_place",
+            content: {
+              place1: [[1.5, 2.7, true, entityId], []],
+            },
+          },
+        }),
+        [],
+        [place("place1", "Place 1", "type1")],
+        [
+          {
+            id: "type1",
+            name: "Typed entity",
+            iconSlug: "circle",
+            displayColor: "#000000",
+            elements: [
+              { elementId: "amount", name: "amount", type: "real" },
+              { elementId: "count", name: "count", type: "integer" },
+              { elementId: "active", name: "active", type: "boolean" },
+              { elementId: "entityId", name: "entityId", type: "uuid" },
+            ],
+          },
+        ],
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.result.initialState.place1).toEqual([
+          {
+            amount: 1.5,
+            count: 3,
+            active: true,
+            entityId: entityId.toLowerCase(),
+          },
+          {
+            amount: 0,
+            count: 0,
+            active: false,
+            entityId: "00000000-0000-0000-0000-000000000000",
+          },
+        ]);
+      }
+    });
+
     it("handles empty token array", () => {
       const result = compileScenario(
         scenario({

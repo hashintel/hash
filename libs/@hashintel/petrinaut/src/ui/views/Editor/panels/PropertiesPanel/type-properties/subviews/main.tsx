@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Button, TextInput, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Select,
+  TextInput,
+  Tooltip,
+  type SelectItem,
+} from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { validateDisplayName } from "@hashintel/petrinaut-core";
+import {
+  validateDisplayName,
+  type ColorElementType,
+} from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
@@ -108,13 +117,25 @@ const indexChipStyle = css({
 
 const dimensionNameInputStyle = css({
   flex: "[1]",
-  marginX: "1",
+  minWidth: "[0]",
+});
+
+const dimensionTypeSelectStyle = css({
+  width: "[96px]",
+  flexShrink: 0,
 });
 
 type ElementNameInputState = Record<
   string,
   { sourceName: string; value: string }
 >;
+
+const typeOptions: SelectItem<ColorElementType>[] = [
+  { value: "real", text: "Real" },
+  { value: "integer", text: "Int" },
+  { value: "boolean", text: "Bool" },
+  { value: "uuid", text: "UUID" },
+];
 
 const slugifyToIdentifier = (input: string): string => {
   let slug = input
@@ -238,6 +259,17 @@ const TypeMainContent: React.FC = () => {
     });
   };
 
+  const handleUpdateElementType = (
+    elementId: string,
+    elementType: ColorElementType,
+  ) => {
+    updateTypeElement({
+      typeId: type.id,
+      elementId,
+      update: { type: elementType },
+    });
+  };
+
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -310,7 +342,7 @@ const TypeMainContent: React.FC = () => {
 
       <Section
         title="Dimensions"
-        tooltip="A type is an ordered tuple of real-valued dimensions. The index of each dimension determines its position in the token vector."
+        tooltip="A type is an ordered tuple of token attributes. Real attributes can be updated by dynamics; integer, boolean, and UUID attributes are discrete."
         renderHeaderAction={() => (
           <Button
             onClick={handleAddElement}
@@ -379,6 +411,23 @@ const TypeMainContent: React.FC = () => {
                     }}
                     disabled={isDisabled}
                     placeholder="dimension_name"
+                  />
+                </Tooltip>
+
+                <Tooltip
+                  content={UI_MESSAGES.READ_ONLY_MODE}
+                  disableTooltip={!isDisabled}
+                >
+                  <Select
+                    required
+                    value={element.type}
+                    onChange={(value) => {
+                      handleUpdateElementType(element.elementId, value);
+                    }}
+                    items={typeOptions}
+                    disabled={isDisabled}
+                    size="xs"
+                    className={dimensionTypeSelectStyle}
                   />
                 </Tooltip>
 

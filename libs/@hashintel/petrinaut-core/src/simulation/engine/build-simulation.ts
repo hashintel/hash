@@ -22,7 +22,13 @@ import {
   flattenComponentInstancesForSimulation,
   getArcPlaceNameOverrideKey,
 } from "./flatten-component-instances";
+import {
+  coerceTokenRecord,
+  decodeTokenRecord,
+  TokenValueCodec,
+} from "./token-values";
 
+import type { TokenRecord } from "../../types/sdcpn";
 import type {
   CompiledTransition,
   DifferentialEquationFn,
@@ -35,13 +41,16 @@ import type {
   TransitionTokenValues,
 } from "./types";
 
+type ColorElement =
+  SimulationInput["sdcpn"]["types"][number]["elements"][number];
+
 type PackedInitialPlaceMarking = {
   values: number[];
   count: number;
 };
 
 type UserDifferentialEquationFn = (
-  tokens: Record<string, number>[],
+  tokens: TokenRecord[],
   parameters: ParameterValues,
 ) => Record<string, number>[];
 
@@ -88,6 +97,7 @@ function packInitialPlaceMarking(
   place: SimulationInput["sdcpn"]["places"][0],
   sdcpn: SimulationInput["sdcpn"],
   value: SimulationInput["initialMarking"][string] | undefined,
+  tokenValueCodec: TokenValueCodec,
 ): PackedInitialPlaceMarking {
   const dimensions = getPlaceDimensions(place, sdcpn);
 
@@ -125,9 +135,19 @@ function packInitialPlaceMarking(
         `Initial marking token for place ${place.id} must be a record`,
       );
     }
-    const tokenRecord = token as Record<string, number>;
+    const tokenRecord = coerceTokenRecord(
+      token as Record<string, unknown>,
+      type.elements,
+      `Initial marking token for place ${place.id}`,
+    );
     for (const element of type.elements) {
-      values.push(Number(tokenRecord[element.name] ?? 0));
+      values.push(
+        tokenValueCodec.encode(
+          element,
+          tokenRecord[element.name],
+          `Initial marking token for place ${place.id}.${element.name}`,
+        ),
+      );
     }
   }
 
@@ -137,12 +157,16 @@ function packInitialPlaceMarking(
 function createDifferentialEquationFn({
   placeId,
   elementNames,
+  elements,
   parameterValues,
+  tokenValueCodec,
   userFn,
 }: {
   placeId: string;
   elementNames: string[];
+  elements: SimulationInput["sdcpn"]["types"][number]["elements"];
   parameterValues: ParameterValues;
+  tokenValueCodec: TokenValueCodec;
   userFn: UserDifferentialEquationFn;
 }): DifferentialEquationFn {
   const expectedDimensions = elementNames.length;
@@ -154,19 +178,16 @@ function createDifferentialEquationFn({
       );
     }
 
-    const inputTokens: Record<string, number>[] = [];
+    const inputTokens: TokenRecord[] = [];
     for (let tokenIndex = 0; tokenIndex < numberOfTokens; tokenIndex++) {
       const tokenStart = tokenIndex * dimensions;
-      const token: Record<string, number> = {};
-      for (
-        let dimensionIndex = 0;
-        dimensionIndex < dimensions;
-        dimensionIndex++
-      ) {
-        token[elementNames[dimensionIndex]!] =
-          currentState[tokenStart + dimensionIndex]!;
-      }
-      inputTokens.push(token);
+      inputTokens.push(
+        decodeTokenRecord(
+          elements,
+          currentState.subarray(tokenStart, tokenStart + dimensions),
+          tokenValueCodec.snapshot(),
+        ),
+      );
     }
 
     const resultTokens = userFn(inputTokens, parameterValues);
@@ -181,8 +202,9 @@ function createDifferentialEquationFn({
         dimensionIndex++
       ) {
         const dimensionName = elementNames[dimensionIndex]!;
+        const element = elements[dimensionIndex]!;
         result[tokenIndex * dimensions + dimensionIndex] =
-          token[dimensionName]!;
+          element.type === "real" ? Number(token[dimensionName] ?? 0) : 0;
       }
     }
 
@@ -214,6 +236,32 @@ function getPlaceElementNames(
   }
 
   return type.elements.map((element) => element.name);
+}
+
+function getPlaceElements(
+  placeId: string,
+  placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>,
+  typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>,
+): readonly ColorElement[] | null {
+  const place = placesMap.get(placeId);
+  if (!place) {
+    throw new Error(
+      `Place with ID ${placeId} referenced by transition does not exist in SDCPN`,
+    );
+  }
+
+  if (!place.colorId) {
+    return null;
+  }
+
+  const type = typesMap.get(place.colorId);
+  if (!type) {
+    throw new Error(
+      `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`,
+    );
+  }
+
+  return type.elements;
 }
 
 function createLambdaFn({
@@ -355,6 +403,7 @@ function createCompiledTransition({
         weight: arc.weight,
         arcType: arc.type,
         elementNames: getPlaceElementNames(placeId, placesMap, typesMap),
+        elements: getPlaceElements(placeId, placesMap, typesMap),
       };
     }),
     outputPlaces: transition.outputArcs.map((arc) => {
@@ -382,6 +431,7 @@ function createCompiledTransition({
           ) ?? place.name,
         weight: arc.weight,
         elementNames: getPlaceElementNames(placeId, placesMap, typesMap),
+        elements: getPlaceElements(placeId, placesMap, typesMap),
       };
     }),
     lambdaFn,
@@ -440,6 +490,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     sdcpn.transitions.map((transition) => [transition.id, transition]),
   );
   const typesMap = new Map(sdcpn.types.map((type) => [type.id, type]));
+  const tokenValueCodec = new TokenValueCodec();
 
   // Build parameter values: merge input values with SDCPN defaults
   // Input values (from simulation store) take precedence over defaults
@@ -462,6 +513,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         place,
         sdcpn,
         getInitialMarkingValue(initialMarking, place.id),
+        tokenValueCodec,
       ),
     );
   }
@@ -496,18 +548,23 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         );
       }
 
-      const userFn = compileUserCode<
-        [Record<string, number>[], ParameterValues]
-      >(code, "Dynamics", {
-        enableDistribution: extensions.stochasticity,
-      }) as UserDifferentialEquationFn;
+      if (!type.elements.some((element) => element.type === "real")) {
+        continue;
+      }
+
+      const userFn = compileUserCode<[TokenRecord[], ParameterValues]>(
+        code,
+        "Dynamics",
+      ) as UserDifferentialEquationFn;
       differentialEquationFns.set(
         place.id,
         createDifferentialEquationFn({
           placeId: place.id,
           elementNames: type.elements.map((element) => element.name),
+          elements: type.elements,
           parameterValues:
             flattened.placeParameterValues.get(place.id) ?? parameterValues,
+          tokenValueCodec,
           userFn,
         }),
       );
@@ -602,6 +659,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     differentialEquationFns,
     compiledTransitions,
     parameterValues,
+    tokenValueCodec,
     dt,
     maxTime,
     currentTime: 0,

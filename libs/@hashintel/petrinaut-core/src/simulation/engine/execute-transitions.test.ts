@@ -9,6 +9,7 @@ import {
   type EngineFrameSnapshot,
 } from "../frames/internal-frame";
 import { executeTransitions as executeEngineTransitions } from "./execute-transitions";
+import { TokenValueCodec } from "./token-values";
 
 import type { Color, Place, Transition } from "../../types/sdcpn";
 import type {
@@ -113,6 +114,14 @@ function makeCompiledTransitions({
       null
     );
   };
+  const getElements = (placeId: string) => {
+    const place = placesMap.get(placeId);
+    if (!place?.colorId) {
+      return null;
+    }
+
+    return typesMap.get(place.colorId)?.elements ?? null;
+  };
 
   return new Map(
     transitions.map((transition) => {
@@ -135,6 +144,7 @@ function makeCompiledTransitions({
               weight: arc.weight,
               arcType: arc.type,
               elementNames: getElementNames(placeId),
+              elements: getElements(placeId),
             };
           }),
           outputPlaces: transition.outputArcs.map((arc) => {
@@ -144,6 +154,7 @@ function makeCompiledTransitions({
               placeName: placesMap.get(placeId)?.name ?? placeId,
               weight: arc.weight,
               elementNames: getElementNames(placeId),
+              elements: getElements(placeId),
             };
           }),
           lambdaFn,
@@ -188,6 +199,7 @@ function makeSimulation({
       transitionKernelFns,
     }),
     parameterValues: {},
+    tokenValueCodec: new TokenValueCodec(),
     dt: 0.1,
     maxTime: null,
     currentTime: 0,

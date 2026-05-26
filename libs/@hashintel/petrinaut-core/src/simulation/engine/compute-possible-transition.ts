@@ -4,6 +4,7 @@ import { materializeEngineFrame } from "../frames/internal-frame";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { sampleDistribution } from "./sample-distribution";
 import { nextRandom } from "./seeded-rng";
+import { decodeTokenRecord } from "./token-values";
 
 import type { ID } from "../../types/sdcpn";
 import type {
@@ -117,24 +118,26 @@ export function computePossibleTransition(
           inputPlace.placeId,
         );
       }
-      const elementNames = inputPlace.elementNames;
+      const elements = inputPlace.elements;
+      if (!elements) {
+        throw new SDCPNItemError(
+          `Place \`${inputPlace.placeName}\` has no type defined`,
+          inputPlace.placeId,
+        );
+      }
 
       // Convert tokens for this place to objects with named dimensions
-      const placeTokens: Record<string, number>[] = placeTokenIndices.map(
-        (tokenIndexInPlace) => {
-          // Offset within the global buffer
-          const globalIndex =
-            placeOffsetInBuffer + tokenIndexInPlace * dimensions;
+      const placeTokens = placeTokenIndices.map((tokenIndexInPlace) => {
+        // Offset within the global buffer
+        const globalIndex =
+          placeOffsetInBuffer + tokenIndexInPlace * dimensions;
 
-          // Create token object with named dimensions
-          const token: Record<string, number> = {};
-          for (let dimIdx = 0; dimIdx < dimensions; dimIdx++) {
-            const dimensionName = elementNames[dimIdx]!;
-            token[dimensionName] = snapshot.buffer[globalIndex + dimIdx]!;
-          }
-          return token;
-        },
-      );
+        return decodeTokenRecord(
+          elements,
+          snapshot.buffer.subarray(globalIndex, globalIndex + dimensions),
+          simulation.tokenValueCodec.snapshot(),
+        );
+      });
 
       tokenCombinationValues[inputPlace.placeName] = placeTokens;
     }
@@ -225,18 +228,28 @@ export function computePossibleTransition(
         const tokenArrays: number[][] = [];
         for (const token of outputTokens) {
           const values: number[] = [];
-          for (const elementName of outputPlace.elementNames) {
-            const raw = token[elementName]!;
+          for (const element of outputPlace.elements ?? []) {
+            let raw = token[element.name];
             if (isDistribution(raw)) {
+              if (element.type !== "real" && element.type !== "integer") {
+                throw new Error(
+                  `Transition ${transition.id} produced a distribution for discrete element ${element.name}.`,
+                );
+              }
               const [sampled, nextRng] = sampleDistribution(
                 raw,
                 currentRngState,
               );
               currentRngState = nextRng;
-              values.push(sampled);
-            } else {
-              values.push(raw);
+              raw = sampled;
             }
+            values.push(
+              simulation.tokenValueCodec.encode(
+                element,
+                raw,
+                `Transition ${transition.id} output ${outputPlace.placeName}.${element.name}`,
+              ),
+            );
           }
           tokenArrays.push(values);
         }
