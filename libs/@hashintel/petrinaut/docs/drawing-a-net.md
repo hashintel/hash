@@ -62,16 +62,16 @@ New nodes are named automatically (Place1, Place2, Transition1, etc.). Rename th
 
 Drag from a node's handle to connect it:
 
-- **Place to Transition** creates an **input arc** (the transition consumes tokens from the place).
+- **Place to Transition** creates an **input arc** (standard input arcs consume tokens from the place).
 - **Transition to Place** creates an **output arc** (the transition produces tokens in the place).
 
-Petri nets are bipartite: you cannot connect a place to another place or a transition to another transition. New arcs default to weight 1.
+Petri nets are bipartite: you cannot connect a place to another place or a transition to another transition. New arcs default to weight 1. Input arcs default to **Standard**, and can be changed to **Read** or **Inhibitor** in the arc properties panel.
 
 ![drawing-arc](https://github.com/user-attachments/assets/ac688560-bba8-44fe-a6f8-c7ff320474a4)
 
 ## Arc weight
 
-Select an arc to open its properties. Set the **weight** to control how many tokens are consumed (input) or produced (output) per firing.
+Select an arc to open its properties. Set the **weight** to control how many tokens are required and consumed (standard input), required without being consumed (read input), blocked by (inhibitor input), or produced (output) per firing.
 
 You can also edit an arc's weight via the properties panel for the transition it is connected to.
 
@@ -149,7 +149,7 @@ From the top-bar menu (hamburger icon), under **Export**:
 
 - **JSON** -- the full SDCPN: places, transitions, arcs, types, dynamics, parameters, scenarios, metrics, **and** canvas positions / display colours. The format other Petrinaut instances can re-import faithfully.
 - **JSON without visual info** -- the same payload minus node positions and type display colours. Useful when only the logical structure matters (sharing for review, embedding in another tool, comparing two nets without layout noise). On import, the receiving editor applies auto-layout to fill in positions.
-- **TikZ** -- a `.tex` file with a structural diagram. This is a simplified view: only the place / transition / arc structure is included. Token types, dynamics, inhibitor arcs, scenarios, and metrics are **not** encoded. Intended for papers and presentations.
+- **TikZ** -- a `.tex` file with a structural diagram. This is a simplified view: only the place / transition / arc structure is included. Token types, dynamics, read/inhibitor arcs, scenarios, and metrics are **not** encoded. Intended for papers and presentations.
 
 **Import**: loads a net from a `.json` file. If node positions are missing, an automatic layout is applied on load.
 

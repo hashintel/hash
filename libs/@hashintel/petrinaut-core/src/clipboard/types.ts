@@ -19,7 +19,7 @@ const clipboardPlaceShape = currentPlaceSchema.omit({
 
 const inputArcSchema = z.object({
   ...currentInputArcSchema.shape,
-  type: z.enum(["standard", "inhibitor"]).optional().default("standard"),
+  type: currentInputArcSchema.shape.type.optional().default("standard"),
 });
 
 const outputArcSchema = z.object({

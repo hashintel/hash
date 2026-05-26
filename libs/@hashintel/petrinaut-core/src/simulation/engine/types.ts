@@ -5,7 +5,13 @@
  * part of the public simulation API.
  */
 
-import type { Color, Place, SDCPN, Transition } from "../../types/sdcpn";
+import type {
+  Color,
+  InputArcType,
+  Place,
+  SDCPN,
+  Transition,
+} from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { RuntimeDistribution } from "../authoring/user-code/distribution";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
@@ -63,7 +69,7 @@ export type CompiledTransitionPlace = {
 };
 
 export type CompiledTransitionInputPlace = CompiledTransitionPlace & {
-  arcType: "standard" | "inhibitor";
+  arcType: InputArcType;
 };
 
 export type CompiledTransition = {

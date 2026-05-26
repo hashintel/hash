@@ -60,7 +60,8 @@ export function computePossibleTransition(
     };
   });
 
-  // Transition is enabled if all input places have more tokens than the arc weight.
+  // Transition is enabled if standard/read arcs have enough tokens and
+  // inhibitor arcs have fewer than their threshold.
   const isTransitionEnabled = inputPlaces.every((inputPlace) =>
     inputPlace.arcType === "inhibitor"
       ? inputPlace.count < inputPlace.weight
@@ -83,17 +84,17 @@ export function computePossibleTransition(
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
   // (just multiply by time since last transition)
 
-  const inputPlacesWithAtLeastOneDimension = inputPlaces.filter(
+  const inputPlacesWithTokenValues = inputPlaces.filter(
     (place) => place.dimensions > 0 && place.arcType !== "inhibitor",
   );
-  const inputPlacesWithZeroDimensions = inputPlaces.filter(
-    (place) => place.dimensions === 0 && place.arcType !== "inhibitor",
+  const standardInputPlacesWithZeroDimensions = inputPlaces.filter(
+    (place) => place.dimensions === 0 && place.arcType === "standard",
   );
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
   // (just multiply by time since last transition)
   const tokensCombinations = enumerateWeightedMarkingIndicesGenerator(
-    inputPlacesWithAtLeastOneDimension,
+    inputPlacesWithTokenValues,
   );
 
   for (const tokenCombinationIndices of tokensCombinations) {
@@ -106,7 +107,7 @@ export function computePossibleTransition(
       placeIndex,
       placeTokenIndices,
     ] of tokenCombinationIndices.entries()) {
-      const inputPlace = inputPlacesWithAtLeastOneDimension[placeIndex]!;
+      const inputPlace = inputPlacesWithTokenValues[placeIndex]!;
       const placeOffsetInBuffer = inputPlace.offset;
       const dimensions = inputPlace.dimensions;
 
@@ -248,14 +249,18 @@ export function computePossibleTransition(
         // TODO: Need to provide better typing here, to not let TS infer to any[]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         remove: Object.fromEntries([
-          ...inputPlacesWithZeroDimensions.map((inputPlace) => [
+          ...standardInputPlacesWithZeroDimensions.map((inputPlace) => [
             inputPlace.placeId,
             inputPlace.weight,
           ]),
-          ...tokenCombinationIndices.map((placeTokenIndices, placeIndex) => {
-            const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
-            return [inputArc.placeId, new Set(placeTokenIndices)];
-          }),
+          ...tokenCombinationIndices.flatMap(
+            (placeTokenIndices, placeIndex) => {
+              const inputArc = inputPlacesWithTokenValues[placeIndex]!;
+              return inputArc.arcType === "standard"
+                ? [[inputArc.placeId, new Set(placeTokenIndices)]]
+                : [];
+            },
+          ),
         ]),
         // Map from place ID to array of token values to
         // create as per transition kernel output

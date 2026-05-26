@@ -338,6 +338,47 @@ describe("parseClipboardPayload", () => {
     expect(parsed?.data.transitions[0]?.inputArcs[0]?.type).toBe("standard");
   });
 
+  it("preserves read arc types in clipboard payloads", () => {
+    const json = JSON.stringify({
+      format: "petrinaut-sdcpn",
+      version: CLIPBOARD_FORMAT_VERSION,
+      documentId: null,
+      data: {
+        places: [
+          {
+            id: "place-1",
+            name: "Place 1",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "transition-1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "place-1", weight: 1, type: "read" }],
+            outputArcs: [],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+        ],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
+    });
+
+    const parsed = parseClipboardPayload(json);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.data.transitions[0]?.inputArcs[0]?.type).toBe("read");
+  });
+
   it("returns null when version is not a number", () => {
     const json = JSON.stringify({
       format: "petrinaut-sdcpn",

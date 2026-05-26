@@ -91,6 +91,66 @@ const selfLoopSdcpn: SDCPN = {
   parameters: [],
 };
 
+const readArcSdcpn: SDCPN = {
+  types: [
+    {
+      id: "type-product",
+      name: "Product",
+      iconSlug: "circle",
+      displayColor: "#00FF00",
+      elements: [{ elementId: "quality", name: "quality", type: "real" }],
+    },
+  ],
+  places: [
+    {
+      id: "source",
+      name: "Source",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+    {
+      id: "guard",
+      name: "Guard",
+      colorId: "type-product",
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 100,
+      y: 0,
+    },
+    {
+      id: "product",
+      name: "Product",
+      colorId: "type-product",
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 200,
+      y: 0,
+    },
+  ],
+  transitions: [
+    {
+      id: "make-product",
+      name: "Make Product",
+      inputArcs: [
+        { placeId: "source", weight: 1, type: "standard" },
+        { placeId: "guard", weight: 1, type: "read" },
+      ],
+      outputArcs: [{ placeId: "product", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "export default Lambda(() => true);",
+      transitionKernelCode:
+        "export default TransitionKernel((input) => ({ Product: [{ quality: input.Guard[0].quality }] }));",
+      x: 50,
+      y: 0,
+    },
+  ],
+  differentialEquations: [],
+  parameters: [],
+};
+
 describe("MonteCarloSimulator", () => {
   it("runs multiple independent simulations without retaining frame history", () => {
     const simulator = createMonteCarloSimulator({
@@ -136,6 +196,44 @@ describe("MonteCarloSimulator", () => {
       product: 2,
     });
     expect(secondRun.tokenValueCount).toBe(2);
+  });
+
+  it("does not consume tokens read by read arcs", () => {
+    const productQualityMetric = createMonteCarloUserDefinedMetric({
+      id: "product-quality",
+      label: "Product quality",
+      sampleRuns: "all",
+      aggregateRuns: "last",
+      aggregateTime: "none",
+      measure: ({ frame }) => frame.getPlaceTokenValues("product")?.values[0],
+    });
+    const simulator = createMonteCarloSimulator({
+      sdcpn: readArcSdcpn,
+      runCount: 1,
+      initialMarking: {
+        source: 1,
+        guard: [{ quality: 7 }],
+      },
+      seed: 100,
+      dt: 1,
+      maxTime: 10,
+      metrics: [productQualityMetric],
+    });
+
+    const result = simulator.runUntilComplete({ maxBatches: 10 });
+    const run = simulator.getRunSnapshot(0);
+
+    expect(result.allFinished).toBe(true);
+    expect(run.status).toBe("complete");
+    expect(run.completionReason).toBe("deadlock");
+    expect(run.placeTokenCounts).toMatchObject({
+      source: 0,
+      guard: 1,
+      product: 1,
+    });
+    expect(productQualityMetric.getLatestFrame()).toMatchObject({
+      value: 7,
+    });
   });
 
   it("advances active runs in deterministic round-robin batches", () => {

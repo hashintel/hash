@@ -6,6 +6,7 @@ import {
   colorSchema,
   differentialEquationSchema,
   idSchema,
+  inputArcSchema,
   nodePositionCommitSchema,
   parameterSchema,
   placeSchema,
@@ -162,14 +163,28 @@ export const mutationActionInputSchemas = {
     .strictObject({ transitionId: idSchema })
     .meta({ description: "Remove a transition." }),
   addArc: z
-    .strictObject({
-      transitionId: idSchema,
-      arcDirection: arcDirectionSchema,
-      placeId: idSchema,
-      weight: z.number().positive().meta({
-        description: "Token multiplicity for the arc.",
+    .discriminatedUnion("arcDirection", [
+      z.strictObject({
+        transitionId: idSchema,
+        arcDirection: z.literal("input"),
+        placeId: idSchema,
+        weight: z.number().positive().meta({
+          description: "Token multiplicity for the arc.",
+        }),
+        type: inputArcSchema.shape.type.optional().meta({
+          description:
+            "Input arc type. Standard arcs consume tokens; read arcs inspect tokens without consuming them; inhibitor arcs block firing when enough tokens are present.",
+        }),
       }),
-    })
+      z.strictObject({
+        transitionId: idSchema,
+        arcDirection: z.literal("output"),
+        placeId: idSchema,
+        weight: z.number().positive().meta({
+          description: "Token multiplicity for the arc.",
+        }),
+      }),
+    ])
     .meta({ description: "Add an input or output arc to a transition." }),
   removeArc: z
     .strictObject({
@@ -192,7 +207,7 @@ export const mutationActionInputSchemas = {
     .strictObject({
       transitionId: idSchema,
       placeId: idSchema,
-      type: z.enum(["standard", "inhibitor"]).meta({
+      type: inputArcSchema.shape.type.meta({
         description: "Replacement input arc type.",
       }),
     })

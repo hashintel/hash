@@ -15,6 +15,7 @@ import type {
   LambdaFn,
   SimulationInstance,
   TransitionKernelFn,
+  TransitionTokenValues,
 } from "./types";
 
 const type1: Color = {
@@ -312,6 +313,78 @@ describe("computePossibleTransition", () => {
     expect(result!.remove).toHaveProperty("p1");
     expect(result!.remove).not.toHaveProperty("p2");
     expect(result!.add).toMatchObject({ p3: [[5.0]] });
+  });
+
+  it("passes read arc tokens to lambda and kernel without consuming them", () => {
+    const transition = makeTransition({
+      id: "t1",
+      inputArcs: [
+        { placeId: "p1", weight: 1, type: "standard" },
+        { placeId: "p2", weight: 1, type: "read" },
+      ],
+      outputArcs: [{ placeId: "p3", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "return true;",
+      transitionKernelCode: "return { Target: input.Guard };",
+    });
+    let lambdaInput: TransitionTokenValues | null = null;
+    let kernelInput: TransitionTokenValues | null = null;
+    const simulation = makeSimulation({
+      places: [
+        makePlace("p1", "Source", "type1"),
+        makePlace("p2", "Guard", "type1"),
+        makePlace("p3", "Target", "type1"),
+      ],
+      transitions: [transition],
+      types: [type1],
+      lambdaFns: new Map([
+        [
+          "t1",
+          (input) => {
+            lambdaInput = input;
+            return true;
+          },
+        ],
+      ]),
+      transitionKernelFns: new Map<string, TransitionKernelFn>([
+        [
+          "t1",
+          (input) => {
+            kernelInput = input;
+            const guardToken = input.Guard?.[0];
+            if (guardToken?.x === undefined) {
+              throw new Error("Expected read arc token");
+            }
+            return { Target: [{ x: guardToken.x }] };
+          },
+        ],
+      ]),
+    });
+    const frame = makeFrame({
+      places: {
+        p1: { offset: 0, count: 1, dimensions: 1 },
+        p2: { offset: 1, count: 1, dimensions: 1 },
+        p3: { offset: 2, count: 0, dimensions: 1 },
+      },
+      transitions: {
+        t1: transitionState(),
+      },
+      buffer: new Float64Array([3.0, 7.0]),
+    });
+
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
+
+    expect(result).not.toBeNull();
+    expect(lambdaInput).toMatchObject({
+      Source: [{ x: 3.0 }],
+      Guard: [{ x: 7.0 }],
+    });
+    expect(kernelInput).toMatchObject({
+      Source: [{ x: 3.0 }],
+      Guard: [{ x: 7.0 }],
+    });
+    expect(result!.remove).toEqual({ p1: new Set([0]) });
+    expect(result!.add).toEqual({ p3: [[7.0]] });
   });
 
   it("returns token combinations when transition is enabled and fires", () => {

@@ -128,7 +128,8 @@ export function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
 
     for (const arc of transition.inputArcs) {
       // Inhibitor arcs never deliver tokens to the transition, so they should
-      // not contribute to the input type.
+      // not contribute to the input type. Read arcs do deliver tokens and are
+      // typed like standard input arcs.
       if (arc.type === "inhibitor") {
         continue;
       }

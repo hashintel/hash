@@ -13,11 +13,12 @@ import { EditorContext } from "../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { useFiringDelta } from "../hooks/use-firing-delta";
 
-import type { ArcEdgeType } from "../reactflow-types";
+import type { ArcData, ArcEdgeType } from "../reactflow-types";
 
 const BASE_STROKE_WIDTH = 2;
 const ANIMATION_DURATION_MS = 500;
 const INHIBITOR_DASH_PATTERN = "10 5 3 3 3 5";
+const READ_DASH_PATTERN = "2 6";
 const INHIBITOR_MARKER_RADIUS = 10;
 const INHIBITOR_MARKER_SIZE = (INHIBITOR_MARKER_RADIUS + BASE_STROKE_WIDTH) * 2;
 
@@ -131,6 +132,18 @@ const weightTextStyle = css({
   pointerEvents: "none",
 });
 
+function getArcStrokeDasharray(
+  arcType: ArcData["arcType"] | undefined,
+): string | undefined {
+  if (arcType === "inhibitor") {
+    return INHIBITOR_DASH_PATTERN;
+  }
+  if (arcType === "read") {
+    return READ_DASH_PATTERN;
+  }
+  return undefined;
+}
+
 /**
  * Custom cubic bezier path between two points.
  * Control point offsets are proportional to the horizontal distance
@@ -236,6 +249,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
   }
 
   let strokeColor = style?.stroke ?? "#b1b1b7";
+  const strokeDasharray = getArcStrokeDasharray(data?.arcType);
 
   return (
     <>
@@ -280,9 +294,8 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
         fill="none"
         stroke={strokeColor}
         strokeWidth={BASE_STROKE_WIDTH}
-        strokeDasharray={
-          data?.arcType === "inhibitor" ? INHIBITOR_DASH_PATTERN : undefined
-        }
+        strokeDasharray={strokeDasharray}
+        strokeLinecap={data?.arcType === "read" ? "round" : undefined}
         style={{ pointerEvents: "none" }}
       />
 
@@ -296,10 +309,11 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
             : markerEnd
         }
         style={
-          data?.arcType === "inhibitor"
+          strokeDasharray
             ? {
                 ...style,
-                strokeDasharray: INHIBITOR_DASH_PATTERN,
+                strokeDasharray,
+                strokeLinecap: data?.arcType === "read" ? "round" : undefined,
                 stroke: strokeColor,
               }
             : { ...style, stroke: strokeColor }
