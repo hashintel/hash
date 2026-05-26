@@ -1,20 +1,8 @@
 on:
-  # We could allow configuring environment here.
   workflow_dispatch: {}
   push:
     branches:
       - main
-    paths:
-      - ".github/workflows/hash-backend-cd.yml"
-      - "apps/hash-ai-worker-ts/**"
-      - "apps/hash-integration-worker/**"
-      - "apps/hash-graph/**"
-      - "apps/hash-api/**"
-      - "apps/hash-external-services/temporal/**"
-      - "apps/hash-external-services/kratos/**"
-      - "apps/hash-external-services/hydra/**"
-      - "libs/@local/**"
-      - "infra/docker/api/prod/**"
 
 env:
   AWS_REGION: eu-central-1
@@ -83,7 +71,7 @@ jobs:
         with:
           SHORTNAME: "api"
           CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/docker/api/prod/Dockerfile
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-api/docker/Dockerfile
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           IMAGE_NAME: ${{ github.repository }}/api
           IMAGE_TAG: staging
@@ -108,8 +96,8 @@ jobs:
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "kratos"
-          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/kratos
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/kratos/Dockerfile
+          CONTEXT_PATH: ${{ github.workspace }}/infra/compose/kratos
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/compose/kratos/Dockerfile
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           IMAGE_NAME: ${{ github.repository }}/kratos
           IMAGE_TAG: staging
@@ -134,8 +122,8 @@ jobs:
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "hydra"
-          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/hydra
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/hydra/Dockerfile
+          CONTEXT_PATH: ${{ github.workspace }}/infra/compose/hydra
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/compose/hydra/Dockerfile
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           IMAGE_NAME: ${{ github.repository }}/hydra
           IMAGE_TAG: staging

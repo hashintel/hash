@@ -265,7 +265,6 @@ jobs:
         with:
           scope: |
             ${{ matrix.name }}
-            @apps/hash-external-services
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -274,7 +273,7 @@ jobs:
         id: tests
         run: |
           TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.name }}" | jq -c '.tasks[]')
-          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>" and .name != "@apps/hash-external-services") | .name] != []' || echo 'false')
+          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .name] != []' || echo 'false')
           echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a $GITHUB_OUTPUT
 
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
@@ -351,7 +350,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ success() || failure() }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        run: yarn external-services logs --timestamps
 
       - name: Show background tasks logs
         if: always() && steps.tests.outputs.has-background-tasks == 'true'

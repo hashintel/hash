@@ -125,9 +125,7 @@
     "package.json",
     "pyproject.toml",
     "rust-toolchain.toml",
-    "yarn*",
-    // External services
-    "infra/compose/**"
+    "yarn*"
   ],
   "globalPassThroughEnv": [
     "CARGO_TERM_PROGRESS_WHEN",

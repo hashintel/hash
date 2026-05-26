@@ -102,7 +102,6 @@ jobs:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
-            @apps/hash-external-services
 
       - name: Warm up repository
         if: github.event_name == 'pull_request'
@@ -141,7 +140,6 @@ jobs:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
-            @apps/hash-external-services
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -221,7 +219,6 @@ jobs:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
-            @apps/hash-external-services
 
       - name: Warm up repository
         if: github.event_name == 'pull_request'
@@ -268,7 +265,7 @@ jobs:
 
       - name: Tear down external services
         if: github.event_name == 'pull_request'
-        run: yarn workspace @apps/hash-external-services deploy:test down
+        run: yarn external-services:test down
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
@@ -300,7 +297,6 @@ jobs:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
-            @apps/hash-external-services
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -379,7 +375,7 @@ jobs:
 
       - name: Show container logs
         if: ${{ success() || failure() }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+        run: yarn external-services logs --timestamps
 
       - name: Upload background tasks logs
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
