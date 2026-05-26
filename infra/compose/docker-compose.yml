@@ -176,29 +176,27 @@ services:
       - no-new-privileges:true
 
   temporal-migrate:
-    build:
-      context: ./temporal
-      dockerfile: migrate.Dockerfile
-      args:
-        TEMPORAL_VERSION: "${HASH_TEMPORAL_VERSION}"
-    read_only: true
+    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION}"
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      # This sets configuration values in
-      # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
-      # posgres12 for v12+ of postgres.
-      DB: "postgres12"
-      DBNAME: "${HASH_TEMPORAL_PG_DATABASE}"
-      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}"
-      DB_PORT: "5432"
-      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PWD: "${POSTGRES_PASSWORD}"
-      POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
     security_opt:
       - no-new-privileges:true
+    environment:
+      SQL_PLUGIN: postgres12
+      SQL_HOST: postgres
+      SQL_PORT: "5432"
+      # Intentionally the POSTGRES superuser — needs DDL on the new schemas.
+      SQL_USER: "${POSTGRES_USER}"
+      SQL_PASSWORD: "${POSTGRES_PASSWORD}"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -eux
+        temporal-sql-tool --db "${HASH_TEMPORAL_PG_DATABASE}" setup-schema -v 0.0
+        temporal-sql-tool --db "${HASH_TEMPORAL_PG_DATABASE}" update-schema -d /etc/temporal/schema/postgresql/v12/temporal/versioned
+        temporal-sql-tool --db "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}" setup-schema -v 0.0
+        temporal-sql-tool --db "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}" update-schema -d /etc/temporal/schema/postgresql/v12/visibility/versioned
 
   temporal:
     container_name: temporal
@@ -246,32 +244,25 @@ services:
       - "${HASH_TEMPORAL_SERVER_PORT}:7233"
 
   temporal-setup:
-    build:
-      context: ./temporal
-      dockerfile: setup.Dockerfile
-      args:
-        TEMPORAL_VERSION: "${HASH_TEMPORAL_VERSION}"
+    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION}"
     depends_on:
-      postgres:
-        condition: service_healthy
       temporal:
         condition: service_started
-    environment:
-      # This sets configuration values in
-      # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
-      # posgres12 for v12+ of postgres.
-      DB: "postgres12"
-      DBNAME: "${HASH_TEMPORAL_PG_DATABASE}"
-      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}"
-      DB_PORT: "5432"
-      # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PWD: "${POSTGRES_PASSWORD}"
-      POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
-      TEMPORAL_ADDRESS: temporal:7233
-      SKIP_DEFAULT_NAMESPACE_CREATION: "false" # left as a convenience as most temporal tooling expects default namespace
     security_opt:
       - no-new-privileges:true
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -eux
+        until temporal operator cluster health | grep -q SERVING; do
+          echo "Waiting for Temporal server to start..."
+          sleep 1
+        done
+        if ! temporal operator namespace describe HASH > /dev/null 2>&1; then
+          temporal operator namespace create --retention 7d --description "HASH namespace for Temporal Server." HASH
+        fi
 
   temporal-ui:
     image: temporalio/ui:${HASH_TEMPORAL_UI_VERSION}
