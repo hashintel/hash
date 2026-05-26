@@ -22,29 +22,31 @@ export const SlideBackForwardCloseBar = ({
     <Box
       sx={{
         width: "100%",
-        position: "sticky",
+        position: "absolute",
         top: 0,
-        background: ({ palette }) => palette.common.white,
+        display: "flex",
+        justifyContent: "flex-end",
+        pointerEvents: "auto",
+        pt: 1.5,
+        pr: 3,
         zIndex: 2,
       }}
     >
-      <Box pl={3} pr={4} py={1.5} display="flex" justifyContent="space-between">
-        <Box display="flex" justifyContent="space-between" gap={1}>
-          {(onBack ?? onForward) ? (
+      <Box display="flex" justifyContent="space-between" gap={1}>
+        {(onBack ?? onForward) ? (
+          <>
             <Tooltip title="Back" placement="bottom">
               <IconButton disabled={!onBack} onClick={onBack}>
                 <ArrowLeftIcon />
               </IconButton>
             </Tooltip>
-          ) : null}
-          {onForward ? (
             <Tooltip title="Forward" placement="bottom">
-              <IconButton onClick={onForward}>
+              <IconButton disabled={!onForward} onClick={onForward}>
                 <ArrowRightRegularIcon />
               </IconButton>
             </Tooltip>
-          ) : null}
-        </Box>
+          </>
+        ) : null}
         <Tooltip title="Close" placement="bottom">
           <IconButton onClick={onClose}>
             <CloseIcon />

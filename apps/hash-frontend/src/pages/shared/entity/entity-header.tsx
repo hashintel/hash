@@ -197,7 +197,7 @@ export const EntityHeader = ({
             </Box>
           </Stack>
           {showTabs && entityPath && (
-            <Box mt={7.5}>
+            <Box mt={3}>
               <EntityEditorTabs entityPath={entityPath} isInSlide={isInSlide} />
             </Box>
           )}
