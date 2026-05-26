@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { generateDefaultLambdaCode } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
+import { SDCPNContext } from "../../../../../../../../react/state/sdcpn-context";
 import { Menu } from "../../../../../../../components/menu";
 import { SegmentGroup } from "../../../../../../../components/segment-group";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
@@ -44,6 +45,7 @@ const aiMenuItemStyle = css({
 const FiringTimeHeaderAction: React.FC = () => {
   const { transition, updateTransition } = useTransitionPropertiesContext();
   const { globalMode } = use(EditorContext);
+  const { extensions } = use(SDCPNContext);
 
   if (globalMode !== "edit") {
     return null;
@@ -69,7 +71,11 @@ const FiringTimeHeaderAction: React.FC = () => {
             updateTransition({
               transitionId: transition.id,
               update: {
-                lambdaCode: generateDefaultLambdaCode(transition.lambdaType),
+                lambdaCode: generateDefaultLambdaCode(
+                  extensions.stochasticity
+                    ? transition.lambdaType
+                    : "predicate",
+                ),
               },
             });
           },
@@ -97,31 +103,37 @@ const FiringTimeHeaderAction: React.FC = () => {
 const TransitionFiringTimeContent: React.FC = () => {
   const { transition, isReadOnly, updateTransition } =
     useTransitionPropertiesContext();
+  const { extensions } = use(SDCPNContext);
+  const lambdaType = extensions.stochasticity
+    ? transition.lambdaType
+    : "predicate";
 
   return (
     <div className={contentStyle}>
-      <div className={segmentGroupContainerStyle}>
-        <SegmentGroup
-          value={transition.lambdaType}
-          options={[
-            { value: "predicate", label: "Predicate" },
-            { value: "stochastic", label: "Stochastic Rate" },
-          ]}
-          onChange={(value) => {
-            updateTransition({
-              transitionId: transition.id,
-              update: {
-                lambdaType: value as "predicate" | "stochastic",
-              },
-            });
-          }}
-          disabled={isReadOnly}
-          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-        />
-      </div>
+      {extensions.stochasticity && (
+        <div className={segmentGroupContainerStyle}>
+          <SegmentGroup
+            value={transition.lambdaType}
+            options={[
+              { value: "predicate", label: "Predicate" },
+              { value: "stochastic", label: "Stochastic Rate" },
+            ]}
+            onChange={(value) => {
+              updateTransition({
+                transitionId: transition.id,
+                update: {
+                  lambdaType: value as "predicate" | "stochastic",
+                },
+              });
+            }}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
+        </div>
+      )}
 
       <div className={infoBoxStyle}>
-        {transition.lambdaType === "predicate"
+        {lambdaType === "predicate"
           ? "Define a boolean guard condition. The transition fires when this function returns true, enabling discrete control flow based on token data."
           : "Return a numeric rate representing the average number of firings per second. The transition fires stochastically according to this rate."}
       </div>

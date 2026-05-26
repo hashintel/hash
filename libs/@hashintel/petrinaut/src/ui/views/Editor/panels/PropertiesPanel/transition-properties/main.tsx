@@ -1,5 +1,8 @@
+import { use } from "react";
+
 import { css } from "@hashintel/ds-helpers/css";
 
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { TransitionPropertiesProvider } from "./context";
@@ -38,11 +41,12 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   removeArc,
 }) => {
   const isReadOnly = useIsReadOnly();
+  const { extensions } = use(SDCPNContext);
 
   const subViews: SubView[] = [
     transitionMainContentSubView,
     transitionFiringTimeSubView,
-    transitionResultsSubView,
+    ...(extensions.colors ? [transitionResultsSubView] : []),
   ];
 
   return (

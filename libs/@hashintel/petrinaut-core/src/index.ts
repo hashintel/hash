@@ -16,6 +16,18 @@ export {
   type PetrinautPatch,
   type ReadableStore,
 } from "./handle";
+export {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  PETRINAUT_EXTENSION_NAMES,
+  isSelectionTypeAvailableForExtensions,
+  resolvePetrinautHandleCapabilities,
+} from "./extensions";
+export type {
+  PetrinautExtension,
+  PetrinautExtensionSettings,
+  PetrinautHandleCapabilities,
+  ResolvedPetrinautHandleCapabilities,
+} from "./extensions";
 
 // --- Instance ---
 export { createPetrinaut } from "./instance";

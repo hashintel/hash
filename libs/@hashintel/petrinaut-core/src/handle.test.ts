@@ -56,6 +56,37 @@ describe("createJsonDocHandle", () => {
     });
     expect(listener).not.toHaveBeenCalled();
   });
+
+  it("can expose read-only capabilities and ignore direct changes", () => {
+    const handle = createJsonDocHandle({
+      initial: empty(),
+      capabilities: {
+        readonly: true,
+        disabledExtensions: ["colors", "stochasticity", "dynamics"],
+      },
+    });
+    const listener = vi.fn();
+    handle.subscribe(listener);
+
+    handle.change((draft) => {
+      draft.types.push({
+        id: "t1",
+        name: "Color 1",
+        iconSlug: "circle",
+        displayColor: "#FF0000",
+        elements: [],
+      });
+    });
+
+    expect(handle.capabilities?.readonly).toBe(true);
+    expect(handle.capabilities?.disabledExtensions).toEqual([
+      "colors",
+      "stochasticity",
+      "dynamics",
+    ]);
+    expect(handle.doc()?.types).toHaveLength(0);
+    expect(listener).not.toHaveBeenCalled();
+  });
 });
 
 describe("createPetrinaut", () => {
@@ -115,6 +146,24 @@ describe("createPetrinaut", () => {
     });
 
     expect(instance.definition.get().types).toHaveLength(0);
+  });
+
+  it("derives readonly and extension settings from handle capabilities", () => {
+    const handle = createJsonDocHandle({
+      initial: empty(),
+      capabilities: {
+        readonly: true,
+        disabledExtensions: ["colors", "stochasticity", "dynamics"],
+      },
+    });
+    const instance = createPetrinaut({ document: handle });
+
+    expect(instance.readonly).toBe(true);
+    expect(instance.extensions).toEqual({
+      colors: false,
+      stochasticity: false,
+      dynamics: false,
+    });
   });
 });
 

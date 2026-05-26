@@ -17,12 +17,13 @@ import { TransitionProperties } from "./transition-properties/main";
 import { TypeProperties } from "./type-properties/main";
 
 import type { PetrinautMutations } from "../../../../../react";
-import type {
-  Color,
-  DifferentialEquation,
-  Parameter,
-  Place,
-  Transition,
+import {
+  DEFAULT_PETRINAUT_EXTENSIONS,
+  type Color,
+  type DifferentialEquation,
+  type Parameter,
+  type Place,
+  type Transition,
 } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
@@ -152,6 +153,7 @@ const SDCPN_STUB: SDCPNContextValue = {
     parameters: [PARAMETER],
   },
   readonly: false,
+  extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   setTitle: () => {},
   title: "Story Net",
   getItemType: () => null,

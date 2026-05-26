@@ -126,12 +126,14 @@ const ViewScenarioContent = ({
   scenario: Scenario;
   onClose: () => void;
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { updateScenario } = usePetrinautMutations();
 
   const typesById = new Map<string, Color>();
-  for (const type of petriNetDefinition.types) {
-    typesById.set(type.id, type);
+  if (extensions.colors) {
+    for (const type of petriNetDefinition.types) {
+      typesById.set(type.id, type);
+    }
   }
 
   // Names of OTHER scenarios — exclude the one being edited so it can keep

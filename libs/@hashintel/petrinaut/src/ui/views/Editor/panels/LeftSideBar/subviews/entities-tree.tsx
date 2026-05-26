@@ -104,6 +104,7 @@ function useEntityTreeItems(): EntityTreeItem[] {
       differentialEquations,
       parameters,
     },
+    extensions,
   } = use(SDCPNContext);
 
   return [
@@ -126,34 +127,42 @@ function useEntityTreeItems(): EntityTreeItem[] {
         })),
       ],
     },
-    {
-      id: "group-types",
-      name: "Token Types",
-      emptyGroupMessage: "No token types",
-      renderGroupAction: TypesSectionHeaderAction,
-      children: types.map((t) => ({
-        id: t.id,
-        name: t.name,
-        icon: TokenTypeIcon,
-        iconColor: t.displayColor,
-        selectionItem: { type: "type" as const, id: t.id },
-      })),
-    },
-    {
-      id: "group-equations",
-      name: "Differential Equations",
-      emptyGroupMessage: "No differential equations",
-      renderGroupAction: DifferentialEquationsSectionHeaderAction,
-      children: differentialEquations.map((eq) => ({
-        id: eq.id,
-        name: eq.name,
-        icon: DifferentialEquationIcon,
-        selectionItem: {
-          type: "differentialEquation" as const,
-          id: eq.id,
-        },
-      })),
-    },
+    ...(extensions.colors
+      ? [
+          {
+            id: "group-types",
+            name: "Token Types",
+            emptyGroupMessage: "No token types",
+            renderGroupAction: TypesSectionHeaderAction,
+            children: types.map((t) => ({
+              id: t.id,
+              name: t.name,
+              icon: TokenTypeIcon,
+              iconColor: t.displayColor,
+              selectionItem: { type: "type" as const, id: t.id },
+            })),
+          },
+        ]
+      : []),
+    ...(extensions.colors && extensions.dynamics
+      ? [
+          {
+            id: "group-equations",
+            name: "Differential Equations",
+            emptyGroupMessage: "No differential equations",
+            renderGroupAction: DifferentialEquationsSectionHeaderAction,
+            children: differentialEquations.map((eq) => ({
+              id: eq.id,
+              name: eq.name,
+              icon: DifferentialEquationIcon,
+              selectionItem: {
+                type: "differentialEquation" as const,
+                id: eq.id,
+              },
+            })),
+          },
+        ]
+      : []),
     {
       id: "group-parameters",
       name: "Parameters",

@@ -323,6 +323,66 @@ describe("Petrinaut core actions", () => {
     expect(instance.definition.get().places).toEqual([]);
   });
 
+  test("honors disabled extension capabilities", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: cloneSDCPN(emptySDCPN),
+        capabilities: {
+          disabledExtensions: ["colors", "stochasticity", "dynamics"],
+        },
+      }),
+    });
+
+    instance.mutations.addType({
+      id: "type-1",
+      name: "Particle",
+      iconSlug: "circle",
+      displayColor: "#34a0fa",
+      elements: [],
+    });
+    instance.mutations.addDifferentialEquation({
+      id: "equation-1",
+      name: "Motion",
+      colorId: "type-1",
+      code: "export default Dynamics(() => []);",
+    });
+    instance.mutations.addPlace({
+      id: "place-1",
+      name: "Dynamic",
+      colorId: "type-1",
+      dynamicsEnabled: true,
+      differentialEquationId: "equation-1",
+      visualizerCode: "export default Visualization(() => null);",
+      x: 0,
+      y: 0,
+    });
+    instance.mutations.addTransition({
+      id: "transition-1",
+      name: "Move",
+      inputArcs: [],
+      outputArcs: [],
+      lambdaType: "stochastic",
+      lambdaCode: "export default Lambda(() => 1);",
+      transitionKernelCode: "export default TransitionKernel(() => ({}));",
+      x: 0,
+      y: 0,
+    });
+
+    const definition = instance.definition.get();
+    expect(definition.types).toEqual([]);
+    expect(definition.differentialEquations).toEqual([]);
+    expect(definition.places[0]).toMatchObject({
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+    });
+    expect(definition.places[0]).not.toHaveProperty("visualizerCode");
+    expect(definition.transitions[0]).toMatchObject({
+      lambdaType: "predicate",
+      transitionKernelCode: "",
+    });
+  });
+
   test("validates add action inputs before mutating", () => {
     const instance = createInstance();
 

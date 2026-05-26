@@ -8,7 +8,7 @@ import { SDCPNContext } from "./sdcpn-context";
  * Why the editor currently disallows mutations, or `null` when mutations
  * are allowed.
  *
- * - `host-readonly`: the consumer passed `readonly` to `<PetrinautProvider>`.
+ * - `host-readonly`: the consumer passed `readonly`, or the handle is read-only.
  * - `simulate-mode`: the user has switched to simulate mode.
  * - `simulation-active`: a simulation is Running, Paused, or Complete.
  */

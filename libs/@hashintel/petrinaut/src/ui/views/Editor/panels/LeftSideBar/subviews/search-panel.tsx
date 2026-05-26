@@ -159,6 +159,7 @@ function useSearchableItems(): SearchableItem[] {
       differentialEquations,
       parameters,
     },
+    extensions,
   } = use(SDCPNContext);
 
   return [
@@ -176,24 +177,28 @@ function useSearchableItems(): SearchableItem[] {
       icon: TransitionFilledIcon,
       selectionItem: { type: "transition" as const, id: t.id },
     })),
-    ...types.map((t) => ({
-      id: t.id,
-      name: t.name,
-      category: "Type",
-      icon: TokenTypeIcon,
-      iconColor: t.displayColor,
-      selectionItem: { type: "type" as const, id: t.id },
-    })),
-    ...differentialEquations.map((eq) => ({
-      id: eq.id,
-      name: eq.name,
-      category: "Equation",
-      icon: DifferentialEquationIcon,
-      selectionItem: {
-        type: "differentialEquation" as const,
-        id: eq.id,
-      },
-    })),
+    ...(extensions.colors
+      ? types.map((t) => ({
+          id: t.id,
+          name: t.name,
+          category: "Type",
+          icon: TokenTypeIcon,
+          iconColor: t.displayColor,
+          selectionItem: { type: "type" as const, id: t.id },
+        }))
+      : []),
+    ...(extensions.colors && extensions.dynamics
+      ? differentialEquations.map((eq) => ({
+          id: eq.id,
+          name: eq.name,
+          category: "Equation",
+          icon: DifferentialEquationIcon,
+          selectionItem: {
+            type: "differentialEquation" as const,
+            id: eq.id,
+          },
+        }))
+      : []),
     ...parameters.map((p) => ({
       id: p.id,
       name: p.name,

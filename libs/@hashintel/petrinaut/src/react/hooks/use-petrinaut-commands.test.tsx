@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   CLIPBOARD_FORMAT_VERSION,
+  DEFAULT_PETRINAUT_EXTENSIONS,
   type ClipboardPayload,
   createJsonDocHandle,
   createPetrinaut,
@@ -102,6 +103,7 @@ const createWrapper = (options: WrapperOptions = {}) => {
     petriNetId: "test-net",
     petriNetDefinition: instance.definition.get(),
     readonly,
+    extensions: DEFAULT_PETRINAUT_EXTENSIONS,
     setTitle: () => {},
     title: "Test",
     getItemType: () => null,

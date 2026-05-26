@@ -6,12 +6,17 @@ import {
   type CommandHelperFunctions,
   createPetrinautCommands,
 } from "./commands";
+import { resolvePetrinautHandleCapabilities } from "./extensions";
 
 import type {
   PetrinautDocHandle,
   PetrinautPatch,
   ReadableStore,
 } from "./handle";
+import type {
+  PetrinautExtensionSettings,
+  ResolvedPetrinautHandleCapabilities,
+} from "./extensions";
 import type { SDCPN } from "./types/sdcpn";
 
 const EMPTY_SDCPN: SDCPN = {
@@ -58,6 +63,10 @@ export type Petrinaut = {
 
   /** Patch event stream. Only fires for handles that produce patches. */
   readonly patches: EventStream<PetrinautPatch[]>;
+
+  readonly capabilities: ResolvedPetrinautHandleCapabilities;
+
+  readonly extensions: PetrinautExtensionSettings;
 
   /** Atomic, schema-driven mutations. */
   readonly mutations: PetrinautMutations;
@@ -125,6 +134,13 @@ function createPatchStream(
 
 export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
   const { document: handle, readonly = false } = config;
+  const handleCapabilities = resolvePetrinautHandleCapabilities(
+    handle.capabilities,
+  );
+  const capabilities: ResolvedPetrinautHandleCapabilities = {
+    ...handleCapabilities,
+    readonly: readonly || handleCapabilities.readonly,
+  };
 
   const disposers: Array<() => void> = [];
 
@@ -132,22 +148,28 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
   const patches = createPatchStream(handle);
 
   const mutate = (fn: (draft: SDCPN) => void) => {
-    if (readonly) {
+    if (capabilities.readonly) {
       return;
     }
     handle.change(fn);
   };
 
-  const mutations = createPetrinautActions(mutate);
-  const commands = createPetrinautCommands(mutate, () => definition.get());
+  const mutations = createPetrinautActions(mutate, capabilities.extensions);
+  const commands = createPetrinautCommands(
+    mutate,
+    () => definition.get(),
+    capabilities.extensions,
+  );
 
   return {
     handle,
     definition,
     patches,
+    capabilities,
+    extensions: capabilities.extensions,
     mutations,
     commands,
-    readonly,
+    readonly: capabilities.readonly,
     dispose() {
       for (const dispose of disposers) {
         dispose();

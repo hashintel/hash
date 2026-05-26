@@ -66,6 +66,60 @@ describe("applyClipboardPaste", () => {
     expect(instance.definition.get().places[0]!.id).toBe(pastedPlace!.id);
   });
 
+  test("strips pasted items for disabled extensions", () => {
+    const instance = createPetrinaut({
+      document: createJsonDocHandle({
+        initial: JSON.parse(JSON.stringify(emptySDCPN)) as SDCPN,
+        capabilities: {
+          disabledExtensions: ["colors", "dynamics"],
+        },
+      }),
+    });
+
+    const payload = buildClipboardPayload({
+      places: [
+        {
+          id: "place-1",
+          name: "Dynamic",
+          colorId: "type-1",
+          dynamicsEnabled: true,
+          differentialEquationId: "equation-1",
+          x: 0,
+          y: 0,
+        },
+      ],
+      types: [
+        {
+          id: "type-1",
+          name: "Particle",
+          iconSlug: "circle",
+          displayColor: "#34a0fa",
+          elements: [],
+        },
+      ],
+      differentialEquations: [
+        {
+          id: "equation-1",
+          name: "Motion",
+          colorId: "type-1",
+          code: "export default Dynamics(() => []);",
+        },
+      ],
+    });
+
+    const { newItemIds } = instance.commands.applyClipboardPaste({ payload });
+    const definition = instance.definition.get();
+
+    expect(newItemIds.map((item) => item.type)).toEqual(["place"]);
+    expect(definition.types).toEqual([]);
+    expect(definition.differentialEquations).toEqual([]);
+    expect(definition.places[0]).toMatchObject({
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+    });
+  });
+
   test("throws when the payload fails schema validation", () => {
     const instance = createInstance();
 

@@ -6,6 +6,7 @@ import {
 } from "immer";
 
 import type { SDCPN } from "./types/sdcpn";
+import type { PetrinautHandleCapabilities } from "./extensions";
 
 enablePatches();
 
@@ -59,6 +60,7 @@ export interface PetrinautHistory {
 
 export interface PetrinautDocHandle {
   readonly id: DocumentId;
+  readonly capabilities?: PetrinautHandleCapabilities;
   readonly state: ReadableStore<DocHandleState>;
   whenReady(): Promise<void>;
   doc(): SDCPN | undefined;
@@ -119,6 +121,7 @@ const DEFAULT_HISTORY_LIMIT = 50;
 export type CreateJsonDocHandleOptions = {
   id?: DocumentId;
   initial: SDCPN;
+  capabilities?: PetrinautHandleCapabilities;
   /**
    * Maximum number of history checkpoints retained. Older entries are dropped
    * once the limit is exceeded. Pass `0` to disable history entirely.
@@ -132,6 +135,7 @@ export function createJsonDocHandle(
 ): PetrinautDocHandle {
   const id = opts.id ?? generateId();
   const historyLimit = opts.historyLimit ?? DEFAULT_HISTORY_LIMIT;
+  const capabilities = opts.capabilities;
   const stateStore = createReadableStore<DocHandleState>("ready");
   const subscribers = new Set<(event: DocChangeEvent) => void>();
 
@@ -265,10 +269,14 @@ export function createJsonDocHandle(
 
   return {
     id,
+    capabilities,
     state: stateStore,
     whenReady: () => Promise.resolve(),
     doc: () => current,
     change(fn) {
+      if (capabilities?.readonly) {
+        return;
+      }
       const [next, patches, inversePatches] = produceWithPatches(
         current,
         (draft) => {

@@ -9,7 +9,7 @@ import { SDCPNContext } from "./sdcpn-context";
  * Reactively removes stale IDs from the selection when items are deleted from the SDCPN.
  */
 export function useSelectionCleanup() {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { selection, setSelection, hoveredItem, clearHoveredItem } =
     use(EditorContext);
 
@@ -40,11 +40,15 @@ export function useSelectionCleanup() {
         );
       }
     }
-    for (const type of petriNetDefinition.types) {
-      validIds.add(type.id);
+    if (extensions.colors) {
+      for (const type of petriNetDefinition.types) {
+        validIds.add(type.id);
+      }
     }
-    for (const eq of petriNetDefinition.differentialEquations) {
-      validIds.add(eq.id);
+    if (extensions.colors && extensions.dynamics) {
+      for (const eq of petriNetDefinition.differentialEquations) {
+        validIds.add(eq.id);
+      }
     }
     for (const param of petriNetDefinition.parameters) {
       validIds.add(param.id);
@@ -77,6 +81,7 @@ export function useSelectionCleanup() {
     }
   }, [
     petriNetDefinition,
+    extensions,
     selection,
     setSelection,
     hoveredItem,
