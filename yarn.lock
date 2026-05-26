@@ -520,12 +520,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/hash-external-services@workspace:apps/hash-external-services":
-  version: 0.0.0-use.local
-  resolution: "@apps/hash-external-services@workspace:apps/hash-external-services"
-  languageName: unknown
-  linkType: soft
-
 "@apps/hash-frontend@workspace:*, @apps/hash-frontend@workspace:apps/hash-frontend":
   version: 0.0.0-use.local
   resolution: "@apps/hash-frontend@workspace:apps/hash-frontend"

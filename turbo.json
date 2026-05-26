@@ -127,7 +127,7 @@
     "rust-toolchain.toml",
     "yarn*",
     // External services
-    "apps/hash-external-services/**"
+    "infra/compose/**"
   ],
   "globalPassThroughEnv": [
     "CARGO_TERM_PROGRESS_WHEN",
