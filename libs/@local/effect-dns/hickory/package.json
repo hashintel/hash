@@ -9,8 +9,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "rimraf dist && yarn build:release && tsc --build tsconfig.build.json",
-    "build:debug": "napi build dist --platform --js=impl.js --dts=impl.d.ts",
-    "build:release": "napi build dist --platform --release --js=impl.js --dts=impl.d.ts",
+    "build:debug": "napi build --platform --js=impl.js --dts=impl.d.ts -o dist",
+    "build:release": "napi build --platform --release --js=impl.js --dts=impl.d.ts -o dist",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root effect-dns-hickory --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
@@ -28,14 +28,15 @@
     "vitest": "4.1.7"
   },
   "napi": {
-    "name": "effect-dns-hickory",
-    "triples": {
-      "additional": [
-        "aarch64-apple-darwin",
-        "aarch64-unknown-linux-gnu",
-        "aarch64-unknown-linux-musl",
-        "aarch64-pc-windows-msvc"
-      ]
-    }
+    "buildName": "effect-dns-hickory",
+    "targets": [
+      "x86_64-unknown-linux-gnu",
+      "x86_64-pc-windows-msvc",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-linux-musl",
+      "aarch64-pc-windows-msvc"
+    ]
   }
 }
