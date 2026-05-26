@@ -43,7 +43,7 @@ Start all development services:
 
 ```bash
 # From the repository root
-yarn external-services up --wait
+yarn compose up --wait
 ```
 
 ### Service Management
@@ -76,10 +76,10 @@ Each service includes health checks and proper dependency management. Services w
 
 Services may be migrated into semantic folders:
 
-1. `hash-external-services/kratos` → `hash-authentication`
-2. `hash-external-services/postgres` → `hash-database`
-3. `hash-external-services/temporal` → `hash-executor`
-4. `hash-external-services/grafana` → `hash-observability`
+1. `infra/compose/kratos` → `hash-authentication`
+2. `infra/compose/postgres` → `hash-database`
+3. `infra/compose/temporal` → `hash-executor`
+4. `infra/compose/grafana` → `hash-observability`
 
 ## Database Backups
 
@@ -135,6 +135,6 @@ The `./compose.sh` file is an alias script, meant to ease the use of the lengthy
 ```bash
 #!/usr/bin/env bash
 
-# `docker-compose.prod.yml` contains local overrides to the production docker compose file, like custom volume mounts or the backup solution.
-sudo docker compose --file apps/hash-external-services/docker-compose.prod.yml --file docker-compose.prod.yml --env-file .env.prod ${@}
+# `compose.prod.yml` contains local overrides to the production compose file, like custom volume mounts or the backup solution.
+sudo docker compose --file infra/compose/compose.yml --file compose.prod.yml --env-file .env.prod ${@}
 ```

@@ -1,3 +1,5 @@
+name: hash
+
 volumes:
   hash-postgres-data:
   hash-vault-data:

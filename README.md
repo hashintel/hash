@@ -135,16 +135,14 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 7. Launch external services (Postgres, the graph query layer, Kratos, and Redis) as Docker containers:
 
    ```sh
-   yarn external-services up -d
+   yarn compose up -d
    ```
 
    1. You can optionally force a rebuild of the Docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
 
-   2. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn external-services down`.
+   2. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn compose down`.
 
-   3. When using `yarn external-services:offline up`, the Graph services does not try to connect to `https://blockprotocol.org` to fetch required schemas. This is useful for development when the internet connection is slow or unreliable.
-
-   4. You can also run the Graph API and AI Temporal worker outside of Docker – this is useful if they are changing frequently and you want to avoid rebuilding the Docker containers. To do so, _stop them_ in Docker and then run `yarn dev:graph` and `yarn workspace @apps/hash-ai-worker-ts dev` respectively in separate terminals.
+   3. You can also run the Graph API and AI Temporal worker outside of Docker – this is useful if they are changing frequently and you want to avoid rebuilding the Docker containers. To do so, _stop them_ in Docker and then run `yarn dev:graph` and `yarn workspace @apps/hash-ai-worker-ts dev` respectively in separate terminals.
 
 8. Launch app services:
 
@@ -181,8 +179,8 @@ If you need to run the browser plugin locally, see [the `README.md`](https://git
 
 If you need to reset the local database, to clear out test data or because it has become corrupted during development:
 
-1. Run `yarn external-services down -v` (this will take the Docker services down and drop the volumes)
-2. Run `yarn external-services up --wait` to start everything again
+1. Run `yarn compose down -v` (this will take the Docker services down and drop the volumes)
+2. Run `yarn compose up --wait` to start everything again
 
 ##### External services test mode
 
@@ -192,7 +190,7 @@ This is useful for situations where the database is used for tests that modify t
 To make use of this test mode, the external services can be started as follows:
 
 ```sh
-yarn external-services:test up
+yarn compose:test up
 ```
 
 ##### Sending emails
@@ -203,10 +201,10 @@ To use `AwsSesEmailTransporter`, set `export HASH_EMAIL_TRANSPORTER=aws` in your
 
 Transactional emails templates are located in the following locations:
 
-- Kratos emails in [`./../../apps/hash-external-services/kratos/templates/`](./../../apps/hash-external-services/kratos/templates/). This directory contains the following templates:
-  - [`recovery_code`](./../../apps/hash-external-services/kratos/templates/recovery_code) - Email templates for the account recovery flow using a code for the UI.
+- Kratos emails in [`./infra/compose/kratos/templates/`](./infra/compose/kratos/templates/). This directory contains the following templates:
+  - [`recovery_code`](./infra/compose/kratos/templates/recovery_code) - Email templates for the account recovery flow using a code for the UI.
     - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
-  - [`verification_code`](./../../apps/hash-external-services/kratos/templates/verification_code) - Email verification templates for the account registration flow using a code for the UI.
+  - [`verification_code`](./infra/compose/kratos/templates/verification_code) - Email verification templates for the account registration flow using a code for the UI.
     - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
 - HASH emails in [`../hash-api/src/email/index.ts`](../hash-api/src/email/index.ts)
 
