@@ -165,6 +165,26 @@ describe("createPetrinaut", () => {
       dynamics: false,
     });
   });
+
+  it("disables dynamics whenever colors are disabled", () => {
+    const handle = createJsonDocHandle({
+      initial: empty(),
+      capabilities: {
+        disabledExtensions: ["colors"],
+      },
+    });
+    const instance = createPetrinaut({ document: handle });
+
+    expect(instance.capabilities.disabledExtensions).toEqual([
+      "colors",
+      "dynamics",
+    ]);
+    expect(instance.extensions).toEqual({
+      colors: false,
+      stochasticity: true,
+      dynamics: false,
+    });
+  });
 });
 
 describe("PetrinautDocHandle history", () => {

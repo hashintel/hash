@@ -42,8 +42,17 @@ export const DEFAULT_PETRINAUT_EXTENSIONS: PetrinautExtensionSettings = {
 export const resolvePetrinautHandleCapabilities = (
   capabilities?: PetrinautHandleCapabilities,
 ): ResolvedPetrinautHandleCapabilities => {
-  const disabledExtensions = [...new Set(capabilities?.disabledExtensions ?? [])];
-  const disabled = new Set<PetrinautExtension>(disabledExtensions);
+  const disabled = new Set<PetrinautExtension>(
+    capabilities?.disabledExtensions ?? [],
+  );
+
+  if (disabled.has("colors")) {
+    disabled.add("dynamics");
+  }
+
+  const disabledExtensions = PETRINAUT_EXTENSION_NAMES.filter((extension) =>
+    disabled.has(extension),
+  );
 
   return {
     readonly: capabilities?.readonly ?? false,
@@ -51,7 +60,7 @@ export const resolvePetrinautHandleCapabilities = (
     extensions: {
       colors: !disabled.has("colors"),
       stochasticity: !disabled.has("stochasticity"),
-      dynamics: !disabled.has("dynamics"),
+      dynamics: !disabled.has("colors") && !disabled.has("dynamics"),
     },
   };
 };

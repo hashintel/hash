@@ -2,7 +2,11 @@ import { useMemo, useState, useEffect } from "react";
 
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
-import { createJsonDocHandle, type SDCPN } from "../main";
+import {
+  createJsonDocHandle,
+  type PetrinautHandleCapabilities,
+  type SDCPN,
+} from "../main";
 import { Petrinaut } from "../ui/petrinaut";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
 import { createStorybookAiTransport } from "./views/Editor/panels/create-storybook-ai-transport";
@@ -14,6 +18,70 @@ const emptySDCPN: SDCPN = {
   parameters: [],
   differentialEquations: [],
 };
+
+const barePetriNet: SDCPN = {
+  places: [
+    {
+      id: "p_waiting",
+      name: "Waiting",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 120,
+      y: 180,
+      showAsInitialState: true,
+    },
+    {
+      id: "p_processing",
+      name: "Processing",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 430,
+      y: 180,
+    },
+    {
+      id: "p_done",
+      name: "Done",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 740,
+      y: 180,
+    },
+  ],
+  transitions: [
+    {
+      id: "t_start",
+      name: "Start",
+      inputArcs: [{ placeId: "p_waiting", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p_processing", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "return true;",
+      transitionKernelCode: "",
+      x: 290,
+      y: 205,
+    },
+    {
+      id: "t_finish",
+      name: "Finish",
+      inputArcs: [{ placeId: "p_processing", weight: 1, type: "standard" }],
+      outputArcs: [{ placeId: "p_done", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "return true;",
+      transitionKernelCode: "",
+      x: 600,
+      y: 205,
+    },
+  ],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
+const barePetriNetCapabilities = {
+  disabledExtensions: ["colors", "stochasticity", "dynamics"],
+} satisfies PetrinautHandleCapabilities;
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
@@ -68,18 +136,20 @@ export const WithAiAssistant: Story = {
 
 const HandleSpikeRender = ({
   aiAssistant,
+  capabilities,
   initial,
   initialTitle,
 }: {
   aiAssistant?: {
     transport: ReturnType<typeof createStorybookAiTransport>;
   };
+  capabilities?: PetrinautHandleCapabilities;
   initial: SDCPN;
   initialTitle: string;
 }) => {
   const handle = useMemo(
-    () => createJsonDocHandle({ id: "spike-net", initial }),
-    [initial],
+    () => createJsonDocHandle({ id: "spike-net", initial, capabilities }),
+    [capabilities, initial],
   );
 
   const [patchLog, setPatchLog] = useState<string[]>([]);
@@ -138,6 +208,16 @@ export const HandleSpikeWithSir: Story = {
     <HandleSpikeRender
       initial={sirModel.petriNetDefinition}
       initialTitle={sirModel.title}
+    />
+  ),
+};
+
+export const ExtensionsDisabled: Story = {
+  render: () => (
+    <HandleSpikeRender
+      capabilities={barePetriNetCapabilities}
+      initial={barePetriNet}
+      initialTitle="Bare Petri net"
     />
   ),
 };
