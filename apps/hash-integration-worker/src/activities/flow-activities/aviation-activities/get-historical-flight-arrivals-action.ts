@@ -1,3 +1,5 @@
+import { Context } from "@temporalio/activity";
+
 import {
   extractBaseUrl,
   type OriginProvenance,
@@ -11,6 +13,7 @@ import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { StatusCode } from "@local/status";
 
+import { heartbeatTimeoutSeconds } from "../../../shared/heartbeats.js";
 import { getFlowContext } from "../shared/get-integration-flow-context.js";
 import { aviationProposedEntityToFlowProposedEntity } from "./get-scheduled-flights-action.js";
 
@@ -54,6 +57,12 @@ const validateDateRange = (startDate: string, endDate: string): void => {
 export const getHistoricalFlightArrivalsAction: IntegrationFlowActionActivity<
   "getHistoricalFlightArrivals"
 > = async ({ inputs }) => {
+  const secondsBetweenHeartbeats = heartbeatTimeoutSeconds - 5;
+
+  const heartbeatInterval = setInterval(() => {
+    Context.current().heartbeat();
+  }, secondsBetweenHeartbeats * 1000);
+
   try {
     const { airportIcao, startDate, endDate } =
       getSimplifiedIntegrationFlowActionInputs({
@@ -138,5 +147,7 @@ export const getHistoricalFlightArrivalsAction: IntegrationFlowActionActivity<
       message: `Failed to fetch historical flight arrivals: ${errorMessage}`,
       contents: [],
     };
+  } finally {
+    clearInterval(heartbeatInterval);
   }
 };
