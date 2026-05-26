@@ -28,6 +28,6 @@ fn {graph::read::filter@4294967040}(%0: (Integer,), %1: Entity) -> Boolean {
         %11 = input LOAD param                                                  // cost: 8
         %12 = true                                                              // cost: 8
 
-        return %12
+        return %12                                                              // cost: 8
     }
 }

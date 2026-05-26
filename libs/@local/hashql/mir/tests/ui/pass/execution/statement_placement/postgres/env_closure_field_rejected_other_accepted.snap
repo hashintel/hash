@@ -12,6 +12,6 @@ fn {graph::read::filter@4294967040}(%0: (Integer, (Integer) -> Integer), %1: Ent
         %3 = %0.1
         %4 = %2 == 42                                                           // cost: 4
 
-        return %4
+        return %4                                                               // cost: 4
     }
 }

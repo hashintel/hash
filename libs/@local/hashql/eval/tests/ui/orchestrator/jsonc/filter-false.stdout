@@ -1,28 +1,3 @@
 []
 ---
 query executed: body 2, block bb0
-row received
-filter started: body 1
-island entered: body 1, island 0, target interpreter
-filter rejected: body 1
-row rejected
-row received
-filter started: body 1
-island entered: body 1, island 0, target interpreter
-filter rejected: body 1
-row rejected
-row received
-filter started: body 1
-island entered: body 1, island 0, target interpreter
-filter rejected: body 1
-row rejected
-row received
-filter started: body 1
-island entered: body 1, island 0, target interpreter
-filter rejected: body 1
-row rejected
-row received
-filter started: body 1
-island entered: body 1, island 0, target interpreter
-filter rejected: body 1
-row rejected

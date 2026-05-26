@@ -33,8 +33,8 @@ mod tests;
 /// variant in order, and opaque types wrap their inner representation.
 ///
 /// When the type is unknown ([`Param`], [`Infer`], [`Unknown`]), falls back to
-/// `decode_unknown`, which uses JSON structure alone
-/// (objects become structs or dicts, arrays become lists, etc.).
+/// a structural decoder that uses JSON shape alone: objects become structs or
+/// dicts, arrays become lists, etc.
 ///
 /// [`Value`]: hashql_mir::interpret::value::Value
 /// [`Param`]: hashql_core::type::kind::TypeKind::Param

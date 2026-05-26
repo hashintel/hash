@@ -4,6 +4,6 @@ expression: output
 ---
 fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
     bb0(): {
-        return %1.metadata.archived
+        return %1.metadata.archived                                             // cost: 4
     }
 }
