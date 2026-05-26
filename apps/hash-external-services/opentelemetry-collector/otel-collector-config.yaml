@@ -31,7 +31,7 @@ receivers:
             - source_labels: [__name__]
               regex: ^(.+)$
               target_label: __name__
-              replacement: temporal_${1}
+              replacement: temporal_$${1}
               action: replace
 
 processors:
