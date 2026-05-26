@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { usePortalContainerRef } from "../../util/portal-container-context";
 import {
   contentStyles,
   positionerStyles,
@@ -83,6 +84,7 @@ export const Tooltip = ({
   onOpen?: () => void;
   onClose?: () => void;
 }) => {
+  const portalContainerRef = usePortalContainerRef();
   const triggerRef = useRef<HTMLSpanElement>(null);
   // If the child is not focusable, add a tabindex to the wrapper element to focus it.
   // When the child becomes focusable or the tooltip is disabled, clean up so the
@@ -138,7 +140,7 @@ export const Tooltip = ({
       lazyMount
     >
       <ArkTooltip.Trigger asChild>{wrappedChildren}</ArkTooltip.Trigger>
-      <Portal>
+      <Portal container={portalContainerRef}>
         <ArkTooltip.Positioner className={positionerStyles}>
           <ArkTooltip.Content className={contentStyles({ variant })}>
             {content}

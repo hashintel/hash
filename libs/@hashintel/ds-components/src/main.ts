@@ -21,3 +21,7 @@ export { Slider, type SliderProps } from "./components/Slider/slider";
 export { Switch, type SwitchProps } from "./components/Switch/switch";
 export { TextInput } from "./components/TextInput/text-input";
 export { Tooltip } from "./components/Tooltip/tooltip";
+export {
+  PortalContainerContext,
+  usePortalContainerRef,
+} from "./util/portal-container-context";

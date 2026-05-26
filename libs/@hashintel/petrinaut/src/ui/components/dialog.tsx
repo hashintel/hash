@@ -1,10 +1,9 @@
 import { Dialog as ArkDialog } from "@ark-ui/react/dialog";
 import { Portal } from "@ark-ui/react/portal";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import {
   Body,
   Card as PanelCard,

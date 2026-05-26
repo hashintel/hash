@@ -5,10 +5,8 @@ import {
 } from "@ark-ui/react/select";
 import { useMemo } from "react";
 
-import { Icon, Tooltip } from "@hashintel/ds-components";
+import { Icon, Tooltip, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-
-import { usePortalContainerRef } from "../../react/state/portal-container-context";
 
 import type { ComponentProps, ReactNode } from "react";
 

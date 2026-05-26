@@ -1,5 +1,6 @@
 import { use, useRef, useState } from "react";
 
+import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
 import {
@@ -14,7 +15,6 @@ import {
 import { usePetrinautCommands } from "../../../react";
 import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
-import { PortalContainerContext } from "../../../react/state/portal-container-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -242,29 +242,29 @@ export const EditorView = ({
   const menuItems = [
     ...(!hideNetManagementControls
       ? [
-          {
-            id: "new",
-            label: "New",
-            onClick: handleNew,
-          },
-        ]
+        {
+          id: "new",
+          label: "New",
+          onClick: handleNew,
+        },
+      ]
       : []),
     ...(!hideNetManagementControls && Object.keys(existingNets).length > 0
       ? [
-          {
-            id: "open",
-            label: "Open",
-            submenu: existingNets.map((net) => ({
-              id: `open-${net.netId}`,
-              label: net.title,
-              suffix: formatRelativeTime(net.lastUpdated),
-              onClick: () => {
-                loadPetriNet(net.netId);
-                clearSelection();
-              },
-            })),
-          },
-        ]
+        {
+          id: "open",
+          label: "Open",
+          submenu: existingNets.map((net) => ({
+            id: `open-${net.netId}`,
+            label: net.title,
+            suffix: formatRelativeTime(net.lastUpdated),
+            onClick: () => {
+              loadPetriNet(net.netId);
+              clearSelection();
+            },
+          })),
+        },
+      ]
       : []),
     {
       id: "export",
@@ -289,12 +289,12 @@ export const EditorView = ({
     },
     ...(!hideNetManagementControls
       ? [
-          {
-            id: "import",
-            label: "Import",
-            onClick: handleImport,
-          },
-        ]
+        {
+          id: "import",
+          label: "Import",
+          onClick: handleImport,
+        },
+      ]
       : []),
     {
       id: "layout",
@@ -303,61 +303,61 @@ export const EditorView = ({
     },
     ...(!hideNetManagementControls
       ? [
-          {
-            id: "load-example",
-            label: "Load example",
-            submenu: [
-              {
-                id: "load-example-supply-chain-stochastic",
-                label: "Probabilistic Supply Chain",
-                onClick: () => {
-                  createNewNet(supplyChainStochasticSDCPN);
-                  clearSelection();
-                },
+        {
+          id: "load-example",
+          label: "Load example",
+          submenu: [
+            {
+              id: "load-example-supply-chain-stochastic",
+              label: "Probabilistic Supply Chain",
+              onClick: () => {
+                createNewNet(supplyChainStochasticSDCPN);
+                clearSelection();
               },
-              {
-                id: "load-example-satellites",
-                label: "Satellites",
-                onClick: () => {
-                  createNewNet(satellitesSDCPN);
-                  clearSelection();
-                },
+            },
+            {
+              id: "load-example-satellites",
+              label: "Satellites",
+              onClick: () => {
+                createNewNet(satellitesSDCPN);
+                clearSelection();
               },
-              {
-                id: "load-example-probabilistic-satellites",
-                label: "Probabilistic Satellites Launcher",
-                onClick: () => {
-                  createNewNet(probabilisticSatellitesSDCPN);
-                  clearSelection();
-                },
+            },
+            {
+              id: "load-example-probabilistic-satellites",
+              label: "Probabilistic Satellites Launcher",
+              onClick: () => {
+                createNewNet(probabilisticSatellitesSDCPN);
+                clearSelection();
               },
-              {
-                id: "load-example-production-machines",
-                label: "Production Machines",
-                onClick: () => {
-                  createNewNet(productionMachines);
-                  clearSelection();
-                },
+            },
+            {
+              id: "load-example-production-machines",
+              label: "Production Machines",
+              onClick: () => {
+                createNewNet(productionMachines);
+                clearSelection();
               },
-              {
-                id: "load-example-sir-model",
-                label: "SIR Model",
-                onClick: () => {
-                  createNewNet(sirModel);
-                  clearSelection();
-                },
+            },
+            {
+              id: "load-example-sir-model",
+              label: "SIR Model",
+              onClick: () => {
+                createNewNet(sirModel);
+                clearSelection();
               },
-              {
-                id: "load-example-deployment-pipeline",
-                label: "Deployment Pipeline",
-                onClick: () => {
-                  createNewNet(deploymentPipelineSDCPN);
-                  clearSelection();
-                },
+            },
+            {
+              id: "load-example-deployment-pipeline",
+              label: "Deployment Pipeline",
+              onClick: () => {
+                createNewNet(deploymentPipelineSDCPN);
+                clearSelection();
               },
-            ],
-          },
-        ]
+            },
+          ],
+        },
+      ]
       : []),
     {
       id: "docs",
