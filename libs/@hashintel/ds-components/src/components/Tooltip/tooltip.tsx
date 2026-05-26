@@ -52,7 +52,7 @@ export const Tooltip = ({
   className,
   children,
   content,
-  position = "bottom",
+  position = "top",
   variant = "dark",
   disableTooltip,
   openDelay = "medium",

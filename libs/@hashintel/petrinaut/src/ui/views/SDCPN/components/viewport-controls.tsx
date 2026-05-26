@@ -62,6 +62,7 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Zoom in"
         tooltip="Zoom in"
+        tooltipOptions={{ position: "left" }}
         iconName="plus"
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomIn()}
@@ -71,6 +72,7 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Zoom out"
         tooltip="Zoom out"
+        tooltipOptions={{ position: "left" }}
         iconName="dash"
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomOut()}
@@ -80,6 +82,7 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Fullscreen"
         tooltip="Fullscreen"
+        tooltipOptions={{ position: "left" }}
         iconName="expand"
         onClick={collapseAllPanels}
       />
@@ -88,6 +91,7 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Lock view"
         tooltip="Lock view"
+        tooltipOptions={{ position: "left" }}
         iconName="lockOpen"
         onClick={() => {
           // Placeholder for future lock view functionality
@@ -98,6 +102,7 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Settings"
         tooltip="Settings"
+        tooltipOptions={{ position: "left" }}
         iconName="gear"
         onClick={() => setIsSettingsOpen(true)}
       />
@@ -113,6 +118,7 @@ export const ViewportControls: React.FC<{
           variant="subtle"
           aria-label={action.label}
           tooltip={action.tooltip}
+          tooltipOptions={{ position: "left" }}
           onClick={action.onClick}
           className={action.className}
           prefix={action.icon}
