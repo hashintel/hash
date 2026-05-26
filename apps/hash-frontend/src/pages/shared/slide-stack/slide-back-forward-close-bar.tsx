@@ -29,6 +29,7 @@ export const SlideBackForwardCloseBar = ({
         pointerEvents: "auto",
         pt: 1.5,
         pr: 3,
+        zIndex: 2,
       }}
     >
       <Box display="flex" justifyContent="space-between" gap={1}>
