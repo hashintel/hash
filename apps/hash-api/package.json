@@ -106,7 +106,7 @@
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
-    "ws": "8.18.3"
+    "ws": "8.20.1"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^6.2.1",

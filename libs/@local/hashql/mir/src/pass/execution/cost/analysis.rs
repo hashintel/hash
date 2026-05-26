@@ -1,6 +1,6 @@
 use core::alloc::Allocator;
 
-use super::{ApproxCost, StatementCostVec};
+use super::{ApproxCost, StatementCostVec, TerminatorCostVec};
 use crate::{
     body::basic_block::{BasicBlock, BasicBlockId, BasicBlockSlice, BasicBlockVec},
     pass::{
@@ -98,7 +98,8 @@ impl<A: Allocator> BasicBlockCostVec<A> {
 pub(crate) struct BasicBlockCostAnalysis<'ctx, A: Allocator> {
     pub vertex: VertexType,
     pub assignments: &'ctx BasicBlockSlice<TargetBitSet>,
-    pub costs: &'ctx TargetArray<StatementCostVec<A>>,
+    pub statement_costs: &'ctx TargetArray<StatementCostVec<A>>,
+    pub terminator_costs: &'ctx TargetArray<TerminatorCostVec<A>>,
 }
 
 impl<A: Allocator> BasicBlockCostAnalysis<'_, A> {
@@ -109,7 +110,8 @@ impl<A: Allocator> BasicBlockCostAnalysis<'_, A> {
         target: TargetId,
         traversals: TraversalPathBitSet,
     ) -> BasicBlockTargetCost {
-        let base = self.costs[target].sum_approx(id);
+        let mut base = self.statement_costs[target].sum_approx(id);
+        base += self.terminator_costs[target].approx(id);
 
         let mut range = InformationRange::zero();
 
@@ -204,6 +206,12 @@ mod tests {
         TransferCostConfig::new(InformationRange::full())
     }
 
+    fn make_zero_terminator_costs(block_count: usize) -> TargetArray<TerminatorCostVec<Global>> {
+        TargetArray::from_fn(|_| {
+            TerminatorCostVec::from_costs(&vec![Some(cost!(0)); block_count], Global)
+        })
+    }
+
     fn make_targets(body: &crate::body::Body<'_>, domain: TargetBitSet) -> Vec<TargetBitSet> {
         body.basic_blocks.iter().map(|_| domain).collect()
     }
@@ -231,10 +239,12 @@ mod tests {
         let costs: TargetArray<StatementCostVec<Global>> =
             TargetArray::from_fn(|_| StatementCostVec::from_iter([1].into_iter(), Global));
 
+        let terminator_costs = make_zero_terminator_costs(body.basic_blocks.len());
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
+            terminator_costs: &terminator_costs,
         };
 
         let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
@@ -272,10 +282,12 @@ mod tests {
         let costs: TargetArray<StatementCostVec<Global>> =
             TargetArray::from_fn(|_| StatementCostVec::from_iter([1].into_iter(), Global));
 
+        let terminator_costs = make_zero_terminator_costs(body.basic_blocks.len());
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
+            terminator_costs: &terminator_costs,
         };
 
         let config = default_config();
@@ -327,10 +339,12 @@ mod tests {
         let costs: TargetArray<StatementCostVec<Global>> =
             TargetArray::from_fn(|_| StatementCostVec::from_iter([1].into_iter(), Global));
 
+        let terminator_costs = make_zero_terminator_costs(body.basic_blocks.len());
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
+            terminator_costs: &terminator_costs,
         };
 
         let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
@@ -384,10 +398,12 @@ mod tests {
         let costs: TargetArray<StatementCostVec<Global>> =
             TargetArray::from_fn(|_| StatementCostVec::from_iter([1].into_iter(), Global));
 
+        let terminator_costs = make_zero_terminator_costs(body.basic_blocks.len());
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
+            terminator_costs: &terminator_costs,
         };
 
         // Use a bounded properties size so both premiums are finite and comparable.
@@ -443,10 +459,12 @@ mod tests {
 
         // Use zero properties size so Properties path doesn't contribute noise
         let config = TransferCostConfig::new(InformationRange::zero());
+        let terminator_costs = make_zero_terminator_costs(body.basic_blocks.len());
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
+            terminator_costs: &terminator_costs,
         };
 
         let result = analysis.analyze_in(&config, &body.basic_blocks, Global);
@@ -493,10 +511,12 @@ mod tests {
         let costs: TargetArray<StatementCostVec<Global>> =
             TargetArray::from_fn(|_| StatementCostVec::from_iter([1].into_iter(), Global));
 
+        let terminator_costs = make_zero_terminator_costs(body.basic_blocks.len());
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
+            terminator_costs: &terminator_costs,
         };
 
         let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
@@ -546,10 +566,12 @@ mod tests {
             TargetArray::from_fn(|_| StatementCostVec::from_iter([2, 1, 0].into_iter(), Global));
 
         let config = default_config();
+        let terminator_costs = make_zero_terminator_costs(body.basic_blocks.len());
         let analysis = BasicBlockCostAnalysis {
             vertex: VertexType::Entity,
             assignments: targets,
-            costs: &costs,
+            statement_costs: &costs,
+            terminator_costs: &terminator_costs,
         };
 
         let result = analysis.analyze_in(&config, &body.basic_blocks, Global);
@@ -581,6 +603,57 @@ mod tests {
             let cost = result.cost(bb2, target);
             let base = costs[target].sum_approx(bb2);
             assert_eq!(cost, base, "bb2 target {target:?} should have zero load");
+        }
+    }
+
+    /// Terminator cost is included in the per-block total.
+    ///
+    /// Uses a nonzero terminator cost and verifies the total exceeds the statement-only
+    /// base. Removing the terminator cost addition would cause this test to fail.
+    #[test]
+    fn terminator_cost_included_in_total() {
+        let heap = Heap::new();
+        let interner = Interner::new(&heap);
+        let env = Environment::new(&heap);
+
+        let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+            decl env: (Int), vertex: [Opaque sym::path::Entity; ?], val: Int;
+            @proj env_0 = env.0: Int;
+
+            bb0() {
+                val = load env_0;
+                return val;
+            }
+        });
+
+        let targets = make_targets(&body, all_targets());
+        let targets = BasicBlockSlice::from_raw(&targets);
+
+        let statement_costs: TargetArray<StatementCostVec<Global>> =
+            TargetArray::from_fn(|_| StatementCostVec::from_iter([1].into_iter(), Global));
+
+        let terminator_costs: TargetArray<TerminatorCostVec<Global>> =
+            TargetArray::from_fn(|_| TerminatorCostVec::from_costs(&[Some(cost!(10))], Global));
+
+        let analysis = BasicBlockCostAnalysis {
+            vertex: VertexType::Entity,
+            assignments: targets,
+            statement_costs: &statement_costs,
+            terminator_costs: &terminator_costs,
+        };
+
+        let result = analysis.analyze_in(&default_config(), &body.basic_blocks, Global);
+        let bb0 = BasicBlockId::new(0);
+
+        for target in TargetId::all() {
+            let total = result.cost(bb0, target);
+            let statement_base = statement_costs[target].sum_approx(bb0);
+
+            assert!(
+                total > statement_base,
+                "target {target:?}: total ({total}) should exceed statement base \
+                 ({statement_base}) because terminator cost is nonzero"
+            );
         }
     }
 }

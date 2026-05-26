@@ -29,7 +29,7 @@ use crate::{
     context::MirContext,
     pass::execution::{
         ApproxCost, cost::BasicBlockCostVec, target::TargetId,
-        terminator_placement::TerminatorCostVec,
+        terminator_placement::TerminatorTransitionCostVec,
     },
 };
 
@@ -82,7 +82,7 @@ fn back_edge_span(body: &Body<'_>, members: &[BasicBlockId]) -> SpanId {
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PlacementSolverContext<'ctx, A: Allocator> {
     pub blocks: &'ctx BasicBlockCostVec<A>,
-    pub terminators: &'ctx TerminatorCostVec<A>,
+    pub terminators: &'ctx TerminatorTransitionCostVec<A>,
 }
 
 impl<'ctx, A: Allocator> PlacementSolverContext<'ctx, A> {

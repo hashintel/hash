@@ -8,6 +8,6 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> (?, ?) {
     bb0(): {
         %2 = (%1.metadata.record_id.entity_id.web_id, %1.metadata.record_id)    // cost: 8
 
-        return %2
+        return %2                                                               // cost: 8
     }
 }
