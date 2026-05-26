@@ -1,12 +1,11 @@
 import { use } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { Button } from "../../../../../components/button";
 import { TokenTypeIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import {
@@ -79,7 +78,6 @@ export const TypesSectionHeaderAction: React.FC = () => {
       variant="ghost"
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add token type"}
-      tooltipDisplay="inline"
       iconName="plus"
       onClick={() => {
         const existingColors = types.map((type) => type.displayColor);

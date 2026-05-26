@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
@@ -9,12 +9,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { Button } from "../../../../../../components/button";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Menu } from "../../../../../../components/menu";
 import { Section, SectionList } from "../../../../../../components/section";
 import { Select } from "../../../../../../components/select";
-import { Tooltip } from "../../../../../../components/tooltip";
 import { DifferentialEquationIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../monaco/code-editor";
@@ -290,7 +288,6 @@ const DiffEqCodeAction: React.FC = () => {
         <Button
           aria-label="More options"
           tooltip="More options"
-          tooltipDisplay="inline"
           variant="ghost"
           size="xs"
           iconName="ellipsisVertical"
@@ -318,10 +315,7 @@ const DiffEqCodeAction: React.FC = () => {
         {
           id: "generate-ai",
           label: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              display="inline"
-            >
+            <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
               <div className={aiMenuItemStyle}>
                 <Icon name="sparkles" size="sm" />
                 Generate with AI

@@ -1,13 +1,11 @@
 import { use } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { generateDefaultTransitionKernelCode } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { Button } from "../../../../../../../components/button";
 import { Menu } from "../../../../../../../components/menu";
-import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
@@ -60,7 +58,6 @@ const ResultsHeaderAction: React.FC = () => {
         <Button
           aria-label="More options"
           tooltip="More options"
-          tooltipDisplay="inline"
           variant="ghost"
           size="xs"
           iconName="ellipsisVertical"
@@ -121,10 +118,7 @@ const ResultsHeaderAction: React.FC = () => {
         {
           id: "generate-ai",
           label: (
-            <Tooltip
-              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
-              display="inline"
-            >
+            <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
               <div className={aiMenuItemStyle}>
                 <Icon name="sparkles" size="sm" />
                 Generate with AI

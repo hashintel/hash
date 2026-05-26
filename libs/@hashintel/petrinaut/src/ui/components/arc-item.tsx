@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { Button } from "./button";
 import { NumberInput } from "./number-input";
 import { Select, type SelectOption } from "./select";
 
@@ -348,7 +347,6 @@ export const ArcItem = ({
             onClick={onDelete}
             aria-label="Delete arc"
             tooltip="Delete arc"
-            tooltipDisplay="inline"
             iconName="trash"
           />
         </div>

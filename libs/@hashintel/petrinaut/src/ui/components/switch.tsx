@@ -1,5 +1,22 @@
-import { Switch as DsSwitch } from "@hashintel/ds-components";
+import { Switch as DsSwitch, Tooltip } from "@hashintel/ds-components";
 
-import { withTooltip } from "./hoc/with-tooltip";
+import type { ComponentProps } from "react";
 
-export const Switch = withTooltip(DsSwitch, "inline");
+type SwitchProps = ComponentProps<typeof DsSwitch> & {
+  tooltip?: string;
+  tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
+};
+
+export const Switch = ({ tooltip, tooltipOptions, ...props }: SwitchProps) => {
+  const element = <DsSwitch {...props} />;
+
+  if (!tooltip) {
+    return element;
+  }
+
+  return (
+    <Tooltip {...tooltipOptions} content={tooltip}>
+      {element}
+    </Tooltip>
+  );
+};

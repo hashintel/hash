@@ -1,14 +1,13 @@
 import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { Button } from "../../../../../components/button";
 import { ParameterIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import {
@@ -58,7 +57,6 @@ export const ParametersHeaderAction: React.FC = () => {
       variant="ghost"
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add parameter"}
-      tooltipDisplay="inline"
       iconName="plus"
       onClick={handleAddParameter}
     />

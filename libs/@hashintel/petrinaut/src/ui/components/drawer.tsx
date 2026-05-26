@@ -9,11 +9,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { createValueStore } from "../../react/create-value-store";
 import { PortalContainerContext } from "../../react/state/portal-container-context";
-import { Button } from "./button";
 import {
   Body,
   Card as PanelCard,
@@ -172,7 +172,6 @@ const Card = ({
         size="sm"
         aria-label="Close"
         tooltip="Close"
-        tooltipDisplay="inline"
         iconName="close"
         onClick={onClose}
       />

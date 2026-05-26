@@ -1,6 +1,6 @@
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Button } from "./button";
 import { Popover } from "./popover";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";

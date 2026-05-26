@@ -1,13 +1,12 @@
 import { createContext, use } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 const MultipleIcon = () => <Icon name="layer" />;
 
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { Button } from "../../../../components/button";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 
@@ -91,7 +90,6 @@ const DeleteSelectionAction: React.FC = () => {
         clearSelection();
       }}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete selected"}
-      tooltipDisplay="inline"
     />
   );
 };

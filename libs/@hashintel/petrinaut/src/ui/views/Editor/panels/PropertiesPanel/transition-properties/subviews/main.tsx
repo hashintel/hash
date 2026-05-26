@@ -1,3 +1,4 @@
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
@@ -7,7 +8,6 @@ import {
   ArcList,
   type PlaceOption,
 } from "../../../../../../components/arc-item";
-import { Button } from "../../../../../../components/button";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { TransitionIcon } from "../../../../../../constants/entity-icons";
@@ -220,7 +220,6 @@ const DeleteTransitionAction: React.FC = () => {
       onClick={() => removeTransition({ transitionId: transition.id })}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-      tooltipDisplay="inline"
     />
   );
 };

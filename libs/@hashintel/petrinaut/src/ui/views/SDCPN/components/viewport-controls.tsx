@@ -1,10 +1,10 @@
 import { useReactFlow } from "@xyflow/react";
 import { use, useState } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
-import { Button } from "../../../components/button";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
@@ -62,7 +62,6 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Zoom in"
         tooltip="Zoom in"
-        tooltipDisplay="inline"
         iconName="plus"
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomIn()}
@@ -72,7 +71,6 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Zoom out"
         tooltip="Zoom out"
-        tooltipDisplay="inline"
         iconName="dash"
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomOut()}
@@ -82,7 +80,6 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Fullscreen"
         tooltip="Fullscreen"
-        tooltipDisplay="inline"
         iconName="expand"
         onClick={collapseAllPanels}
       />
@@ -91,7 +88,6 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Lock view"
         tooltip="Lock view"
-        tooltipDisplay="inline"
         iconName="lockOpen"
         onClick={() => {
           // Placeholder for future lock view functionality
@@ -102,7 +98,6 @@ export const ViewportControls: React.FC<{
         variant="subtle"
         aria-label="Settings"
         tooltip="Settings"
-        tooltipDisplay="inline"
         iconName="gear"
         onClick={() => setIsSettingsOpen(true)}
       />
@@ -118,7 +113,6 @@ export const ViewportControls: React.FC<{
           variant="subtle"
           aria-label={action.label}
           tooltip={action.tooltip}
-          tooltipDisplay="inline"
           onClick={action.onClick}
           className={action.className}
           prefix={action.icon}
