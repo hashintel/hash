@@ -132,6 +132,14 @@ export function createPreset(options?: PresetOptions) {
             from: { height: "var(--height)" },
             to: { height: "0" },
           },
+          pulse: {
+            "0%, 100%": { opacity: "0.25" },
+            "50%": { opacity: "1" },
+          },
+          shimmer: {
+            from: { backgroundPosition: "200% 0" },
+            to: { backgroundPosition: "-200% 0" },
+          },
         },
         textStyles: {
           xxs: {

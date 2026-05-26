@@ -25,6 +25,15 @@ export type TimelineChartType = "run" | "stacked";
 
 export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
 
+export type SimulateDrawerState =
+  | { type: "closed" }
+  | { type: "view-scenario"; scenarioId: string }
+  | { type: "create-scenario" }
+  | { type: "view-metric"; metricId: string }
+  | { type: "create-metric" }
+  | { type: "view-experiment"; experimentId: string }
+  | { type: "create-experiment" };
+
 /**
  * What is rendered on the simulation timeline chart.
  *
@@ -74,8 +83,10 @@ export type EditorState = {
    * button in the timeline header) can switch it.
    */
   simulateViewMode: SimulateViewMode;
+  simulateDrawer: SimulateDrawerState;
   isPanelAnimating: boolean;
   isSearchOpen: boolean;
+  isAiAssistantOpen: boolean;
 };
 
 /**
@@ -123,7 +134,10 @@ export type EditorActions = {
   setTimelineChartType: (chartType: TimelineChartType) => void;
   setTimelineView: (view: TimelineView) => void;
   setSimulateViewMode: (mode: SimulateViewMode) => void;
+  setSimulateDrawer: (drawer: SimulateDrawerState) => void;
   setSearchOpen: (isOpen: boolean) => void;
+  setAiAssistantOpen: (isOpen: boolean) => void;
+  toggleAiAssistant: () => void;
   triggerPanelAnimation: () => void;
   __reinitialize: () => void;
 };
@@ -152,8 +166,10 @@ export const initialEditorState: EditorState = {
   timelineChartType: "run",
   timelineView: { kind: "per-place" },
   simulateViewMode: "scenarios",
+  simulateDrawer: { type: "closed" },
   isPanelAnimating: false,
   isSearchOpen: false,
+  isAiAssistantOpen: false,
 };
 
 const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
@@ -188,7 +204,10 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   setTimelineChartType: () => {},
   setTimelineView: () => {},
   setSimulateViewMode: () => {},
+  setSimulateDrawer: () => {},
   setSearchOpen: () => {},
+  setAiAssistantOpen: () => {},
+  toggleAiAssistant: () => {},
   searchInputRef: createRef<HTMLInputElement | null>(),
   triggerPanelAnimation: () => {},
   __reinitialize: () => {},

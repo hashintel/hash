@@ -16,7 +16,7 @@ import { Select } from "../../../../../components/select";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 
 const containerStyle = css({
@@ -41,9 +41,9 @@ interface ArcPropertiesData {
   targetName: string;
   weight: number;
   type: "standard" | "inhibitor";
-  updateArcWeight: MutationContextValue["updateArcWeight"];
-  updateArcType: MutationContextValue["updateArcType"];
-  removeArc: MutationContextValue["removeArc"];
+  updateArcWeight: PetrinautMutations["updateArcWeight"];
+  updateArcType: PetrinautMutations["updateArcType"];
+  removeArc: PetrinautMutations["removeArc"];
 }
 
 const ArcPropertiesContext = createContext<ArcPropertiesData | null>(null);
@@ -166,9 +166,9 @@ const subViews: SubView[] = [arcMainContentSubView];
 interface ArcPropertiesProps {
   arcId: string;
   petriNetDefinition: SDCPN;
-  updateArcWeight: MutationContextValue["updateArcWeight"];
-  updateArcType: MutationContextValue["updateArcType"];
-  removeArc: MutationContextValue["removeArc"];
+  updateArcWeight: PetrinautMutations["updateArcWeight"];
+  updateArcType: PetrinautMutations["updateArcType"];
+  removeArc: PetrinautMutations["removeArc"];
 }
 
 export const ArcProperties: React.FC<ArcPropertiesProps> = ({

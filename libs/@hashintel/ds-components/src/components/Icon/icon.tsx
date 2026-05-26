@@ -9,6 +9,7 @@ import ArrowDownWideShort from "./svgs/regular/arrow-down-wide-short.svg";
 import ArrowDown from "./svgs/regular/arrow-down.svg";
 import ArrowLeft from "./svgs/regular/arrow-left.svg";
 import ArrowPointer from "./svgs/regular/arrow-pointer.svg";
+import ArrowRightArrowLeft from "./svgs/regular/arrow-right-arrow-left.svg";
 import ArrowRightToLine from "./svgs/regular/arrow-right-to-line.svg";
 import ArrowRight from "./svgs/regular/arrow-right.svg";
 import ArrowRotateLeft from "./svgs/regular/arrow-rotate-left.svg";
@@ -128,6 +129,7 @@ const IconMap = {
   arrowRight: ArrowRight,
   arrowUp: ArrowUp,
   arrowUpRight: ArrowUpRight,
+  arrowsLeftRight: ArrowRightArrowLeft,
   asterisk: Asterisk,
   at: At,
   barcode: Barcode,

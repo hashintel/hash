@@ -68,14 +68,12 @@ describe("createPetrinaut", () => {
     const seen: SDCPN[] = [];
     const off = instance.definition.subscribe((value) => seen.push(value));
 
-    instance.mutate((draft) => {
-      draft.types.push({
-        id: "t1",
-        name: "Color 1",
-        iconSlug: "circle",
-        displayColor: "#FF0000",
-        elements: [],
-      });
+    instance.mutations.addType({
+      id: "t1",
+      name: "Color 1",
+      iconSlug: "circle",
+      displayColor: "#FF0000",
+      elements: [],
     });
 
     expect(instance.definition.get().types).toHaveLength(1);
@@ -92,14 +90,12 @@ describe("createPetrinaut", () => {
     const seenPatches: number[] = [];
     instance.patches.subscribe((patches) => seenPatches.push(patches.length));
 
-    instance.mutate((draft) => {
-      draft.types.push({
-        id: "t1",
-        name: "Color 1",
-        iconSlug: "circle",
-        displayColor: "#FF0000",
-        elements: [],
-      });
+    instance.mutations.addType({
+      id: "t1",
+      name: "Color 1",
+      iconSlug: "circle",
+      displayColor: "#FF0000",
+      elements: [],
     });
 
     expect(seenPatches.length).toBeGreaterThan(0);
@@ -110,14 +106,12 @@ describe("createPetrinaut", () => {
     const handle = createJsonDocHandle({ initial: empty() });
     const instance = createPetrinaut({ document: handle, readonly: true });
 
-    instance.mutate((draft) => {
-      draft.types.push({
-        id: "t1",
-        name: "Color 1",
-        iconSlug: "circle",
-        displayColor: "#FF0000",
-        elements: [],
-      });
+    instance.mutations.addType({
+      id: "t1",
+      name: "Color 1",
+      iconSlug: "circle",
+      displayColor: "#FF0000",
+      elements: [],
     });
 
     expect(instance.definition.get().types).toHaveLength(0);

@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Icon } from "@hashintel/ds-components";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { Button } from "../../../../../components/button";
@@ -25,7 +25,7 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types, differentialEquations },
   } = use(SDCPNContext);
-  const { addDifferentialEquation } = use(MutationContext);
+  const { addDifferentialEquation } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
@@ -57,7 +57,7 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
 };
 
 const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
-  const { removeDifferentialEquation } = use(MutationContext);
+  const { removeDifferentialEquation } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   return (

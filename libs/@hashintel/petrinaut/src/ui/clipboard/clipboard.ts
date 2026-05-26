@@ -1,10 +1,11 @@
 import {
-  pastePayloadIntoSDCPN,
   parseClipboardPayload,
   serializeSelection,
   type SDCPN,
   type SelectionMap,
 } from "@hashintel/petrinaut-core";
+
+import type { PetrinautCommands } from "../../react";
 
 /**
  * Copy the current selection to the system clipboard.
@@ -24,12 +25,13 @@ export async function copySelectionToClipboard(
 }
 
 /**
- * Read from the system clipboard and paste into the SDCPN.
- * Returns the IDs of newly created items (for selection), or null if clipboard
- * didn't contain valid petrinaut data.
+ * Read from the system clipboard and paste into the SDCPN via the typed
+ * `applyClipboardPaste` command. Returns the IDs of newly created items
+ * (for selection), or `null` if the clipboard did not contain valid
+ * petrinaut data.
  */
 export async function pasteFromClipboard(
-  mutatePetriNetDefinition: (mutateFn: (sdcpn: SDCPN) => void) => void,
+  applyClipboardPaste: PetrinautCommands["applyClipboardPaste"],
 ): Promise<Array<{ type: string; id: string }> | null> {
   let text: string;
   try {
@@ -44,11 +46,6 @@ export async function pasteFromClipboard(
     return null;
   }
 
-  let newItemIds: Array<{ type: string; id: string }> = [];
-  mutatePetriNetDefinition((sdcpn) => {
-    const result = pastePayloadIntoSDCPN(sdcpn, payload);
-    newItemIds = result.newItemIds;
-  });
-
+  const { newItemIds } = applyClipboardPaste({ payload });
   return newItemIds;
 }
