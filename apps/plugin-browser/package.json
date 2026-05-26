@@ -44,7 +44,7 @@
     "react-dom": "19.2.6",
     "uuid": "14.0.0",
     "webextension-polyfill": "0.12.0",
-    "ws": "8.18.3"
+    "ws": "8.20.1"
   },
   "devDependencies": {
     "@babel/core": "7.28.4",

@@ -14,6 +14,6 @@ fn {graph::read::filter@4294967040}(%0: (Uuid | String, Integer), %1: Entity) ->
         %4 = %2
         %5 = %3 > 42                                                            // cost: 4
 
-        return %5
+        return %5                                                               // cost: 4
     }
 }

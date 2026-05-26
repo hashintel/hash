@@ -47,10 +47,10 @@ impl ContinuationAlias {
 
 /// Continuation fields returned to the bridge in the `SELECT` list.
 ///
-/// A subset of `ContinuationColumn` that excludes internal-only columns
-/// (`Entry` and `Filter`).
-/// Each variant corresponds to a column the bridge must decode to reconstruct
-/// island exit control flow and live-out locals.
+/// Excludes internal-only columns (entry and filter) that are only used
+/// within the generated SQL. Each variant corresponds to a column the
+/// bridge must decode to reconstruct island exit control flow and live-out
+/// locals.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ContinuationField {
     /// The target basic block id for island exits.

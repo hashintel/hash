@@ -16,6 +16,6 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
         drop %2                                                                 // cost: 0
         drop %3                                                                 // cost: 0
 
-        return %4
+        return %4                                                               // cost: 4
     }
 }
