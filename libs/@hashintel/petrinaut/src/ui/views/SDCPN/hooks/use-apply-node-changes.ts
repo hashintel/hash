@@ -88,7 +88,9 @@ export function useApplyNodeChanges() {
           (item) =>
             item.type !== "place" &&
             item.type !== "transition" &&
-            item.type !== "arc",
+            item.type !== "arc" &&
+            item.type !== "wire" &&
+            item.type !== "componentInstance",
         );
 
         const base: SelectionMap = new Map(
@@ -101,9 +103,9 @@ export function useApplyNodeChanges() {
           if (change.type === "select") {
             if (change.selected && !base.has(change.id)) {
               const itemType = getItemType(change.id);
-              // Skip arcs — they are only selectable via direct click
+              // Skip edges — they are only selectable via direct click
               // (onEdgeClick), not via drag-to-select box selection.
-              if (itemType && itemType !== "arc") {
+              if (itemType && itemType !== "arc" && itemType !== "wire") {
                 base.set(change.id, { type: itemType, id: change.id });
                 changed = true;
               }
@@ -124,13 +126,17 @@ export function useApplyNodeChanges() {
     if (positionCommits.length > 0) {
       const commits: Array<{
         id: string;
-        itemType: "place" | "transition";
+        itemType: "place" | "transition" | "componentInstance";
         position: { x: number; y: number };
       }> = [];
 
       for (const { id, position } of positionCommits) {
         const type = getItemType(id);
-        if (type === "place" || type === "transition") {
+        if (
+          type === "place" ||
+          type === "transition" ||
+          type === "componentInstance"
+        ) {
           commits.push({
             id,
             itemType: type,

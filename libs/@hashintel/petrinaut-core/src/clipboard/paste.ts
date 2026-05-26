@@ -2,7 +2,7 @@ import { v4 as generateUuid } from "uuid";
 
 import { deduplicateName } from "./deduplicate-name";
 
-import type { SDCPN } from "../types/sdcpn";
+import type { SDCPN, Subnet } from "../types/sdcpn";
 import type { ClipboardPayload } from "./types";
 
 /** Offset pasted nodes so they don't overlap originals */
@@ -15,7 +15,7 @@ const PASTE_OFFSET = 50;
  * Returns the IDs of the newly created items so they can be selected.
  */
 export function pastePayloadIntoSDCPN(
-  sdcpn: SDCPN,
+  sdcpn: SDCPN | Subnet,
   payload: ClipboardPayload,
 ): { newItemIds: Array<{ type: string; id: string }> } {
   const { data } = payload;

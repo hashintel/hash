@@ -3,6 +3,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../react";
+import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../../react/state/panel-defaults";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
@@ -15,6 +16,7 @@ import {
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { ArcProperties } from "./arc-properties/main";
+import { ComponentInstanceProperties } from "./component-instance-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
 import { MultiSelectionPanel } from "./multi-selection-panel";
 import { ParameterProperties } from "./parameter-properties/main";
@@ -66,7 +68,8 @@ export const PropertiesPanel: React.FC = () => {
     isPanelAnimating,
   } = use(EditorContext);
 
-  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { activeNet: petriNetDefinition } = use(ActiveNetContext);
+  const { extensions, petriNetDefinition: fullSdcpn } = use(SDCPNContext);
   const {
     updatePlace,
     updateTransition,
@@ -81,6 +84,7 @@ export const PropertiesPanel: React.FC = () => {
     moveTypeElement,
     updateDifferentialEquation,
     updateParameter,
+    updateComponentInstance,
     deleteItemsByIds,
   } = usePetrinautMutations();
 
@@ -220,6 +224,31 @@ export const PropertiesPanel: React.FC = () => {
         }
         break;
       }
+
+      case "componentInstance": {
+        const instanceData = petriNetDefinition.componentInstances.find(
+          (instance) => instance.id === item.id,
+        );
+        if (instanceData) {
+          const subnet =
+            (fullSdcpn.subnets ?? []).find(
+              (subnetCandidate) =>
+                subnetCandidate.id === instanceData.subnetId,
+            ) ?? null;
+          content = (
+            <ComponentInstanceProperties
+              instance={instanceData}
+              subnet={subnet}
+              updateComponentInstance={updateComponentInstance}
+            />
+          );
+        }
+        break;
+      }
+
+      case "wire":
+        content = null;
+        break;
     }
   } else if (panelTarget.kind === "multi") {
     content = (

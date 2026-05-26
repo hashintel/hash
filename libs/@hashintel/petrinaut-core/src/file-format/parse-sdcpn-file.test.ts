@@ -79,6 +79,62 @@ describe("parseSDCPNFile", () => {
       expect(result.sdcpn.transitions[0]?.inputArcs[0]?.type).toBe("read");
     });
 
+    it("parses subnets and component instance wiring", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        meta: { generator: "Petrinaut" },
+        ...minimalSDCPN,
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Reusable instance",
+            subnetId: "subnet-1",
+            parameterValues: {},
+            wiring: [
+              {
+                externalPlaceId: "p1",
+                internalPlaceId: "subnet-place-1",
+              },
+            ],
+            x: 500,
+            y: 600,
+          },
+        ],
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Reusable subnet",
+            places: [
+              {
+                id: "subnet-place-1",
+                name: "Port",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                isPort: true,
+                x: 0,
+                y: 0,
+              },
+            ],
+            transitions: [],
+            types: [],
+            differentialEquations: [],
+            parameters: [],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.componentInstances?.[0]?.wiring).toEqual([
+        {
+          externalPlaceId: "p1",
+          internalPlaceId: "subnet-place-1",
+        },
+      ]);
+      expect(result.sdcpn.subnets?.[0]?.places[0]?.isPort).toBe(true);
+    });
+
     it("preserves relaxed scenario and metric import defaults", () => {
       const result = parseSDCPNFile({
         version: 1,
@@ -178,6 +234,40 @@ describe("parseSDCPNFile", () => {
       expect(result.ok).toBe(true);
       if (!result.ok) return;
       expect(result.hadMissingPositions).toBe(true);
+    });
+
+    it("reports hadMissingPositions when component instances lack x/y", () => {
+      const result = parseSDCPNFile({
+        ...minimalSDCPN,
+        componentInstances: [
+          {
+            id: "instance-1",
+            name: "Reusable instance",
+            subnetId: "subnet-1",
+            parameterValues: {},
+            wiring: [],
+            x: undefined,
+            y: undefined,
+          },
+        ],
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Reusable subnet",
+            places: [],
+            transitions: [],
+            types: [],
+            differentialEquations: [],
+            parameters: [],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.hadMissingPositions).toBe(true);
+      expect(result.sdcpn.componentInstances?.[0]?.x).toBe(0);
+      expect(result.sdcpn.componentInstances?.[0]?.y).toBe(0);
     });
 
     it("fills missing positions with 0", () => {

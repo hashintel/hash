@@ -26,6 +26,8 @@ export type SDCPNContextValue = SDCPNProviderProps & {
     | "place"
     | "transition"
     | "arc"
+    | "wire"
+    | "componentInstance"
     | "type"
     | "differentialEquation"
     | "parameter"
@@ -43,6 +45,8 @@ const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
     types: [],
     differentialEquations: [],
     parameters: [],
+    subnets: [],
+    componentInstances: [],
   },
   readonly: true,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,

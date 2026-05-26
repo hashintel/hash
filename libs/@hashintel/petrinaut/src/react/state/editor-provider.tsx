@@ -7,6 +7,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ActualModeContext } from "../actual-mode-context";
+import { ActiveNetContext } from "./active-net-context";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
@@ -15,7 +16,6 @@ import {
   type EditorState,
   initialEditorState,
 } from "./editor-context";
-import { SDCPNContext } from "./sdcpn-context";
 import { useSyncEditorToSettings } from "./use-sync-editor-to-settings";
 import { UserSettingsContext } from "./user-settings-context";
 
@@ -24,13 +24,17 @@ export type EditorProviderProps = React.PropsWithChildren;
 const canvasSelections = (selection: SelectionMap) =>
   Array.from(selection.entries()).filter(
     ([_, s]) =>
-      s.type === "arc" || s.type === "place" || s.type === "transition",
+      s.type === "arc" ||
+      s.type === "wire" ||
+      s.type === "place" ||
+      s.type === "transition" ||
+      s.type === "componentInstance",
   );
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const userSettings = use(UserSettingsContext);
-  const { petriNetDefinition } = use(SDCPNContext);
   const actualMode = use(ActualModeContext);
+  const { activeNet } = use(ActiveNetContext);
   const startsInActualMode = actualMode.available;
   const startsWithActualTimeline =
     startsInActualMode &&
@@ -118,7 +122,18 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     setGlobalMode: (mode) =>
       setState((prev) => ({ ...prev, globalMode: mode })),
     setEditionMode: (mode) =>
-      setState((prev) => ({ ...prev, editionMode: mode })),
+      setState((prev) => ({
+        ...prev,
+        editionMode: mode,
+        componentSubnetId:
+          mode === "add-component" ? prev.componentSubnetId : null,
+      })),
+    setAddComponentMode: (subnetId) =>
+      setState((prev) => ({
+        ...prev,
+        editionMode: "add-component",
+        componentSubnetId: subnetId,
+      })),
     setCursorMode: (mode) =>
       setState((prev) => ({ ...prev, cursorMode: mode })),
     setLeftSidebarOpen: (isOpen) => {
@@ -279,8 +294,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const isSelected = (id: string) => selection.has(id);
 
   const selectedConnections = getNodeConnections(
-    petriNetDefinition.transitions,
+    activeNet.transitions,
     new Set(selection.keys()),
+    activeNet.componentInstances,
   );
 
   const isSelectedConnection = (id: string) => selectedConnections.has(id);
@@ -292,8 +308,9 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const isHovered = (id: string) => hoveredItem?.id === id;
 
   const hoveredConnections = getNodeConnections(
-    petriNetDefinition.transitions,
+    activeNet.transitions,
     new Set(hoveredItem ? [hoveredItem.id] : []),
+    activeNet.componentInstances,
   );
 
   const isHoveredConnection = (id: string) => hoveredConnections.has(id);

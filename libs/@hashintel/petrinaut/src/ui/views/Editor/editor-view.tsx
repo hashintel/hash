@@ -5,6 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
 import {
   deploymentPipelineSDCPN,
+  hospitalNetworkSDCPN,
   probabilisticSatellitesSDCPN,
   productionMachines,
   sirModel,
@@ -179,6 +180,8 @@ export const EditorView = ({
         types: [],
         differentialEquations: [],
         parameters: [],
+        subnets: [],
+        componentInstances: [],
       },
     });
     clearSelection();
@@ -359,6 +362,14 @@ export const EditorView = ({
                 text: "Deployment Pipeline",
                 onClick: () => {
                   createNewNet(deploymentPipelineSDCPN);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-hospital-network",
+                label: "Hospital Network with Subnet",
+                onClick: () => {
+                  createNewNet(hospitalNetworkSDCPN);
                   clearSelection();
                 },
               },

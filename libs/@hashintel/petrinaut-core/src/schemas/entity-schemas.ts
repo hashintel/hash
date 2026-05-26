@@ -6,11 +6,14 @@ import { variableNameSchema } from "../validation/variable-name";
 
 import type {
   Color,
+  ComponentInstance,
   DifferentialEquation,
   InputArc,
   Parameter,
   Place,
+  Subnet,
   Transition,
+  Wire,
 } from "../types/sdcpn";
 
 export const idSchema = z.string().min(1).meta({
@@ -34,8 +37,9 @@ export const positionSchema = z
 export const nodePositionCommitSchema = z
   .strictObject({
     id: idSchema,
-    itemType: z.enum(["place", "transition"]).meta({
-      description: "Whether the positioned node is a place or transition.",
+    itemType: z.enum(["place", "transition", "componentInstance"]).meta({
+      description:
+        "Whether the positioned node is a place, transition, or component instance.",
     }),
     position: positionSchema,
   })
@@ -122,6 +126,10 @@ export const placeSchema = z
     differentialEquationId: idSchema.nullable().meta({
       description:
         "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`.",
+    }),
+    isPort: z.boolean().optional().meta({
+      description:
+        "When true, this place is exposed as a component port on instances of the subnet that contains it.",
     }),
     visualizerCode: z.string().optional().meta({
       description:
@@ -271,8 +279,86 @@ export const parameterSchema = z
       "A net-level parameter available to executable SDCPN code and scenarios.",
   }) satisfies z.ZodType<Parameter>;
 
+export const wireSchema = z
+  .strictObject({
+    externalPlaceId: idSchema.meta({
+      description:
+        "ID of a place in the parent net containing the component instance.",
+    }),
+    internalPlaceId: idSchema.meta({
+      description:
+        "ID of a port place inside the component instance's referenced subnet.",
+    }),
+  })
+  .meta({
+    description:
+      "A wire that merges a parent-net place with a port place inside an instantiated subnet.",
+  }) satisfies z.ZodType<Wire>;
+
+export const componentInstanceSchema = z
+  .strictObject({
+    id: idSchema,
+    name: displayNameSchema.meta({
+      description: "Human-readable component instance name.",
+    }),
+    subnetId: idSchema.meta({
+      description: "ID of the subnet definition this component instantiates.",
+    }),
+    parameterValues: z.record(idSchema, z.string()).meta({
+      description:
+        "Per-instance parameter values keyed by parameter ID from the referenced subnet.",
+    }),
+    wiring: z.array(wireSchema).meta({
+      description:
+        "Connections that merge parent-net places with port places inside the referenced subnet.",
+    }),
+    x: z.number().meta({
+      description: "Horizontal canvas position.",
+    }),
+    y: z.number().meta({
+      description: "Vertical canvas position.",
+    }),
+  })
+  .meta({
+    description:
+      "A placed instance of a subnet, including parameter values and parent-to-port wiring.",
+  }) satisfies z.ZodType<ComponentInstance>;
+
+export const subnetSchema = z
+  .strictObject({
+    id: idSchema,
+    name: displayNameSchema.meta({
+      description: "Human-readable subnet name.",
+    }),
+    places: z.array(placeSchema).meta({
+      description: "Places local to this subnet.",
+    }),
+    transitions: z.array(transitionSchema).meta({
+      description: "Transitions local to this subnet.",
+    }),
+    types: z.array(colorSchema).meta({
+      description: "Token types local to this subnet.",
+    }),
+    differentialEquations: z.array(differentialEquationSchema).meta({
+      description: "Differential equations local to this subnet.",
+    }),
+    parameters: z.array(parameterSchema).meta({
+      description: "Parameters local to this subnet.",
+    }),
+    componentInstances: z.array(componentInstanceSchema).optional().meta({
+      description: "Nested component instances local to this subnet.",
+    }),
+  })
+  .meta({
+    description:
+      "A reusable subnet definition that can be instantiated as a component.",
+  }) satisfies z.ZodType<Subnet>;
+
 export type PlaceSchema = typeof placeSchema;
 export type TransitionSchema = typeof transitionSchema;
 export type ColorSchema = typeof colorSchema;
 export type DifferentialEquationSchema = typeof differentialEquationSchema;
 export type ParameterSchema = typeof parameterSchema;
+export type WireSchema = typeof wireSchema;
+export type ComponentInstanceSchema = typeof componentInstanceSchema;
+export type SubnetSchema = typeof subnetSchema;

@@ -102,10 +102,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   // Fallback to cursor mode when switching away from edit while in a mutative mode.
   useEffect(() => {
-    if (
-      mode !== "edit" &&
-      (editionMode === "add-place" || editionMode === "add-transition")
-    ) {
+    if (mode !== "edit" && editionMode !== "cursor") {
       onEditionModeChange("cursor");
     }
   }, [mode, editionMode, onEditionModeChange]);

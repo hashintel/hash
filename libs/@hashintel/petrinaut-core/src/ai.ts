@@ -15,13 +15,16 @@ import type { Petrinaut } from "./instance";
 
 export {
   colorSchema,
+  componentInstanceSchema,
   differentialEquationSchema,
   metricSchema,
   parameterSchema,
   mutationActionInputSchemas,
   placeSchema,
   scenarioSchema,
+  subnetSchema,
   transitionSchema,
+  wireSchema,
 } from "./action-schemas";
 export type {
   MutationActionInput as PetrinautAiMutationToolInput,

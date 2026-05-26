@@ -3,11 +3,13 @@ import { use } from "react";
 
 import {
   generateArcId,
+  generateWireId,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../../react/execution-frame/context";
+import { ActiveNetContext } from "../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
@@ -19,22 +21,14 @@ import {
 import { NOT_SELECTED_CONNECTION_OVERLAY_OPACITY } from "../styles/styling";
 
 import type {
+  EdgeType,
   NodeType,
   PetrinautReactFlowDefinitionObject,
 } from "../reactflow-types";
 
-/**
- * Converts SDCPN state to ReactFlow format (nodes and edges), and combines
- * with the transient dragging state from the editor store.
- *
- * This hook merges the functionality of:
- * - Converting SDCPN places/transitions/arcs to ReactFlow nodes/edges
- * - Folding in the dragging state for proper rendering during drag operations
- *
- * @returns An object with nodes (including dragging state) and arcs for ReactFlow
- */
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
-  const { extensions, petriNetDefinition } = use(SDCPNContext);
+  const { activeNet: petriNetDefinition } = use(ActiveNetContext);
+  const { extensions, petriNetDefinition: fullSdcpn } = use(SDCPNContext);
   const {
     draggingStateByNodeId,
     isSelected,
@@ -51,7 +45,6 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
 
   const nodes: NodeType[] = [];
 
-  // Create place nodes
   for (const place of petriNetDefinition.places) {
     const draggingState = draggingStateByNodeId[place.id];
 
@@ -88,7 +81,6 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     });
   }
 
-  // Create transition nodes
   for (const transition of petriNetDefinition.transitions) {
     const draggingState = draggingStateByNodeId[transition.id];
     const logicAvailability = getTransitionLogicAvailability(
@@ -122,18 +114,48 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     });
   }
 
-  // Create arcs from input and output arcs
-  const arcs = [];
+  for (const instance of petriNetDefinition.componentInstances) {
+    const draggingState = draggingStateByNodeId[instance.id];
+    const subnet = (fullSdcpn.subnets ?? []).find(
+      ({ id }) => id === instance.subnetId,
+    );
+    const ports = (subnet?.places ?? [])
+      .filter((place) => place.isPort)
+      .map((place) => ({ id: place.id, name: place.name }));
+    const minHeight = dimensions.componentInstance.height;
+    const portBasedHeight = Math.max(minHeight, ports.length * 28 + 28);
+
+    nodes.push({
+      id: instance.id,
+      type: "componentInstance",
+      position: draggingState?.dragging
+        ? draggingState.position
+        : { x: instance.x, y: instance.y },
+      width: dimensions.componentInstance.width,
+      height: portBasedHeight,
+      measured: {
+        width: dimensions.componentInstance.width,
+        height: portBasedHeight,
+      },
+      dragging: draggingState?.dragging ?? false,
+      selected: isSelected(instance.id),
+      data: {
+        label: instance.name,
+        type: "componentInstance",
+        subnetName: subnet?.name ?? "Unknown subnet",
+        ports,
+      },
+    });
+  }
+
+  const edges: EdgeType[] = [];
 
   for (const transition of petriNetDefinition.transitions) {
-    // Input arcs (from places to transition)
     for (const inputArc of transition.inputArcs) {
       const arcId = generateArcId({
         inputId: inputArc.placeId,
         outputId: transition.id,
       });
-
-      // Get the place to determine type color
       const place = petriNetDefinition.places.find(
         (pl) => pl.id === inputArc.placeId,
       );
@@ -148,14 +170,15 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       const notSelectedConnection =
         isNotHoveredConnection(arcId) ||
         (!hoveredItem && isNotSelectedConnection(arcId));
-      if (notSelectedConnection)
+      if (notSelectedConnection) {
         arcColor = `color-mix(in oklab, white ${NOT_SELECTED_CONNECTION_OVERLAY_OPACITY * 100}%, ${arcColor})`;
+      }
 
-      arcs.push({
+      edges.push({
         id: arcId,
         source: inputArc.placeId,
         target: transition.id,
-        type: "default" as const,
+        type: "default",
         selected: isSelected(arcId),
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -175,14 +198,11 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       });
     }
 
-    // Output arcs (from transition to places)
     for (const outputArc of transition.outputArcs) {
       const arcId = generateArcId({
         inputId: transition.id,
         outputId: outputArc.placeId,
       });
-
-      // Get the place to determine type color
       const place = petriNetDefinition.places.find(
         (pl) => pl.id === outputArc.placeId,
       );
@@ -197,14 +217,15 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
       const notSelectedConnection =
         isNotHoveredConnection(arcId) ||
         (!hoveredItem && isNotSelectedConnection(arcId));
-      if (notSelectedConnection)
+      if (notSelectedConnection) {
         arcColor = `color-mix(in oklab, white ${NOT_SELECTED_CONNECTION_OVERLAY_OPACITY * 100}%, ${arcColor})`;
+      }
 
-      arcs.push({
+      edges.push({
         id: arcId,
         source: transition.id,
         target: outputArc.placeId,
-        type: "default" as const,
+        type: "default",
         selected: isSelected(arcId),
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -218,8 +239,27 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: outputArc.weight,
-          arcType: "standard" as const,
+          arcType: "standard",
           frame: currentFrameReader?.getTransitionState(transition.id) ?? null,
+        },
+      });
+    }
+  }
+
+  for (const instance of petriNetDefinition.componentInstances) {
+    for (const wire of instance.wiring) {
+      const wireId = generateWireId({ instanceId: instance.id, ...wire });
+
+      edges.push({
+        id: wireId,
+        source: wire.externalPlaceId,
+        target: instance.id,
+        targetHandle: `port-in-${wire.internalPlaceId}`,
+        type: "wire",
+        selected: isSelected(wireId),
+        data: {
+          externalPlaceId: wire.externalPlaceId,
+          internalPlaceId: wire.internalPlaceId,
         },
       });
     }
@@ -227,6 +267,6 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
 
   return {
     nodes,
-    arcs,
+    edges,
   };
 }

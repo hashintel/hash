@@ -29,6 +29,7 @@ export type NodePosition = {
 export type LayoutDimensions = {
   place: { width: number; height: number };
   transition: { width: number; height: number };
+  componentInstance?: { width: number; height: number };
 };
 
 /**
@@ -54,7 +55,13 @@ export const calculateGraphLayout = async (
   sdcpn: SDCPN,
   dimensions: LayoutDimensions,
 ): Promise<Record<string, NodePosition>> => {
-  if (sdcpn.places.length === 0) {
+  const componentInstances = sdcpn.componentInstances ?? [];
+
+  if (
+    sdcpn.places.length === 0 &&
+    sdcpn.transitions.length === 0 &&
+    componentInstances.length === 0
+  ) {
     return {};
   }
 
@@ -69,6 +76,12 @@ export const calculateGraphLayout = async (
       id: transition.id,
       width: dimensions.transition.width,
       height: dimensions.transition.height,
+    })),
+    ...componentInstances.map((instance) => ({
+      id: instance.id,
+      width: dimensions.componentInstance?.width ?? dimensions.transition.width,
+      height:
+        dimensions.componentInstance?.height ?? dimensions.transition.height,
     })),
   ];
 
@@ -93,6 +106,16 @@ export const calculateGraphLayout = async (
     }
   }
 
+  for (const instance of componentInstances) {
+    for (const wire of instance.wiring) {
+      elkEdges.push({
+        id: `wire__${wire.externalPlaceId}-${instance.id}-${wire.internalPlaceId}`,
+        sources: [wire.externalPlaceId],
+        targets: [instance.id],
+      });
+    }
+  }
+
   const graph: ElkNode = {
     id: "root",
     children: elkNodes,
@@ -103,6 +126,9 @@ export const calculateGraphLayout = async (
   const updatedElements = await elk.layout(graph);
 
   const placeIds = new Set(sdcpn.places.map((place) => place.id));
+  const componentInstanceIds = new Set(
+    componentInstances.map((instance) => instance.id),
+  );
 
   /**
    * ELK returns top-left positions, but the SDCPN store uses center
@@ -113,7 +139,9 @@ export const calculateGraphLayout = async (
     if (child.x !== undefined && child.y !== undefined) {
       const nodeDimensions = placeIds.has(child.id)
         ? dimensions.place
-        : dimensions.transition;
+        : componentInstanceIds.has(child.id)
+          ? (dimensions.componentInstance ?? dimensions.transition)
+          : dimensions.transition;
 
       positionsByNodeId[child.id] = {
         x: child.x + nodeDimensions.width / 2,

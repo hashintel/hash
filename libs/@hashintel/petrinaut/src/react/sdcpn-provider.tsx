@@ -3,6 +3,7 @@ import { use, type ReactNode } from "react";
 import {
   ARC_ID_PREFIX,
   isSelectionTypeAvailableForExtensions,
+  WIRE_ID_PREFIX,
 } from "@hashintel/petrinaut-core";
 
 import { NetManagementContext } from "./net-management-context";
@@ -22,6 +23,7 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
   const netManagement = use(NetManagementContext);
 
   const petriNetDefinition = useStore(instance.definition);
+  const allNets = [petriNetDefinition, ...(petriNetDefinition.subnets ?? [])];
 
   const value: SDCPNContextValue = {
     petriNetId: instance.handle.id,
@@ -41,9 +43,13 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
 
       if (
         isSelectionTypeAvailableForExtensions("type", instance.extensions) &&
-        petriNetDefinition.types.some((type) => type.id === id)
+        allNets.some((net) => net.types.some((type) => type.id === id))
       ) {
         return "type";
+      }
+
+      if (id.startsWith(WIRE_ID_PREFIX)) {
+        return "wire";
       }
 
       if (
@@ -51,7 +57,9 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
           "parameter",
           instance.extensions,
         ) &&
-        petriNetDefinition.parameters.some((parameter) => parameter.id === id)
+        allNets.some((net) =>
+          net.parameters.some((parameter) => parameter.id === id),
+        )
       ) {
         return "parameter";
       }
@@ -61,23 +69,31 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
           "differentialEquation",
           instance.extensions,
         ) &&
-        petriNetDefinition.differentialEquations.some(
-          (equation) => equation.id === id,
+        allNets.some((net) =>
+          net.differentialEquations.some((equation) => equation.id === id),
         )
       ) {
         return "differentialEquation";
       }
 
-      if (petriNetDefinition.places.some((place) => place.id === id)) {
+      if (allNets.some((net) => net.places.some((place) => place.id === id))) {
         return "place";
       }
 
       if (
-        petriNetDefinition.transitions.some(
-          (transition) => transition.id === id,
+        allNets.some((net) =>
+          net.transitions.some((transition) => transition.id === id),
         )
       ) {
         return "transition";
+      }
+
+      if (
+        allNets.some((net) =>
+          (net.componentInstances ?? []).some((item) => item.id === id),
+        )
+      ) {
+        return "componentInstance";
       }
 
       return null;

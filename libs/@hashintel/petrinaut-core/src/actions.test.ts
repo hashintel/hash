@@ -715,4 +715,144 @@ describe("Petrinaut core actions", () => {
       }),
     ).toThrow();
   });
+
+  test("targets place mutations at a subnet when targetSubnetId is provided", () => {
+    const instance = createInstance();
+
+    instance.mutations.addSubnet({
+      id: "subnet-1",
+      name: "Reusable subnet",
+      places: [],
+      transitions: [],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      componentInstances: [],
+    });
+    instance.mutations.addPlace({
+      targetSubnetId: "subnet-1",
+      id: "place-1",
+      name: "Input",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
+    instance.mutations.updatePlace({
+      targetSubnetId: "subnet-1",
+      placeId: "place-1",
+      update: { isPort: true },
+    });
+
+    const definition = instance.definition.get();
+    expect(definition.places).toEqual([]);
+    expect(definition.subnets?.[0]?.places).toEqual([
+      {
+        id: "place-1",
+        name: "Input",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        isPort: true,
+        x: 0,
+        y: 0,
+      },
+    ]);
+  });
+
+  test("adds component instances and validates wires against subnet ports", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      places: [
+        {
+          id: "place-root",
+          name: "Input",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+      subnets: [
+        {
+          id: "subnet-1",
+          name: "Reusable subnet",
+          places: [
+            {
+              id: "place-port",
+              name: "Port",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              isPort: true,
+              x: 0,
+              y: 0,
+            },
+            {
+              id: "place-internal",
+              name: "Internal",
+              colorId: null,
+              dynamicsEnabled: false,
+              differentialEquationId: null,
+              x: 100,
+              y: 0,
+            },
+          ],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [],
+        },
+      ],
+    });
+
+    instance.mutations.addComponentInstance({
+      id: "instance-1",
+      name: "Reusable instance",
+      subnetId: "subnet-1",
+      parameterValues: {},
+      wiring: [],
+      x: 100,
+      y: 100,
+    });
+    instance.mutations.addComponentInstanceWire({
+      instanceId: "instance-1",
+      wire: {
+        externalPlaceId: "place-root",
+        internalPlaceId: "place-port",
+      },
+    });
+
+    expect(instance.definition.get().componentInstances?.[0]?.wiring).toEqual([
+      {
+        externalPlaceId: "place-root",
+        internalPlaceId: "place-port",
+      },
+    ]);
+
+    expect(() =>
+      instance.mutations.addComponentInstanceWire({
+        instanceId: "instance-1",
+        wire: {
+          externalPlaceId: "place-root",
+          internalPlaceId: "place-internal",
+        },
+      }),
+    ).toThrow("only places marked `isPort` can be wired");
+
+    instance.mutations.removeComponentInstanceWire({
+      instanceId: "instance-1",
+      wire: {
+        externalPlaceId: "place-root",
+        internalPlaceId: "place-port",
+      },
+    });
+
+    expect(instance.definition.get().componentInstances?.[0]?.wiring).toEqual(
+      [],
+    );
+  });
 });

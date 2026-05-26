@@ -21,9 +21,24 @@ export type ImportResult =
 const hasMissingPositions = (sdcpn: {
   places: { x?: number; y?: number }[];
   transitions: { x?: number; y?: number }[];
+  componentInstances?: { x?: number; y?: number }[];
+  subnets?: {
+    places: { x?: number; y?: number }[];
+    transitions: { x?: number; y?: number }[];
+    componentInstances?: { x?: number; y?: number }[];
+  }[];
 }): boolean => {
-  for (const node of [...sdcpn.places, ...sdcpn.transitions]) {
+  for (const node of [
+    ...sdcpn.places,
+    ...sdcpn.transitions,
+    ...(sdcpn.componentInstances ?? []),
+  ]) {
     if (node.x === undefined || node.y === undefined) {
+      return true;
+    }
+  }
+  for (const subnet of sdcpn.subnets ?? []) {
+    if (hasMissingPositions(subnet)) {
       return true;
     }
   }
@@ -40,6 +55,13 @@ const fillMissingVisualInfo = (sdcpn: {
   places: Array<{ x?: number; y?: number }>;
   transitions: Array<{ x?: number; y?: number }>;
   types: Array<{ iconSlug?: string; displayColor?: string }>;
+  componentInstances?: Array<{ x?: number; y?: number }>;
+  subnets?: Array<{
+    places: Array<{ x?: number; y?: number }>;
+    transitions: Array<{ x?: number; y?: number }>;
+    types: Array<{ iconSlug?: string; displayColor?: string }>;
+    componentInstances?: Array<{ x?: number; y?: number }>;
+  }>;
 }): SDCPNWithTitle =>
   ({
     ...sdcpn,
@@ -57,6 +79,34 @@ const fillMissingVisualInfo = (sdcpn: {
       ...type,
       iconSlug: type.iconSlug ?? "circle",
       displayColor: type.displayColor ?? "#808080",
+    })),
+    componentInstances: (sdcpn.componentInstances ?? []).map((instance) => ({
+      ...instance,
+      x: instance.x ?? 0,
+      y: instance.y ?? 0,
+    })),
+    subnets: (sdcpn.subnets ?? []).map((subnet) => ({
+      ...subnet,
+      places: subnet.places.map((place) => ({
+        ...place,
+        x: place.x ?? 0,
+        y: place.y ?? 0,
+      })),
+      transitions: subnet.transitions.map((transition) => ({
+        ...transition,
+        x: transition.x ?? 0,
+        y: transition.y ?? 0,
+      })),
+      types: subnet.types.map((type) => ({
+        ...type,
+        iconSlug: type.iconSlug ?? "circle",
+        displayColor: type.displayColor ?? "#808080",
+      })),
+      componentInstances: (subnet.componentInstances ?? []).map((instance) => ({
+        ...instance,
+        x: instance.x ?? 0,
+        y: instance.y ?? 0,
+      })),
     })),
   }) as SDCPNWithTitle;
 

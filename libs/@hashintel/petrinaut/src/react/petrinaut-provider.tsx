@@ -18,6 +18,7 @@ import { NotificationsProvider } from "./notifications/provider";
 import { PlaybackProvider } from "./playback/provider";
 import { SDCPNProvider } from "./sdcpn-provider";
 import { SimulationProvider } from "./simulation/provider";
+import { ActiveNetProvider } from "./state/active-net-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
@@ -77,13 +78,17 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
             workerFactory={simulationWorkerFactory}
           >
             <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-              <PlaybackProvider>
-                <UserSettingsProvider>
-                  <EditorProvider>
-                    <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
-                  </EditorProvider>
-                </UserSettingsProvider>
-              </PlaybackProvider>
+                <PlaybackProvider>
+                  <UserSettingsProvider>
+                    <ActiveNetProvider>
+                      <EditorProvider>
+                        <ExecutionFrameProvider>
+                          {children}
+                        </ExecutionFrameProvider>
+                      </EditorProvider>
+                    </ActiveNetProvider>
+                  </UserSettingsProvider>
+                </PlaybackProvider>
             </ExperimentsProvider>
           </SimulationProvider>
         </NotificationsProvider>

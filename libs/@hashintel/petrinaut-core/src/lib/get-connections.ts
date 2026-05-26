@@ -1,6 +1,7 @@
 import { generateArcId } from "../arc-id";
+import { generateWireId } from "../wire-id";
 
-import type { Transition } from "../types/sdcpn";
+import type { ComponentInstance, Transition } from "../types/sdcpn";
 import type { SelectionMap } from "../types/selection";
 
 /**
@@ -16,6 +17,7 @@ import type { SelectionMap } from "../types/selection";
 export function getNodeConnections(
   transitions: readonly Transition[],
   selectedIds: ReadonlySet<string>,
+  componentInstances: readonly ComponentInstance[] = [],
 ): SelectionMap {
   const connections: SelectionMap = new Map();
 
@@ -61,6 +63,28 @@ export function getNodeConnections(
           id: transition.id,
         });
         connections.set(arcId, { type: "arc", id: arcId });
+      }
+    }
+  }
+
+  for (const instance of componentInstances) {
+    const instanceSelected = selectedIds.has(instance.id);
+
+    for (const wire of instance.wiring) {
+      const wireId = generateWireId({ instanceId: instance.id, ...wire });
+      const placeSelected = selectedIds.has(wire.externalPlaceId);
+      const wireSelected = selectedIds.has(wireId);
+
+      if (instanceSelected || placeSelected || wireSelected) {
+        connections.set(wire.externalPlaceId, {
+          type: "place",
+          id: wire.externalPlaceId,
+        });
+        connections.set(instance.id, {
+          type: "componentInstance",
+          id: instance.id,
+        });
+        connections.set(wireId, { type: "wire", id: wireId });
       }
     }
   }

@@ -109,6 +109,7 @@ export {
 // --- AI ---
 export {
   colorSchema,
+  componentInstanceSchema,
   createPetrinautAiWritableCallbacks,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
@@ -127,7 +128,9 @@ export {
   scenarioSchema,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
+  subnetSchema,
   transitionSchema,
+  wireSchema,
 } from "./ai";
 export type {
   PetrinautAiCommandToolInput,
@@ -276,6 +279,12 @@ export {
   generateArcId,
   type ArcIdPrefix,
 } from "./arc-id";
+export {
+  generateWireId,
+  parseWireId,
+  WIRE_ID_PREFIX,
+  WIRE_ID_SEPARATOR,
+} from "./wire-id";
 export { GRID_SIZE } from "./grid-size";
 export {
   type DefaultParameterValues,

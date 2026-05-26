@@ -12,6 +12,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
+import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { Section, SectionList } from "../../../../../../components/section";
@@ -61,8 +62,10 @@ const PlaceMainContent: React.FC = () => {
   const {
     getItemType,
     extensions,
-    petriNetDefinition: { differentialEquations, types: availableTypes },
   } = use(SDCPNContext);
+  const {
+    activeNet: { differentialEquations, types: availableTypes },
+  } = use(ActiveNetContext);
 
   const nameField = useDraftField({
     sourceId: place.id,
@@ -337,6 +340,28 @@ const PlaceMainContent: React.FC = () => {
             )}
           </Section>
         )}
+        <Section
+          title="Component port"
+          tooltip="Exposes this place as a wireable port when its subnet is instantiated as a component."
+          renderHeaderLeading={() => (
+            <Checkbox
+              checked={!!place.isPort}
+              disabled={isReadOnly}
+              onCheckedChange={(checked) => {
+                updatePlace({
+                  placeId: place.id,
+                  update: { isPort: checked === true },
+                });
+              }}
+            />
+          )}
+        >
+          <div className={hintTextStyle}>
+            {place.isPort
+              ? "Component instances can wire parent places to this subnet place."
+              : "Enable this for subnet boundary places that should be wireable from a component instance."}
+          </div>
+        </Section>
         <Section
           title="Default starting place"
           tooltip="Pre-selects this place when creating a new scenario."

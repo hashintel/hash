@@ -1,6 +1,6 @@
 import { use } from "react";
 
-import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import {
   PlaceFilledIcon,
   TransitionFilledIcon,
@@ -30,8 +30,8 @@ export const nodesListSubView: SubView = createFilterableListSubView<NodeItem>({
   },
   useItems: () => {
     const {
-      petriNetDefinition: { places, transitions },
-    } = use(SDCPNContext);
+      activeNet: { places, transitions },
+    } = use(ActiveNetContext);
 
     return [
       ...places.map((place) => ({
