@@ -1,4 +1,3 @@
-import { useQuery } from "@apollo/client";
 import { Box, Stack, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -9,20 +8,24 @@ import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { countEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
-import { generateUseEntityTypeEntitiesFilter } from "../../shared/use-entity-type-entities";
 import { useMemoCompare } from "../../shared/use-memo-compare";
-import { usePollInterval } from "../../shared/use-poll-interval";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
+import { FilterRibbon } from "./entities-visualizer/filter-ribbon/filter-ribbon";
+import {
+  buildEntitiesFilter,
+  getDefaultFilterState,
+  getInternalWebIds,
+  isFilterStateDefault,
+} from "./entities-visualizer/filter-ribbon/build-filter";
+import { useAvailableTypes } from "./entities-visualizer/filter-ribbon/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { useSlideStack } from "./slide-stack";
@@ -31,11 +34,8 @@ import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import { visualizerViewIcons } from "./visualizer-views";
 
 import type { ColumnSort } from "../../components/grid/utils/sorting";
-import type {
-  CountEntitiesQuery,
-  CountEntitiesQueryVariables,
-} from "../../graphql/api-types.gen";
-import type { FilterState } from "../../shared/table-header";
+import type { EntitiesFilterState } from "./entities-visualizer/filter-ribbon/types";
+import type { WebFilterOption } from "./entities-visualizer/filter-ribbon/web-filter-pill";
 import type {
   EntitiesTableRow,
   SortableEntitiesTableColumnKey,
@@ -136,10 +136,6 @@ const generateGraphSort = (
 
 export const EntitiesVisualizer: FunctionComponent<{
   /**
-   * The default filter to apply
-   */
-  defaultFilter?: FilterState;
-  /**
    * The default graph configuration to apply
    */
   defaultGraphConfig?: GraphVizConfig<DynamicNodeSizing>;
@@ -165,7 +161,7 @@ export const EntitiesVisualizer: FunctionComponent<{
    */
   fullScreenMode?: "document" | "element";
   /**
-   * Hide the internal/external and archived filter controls
+   * Hide the filter ribbon entirely.
    */
   hideFilters?: boolean;
   /**
@@ -185,7 +181,6 @@ export const EntitiesVisualizer: FunctionComponent<{
    */
   readonly?: boolean;
 }> = ({
-  defaultFilter,
   defaultGraphConfig,
   defaultGraphFilters,
   defaultView = "Table",
@@ -202,28 +197,64 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const internalWebIds = useMemoCompare(
-    () => {
-      return [
-        authenticatedUser.accountId as WebId,
-        ...authenticatedUser.memberOf.map(({ org }) => org.webId),
-      ];
-    },
+  const orgs = useMemo(
+    () => authenticatedUser.memberOf.map(({ org }) => org),
     [authenticatedUser],
+  );
+
+  const internalWebIds = useMemoCompare(
+    () =>
+      getInternalWebIds({
+        userWebId: authenticatedUser.accountId as WebId,
+        orgWebIds: orgs.map((org) => org.webId),
+      }),
+    [authenticatedUser, orgs],
     (oldValue, newValue) => {
-      const oldSet = new Set(oldValue);
-      const newSet = new Set(newValue);
-      return oldSet.size === newSet.size && oldSet.isSubsetOf(newSet);
+      if (oldValue.length !== newValue.length) {
+        return false;
+      }
+      return oldValue.every((id, index) => id === newValue[index]);
     },
   );
 
-  const [filterState, _setFilterState] = useState<FilterState>(
-    defaultFilter ?? {
-      includeArchived: false,
-      includeGlobal: false,
-      limitToWebs: false,
-    },
+  const webOptions = useMemo<WebFilterOption[]>(
+    () => [
+      { webId: authenticatedUser.accountId as WebId, label: "My personal web" },
+      ...orgs.map((org) => ({
+        webId: org.webId,
+        label: org.name,
+      })),
+    ],
+    [authenticatedUser.accountId, orgs],
   );
+
+  const [filterState, _setFilterState] = useState<EntitiesFilterState>(() =>
+    getDefaultFilterState({ internalWebIds }),
+  );
+
+  /**
+   * Whenever the user's memberships change (e.g. they join/leave an org), make
+   * sure any newly-available web is checked by default.
+   */
+  useEffect(() => {
+    _setFilterState((prev) => {
+      let changed = false;
+      const next = new Set(prev.web.selectedInternalWebIds);
+      for (const webId of internalWebIds) {
+        if (!next.has(webId)) {
+          next.add(webId);
+          changed = true;
+        }
+      }
+      if (!changed) {
+        return prev;
+      }
+      return {
+        ...prev,
+        web: { ...prev.web, selectedInternalWebIds: next },
+      };
+    });
+  }, [internalWebIds]);
 
   const [cursor, setCursor] = useState<EntityQueryCursor>();
   const [activeConversionsWithoutTitle, setActiveConversions] = useState<{
@@ -231,20 +262,19 @@ export const EntitiesVisualizer: FunctionComponent<{
   } | null>(null);
 
   const setFilterState = useCallback(
-    (
-      newFilterStateOrUpdater:
-        | FilterState
-        | ((prev: FilterState) => FilterState),
-    ) => {
-      if (typeof newFilterStateOrUpdater === "function") {
-        _setFilterState(newFilterStateOrUpdater(filterState));
-      } else {
-        _setFilterState(newFilterStateOrUpdater);
-      }
+    (next: EntitiesFilterState) => {
+      _setFilterState(next);
       setCursor(undefined);
     },
-    [filterState, setCursor],
+    [],
   );
+
+  const filterIsModified = !isFilterStateDefault(filterState, internalWebIds);
+
+  const clearFilters = useCallback(() => {
+    _setFilterState(getDefaultFilterState({ internalWebIds }));
+    setCursor(undefined);
+  }, [internalWebIds]);
 
   const [view, _setView] = useState<VisualizerView>(defaultView);
 
@@ -253,37 +283,8 @@ export const EntitiesVisualizer: FunctionComponent<{
       _setView(newView);
       setCursor(undefined);
     },
-    [setCursor],
+    [],
   );
-
-  const pollInterval = usePollInterval();
-
-  /**
-   * We want to show the count of entities in external webs, and need to query this count separately:
-   * 1. When the user is requesting entities in their web only, the count for the main query doesn't include external webs.
-   * 2. When the user is requesting all entities, the count for the main query includes BOTH internal and external entities.
-   *
-   * So we need the count of external entities in both cases.
-   */
-  const { data: externalWebsOnlyCountData } = useQuery<
-    CountEntitiesQuery,
-    CountEntitiesQueryVariables
-  >(countEntitiesQuery, {
-    pollInterval,
-    variables: {
-      request: {
-        filter: generateUseEntityTypeEntitiesFilter({
-          excludeWebIds: internalWebIds,
-          entityTypeBaseUrl,
-          entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
-          includeArchived: !!filterState.includeArchived,
-        }),
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-      },
-    },
-    fetchPolicy: "network-only",
-  });
 
   const [sort, setSort] = useState<
     ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
@@ -296,6 +297,26 @@ export const EntitiesVisualizer: FunctionComponent<{
     () => generateGraphSort(sort.columnKey, sort.direction, sort.convertTo),
     [sort],
   );
+
+  const graphApiFilter = useMemo(
+    () =>
+      buildEntitiesFilter({
+        filterState,
+        internalWebIds,
+        entityTypeBaseUrl,
+        entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+      }),
+    [filterState, internalWebIds, entityTypeBaseUrl, entityTypeId],
+  );
+
+  const { types: availableTypes, loading: availableTypesLoading } =
+    useAvailableTypes({
+      internalWebIds,
+      selectedInternalWebIds: filterState.web.selectedInternalWebIds,
+      includeOtherWebs: filterState.web.includeOtherWebs,
+      entityTypeBaseUrl,
+      entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+    });
 
   const entitiesData = useEntitiesVisualizerData({
     conversions: activeConversionsWithoutTitle
@@ -310,14 +331,12 @@ export const EntitiesVisualizer: FunctionComponent<{
     entityTypeBaseUrl,
     entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
     hideColumns,
-    /**
-     * Translate into archived filter in query
-     */
-    includeArchived: !!filterState.includeArchived,
+    includeArchived:
+      filterState.archived.pillAdded && filterState.archived.include,
     limit: view === "Graph" ? undefined : 500,
-    webIds: filterState.includeGlobal ? undefined : internalWebIds,
     sort: graphSort,
     view,
+    filterOverride: graphApiFilter,
   });
 
   const [dataLoading, setDataLoading] = useState(entitiesData.loading);
@@ -333,8 +352,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     closedMultiEntityTypes: closedMultiEntityTypesRootMap,
     refetch: refetchWithoutLinks,
     subgraph,
-    typeIds,
-    typeTitles,
     webIds,
   } = visualizerData;
 
@@ -391,8 +408,6 @@ export const EntitiesVisualizer: FunctionComponent<{
    * We don't want to clear the old table data when a new request is triggered,
    * so we hold the visualizerData here rather than relying on the useEntitiesVisualizerData hook directly,
    * as it will clear the data when a new request is triggered.
-   *
-   * An alternative would be to have an onComplete callback in the hook.
    */
   useEffect(() => {
     setDataLoading(entitiesData.loading);
@@ -402,18 +417,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     }
   }, [entitiesData]);
 
-  const internalEntitiesCount =
-    externalWebsOnlyCountData?.countEntities == null ||
-    totalCountFromEntityRequest == null ||
-    entitiesData.loading
-      ? undefined
-      : filterState.includeGlobal
-        ? totalCountFromEntityRequest - externalWebsOnlyCountData.countEntities
-        : totalCountFromEntityRequest;
-
-  const totalResultCount = filterState.includeGlobal
-    ? (totalCountFromEntityRequest ?? null)
-    : (internalEntitiesCount ?? null);
+  const totalResultCount = totalCountFromEntityRequest ?? null;
 
   const loadingComponent = customLoadingComponent ?? (
     <LoadingSpinner size={42} color={theme.palette.blue[60]} />
@@ -423,17 +427,9 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const isDisplayingFilesOnly = useMemo(
     () =>
-      /**
-       * To allow the `Grid` view to come into view on first render where
-       * possible, we check whether `entityTypeId` or `entityTypeBaseUrl`
-       * matches a `File` entity type from a statically defined list.
-       */
       (entityTypeId && allFileEntityTypeIds.includes(entityTypeId)) ||
       (entityTypeBaseUrl &&
         allFileEntityTypeBaseUrl.includes(entityTypeBaseUrl)) ||
-      /**
-       * Otherwise we check the fetched `entityTypes` as a fallback.
-       */
       (closedMultiEntityTypes.length &&
         closedMultiEntityTypes.every(({ allOf }) =>
           allOf.some(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
@@ -536,6 +532,40 @@ export const EntitiesVisualizer: FunctionComponent<{
     setCursor(nextCursor ?? undefined);
   }, [nextCursor]);
 
+  const sortableKeys = useMemo<SortableEntitiesTableColumnKey[]>(() => {
+    const base: SortableEntitiesTableColumnKey[] = [
+      "entityLabel",
+      "entityTypes",
+      "lastEdited",
+      "created",
+    ];
+    if (filterState.archived.pillAdded && filterState.archived.include) {
+      base.push("archived");
+    }
+    if (visualizerData.tableData) {
+      for (const column of visualizerData.tableData.columns) {
+        if (isBaseUrl(column.id)) {
+          base.push(column.id);
+        }
+      }
+    }
+    return base;
+  }, [filterState.archived, visualizerData.tableData]);
+
+  const propertyLabels = useMemo<Record<BaseUrl, string>>(() => {
+    const labels: Record<BaseUrl, string> = {};
+    if (visualizerData.tableData) {
+      for (const column of visualizerData.tableData.columns) {
+        if (isBaseUrl(column.id)) {
+          labels[column.id] = column.title;
+        }
+      }
+    }
+    return labels;
+  }, [visualizerData.tableData]);
+
+  const hideTypeFilter = !!entityTypeBaseUrl || !!entityTypeId;
+
   return (
     <Box>
       <TableHeader
@@ -558,18 +588,14 @@ export const EntitiesVisualizer: FunctionComponent<{
             }))}
           />
         }
-        filterState={filterState}
+        filterState={{ includeGlobal: false, limitToWebs: false }}
         hideExportToCsv={view !== "Table"}
-        hideFilters={hideFilters}
+        hideFilters
         itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
         loading={dataLoading}
         onBulkActionCompleted={() => {
           void refetchWithoutLinks();
         }}
-        numberOfExternalItems={
-          externalWebsOnlyCountData?.countEntities ?? undefined
-        }
-        numberOfUserWebItems={internalEntitiesCount}
         selectedItems={
           entities?.filter((entity) =>
             selectedTableRows.some(
@@ -577,7 +603,7 @@ export const EntitiesVisualizer: FunctionComponent<{
             ),
           ) ?? []
         }
-        setFilterState={setFilterState}
+        setFilterState={() => {}}
         title="Entities"
         toggleSearch={
           view === "Table"
@@ -585,6 +611,23 @@ export const EntitiesVisualizer: FunctionComponent<{
             : undefined
         }
       />
+      {!hideFilters && view === "Table" && (
+        <FilterRibbon
+          filterState={filterState}
+          setFilterState={setFilterState}
+          webOptions={webOptions}
+          availableTypes={availableTypes}
+          availableTypesLoading={availableTypesLoading}
+          hideTypeFilter={hideTypeFilter}
+          sort={{ columnKey: sort.columnKey, direction: sort.direction }}
+          setSort={(newSort) => setSort(newSort)}
+          sortableKeys={sortableKeys}
+          propertyLabels={propertyLabels}
+          resultCount={totalResultCount}
+          loading={dataLoading}
+          onClear={filterIsModified ? clearFilters : undefined}
+        />
+      )}
       <Box ref={contentTopRef} />
       {!subgraph || !closedMultiEntityTypesRootMap ? (
         <Stack
@@ -640,8 +683,6 @@ export const EntitiesVisualizer: FunctionComponent<{
           subgraph={subgraph}
           tableData={visualizerData.tableData}
           totalResultCount={totalResultCount}
-          typeIds={typeIds}
-          typeTitles={typeTitles}
           webIds={webIds}
         />
       )}

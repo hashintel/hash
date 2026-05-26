@@ -43,6 +43,13 @@ type UseEntityTypeEntitiesQueryParams = {
   webIds?: WebId[];
   limit?: number;
   sort?: EntityQuerySortingRecord;
+  /**
+   * Optional precomputed Graph API filter. When provided, it replaces the
+   * filter that this hook would otherwise build from `webIds`,
+   * `entityTypeBaseUrl`, `entityTypeIds` and `includeArchived` -- those
+   * params are then ignored for the purposes of filtering.
+   */
+  filterOverride?: Filter;
 };
 
 export const generateUseEntityTypeEntitiesFilter = ({
@@ -171,6 +178,7 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
   traversalPaths,
   includeArchived,
   sort,
+  filterOverride,
   ...rest
 }: UseEntityTypeEntitiesQueryParams): QueryEntitySubgraphQueryVariables => {
   return {
@@ -182,12 +190,14 @@ const generateUseEntityTypeEntitiesQueryVariables = ({
       includeTypeIds: true,
       includeTypeTitles: true,
       includeWebIds: true,
-      filter: generateUseEntityTypeEntitiesFilter({
-        includeArchived,
-        webIds,
-        entityTypeBaseUrl,
-        entityTypeIds,
-      }),
+      filter:
+        filterOverride ??
+        generateUseEntityTypeEntitiesFilter({
+          includeArchived,
+          webIds,
+          entityTypeBaseUrl,
+          entityTypeIds,
+        }),
       traversalPaths,
       sortingPaths: sort ? [sort] : undefined,
       /**

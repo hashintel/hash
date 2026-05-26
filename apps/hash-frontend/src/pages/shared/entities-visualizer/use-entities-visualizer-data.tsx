@@ -23,6 +23,7 @@ import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
+  Filter,
 } from "@local/hash-graph-client";
 
 export type EntitiesVisualizerData = Partial<
@@ -65,6 +66,11 @@ export const useEntitiesVisualizerData = (params: {
   webIds?: WebId[];
   sort?: EntityQuerySortingRecord;
   view: VisualizerView;
+  /**
+   * Precomputed Graph API filter, replacing the one this hook would build
+   * from webIds/entityTypeBaseUrl/entityTypeIds/includeArchived.
+   */
+  filterOverride?: Filter;
 }): EntitiesVisualizerData => {
   const {
     conversions,
@@ -77,6 +83,7 @@ export const useEntitiesVisualizerData = (params: {
     webIds: webIdsParam,
     sort,
     view,
+    filterOverride,
   } = params;
 
   const { tableData, updateTableData } = useEntitiesTableData({
@@ -108,6 +115,7 @@ export const useEntitiesVisualizerData = (params: {
       includeArchived,
       limit,
       webIds: webIdsParam,
+      filterOverride,
       traversalPaths:
         view === "Graph"
           ? /**
