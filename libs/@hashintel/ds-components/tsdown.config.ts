@@ -12,8 +12,10 @@ const componentEntries = Object.fromEntries(
 
 export default defineConfig({
   clean: true,
+  deps: {
+    neverBundle: ["typescript", "pkg-types"],
+  },
   dts: true,
-  external: ["typescript", "pkg-types"],
   entry: {
     main: "./src/main.ts",
     preset: "./src/preset.ts",
