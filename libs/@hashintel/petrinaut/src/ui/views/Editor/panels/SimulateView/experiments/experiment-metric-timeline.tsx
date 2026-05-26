@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 
 import { css } from "@hashintel/ds-helpers/css";
@@ -16,6 +16,11 @@ type DistributionMetricFrame = Extract<
   MetricFrame,
   { outputType: "distribution" }
 >;
+type DistributionFrameKey = {
+  metricId: string;
+  frameNumber: number;
+  time: number;
+};
 
 const rootStyle = css({
   display: "flex",
@@ -53,6 +58,12 @@ const chartStyle = css({
   minHeight: "[260px]",
   width: "full",
   minWidth: "[0]",
+  _empty: {
+    cursor: "default",
+  },
+  "& .u-over": {
+    cursor: "crosshair",
+  },
 });
 
 const footerStyle = css({
@@ -86,6 +97,87 @@ const emptyStyle = css({
   height: "[160px]",
   fontSize: "sm",
   color: "neutral.s80",
+});
+
+const distributionDetailStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+  paddingTop: "2",
+  borderTopWidth: "[1px]",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.bd.subtle",
+});
+
+const distributionDetailHeaderStyle = css({
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  gap: "3",
+});
+
+const distributionDetailTitleStyle = css({
+  fontSize: "xs",
+  fontWeight: "semibold",
+  color: "neutral.s120",
+});
+
+const distributionDetailMetaStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+  whiteSpace: "nowrap",
+});
+
+const histogramRowsStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  maxHeight: "[240px]",
+  overflowY: "auto",
+  padding: "2",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "sm",
+  backgroundColor: "neutral.s10",
+});
+
+const histogramRowStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[84px minmax(0, 1fr) 56px]",
+  alignItems: "center",
+  gap: "2",
+  minHeight: "[20px]",
+});
+
+const histogramValueStyle = css({
+  fontSize: "xs",
+  fontVariantNumeric: "tabular-nums",
+  color: "neutral.s90",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const histogramTrackStyle = css({
+  height: "[10px]",
+  minWidth: "[0]",
+  borderRadius: "full",
+  backgroundColor: "neutral.s30",
+  overflow: "hidden",
+});
+
+const histogramBarStyle = css({
+  height: "full",
+  borderRadius: "full",
+  backgroundColor: "neutral.s120",
+});
+
+const histogramFrequencyStyle = css({
+  fontSize: "xs",
+  fontVariantNumeric: "tabular-nums",
+  color: "neutral.s100",
+  textAlign: "right",
 });
 
 function isScalarMetricFrame(frame: MetricFrame): frame is ScalarMetricFrame {
@@ -205,6 +297,7 @@ function chartOptions(
     padding: [0, 8, 4, null],
     cursor: {
       drag: { x: false, y: false, setScale: false },
+      lock: outputType === "distribution",
     },
     legend: {
       show: false,
@@ -314,6 +407,58 @@ function formatFrameSampleCount(frame: MetricFrame): string {
   return `${sampleCount} run${sampleCount === 1 ? "" : "s"}`;
 }
 
+const DistributionFrameHistogram = ({
+  frame,
+}: {
+  frame: DistributionMetricFrame;
+}) => {
+  const sampleCount = sampleCountFromBins(frame.bins);
+  const maxFrequency = Math.max(
+    0,
+    ...frame.bins.map(([, frequency]) => frequency),
+  );
+
+  return (
+    <div className={distributionDetailStyle}>
+      <div className={distributionDetailHeaderStyle}>
+        <span className={distributionDetailTitleStyle}>
+          Distribution at {formatNumber(frame.time)}s
+        </span>
+        <span className={distributionDetailMetaStyle}>
+          Frame {frame.frameNumber} - {sampleCount} sample
+          {sampleCount === 1 ? "" : "s"} - {frame.bins.length} bin
+          {frame.bins.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className={histogramRowsStyle}>
+        {frame.bins.map(([value, frequency]) => {
+          const width =
+            maxFrequency === 0
+              ? 0
+              : Math.max(2, (frequency / maxFrequency) * 100);
+
+          return (
+            <div key={value} className={histogramRowStyle}>
+              <span className={histogramValueStyle} title={formatNumber(value)}>
+                {formatNumber(value)}
+              </span>
+              <div className={histogramTrackStyle}>
+                <div
+                  className={histogramBarStyle}
+                  style={{ width: `${width}%` }}
+                />
+              </div>
+              <span className={histogramFrequencyStyle}>
+                {formatNumber(frequency)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export const ExperimentMetricTimeline = ({
   frames,
 }: {
@@ -322,10 +467,23 @@ export const ExperimentMetricTimeline = ({
   const rootRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
   const size = useElementSize(rootRef, { debounce: 50 });
+  const [selectedDistributionFrameKey, setSelectedDistributionFrameKey] =
+    useState<DistributionFrameKey | null>(null);
   const latestFrame = frames.at(-1);
   const outputType = latestFrame?.outputType ?? "scalar";
+  const distributionFrames = frames.filter(isDistributionMetricFrame);
+  const selectedDistributionFrame =
+    outputType === "distribution" && selectedDistributionFrameKey
+      ? (distributionFrames.find(
+          (frame) =>
+            frame.metricId === selectedDistributionFrameKey.metricId &&
+            frame.frameNumber === selectedDistributionFrameKey.frameNumber &&
+            frame.time === selectedDistributionFrameKey.time,
+        ) ?? null)
+      : null;
   const data = buildMetricTimelineData(frames, outputType);
   const latestDataRef = useRef(data);
+  const latestDistributionFramesRef = useRef(distributionFrames);
   const hasData = data[0]!.length > 0;
   const legendItems =
     outputType === "distribution" ? distributionLegendItems : scalarLegendItems;
@@ -333,6 +491,10 @@ export const ExperimentMetricTimeline = ({
   useEffect(() => {
     latestDataRef.current = data;
   }, [data]);
+
+  useEffect(() => {
+    latestDistributionFramesRef.current = distributionFrames;
+  }, [distributionFrames]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -353,7 +515,28 @@ export const ExperimentMetricTimeline = ({
     plot.setData(latestDataRef.current);
     plotRef.current = plot;
 
+    const handleClick = (event: MouseEvent) => {
+      if (outputType !== "distribution") {
+        return;
+      }
+
+      const overRect = plot.over.getBoundingClientRect();
+      const idx = plot.posToIdx(event.clientX - overRect.left, false);
+      const frame = latestDistributionFramesRef.current[idx];
+
+      if (frame) {
+        setSelectedDistributionFrameKey({
+          metricId: frame.metricId,
+          frameNumber: frame.frameNumber,
+          time: frame.time,
+        });
+      }
+    };
+
+    plot.over.addEventListener("click", handleClick);
+
     return () => {
+      plot.over.removeEventListener("click", handleClick);
       plotRef.current = null;
       plot.destroy();
     };
@@ -398,6 +581,9 @@ export const ExperimentMetricTimeline = ({
           {formatFrameSampleCount(latestFrame)}
         </span>
       </div>
+      {selectedDistributionFrame ? (
+        <DistributionFrameHistogram frame={selectedDistributionFrame} />
+      ) : null}
     </div>
   );
 };
