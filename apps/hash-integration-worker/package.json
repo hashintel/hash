@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rimraf ./dist/ && tsc -p tsconfig.build.json && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-integration-worker --file ./docker/Dockerfile ../../ --load",
-    "dev": "NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
+    "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
     "exe": "tsx",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
