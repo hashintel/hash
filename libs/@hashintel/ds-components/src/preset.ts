@@ -200,7 +200,17 @@ export function createPreset(options?: PresetOptions) {
         },
         colorPalette: {
           enabled: true,
-          include: ["bg.*", "bgSolid.*", "fg.*", "bd.*", "status.*"],
+          include: [
+            "bg.*",
+            "bgSolid.*",
+            "fg.*",
+            "bd.*",
+            "status.*",
+            "*.bg.*",
+            "*.bgSolid.*",
+            "*.fg.*",
+            "*.bd.*",
+          ],
         },
       },
     },
