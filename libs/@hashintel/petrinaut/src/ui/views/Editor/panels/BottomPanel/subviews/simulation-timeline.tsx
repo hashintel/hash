@@ -246,7 +246,7 @@ const TimelineViewPicker: React.FC = () => {
       <div style={{ display: "flex" }}>
         {selectedMetric && (
           <Button
-            size="sm"
+            size="xs"
             variant="ghost"
             aria-label="Edit metric"
             tooltip="Edit Metric"
@@ -255,7 +255,7 @@ const TimelineViewPicker: React.FC = () => {
           />
         )}
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           aria-label="Create metric"
           tooltip="Create Metric"
@@ -263,7 +263,7 @@ const TimelineViewPicker: React.FC = () => {
           onClick={() => setIsCreateOpen(true)}
         />
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           aria-label="Manage metrics"
           tooltip="Manage Metrics"
@@ -328,7 +328,7 @@ function createEmptyStore(places: PlaceMeta[]): StreamingStore {
  */
 type SeriesExtractor = (
   frame: SimulationFrameReader,
-  seriesIdx: number,
+  seriesIdx: number
 ) => number;
 
 const UNTYPED_COLOR = "#94a3b8"; // slate-400
@@ -358,9 +358,9 @@ function useStreamingData(): {
   const selectedMetric = useMemo(
     () =>
       timelineView.kind === "metric"
-        ? (metrics.find((m) => m.id === timelineView.metricId) ?? null)
+        ? metrics.find((m) => m.id === timelineView.metricId) ?? null
         : null,
-    [timelineView, metrics],
+    [timelineView, metrics]
   );
 
   // Compile the selected metric. Recompiles only when its code changes.
@@ -608,12 +608,12 @@ function useStreamingData(): {
   ]);
 
   const [streamingStore] = useState(() =>
-    createValueStore<StreamingStore>(createEmptyStore(seriesConfig.series)),
+    createValueStore<StreamingStore>(createEmptyStore(seriesConfig.series))
   );
   const store = useSyncExternalStore(
     (listener) => streamingStore.subscribe(listener),
     () => streamingStore.getSnapshot(),
-    () => streamingStore.getSnapshot(),
+    () => streamingStore.getSnapshot()
   );
   const processedRef = useRef(0);
   const [, setRevision] = useState(0);
@@ -699,7 +699,7 @@ function useStreamingData(): {
 function buildRunData(
   store: StreamingStore,
   hiddenPlaces: Set<string>,
-  length = store.length,
+  length = store.length
 ): uPlot.AlignedData {
   const result: (number | null | undefined)[][] = [store.columns[0]!];
   for (let i = 0; i < store.places.length; i++) {
@@ -717,7 +717,7 @@ function buildRunData(
 function buildStackedData(
   store: StreamingStore,
   hiddenPlaces: Set<string>,
-  length = store.length,
+  length = store.length
 ): uPlot.AlignedData {
   const visible = store.places
     .map((p, i) => ({ ...p, colIdx: i + 1 }))
@@ -790,7 +790,7 @@ function hitTestStackedBand(
   store: StreamingStore,
   hiddenPlaces: Set<string>,
   idx: number,
-  yVal: number,
+  yVal: number
 ): { placeIdx: number; value: number } | null {
   if (yVal < 0) {
     return null;
@@ -827,7 +827,7 @@ function resolveHoverTarget(
   store: StreamingStore,
   chartType: TimelineChartType,
   hiddenPlaces: Set<string>,
-  focusedSeriesIdx: number,
+  focusedSeriesIdx: number
 ): HoverHit | null {
   const idx = u.cursor.idx;
   if (idx == null || idx < 0 || store.length === 0) {
@@ -846,7 +846,7 @@ function resolveHoverTarget(
       store,
       hiddenPlaces,
       idx,
-      u.posToVal(top, "y"),
+      u.posToVal(top, "y")
     );
     if (!hit) {
       return null;
@@ -1005,7 +1005,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
       currentStore,
       chartType,
       hiddenPlaces,
-      focused,
+      focused
     );
     if (!hit) {
       t.root.style.display = "none";
@@ -1143,7 +1143,7 @@ function buildUPlotOptions(opts: ChartOptions): uPlot.Options {
  */
 function attachRulerScrubbing(
   u: uPlot,
-  onScrub: (frameIndex: number) => void,
+  onScrub: (frameIndex: number) => void
 ): () => void {
   let dragging = false;
   let overRect: DOMRect | null = null;
@@ -1166,7 +1166,7 @@ function attachRulerScrubbing(
     if (dragging && overRect) {
       const x = Math.max(
         0,
-        Math.min(e.clientX - overRect.left, overRect.width),
+        Math.min(e.clientX - overRect.left, overRect.width)
       );
       onScrub(u.posToIdx(x));
     }
@@ -1241,7 +1241,7 @@ const UPlotChart: React.FC<{
       chartType === "stacked"
         ? buildStackedData(store, hiddenPlaces, dataLength)
         : buildRunData(store, hiddenPlaces, dataLength),
-    [store, dataLength, chartType, hiddenPlaces],
+    [store, dataLength, chartType, hiddenPlaces]
   );
 
   // -- Effect 1: create/destroy uPlot on structural changes -------------------
