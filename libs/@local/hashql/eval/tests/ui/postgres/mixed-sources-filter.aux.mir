@@ -2,7 +2,7 @@ fn {graph::read::filter@13}(%0: (), %1: ::graph::types::knowledge::entity::Entit
     let %2: Boolean
 
     bb0(): {                                                                    // postgres
-        %2 = !%1.metadata.archived
+        %2 = ~%1.metadata.archived
 
         return %2
     }

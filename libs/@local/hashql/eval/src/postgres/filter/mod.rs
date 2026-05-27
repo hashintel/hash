@@ -24,8 +24,8 @@ use alloc::alloc::Global;
 use core::alloc::Allocator;
 
 use hash_graph_postgres_store::store::postgres::query::{
-    self, BinaryExpression, BinaryOperator, Expression, PostgresType, UnaryExpression,
-    UnaryOperator,
+    self, BinaryExpression, BinaryOperator, Expression, Function, PostgresType, UnaryExpression,
+    UnaryOperator, VariadicExpression, VariadicOperator,
 };
 use hashql_core::{
     graph::Predecessors as _,
@@ -36,7 +36,7 @@ use hashql_core::{
     span::SpanId,
 };
 use hashql_diagnostics::DiagnosticIssues;
-use hashql_hir::node::operation::{InputOp, UnOp};
+use hashql_hir::node::operation::InputOp;
 use hashql_mir::{
     body::{
         Body,
@@ -45,7 +45,7 @@ use hashql_mir::{
         local::{Local, LocalSnapshotVec},
         operand::Operand,
         place::{FieldIndex, Place, Projection, ProjectionKind},
-        rvalue::{Aggregate, AggregateKind, Apply, BinOp, Binary, Input, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, Apply, BinOp, Binary, Input, RValue, UnOp, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{Goto, Return, SwitchInt, SwitchTargets, Target, TerminatorKind},
     },
@@ -55,11 +55,12 @@ use hashql_mir::{
 use super::{
     DatabaseContext,
     error::{
-        closure_aggregate, closure_application, entity_path_resolution, function_pointer_constant,
-        graph_read_terminator, invalid_env_access, invalid_env_projection, projected_assignment,
-        unsupported_vertex_type,
+        ambiguous_integer_type, closure_aggregate, closure_application, entity_path_resolution,
+        function_pointer_constant, graph_read_terminator, invalid_env_access,
+        invalid_env_projection, projected_assignment, unsupported_vertex_type,
     },
     traverse::eval_entity_path,
+    types::{IntegerType, integer_type},
 };
 use crate::{context::EvalContext, error::EvalDiagnosticIssues};
 
@@ -410,13 +411,20 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         &mut self,
         db: &mut DatabaseContext<'heap, A>,
         span: SpanId,
-        Unary { op, operand }: &Unary<'heap>,
+        unary @ Unary { op, operand }: &Unary<'heap>,
     ) -> Expression {
         let operand = self.compile_operand(db, span, operand);
 
         let op = match *op {
-            UnOp::Not => UnaryOperator::Not,
-            UnOp::BitNot => UnaryOperator::BitwiseNot,
+            UnOp::BitNot => match integer_type(self.context.env, self.body, &unary.operand) {
+                Some(IntegerType::Boolean) => UnaryOperator::Not,
+                Some(IntegerType::Integer) => UnaryOperator::BitwiseNot,
+                None => {
+                    self.diagnostics
+                        .push(ambiguous_integer_type(span, UnOp::BitNot.as_str()));
+                    return Expression::Constant(query::Constant::Null);
+                }
+            },
             UnOp::Neg => UnaryOperator::Negate,
         };
 
@@ -430,46 +438,95 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> GraphReadFilterCompiler<'ctx, 'hea
         &mut self,
         db: &mut DatabaseContext<'heap, A>,
         span: SpanId,
-        Binary { op, left, right }: &Binary<'heap>,
+        binary @ Binary { op, left, right }: &Binary<'heap>,
     ) -> Expression {
-        let mut left = self.compile_operand(db, span, left);
-        let mut right = self.compile_operand(db, span, right);
+        struct Operands {
+            left: Expression,
+            right: Expression,
+        }
+
+        impl Operands {
+            fn cast(self, r#type: PostgresType) -> Self {
+                Self {
+                    left: self.left.grouped().cast(r#type.clone()),
+                    right: self.right.grouped().cast(r#type),
+                }
+            }
+
+            fn call(self, function: fn(Box<Expression>) -> Function) -> Self {
+                Self {
+                    left: Expression::Function(function(Box::new(self.left))),
+                    right: Expression::Function(function(Box::new(self.right))),
+                }
+            }
+
+            fn binary(self, op: BinaryOperator) -> Expression {
+                Expression::Binary(BinaryExpression {
+                    op,
+                    left: Box::new(self.left),
+                    right: Box::new(self.right),
+                })
+            }
+
+            fn variadic(self, op: VariadicOperator) -> Expression {
+                Expression::Variadic(VariadicExpression {
+                    op,
+                    exprs: vec![self.left, self.right],
+                })
+            }
+        }
+
+        let left = self.compile_operand(db, span, left);
+        let right = self.compile_operand(db, span, right);
+        let operands = Operands { left, right };
 
         // Operands coming from jsonb extraction are untyped from Postgres' perspective.
         // Arithmetic and bitwise operators need explicit casts; comparisons work on jsonb
         // directly.
-        let (op, cast, function) = match *op {
-            BinOp::Add => (BinaryOperator::Add, Some(PostgresType::Numeric), None),
-            BinOp::Sub => (BinaryOperator::Subtract, Some(PostgresType::Numeric), None),
-            BinOp::BitAnd => (BinaryOperator::BitwiseAnd, Some(PostgresType::BigInt), None),
-            BinOp::BitOr => (BinaryOperator::BitwiseOr, Some(PostgresType::BigInt), None),
-            BinOp::Eq => (BinaryOperator::Equal, None, Some(query::Function::ToJson)),
-            BinOp::Ne => (
-                BinaryOperator::NotEqual,
-                None,
-                Some(query::Function::ToJson),
-            ),
-            BinOp::Lt => (BinaryOperator::Less, None, None),
-            BinOp::Lte => (BinaryOperator::LessOrEqual, None, None),
-            BinOp::Gt => (BinaryOperator::Greater, None, None),
-            BinOp::Gte => (BinaryOperator::GreaterOrEqual, None, None),
-        };
-
-        if let Some(target) = cast {
-            left = left.grouped().cast(target.clone());
-            right = right.grouped().cast(target);
+        match *op {
+            BinOp::Add => operands
+                .cast(PostgresType::Numeric)
+                .binary(BinaryOperator::Add),
+            BinOp::Sub => operands
+                .cast(PostgresType::Numeric)
+                .binary(BinaryOperator::Subtract),
+            BinOp::BitAnd => match integer_type(self.context.env, self.body, &binary.left) {
+                Some(IntegerType::Integer) => operands
+                    .cast(PostgresType::BigInt)
+                    .binary(BinaryOperator::BitwiseAnd),
+                Some(IntegerType::Boolean) => operands
+                    .cast(PostgresType::Boolean)
+                    .variadic(VariadicOperator::And),
+                None => {
+                    self.diagnostics
+                        .push(ambiguous_integer_type(span, BinOp::BitAnd.as_str()));
+                    Expression::Constant(query::Constant::Null)
+                }
+            },
+            BinOp::BitOr => match integer_type(self.context.env, self.body, &binary.left) {
+                Some(IntegerType::Integer) => operands
+                    .cast(PostgresType::BigInt)
+                    .binary(BinaryOperator::BitwiseOr),
+                Some(IntegerType::Boolean) => operands
+                    .cast(PostgresType::Boolean)
+                    .variadic(VariadicOperator::Or),
+                None => {
+                    self.diagnostics
+                        .push(ambiguous_integer_type(span, BinOp::BitOr.as_str()));
+                    Expression::Constant(query::Constant::Null)
+                }
+            },
+            BinOp::Eq => operands
+                .call(query::Function::ToJson)
+                .binary(BinaryOperator::Equal),
+            BinOp::Ne => operands
+                .call(query::Function::ToJson)
+                .binary(BinaryOperator::NotEqual),
+            BinOp::Lt => operands.binary(BinaryOperator::Less),
+            BinOp::Lte => operands.binary(BinaryOperator::LessOrEqual),
+            BinOp::Gt => operands.binary(BinaryOperator::Greater),
+            BinOp::Gte => operands.binary(BinaryOperator::GreaterOrEqual),
         }
-
-        if let Some(function) = function {
-            left = Expression::Function(function(Box::new(left)));
-            right = Expression::Function(function(Box::new(right)));
-        }
-
-        Expression::Binary(BinaryExpression {
-            op,
-            left: Box::new(left),
-            right: Box::new(right),
-        })
     }
 
     fn compile_input(

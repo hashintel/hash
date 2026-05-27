@@ -14,7 +14,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Boolean {
         %3 = 20                                                                 // cost: 4
         %4 = %2 + %3                                                            // cost: 4
         %5 = %4 > 15                                                            // cost: 4
-        %6 = !%5                                                                // cost: 4
+        %6 = ~%5                                                                // cost: 4
 
         return %6                                                               // cost: 4
     }
