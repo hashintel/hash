@@ -1,9 +1,4 @@
-#![expect(
-    non_upper_case_globals,
-    non_snake_case,
-    clippy::min_ident_chars,
-    clippy::inline_modules
-)]
+#![expect(non_upper_case_globals, non_snake_case, clippy::min_ident_chars)]
 use super::Symbol;
 
 hashql_macros::define_symbols! {

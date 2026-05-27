@@ -13,7 +13,6 @@
 //! to ensure data integrity.
 #![expect(
     clippy::ref_option,
-    clippy::inline_modules,
     reason = "serde requires &Option<_> not Option<&_>"
 )]
 

@@ -717,7 +717,7 @@ impl JoinSemiLattice<EntityPathBitSet> for TraversalLattice {
     }
 }
 
-impl const core::ops::Deref for EntityPathBitSet {
+const impl core::ops::Deref for EntityPathBitSet {
     type Target = FiniteBitSet<EntityPath, FiniteBitSetWidth>;
 
     #[inline]

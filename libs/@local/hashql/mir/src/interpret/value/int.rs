@@ -352,7 +352,7 @@ impl Hash for Int {
     }
 }
 
-impl const From<bool> for Int {
+const impl From<bool> for Int {
     #[inline]
     fn from(value: bool) -> Self {
         Self::from_bool(value)
@@ -374,21 +374,21 @@ macro_rules! impl_from_int {
 
 impl_from_int!(u8, u16, u32, u64, i8, i16, i32, i64, i128);
 
-impl const From<usize> for Int {
+const impl From<usize> for Int {
     #[inline]
     fn from(value: usize) -> Self {
         Self::from_i128(value as i128)
     }
 }
 
-impl const From<isize> for Int {
+const impl From<isize> for Int {
     #[inline]
     fn from(value: isize) -> Self {
         Self::from_i128(value as i128)
     }
 }
 
-impl const TryFrom<u128> for Int {
+const impl TryFrom<u128> for Int {
     type Error = TryFromIntError;
 
     #[inline]

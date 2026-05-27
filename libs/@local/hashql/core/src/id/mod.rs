@@ -199,7 +199,7 @@ pub const trait HasId {
     fn id(&self) -> Self::Id;
 }
 
-impl<T> const HasId for &T
+const impl<T> HasId for &T
 where
     T: [const] HasId,
 {
@@ -210,7 +210,7 @@ where
     }
 }
 
-impl<I, T> const HasId for (I, T)
+const impl<I, T> HasId for (I, T)
 where
     I: Id,
 {

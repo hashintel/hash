@@ -34,7 +34,6 @@ mod state;
 #[cfg(feature = "macros")]
 #[doc(hidden)]
 pub mod __export {
-    #![expect(clippy::inline_modules)]
     pub extern crate alloc;
     // `Error-stack` is required for the return value of the `up` and `down` methods in the
     // `Migration` trait.

@@ -355,7 +355,7 @@ impl<S> Messages<S> {
     }
 }
 
-impl<S> const Default for Messages<S> {
+const impl<S> Default for Messages<S> {
     fn default() -> Self {
         Self::new()
     }

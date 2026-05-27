@@ -204,7 +204,7 @@ impl<'source> Sources<'source> {
     }
 }
 
-impl const Default for Sources<'_> {
+const impl Default for Sources<'_> {
     fn default() -> Self {
         Self::new()
     }

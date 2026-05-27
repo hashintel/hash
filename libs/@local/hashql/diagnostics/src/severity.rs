@@ -439,7 +439,7 @@ impl Severity {
     }
 }
 
-impl const SeverityKind for Severity {
+const impl SeverityKind for Severity {
     fn is_critical(self) -> bool {
         self.code() >= 400
     }
@@ -578,7 +578,7 @@ impl Critical {
     }
 }
 
-impl const SeverityKind for Critical {
+const impl SeverityKind for Critical {
     fn is_critical(self) -> bool {
         true
     }
@@ -606,7 +606,7 @@ impl PartialOrd for Critical {
     }
 }
 
-impl const From<Critical> for Severity {
+const impl From<Critical> for Severity {
     fn from(severity: Critical) -> Self {
         severity.0
     }
@@ -716,7 +716,7 @@ impl Advisory {
     }
 }
 
-impl const SeverityKind for Advisory {
+const impl SeverityKind for Advisory {
     fn is_critical(self) -> bool {
         false
     }
@@ -744,7 +744,7 @@ impl PartialOrd for Advisory {
     }
 }
 
-impl const From<Advisory> for Severity {
+const impl From<Advisory> for Severity {
     fn from(severity: Advisory) -> Self {
         severity.0
     }
