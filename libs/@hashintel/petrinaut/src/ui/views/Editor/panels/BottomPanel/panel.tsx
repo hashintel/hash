@@ -1,5 +1,6 @@
 import { use, useEffect, useRef } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../react/simulation/context";
@@ -8,7 +9,6 @@ import {
   EditorContext,
 } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
-import { Button } from "../../../../components/button";
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
   HorizontalTabsContent,
@@ -185,7 +185,6 @@ export const BottomPanel: React.FC = () => {
             onClick={toggleBottomPanel}
             aria-label="Close panel"
             tooltip="Close panel"
-            tooltipDisplay="inline"
             iconName="close"
           />
         </div>

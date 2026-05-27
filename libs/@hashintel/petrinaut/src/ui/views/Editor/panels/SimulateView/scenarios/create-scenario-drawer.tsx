@@ -1,12 +1,12 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { scenarioSchema, type Color } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import {

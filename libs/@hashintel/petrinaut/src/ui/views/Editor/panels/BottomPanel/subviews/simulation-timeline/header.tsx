@@ -1,5 +1,6 @@
 import { use, useState } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -8,7 +9,6 @@ import {
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { Button } from "../../../../../../components/button";
 import { SegmentGroup } from "../../../../../../components/segment-group";
 import { Select } from "../../../../../../components/select";
 import { CreateMetricDrawer } from "../../../SimulateView/metrics/create-metric-drawer";
@@ -124,7 +124,6 @@ const TimelineViewPicker: React.FC = () => {
             variant="ghost"
             aria-label="Edit metric"
             tooltip="Edit Metric"
-            tooltipDisplay="inline"
             iconName="pencil"
             onClick={() => setIsViewOpen(true)}
           />
@@ -134,7 +133,6 @@ const TimelineViewPicker: React.FC = () => {
           variant="ghost"
           aria-label="Create metric"
           tooltip="Create Metric"
-          tooltipDisplay="inline"
           iconName="plus"
           onClick={() => setIsCreateOpen(true)}
         />
@@ -143,7 +141,6 @@ const TimelineViewPicker: React.FC = () => {
           variant="ghost"
           aria-label="Manage metrics"
           tooltip="Manage Metrics"
-          tooltipDisplay="inline"
           iconName="list"
           onClick={() => {
             setSimulateViewMode("metrics");

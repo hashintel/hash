@@ -96,7 +96,6 @@ use hashql_core::{
     id::IdVec,
     r#type::{environment::Environment, kind::PrimitiveType},
 };
-use hashql_hir::node::operation::UnOp;
 
 use super::copy_propagation::propagate_block_params;
 use crate::{
@@ -107,7 +106,7 @@ use crate::{
         location::Location,
         operand::Operand,
         place::Place,
-        rvalue::{Aggregate, AggregateKind, BinOp, Binary, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, BinOp, Binary, RValue, UnOp, Unary},
         statement::Assign,
     },
     context::MirContext,
@@ -273,9 +272,7 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
     /// Evaluates a unary operation on a constant integer.
     fn eval_un_op(op: UnOp, operand: Int) -> Int {
         match op {
-            // Both Not and BitNot use the `!` operator, which dispatches on size:
-            // booleans get logical NOT, integers get bitwise NOT.
-            UnOp::Not | UnOp::BitNot => !operand,
+            UnOp::BitNot => !operand,
             UnOp::Neg => Int::from(-operand.as_int()),
         }
     }
@@ -322,17 +319,17 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             (BinOp::BitOr, _) => None,
             // true == rhs => rhs (boolean equivalence)
             (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
-            // false == rhs => !rhs (boolean equivalence)
+            // false == rhs => !rhs == ~rhs (boolean equivalence)
             (BinOp::Eq, 0) if is_bool => Some(RValue::Unary(Unary {
-                op: UnOp::Not,
+                op: UnOp::BitNot,
                 operand: Operand::Place(rhs),
             })),
             (BinOp::Eq, _) => None,
             // false != rhs => rhs (boolean equivalence)
             (BinOp::Ne, 0) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
-            // true != rhs => !rhs (boolean equivalence)
+            // true != rhs => !rhs == ~rhs (boolean equivalence)
             (BinOp::Ne, 1) if is_bool => Some(RValue::Unary(Unary {
-                op: UnOp::Not,
+                op: UnOp::BitNot,
                 operand: Operand::Place(rhs),
             })),
             (BinOp::Ne, _) => None,
@@ -382,17 +379,17 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             (BinOp::BitOr, _) => None,
             // lhs == true => lhs (boolean equivalence)
             (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
-            // lhs == false => !lhs (boolean equivalence)
+            // lhs == false => !lhs == ~lhs (boolean equivalence)
             (BinOp::Eq, 0) if is_bool => Some(RValue::Unary(Unary {
-                op: UnOp::Not,
+                op: UnOp::BitNot,
                 operand: Operand::Place(lhs),
             })),
             (BinOp::Eq, _) => None,
             // lhs != false => lhs (boolean equivalence)
             (BinOp::Ne, 0) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
-            // lhs != true => !lhs (boolean equivalence)
+            // lhs != true => !lhs == ~lhs (boolean equivalence)
             (BinOp::Ne, 1) if is_bool => Some(RValue::Unary(Unary {
-                op: UnOp::Not,
+                op: UnOp::BitNot,
                 operand: Operand::Place(lhs),
             })),
             (BinOp::Ne, _) => None,

@@ -1,10 +1,9 @@
 import { Dialog as ArkDialog } from "@ark-ui/react/dialog";
 import { Portal } from "@ark-ui/react/portal";
 
+import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { usePortalContainerRef } from "../../react/state/portal-container-context";
-import { Button } from "./button";
 import {
   Body,
   Card as PanelCard,
@@ -94,7 +93,6 @@ const Card = ({ children }: { children: ReactNode }) => (
           size="sm"
           aria-label="Close"
           tooltip="Close"
-          tooltipDisplay="inline"
           iconName="close"
         />
       </ArkDialog.CloseTrigger>

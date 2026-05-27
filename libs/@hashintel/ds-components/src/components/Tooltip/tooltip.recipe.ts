@@ -18,7 +18,7 @@ export const contentStyles = cva({
     borderRadius: "md",
     paddingX: "2",
     paddingY: "1",
-    textStyle: "sm",
+    textStyle: "xs",
     maxWidth: "[300px]",
     wordWrap: "break-word",
   },

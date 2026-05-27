@@ -1,6 +1,6 @@
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Button } from "../../../components/button";
 import { Dialog, type DialogRootProps } from "../../../components/dialog";
 
 const errorTextStyle = css({

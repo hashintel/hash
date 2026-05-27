@@ -69,7 +69,7 @@ fn create_diamond_cfg<'heap>(
 
         bb0() {
             archived = load archived_proj;
-            cond = un.! archived;
+            cond = un.~ archived;
             if cond then bb1() else bb2();
         },
         bb1() {

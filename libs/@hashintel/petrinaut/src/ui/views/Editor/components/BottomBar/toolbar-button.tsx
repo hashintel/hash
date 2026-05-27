@@ -1,6 +1,5 @@
+import { Tooltip } from "@hashintel/ds-components";
 import { cva } from "@hashintel/ds-helpers/css";
-
-import { Tooltip } from "../../../../components/tooltip";
 
 import type { ReactNode } from "react";
 
@@ -88,7 +87,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   };
 
   return (
-    <Tooltip content={tooltip} display="inline">
+    <Tooltip content={tooltip}>
       <button
         type="button"
         onClick={onClick}

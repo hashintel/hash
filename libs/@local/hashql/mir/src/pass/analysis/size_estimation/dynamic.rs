@@ -14,7 +14,7 @@ use hashql_core::{
     id::{Id as _, bit_vec::DenseBitSet},
     r#type::environment::Environment,
 };
-use hashql_hir::node::operation::{InputOp, UnOp};
+use hashql_hir::node::operation::InputOp;
 
 use super::{
     footprint::{BodyFootprint, BodyFootprintSemilattice, Footprint},
@@ -29,7 +29,7 @@ use crate::{
         location::Location,
         operand::Operand,
         place::{Place, Projection, ProjectionKind},
-        rvalue::{Aggregate, Apply, ArgSlice, BinOp, Binary, Input, RValue, Unary},
+        rvalue::{Aggregate, Apply, ArgSlice, BinOp, Binary, Input, RValue, UnOp, Unary},
         statement::{Assign, Statement, StatementKind},
     },
     def::{DefId, DefIdSlice},
@@ -225,7 +225,7 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
                 right: _,
             }) => Eval::Footprint(Footprint::scalar()),
             RValue::Unary(Unary {
-                op: UnOp::BitNot | UnOp::Neg | UnOp::Not,
+                op: UnOp::BitNot | UnOp::Neg,
                 operand: _,
             }) => Eval::Footprint(Footprint::scalar()),
             RValue::Aggregate(Aggregate { kind: _, operands }) => {

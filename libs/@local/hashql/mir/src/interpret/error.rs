@@ -16,13 +16,12 @@ use hashql_diagnostics::{
     diagnostic::Message,
     severity::Severity,
 };
-use hashql_hir::node::operation::UnOp;
 
 use super::value::{Int, Ptr, Value, ValueTypeName};
 use crate::body::{
     local::{Local, LocalDecl},
     place::FieldIndex,
-    rvalue::BinOp,
+    rvalue::{BinOp, UnOp},
 };
 
 /// Type alias for interpreter diagnostics.

@@ -12,7 +12,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
     bb0(): {
         %2 = input LOAD a
         %3 = input LOAD b
-        %4 = %2 & %3
+        %4 = %2 | %3
 
         return %4
     }
@@ -22,7 +22,7 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> Integer {
 (
     ROW(
         COALESCE(
-            ((((($1::jsonb))::bigint) & ((($2::jsonb))::bigint))::boolean),
+            ((((($1::jsonb))::bigint) | ((($2::jsonb))::bigint))::boolean),
             FALSE
         ),
         NULL,

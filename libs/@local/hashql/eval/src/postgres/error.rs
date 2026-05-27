@@ -61,6 +61,11 @@ const GRAPH_READ_TERMINATOR: TerminalDiagnosticCategory = TerminalDiagnosticCate
     name: "Nested Graph Reads Not Supported in SQL",
 };
 
+const AMBIGUOUS_INTEGER_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "ambiguous-integer-type",
+    name: "Cannot Determine Integer Type for SQL Operator Selection",
+};
+
 const MISSING_ISLAND_GRAPH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "missing-island-graph",
     name: "Missing Island Graph for Body",
@@ -93,6 +98,13 @@ pub enum PostgresDiagnosticCategory {
     ProjectedAssignment,
     /// A nested graph read terminator reached the SQL backend.
     GraphReadTerminator,
+    /// The operand type could not be classified as boolean or integer for SQL operator
+    /// selection.
+    ///
+    /// Boolean and integer operations share a single MIR operator (e.g. `BitNot` covers both
+    /// logical `NOT` and bitwise `~`), but PostgreSQL requires distinct SQL operators. When the
+    /// operand type cannot be resolved, the compiler cannot select the correct SQL form.
+    AmbiguousIntegerType,
     /// Island analysis did not produce an island graph for a filter body.
     MissingIslandGraph,
 }
@@ -117,6 +129,7 @@ impl DiagnosticCategory for PostgresDiagnosticCategory {
             Self::FunctionPointerConstant => Some(&FUNCTION_POINTER_CONSTANT),
             Self::ProjectedAssignment => Some(&PROJECTED_ASSIGNMENT),
             Self::GraphReadTerminator => Some(&GRAPH_READ_TERMINATOR),
+            Self::AmbiguousIntegerType => Some(&AMBIGUOUS_INTEGER_TYPE),
             Self::MissingIslandGraph => Some(&MISSING_ISLAND_GRAPH),
         }
     }
@@ -286,6 +299,26 @@ pub(super) fn graph_read_terminator(span: SpanId) -> EvalDiagnostic {
     diagnostic.add_message(Message::note(
         "the statement placement pass should have rejected this from the Postgres backend",
     ));
+
+    diagnostic
+}
+
+#[coverage(off)]
+pub(super) fn ambiguous_integer_type(span: SpanId, operator: &str) -> EvalDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        category(PostgresDiagnosticCategory::AmbiguousIntegerType),
+        Severity::Bug,
+    )
+    .primary(Label::new(
+        span,
+        format!("cannot determine operand type for `{operator}`"),
+    ));
+
+    diagnostic.add_message(Message::note(format!(
+        "the `{operator}` operator compiles to different SQL depending on whether the operand is \
+         a boolean or an integer, but the type could not be resolved; this indicates a \
+         compiler/type-checking bug or an unanticipated type (e.g. a union produced by GVN)"
+    )));
 
     diagnostic
 }
