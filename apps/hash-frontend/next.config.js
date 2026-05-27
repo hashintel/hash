@@ -192,15 +192,7 @@ export default withSentryConfig(
         ],
       },
 
-      webpack: (webpackConfig, { isServer, dev }) => {
-        if (!dev) {
-          // Production builds disable webpack's filesystem cache to avoid a
-          // "No serializer registered for ConstDependency" failure caused by
-          // Yarn PnP loading multiple virtual instances of webpack in the
-          // pruned Docker install.
-          webpackConfig.cache = false;
-        }
-
+      webpack: (webpackConfig, { isServer }) => {
         webpackConfig.module.rules.push({
           test: /\.svg$/,
           use: ["@svgr/webpack"],
