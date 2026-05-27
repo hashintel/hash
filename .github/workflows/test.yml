@@ -296,7 +296,7 @@ jobs:
 
       - name: Launch external services
         working-directory: infra/compose
-        run: docker compose --profile dev up --wait
+        run: docker compose --profile dev up -d
 
       - name: Start background tasks
         id: background-tasks
