@@ -242,29 +242,29 @@ export const EditorView = ({
   const menuItems = [
     ...(!hideNetManagementControls
       ? [
-        {
-          id: "new",
-          label: "New",
-          onClick: handleNew,
-        },
-      ]
+          {
+            id: "new",
+            label: "New",
+            onClick: handleNew,
+          },
+        ]
       : []),
     ...(!hideNetManagementControls && Object.keys(existingNets).length > 0
       ? [
-        {
-          id: "open",
-          label: "Open",
-          submenu: existingNets.map((net) => ({
-            id: `open-${net.netId}`,
-            label: net.title,
-            suffix: formatRelativeTime(net.lastUpdated),
-            onClick: () => {
-              loadPetriNet(net.netId);
-              clearSelection();
-            },
-          })),
-        },
-      ]
+          {
+            id: "open",
+            label: "Open",
+            submenu: existingNets.map((net) => ({
+              id: `open-${net.netId}`,
+              label: net.title,
+              suffix: formatRelativeTime(net.lastUpdated),
+              onClick: () => {
+                loadPetriNet(net.netId);
+                clearSelection();
+              },
+            })),
+          },
+        ]
       : []),
     {
       id: "export",
@@ -289,12 +289,12 @@ export const EditorView = ({
     },
     ...(!hideNetManagementControls
       ? [
-        {
-          id: "import",
-          label: "Import",
-          onClick: handleImport,
-        },
-      ]
+          {
+            id: "import",
+            label: "Import",
+            onClick: handleImport,
+          },
+        ]
       : []),
     {
       id: "layout",
@@ -303,61 +303,61 @@ export const EditorView = ({
     },
     ...(!hideNetManagementControls
       ? [
-        {
-          id: "load-example",
-          label: "Load example",
-          submenu: [
-            {
-              id: "load-example-supply-chain-stochastic",
-              label: "Probabilistic Supply Chain",
-              onClick: () => {
-                createNewNet(supplyChainStochasticSDCPN);
-                clearSelection();
+          {
+            id: "load-example",
+            label: "Load example",
+            submenu: [
+              {
+                id: "load-example-supply-chain-stochastic",
+                label: "Probabilistic Supply Chain",
+                onClick: () => {
+                  createNewNet(supplyChainStochasticSDCPN);
+                  clearSelection();
+                },
               },
-            },
-            {
-              id: "load-example-satellites",
-              label: "Satellites",
-              onClick: () => {
-                createNewNet(satellitesSDCPN);
-                clearSelection();
+              {
+                id: "load-example-satellites",
+                label: "Satellites",
+                onClick: () => {
+                  createNewNet(satellitesSDCPN);
+                  clearSelection();
+                },
               },
-            },
-            {
-              id: "load-example-probabilistic-satellites",
-              label: "Probabilistic Satellites Launcher",
-              onClick: () => {
-                createNewNet(probabilisticSatellitesSDCPN);
-                clearSelection();
+              {
+                id: "load-example-probabilistic-satellites",
+                label: "Probabilistic Satellites Launcher",
+                onClick: () => {
+                  createNewNet(probabilisticSatellitesSDCPN);
+                  clearSelection();
+                },
               },
-            },
-            {
-              id: "load-example-production-machines",
-              label: "Production Machines",
-              onClick: () => {
-                createNewNet(productionMachines);
-                clearSelection();
+              {
+                id: "load-example-production-machines",
+                label: "Production Machines",
+                onClick: () => {
+                  createNewNet(productionMachines);
+                  clearSelection();
+                },
               },
-            },
-            {
-              id: "load-example-sir-model",
-              label: "SIR Model",
-              onClick: () => {
-                createNewNet(sirModel);
-                clearSelection();
+              {
+                id: "load-example-sir-model",
+                label: "SIR Model",
+                onClick: () => {
+                  createNewNet(sirModel);
+                  clearSelection();
+                },
               },
-            },
-            {
-              id: "load-example-deployment-pipeline",
-              label: "Deployment Pipeline",
-              onClick: () => {
-                createNewNet(deploymentPipelineSDCPN);
-                clearSelection();
+              {
+                id: "load-example-deployment-pipeline",
+                label: "Deployment Pipeline",
+                onClick: () => {
+                  createNewNet(deploymentPipelineSDCPN);
+                  clearSelection();
+                },
               },
-            },
-          ],
-        },
-      ]
+            ],
+          },
+        ]
       : []),
     {
       id: "docs",
