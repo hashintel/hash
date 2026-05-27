@@ -1,10 +1,4 @@
-import {
-  buildMetricState,
-  type CompiledMetric,
-  type Color,
-  type Metric,
-  type Place,
-} from "@hashintel/petrinaut-core";
+import { type Metric } from "@hashintel/petrinaut-core";
 
 import { DEFAULT_COLORS } from "../default-colors";
 
@@ -13,19 +7,19 @@ import type { TimelineSeriesConfig } from "../types";
 /**
  * Builds the timeline series for a user-authored metric.
  *
- * Metric views expose one plotted series and evaluate the compiled metric
- * against each incoming frame. Runtime metric errors become NaN so uPlot draws
- * a gap instead of crashing the timeline.
+ * Metric views expose one plotted series whose values are produced
+ * via the {@link MetricEvaluator} owned by the EvalSandbox. The
+ * `extract` here is only called for non-metric series in the streaming
+ * loop — the metric column is supplied directly by
+ * `use-streaming-data.ts` after a `evaluator.evaluateBatch(...)` call.
  */
 export function buildMetricSeriesConfig(args: {
   metric: Metric | null;
-  compiledMetric: CompiledMetric | null;
-  places: Place[];
-  types: Color[];
+  metricReady: boolean;
 }): TimelineSeriesConfig {
-  const { metric, compiledMetric, places, types } = args;
+  const { metric, metricReady } = args;
 
-  if (!metric || !compiledMetric) {
+  if (!metric || !metricReady) {
     return {
       series: [],
       extract: () => Number.NaN,
@@ -40,12 +34,8 @@ export function buildMetricSeriesConfig(args: {
         color: DEFAULT_COLORS[0]!,
       },
     ],
-    extract: (frame) => {
-      try {
-        return compiledMetric(buildMetricState(frame, places, types));
-      } catch {
-        return Number.NaN;
-      }
-    },
+    // Not used in metric mode — `use-streaming-data.ts` short-circuits
+    // to the precomputed column. Defined for type completeness.
+    extract: () => Number.NaN,
   };
 }

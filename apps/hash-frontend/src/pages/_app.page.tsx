@@ -76,6 +76,15 @@ type AppProps = {
 
 const unverifiedUserPermittedPagePathnames = ["/verification", "/signup"];
 
+/**
+ * The Petrinaut iframe eval sandbox loads from this pathname inside a
+ * sandboxed iframe — it intentionally bypasses the app's auth/theme
+ * providers and global CSS to keep the sandbox surface minimal.
+ *
+ * See `apps/hash-frontend/src/pages/petrinaut-sandbox.page.tsx`.
+ */
+const petrinautSandboxPathname = "/petrinaut-sandbox";
+
 const globalStyles = (
   <GlobalStyles
     styles={{
@@ -203,7 +212,17 @@ const App: FunctionComponent<AppProps> = ({
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
-  const { initialAuthenticatedUserSubgraph, user } = props;
+  const { Component, pageProps, initialAuthenticatedUserSubgraph, user } =
+    props;
+  const router = useRouter();
+
+  // The Petrinaut sandbox page is rendered inside a sandboxed iframe;
+  // it must NOT pull in Apollo, auth context, theme, snackbars, or
+  // any provider that triggers network requests. Short-circuit before
+  // those wrappers mount.
+  if (router.pathname === petrinautSandboxPathname) {
+    return <Component {...pageProps} />;
+  }
 
   return (
     <ApolloProvider client={apolloClient}>
@@ -273,6 +292,11 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   } = appContext;
 
   if (pathname === maintenanceRoute) {
+    return {};
+  }
+
+  // Sandbox iframe — skip auth fetch and redirect logic entirely.
+  if (pathname === petrinautSandboxPathname) {
     return {};
   }
 

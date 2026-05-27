@@ -1,14 +1,17 @@
 import "@hashintel/petrinaut/dist/main.css";
 import { Box, Stack } from "@mui/material";
+import * as Sentry from "@sentry/nextjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AlertModal } from "@hashintel/design-system";
 import {
   createJsonDocHandle,
+  ErrorTrackerContext,
   Petrinaut,
   type PetrinautDocHandle,
   type SDCPN,
 } from "@hashintel/petrinaut";
+import { createIframeSandbox } from "@hashintel/petrinaut/sandbox-iframe";
 
 import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
 import {
@@ -123,6 +126,57 @@ export const ProcessEditorWrapper = () => {
       }));
   }, [persistedNets, selectedNetId]);
 
+  /**
+   * Petrinaut surfaces user-code errors through `ErrorTrackerContext`;
+   * we point that at Sentry so any uncaught exceptions in user-authored
+   * scenarios/metrics/visualizers show up in the same dashboard as the
+   * rest of the app.
+   *
+   * The same callback is wired into `createIframeSandbox.onError` so
+   * errors that originate *inside* the sandbox iframe (forwarded over
+   * `postMessage` by the sandbox runtime's `error` / `unhandledrejection`
+   * listeners) also reach Sentry — the iframe itself has
+   * `connect-src 'none'`, so it can't report directly.
+   */
+  const errorTracker = useMemo(
+    () => ({
+      captureException: (error: unknown) => {
+        Sentry.captureException(error);
+      },
+    }),
+    [],
+  );
+
+  /**
+   * Build the iframe sandbox once per editor mount. User-authored
+   * code (scenarios, metrics, visualizers, simulation lambdas) runs
+   * inside `/petrinaut-sandbox` — a separate Next.js page served from
+   * an iframe with `sandbox="allow-scripts"` and a CSP that allows
+   * `unsafe-eval` but `connect-src 'none'`.
+   *
+   * See `apps/hash-frontend/src/pages/petrinaut-sandbox.page.tsx` and
+   * `apps/hash-frontend/src/lib/csp.ts` (`buildSandboxCspHeader`).
+   */
+  const evalSandbox = useMemo(
+    () =>
+      createIframeSandbox({
+        src: "/petrinaut-sandbox",
+        onError: (error, origin) => {
+          Sentry.captureException(error, {
+            tags: { petrinautSandbox: origin },
+          });
+        },
+      }),
+    [],
+  );
+
+  // Tear down the sandbox iframe(s) when the editor unmounts.
+  useEffect(() => {
+    return () => {
+      evalSandbox.dispose();
+    };
+  }, [evalSandbox]);
+
   return (
     <Stack sx={{ height: "100%" }}>
       {switchTargetPendingConfirmation && (
@@ -152,16 +206,19 @@ export const ProcessEditorWrapper = () => {
       />
 
       <Box sx={{ height: "100%" }}>
-        <Petrinaut
-          handle={handle}
-          createNewNet={createNewNet}
-          existingNets={existingNetOptions}
-          hideNetManagementControls={false}
-          loadPetriNet={(id) => loadNetFromId(id as EntityId)}
-          readonly={!userEditable}
-          setTitle={setTitle}
-          title={title}
-        />
+        <ErrorTrackerContext value={errorTracker}>
+          <Petrinaut
+            handle={handle}
+            createNewNet={createNewNet}
+            evalSandbox={evalSandbox}
+            existingNets={existingNetOptions}
+            hideNetManagementControls={false}
+            loadPetriNet={(id) => loadNetFromId(id as EntityId)}
+            readonly={!userEditable}
+            setTitle={setTitle}
+            title={title}
+          />
+        </ErrorTrackerContext>
       </Box>
     </Stack>
   );

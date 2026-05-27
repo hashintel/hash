@@ -9,12 +9,19 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
 export default defineConfig(({ command }) => ({
   build: {
     lib: {
-      // Three entry points: the legacy `main` (back-compat), plus the
-      // React/UI split per RFC 0001. Each emits its own JS + dts bundle.
+      // Entry points: the legacy `main` (back-compat), the React/UI
+      // split per RFC 0001, and the sandbox subpaths. Each emits its
+      // own JS + dts bundle. The sandbox-* entries let consumers
+      // import only the inline or iframe variant (and the runtime
+      // page-side entry) so e.g. the dedicated `/petrinaut-sandbox`
+      // page doesn't pull in the rest of the editor UI.
       entry: {
         main: "src/main.ts",
         react: "src/react/index.ts",
         ui: "src/ui/index.ts",
+        "sandbox-inline": "src/sandbox-inline/index.ts",
+        "sandbox-iframe": "src/sandbox-iframe/index.ts",
+        "sandbox-runtime": "src/sandbox-runtime/index.tsx",
       },
       fileName: (_format, entryName) => `${entryName}.js`,
       // Emit the bundled CSS as `main.css` so the package.json `style` field

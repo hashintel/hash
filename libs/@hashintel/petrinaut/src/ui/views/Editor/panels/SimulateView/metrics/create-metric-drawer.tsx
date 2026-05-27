@@ -1,7 +1,7 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
-import { metricSchema, compileMetric } from "@hashintel/petrinaut-core";
+import { metricSchema } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
@@ -18,6 +18,7 @@ import {
 import { EMPTY_METRIC_FORM_STATE } from "./metric-form-defaults";
 import { summarizeMetricLspErrors } from "./metric-lsp";
 import { buildMetricFromFormState } from "./metric-mapping";
+import { useMetricValidation } from "./use-metric-validation";
 
 // -- Footer -------------------------------------------------------------------
 
@@ -115,17 +116,14 @@ export const CreateMetricDrawer = ({
   );
 
   // Compile-check the code live so the user sees errors before submitting.
+  // Routed through the EvalSandbox so the `new Function` compile happens
+  // inside the iframe when the iframe sandbox is active.
   const values = useStore(form.store, (state) => state.values);
-  const compileOutcome =
-    values.code.trim() === ""
-      ? null
-      : compileMetric({
-          id: "__preview__",
-          name: values.name || "metric",
-          code: values.code,
-        });
-  const compileError =
-    compileOutcome && !compileOutcome.ok ? compileOutcome.error : null;
+  const { compileError } = useMetricValidation({
+    id: "__preview__",
+    name: values.name || "metric",
+    code: values.code,
+  });
 
   // Owned here (not in MetricFormBody) so the footer can scope its LSP
   // diagnostics summary to the same session.

@@ -11,6 +11,8 @@ import {
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
 
+import { EvalSandboxContext } from "../eval-sandbox/context";
+import { createInlineSandbox } from "../eval-sandbox/inline";
 import {
   NotificationsContext,
   type AddNotificationInput,
@@ -143,6 +145,11 @@ const ExperimentsContextConsumer = ({
   return null;
 };
 
+// Shared inline sandbox so every `<TestWrapper>` render gets a real
+// `EvalSandboxContext` value (provider lookups would otherwise throw
+// because `ExperimentsProvider` now consumes `useEvalSandbox()`).
+const inlineSandbox = createInlineSandbox();
+
 const TestWrapper = ({
   addNotification,
   worker,
@@ -152,25 +159,27 @@ const TestWrapper = ({
   worker: FakeMonteCarloWorker;
   onContextValue: (value: ExperimentsContextValue) => void;
 }) => (
-  <NotificationsContext
-    value={{
-      addNotification: addNotification ?? (() => ""),
-      dismissNotification: () => {},
-    }}
-  >
-    <SDCPNContext.Provider value={sdcpnContextValue}>
-      <ExperimentsProvider
-        workerFactory={() =>
-          worker as WorkerLike<
-            MonteCarloToWorkerMessage,
-            MonteCarloToMainMessage
-          >
-        }
-      >
-        <ExperimentsContextConsumer onContextValue={onContextValue} />
-      </ExperimentsProvider>
-    </SDCPNContext.Provider>
-  </NotificationsContext>
+  <EvalSandboxContext value={inlineSandbox}>
+    <NotificationsContext
+      value={{
+        addNotification: addNotification ?? (() => ""),
+        dismissNotification: () => {},
+      }}
+    >
+      <SDCPNContext.Provider value={sdcpnContextValue}>
+        <ExperimentsProvider
+          workerFactory={() =>
+            worker as WorkerLike<
+              MonteCarloToWorkerMessage,
+              MonteCarloToMainMessage
+            >
+          }
+        >
+          <ExperimentsContextConsumer onContextValue={onContextValue} />
+        </ExperimentsProvider>
+      </SDCPNContext.Provider>
+    </NotificationsContext>
+  </EvalSandboxContext>
 );
 
 function renderExperimentsProvider(

@@ -1,5 +1,4 @@
 import {
-  type CompiledMetric,
   type Color,
   type Metric,
   type Place,
@@ -26,7 +25,12 @@ export function buildTimelineSeriesConfig(args: {
   types: Color[];
   transitions: Transition[];
   selectedMetric: Metric | null;
-  compiledMetric: CompiledMetric | null;
+  /**
+   * True once the sandbox has finished building a {@link MetricEvaluator}
+   * for `selectedMetric`. The metric series is suppressed (empty) until
+   * the evaluator is ready, so the chart doesn't render an empty line.
+   */
+  metricReady: boolean;
 }): TimelineSeriesConfig {
   const {
     timelineView,
@@ -34,16 +38,14 @@ export function buildTimelineSeriesConfig(args: {
     types,
     transitions,
     selectedMetric,
-    compiledMetric,
+    metricReady,
   } = args;
 
   switch (timelineView.kind) {
     case "metric":
       return buildMetricSeriesConfig({
         metric: selectedMetric,
-        compiledMetric,
-        places,
-        types,
+        metricReady,
       });
     case "per-transition":
       return buildPerTransitionSeriesConfig({ transitions });

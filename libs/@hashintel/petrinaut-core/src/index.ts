@@ -213,23 +213,46 @@ export {
   generateDefaultTransitionKernelCode,
   generateDefaultVisualizerCode,
 } from "./default-codes";
-export {
-  compileMetric,
-  type CompiledMetric,
-  type CompileMetricOutcome,
-  type MetricPlaceState,
-  type MetricState,
+// Type-only exports of compile-* outputs. The compile functions themselves
+// are now internal to the eval-sandbox layer — callers go through
+// `CoreEvalSandbox` instead.
+export type {
+  CompiledMetric,
+  CompileMetricOutcome,
+  MetricPlaceState,
+  MetricState,
 } from "./simulation/authoring/metric/compile-metric";
-export {
-  compileScenario,
-  type CompiledPlaceMarking,
-  type CompiledScenarioResult,
-  type CompileScenarioOptions,
-  type CompileScenarioOutcome,
-  type ScenarioCompilationError,
-  type ScenarioParameterValues,
+export type {
+  CompiledPlaceMarking,
+  CompiledScenarioResult,
+  CompileScenarioOptions,
+  CompileScenarioOutcome,
+  ScenarioCompilationError,
+  ScenarioParameterValues,
 } from "./simulation/authoring/scenario/compile-scenario";
 export { buildMetricState } from "./simulation/frames/metric-state";
+
+// --- Eval sandbox ---
+export type {
+  CompileScenarioArgs,
+  CoreEvalSandbox,
+  MetricEvaluator,
+  ParentRequest,
+  ParentToSandboxMessage,
+  RequestId,
+  SandboxResourceId,
+  SandboxResponse,
+  SandboxToParentMessage,
+  SandboxWorkerKind,
+  SerializedError,
+} from "./eval-sandbox";
+export {
+  createIframeCoreSandbox,
+  createInlineCoreSandbox,
+  deserializeError,
+  mountCoreSandboxRuntime,
+  serializeError,
+} from "./eval-sandbox";
 export {
   displayNameSchema,
   validateDisplayName,

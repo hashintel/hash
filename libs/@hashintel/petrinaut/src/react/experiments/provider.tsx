@@ -3,7 +3,6 @@ import { v4 as generateUuid } from "uuid";
 
 import {
   createMonteCarloExperiment,
-  compileScenario,
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
@@ -11,8 +10,8 @@ import {
   type Scenario,
   type ScenarioParameter,
 } from "@hashintel/petrinaut-core";
-import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
+import { useEvalSandbox } from "../eval-sandbox/context";
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
@@ -135,8 +134,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { addNotification } = use(NotificationsContext);
+  const evalSandbox = useEvalSandbox();
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
-  const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
+  const sandboxMonteCarloFactory: WorkerFactory = () =>
+    evalSandbox.createMonteCarloWorker();
+  const workerFactoryRef = useLatest(workerFactory ?? sandboxMonteCarloFactory);
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
@@ -263,13 +265,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         throw new Error(parsedScenarioValues.errors.join("\n"));
       }
 
-      const compiledScenario = compileScenario(
-        selectedScenario,
-        sdcpn.parameters,
-        sdcpn.places,
-        sdcpn.types,
-        { scenarioParameterValues: parsedScenarioValues.values },
-      );
+      const compiledScenario = await evalSandbox.compileScenario({
+        scenario: selectedScenario,
+        netParameters: sdcpn.parameters,
+        places: sdcpn.places,
+        types: sdcpn.types,
+        scenarioParameterValues: parsedScenarioValues.values,
+      });
       if (!compiledScenario.ok) {
         throw new Error(
           compiledScenario.errors

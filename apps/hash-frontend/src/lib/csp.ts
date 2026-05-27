@@ -90,3 +90,72 @@ export const buildCspHeader = (nonce: string): string => {
     .map(([key, values]) => `${key} ${values.join(" ")}`)
     .join("; ");
 };
+
+/**
+ * CSP for the Petrinaut iframe eval sandbox page
+ * (`/petrinaut-sandbox`).
+ *
+ * The sandbox bundle (see `@hashintel/petrinaut/sandbox-runtime`)
+ * needs to call `new Function(...)` / `eval` to compile user-authored
+ * code at runtime, so we cannot share the strict app-wide CSP that
+ * forbids `unsafe-eval`. Instead this CSP:
+ *
+ *  - Allows `'unsafe-eval'` so `Function()` succeeds.
+ *  - Sets `connect-src 'none'` so the iframe — even though it can
+ *    `eval` arbitrary user code — cannot make any network request
+ *    (no `fetch`, no `XMLHttpRequest`, no `WebSocket`, no Sentry I/O).
+ *  - Sets `default-src 'none'` so the iframe also can't load images,
+ *    audio, fonts, etc., except for the narrow exceptions we whitelist.
+ *  - Permits `worker-src 'self' blob:` so the simulation/Monte Carlo
+ *    workers spawned by the sandbox runtime still work.
+ *  - Sets `frame-ancestors 'self'` so only the parent app (this same
+ *    origin) can embed the sandbox; nobody else can iframe it.
+ *
+ * Combined with `sandbox="allow-scripts"` on the iframe element
+ * (parent side), the sandbox runs in an opaque origin without cookies
+ * and cannot exfiltrate data over the network.
+ */
+export const buildSandboxCspHeader = (nonce: string): string => {
+  const directives: Record<string, string[]> = {
+    "default-src": ["'none'"],
+
+    "script-src": [
+      "'self'",
+      `'nonce-${nonce}'`,
+      // The whole point: allow Function()/eval() of user-authored code.
+      "'unsafe-eval'",
+      // WebAssembly used by webpack asyncWebAssembly chunks.
+      "'wasm-unsafe-eval'",
+    ],
+
+    "style-src": [
+      "'self'",
+      // Emotion / runtime style injection inside the visualizer.
+      "'unsafe-inline'",
+    ],
+
+    "img-src": ["'self'", "data:", "blob:"],
+
+    "font-src": ["'self'", "data:"],
+
+    // Critical: no network access from inside the sandbox iframe.
+    // User code can call fetch() / XHR but every request will be
+    // blocked by the browser before it leaves the origin.
+    "connect-src": ["'none'"],
+
+    "worker-src": ["'self'", "blob:"],
+
+    "frame-src": ["'none'"],
+
+    // Only the parent app may embed this page.
+    "frame-ancestors": ["'self'"],
+
+    "object-src": ["'none'"],
+    "base-uri": ["'none'"],
+    "form-action": ["'none'"],
+  };
+
+  return Object.entries(directives)
+    .map(([key, values]) => `${key} ${values.join(" ")}`)
+    .join("; ");
+};

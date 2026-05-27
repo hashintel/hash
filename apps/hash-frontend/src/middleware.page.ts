@@ -1,12 +1,19 @@
 import { get } from "@vercel/edge-config";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { buildCspHeader } from "./lib/csp";
+import { buildCspHeader, buildSandboxCspHeader } from "./lib/csp";
 import {
   returnTypeAsJson,
   versionedUrlRegExp,
 } from "./middleware/return-types-as-json";
 import { maintenanceRoute } from "./pages/shared/maintenance";
+
+/**
+ * Petrinaut iframe eval sandbox host route. Requests under this path
+ * receive a different (more permissive `script-src`, but
+ * `connect-src 'none'`) CSP — see {@link buildSandboxCspHeader}.
+ */
+const petrinautSandboxPathname = "/petrinaut-sandbox";
 
 /**
  * Generate a cryptographically random nonce for CSP.
@@ -32,7 +39,17 @@ const applyCspHeaders = (
 
 export const middleware = async (request: NextRequest) => {
   const nonce = generateNonce();
-  const cspHeader = buildCspHeader(nonce);
+
+  // The Petrinaut sandbox page intentionally uses a different CSP that
+  // allows `'unsafe-eval'` for the JIT compile path, but blocks all
+  // network egress via `connect-src 'none'`. Every other route keeps
+  // the strict app-wide CSP that forbids `unsafe-eval`.
+  const isSandboxRoute = request.nextUrl.pathname.startsWith(
+    petrinautSandboxPathname,
+  );
+  const cspHeader = isSandboxRoute
+    ? buildSandboxCspHeader(nonce)
+    : buildCspHeader(nonce);
 
   // Forward the nonce to server-side rendering via a request header so that
   // _document.page.tsx can read it and apply it to <Head> / <NextScript>.

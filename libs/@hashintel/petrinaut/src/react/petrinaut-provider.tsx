@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, use, useEffect, useMemo } from "react";
 
 import {
   type Petrinaut,
@@ -6,6 +6,9 @@ import {
   type WorkerFactory,
 } from "@hashintel/petrinaut-core";
 
+import { ErrorTrackerContext } from "./error-tracker-context";
+import { EvalSandboxContext } from "./eval-sandbox/context";
+import { createInlineSandbox } from "./eval-sandbox/inline";
 import { ExperimentsProvider } from "./experiments/provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
@@ -21,6 +24,8 @@ import { EditorProvider } from "./state/editor-provider";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
 import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
+
+import type { EvalSandbox } from "./eval-sandbox/interface";
 
 export type PetrinautProviderProps = {
   /** The Core instance whose stores the bridges subscribe to. */
@@ -42,6 +47,19 @@ export type PetrinautProviderProps = {
    * LSP worker themselves rather than relying on the inlined-blob default.
    */
   lspWorkerFactory?: LspWorkerFactory;
+  /**
+   * Optional {@link EvalSandbox} that owns all user-code evaluation
+   * (scenarios, metrics, simulation/Monte-Carlo workers, visualizers).
+   * Defaults to {@link createInlineSandbox} (in-realm eval, same as
+   * pre-sandbox behavior). Pass `createIframeSandbox({ src })` from
+   * `@hashintel/petrinaut/sandbox-iframe` to isolate user code in a
+   * sandboxed iframe — see the package README for host setup.
+   *
+   * When provided, {@link simulationWorkerFactory},
+   * {@link monteCarloWorkerFactory} are ignored (the sandbox owns its
+   * own workers).
+   */
+  evalSandbox?: EvalSandbox;
   children: ReactNode;
 };
 
@@ -57,11 +75,40 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
+  evalSandbox: hostProvidedSandbox,
   children,
 }) => {
   const handleHistoryUndoRedo = useHandleHistoryAsUndoRedo(
     instance.handle.history,
   );
+
+  // Surface visualizer/JIT compile errors from the inline fallback
+  // sandbox through whichever error tracker the host has wired up
+  // (in hash-frontend that's Sentry — see
+  // `apps/hash-frontend/src/pages/process.page/process-editor-wrapper.tsx`).
+  const errorTracker = use(ErrorTrackerContext);
+
+  // When the host doesn't supply one, fall back to the inline sandbox
+  // (in-realm eval — same behavior as pre-sandbox Petrinaut).
+  const fallbackSandbox = useMemo<EvalSandbox | null>(
+    () =>
+      hostProvidedSandbox
+        ? null
+        : createInlineSandbox({
+            onError: (error) => errorTracker.captureException(error),
+          }),
+    [hostProvidedSandbox, errorTracker],
+  );
+  const evalSandbox = hostProvidedSandbox ?? fallbackSandbox!;
+
+  // Dispose the fallback when this provider unmounts. Host-provided
+  // sandboxes have their own owner — we don't touch those.
+  useEffect(() => {
+    if (!fallbackSandbox) {
+      return;
+    }
+    return () => fallbackSandbox.dispose();
+  }, [fallbackSandbox]);
 
   // Keyed by handle id so a net switch fully resets net-scoped worker state.
   const inner = (
@@ -89,19 +136,21 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   );
 
   return (
-    <PetrinautInstanceContext value={instance}>
-      <NetManagementContext value={netManagement}>
-        {handleHistoryUndoRedo ? (
-          // Only override UndoRedoContext when the handle actually provides
-          // history — otherwise leave any outer UndoRedoContext (e.g. one
-          // injected by the legacy `<Petrinaut>` adapter) untouched.
-          <UndoRedoContext value={handleHistoryUndoRedo}>
-            {inner}
-          </UndoRedoContext>
-        ) : (
-          inner
-        )}
-      </NetManagementContext>
-    </PetrinautInstanceContext>
+    <EvalSandboxContext value={evalSandbox}>
+      <PetrinautInstanceContext value={instance}>
+        <NetManagementContext value={netManagement}>
+          {handleHistoryUndoRedo ? (
+            // Only override UndoRedoContext when the handle actually provides
+            // history — otherwise leave any outer UndoRedoContext (e.g. one
+            // injected by the legacy `<Petrinaut>` adapter) untouched.
+            <UndoRedoContext value={handleHistoryUndoRedo}>
+              {inner}
+            </UndoRedoContext>
+          ) : (
+            inner
+          )}
+        </NetManagementContext>
+      </PetrinautInstanceContext>
+    </EvalSandboxContext>
   );
 };

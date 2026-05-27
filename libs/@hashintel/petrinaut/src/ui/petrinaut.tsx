@@ -19,6 +19,7 @@ import { PetrinautProvider } from "../react/petrinaut-provider";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
 
+import type { EvalSandbox } from "../react/eval-sandbox/interface";
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
@@ -68,6 +69,19 @@ export type PetrinautProps = {
    * `?worker` against the host's own copy of the worker source.
    */
   lspWorkerFactory?: LspWorkerFactory;
+  /**
+   * Optional {@link EvalSandbox} owning all user-code evaluation. When
+   * omitted, the editor uses an inline (in-realm) sandbox — identical
+   * to behavior before the sandbox abstraction was added. Pass
+   * `createIframeSandbox({ src })` from
+   * `@hashintel/petrinaut/sandbox-iframe` to isolate user code in a
+   * sandboxed iframe (recommended for production hosts).
+   *
+   * When provided, the `simulationWorkerFactory` /
+   * `monteCarloWorkerFactory` props are ignored — the sandbox owns its
+   * own workers.
+   */
+  evalSandbox?: EvalSandbox;
 };
 
 const noop = () => {};
@@ -94,6 +108,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
+  evalSandbox,
 }) => {
   const instance = useMemo<Instance>(
     () => createPetrinaut({ document: handle, readonly }),
@@ -117,6 +132,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
       simulationWorkerFactory={simulationWorkerFactory}
       monteCarloWorkerFactory={monteCarloWorkerFactory}
       lspWorkerFactory={lspWorkerFactory}
+      evalSandbox={evalSandbox}
     >
       <MonacoProvider>
         <EditorView

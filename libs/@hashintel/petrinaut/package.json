@@ -37,6 +37,18 @@
       "types": "./dist/ui.d.d.ts",
       "default": "./dist/ui.js"
     },
+    "./sandbox-inline": {
+      "types": "./dist/sandbox-inline.d.d.ts",
+      "default": "./dist/sandbox-inline.js"
+    },
+    "./sandbox-iframe": {
+      "types": "./dist/sandbox-iframe.d.d.ts",
+      "default": "./dist/sandbox-iframe.js"
+    },
+    "./sandbox-runtime": {
+      "types": "./dist/sandbox-runtime.d.d.ts",
+      "default": "./dist/sandbox-runtime.js"
+    },
     "./styles.css": "./dist/main.css",
     "./dist/main.css": "./dist/main.css",
     "./package.json": "./package.json"

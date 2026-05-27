@@ -1,4 +1,4 @@
-import { use, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -7,6 +7,7 @@ import {
   generateDefaultVisualizerCode,
 } from "@hashintel/petrinaut-core";
 
+import { useEvalSandbox } from "../../../../../../../../react/eval-sandbox/context";
 import {
   mergeParameterValues,
   useDefaultParameterValues,
@@ -20,11 +21,13 @@ import { SegmentGroup } from "../../../../../../../components/segment-group";
 import { Switch } from "../../../../../../../components/switch";
 import { Tooltip } from "../../../../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
-import { compileVisualizer } from "../../../../../../../lib/compile-visualizer";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { usePlacePropertiesContext } from "../../context";
-import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
+import type {
+  VisualizerHostHandle,
+  VisualizerProps,
+} from "../../../../../../../../react/eval-sandbox/interface";
 import type { SubView } from "../../../../../../../components/sub-view/types";
 
 type ViewMode = "code" | "preview" | "split";
@@ -62,109 +65,169 @@ const messageStyle = css({
   lineHeight: "[1.5]",
 });
 
-const visualizerErrorStyle = css({
-  padding: "[12px]",
-  color: "[#d32f2f]",
-});
-
 const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
 });
 
+const visualizerHostContainerStyle = css({
+  display: "flex",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
 /**
- * Renders the visualizer preview for the current place,
- * using simulation frame data or initial marking.
+ * Renders the visualizer preview for the current place via the active
+ * {@link EvalSandbox} — see `react/eval-sandbox/`. The host is either:
+ *
+ * - inline: a React root mounted directly into our DOM container, or
+ * - iframe: a sandboxed `<iframe sandbox="allow-scripts">` whose
+ *   `src` is the consumer-supplied `/petrinaut-sandbox` page.
+ *
+ * Either way, this subview only deals with: computing props,
+ * mounting/unmounting the host, and forwarding code/prop updates.
  */
 const VisualizerPreview: React.FC = () => {
-  "use no memo"; // User-authored visualizer code is compiled into a component at runtime.
-
   const { place, placeType } = usePlacePropertiesContext();
 
   const { initialMarking, parameterValues } = use(SimulationContext);
   const { currentFrameReader, totalFrames } = use(PlaybackContext);
 
   const defaultParameterValues = useDefaultParameterValues();
+  const evalSandbox = useEvalSandbox();
 
-  const VisualizerComponent = useMemo(() => {
-    if (!place.visualizerCode) {
-      return null;
+  // Compute the visualizer's props (tokens + parameters). When the
+  // place has no type or no marking, we surface an explanatory message
+  // *instead of* mounting the host, so the user understands why the
+  // preview is empty.
+  const propsResult = useMemo<
+    { kind: "ok"; props: VisualizerProps } | { kind: "message"; text: string }
+  >(() => {
+    if (!placeType) {
+      return { kind: "message", text: "Place has no type set" };
     }
-    try {
-      return compileVisualizer(place.visualizerCode);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to compile visualizer code:", error);
-      return null;
+
+    const dimensions = placeType.elements.length;
+    const tokens: Record<string, number>[] = [];
+
+    if (totalFrames > 0 && currentFrameReader) {
+      const placeTokenValues = currentFrameReader.getPlaceTokenValues(place.id);
+      if (!placeTokenValues) {
+        return { kind: "message", text: "Place not found in frame" };
+      }
+      const tokenValues = Array.from(placeTokenValues.values);
+      for (
+        let tokenIndex = 0;
+        tokenIndex < placeTokenValues.count;
+        tokenIndex++
+      ) {
+        const token: Record<string, number> = {};
+        for (let colIndex = 0; colIndex < dimensions; colIndex++) {
+          const dimensionName = placeType.elements[colIndex]!.name;
+          token[dimensionName] =
+            tokenValues[tokenIndex * dimensions + colIndex] ?? 0;
+        }
+        tokens.push(token);
+      }
+    } else {
+      const marking = initialMarking[place.id];
+      if (Array.isArray(marking) && marking.length > 0) {
+        for (let tokenIndex = 0; tokenIndex < marking.length; tokenIndex++) {
+          const token: Record<string, number> = {};
+          for (let colIndex = 0; colIndex < dimensions; colIndex++) {
+            const dimensionName = placeType.elements[colIndex]!.name;
+            token[dimensionName] = marking[tokenIndex]?.[dimensionName] ?? 0;
+          }
+          tokens.push(token);
+        }
+      }
     }
+
+    const parameters = mergeParameterValues(
+      parameterValues,
+      defaultParameterValues,
+    );
+    return { kind: "ok", props: { tokens, parameters } };
+  }, [
+    currentFrameReader,
+    defaultParameterValues,
+    initialMarking,
+    parameterValues,
+    place.id,
+    placeType,
+    totalFrames,
+  ]);
+
+  // Build the host factory once per sandbox; each subview gets its own
+  // mounted instance via `mount({...})` in the effect below.
+  const visualizerHost = useMemo(
+    () => evalSandbox.createVisualizerHost(),
+    [evalSandbox],
+  );
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const handleRef = useRef<VisualizerHostHandle | null>(null);
+
+  // Latest code/props are forwarded through refs (updated by the
+  // effects below) so the mount effect doesn't need them as deps —
+  // edits go through `setCode`/`setProps` instead of tearing the host
+  // down, which is critical for the iframe path.
+  const codeRef = useRef<string | undefined>(undefined);
+  const propsRef = useRef<VisualizerProps | null>(null);
+
+  const hasCode = place.visualizerCode !== undefined;
+  const propsReady = propsResult.kind === "ok";
+  const shouldMount = hasCode && propsReady;
+
+  // Effects fire in declaration order, so these ref-update effects
+  // run *before* the mount effect on every commit — meaning the mount
+  // effect always sees the latest code/props in the refs.
+  useEffect(() => {
+    codeRef.current = place.visualizerCode;
+    handleRef.current?.setCode(place.visualizerCode ?? "");
   }, [place.visualizerCode]);
+
+  useEffect(() => {
+    const nextProps = propsResult.kind === "ok" ? propsResult.props : null;
+    propsRef.current = nextProps;
+    if (nextProps) {
+      handleRef.current?.setProps(nextProps);
+    }
+  }, [propsResult]);
+
+  // Mount/unmount the visualizer host. Re-mount only when the sandbox,
+  // place, or "should we be showing the host at all" status flips.
+  useEffect(() => {
+    if (!shouldMount) {
+      return undefined;
+    }
+    const container = containerRef.current;
+    if (!container) {
+      return undefined;
+    }
+    const code = codeRef.current;
+    const props = propsRef.current;
+    if (!code || !props) {
+      return undefined;
+    }
+    const handle = visualizerHost.mount({ container, code, props });
+    handleRef.current = handle;
+    return () => {
+      handleRef.current = null;
+      handle.dispose();
+    };
+  }, [place.id, visualizerHost, shouldMount]);
 
   if (!place.visualizerCode) {
     return <div className={messageStyle}>No visualizer code defined</div>;
   }
 
-  if (!placeType) {
-    return <div className={messageStyle}>Place has no type set</div>;
+  if (propsResult.kind === "message") {
+    return <div className={messageStyle}>{propsResult.text}</div>;
   }
 
-  const dimensions = placeType.elements.length;
-  const tokens: Record<string, number>[] = [];
-  let parameters: Record<string, number | boolean> = {};
-
-  if (totalFrames > 0 && currentFrameReader) {
-    const placeTokenValues = currentFrameReader.getPlaceTokenValues(place.id);
-    if (!placeTokenValues) {
-      return <div className={messageStyle}>Place not found in frame</div>;
-    }
-
-    const tokenValues = Array.from(placeTokenValues.values);
-
-    for (
-      let tokenIndex = 0;
-      tokenIndex < placeTokenValues.count;
-      tokenIndex++
-    ) {
-      const token: Record<string, number> = {};
-      for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-        const dimensionName = placeType.elements[colIndex]!.name;
-        token[dimensionName] =
-          tokenValues[tokenIndex * dimensions + colIndex] ?? 0;
-      }
-      tokens.push(token);
-    }
-
-    parameters = mergeParameterValues(parameterValues, defaultParameterValues);
-  } else {
-    const marking = initialMarking[place.id];
-    if (Array.isArray(marking) && marking.length > 0) {
-      for (let tokenIndex = 0; tokenIndex < marking.length; tokenIndex++) {
-        const token: Record<string, number> = {};
-        for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-          const dimensionName = placeType.elements[colIndex]!.name;
-          token[dimensionName] = marking[tokenIndex]?.[dimensionName] ?? 0;
-        }
-        tokens.push(token);
-      }
-    }
-
-    parameters = mergeParameterValues(parameterValues, defaultParameterValues);
-  }
-
-  if (!VisualizerComponent) {
-    return (
-      <div className={visualizerErrorStyle}>
-        Failed to compile visualizer code. Check console for errors.
-      </div>
-    );
-  }
-
-  return (
-    <VisualizerErrorBoundary>
-      {/* eslint-disable-next-line react-hooks-js/static-components -- Runtime visualizer code intentionally creates a component from user input. */}
-      <VisualizerComponent tokens={tokens} parameters={parameters} />
-    </VisualizerErrorBoundary>
-  );
+  return <div ref={containerRef} className={visualizerHostContainerStyle} />;
 };
 
 const PlaceVisualizerContent: React.FC = () => {

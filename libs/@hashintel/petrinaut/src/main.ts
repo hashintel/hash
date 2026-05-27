@@ -1,6 +1,13 @@
 export type { ErrorTracker } from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
 
+export type {
+  EvalSandbox,
+  VisualizerHostFactory,
+  VisualizerHostHandle,
+  VisualizerProps,
+} from "./react/eval-sandbox/interface";
+
 export type { ViewportAction } from "./ui/types/viewport-action";
 
 export {

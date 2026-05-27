@@ -1,11 +1,11 @@
-import { use, useEffect, useRef, useSyncExternalStore } from "react";
+import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
-  compileMetric,
-  type CompiledMetric,
-  type Metric,
+  buildMetricState,
+  type MetricEvaluator,
 } from "@hashintel/petrinaut-core";
 
+import { useEvalSandbox } from "../../../../../../../react/eval-sandbox/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
@@ -50,6 +50,14 @@ interface StreamingStoreController {
   appendFrames: (
     frames: TimelineFrame[],
     extract: TimelineSeriesExtractor,
+    /**
+     * Optional pre-computed values for series 0. Used by the metric
+     * view, where the actual evaluation has already happened via the
+     * sandbox's {@link MetricEvaluator}. When set, the extractor is
+     * bypassed for series index 0 and `metricColumn[i]` is appended
+     * instead. There is always exactly one series in this mode.
+     */
+    metricColumn?: number[],
   ) => void;
 }
 
@@ -88,16 +96,22 @@ function createStreamingStoreController(
       resetStore(store, store.series);
       notify();
     },
-    appendFrames: (frames, extract) => {
+    appendFrames: (frames, extract, metricColumn) => {
       const cols = store.columns;
       const timeCol = cols[0]!;
       const seriesCount = store.series.length;
 
-      for (const frame of frames) {
+      for (let i = 0; i < frames.length; i++) {
+        const frame = frames[i]!;
         const time = frame.time;
         timeCol.push(time);
-        for (let s = 0; s < seriesCount; s++) {
-          cols[s + 1]!.push(extract(frame, s, time));
+        if (metricColumn) {
+          // Metric view: exactly one series, value already evaluated.
+          cols[1]!.push(metricColumn[i] ?? Number.NaN);
+        } else {
+          for (let s = 0; s < seriesCount; s++) {
+            cols[s + 1]!.push(extract(frame, s, time));
+          }
         }
       }
 
@@ -106,21 +120,6 @@ function createStreamingStoreController(
       notify();
     },
   };
-}
-
-function compileTimelineMetric(metric: Metric | null): {
-  fn: CompiledMetric | null;
-  error: string | null;
-} {
-  if (!metric) {
-    return { fn: null, error: null };
-  }
-
-  const outcome = compileMetric(metric);
-  if (outcome.ok) {
-    return { fn: outcome.fn, error: null };
-  }
-  return { fn: null, error: outcome.error };
 }
 
 /**
@@ -147,13 +146,58 @@ export function useStreamingData(): {
     petriNetDefinition: { places, types, transitions, metrics },
   } = use(SDCPNContext);
   const { timelineView } = use(EditorContext);
+  const evalSandbox = useEvalSandbox();
 
   const selectedMetric =
     timelineView.kind === "metric"
       ? (metrics?.find((metric) => metric.id === timelineView.metricId) ?? null)
       : null;
 
-  const compiledMetric = compileTimelineMetric(selectedMetric);
+  // Build / dispose the metric evaluator off the EvalSandbox whenever
+  // the selected metric changes. The evaluator may live inside an
+  // iframe sandbox — calls into it are async.
+  const [metricEvaluator, setMetricEvaluator] =
+    useState<MetricEvaluator | null>(null);
+  const [metricError, setMetricError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tracker = { cancelled: false };
+    let evaluator: MetricEvaluator | null = null;
+    if (!selectedMetric) {
+      // Defer the clear to the next microtask so the setState is not
+      // synchronous-in-effect.
+      void Promise.resolve().then(() => {
+        if (tracker.cancelled) {
+          return;
+        }
+        setMetricEvaluator(null);
+        setMetricError(null);
+      });
+    } else {
+      evalSandbox
+        .createMetricEvaluator(selectedMetric)
+        .then((built) => {
+          if (tracker.cancelled) {
+            built.dispose();
+            return;
+          }
+          evaluator = built;
+          setMetricEvaluator(built);
+          setMetricError(null);
+        })
+        .catch((err: unknown) => {
+          if (tracker.cancelled) {
+            return;
+          }
+          setMetricEvaluator(null);
+          setMetricError(err instanceof Error ? err.message : String(err));
+        });
+    }
+    return () => {
+      tracker.cancelled = true;
+      evaluator?.dispose();
+    };
+  }, [evalSandbox, selectedMetric]);
 
   // Computes the active timeline view mode described above into concrete uPlot
   // series metadata and the per-frame value extractor used while streaming.
@@ -163,7 +207,7 @@ export function useStreamingData(): {
     types,
     transitions,
     selectedMetric,
-    compiledMetric: compiledMetric.fn,
+    metricReady: metricEvaluator !== null,
   });
 
   const storeController = createStreamingStoreController([]);
@@ -185,7 +229,13 @@ export function useStreamingData(): {
 
   // Stream new frames into the store
   useEffect(() => {
-    let cancelled = false;
+    // Tracker object: oxlint's narrow-flow analysis follows primitive
+    // `let cancelled = false` through awaits and reports later
+    // `if (cancelled)` checks as unreachable. Boxing in an object opts
+    // out of that analysis (the property is mutated by the cleanup
+    // function in a sibling closure).
+    const tracker = { cancelled: false };
+    const isCancelled = () => tracker.cancelled;
 
     const fetchData = async () => {
       if (totalFrames === 0) {
@@ -208,22 +258,58 @@ export function useStreamingData(): {
       }
 
       const newFrames = await getFramesInRange(startIndex);
-      if (cancelled || newFrames.length === 0) {
+      if (isCancelled() || newFrames.length === 0) {
         return;
       }
 
-      storeController.appendFrames(newFrames, seriesConfig.extract);
+      let metricColumn: number[] | undefined;
+      if (timelineView.kind === "metric" && metricEvaluator) {
+        const states = newFrames.map((frame) =>
+          buildMetricState(frame, places, types),
+        );
+        try {
+          const results = await metricEvaluator.evaluateBatch(states);
+          if (isCancelled()) {
+            return;
+          }
+          metricColumn = results.map((result) =>
+            typeof result === "number" ? result : Number.NaN,
+          );
+        } catch (err) {
+          if (isCancelled()) {
+            return;
+          }
+          setMetricError(err instanceof Error ? err.message : String(err));
+          metricColumn = states.map(() => Number.NaN);
+        }
+      }
+
+      storeController.appendFrames(
+        newFrames,
+        seriesConfig.extract,
+        metricColumn,
+      );
       processedRef.current = totalFrames;
     };
 
     void fetchData();
     return () => {
-      cancelled = true;
+      tracker.cancelled = true;
     };
-  }, [dt, getFramesInRange, totalFrames, seriesConfig, storeController]);
+  }, [
+    dt,
+    getFramesInRange,
+    totalFrames,
+    seriesConfig,
+    storeController,
+    metricEvaluator,
+    places,
+    types,
+    timelineView.kind,
+  ]);
 
   return {
     store,
-    metricError: compiledMetric.error,
+    metricError,
   };
 }

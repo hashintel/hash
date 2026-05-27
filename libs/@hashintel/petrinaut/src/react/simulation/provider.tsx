@@ -1,16 +1,15 @@
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 
 import {
   createSimulation,
-  compileScenario,
   type ReadableStore,
   type Simulation,
   type SimulationState as CoreSimulationState,
   type WorkerFactory,
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
-import { createSimulationWorker } from "@hashintel/petrinaut-core/workers/simulation";
 
+import { useEvalSandbox } from "../eval-sandbox/context";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
@@ -96,14 +95,11 @@ function mapCoreState(status: CoreSimulationState | null): SimulationState {
 
 type SimulationProviderProps = React.PropsWithChildren<{
   /**
-   * Factory that produces the simulation worker. Hosts can plug in their own
-   * worker bundling — e.g. via Vite's `?worker` directive against the package
-   * sub-entry — instead of relying on the inlined-blob worker that ships with
-   * the library. When omitted, falls back to `createSimulationWorker` (which
-   * uses `?worker&inline` against the worker source) — fine for the storybook
-   * dev server and for consumers that bundle the package from source, but can
-   * fail in cases where the host bundler doesn't re-process the inlined
-   * blob URL (e.g. some production builds against the dist output).
+   * Legacy escape hatch: factory that produces the simulation worker.
+   * Ignored when the active {@link EvalSandbox} is iframe-backed (the
+   * sandbox owns its own workers so they inherit the opaque origin).
+   * Kept for hosts that don't pass an `evalSandbox` and want to control
+   * worker bundling directly.
    */
   workerFactory?: WorkerFactory;
 }>;
@@ -115,9 +111,16 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const sdcpnContext = use(SDCPNContext);
   const { petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
+  const evalSandbox = useEvalSandbox();
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
-  const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
+  // The sandbox owns worker creation; the legacy `workerFactory` prop is
+  // honoured only for hosts that pass neither an evalSandbox nor expect
+  // the inline sandbox to spawn workers. When `workerFactory` is set we
+  // prefer it (back-compat); otherwise we delegate to the sandbox.
+  const sandboxWorkerFactory: WorkerFactory = () =>
+    evalSandbox.createSimulationWorker();
+  const workerFactoryRef = useLatest(workerFactory ?? sandboxWorkerFactory);
 
   // Configuration state (not managed by the simulation handle)
   const [stateValues, setStateValues] =
@@ -428,35 +431,87 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const simulationState = mapCoreState(simulation ? coreStatus : null);
   const totalFrames = frameSummary.count;
 
-  // Compile scenario when one is selected — computed during render.
-  // React Compiler will memoize based on inputs.
-  let compiledScenarioResult: CompiledScenarioResult | null = null;
-  if (stateValues.selectedScenarioId) {
+  // Scenario compilation now happens through the EvalSandbox, which
+  // returns a Promise (so it can postMessage to a sandbox iframe). We
+  // recompute in an effect whenever inputs change. Consumers see `null`
+  // for one extra render after a relevant change — same shape as
+  // before, just delayed by one tick.
+  const [compiledScenarioResult, setCompiledScenarioResult] =
+    useState<CompiledScenarioResult | null>(null);
+
+  // Resolve the selected scenario (if any) and the tweaked variant during
+  // render. The compile call itself is async (effect below). Memoised so
+  // the compile-effect only fires when inputs actually change.
+  const tweakedScenario = useMemo(() => {
+    if (!stateValues.selectedScenarioId) {
+      return null;
+    }
     const selectedScenario = petriNetDefinition.scenarios?.find(
       (s) => s.id === stateValues.selectedScenarioId,
     );
-    if (selectedScenario) {
-      // Build a scenario with user-tweaked parameter values
-      const tweakedScenario = {
-        ...selectedScenario,
-        scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
-          ...sp,
-          default: Number(
-            stateValues.scenarioParameterValues[sp.identifier] ?? sp.default,
-          ),
-        })),
-      };
-      const outcome = compileScenario(
-        tweakedScenario,
-        petriNetDefinition.parameters,
-        petriNetDefinition.places,
-        petriNetDefinition.types,
-      );
-      if (outcome.ok) {
-        compiledScenarioResult = outcome.result;
-      }
+    if (!selectedScenario) {
+      return null;
     }
-  }
+    return {
+      ...selectedScenario,
+      scenarioParameters: selectedScenario.scenarioParameters.map((sp) => ({
+        ...sp,
+        default: Number(
+          stateValues.scenarioParameterValues[sp.identifier] ?? sp.default,
+        ),
+      })),
+    };
+  }, [
+    stateValues.selectedScenarioId,
+    stateValues.scenarioParameterValues,
+    petriNetDefinition.scenarios,
+  ]);
+
+  useEffect(() => {
+    if (!tweakedScenario) {
+      // Compute "no scenario selected" via an async hop so the setState
+      // isn't synchronous-in-effect.
+      const cleared = { cancelled: false };
+      void Promise.resolve().then(() => {
+        if (cleared.cancelled) {
+          return;
+        }
+        setCompiledScenarioResult(null);
+      });
+      return () => {
+        cleared.cancelled = true;
+      };
+    }
+    let cancelled = false;
+    void evalSandbox
+      .compileScenario({
+        scenario: tweakedScenario,
+        netParameters: petriNetDefinition.parameters,
+        places: petriNetDefinition.places,
+        types: petriNetDefinition.types,
+      })
+      .then((outcome) => {
+        if (cancelled) {
+          return;
+        }
+        setCompiledScenarioResult(outcome.ok ? outcome.result : null);
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setCompiledScenarioResult(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    evalSandbox,
+    tweakedScenario,
+    petriNetDefinition.parameters,
+    petriNetDefinition.places,
+    petriNetDefinition.types,
+  ]);
 
   // When a scenario is compiled, override parameterValues and initialMarking
   // with the scenario's resolved output.

@@ -16,6 +16,7 @@
   "include": [
     "assets.d.ts",
     "next-env.d.ts",
+    "petrinaut.d.ts",
     "theme-override.d.ts",
     "**/*.ts",
     "**/*.tsx",
