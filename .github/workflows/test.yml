@@ -295,7 +295,8 @@ jobs:
         run: df -h
 
       - name: Launch external services
-        run: yarn run compose:test up --wait
+        working-directory: infra/compose
+        run: docker compose --profile test up --wait
 
       - name: Start background tasks
         id: background-tasks
@@ -342,7 +343,8 @@ jobs:
 
       - name: Show container logs
         if: ${{ success() || failure() }}
-        run: yarn run compose logs --timestamps
+        working-directory: infra/compose
+        run: docker compose --profile test logs --timestamps
 
       - name: Show background tasks logs
         if: always() && steps.tests.outputs.has-background-tasks == 'true'
