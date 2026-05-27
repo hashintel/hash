@@ -21,5 +21,5 @@ export const Description = ({
 }) => {
   const classes = styles({ size, direction, disabled });
 
-  return <p className={cx(classes.description, className)}>{children}</p>;
+  return <span className={cx(classes.description, className)}>{children}</span>;
 };

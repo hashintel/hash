@@ -22,10 +22,15 @@ export const Errors = ({
   const classes = styles({ size, direction });
 
   if (errors.length === 1) {
-    return <p className={cx(classes.error, className)}>{errors[0]}</p>;
+    return (
+      <span role="alert" className={cx(classes.error, className)}>
+        {errors[0]}
+      </span>
+    );
   }
+
   return (
-    <ul className={className}>
+    <ul className={className} role="alert">
       {errors.map((error, index) => (
         // eslint-disable-next-line react/no-array-index-key
         <li className={cx(classes.error)} key={index}>

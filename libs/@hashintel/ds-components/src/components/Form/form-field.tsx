@@ -53,7 +53,7 @@ export const FormField = ({
 ) &
   SharedInputAndFieldProps) => {
   return (
-    <div className={className}>
+    <fieldset className={className}>
       <Label
         size={size}
         direction={labelDirection}
@@ -80,6 +80,6 @@ export const FormField = ({
       {errors && (
         <Errors errors={errors} size={size} direction={labelDirection} />
       )}
-    </div>
+    </fieldset>
   );
 };
