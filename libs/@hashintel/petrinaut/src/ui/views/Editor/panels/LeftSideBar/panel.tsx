@@ -121,6 +121,9 @@ export const LeftSideBar: React.FC = () => {
         if (subView.id === "differential-equations-list") {
           return extensions.colors && extensions.dynamics;
         }
+        if (subView.id === "parameters-list") {
+          return extensions.parameters;
+        }
         return true;
       });
 

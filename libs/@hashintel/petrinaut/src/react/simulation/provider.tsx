@@ -154,10 +154,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   workerFactory,
 }) => {
   const sdcpnContext = use(SDCPNContext);
-  const { petriNetDefinition } = sdcpnContext;
+  const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
+  const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
 
   // Configuration state (not managed by the simulation handle)
@@ -326,6 +327,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   }) => {
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
+    const simulationSdcpn = extensionsRef.current.parameters
+      ? sdcpn
+      : { ...sdcpn, parameters: [] };
 
     // Dispose any in-flight simulation before starting a new one. Update both
     // the ref (synchronous, so callers in the same tick see `null` not the
@@ -345,7 +349,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     let sim: Simulation;
     try {
       sim = await createSimulation({
-        sdcpn,
+        sdcpn: simulationSdcpn,
         // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
         initialMarking: effectiveInitialMarkingRef.current,
         // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
@@ -388,7 +392,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const reset: SimulationContextValue["reset"] = () => {
     const sdcpn = petriNetDefinitionRef.current;
-    const defaultValues = deriveDefaultParameterValues(sdcpn.parameters);
+    const parameters = extensionsRef.current.parameters ? sdcpn.parameters : [];
+    const defaultValues = deriveDefaultParameterValues(parameters);
 
     const parameterValues: Record<string, string> = {};
     for (const [key, value] of Object.entries(defaultValues)) {
@@ -498,7 +503,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       };
       const outcome = compileScenario(
         tweakedScenario,
-        petriNetDefinition.parameters,
+        extensions.parameters ? petriNetDefinition.parameters : [],
         petriNetDefinition.places,
         petriNetDefinition.types,
       );
@@ -510,7 +515,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // When a scenario is compiled, override parameterValues and initialMarking
   // with the scenario's resolved output.
-  let effectiveParameterValues = stateValues.parameterValues;
+  let effectiveParameterValues = extensions.parameters
+    ? stateValues.parameterValues
+    : {};
   let effectiveInitialMarking = stateValues.initialMarking;
 
   if (compiledScenarioResult) {

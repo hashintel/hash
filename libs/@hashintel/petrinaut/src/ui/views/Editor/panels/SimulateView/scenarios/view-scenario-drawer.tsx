@@ -176,7 +176,9 @@ const ViewScenarioContent = ({
         <Drawer.Body>
           <ScenarioFormBody
             form={form}
-            parameters={petriNetDefinition.parameters}
+            parameters={
+              extensions.parameters ? petriNetDefinition.parameters : []
+            }
             places={petriNetDefinition.places}
             typesById={typesById}
             idPrefix="view-"

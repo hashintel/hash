@@ -6,6 +6,7 @@ export const PETRINAUT_EXTENSION_NAMES = [
   "colors",
   "stochasticity",
   "dynamics",
+  "parameters",
 ] as const;
 
 export type PetrinautExtension = (typeof PETRINAUT_EXTENSION_NAMES)[number];
@@ -37,6 +38,7 @@ export const DEFAULT_PETRINAUT_EXTENSIONS: PetrinautExtensionSettings = {
   colors: true,
   stochasticity: true,
   dynamics: true,
+  parameters: true,
 };
 
 export const resolvePetrinautHandleCapabilities = (
@@ -61,6 +63,7 @@ export const resolvePetrinautHandleCapabilities = (
       colors: !disabled.has("colors"),
       stochasticity: !disabled.has("stochasticity"),
       dynamics: !disabled.has("colors") && !disabled.has("dynamics"),
+      parameters: !disabled.has("parameters"),
     },
   };
 };
@@ -77,6 +80,9 @@ export const isSelectionTypeAvailableForExtensions = (
   }
   if (type === "differentialEquation") {
     return canUseDynamics(extensions);
+  }
+  if (type === "parameter") {
+    return extensions.parameters;
   }
   return true;
 };
@@ -138,6 +144,13 @@ export const stripDisabledExtensionData = (
 
   if (!canUseDynamics(extensions)) {
     sdcpn.differentialEquations.splice(0);
+  }
+
+  if (!extensions.parameters) {
+    sdcpn.parameters.splice(0);
+    for (const scenario of sdcpn.scenarios ?? []) {
+      scenario.parameterOverrides = {};
+    }
   }
 
   for (const place of sdcpn.places) {

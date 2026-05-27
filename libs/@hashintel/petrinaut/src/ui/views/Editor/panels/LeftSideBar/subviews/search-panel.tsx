@@ -199,13 +199,15 @@ function useSearchableItems(): SearchableItem[] {
           },
         }))
       : []),
-    ...parameters.map((p) => ({
-      id: p.id,
-      name: p.name,
-      category: "Parameter",
-      icon: ParameterIcon,
-      selectionItem: { type: "parameter" as const, id: p.id },
-    })),
+    ...(extensions.parameters
+      ? parameters.map((p) => ({
+          id: p.id,
+          name: p.name,
+          category: "Parameter",
+          icon: ParameterIcon,
+          selectionItem: { type: "parameter" as const, id: p.id },
+        }))
+      : []),
   ];
 }
 

@@ -204,6 +204,9 @@ export const PropertiesPanel: React.FC = () => {
       }
 
       case "parameter": {
+        if (!extensions.parameters) {
+          break;
+        }
         const parameterData = petriNetDefinition.parameters.find(
           (parameter) => parameter.id === item.id,
         );

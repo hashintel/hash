@@ -62,7 +62,12 @@ describe("createJsonDocHandle", () => {
       initial: empty(),
       capabilities: {
         readonly: true,
-        disabledExtensions: ["colors", "stochasticity", "dynamics"],
+        disabledExtensions: [
+          "colors",
+          "stochasticity",
+          "dynamics",
+          "parameters",
+        ],
       },
     });
     const listener = vi.fn();
@@ -83,6 +88,7 @@ describe("createJsonDocHandle", () => {
       "colors",
       "stochasticity",
       "dynamics",
+      "parameters",
     ]);
     expect(handle.doc()?.types).toHaveLength(0);
     expect(listener).not.toHaveBeenCalled();
@@ -153,7 +159,12 @@ describe("createPetrinaut", () => {
       initial: empty(),
       capabilities: {
         readonly: true,
-        disabledExtensions: ["colors", "stochasticity", "dynamics"],
+        disabledExtensions: [
+          "colors",
+          "stochasticity",
+          "dynamics",
+          "parameters",
+        ],
       },
     });
     const instance = createPetrinaut({ document: handle });
@@ -163,6 +174,7 @@ describe("createPetrinaut", () => {
       colors: false,
       stochasticity: false,
       dynamics: false,
+      parameters: false,
     });
   });
 
@@ -183,6 +195,7 @@ describe("createPetrinaut", () => {
       colors: false,
       stochasticity: true,
       dynamics: false,
+      parameters: true,
     });
   });
 });

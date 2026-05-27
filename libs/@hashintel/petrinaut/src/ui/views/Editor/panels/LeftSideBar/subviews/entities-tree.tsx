@@ -163,19 +163,23 @@ function useEntityTreeItems(): EntityTreeItem[] {
           },
         ]
       : []),
-    {
-      id: "group-parameters",
-      name: "Parameters",
-      emptyGroupMessage: "No parameters",
-      renderGroupAction: ParametersHeaderAction,
-      children: parameters.map((p) => ({
-        id: p.id,
-        name: p.name,
-        icon: ParameterIcon,
-        selectionItem: { type: "parameter" as const, id: p.id },
-        variableName: p.variableName,
-      })),
-    },
+    ...(extensions.parameters
+      ? [
+          {
+            id: "group-parameters",
+            name: "Parameters",
+            emptyGroupMessage: "No parameters",
+            renderGroupAction: ParametersHeaderAction,
+            children: parameters.map((p) => ({
+              id: p.id,
+              name: p.name,
+              icon: ParameterIcon,
+              selectionItem: { type: "parameter" as const, id: p.id },
+              variableName: p.variableName,
+            })),
+          },
+        ]
+      : []),
   ];
 }
 

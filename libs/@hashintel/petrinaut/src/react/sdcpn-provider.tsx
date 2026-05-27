@@ -47,6 +47,10 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       if (
+        isSelectionTypeAvailableForExtensions(
+          "parameter",
+          instance.extensions,
+        ) &&
         petriNetDefinition.parameters.some((parameter) => parameter.id === id)
       ) {
         return "parameter";

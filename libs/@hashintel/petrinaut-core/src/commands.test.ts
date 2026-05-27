@@ -71,7 +71,7 @@ describe("applyClipboardPaste", () => {
       document: createJsonDocHandle({
         initial: JSON.parse(JSON.stringify(emptySDCPN)) as SDCPN,
         capabilities: {
-          disabledExtensions: ["colors", "dynamics"],
+          disabledExtensions: ["colors", "dynamics", "parameters"],
         },
       }),
     });
@@ -105,6 +105,15 @@ describe("applyClipboardPaste", () => {
           code: "export default Dynamics(() => []);",
         },
       ],
+      parameters: [
+        {
+          id: "parameter-1",
+          name: "Rate",
+          variableName: "rate",
+          type: "real",
+          defaultValue: "1",
+        },
+      ],
     });
 
     const { newItemIds } = instance.commands.applyClipboardPaste({ payload });
@@ -113,6 +122,7 @@ describe("applyClipboardPaste", () => {
     expect(newItemIds.map((item) => item.type)).toEqual(["place"]);
     expect(definition.types).toEqual([]);
     expect(definition.differentialEquations).toEqual([]);
+    expect(definition.parameters).toEqual([]);
     expect(definition.places[0]).toMatchObject({
       colorId: null,
       dynamicsEnabled: false,

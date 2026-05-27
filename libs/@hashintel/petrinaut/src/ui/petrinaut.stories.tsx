@@ -80,7 +80,7 @@ const barePetriNet: SDCPN = {
 };
 
 const barePetriNetCapabilities = {
-  disabledExtensions: ["colors", "stochasticity", "dynamics"],
+  disabledExtensions: ["colors", "stochasticity", "dynamics", "parameters"],
 } satisfies PetrinautHandleCapabilities;
 
 import type { Meta, StoryObj } from "@storybook/react-vite";

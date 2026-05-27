@@ -69,6 +69,7 @@ export function createPetrinautActions(
 ): MutationHelperFunctions {
   const canUseColors = extensions.colors;
   const canUseDynamics = extensions.colors && extensions.dynamics;
+  const canUseParameters = extensions.parameters;
 
   const mutateWithExtensionGuards = (fn: (sdcpn: SDCPN) => void): void => {
     mutate((sdcpn) => {
@@ -477,12 +478,18 @@ export function createPetrinautActions(
     },
     addParameter(parameter) {
       const parsedParameter = parameterSchema.parse(parameter);
+      if (!canUseParameters) {
+        return;
+      }
       mutateWithExtensionGuards((sdcpn) => {
         sdcpn.parameters.push(parsedParameter);
       });
     },
     updateParameter(input) {
       const parsed = mutationActionInputSchemas.updateParameter.parse(input);
+      if (!canUseParameters) {
+        return;
+      }
       mutateWithExtensionGuards((sdcpn) => {
         for (const parameter of sdcpn.parameters) {
           if (parameter.id === parsed.parameterId) {
@@ -496,6 +503,9 @@ export function createPetrinautActions(
     removeParameter(input) {
       const { parameterId: parsedParameterId } =
         mutationActionInputSchemas.removeParameter.parse(input);
+      if (!canUseParameters) {
+        return;
+      }
       mutateWithExtensionGuards((sdcpn) => {
         for (const [index, parameter] of sdcpn.parameters.entries()) {
           if (parameter.id === parsedParameterId) {

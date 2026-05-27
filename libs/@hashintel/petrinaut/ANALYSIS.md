@@ -24,12 +24,13 @@ The supported extension keys are:
 - `colors`
 - `stochasticity`
 - `dynamics`
+- `parameters`
 
 Omitting `disabledExtensions` keeps the current default behavior, where all extensions are enabled. For CatCollab's bare Petri-net integration, the future handle can declare:
 
 ```ts
 capabilities: {
-  disabledExtensions: ["colors", "stochasticity", "dynamics"],
+  disabledExtensions: ["colors", "stochasticity", "dynamics", "parameters"],
   readonly: true, // or false, depending on CatCollab's intended mode
 }
 ```
@@ -49,21 +50,22 @@ Core package:
 React and UI package:
 
 - `sdcpn-context.ts` and `sdcpn-provider.tsx`: expose active extension settings through context and selection typing.
-- Left sidebar and search: hide token type and differential equation entry points when unavailable.
+- Left sidebar and search: hide token type, differential equation, and global parameter entry points when unavailable.
 - Properties panel: hide color, dynamics, visualizer, differential-equation, and transition-result surfaces as applicable.
 - Transition firing-time panel: hides the stochastic mode selector when stochasticity is unavailable.
 - React Flow rendering: renders places and arcs without color semantics when colors are disabled, and disables dynamics markers when dynamics is unavailable.
-- Simulation scenario and timeline views: treat all places as untyped when colors are disabled.
+- Simulation scenario and timeline views: treat all places as untyped when colors are disabled and ignore global parameter overrides when parameters are disabled.
 
 ## Behavior With CatCollab-Style Bare Petri Nets
 
-With `disabledExtensions: ["colors", "stochasticity", "dynamics"]`:
+With `disabledExtensions: ["colors", "stochasticity", "dynamics", "parameters"]`:
 
 - Token types are unavailable in navigation, search, properties, selection cleanup, paste, and mutation actions.
 - Differential equations and place dynamics are unavailable.
 - Place color IDs, visualizer code, and dynamics fields are cleared or ignored.
 - Stochastic transitions are coerced back to predicate transitions.
 - Transition kernel code is cleared.
+- Global parameters are unavailable in navigation, search, properties, paste, mutation actions, scenario overrides, and simulation defaults.
 - Core mutation and paste paths sanitize SDCPN data so unavailable extensions do not persist after edits.
 
 ## Open Design Choices
@@ -71,12 +73,13 @@ With `disabledExtensions: ["colors", "stochasticity", "dynamics"]`:
 - `disabledExtensions` was chosen instead of `enabledExtensions` for backward compatibility: existing handles keep all current SDCPN behavior without extra metadata.
 - `colors` currently gates token types and several dependent behaviors. `dynamics` is also treated as dependent on `colors`, because equations target colored token types in the current SDCPN model.
 - `stochasticity` only controls stochastic firing-time behavior. It does not currently disable all probabilistic simulation concepts if those are introduced elsewhere later.
+- `parameters` controls global net-level parameters only. Scenario-local parameters remain available because they belong to scenario configuration rather than the global Petri-net definition.
 - The future CatCollab handle still needs a clear mapping from CatCollab's bare Petri-net model into Petrinaut's SDCPN document shape.
 
 ## Potential Follow-Ups
 
 - Filter AI tool schemas and prompts by active extensions. Core mutations now sanitize disabled data, but tool availability could be made more explicit to the AI layer.
-- Decide whether other features should become separate capability flags for a truly bare Petri-net mode, such as inhibitor arcs, scenarios, metrics, parameters, or simulation-only views.
+- Decide whether other features should become separate capability flags for a truly bare Petri-net mode, such as inhibitor arcs, scenarios, metrics, or simulation-only views.
 - Add import/export level sanitation so external document conversion cannot accidentally reintroduce disabled extension data.
 - Consider making read-only reasons more specific in the UI, for example distinguishing simulation read-only from handle-level read-only.
 - Add an actual `CatCollabPetriNetHandle` once CatCollab's source model and edit semantics are finalized.

@@ -50,8 +50,10 @@ export function useSelectionCleanup() {
         validIds.add(eq.id);
       }
     }
-    for (const param of petriNetDefinition.parameters) {
-      validIds.add(param.id);
+    if (extensions.parameters) {
+      for (const param of petriNetDefinition.parameters) {
+        validIds.add(param.id);
+      }
     }
 
     // Check if any selected ID is stale

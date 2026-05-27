@@ -328,7 +328,12 @@ describe("Petrinaut core actions", () => {
       document: createJsonDocHandle({
         initial: cloneSDCPN(emptySDCPN),
         capabilities: {
-          disabledExtensions: ["colors", "stochasticity", "dynamics"],
+          disabledExtensions: [
+            "colors",
+            "stochasticity",
+            "dynamics",
+            "parameters",
+          ],
         },
       }),
     });
@@ -367,10 +372,18 @@ describe("Petrinaut core actions", () => {
       x: 0,
       y: 0,
     });
+    instance.mutations.addParameter({
+      id: "parameter-1",
+      name: "Rate",
+      variableName: "rate",
+      type: "real",
+      defaultValue: "1",
+    });
 
     const definition = instance.definition.get();
     expect(definition.types).toEqual([]);
     expect(definition.differentialEquations).toEqual([]);
+    expect(definition.parameters).toEqual([]);
     expect(definition.places[0]).toMatchObject({
       colorId: null,
       dynamicsEnabled: false,
