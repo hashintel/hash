@@ -15,9 +15,9 @@ export const styles = sva({
     size: {
       xxs: { description: { textStyle: "xxs" } },
       xs: { description: { textStyle: "xs" } },
-      sm: { description: { textStyle: "xs" } },
+      sm: { description: { textStyle: "sm" } },
       md: { description: { textStyle: "sm" } },
-      lg: { description: { textStyle: "sm" } },
+      lg: { description: { textStyle: "base" } },
     },
     direction: {
       left: { description: { textAlign: "left" } },

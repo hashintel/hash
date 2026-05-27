@@ -182,6 +182,9 @@ export const FormSize: Story = () => (
   </div>
 );
 
+const { labelActions: _labelActions, ...kitchenSinkPropsNoActions } =
+  kitchenSinkProps;
+
 export const LabelDirection: Story = () => (
   <div className={sectionStyle}>
     {labelDirections.map((direction) => (
@@ -194,6 +197,22 @@ export const LabelDirection: Story = () => (
       >
         <ControlledTextInput
           name={`form-field-direction-${direction}`}
+          initialValue="Kitchen sink value"
+          disabled
+          invalid
+        />
+      </FormField>
+    ))}
+    {labelDirections.map((direction) => (
+      <FormField
+        key={`${direction}-no-actions`}
+        htmlFor={`form-field-direction-${direction}-no-actions`}
+        label={`Direction: ${direction} (no actions)`}
+        labelDirection={direction}
+        {...kitchenSinkPropsNoActions}
+      >
+        <ControlledTextInput
+          name={`form-field-direction-${direction}-no-actions`}
           initialValue="Kitchen sink value"
           disabled
           invalid

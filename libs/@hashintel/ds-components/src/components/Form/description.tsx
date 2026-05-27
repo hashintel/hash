@@ -7,8 +7,8 @@ import type { FormInputSize } from "../../util/form-shared";
 export const Description = ({
   className,
   children,
-  size,
-  direction,
+  size = "md",
+  direction = "left",
   disabled,
 }: {
   className?: string;

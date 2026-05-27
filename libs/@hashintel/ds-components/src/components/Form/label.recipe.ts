@@ -41,7 +41,6 @@ export const styles = sva({
       display: "inline-flex",
       alignItems: "center",
       gap: "1",
-      marginLeft: "auto",
     },
   },
   variants: {
@@ -53,8 +52,14 @@ export const styles = sva({
       lg: { label: { textStyle: "base" } },
     },
     direction: {
-      left: { label: { textAlign: "left" } },
-      right: { label: { textAlign: "right", justifyContent: "flex-end" } },
+      left: { label: { textAlign: "left" }, actions: { marginLeft: "auto" } },
+      right: {
+        label: { textAlign: "right", justifyContent: "flex-end" },
+        actions: {
+          order: "-1",
+          marginRight: "auto",
+        },
+      },
     },
     disabled: {
       true: {
