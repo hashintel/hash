@@ -162,6 +162,7 @@ export interface SegmentOption {
   hideLabel?: boolean;
   disabled?: boolean;
   tooltip?: string;
+  tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 }
 
 interface SegmentGroupProps {
@@ -249,7 +250,11 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
 
         if (option.tooltip) {
           return (
-            <Tooltip key={option.value} content={option.tooltip}>
+            <Tooltip
+              {...option.tooltipOptions}
+              key={option.value}
+              content={option.tooltip}
+            >
               <span className={tooltipWrapperStyle}>{item}</span>
             </Tooltip>
           );
