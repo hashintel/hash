@@ -54,11 +54,13 @@ export const ViewportControls: React.FC<{
 
   return (
     <div
-      className={`${containerStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
+      className={`${containerStyle} ${animatingStyle({
+        animating: isPanelAnimating,
+      })}`}
       style={{ right: rightOffset, bottom: bottomOffset }}
     >
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Zoom in"
         tooltip="Zoom in"
@@ -68,7 +70,7 @@ export const ViewportControls: React.FC<{
         onClick={() => zoomIn()}
       />
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Zoom out"
         tooltip="Zoom out"
@@ -78,7 +80,7 @@ export const ViewportControls: React.FC<{
         onClick={() => zoomOut()}
       />
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Fullscreen"
         tooltip="Fullscreen"
@@ -87,7 +89,7 @@ export const ViewportControls: React.FC<{
         onClick={collapseAllPanels}
       />
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Lock view"
         tooltip="Lock view"
@@ -98,7 +100,7 @@ export const ViewportControls: React.FC<{
         }}
       />
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Settings"
         tooltip="Settings"
@@ -114,7 +116,7 @@ export const ViewportControls: React.FC<{
         <Button
           key={action.key}
           ref={action.ref}
-          size="sm"
+          size="xs"
           variant="subtle"
           aria-label={action.label}
           tooltip={action.tooltip}
