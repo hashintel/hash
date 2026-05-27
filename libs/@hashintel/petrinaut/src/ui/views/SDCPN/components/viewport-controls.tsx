@@ -16,7 +16,7 @@ const containerStyle = css({
   position: "absolute",
   display: "flex",
   flexDirection: "column",
-  gap: "0.5",
+  gap: "[2px]",
   zIndex: "[900]",
 });
 
