@@ -54,57 +54,136 @@ const kitchenSinkProps = {
 
 export default {
   title: "Components/FormField",
-} satisfies StoryDefault;
+  argTypes: {
+    label: {
+      control: { type: "text" },
+      description: "Label text for the field",
+    },
+    hideLabel: {
+      control: { type: "boolean" },
+      description: "Visually hide the label while keeping it accessible",
+    },
+    size: {
+      control: { type: "select" },
+      options: formInputSizes,
+      description: "Size of the field",
+    },
+    labelDirection: {
+      control: { type: "radio" },
+      options: labelDirections,
+      description: "Alignment of label and helper content",
+    },
+    description: {
+      control: { type: "text" },
+      description: "Helper text shown above the input",
+    },
+    descriptionBottom: {
+      control: { type: "text" },
+      description: "Helper text shown below the input",
+    },
+    labelTooltip: {
+      control: { type: "text" },
+      description: "Tooltip shown next to the label",
+    },
+    required: {
+      control: { type: "boolean" },
+      description: "Mark the field as required",
+    },
+    disabled: {
+      control: { type: "boolean" },
+      description: "Disable the field",
+    },
+  },
+  args: {
+    as: "label" as const,
+  },
+} satisfies StoryDefault<React.ComponentProps<typeof FormField>>;
 
-export const Default: Story = () => (
+type FormFieldArgs = React.ComponentProps<typeof FormField>;
+
+export const Default: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
-    <FormField htmlFor="form-field-disabled" label="Disabled" disabled>
+    <FormField
+      {...args}
+      as="label"
+      htmlFor="form-field-disabled"
+      label="Disabled"
+      disabled
+    >
       <ControlledTextInput
         name="form-field-disabled"
         initialValue="Disabled value"
+        size={args.size}
         disabled
       />
     </FormField>
 
-    <FormField htmlFor="form-field-required" label="Required" required>
-      <ControlledTextInput name="form-field-required" />
+    <FormField
+      {...args}
+      as="label"
+      htmlFor="form-field-required"
+      label="Required"
+      required
+    >
+      <ControlledTextInput name="form-field-required" size={args.size} />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-description"
       label="Description"
       description="A short description above the input"
     >
-      <ControlledTextInput name="form-field-description" />
+      <ControlledTextInput name="form-field-description" size={args.size} />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-description-bottom"
       label="Description on bottom"
       descriptionBottom="A short description below the input"
     >
-      <ControlledTextInput name="form-field-description-bottom" />
+      <ControlledTextInput
+        name="form-field-description-bottom"
+        size={args.size}
+      />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-one-error"
       label="One error"
       errors={["Something went wrong"]}
       invalid
     >
-      <ControlledTextInput name="form-field-one-error" invalid />
+      <ControlledTextInput
+        name="form-field-one-error"
+        size={args.size}
+        invalid
+      />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-multiple-errors"
       label="Multiple errors"
       errors={["First error", "Second error", "Third error"]}
       invalid
     >
-      <ControlledTextInput name="form-field-multiple-errors" invalid />
+      <ControlledTextInput
+        name="form-field-multiple-errors"
+        size={args.size}
+        invalid
+      />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-hidden-label"
       label="Label hidden (visually)"
       hideLabel
@@ -112,26 +191,33 @@ export const Default: Story = () => (
       <ControlledTextInput
         name="form-field-hidden-label"
         placeholder="Label hidden (visually)"
+        size={args.size}
       />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-tooltip"
       label="Tooltip"
       labelTooltip="Extra information about this field"
     >
-      <ControlledTextInput name="form-field-tooltip" />
+      <ControlledTextInput name="form-field-tooltip" size={args.size} />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-actions"
       label="Actions"
       labelActions={[<ActionButton key="action" />]}
     >
-      <ControlledTextInput name="form-field-actions" />
+      <ControlledTextInput name="form-field-actions" size={args.size} />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-kitchen-sink"
       label="Kitchen sink"
       {...kitchenSinkProps}
@@ -139,12 +225,15 @@ export const Default: Story = () => (
       <ControlledTextInput
         name="form-field-kitchen-sink"
         initialValue="Kitchen sink value"
+        size={args.size}
         disabled
         invalid
       />
     </FormField>
 
     <FormField
+      {...args}
+      as="label"
       htmlFor="form-field-kitchen-sink"
       label="Kitchen sink disabled"
       {...kitchenSinkProps}
@@ -153,6 +242,7 @@ export const Default: Story = () => (
       <ControlledTextInput
         name="form-field-kitchen-sink"
         initialValue="Kitchen sink value"
+        size={args.size}
         disabled
         invalid
       />
@@ -160,10 +250,12 @@ export const Default: Story = () => (
   </div>
 );
 
-export const FormSize: Story = () => (
+export const FormSize: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formInputSizes.map((size: FormInputSize) => (
       <FormField
+        {...args}
+        as="label"
         key={size}
         htmlFor={`form-field-size-${size}`}
         label={`Size: ${size}`}
@@ -185,10 +277,12 @@ export const FormSize: Story = () => (
 const { labelActions: _labelActions, ...kitchenSinkPropsNoActions } =
   kitchenSinkProps;
 
-export const LabelDirection: Story = () => (
+export const LabelDirection: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {labelDirections.map((direction) => (
       <FormField
+        {...args}
+        as="label"
         key={direction}
         htmlFor={`form-field-direction-${direction}`}
         label={`Direction: ${direction}`}
@@ -198,6 +292,7 @@ export const LabelDirection: Story = () => (
         <ControlledTextInput
           name={`form-field-direction-${direction}`}
           initialValue="Kitchen sink value"
+          size={args.size}
           disabled
           invalid
         />
@@ -205,6 +300,8 @@ export const LabelDirection: Story = () => (
     ))}
     {labelDirections.map((direction) => (
       <FormField
+        {...args}
+        as="label"
         key={`${direction}-no-actions`}
         htmlFor={`form-field-direction-${direction}-no-actions`}
         label={`Direction: ${direction} (no actions)`}
@@ -214,6 +311,7 @@ export const LabelDirection: Story = () => (
         <ControlledTextInput
           name={`form-field-direction-${direction}-no-actions`}
           initialValue="Kitchen sink value"
+          size={args.size}
           disabled
           invalid
         />
