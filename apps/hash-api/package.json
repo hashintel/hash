@@ -6,7 +6,7 @@
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
-    "build:docker": "docker buildx build --tag hash-api --file ../../infra/docker/api/prod/Dockerfile ../../ --load",
+    "build:docker": "docker buildx build --tag hash-api --file docker/Dockerfile ../../ --load",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false --import ./src/instrument.mjs ./src/index.ts",
     "fix:eslint": "eslint --fix .",
