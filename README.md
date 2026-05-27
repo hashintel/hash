@@ -61,9 +61,24 @@ These instructions set up HASH for **working on the codebase** — the app servi
 
 #### Prerequisites
 
-- [Git](https://git-scm.com) (≥ 2.17), [Docker](https://docs.docker.com/get-docker/) (≥ 20.10) with [Compose](https://docs.docker.com/compose/) (≥ 2.17) and [Buildx](https://docs.docker.com/build/install-buildx/) (≥ 0.10)
-- [mise](https://mise.jdx.dev/) — installs and pins Node, Rust, protoc and the other required tool versions
-- At least 8 GB RAM allocated to Docker (Preferences → Resources); ~15 GB free disk for build artefacts, images and volumes
+Install these on the host first:
+
+- **[Git](https://git-scm.com)** (≥ 2.17)
+- **[Docker](https://docs.docker.com/get-docker/)** (≥ 20.10), including:
+  - **[Docker Compose](https://docs.docker.com/compose/)** (≥ 2.17) — orchestrates the stack
+  - **[Docker Buildx](https://docs.docker.com/build/install-buildx/)** (≥ 0.10) — builds the images
+- **[mise](https://mise.jdx.dev/)** — installs and pins Node, Rust, protoc and the other required tool versions
+
+Give Docker at least **8 GB RAM** (Preferences → Resources) and keep ~15 GB of disk free for build artefacts, images and volumes.
+
+Check your versions:
+
+```sh
+git --version            # ≥ 2.17
+docker --version         # ≥ 20.10
+docker compose version   # ≥ 2.17
+docker buildx version    # ≥ 0.10
+```
 
 #### Setup
 
