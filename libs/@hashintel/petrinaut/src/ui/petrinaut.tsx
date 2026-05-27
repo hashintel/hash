@@ -3,8 +3,10 @@ import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "@xyflow/react/dist/style.css";
 import "./index.css";
-import { type FunctionComponent, useEffect, useMemo } from "react";
+import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
 
+import { PortalContainerContext } from "@hashintel/ds-components";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createPetrinaut,
   type PetrinautDocHandle,
@@ -16,8 +18,26 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautProvider } from "../react/petrinaut-provider";
+import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
+
+const editorRootStyle = css({
+  position: "relative",
+  height: "full",
+  overflow: "hidden",
+  backgroundColor: "neutral.s25",
+});
+
+const portalContainerStyle = css({
+  position: "absolute",
+  top: "0",
+  left: "0",
+  width: "full",
+  height: "full",
+  zIndex: "99999",
+  pointerEvents: "none",
+});
 
 import type {
   PetrinautAiMessage,
@@ -95,6 +115,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   monteCarloWorkerFactory,
   lspWorkerFactory,
 }) => {
+  const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
     () => createPetrinaut({ document: handle, readonly }),
     [handle, readonly],
@@ -111,20 +132,25 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   };
 
   return (
-    <PetrinautProvider
-      instance={instance}
-      netManagement={netManagement}
-      simulationWorkerFactory={simulationWorkerFactory}
-      monteCarloWorkerFactory={monteCarloWorkerFactory}
-      lspWorkerFactory={lspWorkerFactory}
-    >
-      <MonacoProvider>
-        <EditorView
-          aiAssistant={aiAssistant}
-          hideNetManagementControls={hideNetManagementControls}
-          viewportActions={viewportActions}
-        />
-      </MonacoProvider>
-    </PetrinautProvider>
+    <PortalContainerContext value={portalContainerRef}>
+      <PetrinautProvider
+        instance={instance}
+        netManagement={netManagement}
+        simulationWorkerFactory={simulationWorkerFactory}
+        monteCarloWorkerFactory={monteCarloWorkerFactory}
+        lspWorkerFactory={lspWorkerFactory}
+      >
+        <MonacoProvider>
+          <Stack className={cx(editorRootStyle, "petrinaut-root")}>
+            <div ref={portalContainerRef} className={portalContainerStyle} />
+            <EditorView
+              aiAssistant={aiAssistant}
+              hideNetManagementControls={hideNetManagementControls}
+              viewportActions={viewportActions}
+            />
+          </Stack>
+        </MonacoProvider>
+      </PetrinautProvider>
+    </PortalContainerContext>
   );
 };

@@ -1,7 +1,6 @@
-import { use, useRef, useState } from "react";
+import { use, useState } from "react";
 
-import { PortalContainerContext } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
 import {
   deploymentPipelineSDCPN,
@@ -76,23 +75,6 @@ const canvasContainerStyle = css({
   width: "full",
   position: "relative",
   flexGrow: 1,
-});
-
-const editorRootStyle = css({
-  position: "relative",
-  height: "full",
-  overflow: "hidden",
-  backgroundColor: "neutral.s25",
-});
-
-const portalContainerStyle = css({
-  position: "absolute",
-  top: "0",
-  left: "0",
-  width: "full",
-  height: "full",
-  zIndex: "99999",
-  pointerEvents: "none",
 });
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
@@ -372,8 +354,6 @@ export const EditorView = ({
     },
   ];
 
-  const portalContainerRef = useRef<HTMLDivElement>(null);
-
   const showEmptyAiHero =
     aiAssistant !== undefined &&
     !isAiAssistantOpen &&
@@ -381,86 +361,82 @@ export const EditorView = ({
     isEmptySDCPN(petriNetDefinition);
 
   return (
-    <PortalContainerContext value={portalContainerRef}>
-      <Stack className={cx(editorRootStyle, "petrinaut-root")}>
-        <div ref={portalContainerRef} className={portalContainerStyle} />
-
-        <ImportErrorDialog
-          open={importError !== null}
-          onOpenChange={({ open }) => {
-            if (!open) {
-              setImportError(null);
-            }
-          }}
-          errorMessage={importError ?? ""}
-          onCreateEmpty={handleCreateEmpty}
-        />
-
-        {/* Top Bar - always visible */}
-        <TopBar
-          menuItems={menuItems}
-          title={title}
-          onTitleChange={setTitle}
-          hideNetManagementControls={hideNetManagementControls}
-          mode={mode}
-          onModeChange={setGlobalMode}
-          onRunningExperimentClick={(experiment) =>
-            handleRunningExperimentClick(experiment.id)
+    <>
+      <ImportErrorDialog
+        open={importError !== null}
+        onOpenChange={({ open }) => {
+          if (!open) {
+            setImportError(null);
           }
-        />
+        }}
+        errorMessage={importError ?? ""}
+        onCreateEmpty={handleCreateEmpty}
+      />
 
-        <Stack direction="row" className={rowContainerStyle}>
-          {mode === "simulate" ? (
-            <SimulateView />
-          ) : (
-            <Box className={canvasContainerStyle}>
-              {/* Left Sidebar - Tools and content panels */}
-              <LeftSideBar />
+      {/* Top Bar - always visible */}
+      <TopBar
+        menuItems={menuItems}
+        title={title}
+        onTitleChange={setTitle}
+        hideNetManagementControls={hideNetManagementControls}
+        mode={mode}
+        onModeChange={setGlobalMode}
+        onRunningExperimentClick={(experiment) =>
+          handleRunningExperimentClick(experiment.id)
+        }
+      />
 
-              {/* Properties Panel - Right Side */}
-              <PropertiesPanel />
+      <Stack direction="row" className={rowContainerStyle}>
+        {mode === "simulate" ? (
+          <SimulateView />
+        ) : (
+          <Box className={canvasContainerStyle}>
+            {/* Left Sidebar - Tools and content panels */}
+            <LeftSideBar />
 
-              {/* SDCPN Visualization */}
-              <SDCPNView viewportActions={viewportActions} />
+            {/* Properties Panel - Right Side */}
+            <PropertiesPanel />
 
-              {showEmptyAiHero && (
-                <AiCtaModal
-                  bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                  onDismiss={() => setIsAiCtaDismissed(true)}
-                  onSubmit={(message) => {
-                    setPendingAiAssistantMessage(message);
-                    setAiAssistantOpen(true);
-                  }}
-                />
-              )}
+            {/* SDCPN Visualization */}
+            <SDCPNView viewportActions={viewportActions} />
 
-              {/* Bottom Panel - Diagnostics, Simulation Settings */}
-              <BottomPanel />
-
-              <BottomBar
-                mode={mode}
-                editionMode={editionMode}
-                onEditionModeChange={setEditionMode}
-                cursorMode={cursorMode}
-                onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
+            {showEmptyAiHero && (
+              <AiCtaModal
+                bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
+                onDismiss={() => setIsAiCtaDismissed(true)}
+                onSubmit={(message) => {
+                  setPendingAiAssistantMessage(message);
+                  setAiAssistantOpen(true);
+                }}
               />
+            )}
 
-              {aiAssistant && (
-                <AiAssistantPanel
-                  /** Reset state (e.g. initial messages) when the active net changes */
-                  key={petriNetId ?? "no-net"}
-                  aiAssistant={aiAssistant}
-                  initialMessage={pendingAiAssistantMessage}
-                  onInitialMessageConsumed={() =>
-                    setPendingAiAssistantMessage(null)
-                  }
-                />
-              )}
-            </Box>
-          )}
-        </Stack>
+            {/* Bottom Panel - Diagnostics, Simulation Settings */}
+            <BottomPanel />
+
+            <BottomBar
+              mode={mode}
+              editionMode={editionMode}
+              onEditionModeChange={setEditionMode}
+              cursorMode={cursorMode}
+              onCursorModeChange={setCursorMode}
+              hasAiAssistant={aiAssistant !== undefined}
+            />
+
+            {aiAssistant && (
+              <AiAssistantPanel
+                /** Reset state (e.g. initial messages) when the active net changes */
+                key={petriNetId ?? "no-net"}
+                aiAssistant={aiAssistant}
+                initialMessage={pendingAiAssistantMessage}
+                onInitialMessageConsumed={() =>
+                  setPendingAiAssistantMessage(null)
+                }
+              />
+            )}
+          </Box>
+        )}
       </Stack>
-    </PortalContainerContext>
+    </>
   );
 };
