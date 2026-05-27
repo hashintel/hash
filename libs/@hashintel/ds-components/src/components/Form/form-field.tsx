@@ -1,5 +1,6 @@
 import { Description } from "./description";
 import { Errors } from "./errors";
+import { styles } from "./form-field.recipe";
 import { Label } from "./label";
 
 import type {
@@ -13,7 +14,7 @@ export const FormField = ({
   label,
   hideLabel,
   size,
-  layout,
+  layout: _layout,
   labelDirection,
   description,
   descriptionBottom,
@@ -22,7 +23,7 @@ export const FormField = ({
   errors,
   required,
   disabled,
-  invalid,
+  invalid: _invalid,
   ...labelProps
 }: {
   className?: string;
@@ -52,6 +53,8 @@ export const FormField = ({
     }
 ) &
   SharedInputAndFieldProps) => {
+  const classes = styles({ size });
+
   return (
     <fieldset className={className}>
       <Label
@@ -62,23 +65,39 @@ export const FormField = ({
         tooltip={labelTooltip}
         disabled={disabled}
         hide={hideLabel}
+        className={classes.label}
         {...labelProps}
       >
         {label}
       </Label>
       {description && (
-        <Description size={size} direction={labelDirection} disabled={disabled}>
+        <Description
+          size={size}
+          direction={labelDirection}
+          disabled={disabled}
+          className={classes.description}
+        >
           {description}
         </Description>
       )}
       {children}
       {descriptionBottom && (
-        <Description size={size} direction={labelDirection} disabled={disabled}>
+        <Description
+          size={size}
+          direction={labelDirection}
+          disabled={disabled}
+          className={classes.descriptionBottom}
+        >
           {descriptionBottom}
         </Description>
       )}
       {errors && (
-        <Errors errors={errors} size={size} direction={labelDirection} />
+        <Errors
+          errors={errors}
+          size={size}
+          direction={labelDirection}
+          className={classes.errors}
+        />
       )}
     </fieldset>
   );

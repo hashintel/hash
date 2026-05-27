@@ -3,38 +3,28 @@ import { sva } from "@hashintel/ds-helpers/css";
 export const styles = sva({
   slots: ["description"],
   base: {
-    description: {},
+    description: {
+      display: "block",
+      color: "fg.subtle",
+      fontFamily: "body",
+      fontWeight: "normal",
+      width: "full",
+    },
   },
   variants: {
     size: {
-      xxs: {
-        description: {},
-      },
-      xs: {
-        description: {},
-      },
-      sm: {
-        description: {},
-      },
-      md: {
-        description: {},
-      },
-      lg: {
-        description: {},
-      },
+      xxs: { description: { textStyle: "xxs" } },
+      xs: { description: { textStyle: "xs" } },
+      sm: { description: { textStyle: "xs" } },
+      md: { description: { textStyle: "sm" } },
+      lg: { description: { textStyle: "sm" } },
     },
     direction: {
-      left: {
-        description: {},
-      },
-      right: {
-        description: {},
-      },
+      left: { description: { textAlign: "left" } },
+      right: { description: { textAlign: "right" } },
     },
     disabled: {
-      true: {
-        description: {},
-      },
+      true: { description: { color: "fg.subtle.disabled" } },
     },
   },
 });
