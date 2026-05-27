@@ -10,12 +10,15 @@ export const Errors = ({
   errors,
   size,
   direction,
+  "data-part": dataPart,
 }: {
   className?: string;
   errors?: Array<string | React.ReactNode>;
 
   size?: FormInputSize;
   direction?: "left" | "right";
+
+  "data-part"?: string;
 }) => {
   if (!errors || errors.length === 0) {
     return null;
@@ -24,7 +27,11 @@ export const Errors = ({
 
   if (errors.length === 1) {
     return (
-      <span role="alert" className={cx(classes.error, className)}>
+      <span
+        role="alert"
+        data-part={dataPart}
+        className={cx(classes.error, className)}
+      >
         <Icon name="error" className={classes.icon} />
         {errors[0]}
       </span>
@@ -32,7 +39,7 @@ export const Errors = ({
   }
 
   return (
-    <ul className={className} role="alert">
+    <ul className={className} role="alert" data-part={dataPart}>
       {errors.map((error, index) => (
         // eslint-disable-next-line react/no-array-index-key
         <li className={classes.error} key={index}>

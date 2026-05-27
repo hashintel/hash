@@ -10,6 +10,7 @@ export const Description = ({
   size = "md",
   direction = "left",
   disabled,
+  "data-part": dataPart,
 }: {
   className?: string;
   children: React.ReactNode;
@@ -18,8 +19,14 @@ export const Description = ({
   direction?: "left" | "right";
 
   disabled?: boolean;
+
+  "data-part"?: string;
 }) => {
   const classes = styles({ size, direction, disabled });
 
-  return <span className={cx(classes.description, className)}>{children}</span>;
+  return (
+    <span data-part={dataPart} className={cx(classes.description, className)}>
+      {children}
+    </span>
+  );
 };

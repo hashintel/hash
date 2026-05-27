@@ -13,9 +13,9 @@ export const FormField = ({
   children,
   label,
   hideLabel,
-  size,
+  size = "md",
   layout: _layout,
-  labelDirection,
+  labelDirection = "left",
   description,
   descriptionBottom,
   labelTooltip,
@@ -76,6 +76,7 @@ export const FormField = ({
           direction={labelDirection}
           disabled={disabled}
           className={classes.description}
+          data-part="description"
         >
           {description}
         </Description>
@@ -87,6 +88,7 @@ export const FormField = ({
           direction={labelDirection}
           disabled={disabled}
           className={classes.descriptionBottom}
+          data-part="descriptionBottom"
         >
           {descriptionBottom}
         </Description>
@@ -97,6 +99,7 @@ export const FormField = ({
           size={size}
           direction={labelDirection}
           className={classes.errors}
+          data-part="errors"
         />
       )}
     </fieldset>
