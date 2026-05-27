@@ -10,7 +10,7 @@
 //! # Main Types
 //!
 //! - [`TransMatrix`]: Per-edge transition costs indexed by (source, destination) target pairs
-//! - [`TerminatorCostVec`]: Collection of transition matrices for all edges in a body
+//! - [`TerminatorTransitionCostVec`]: Collection of transition matrices for all edges in a body
 //! - [`TerminatorPlacement`]: Analysis driver that computes placement for a body
 //!
 //! # Transition Rules
@@ -251,9 +251,11 @@ forward_ref_op_assign!(impl AddAssign<Self>::add_assign for TransMatrix);
 /// [`Return`]: TerminatorKind::Return
 /// [`Unreachable`]: TerminatorKind::Unreachable
 #[derive(Debug)]
-pub(crate) struct TerminatorCostVec<A: Allocator = Global>(BlockPartitionedVec<TransMatrix, A>);
+pub(crate) struct TerminatorTransitionCostVec<A: Allocator = Global>(
+    BlockPartitionedVec<TransMatrix, A>,
+);
 
-impl<A: Allocator + Clone> TerminatorCostVec<A> {
+impl<A: Allocator + Clone> TerminatorTransitionCostVec<A> {
     /// Creates a cost vector sized for `blocks`, with all transitions initially disallowed.
     pub(crate) fn new(blocks: &BasicBlocks, alloc: A) -> Self {
         Self(BlockPartitionedVec::new_in(
@@ -273,7 +275,7 @@ impl<A: Allocator + Clone> TerminatorCostVec<A> {
     }
 }
 
-impl<A: Allocator> TerminatorCostVec<A> {
+impl<A: Allocator> TerminatorTransitionCostVec<A> {
     pub(crate) const fn len(&self) -> usize {
         self.0.len()
     }
@@ -444,8 +446,8 @@ impl PopulateEdgeMatrix {
 /// Computes terminator placement for a [`Body`].
 ///
 /// Analyzes control flow edges to determine valid backend transitions and their costs. The
-/// resulting [`TerminatorCostVec`] is used by the execution planner alongside statement placement
-/// to select optimal execution targets.
+/// resulting [`TerminatorTransitionCostVec`] is used by the execution planner alongside statement
+/// placement to select optimal execution targets.
 ///
 /// # Usage
 ///
@@ -505,7 +507,7 @@ impl<S: Allocator> TerminatorPlacement<S> {
         vertex: VertexType,
         footprint: &BodyFootprint<&'heap Heap>,
         targets: &BasicBlockSlice<TargetBitSet>,
-    ) -> TerminatorCostVec<Global> {
+    ) -> TerminatorTransitionCostVec<Global> {
         self.terminator_placement_in(body, vertex, footprint, targets, Global)
     }
 
@@ -516,8 +518,8 @@ impl<S: Allocator> TerminatorPlacement<S> {
     /// execute on (from statement placement), and `footprint` provides size estimates for
     /// computing transfer costs.
     ///
-    /// The returned [`TerminatorCostVec`] can be indexed by block ID to get the transition
-    /// matrices for that block's successor edges.
+    /// The returned [`TerminatorTransitionCostVec`] can be indexed by block ID to get the
+    /// transition matrices for that block's successor edges.
     pub(crate) fn terminator_placement_in<'heap, A: Allocator + Clone>(
         &self,
         body: &Body<'heap>,
@@ -525,12 +527,12 @@ impl<S: Allocator> TerminatorPlacement<S> {
         footprint: &BodyFootprint<&'heap Heap>,
         targets: &BasicBlockSlice<TargetBitSet>,
         alloc: A,
-    ) -> TerminatorCostVec<A> {
+    ) -> TerminatorTransitionCostVec<A> {
         let live_in = self.compute_liveness(body, vertex);
         let scc = self.compute_scc(body);
         let switch_cost = backend_switch_cost();
 
-        let mut output = TerminatorCostVec::new(&body.basic_blocks, alloc);
+        let mut output = TerminatorTransitionCostVec::new(&body.basic_blocks, alloc);
         let mut required_locals = DenseBitSet::new_empty(body.local_decls.len());
 
         for (block_id, block) in body.basic_blocks.iter_enumerated() {

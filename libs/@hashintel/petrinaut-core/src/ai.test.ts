@@ -1,12 +1,26 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  createPetrinautMutationAiToolCallbacks,
+  aiCommandActionInputSchemas,
+  createPetrinautAiWritableCallbacks,
   petrinautAiToolInputSchemas,
   petrinautAiTools,
 } from "./ai";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
+
+const createInstance = () =>
+  createPetrinaut({
+    document: createJsonDocHandle({
+      initial: {
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
+    }),
+  });
 
 describe("Petrinaut AI core exports", () => {
   test("tool metadata stays aligned with input schemas and has no execute", () => {
@@ -22,19 +36,16 @@ describe("Petrinaut AI core exports", () => {
     }
   });
 
+  test("AI command schemas are exposed as tools", () => {
+    for (const name of Object.keys(aiCommandActionInputSchemas)) {
+      expect(petrinautAiTools).toHaveProperty(name);
+    }
+    expect(petrinautAiTools).toHaveProperty("applyAutoLayout");
+  });
+
   test("callback map applies tool inputs to a Petrinaut instance", () => {
-    const instance = createPetrinaut({
-      document: createJsonDocHandle({
-        initial: {
-          places: [],
-          transitions: [],
-          types: [],
-          differentialEquations: [],
-          parameters: [],
-        },
-      }),
-    });
-    const callbacks = createPetrinautMutationAiToolCallbacks(instance);
+    const instance = createInstance();
+    const callbacks = createPetrinautAiWritableCallbacks(instance);
 
     callbacks.addPlace({
       id: "place-1",
@@ -54,18 +65,8 @@ describe("Petrinaut AI core exports", () => {
   });
 
   test("callback map validates tool inputs before applying them", () => {
-    const instance = createPetrinaut({
-      document: createJsonDocHandle({
-        initial: {
-          places: [],
-          transitions: [],
-          types: [],
-          differentialEquations: [],
-          parameters: [],
-        },
-      }),
-    });
-    const callbacks = createPetrinautMutationAiToolCallbacks(instance);
+    const instance = createInstance();
+    const callbacks = createPetrinautAiWritableCallbacks(instance);
 
     expect(() =>
       callbacks.addPlace({
@@ -80,5 +81,14 @@ describe("Petrinaut AI core exports", () => {
     ).toThrow();
 
     expect(instance.definition.get().places).toEqual([]);
+  });
+
+  test("AI writable callbacks include applyAutoLayout from commands", async () => {
+    const instance = createInstance();
+    const callbacks = createPetrinautAiWritableCallbacks(instance);
+
+    expect(typeof callbacks.applyAutoLayout).toBe("function");
+    const result = await callbacks.applyAutoLayout();
+    expect(result.commitCount).toBe(0);
   });
 });

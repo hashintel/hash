@@ -18,7 +18,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
-use super::{Cost, TerminatorCostVec, TerminatorPlacement, TransMatrix};
+use super::{Cost, TerminatorPlacement, TerminatorTransitionCostVec, TransMatrix};
 use crate::{
     body::{
         Body,
@@ -91,7 +91,7 @@ fn assert_snapshot<'heap>(
     name: &'static str,
     context: &MirContext<'_, 'heap>,
     body: &Body<'heap>,
-    edges: &TerminatorCostVec<impl Allocator>,
+    edges: &TerminatorTransitionCostVec<impl Allocator>,
 ) {
     let formatter = Formatter::new(context.heap);
     let type_formatter = TypeFormatter::new(&formatter, context.env, TypeFormatterOptions::terse());
@@ -123,7 +123,7 @@ fn assert_snapshot<'heap>(
 }
 
 fn format_edge_summary<A: core::alloc::Allocator>(
-    edges: &TerminatorCostVec<A>,
+    edges: &TerminatorTransitionCostVec<A>,
 ) -> impl Display + '_ {
     fmt::from_fn(move |fmt| {
         for block in 0..edges.block_count() {
@@ -176,7 +176,7 @@ fn terminator_cost_vec_successor_counts() {
         }
     });
 
-    let costs = TerminatorCostVec::new(&body.basic_blocks, &heap);
+    let costs = TerminatorTransitionCostVec::new(&body.basic_blocks, &heap);
 
     assert_eq!(costs.of(BasicBlockId::new(0)).len(), 1);
     assert_eq!(costs.of(BasicBlockId::new(1)).len(), 3);

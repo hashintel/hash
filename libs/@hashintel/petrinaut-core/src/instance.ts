@@ -2,6 +2,10 @@ import {
   createPetrinautActions,
   type MutationHelperFunctions,
 } from "./actions";
+import {
+  type CommandHelperFunctions,
+  createPetrinautCommands,
+} from "./commands";
 
 import type {
   PetrinautDocHandle,
@@ -22,15 +26,31 @@ export type EventStream<T> = {
   subscribe(listener: (event: T) => void): () => void;
 };
 
+export type PetrinautMutations = MutationHelperFunctions;
+export type PetrinautCommands = CommandHelperFunctions;
+
 /**
- * The live document instance. Owns the handle, mutations, and patch stream.
+ * The live document instance. Owns the handle, mutations, commands, and
+ * patch stream.
+ *
+ * Mutations and commands are namespaced:
+ *
+ * - `instance.mutations` — atomic, schema-driven operations keyed by
+ *   `mutationActionInputSchemas`. This is the AI-safe surface; the AI tool
+ *   bundle is derived from these schemas.
+ * - `instance.commands` — composite host operations (clipboard paste,
+ *   auto-layout). Only the subset registered in `aiCommandActionInputSchemas`
+ *   is exposed to the AI.
+ *
+ * There is no top-level `mutate` escape hatch — every write must flow
+ * through a typed helper so it is schema-validated.
  *
  * **Simulation does not live here.** A simulation runs against a frozen SDCPN
  * snapshot and has no need for the live document. To run one, call
  * {@link createSimulation} directly with `instance.handle.doc()` (or any other
  * SDCPN value). The host owns the simulation's lifecycle.
  */
-export type Petrinaut = MutationHelperFunctions & {
+export type Petrinaut = {
   readonly handle: PetrinautDocHandle;
 
   /** Current SDCPN snapshot store. Falls back to an empty SDCPN until the handle is ready. */
@@ -39,8 +59,11 @@ export type Petrinaut = MutationHelperFunctions & {
   /** Patch event stream. Only fires for handles that produce patches. */
   readonly patches: EventStream<PetrinautPatch[]>;
 
-  /** Apply a mutation to the document via the underlying handle. No-op if read-only. */
-  mutate(this: void, fn: (draft: SDCPN) => void): void;
+  /** Atomic, schema-driven mutations. */
+  readonly mutations: PetrinautMutations;
+
+  /** Composite host operations (clipboard paste, auto-layout, ...). */
+  readonly commands: PetrinautCommands;
 
   readonly readonly: boolean;
 
@@ -107,20 +130,23 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
 
   const definition = createDefinitionStore(handle);
   const patches = createPatchStream(handle);
+
   const mutate = (fn: (draft: SDCPN) => void) => {
     if (readonly) {
       return;
     }
     handle.change(fn);
   };
-  const actions = createPetrinautActions(mutate);
+
+  const mutations = createPetrinautActions(mutate);
+  const commands = createPetrinautCommands(mutate, () => definition.get());
 
   return {
-    ...actions,
     handle,
     definition,
     patches,
-    mutate,
+    mutations,
+    commands,
     readonly,
     dispose() {
       for (const dispose of disposers) {

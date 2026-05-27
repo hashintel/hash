@@ -7,11 +7,20 @@ use super::{
     common::{CostVisitor, OnceValue, Supported, SupportedAnalysis},
 };
 use crate::{
-    body::{Body, Source, local::Local, operand::Operand, place::Place, rvalue::RValue},
+    body::{
+        Body, Source,
+        local::Local,
+        operand::Operand,
+        place::Place,
+        rvalue::RValue,
+        terminator::{Goto, Return, SwitchInt, Terminator, TerminatorKind},
+    },
     context::MirContext,
     pass::execution::{
-        Cost, VertexType, cost::StatementCostVec,
-        statement_placement::common::entity_projection_access, traversal::Access,
+        Cost, VertexType,
+        cost::{StatementCostVec, TerminatorCostVec},
+        statement_placement::common::entity_projection_access,
+        traversal::Access,
     },
     visit::Visitor as _,
 };
@@ -65,6 +74,38 @@ impl<'heap> Supported<'heap> for EmbeddingSupported {
         }
     }
 
+    fn is_supported_terminator(
+        &self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        domain: &DenseBitSet<Local>,
+        terminator: &Terminator<'heap>,
+    ) -> bool {
+        match &terminator.kind {
+            TerminatorKind::Goto(Goto { target }) => target
+                .args
+                .iter()
+                .all(|arg| self.is_supported_operand(context, body, domain, arg)),
+            TerminatorKind::SwitchInt(SwitchInt {
+                discriminant,
+                targets,
+            }) => {
+                self.is_supported_operand(context, body, domain, discriminant)
+                    && targets.targets().iter().all(|target| {
+                        target
+                            .args
+                            .iter()
+                            .all(|arg| self.is_supported_operand(context, body, domain, arg))
+                    })
+            }
+            TerminatorKind::Return(Return { value }) => {
+                self.is_supported_operand(context, body, domain, value)
+            }
+            TerminatorKind::GraphRead(_) => false,
+            TerminatorKind::Unreachable => true,
+        }
+    }
+
     fn is_supported_operand(
         &self,
         _: &MirContext<'_, 'heap>,
@@ -106,13 +147,14 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
         body: &Body<'heap>,
         vertex: VertexType,
         alloc: A,
-    ) -> StatementCostVec<A> {
-        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc);
+    ) -> (StatementCostVec<A>, TerminatorCostVec<A>) {
+        let statement_costs = StatementCostVec::new_in(&body.basic_blocks, alloc.clone());
+        let terminator_costs = TerminatorCostVec::new_in(&body.basic_blocks, alloc);
 
         match body.source {
             Source::GraphReadFilter(_) => {}
             Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
-                return statement_costs;
+                return (statement_costs, terminator_costs);
             }
         }
 
@@ -148,11 +190,12 @@ impl<'heap, A: Allocator + Clone, S: Allocator> StatementPlacement<'heap, A>
             cost: self.statement_cost,
 
             statement_costs,
+            terminator_costs,
 
             supported: &EmbeddingSupported { vertex },
         };
         visitor.visit_body(body);
 
-        visitor.statement_costs
+        (visitor.statement_costs, visitor.terminator_costs)
     }
 }

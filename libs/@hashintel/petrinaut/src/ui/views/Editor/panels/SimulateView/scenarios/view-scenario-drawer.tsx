@@ -7,8 +7,8 @@ import {
   type Scenario,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
@@ -127,7 +127,7 @@ const ViewScenarioContent = ({
   onClose: () => void;
 }) => {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { updateScenario } = use(MutationContext);
+  const { updateScenario } = usePetrinautMutations();
 
   const typesById = new Map<string, Color>();
   for (const type of petriNetDefinition.types) {

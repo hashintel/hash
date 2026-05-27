@@ -26,6 +26,7 @@ export default defineConfig(({ command }) => ({
     rolldownOptions: {
       external: [
         "@babel/standalone",
+        "elkjs",
         "immer",
         "uuid",
         "vscode-languageserver-types",

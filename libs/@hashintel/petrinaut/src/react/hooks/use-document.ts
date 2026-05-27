@@ -30,17 +30,6 @@ export function usePetrinautDefinitionSelector<T>(
   return selector(usePetrinautDefinition());
 }
 
-/**
- * Apply a mutation to the document. Reads through the Petrinaut instance
- * (must be inside `<PetrinautInstanceContext>` / `<Petrinaut>`).
- *
- * Returns a stable function reference for the lifetime of the instance.
- * In read-only mode the call is a no-op.
- */
-export function useMutate(): (fn: (draft: SDCPN) => void) => void {
-  return usePetrinautInstance().mutate;
-}
-
 /** Set the current net's title. */
 export function useSetTitle(): (title: string) => void {
   return use(SDCPNContext).setTitle;

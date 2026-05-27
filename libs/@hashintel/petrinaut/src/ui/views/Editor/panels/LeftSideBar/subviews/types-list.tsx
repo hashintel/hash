@@ -2,8 +2,8 @@ import { use } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 
+import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { Button } from "../../../../../components/button";
@@ -67,7 +67,7 @@ export const TypesSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types },
   } = use(SDCPNContext);
-  const { addType } = use(MutationContext);
+  const { addType } = usePetrinautMutations();
   const { selectItem } = use(EditorContext);
 
   const isReadOnly = useIsReadOnly();
@@ -109,7 +109,7 @@ export const TypesSectionHeaderAction: React.FC = () => {
 };
 
 const TypeRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
-  const { removeType } = use(MutationContext);
+  const { removeType } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
   return (

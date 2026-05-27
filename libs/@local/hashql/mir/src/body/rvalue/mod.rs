@@ -15,7 +15,7 @@ pub use self::{
     apply::{Apply, ArgIndex, ArgSlice, ArgVec},
     binary::{BinOp, Binary},
     input::Input,
-    unary::Unary,
+    unary::{UnOp, Unary},
 };
 use crate::body::operand::Operand;
 

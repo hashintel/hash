@@ -6,7 +6,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { usePortalContainerRef } from "../../react/state/portal-container-context";
 import { Button } from "./button";
 
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 
 // -- Styles ------------------------------------------------------------------
 
@@ -74,7 +74,8 @@ const sectionLabelStyle = css({
 const Content = ({
   children,
   className,
-}: {
+  ...props
+}: HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
   className?: string;
 }) => {
@@ -83,7 +84,7 @@ const Content = ({
   return (
     <Portal container={portalContainerRef}>
       <ArkPopover.Positioner>
-        <ArkPopover.Content className={cx(contentStyle, className)}>
+        <ArkPopover.Content className={cx(contentStyle, className)} {...props}>
           {children}
         </ArkPopover.Content>
       </ArkPopover.Positioner>

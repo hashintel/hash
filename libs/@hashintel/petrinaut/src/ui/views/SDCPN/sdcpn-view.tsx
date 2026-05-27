@@ -16,8 +16,8 @@ import {
   generateDefaultLambdaCode,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../react";
 import { EditorContext } from "../../../react/state/editor-context";
-import { MutationContext } from "../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
@@ -95,7 +95,7 @@ export const SDCPNView: React.FC<{
 
   // SDCPN store
   const { petriNetId } = use(SDCPNContext);
-  const { addPlace, addTransition, addArc } = use(MutationContext);
+  const { addPlace, addTransition, addArc } = usePetrinautMutations();
 
   const {
     editionMode,

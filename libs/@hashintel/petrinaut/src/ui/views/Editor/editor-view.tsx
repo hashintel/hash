@@ -1,6 +1,7 @@
 import { use, useRef, useState } from "react";
 
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
 import {
   deploymentPipelineSDCPN,
   probabilisticSatellitesSDCPN,
@@ -10,9 +11,9 @@ import {
   supplyChainStochasticSDCPN,
 } from "@hashintel/petrinaut-core/examples";
 
+import { usePetrinautCommands } from "../../../react";
 import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
-import { MutationContext } from "../../../react/state/mutation-context";
 import { PortalContainerContext } from "../../../react/state/portal-container-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
@@ -22,21 +23,22 @@ import { Stack } from "../../components/stack";
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
-import { calculateGraphLayout } from "../../lib/calculate-graph-layout";
 import {
   classicNodeDimensions,
   compactNodeDimensions,
 } from "../SDCPN/node-dimensions";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
+import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
+import { AiAssistantPanel } from "./panels/ai-assistant-panel";
 import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
-import { runAutoLayout } from "./run-auto-layout";
 
+import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { ViewportAction } from "../../types/viewport-action";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
@@ -93,14 +95,23 @@ const portalContainerStyle = css({
   pointerEvents: "none",
 });
 
+const isEmptySDCPN = (sdcpn: SDCPN) =>
+  sdcpn.places.length === 0 &&
+  sdcpn.transitions.length === 0 &&
+  sdcpn.types.length === 0 &&
+  sdcpn.parameters.length === 0 &&
+  sdcpn.differentialEquations.length === 0;
+
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
 export const EditorView = ({
+  aiAssistant,
   hideNetManagementControls,
   viewportActions,
 }: {
+  aiAssistant?: PetrinautAiAssistant;
   hideNetManagementControls: boolean;
   viewportActions?: ViewportAction[];
 }) => {
@@ -110,14 +121,16 @@ export const EditorView = ({
     existingNets,
     loadPetriNet,
     petriNetDefinition,
+    petriNetId,
     title,
     setTitle,
   } = use(SDCPNContext);
-  const { commitNodePositions } = use(MutationContext);
+  const { applyAutoLayout } = usePetrinautCommands();
 
   // Get editor context
   const {
     globalMode: mode,
+    isAiAssistantOpen,
     setGlobalMode,
     editionMode,
     setEditionMode,
@@ -125,19 +138,19 @@ export const EditorView = ({
     setCursorMode,
     clearSelection,
     setSimulateViewMode,
+    setAiAssistantOpen,
+    isBottomPanelOpen,
+    bottomPanelHeight,
   } = use(EditorContext);
   const { setSelectedExperimentId } = use(ExperimentsContext);
 
+  const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
+    string | null
+  >(null);
+  const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
+
   const { compactNodes } = use(UserSettingsContext);
   const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
-
-  async function handleLayout() {
-    await runAutoLayout({
-      sdcpn: petriNetDefinition,
-      dimensions: dims,
-      commitNodePositions,
-    });
-  }
 
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -286,7 +299,7 @@ export const EditorView = ({
     {
       id: "layout",
       label: "Layout",
-      onClick: handleLayout,
+      onClick: applyAutoLayout,
     },
     ...(!hideNetManagementControls
       ? [
@@ -361,6 +374,12 @@ export const EditorView = ({
 
   const portalContainerRef = useRef<HTMLDivElement>(null);
 
+  const showEmptyAiHero =
+    aiAssistant !== undefined &&
+    !isAiAssistantOpen &&
+    !isAiCtaDismissed &&
+    isEmptySDCPN(petriNetDefinition);
+
   return (
     <PortalContainerContext value={portalContainerRef}>
       <Stack className={cx(editorRootStyle, "petrinaut-root")}>
@@ -404,6 +423,17 @@ export const EditorView = ({
               {/* SDCPN Visualization */}
               <SDCPNView viewportActions={viewportActions} />
 
+              {showEmptyAiHero && (
+                <AiCtaModal
+                  bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
+                  onDismiss={() => setIsAiCtaDismissed(true)}
+                  onSubmit={(message) => {
+                    setPendingAiAssistantMessage(message);
+                    setAiAssistantOpen(true);
+                  }}
+                />
+              )}
+
               {/* Bottom Panel - Diagnostics, Simulation Settings */}
               <BottomPanel />
 
@@ -413,7 +443,20 @@ export const EditorView = ({
                 onEditionModeChange={setEditionMode}
                 cursorMode={cursorMode}
                 onCursorModeChange={setCursorMode}
+                hasAiAssistant={aiAssistant !== undefined}
               />
+
+              {aiAssistant && (
+                <AiAssistantPanel
+                  /** Reset state (e.g. initial messages) when the active net changes */
+                  key={petriNetId ?? "no-net"}
+                  aiAssistant={aiAssistant}
+                  initialMessage={pendingAiAssistantMessage}
+                  onInitialMessageConsumed={() =>
+                    setPendingAiAssistantMessage(null)
+                  }
+                />
+              )}
             </Box>
           )}
         </Stack>

@@ -5,7 +5,13 @@
 // `<PetrinautProvider>` (`/react`).
 
 export { Petrinaut } from "./petrinaut";
-export type { PetrinautProps } from "./petrinaut";
+export type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
+export type {
+  PetrinautAiAssistant,
+  PetrinautAiChatTransport,
+  PetrinautProps,
+} from "./petrinaut";
+export { DefaultChatTransport } from "ai";
 
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).

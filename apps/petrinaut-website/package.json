@@ -8,9 +8,11 @@
     "dev": "vite",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsgo --noEmit"
+    "lint:tsc": "tsgo --noEmit",
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@ai-sdk/openai": "3.0.63",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
@@ -18,10 +20,12 @@
     "@mantine/hooks": "8.3.5",
     "@pandacss/dev": "1.11.1",
     "@sentry/react": "10.22.0",
+    "ai": "6.0.182",
     "immer": "10.1.3",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "react-icons": "5.5.0"
+    "react-icons": "5.5.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "0.2.1",
@@ -29,6 +33,7 @@
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@vitejs/plugin-react": "6.0.1",
+    "@whatwg-node/server": "0.10.18",
     "babel-plugin-react-compiler": "1.0.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",

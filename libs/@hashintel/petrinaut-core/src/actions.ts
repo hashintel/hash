@@ -19,6 +19,43 @@ export type MutationHelperFunctions = {
   ) => void;
 };
 
+/**
+ * Validate that a single place's reference to a differential equation is
+ * consistent: the equation must exist, the place must have a colour, and the
+ * equation's `colorId` must match the place's `colorId`. Throws a descriptive
+ * error when the invariant is violated; otherwise no-ops.
+ *
+ * Mirrors the runtime invariant enforced by
+ * `core/simulation/engine/build-simulation.ts`, but raises at mutation time so
+ * AI callers see the failure immediately instead of at simulation build.
+ */
+function assertPlaceDynamicsReferences(
+  place: SDCPN["places"][number],
+  equations: SDCPN["differentialEquations"],
+): void {
+  if (place.differentialEquationId === null) {
+    return;
+  }
+  const equation = equations.find(
+    (eq) => eq.id === place.differentialEquationId,
+  );
+  if (!equation) {
+    throw new Error(
+      `Place \`${place.name}\` references differential equation ID \`${place.differentialEquationId}\` which does not exist.`,
+    );
+  }
+  if (place.colorId === null) {
+    throw new Error(
+      `Place \`${place.name}\` has a differential equation but no \`colorId\`. Set the place's \`colorId\` to match the equation's \`colorId\` (\`${String(equation.colorId)}\`).`,
+    );
+  }
+  if (equation.colorId !== null && equation.colorId !== place.colorId) {
+    throw new Error(
+      `Place \`${place.name}\` (colorId \`${place.colorId}\`) references differential equation \`${equation.name}\` (colorId \`${equation.colorId}\`); the equation's \`colorId\` must match the place's \`colorId\`.`,
+    );
+  }
+}
+
 export function createPetrinautActions(
   mutate: (fn: (sdcpn: SDCPN) => void) => void,
 ): MutationHelperFunctions {
@@ -26,6 +63,7 @@ export function createPetrinautActions(
     addPlace(place) {
       const parsedPlace = placeSchema.parse(place);
       mutate((sdcpn) => {
+        assertPlaceDynamicsReferences(parsedPlace, sdcpn.differentialEquations);
         sdcpn.places.push(parsedPlace);
       });
     },
@@ -36,6 +74,7 @@ export function createPetrinautActions(
           if (place.id === parsed.placeId) {
             Object.assign(place, parsed.update);
             placeSchema.parse(place);
+            assertPlaceDynamicsReferences(place, sdcpn.differentialEquations);
             break;
           }
         }
@@ -327,6 +366,11 @@ export function createPetrinautActions(
       const parsedEquation = differentialEquationSchema.parse(equation);
       mutate((sdcpn) => {
         sdcpn.differentialEquations.push(parsedEquation);
+        for (const place of sdcpn.places) {
+          if (place.differentialEquationId === parsedEquation.id) {
+            assertPlaceDynamicsReferences(place, sdcpn.differentialEquations);
+          }
+        }
       });
     },
     updateDifferentialEquation(input) {
@@ -337,6 +381,14 @@ export function createPetrinautActions(
           if (equation.id === parsed.equationId) {
             Object.assign(equation, parsed.update);
             differentialEquationSchema.parse(equation);
+            for (const place of sdcpn.places) {
+              if (place.differentialEquationId === equation.id) {
+                assertPlaceDynamicsReferences(
+                  place,
+                  sdcpn.differentialEquations,
+                );
+              }
+            }
             break;
           }
         }

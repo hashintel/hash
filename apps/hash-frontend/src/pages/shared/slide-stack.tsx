@@ -78,20 +78,22 @@ const StackSlide = ({
           onClose={onClose}
         />
 
-        {item.kind === "dataType" && (
-          <DataTypeSlide dataTypeId={item.itemId} replaceItem={replaceItem} />
-        )}
-        {item.kind === "entityType" && (
-          <EntityTypeSlide replaceItem={replaceItem} typeUrl={item.itemId} />
-        )}
-        {item.kind === "entity" && (
-          <EntitySlide
-            {...item}
-            entityId={item.itemId}
-            removeItem={removeItem}
-            replaceItem={replaceItem}
-          />
-        )}
+        <Box sx={{ pt: 1, background: ({ palette }) => palette.common.white }}>
+          {item.kind === "dataType" && (
+            <DataTypeSlide dataTypeId={item.itemId} replaceItem={replaceItem} />
+          )}
+          {item.kind === "entityType" && (
+            <EntityTypeSlide replaceItem={replaceItem} typeUrl={item.itemId} />
+          )}
+          {item.kind === "entity" && (
+            <EntitySlide
+              {...item}
+              entityId={item.itemId}
+              removeItem={removeItem}
+              replaceItem={replaceItem}
+            />
+          )}
+        </Box>
       </Box>
     </Slide>
   );

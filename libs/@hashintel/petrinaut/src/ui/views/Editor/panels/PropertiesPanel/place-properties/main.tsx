@@ -7,7 +7,7 @@ import { placeMainContentSubView } from "./subviews/main";
 import { placeInitialStateSubView } from "./subviews/place-initial-state/subview";
 import { placeVisualizerSubView } from "./subviews/place-visualizer/subview";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Color, Place } from "@hashintel/petrinaut-core";
 
@@ -27,7 +27,7 @@ const subViews: SubView[] = [
 interface PlacePropertiesProps {
   place: Place;
   types: Color[];
-  updatePlace: MutationContextValue["updatePlace"];
+  updatePlace: PetrinautMutations["updatePlace"];
 }
 
 export const PlaceProperties: React.FC<PlacePropertiesProps> = ({

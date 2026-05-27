@@ -182,3 +182,4 @@ out/
 
 # Jujutsu
 .jj/
+.vercel

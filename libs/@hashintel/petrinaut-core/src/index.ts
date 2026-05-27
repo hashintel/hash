@@ -19,28 +19,63 @@ export {
 
 // --- Instance ---
 export { createPetrinaut } from "./instance";
-export type { CreatePetrinautConfig, EventStream, Petrinaut } from "./instance";
+export type {
+  CreatePetrinautConfig,
+  EventStream,
+  Petrinaut,
+  PetrinautCommands,
+  PetrinautMutations,
+} from "./instance";
 export { createPetrinautActions } from "./actions";
 export type { MutationHelperFunctions } from "./actions";
+export { createPetrinautCommands } from "./commands";
+export type {
+  ApplyAutoLayoutResult,
+  ApplyClipboardPasteResult,
+  CommandHelperFunctions,
+} from "./commands";
+export {
+  aiCommandActionInputSchemas,
+  commandActionInputSchemas,
+} from "./command-schemas";
+export type {
+  AiCommandActionInput,
+  AiCommandActionName,
+  CommandActionInput,
+  CommandActionName,
+} from "./command-schemas";
+export { mutationActionInputSchemas } from "./action-schemas";
+export {
+  calculateGraphLayout,
+  layoutNodeDimensions,
+  type LayoutDimensions,
+  type NodePosition,
+} from "./layout";
 
 // --- AI ---
 export {
   colorSchema,
-  createPetrinautMutationAiToolCallbacks,
+  createPetrinautAiWritableCallbacks,
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
   metricSchema,
   parameterSchema,
+  petrinautAiCommandTools,
   petrinautAiMutationTools,
   petrinautAiPrompt,
   petrinautAiTools,
   placeSchema,
   scenarioSchema,
+  setNetTitleToolInputSchema,
+  setNetTitleToolName,
   transitionSchema,
 } from "./ai";
 export type {
+  PetrinautAiCommandToolInput,
+  PetrinautAiCommandToolName,
   PetrinautAiTool,
-  PetrinautMutationAiToolCallbacks,
+  PetrinautAiWritableCallbacks,
   PetrinautAiToolInput,
   PetrinautAiMutationToolInput,
   PetrinautAiMutationToolName,

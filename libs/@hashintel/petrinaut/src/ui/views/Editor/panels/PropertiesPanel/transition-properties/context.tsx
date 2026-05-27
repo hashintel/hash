@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, use } from "react";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
 
 interface TransitionPropertiesContextValue {
@@ -8,10 +8,10 @@ interface TransitionPropertiesContextValue {
   places: Place[];
   types: Color[];
   isReadOnly: boolean;
-  updateTransition: MutationContextValue["updateTransition"];
-  onArcWeightUpdate: MutationContextValue["updateArcWeight"];
-  updateArcPlace: MutationContextValue["updateArcPlace"];
-  removeArc: MutationContextValue["removeArc"];
+  updateTransition: PetrinautMutations["updateTransition"];
+  onArcWeightUpdate: PetrinautMutations["updateArcWeight"];
+  updateArcPlace: PetrinautMutations["updateArcPlace"];
+  removeArc: PetrinautMutations["removeArc"];
 }
 
 const TransitionPropertiesContext =
@@ -33,10 +33,10 @@ interface TransitionPropertiesProviderProps {
   places: Place[];
   types: Color[];
   isReadOnly: boolean;
-  updateTransition: MutationContextValue["updateTransition"];
-  onArcWeightUpdate: MutationContextValue["updateArcWeight"];
-  updateArcPlace: MutationContextValue["updateArcPlace"];
-  removeArc: MutationContextValue["removeArc"];
+  updateTransition: PetrinautMutations["updateTransition"];
+  onArcWeightUpdate: PetrinautMutations["updateArcWeight"];
+  updateArcPlace: PetrinautMutations["updateArcPlace"];
+  removeArc: PetrinautMutations["removeArc"];
   children: ReactNode;
 }
 

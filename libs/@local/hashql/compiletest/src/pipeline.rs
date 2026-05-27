@@ -2,8 +2,10 @@
 //!
 //! [`Pipeline`] drives the full HashQL compilation sequence: parsing J-Expr
 //! source into an AST, lowering through HIR and MIR, running optimization and
-//! execution analysis passes, and finally compiling to
-//! [`PreparedQueries`](hashql_eval::postgres::PreparedQueries) ready for PostgreSQL execution.
+//! execution analysis passes, and finally compiling to [`PreparedQuery`]
+//! ready for PostgreSQL execution.
+//!
+//! [`PreparedQuery`]: hashql_eval::postgres::PreparedQuery
 //!
 //! Each stage is exposed as a separate method so callers can inspect or test
 //! intermediate results. Diagnostics (warnings, advisories) accumulate in
@@ -237,12 +239,14 @@ impl<'heap> Pipeline<'heap> {
         Ok(())
     }
 
-    /// Runs execution analysis and compiles MIR bodies to prepared SQL queries.
+    /// Runs execution analysis on MIR bodies.
     ///
-    /// Performs size estimation, execution island analysis (determining which
-    /// parts of each body run on PostgreSQL vs the interpreter), then compiles
-    /// the PostgreSQL islands into [`PreparedQueries`](hashql_eval::postgres::PreparedQueries)
-    /// containing the SQL statements, parameter bindings, and column descriptors.
+    /// Performs size estimation and execution island analysis, determining which
+    /// parts of each body run on PostgreSQL vs the interpreter. Returns
+    /// per-body residuals that downstream compilation stages use to produce
+    /// [`PreparedQuery`] instances.
+    ///
+    /// [`PreparedQuery`]: hashql_eval::postgres::PreparedQuery
     ///
     /// # Errors
     ///

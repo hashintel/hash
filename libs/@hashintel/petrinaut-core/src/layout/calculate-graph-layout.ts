@@ -1,6 +1,6 @@
 import ELK from "elkjs";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { SDCPN } from "../types/sdcpn";
 import type { ElkNode } from "elkjs";
 
 /**
@@ -26,6 +26,11 @@ export type NodePosition = {
   y: number;
 };
 
+export type LayoutDimensions = {
+  place: { width: number; height: number };
+  transition: { width: number; height: number };
+};
+
 /**
  * Calculates the optimal layout positions for nodes in an SDCPN graph using the ELK (Eclipse Layout Kernel) algorithm.
  *
@@ -37,11 +42,8 @@ export type NodePosition = {
  * `dimensions` should be **stable across the user's visualization choice**
  * (compact vs. classic). Layout output must not depend on rendering mode —
  * otherwise toggling `compactNodes` would shift every node and visually
- * scramble the graph. Today `runAutoLayout` and the import flow both pass
- * whichever rendering dimensions are active, which is a known leak. The
- * intended fix is to feed a `layoutNodeDimensions` (per-axis max of compact
- * and classic) here instead — see the design note in
- * `ui/views/SDCPN/node-dimensions.ts`.
+ * scramble the graph. Callers should normally pass {@link layoutNodeDimensions}
+ * from `./dimensions`.
  *
  * @param sdcpn - The SDCPN to layout
  * @param dimensions - Node dimensions for places and transitions; should be
@@ -50,10 +52,7 @@ export type NodePosition = {
  */
 export const calculateGraphLayout = async (
   sdcpn: SDCPN,
-  dimensions: {
-    place: { width: number; height: number };
-    transition: { width: number; height: number };
-  },
+  dimensions: LayoutDimensions,
 ): Promise<Record<string, NodePosition>> => {
   if (sdcpn.places.length === 0) {
     return {};

@@ -1,7 +1,7 @@
 import { use } from "react";
 
+import { usePetrinautMutations } from "../../../../react/hooks/use-petrinaut-mutations";
 import { EditorContext } from "../../../../react/state/editor-context";
-import { MutationContext } from "../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../../lib/snap-position-to-grid";
@@ -17,7 +17,7 @@ import type { EdgeChange, NodeChange } from "@xyflow/react";
  */
 export function useApplyNodeChanges() {
   const { getItemType } = use(SDCPNContext);
-  const { commitNodePositions } = use(MutationContext);
+  const { commitNodePositions } = usePetrinautMutations();
   const { updateDraggingStateByNodeId, setSelection } = use(EditorContext);
   const { snapToGrid } = use(UserSettingsContext);
 

@@ -23,6 +23,7 @@ type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
  */
 const activitiesHeartbeating: FlowActivityId[] = [
   "persistIntegrationEntitiesAction",
+  "getHistoricalFlightArrivalsAction",
 ];
 
 const proxyFlowActivity: ProxyFlowActivity<

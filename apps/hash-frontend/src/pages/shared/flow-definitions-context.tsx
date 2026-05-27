@@ -19,7 +19,10 @@ import {
   goalFlowDefinitionWithReportDeliverable,
   goalFlowDefinitionWithSpreadsheetDeliverable,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import { scheduledFlightsFlowDefinition } from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
+import {
+  historicalFlightsFlowDefinition,
+  scheduledFlightsFlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
 
 import type { EntityUuid } from "@blockprotocol/type-system";
 import type {
@@ -51,6 +54,7 @@ const exampleFlows: FlowDefinition<FlowActionDefinitionId>[] = [
   goalFlowDefinitionWithSpreadsheetDeliverable,
   goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
   scheduledFlightsFlowDefinition,
+  historicalFlightsFlowDefinition,
 ];
 
 export const FlowDefinitionsContextProvider = ({

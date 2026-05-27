@@ -1,10 +1,16 @@
 import { produce } from "immer";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import { Petrinaut } from "@hashintel/petrinaut/ui";
+import {
+  DefaultChatTransport,
+  Petrinaut,
+  type PetrinautAiChatTransport,
+  type PetrinautAiMessage,
+} from "@hashintel/petrinaut/ui";
 
 import { useSentryFeedbackAction } from "./app/sentry-feedback-button";
+import { useLocalStorageAiMessages } from "./app/use-local-storage-ai-messages";
 import {
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
@@ -59,6 +65,11 @@ const createLocalStorageNetRecord = (params: {
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({ id: net.id, initial: net.sdcpn });
 
+const petrinautAiChatTransport: PetrinautAiChatTransport =
+  new DefaultChatTransport({
+    api: "/api/chat",
+  });
+
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
 ): Record<string, SDCPNInLocalStorage> => {
@@ -92,13 +103,21 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
  */
 export const DevApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  const { aiMessagesByNetId, setAiMessagesByNetId } =
+    useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
-  const firstNet = Object.values(storedSDCPNsForDisplay)[0] ?? null;
+
+  // Pick the most recently modified net
+  const mostRecentlyModifiedNet =
+    Object.values(storedSDCPNsForDisplay).sort(
+      (a, b) =>
+        new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
+    )[0] ?? null;
 
   // The net currently selected in the UI.
   const [currentNetId, setCurrentNetId] = useState<string | null>(
-    () => firstNet?.id ?? null,
+    () => mostRecentlyModifiedNet?.id ?? null,
   );
 
   // Metadata and persisted SDCPN snapshot for the selected net.
@@ -108,7 +127,9 @@ export const DevApp = () => {
 
   // Live editable document handle for the selected net only.
   const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(() =>
-    firstNet ? createActiveHandle(firstNet) : null,
+    mostRecentlyModifiedNet
+      ? createActiveHandle(mostRecentlyModifiedNet)
+      : null,
   );
 
   useEffect(() => {
@@ -219,6 +240,35 @@ export const DevApp = () => {
     );
   };
 
+  const aiAssistant = useMemo(
+    () => ({
+      transport: petrinautAiChatTransport,
+      messages: currentNetId ? aiMessagesByNetId[currentNetId] : undefined,
+      onMessages: (messages: PetrinautAiMessage[]) => {
+        if (!currentNetId) {
+          return;
+        }
+
+        setAiMessagesByNetId((prev) => ({
+          ...prev,
+          [currentNetId]: messages,
+        }));
+      },
+      onClearMessages: () => {
+        if (!currentNetId) {
+          return;
+        }
+
+        setAiMessagesByNetId((prev) => {
+          const next = { ...prev };
+          delete next[currentNetId];
+          return next;
+        });
+      },
+    }),
+    [aiMessagesByNetId, currentNetId, setAiMessagesByNetId],
+  );
+
   if (!currentNet) {
     return null;
   }
@@ -230,6 +280,7 @@ export const DevApp = () => {
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
       <Petrinaut
+        aiAssistant={aiAssistant}
         handle={activeHandle.handle}
         existingNets={existingNets}
         createNewNet={createNewNet}
