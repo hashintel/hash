@@ -1,4 +1,4 @@
-import { useForm } from "@tanstack/react-form";
+import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
 import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
@@ -334,8 +334,131 @@ const submitRowStyle = css({
   marginTop: "[8px]",
 });
 
+// In a real application, the contexts, field components, and `useAppForm`
+// would live in their own module (eg. `app/form.tsx`) and be imported by
+// every form in the app — so all forms share styling, validation display,
+// and submit behaviour for free.
+
+const { fieldContext, formContext, useFieldContext, useFormContext } =
+  createFormHookContexts();
+
+const TextField = ({
+  label,
+  description,
+  size,
+  required,
+}: {
+  label: string;
+  description?: string;
+  size?: FormInputSize;
+  required?: boolean;
+}) => {
+  const field = useFieldContext<string>();
+  return (
+    <FormField
+      as="label"
+      htmlFor={field.name}
+      label={label}
+      description={description}
+      size={size}
+      required={required}
+      errors={field.state.meta.errors}
+    >
+      <TextInput
+        name={field.name}
+        value={field.state.value}
+        onChange={(value) => field.handleChange(value)}
+        onBlur={field.handleBlur}
+        size={size}
+        invalid={field.state.meta.errors.length > 0}
+      />
+    </FormField>
+  );
+};
+
+const IntegerField = ({
+  label,
+  description,
+  size,
+  required,
+  min,
+  max,
+}: {
+  label: string;
+  description?: string;
+  size?: FormInputSize;
+  required?: boolean;
+  min?: number;
+  max?: number;
+}) => {
+  const field = useFieldContext<number>();
+  return (
+    <FormField
+      as="label"
+      htmlFor={field.name}
+      label={label}
+      description={description}
+      size={size}
+      required={required}
+      errors={field.state.meta.errors}
+    >
+      <NumberInput
+        type="integer"
+        name={field.name}
+        value={field.state.value}
+        min={min}
+        max={max}
+        onChange={(value) => field.handleChange(value ?? 0)}
+        onBlur={field.handleBlur}
+        size={size}
+        invalid={field.state.meta.errors.length > 0}
+      />
+    </FormField>
+  );
+};
+
+const SubmitButton = ({
+  children,
+  size,
+}: {
+  children: string;
+  size?: FormInputSize;
+}) => {
+  const form = useFormContext();
+  return (
+    <form.Subscribe
+      selector={(state) => ({
+        canSubmit: state.canSubmit,
+        isSubmitting: state.isSubmitting,
+      })}
+    >
+      {({ canSubmit, isSubmitting }) => (
+        <div className={submitRowStyle}>
+          <Button
+            type="submit"
+            variant="solid"
+            tone="brand"
+            size={size}
+            disabled={!canSubmit}
+            loading={isSubmitting}
+          >
+            {children}
+          </Button>
+        </div>
+      )}
+    </form.Subscribe>
+  );
+};
+
+const { useAppForm } = createFormHook({
+  fieldComponents: { TextField, IntegerField },
+  formComponents: { SubmitButton },
+  fieldContext,
+  formContext,
+});
+
 export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
-  const form = useForm({
+  const form = useAppForm({
     defaultValues: {
       fullName: "",
       email: "",
@@ -357,7 +480,7 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
         void form.handleSubmit();
       }}
     >
-      <form.Field
+      <form.AppField
         name="fullName"
         validators={{
           onChange: ({ value }) =>
@@ -365,27 +488,11 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
         }}
       >
         {(field) => (
-          <FormField
-            as="label"
-            htmlFor={field.name}
-            label="Full name"
-            size={args.size}
-            required
-            errors={field.state.meta.errors}
-          >
-            <TextInput
-              name={field.name}
-              value={field.state.value}
-              onChange={(value) => field.handleChange(value)}
-              onBlur={field.handleBlur}
-              size={args.size}
-              invalid={field.state.meta.errors.length > 0}
-            />
-          </FormField>
+          <field.TextField label="Full name" size={args.size} required />
         )}
-      </form.Field>
+      </form.AppField>
 
-      <form.Field
+      <form.AppField
         name="email"
         validators={{
           onChange: ({ value }) => {
@@ -400,28 +507,16 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
         }}
       >
         {(field) => (
-          <FormField
-            as="label"
-            htmlFor={field.name}
+          <field.TextField
             label="Email"
             description="We'll never share your email"
             size={args.size}
             required
-            errors={field.state.meta.errors}
-          >
-            <TextInput
-              name={field.name}
-              value={field.state.value}
-              onChange={(value) => field.handleChange(value)}
-              onBlur={field.handleBlur}
-              size={args.size}
-              invalid={field.state.meta.errors.length > 0}
-            />
-          </FormField>
+          />
         )}
-      </form.Field>
+      </form.AppField>
 
-      <form.Field
+      <form.AppField
         name="username"
         validators={{
           onChange: ({ value }) => {
@@ -436,28 +531,16 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
         }}
       >
         {(field) => (
-          <FormField
-            as="label"
-            htmlFor={field.name}
+          <field.TextField
             label="Username"
             description="Lowercase letters, digits, and underscores"
             size={args.size}
             required
-            errors={field.state.meta.errors}
-          >
-            <TextInput
-              name={field.name}
-              value={field.state.value}
-              onChange={(value) => field.handleChange(value)}
-              onBlur={field.handleBlur}
-              size={args.size}
-              invalid={field.state.meta.errors.length > 0}
-            />
-          </FormField>
+          />
         )}
-      </form.Field>
+      </form.AppField>
 
-      <form.Field
+      <form.AppField
         name="age"
         validators={{
           onChange: ({ value }) => {
@@ -472,50 +555,19 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
         }}
       >
         {(field) => (
-          <FormField
-            as="label"
-            htmlFor={field.name}
+          <field.IntegerField
             label="Age"
             size={args.size}
+            min={0}
+            max={120}
             required
-            errors={field.state.meta.errors}
-          >
-            <NumberInput
-              type="integer"
-              name={field.name}
-              value={field.state.value}
-              min={0}
-              max={120}
-              onChange={(value) => field.handleChange(value ?? 0)}
-              onBlur={field.handleBlur}
-              size={args.size}
-              invalid={field.state.meta.errors.length > 0}
-            />
-          </FormField>
+          />
         )}
-      </form.Field>
+      </form.AppField>
 
-      <form.Subscribe
-        selector={(state) => ({
-          canSubmit: state.canSubmit,
-          isSubmitting: state.isSubmitting,
-        })}
-      >
-        {({ canSubmit, isSubmitting }) => (
-          <div className={submitRowStyle}>
-            <Button
-              type="submit"
-              variant="solid"
-              tone="brand"
-              size={args.size}
-              disabled={!canSubmit}
-              loading={isSubmitting}
-            >
-              Submit
-            </Button>
-          </div>
-        )}
-      </form.Subscribe>
+      <form.AppForm>
+        <form.SubmitButton size={args.size}>Submit</form.SubmitButton>
+      </form.AppForm>
     </form>
   );
 };
