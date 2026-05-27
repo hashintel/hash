@@ -32,7 +32,7 @@ export const Errors = ({
   }
 
   return (
-    <ul className={cx(classes.root, className)} role="alert">
+    <ul className={className} role="alert">
       {errors.map((error, index) => (
         // eslint-disable-next-line react/no-array-index-key
         <li className={classes.error} key={index}>
