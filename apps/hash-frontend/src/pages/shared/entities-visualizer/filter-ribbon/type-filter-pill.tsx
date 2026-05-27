@@ -38,7 +38,7 @@ const summarise = ({
   if (selectedCount === 1) {
     const [only] = filterState.selectedTypeIds;
     const match = available.find((type) => type.entityTypeId === only);
-    return { summary: match?.title ?? "1 type", isActive: true };
+    return { summary: match?.title ?? "Unknown type", isActive: true };
   }
 
   return { summary: `${selectedCount} types`, isActive: true };
@@ -70,6 +70,16 @@ export const TypeFilterPill: FunctionComponent<{
     () => available.map((type) => type.entityTypeId),
     [available],
   );
+
+  const unknownSelectedIds = useMemo(() => {
+    if (filterState.selectedTypeIds === null) {
+      return [] as VersionedUrl[];
+    }
+    const availableIds = new Set(allTypeIds);
+    return [...filterState.selectedTypeIds].filter(
+      (id) => !availableIds.has(id),
+    );
+  }, [filterState.selectedTypeIds, allTypeIds]);
 
   const isChecked = (entityTypeId: VersionedUrl) => {
     if (filterState.selectedTypeIds === null) {
@@ -170,17 +180,38 @@ export const TypeFilterPill: FunctionComponent<{
             </Box>
           )}
           <Box sx={{ overflowY: "auto", flex: 1 }}>
-            {visibleOptions.length === 0 ? (
-              <Typography
-                sx={{
-                  color: ({ palette }) => palette.gray[60],
-                  fontSize: 12,
-                  px: 1.5,
-                  py: 1,
-                }}
+            {unknownSelectedIds.map((id) => (
+              <MenuItem
+                key={id}
+                onClick={() => toggle(id)}
+                sx={{ py: 0.5 }}
               >
-                {loading ? "Loading…" : "No types"}
-              </Typography>
+                <Checkbox checked size="small" sx={{ mr: 1, p: 0.25 }} />
+                <Typography
+                  sx={{
+                    color: ({ palette }) => palette.gray[60],
+                    fontSize: 13,
+                    fontStyle: "italic",
+                    flex: 1,
+                  }}
+                >
+                  Unknown type
+                </Typography>
+              </MenuItem>
+            ))}
+            {visibleOptions.length === 0 ? (
+              unknownSelectedIds.length === 0 && (
+                <Typography
+                  sx={{
+                    color: ({ palette }) => palette.gray[60],
+                    fontSize: 12,
+                    px: 1.5,
+                    py: 1,
+                  }}
+                >
+                  {loading ? "Loading…" : "No types"}
+                </Typography>
+              )
             ) : (
               visibleOptions.map((type) => {
                 const checked = isChecked(type.entityTypeId);
