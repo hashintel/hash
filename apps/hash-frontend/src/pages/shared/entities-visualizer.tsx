@@ -14,17 +14,19 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { tableContentSx } from "../../shared/table-content";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
+import { useGenerateCsvFile } from "../../shared/table-header/use-generate-csv-file";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
-import { FilterRibbon } from "./entities-visualizer/filter-ribbon/filter-ribbon";
 import {
   buildEntitiesFilter,
   getDefaultFilterState,
   getInternalWebIds,
   isFilterStateDefault,
 } from "./entities-visualizer/filter-ribbon/build-filter";
+import { FilterRibbon } from "./entities-visualizer/filter-ribbon/filter-ribbon";
+import { TableActionsRibbon } from "./entities-visualizer/filter-ribbon/table-actions-ribbon";
 import { useAvailableTypes } from "./entities-visualizer/filter-ribbon/use-available-types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
@@ -261,13 +263,10 @@ export const EntitiesVisualizer: FunctionComponent<{
     [columnBaseUrl: BaseUrl]: VersionedUrl;
   } | null>(null);
 
-  const setFilterState = useCallback(
-    (next: EntitiesFilterState) => {
-      _setFilterState(next);
-      setCursor(undefined);
-    },
-    [],
-  );
+  const setFilterState = useCallback((next: EntitiesFilterState) => {
+    _setFilterState(next);
+    setCursor(undefined);
+  }, []);
 
   const filterIsModified = !isFilterStateDefault(filterState, internalWebIds);
 
@@ -278,13 +277,10 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const [view, _setView] = useState<VisualizerView>(defaultView);
 
-  const setView = useCallback(
-    (newView: VisualizerView) => {
-      _setView(newView);
-      setCursor(undefined);
-    },
-    [],
-  );
+  const setView = useCallback((newView: VisualizerView) => {
+    _setView(newView);
+    setCursor(undefined);
+  }, []);
 
   const [sort, setSort] = useState<
     ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
@@ -566,30 +562,53 @@ export const EntitiesVisualizer: FunctionComponent<{
 
   const hideTypeFilter = !!entityTypeBaseUrl || !!entityTypeId;
 
+  const generateCsvFile = useGenerateCsvFile({
+    currentlyDisplayedColumnsRef,
+    currentlyDisplayedRowsRef,
+    title: "Entities",
+  });
+
+  const viewSwitcher = (
+    <TableHeaderToggle
+      value={view}
+      setValue={setView}
+      options={(
+        [
+          "Table",
+          ...(supportGridView ? (["Grid"] as const) : []),
+          "Graph",
+        ] as const satisfies VisualizerView[]
+      ).map((optionValue) => ({
+        icon: visualizerViewIcons[optionValue],
+        label: `${optionValue} view`,
+        value: optionValue,
+      }))}
+    />
+  );
+
   return (
     <Box>
       <TableHeader
         currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
         currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        endAdornment={
-          <TableHeaderToggle
-            value={view}
-            setValue={setView}
-            options={(
-              [
-                "Table",
-                ...(supportGridView ? (["Grid"] as const) : []),
-                "Graph",
-              ] as const satisfies VisualizerView[]
-            ).map((optionValue) => ({
-              icon: visualizerViewIcons[optionValue],
-              label: `${optionValue} view`,
-              value: optionValue,
-            }))}
-          />
+        endAdornment={viewSwitcher}
+        startAdornment={
+          hideFilters ? null : (
+            <FilterRibbon
+              filterState={filterState}
+              setFilterState={setFilterState}
+              webOptions={webOptions}
+              availableTypes={availableTypes}
+              availableTypesLoading={availableTypesLoading}
+              hideTypeFilter={hideTypeFilter}
+              resultCount={totalResultCount}
+              loading={dataLoading}
+              onClear={filterIsModified ? clearFilters : undefined}
+            />
+          )
         }
         filterState={{ includeGlobal: false, limitToWebs: false }}
-        hideExportToCsv={view !== "Table"}
+        hideExportToCsv
         hideFilters
         itemLabelPlural={isViewingOnlyPages ? "pages" : "entities"}
         loading={dataLoading}
@@ -605,27 +624,15 @@ export const EntitiesVisualizer: FunctionComponent<{
         }
         setFilterState={() => {}}
         title="Entities"
-        toggleSearch={
-          view === "Table"
-            ? () => setShowTableSearch(!showTableSearch)
-            : undefined
-        }
       />
-      {!hideFilters && view === "Table" && (
-        <FilterRibbon
-          filterState={filterState}
-          setFilterState={setFilterState}
-          webOptions={webOptions}
-          availableTypes={availableTypes}
-          availableTypesLoading={availableTypesLoading}
-          hideTypeFilter={hideTypeFilter}
+      {view === "Table" && (
+        <TableActionsRibbon
           sort={{ columnKey: sort.columnKey, direction: sort.direction }}
           setSort={(newSort) => setSort(newSort)}
           sortableKeys={sortableKeys}
           propertyLabels={propertyLabels}
-          resultCount={totalResultCount}
-          loading={dataLoading}
-          onClear={filterIsModified ? clearFilters : undefined}
+          toggleSearch={() => setShowTableSearch(!showTableSearch)}
+          generateCsvFile={generateCsvFile}
         />
       )}
       <Box ref={contentTopRef} />

@@ -9,7 +9,7 @@ import {
   tooltipClasses,
   useTheme,
 } from "@mui/material";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 import {
   CheckIcon,
@@ -20,7 +20,6 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
@@ -29,12 +28,9 @@ import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-ico
 import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
 import { ExportToCsvButton } from "./table-header/export-to-csv-button";
 import { TableHeaderButton } from "./table-header/table-header-button";
+import { useGenerateCsvFile } from "./table-header/use-generate-csv-file";
 
 import type { GridRow } from "../components/grid/grid";
-import type { MinimalUser } from "../lib/user-and-org";
-import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/types";
-import type { TypesTableRow } from "../pages/shared/types-table";
-import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-button";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -113,6 +109,12 @@ type TableHeaderProps<R extends GridRow> = {
   currentlyDisplayedColumnsRef: MutableRefObject<SizedGridColumn[] | null>;
   currentlyDisplayedRowsRef: MutableRefObject<R[] | null>;
   endAdornment?: ReactNode;
+  /**
+   * Replaces the default left-side content (the legacy "in your webs"/
+   * "others" chips) when provided and no bulk-action items are selected.
+   * Bulk actions still take precedence over this when items are selected.
+   */
+  startAdornment?: ReactNode;
   filterState: FilterState;
   hideExportToCsv?: boolean;
   hideFilters?: boolean;
@@ -143,6 +145,7 @@ export const TableHeader = <R extends GridRow>({
   currentlyDisplayedColumnsRef,
   currentlyDisplayedRowsRef,
   endAdornment,
+  startAdornment,
   filterState,
   hideExportToCsv,
   hideFilters,
@@ -163,63 +166,11 @@ export const TableHeader = <R extends GridRow>({
 
   const theme = useTheme();
 
-  const generateCsvFile = useCallback<GenerateCsvFileFunction>(() => {
-    const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
-    if (!currentlyDisplayedRows) {
-      return null;
-    }
-
-    const currentlyDisplayedColumns = currentlyDisplayedColumnsRef.current;
-    if (!currentlyDisplayedColumns) {
-      return null;
-    }
-
-    // Entity metadata columns (i.e. what's already being displayed in the entities table)
-
-    const columnRowKeys = currentlyDisplayedColumns.map(({ id }) => id).flat();
-
-    const tableContentColumnTitles = currentlyDisplayedColumns.map((column) =>
-      /**
-       * If the column is the entity label column, add the word "label" to the
-       * column title. Otherwise we'd end up with an "Entity" or "Page" column title,
-       * making it harder to distinguish from the property/outgoing link columns.
-       */
-      column.id === "entityLabel" ? `${column.title} label` : column.title,
-    );
-
-    // Collate the contents of the CSV file row by row (including the header)
-    const content: string[][] = [
-      tableContentColumnTitles,
-      ...currentlyDisplayedRows.map((row) => {
-        const tableCells = columnRowKeys.map((key) => {
-          const value = row[key as keyof R];
-
-          if (typeof value === "string") {
-            return value;
-          } else if (key === "lastEditedBy" || key === "createdBy") {
-            const user = value as MinimalUser | undefined;
-
-            return user?.displayName ?? "";
-          } else if (key === "archived") {
-            return (row as unknown as TypesTableRow).archived ? "Yes" : "No";
-          } else if (key === "sourceEntity" || key === "targetEntity") {
-            return (
-              (row as unknown as EntitiesTableRow).sourceEntity?.label ?? ""
-            );
-          } else if (key === "entityTypes") {
-            return (row as unknown as EntitiesTableRow).entityTypes
-              .map((type) => type.title)
-              .join(", ");
-          } else {
-            return stringifyPropertyValue(value);
-          }
-        });
-        return tableCells;
-      }),
-    ];
-
-    return { title, content };
-  }, [title, currentlyDisplayedColumnsRef, currentlyDisplayedRowsRef]);
+  const generateCsvFile = useGenerateCsvFile({
+    currentlyDisplayedColumnsRef,
+    currentlyDisplayedRowsRef,
+    title,
+  });
 
   return (
     <Box
@@ -238,12 +189,14 @@ export const TableHeader = <R extends GridRow>({
         gap: 1.5,
       }}
     >
-      <Box display="flex" gap={1.5} alignItems="center">
+      <Box display="flex" gap={1.5} alignItems="center" flex={1} minWidth={0}>
         {selectedItems && selectedItems.length ? (
           <BulkActionsDropdown
             selectedItems={selectedItems}
             onBulkActionCompleted={onBulkActionCompleted}
           />
+        ) : startAdornment !== undefined ? (
+          startAdornment
         ) : hideFilters ? null : (
           <>
             <NoMaxWidthTooltip

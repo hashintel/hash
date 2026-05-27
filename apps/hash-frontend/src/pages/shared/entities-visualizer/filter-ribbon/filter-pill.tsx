@@ -34,7 +34,7 @@ export const FilterPill: FunctionComponent<{
           alignItems: "center",
           background: isActive ? palette.blue[20] : palette.common.white,
           border: `1px solid ${isActive ? palette.blue[40] : palette.gray[30]}`,
-          borderRadius: 16,
+          borderRadius: 1.5,
           color: isActive ? palette.blue[80] : palette.gray[80],
           cursor: "pointer",
           display: "inline-flex",

@@ -15,14 +15,10 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { PlusRegularIcon } from "../../../../shared/icons/plus-regular";
 import { MenuItem } from "../../../../shared/ui";
 import { IncludeArchivedPill } from "./include-archived-pill";
-import { SortControl } from "./sort-control";
 import { TypeFilterPill } from "./type-filter-pill";
 import { WebFilterPill } from "./web-filter-pill";
 
-import type { BaseUrl } from "@blockprotocol/type-system";
-import type { FunctionComponent, ReactNode } from "react";
-import type { GridSort } from "../../../../components/grid/grid";
-import type { SortableEntitiesTableColumnKey } from "../types";
+import type { FunctionComponent } from "react";
 import type { EntitiesFilterState } from "./types";
 import type { AvailableType } from "./use-available-types";
 import type { WebFilterOption } from "./web-filter-pill";
@@ -53,7 +49,7 @@ const AddFilterButton: FunctionComponent<{
           alignItems: "center",
           background: "transparent",
           border: `1px dashed ${palette.gray[40]}`,
-          borderRadius: 16,
+          borderRadius: 1.5,
           color: palette.gray[70],
           cursor: "pointer",
           display: "inline-flex",
@@ -120,16 +116,11 @@ export const FilterRibbon: FunctionComponent<{
   availableTypes: AvailableType[];
   availableTypesLoading: boolean;
   hideTypeFilter: boolean;
-  sort: GridSort<SortableEntitiesTableColumnKey>;
-  setSort: (sort: GridSort<SortableEntitiesTableColumnKey>) => void;
-  sortableKeys: SortableEntitiesTableColumnKey[];
-  propertyLabels: Record<BaseUrl, string>;
   /**
    * `null` means we don't know yet (initial load).
    */
   resultCount: number | null;
   loading: boolean;
-  endAdornment?: ReactNode;
   onClear?: () => void;
 }> = ({
   filterState,
@@ -138,13 +129,8 @@ export const FilterRibbon: FunctionComponent<{
   availableTypes,
   availableTypesLoading,
   hideTypeFilter,
-  sort,
-  setSort,
-  sortableKeys,
-  propertyLabels,
   resultCount,
   loading,
-  endAdornment,
   onClear,
 }) => {
   const addableOptions = useMemo<
@@ -164,14 +150,9 @@ export const FilterRibbon: FunctionComponent<{
     <Stack
       direction="row"
       alignItems="center"
-      sx={({ palette }) => ({
-        background: palette.common.white,
-        borderBottom: `1px solid ${palette.gray[20]}`,
-        flexWrap: "wrap",
-        gap: 1,
-        px: 1.5,
-        py: 1,
-      })}
+      flexWrap="wrap"
+      gap={1}
+      sx={{ width: "100%" }}
     >
       <WebFilterPill
         filterState={filterState.web}
@@ -250,13 +231,6 @@ export const FilterRibbon: FunctionComponent<{
             ? `${formatNumber(resultCount)} result${resultCount === 1 ? "" : "s"}`
             : ""}
       </Typography>
-      <SortControl
-        sort={sort}
-        setSort={setSort}
-        sortableKeys={sortableKeys}
-        propertyLabels={propertyLabels}
-      />
-      {endAdornment}
     </Stack>
   );
 };

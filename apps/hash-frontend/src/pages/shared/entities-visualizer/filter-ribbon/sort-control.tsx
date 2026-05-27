@@ -74,7 +74,7 @@ export const SortControl: FunctionComponent<{
           alignItems: "center",
           background: palette.common.white,
           border: `1px solid ${palette.gray[30]}`,
-          borderRadius: 16,
+          borderRadius: 1.5,
           color: palette.gray[80],
           cursor: "pointer",
           display: "inline-flex",
