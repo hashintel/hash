@@ -46,6 +46,7 @@ export const Label = ({
   const content = (
     <>
       {children}
+      {required && <TextMark className={classes.required} />}
       {tooltip && (
         <HelpTooltip
           className={classes.tooltip}
@@ -53,7 +54,6 @@ export const Label = ({
           position={direction === "left" ? "right" : "left"}
         />
       )}
-      {required && <TextMark className={classes.required} />}
       {actions && <span className={classes.actions}>{actions}</span>}
     </>
   );

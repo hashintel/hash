@@ -5,7 +5,7 @@ export const styles = sva({
   base: {
     button: {
       position: "relative",
-      marginLeft: "[4px]",
+      marginLeft: "[0.33em]",
       whiteSpace: "nowrap",
       flexShrink: "0",
       top: "[0.01em]",

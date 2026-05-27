@@ -17,7 +17,7 @@ export const styles = sva({
     tooltip: {},
     required: {
       position: "relative",
-      marginLeft: "[5px]",
+      marginLeft: "[0.38em]",
       whiteSpace: "nowrap",
       flexShrink: "0",
       width: "[0.9em]",
