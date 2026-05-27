@@ -159,7 +159,6 @@ export const Default: Story<FormFieldArgs> = (args) => (
       htmlFor="form-field-one-error"
       label="One error"
       errors={["Something went wrong"]}
-      invalid
     >
       <ControlledTextInput
         name="form-field-one-error"
@@ -174,7 +173,6 @@ export const Default: Story<FormFieldArgs> = (args) => (
       htmlFor="form-field-multiple-errors"
       label="Multiple errors"
       errors={["First error", "Second error", "Third error"]}
-      invalid
     >
       <ControlledTextInput
         name="form-field-multiple-errors"
@@ -373,7 +371,6 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
             label="Full name"
             size={args.size}
             required
-            invalid={field.state.meta.errors.length > 0}
             errors={field.state.meta.errors}
           >
             <TextInput
@@ -410,7 +407,6 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
             description="We'll never share your email"
             size={args.size}
             required
-            invalid={field.state.meta.errors.length > 0}
             errors={field.state.meta.errors}
           >
             <TextInput
@@ -447,7 +443,6 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
             description="Lowercase letters, digits, and underscores"
             size={args.size}
             required
-            invalid={field.state.meta.errors.length > 0}
             errors={field.state.meta.errors}
           >
             <TextInput
@@ -483,7 +478,6 @@ export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
             label="Age"
             size={args.size}
             required
-            invalid={field.state.meta.errors.length > 0}
             errors={field.state.meta.errors}
           >
             <NumberInput

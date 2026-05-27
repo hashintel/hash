@@ -23,7 +23,6 @@ export const FormField = ({
   errors,
   required,
   disabled,
-  invalid: _invalid,
   ...labelProps
 }: {
   className?: string;
