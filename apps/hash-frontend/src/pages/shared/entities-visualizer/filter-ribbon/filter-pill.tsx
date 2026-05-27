@@ -59,10 +59,7 @@ export const FilterPill: FunctionComponent<{
         >
           {label}
         </Typography>
-        <Typography
-          component="span"
-          sx={{ fontSize: 13, fontWeight: 600 }}
-        >
+        <Typography component="span" sx={{ fontSize: 13, fontWeight: 600 }}>
           {valueSummary}
         </Typography>
         <ChevronDownRegularIcon sx={{ fontSize: 12 }} />

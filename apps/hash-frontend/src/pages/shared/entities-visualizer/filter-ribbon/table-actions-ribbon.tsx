@@ -6,11 +6,11 @@ import { MagnifyingGlassRegularIcon } from "../../../../shared/icons/magnifying-
 import { ExportToCsvButton } from "../../../../shared/table-header/export-to-csv-button";
 import { SortControl } from "./sort-control";
 
-import type { BaseUrl } from "@blockprotocol/type-system";
-import type { FunctionComponent } from "react";
 import type { GridSort } from "../../../../components/grid/grid";
 import type { GenerateCsvFileFunction } from "../../../../shared/table-header/export-to-csv-button";
 import type { SortableEntitiesTableColumnKey } from "../types";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 export const TableActionsRibbon: FunctionComponent<{
   sort: GridSort<SortableEntitiesTableColumnKey>;

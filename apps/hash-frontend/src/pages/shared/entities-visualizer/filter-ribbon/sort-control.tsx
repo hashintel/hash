@@ -16,10 +16,10 @@ import { ArrowUpZARegularIcon } from "../../../../shared/icons/arrow-up-a-z-regu
 import { ChevronDownRegularIcon } from "../../../../shared/icons/chevron-down-regular-icon";
 import { MenuItem } from "../../../../shared/ui";
 
-import type { BaseUrl } from "@blockprotocol/type-system";
-import type { FunctionComponent } from "react";
 import type { GridSort } from "../../../../components/grid/grid";
 import type { SortableEntitiesTableColumnKey } from "../types";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 const baseColumnLabels: Partial<
   Record<Exclude<SortableEntitiesTableColumnKey, BaseUrl>, string>
@@ -94,10 +94,7 @@ export const SortControl: FunctionComponent<{
         >
           Sort by
         </Typography>
-        <Typography
-          component="span"
-          sx={{ fontSize: 13, fontWeight: 600 }}
-        >
+        <Typography component="span" sx={{ fontSize: 13, fontWeight: 600 }}>
           {currentLabel}
         </Typography>
         <Box
@@ -143,7 +140,10 @@ export const SortControl: FunctionComponent<{
                         key={key}
                         selected={key === sort.columnKey}
                         onClick={() => {
-                          setSort({ columnKey: key, direction: sort.direction });
+                          setSort({
+                            columnKey: key,
+                            direction: sort.direction,
+                          });
                           setOpen(false);
                         }}
                         sx={{ fontSize: 13, py: 0.5 }}

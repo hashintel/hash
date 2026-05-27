@@ -18,10 +18,10 @@ import { IncludeArchivedPill } from "./include-archived-pill";
 import { TypeFilterPill } from "./type-filter-pill";
 import { WebFilterPill } from "./web-filter-pill";
 
-import type { FunctionComponent } from "react";
 import type { EntitiesFilterState } from "./types";
 import type { AvailableType } from "./use-available-types";
 import type { WebFilterOption } from "./web-filter-pill";
+import type { FunctionComponent } from "react";
 
 type AddableFilter = "archived";
 

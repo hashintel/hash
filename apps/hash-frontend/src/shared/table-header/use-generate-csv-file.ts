@@ -2,14 +2,13 @@ import { useCallback } from "react";
 
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
-import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { MutableRefObject } from "react";
-
 import type { GridRow } from "../../components/grid/grid";
 import type { MinimalUser } from "../../lib/user-and-org";
 import type { EntitiesTableRow } from "../../pages/shared/entities-visualizer/types";
 import type { TypesTableRow } from "../../pages/shared/types-table";
 import type { GenerateCsvFileFunction } from "./export-to-csv-button";
+import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import type { MutableRefObject } from "react";
 
 export const useGenerateCsvFile = <R extends GridRow>({
   currentlyDisplayedColumnsRef,

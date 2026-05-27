@@ -290,7 +290,11 @@ export const EntitiesVisualizer: FunctionComponent<{
   });
 
   const setSort = useCallback(
-    (next: ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }) => {
+    (
+      next: ColumnSort<SortableEntitiesTableColumnKey> & {
+        convertTo?: BaseUrl;
+      },
+    ) => {
       _setSort(next);
       setCursor(undefined);
     },

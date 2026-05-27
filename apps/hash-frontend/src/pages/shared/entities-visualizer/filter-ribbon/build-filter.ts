@@ -1,16 +1,9 @@
-import {
-  ignoreNoisySystemTypesFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { ignoreNoisySystemTypesFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import type {
-  BaseUrl,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
-import type { Filter } from "@local/hash-graph-client";
-
 import type { EntitiesFilterState } from "./types";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
 
 /**
  * Valid-format-but-non-existent identifiers used to express

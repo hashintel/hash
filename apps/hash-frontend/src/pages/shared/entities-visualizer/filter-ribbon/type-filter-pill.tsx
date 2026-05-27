@@ -13,10 +13,10 @@ import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 import { MenuItem } from "../../../../shared/ui";
 import { FilterPill } from "./filter-pill";
 
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { FunctionComponent } from "react";
 import type { TypeFilterState } from "./types";
 import type { AvailableType } from "./use-available-types";
+import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { FunctionComponent } from "react";
 
 const summarise = ({
   filterState,
@@ -126,7 +126,14 @@ export const TypeFilterPill: FunctionComponent<{
   return (
     <FilterPill label="Type is" valueSummary={summary} isActive={isActive}>
       {(close) => (
-        <Box sx={{ minWidth: 280, maxHeight: 400, display: "flex", flexDirection: "column" }}>
+        <Box
+          sx={{
+            minWidth: 280,
+            maxHeight: 400,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
           <Stack
             direction="row"
             alignItems="center"
@@ -181,11 +188,7 @@ export const TypeFilterPill: FunctionComponent<{
           )}
           <Box sx={{ overflowY: "auto", flex: 1 }}>
             {unknownSelectedIds.map((id) => (
-              <MenuItem
-                key={id}
-                onClick={() => toggle(id)}
-                sx={{ py: 0.5 }}
-              >
+              <MenuItem key={id} onClick={() => toggle(id)} sx={{ py: 0.5 }}>
                 <Checkbox checked size="small" sx={{ mr: 1, p: 0.25 }} />
                 <Typography
                   sx={{
@@ -199,74 +202,72 @@ export const TypeFilterPill: FunctionComponent<{
                 </Typography>
               </MenuItem>
             ))}
-            {visibleOptions.length === 0 ? (
-              unknownSelectedIds.length === 0 && (
-                <Typography
-                  sx={{
-                    color: ({ palette }) => palette.gray[60],
-                    fontSize: 12,
-                    px: 1.5,
-                    py: 1,
-                  }}
-                >
-                  {loading ? "Loading…" : "No types"}
-                </Typography>
-              )
-            ) : (
-              visibleOptions.map((type) => {
-                const checked = isChecked(type.entityTypeId);
-                return (
-                  <MenuItem
-                    key={type.entityTypeId}
-                    onClick={() => toggle(type.entityTypeId)}
+            {visibleOptions.length === 0
+              ? unknownSelectedIds.length === 0 && (
+                  <Typography
                     sx={{
-                      py: 0.5,
-                      "&:hover .only-button": { visibility: "visible" },
+                      color: ({ palette }) => palette.gray[60],
+                      fontSize: 12,
+                      px: 1.5,
+                      py: 1,
                     }}
                   >
-                    <Checkbox
-                      checked={checked}
-                      size="small"
-                      sx={{ mr: 1, p: 0.25 }}
-                    />
-                    <Typography sx={{ fontSize: 13, flex: 1 }}>
-                      {type.title}
-                      <Box
-                        component="span"
-                        sx={{
-                          ml: 0.5,
-                          color: ({ palette }) => palette.gray[50],
-                          fontSize: 12,
-                        }}
-                      >
-                        ({formatNumber(type.count)})
-                      </Box>
-                    </Typography>
-                    <Box
-                      className="only-button"
-                      component="button"
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        selectOnly(type.entityTypeId);
-                        close();
+                    {loading ? "Loading…" : "No types"}
+                  </Typography>
+                )
+              : visibleOptions.map((type) => {
+                  const checked = isChecked(type.entityTypeId);
+                  return (
+                    <MenuItem
+                      key={type.entityTypeId}
+                      onClick={() => toggle(type.entityTypeId)}
+                      sx={{
+                        py: 0.5,
+                        "&:hover .only-button": { visibility: "visible" },
                       }}
-                      sx={({ palette }) => ({
-                        background: "transparent",
-                        border: "none",
-                        color: palette.blue[70],
-                        cursor: "pointer",
-                        fontSize: 11,
-                        ml: 1,
-                        visibility: "hidden",
-                      })}
                     >
-                      Only
-                    </Box>
-                  </MenuItem>
-                );
-              })
-            )}
+                      <Checkbox
+                        checked={checked}
+                        size="small"
+                        sx={{ mr: 1, p: 0.25 }}
+                      />
+                      <Typography sx={{ fontSize: 13, flex: 1 }}>
+                        {type.title}
+                        <Box
+                          component="span"
+                          sx={{
+                            ml: 0.5,
+                            color: ({ palette }) => palette.gray[50],
+                            fontSize: 12,
+                          }}
+                        >
+                          ({formatNumber(type.count)})
+                        </Box>
+                      </Typography>
+                      <Box
+                        className="only-button"
+                        component="button"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          selectOnly(type.entityTypeId);
+                          close();
+                        }}
+                        sx={({ palette }) => ({
+                          background: "transparent",
+                          border: "none",
+                          color: palette.blue[70],
+                          cursor: "pointer",
+                          fontSize: 11,
+                          ml: 1,
+                          visibility: "hidden",
+                        })}
+                      >
+                        Only
+                      </Box>
+                    </MenuItem>
+                  );
+                })}
           </Box>
         </Box>
       )}

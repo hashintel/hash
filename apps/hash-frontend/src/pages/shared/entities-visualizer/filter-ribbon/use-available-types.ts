@@ -10,14 +10,10 @@ import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/
 import { buildWebFilter, excludeArchivedFilter } from "./build-filter";
 
 import type {
-  BaseUrl,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
-import type {
   QueryEntitySubgraphQuery,
   QueryEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
+import type { BaseUrl, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 
 export type AvailableType = {

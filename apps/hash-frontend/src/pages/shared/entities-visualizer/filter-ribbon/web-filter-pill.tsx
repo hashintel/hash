@@ -3,9 +3,9 @@ import { Box, Checkbox, Typography } from "@mui/material";
 import { MenuItem } from "../../../../shared/ui";
 import { FilterPill } from "./filter-pill";
 
+import type { WebFilterState } from "./types";
 import type { WebId } from "@blockprotocol/type-system";
 import type { FunctionComponent } from "react";
-import type { WebFilterState } from "./types";
 
 export type WebFilterOption = {
   webId: WebId;
@@ -73,11 +73,7 @@ export const WebFilterPill: FunctionComponent<{
   };
 
   return (
-    <FilterPill
-      label="Web is"
-      valueSummary={summary}
-      isActive={isActive}
-    >
+    <FilterPill label="Web is" valueSummary={summary} isActive={isActive}>
       {() => (
         <Box sx={{ py: 0.5 }}>
           {options.map((option) => {
