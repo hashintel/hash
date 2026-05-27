@@ -137,15 +137,17 @@ export const ProcessEditorWrapper = () => {
    * `postMessage` by the sandbox runtime's `error` / `unhandledrejection`
    * listeners) also reach Sentry — the iframe itself has
    * `connect-src 'none'`, so it can't report directly.
+   *
+   * Held in `useState` (lazy-init) rather than `useMemo` because React
+   * may legitimately re-invoke `useMemo` factories (Strict Mode dev
+   * double-render, future caching policies). `useState`'s init runs
+   * exactly once per mount.
    */
-  const errorTracker = useMemo(
-    () => ({
-      captureException: (error: unknown) => {
-        Sentry.captureException(error);
-      },
-    }),
-    [],
-  );
+  const [errorTracker] = useState(() => ({
+    captureException: (error: unknown) => {
+      Sentry.captureException(error);
+    },
+  }));
 
   /**
    * Build the iframe sandbox once per editor mount. User-authored
@@ -154,20 +156,23 @@ export const ProcessEditorWrapper = () => {
    * an iframe with `sandbox="allow-scripts"` and a CSP that allows
    * `unsafe-eval` but `connect-src 'none'`.
    *
+   * Lazy-init via `useState` (not `useMemo`) because `createIframeSandbox`
+   * has side effects — it appends iframes to `document.body`. `useMemo`
+   * factories are documented as pure; React Strict Mode dev would leak
+   * orphan iframes per render. `useState`'s init runs exactly once.
+   *
    * See `apps/hash-frontend/src/pages/petrinaut-sandbox.page.tsx` and
    * `apps/hash-frontend/src/lib/csp.ts` (`buildSandboxCspHeader`).
    */
-  const evalSandbox = useMemo(
-    () =>
-      createIframeSandbox({
-        src: "/petrinaut-sandbox",
-        onError: (error, origin) => {
-          Sentry.captureException(error, {
-            tags: { petrinautSandbox: origin },
-          });
-        },
-      }),
-    [],
+  const [evalSandbox] = useState(() =>
+    createIframeSandbox({
+      src: "/petrinaut-sandbox",
+      onError: (error, origin) => {
+        Sentry.captureException(error, {
+          tags: { petrinautSandbox: origin },
+        });
+      },
+    }),
   );
 
   // Tear down the sandbox iframe(s) when the editor unmounts.

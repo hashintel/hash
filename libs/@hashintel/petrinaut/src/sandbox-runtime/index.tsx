@@ -221,10 +221,15 @@ function mountVisualizerMode(): () => void {
  *
  * Returns a teardown function — handy for tests and hot-reload, but
  * production page mounts can ignore the return value.
+ *
+ * The hash is parsed as a `URLSearchParams` value so adding modes
+ * later (e.g. `#mode=headless-debug`) doesn't accidentally match an
+ * existing substring; `headless` is the default for any unknown /
+ * absent mode.
  */
 export function mountSandboxRuntime(): () => void {
-  const hash = window.location.hash;
-  const mode = hash.includes("mode=visualizer") ? "visualizer" : "headless";
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const mode = params.get("mode");
   if (mode === "visualizer") {
     return mountVisualizerMode();
   }

@@ -13,6 +13,7 @@
 
 import { useEffect, useState } from "react";
 
+import { createCancellation } from "../../../../../../react/cancellation";
 import { useEvalSandbox } from "../../../../../../react/eval-sandbox/context";
 
 import type { Metric } from "@hashintel/petrinaut-core";
@@ -34,24 +35,22 @@ export function useMetricValidation(metric: MetricForValidation): {
   const trimmedCode = metric.code.trim();
 
   useEffect(() => {
-    const tracker = { cancelled: false };
+    const { isCancelled, cleanup } = createCancellation();
     if (trimmedCode === "") {
       // Defer the clear so the setState isn't synchronous-in-effect.
       void Promise.resolve().then(() => {
-        if (tracker.cancelled) {
+        if (isCancelled()) {
           return;
         }
         setCompileError(null);
         setIsValidating(false);
       });
-      return () => {
-        tracker.cancelled = true;
-      };
+      return cleanup;
     }
     // Use Promise.resolve() to keep the `setIsValidating(true)` off the
     // synchronous effect path (matches the deferred pattern above).
     void Promise.resolve().then(() => {
-      if (tracker.cancelled) {
+      if (isCancelled()) {
         return;
       }
       setIsValidating(true);
@@ -64,26 +63,24 @@ export function useMetricValidation(metric: MetricForValidation): {
       } as Metric)
       .then((evaluator) => {
         evaluator.dispose();
-        if (tracker.cancelled) {
+        if (isCancelled()) {
           return;
         }
         setCompileError(null);
       })
       .catch((err: unknown) => {
-        if (tracker.cancelled) {
+        if (isCancelled()) {
           return;
         }
         setCompileError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
-        if (tracker.cancelled) {
+        if (isCancelled()) {
           return;
         }
         setIsValidating(false);
       });
-    return () => {
-      tracker.cancelled = true;
-    };
+    return cleanup;
   }, [evalSandbox, metric.code, metric.id, metric.name, trimmedCode]);
 
   return { compileError, isValidating };

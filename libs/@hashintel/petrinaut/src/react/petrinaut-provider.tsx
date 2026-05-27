@@ -33,18 +33,30 @@ export type PetrinautProviderProps = {
   /** Host-owned net-management actions and metadata (title, switching, …). */
   netManagement: NetManagement;
   /**
-   * Optional simulation worker factory. When provided, the SimulationProvider
-   * uses it instead of the bundled inlined-blob default. Hosts that consume
-   * the published dist (rather than building from source) should pass their
+   * Optional simulation worker factory. Legacy escape hatch — used only
+   * when {@link evalSandbox} is **not** supplied. Hosts that consume
+   * the published dist (rather than building from source) can pass their
    * own factory — e.g. via Vite's `?worker` directive — to avoid load-time
    * issues with the inlined worker.
+   *
+   * Ignored when {@link evalSandbox} is provided (the sandbox owns its
+   * own workers so they inherit the sandbox's opaque origin).
    */
   simulationWorkerFactory?: WorkerFactory;
+  /**
+   * Optional Monte Carlo worker factory. Legacy escape hatch — same
+   * semantics as {@link simulationWorkerFactory}; ignored when
+   * {@link evalSandbox} is provided.
+   */
   monteCarloWorkerFactory?: WorkerFactory;
   /**
    * Optional language-server worker factory. Same shape as
    * `simulationWorkerFactory` — provided when the host needs to bundle the
    * LSP worker themselves rather than relying on the inlined-blob default.
+   *
+   * Unlike the simulation/Monte-Carlo factories, the LSP worker is not
+   * owned by the sandbox (the LSP runs in the host realm against the
+   * host's own type definitions), so this prop is always honoured.
    */
   lspWorkerFactory?: LspWorkerFactory;
   /**
@@ -55,7 +67,7 @@ export type PetrinautProviderProps = {
    * `@hashintel/petrinaut/sandbox-iframe` to isolate user code in a
    * sandboxed iframe — see the package README for host setup.
    *
-   * When provided, {@link simulationWorkerFactory},
+   * When provided, {@link simulationWorkerFactory} and
    * {@link monteCarloWorkerFactory} are ignored (the sandbox owns its
    * own workers).
    */
@@ -110,6 +122,18 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
     return () => fallbackSandbox.dispose();
   }, [fallbackSandbox]);
 
+  // Per the docs on `simulationWorkerFactory` / `monteCarloWorkerFactory`,
+  // those props are honoured only when no host `evalSandbox` is supplied
+  // (the legacy bring-your-own-worker path). When a sandbox is provided,
+  // it owns worker creation — its workers run inside the sandbox so they
+  // inherit the opaque origin and the sandbox's CSP.
+  const effectiveSimulationWorkerFactory = hostProvidedSandbox
+    ? undefined
+    : simulationWorkerFactory;
+  const effectiveMonteCarloWorkerFactory = hostProvidedSandbox
+    ? undefined
+    : monteCarloWorkerFactory;
+
   // Keyed by handle id so a net switch fully resets net-scoped worker state.
   const inner = (
     <SDCPNProvider>
@@ -120,9 +144,11 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
         <NotificationsProvider>
           <SimulationProvider
             key={instance.handle.id}
-            workerFactory={simulationWorkerFactory}
+            workerFactory={effectiveSimulationWorkerFactory}
           >
-            <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+            <ExperimentsProvider
+              workerFactory={effectiveMonteCarloWorkerFactory}
+            >
               <PlaybackProvider>
                 <UserSettingsProvider>
                   <EditorProvider>{children}</EditorProvider>

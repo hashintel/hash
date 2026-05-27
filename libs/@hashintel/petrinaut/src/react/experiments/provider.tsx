@@ -27,6 +27,13 @@ import {
 } from "./context";
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
+  /**
+   * Legacy escape hatch: factory that produces the Monte Carlo worker.
+   * `PetrinautProvider` only forwards a value here when no host
+   * `evalSandbox` is supplied — see its `effectiveMonteCarloWorkerFactory`
+   * branch. When a host sandbox is provided, this prop is `undefined`
+   * and worker creation is delegated to the sandbox.
+   */
   workerFactory?: WorkerFactory;
 }>;
 
@@ -136,6 +143,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const { addNotification } = use(NotificationsContext);
   const evalSandbox = useEvalSandbox();
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
+  // Mirror of `SimulationProvider`'s worker resolution: when a host
+  // `evalSandbox` is wired up, `PetrinautProvider` passes
+  // `workerFactory: undefined` and we delegate to the sandbox. The
+  // legacy `workerFactory` prop wins only when no host sandbox is set.
   const sandboxMonteCarloFactory: WorkerFactory = () =>
     evalSandbox.createMonteCarloWorker();
   const workerFactoryRef = useLatest(workerFactory ?? sandboxMonteCarloFactory);

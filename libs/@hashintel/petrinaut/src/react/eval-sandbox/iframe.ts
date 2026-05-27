@@ -52,6 +52,12 @@ interface VisualizerIframeEntry {
   ready: boolean;
   pending: ParentToVisualizerMessage[];
   messageListener: (event: MessageEvent) => void;
+  /**
+   * Post a message to this visualizer iframe. Buffers when the iframe
+   * hasn't announced `ready` yet; flushes the buffer on the `ready`
+   * envelope. Wired up by {@link createVisualizerIframe}.
+   */
+  send: (message: ParentToVisualizerMessage) => void;
 }
 
 /**
@@ -59,6 +65,9 @@ interface VisualizerIframeEntry {
  * `contentWindow` once the iframe DOM is loaded. Note "loaded" means
  * the iframe document exists — the sandbox runtime inside it announces
  * its own ready handshake separately.
+ *
+ * `load`/`error` listeners are attached *before* the iframe is appended
+ * to `document.body` so we cannot miss the resource events.
  */
 function createHiddenHeadlessIframe(src: string): {
   iframe: HTMLIFrameElement;
@@ -85,6 +94,8 @@ function createHiddenHeadlessIframe(src: string): {
     });
   });
 
+  // Append AFTER the listeners are attached so we can't miss the
+  // `load` event.
   document.body.appendChild(iframe);
   return { iframe, ready };
 }
@@ -127,16 +138,19 @@ export function createIframeSandbox(
     iframe.sandbox.add("allow-scripts");
     iframe.style.cssText = "width: 100%; height: 100%; border: 0;";
     iframe.src = `${src}#mode=visualizer`;
-    container.appendChild(iframe);
 
+    // Attach the `message` listener *before* the iframe is appended to
+    // the document, so the runtime's `ready` envelope (delivered on a
+    // later task) cannot fire before our handler is wired up.
     const entry: VisualizerIframeEntry = {
       iframe,
       ready: false,
       pending: [],
       messageListener: () => {},
+      send: () => {},
     };
 
-    const send = (message: ParentToVisualizerMessage): void => {
+    entry.send = (message: ParentToVisualizerMessage): void => {
       if (!entry.ready) {
         entry.pending.push(message);
         return;
@@ -173,15 +187,7 @@ export function createIframeSandbox(
     };
     window.addEventListener("message", entry.messageListener);
 
-    // Expose `send` so the caller can post init/setCode/setProps without
-    // re-deriving the entry. We attach it as a closure-bound helper on
-    // the entry via a side property:
-    (
-      entry as VisualizerIframeEntry & {
-        send: (message: ParentToVisualizerMessage) => void;
-      }
-    ).send = send;
-
+    container.appendChild(iframe);
     visualizerIframes.add(entry);
     return entry;
   };
@@ -227,12 +233,7 @@ export function createIframeSandbox(
         mount({ container, code, props }) {
           ensureLive();
           const entry = createVisualizerIframe(container);
-          const send = (
-            entry as VisualizerIframeEntry & {
-              send: (m: ParentToVisualizerMessage) => void;
-            }
-          ).send;
-          send({ type: "visualizerInit", code, props });
+          entry.send({ type: "visualizerInit", code, props });
 
           let handleDisposed = false;
           return {
@@ -240,13 +241,13 @@ export function createIframeSandbox(
               if (handleDisposed || disposed) {
                 return;
               }
-              send({ type: "visualizerCode", code: nextCode });
+              entry.send({ type: "visualizerCode", code: nextCode });
             },
             setProps(nextProps: VisualizerProps) {
               if (handleDisposed || disposed) {
                 return;
               }
-              send({ type: "visualizerProps", props: nextProps });
+              entry.send({ type: "visualizerProps", props: nextProps });
             },
             dispose() {
               if (handleDisposed) {

@@ -9,6 +9,7 @@ import {
   type CompiledScenarioResult,
 } from "@hashintel/petrinaut-core";
 
+import { createCancellation } from "../cancellation";
 import { useEvalSandbox } from "../eval-sandbox/context";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useLatest } from "../hooks/use-latest";
@@ -96,10 +97,11 @@ function mapCoreState(status: CoreSimulationState | null): SimulationState {
 type SimulationProviderProps = React.PropsWithChildren<{
   /**
    * Legacy escape hatch: factory that produces the simulation worker.
-   * Ignored when the active {@link EvalSandbox} is iframe-backed (the
-   * sandbox owns its own workers so they inherit the opaque origin).
-   * Kept for hosts that don't pass an `evalSandbox` and want to control
-   * worker bundling directly.
+   * `PetrinautProvider` only forwards a value here when no host
+   * `evalSandbox` is supplied (see its `effectiveSimulationWorkerFactory`
+   * branch) — when a host sandbox is provided, this prop is `undefined`
+   * and the sandbox owns worker creation so the workers inherit the
+   * sandbox's opaque origin.
    */
   workerFactory?: WorkerFactory;
 }>;
@@ -114,10 +116,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const evalSandbox = useEvalSandbox();
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
-  // The sandbox owns worker creation; the legacy `workerFactory` prop is
-  // honoured only for hosts that pass neither an evalSandbox nor expect
-  // the inline sandbox to spawn workers. When `workerFactory` is set we
-  // prefer it (back-compat); otherwise we delegate to the sandbox.
+  // When a host `evalSandbox` is wired up, `PetrinautProvider` passes
+  // `workerFactory: undefined` (see its `effectiveSimulationWorkerFactory`)
+  // and we delegate to the sandbox — its iframe-owned worker inherits the
+  // opaque origin and the sandbox-page CSP. When `workerFactory` is set,
+  // there is no host sandbox; honour it as the legacy escape hatch.
   const sandboxWorkerFactory: WorkerFactory = () =>
     evalSandbox.createSimulationWorker();
   const workerFactoryRef = useLatest(workerFactory ?? sandboxWorkerFactory);
@@ -468,21 +471,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   ]);
 
   useEffect(() => {
+    const { isCancelled, cleanup } = createCancellation();
     if (!tweakedScenario) {
       // Compute "no scenario selected" via an async hop so the setState
       // isn't synchronous-in-effect.
-      const cleared = { cancelled: false };
       void Promise.resolve().then(() => {
-        if (cleared.cancelled) {
+        if (isCancelled()) {
           return;
         }
         setCompiledScenarioResult(null);
       });
-      return () => {
-        cleared.cancelled = true;
-      };
+      return cleanup;
     }
-    let cancelled = false;
     void evalSandbox
       .compileScenario({
         scenario: tweakedScenario,
@@ -491,20 +491,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         types: petriNetDefinition.types,
       })
       .then((outcome) => {
-        if (cancelled) {
+        if (isCancelled()) {
           return;
         }
         setCompiledScenarioResult(outcome.ok ? outcome.result : null);
       })
       .catch(() => {
-        if (cancelled) {
+        if (isCancelled()) {
           return;
         }
         setCompiledScenarioResult(null);
       });
-    return () => {
-      cancelled = true;
-    };
+    return cleanup;
   }, [
     evalSandbox,
     tweakedScenario,

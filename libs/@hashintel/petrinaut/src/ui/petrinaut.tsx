@@ -49,18 +49,22 @@ export type PetrinautProps = {
   aiAssistant?: PetrinautAiAssistant;
   viewportActions?: ViewportAction[];
   /**
-   * Optional simulation-worker factory. Provide this when the host bundler
-   * needs to own worker instantiation (e.g. when consuming the published
-   * dist) — typically via Vite's `?worker` directive against your own copy
-   * of the worker entry. When omitted, falls back to the bundled
-   * inlined-blob worker that ships with the library, which works for
-   * source-built consumers (storybook, dev) but not always for production
-   * dist consumers.
+   * Optional simulation-worker factory. Legacy escape hatch — provide
+   * this when the host bundler needs to own worker instantiation
+   * (e.g. when consuming the published dist) — typically via Vite's
+   * `?worker` directive against your own copy of the worker entry.
+   * When omitted, falls back to the bundled inlined-blob worker that
+   * ships with the library, which works for source-built consumers
+   * (storybook, dev) but not always for production dist consumers.
+   *
+   * Ignored when {@link evalSandbox} is supplied — the sandbox owns its
+   * own workers so they inherit the sandbox's opaque origin / CSP.
    */
   simulationWorkerFactory?: WorkerFactory;
   /**
-   * Optional Monte Carlo worker factory. Hosts can provide this when they need
-   * to own worker bundling for the Experiments tab.
+   * Optional Monte Carlo worker factory. Same semantics as
+   * {@link simulationWorkerFactory}; ignored when {@link evalSandbox}
+   * is supplied.
    */
   monteCarloWorkerFactory?: WorkerFactory;
   /**

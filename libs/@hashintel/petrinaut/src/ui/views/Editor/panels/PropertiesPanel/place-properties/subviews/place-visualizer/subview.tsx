@@ -196,8 +196,15 @@ const VisualizerPreview: React.FC = () => {
     }
   }, [propsResult]);
 
-  // Mount/unmount the visualizer host. Re-mount only when the sandbox,
-  // place, or "should we be showing the host at all" status flips.
+  // Mount/unmount the visualizer host. We deliberately do NOT include
+  // `place.id` in the deps: switching between places (with the same
+  // sandbox + the same `shouldMount` status) is handled by pushing the
+  // new code & props through the ref-update effects above instead of
+  // tearing down the iframe. That avoids a full iframe load + chunk
+  // fetch + React-root mount per place switch.
+  //
+  // The host is only re-created when the sandbox itself changes or
+  // the subview transitions in / out of the "show host" state.
   useEffect(() => {
     if (!shouldMount) {
       return undefined;
@@ -217,7 +224,7 @@ const VisualizerPreview: React.FC = () => {
       handleRef.current = null;
       handle.dispose();
     };
-  }, [place.id, visualizerHost, shouldMount]);
+  }, [visualizerHost, shouldMount]);
 
   if (!place.visualizerCode) {
     return <div className={messageStyle}>No visualizer code defined</div>;

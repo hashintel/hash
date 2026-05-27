@@ -5,6 +5,7 @@ import {
   type MetricEvaluator,
 } from "@hashintel/petrinaut-core";
 
+import { createCancellation } from "../../../../../../../react/cancellation";
 import { useEvalSandbox } from "../../../../../../../react/eval-sandbox/context";
 import { SimulationContext } from "../../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
@@ -161,13 +162,13 @@ export function useStreamingData(): {
   const [metricError, setMetricError] = useState<string | null>(null);
 
   useEffect(() => {
-    const tracker = { cancelled: false };
+    const { isCancelled, cleanup } = createCancellation();
     let evaluator: MetricEvaluator | null = null;
     if (!selectedMetric) {
       // Defer the clear to the next microtask so the setState is not
       // synchronous-in-effect.
       void Promise.resolve().then(() => {
-        if (tracker.cancelled) {
+        if (isCancelled()) {
           return;
         }
         setMetricEvaluator(null);
@@ -177,7 +178,7 @@ export function useStreamingData(): {
       evalSandbox
         .createMetricEvaluator(selectedMetric)
         .then((built) => {
-          if (tracker.cancelled) {
+          if (isCancelled()) {
             built.dispose();
             return;
           }
@@ -186,7 +187,7 @@ export function useStreamingData(): {
           setMetricError(null);
         })
         .catch((err: unknown) => {
-          if (tracker.cancelled) {
+          if (isCancelled()) {
             return;
           }
           setMetricEvaluator(null);
@@ -194,7 +195,7 @@ export function useStreamingData(): {
         });
     }
     return () => {
-      tracker.cancelled = true;
+      cleanup();
       evaluator?.dispose();
     };
   }, [evalSandbox, selectedMetric]);
@@ -229,13 +230,7 @@ export function useStreamingData(): {
 
   // Stream new frames into the store
   useEffect(() => {
-    // Tracker object: oxlint's narrow-flow analysis follows primitive
-    // `let cancelled = false` through awaits and reports later
-    // `if (cancelled)` checks as unreachable. Boxing in an object opts
-    // out of that analysis (the property is mutated by the cleanup
-    // function in a sibling closure).
-    const tracker = { cancelled: false };
-    const isCancelled = () => tracker.cancelled;
+    const { isCancelled, cleanup } = createCancellation();
 
     const fetchData = async () => {
       if (totalFrames === 0) {
@@ -293,9 +288,7 @@ export function useStreamingData(): {
     };
 
     void fetchData();
-    return () => {
-      tracker.cancelled = true;
-    };
+    return cleanup;
   }, [
     dt,
     getFramesInRange,

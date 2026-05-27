@@ -29,8 +29,9 @@ import type { NextPageWithLayout } from "../shared/layout";
  *
  * Because we only need the sandbox runtime — no auth, no Apollo, no
  * theme — `_app.page.tsx` short-circuits provider setup for this
- * pathname (see the `isPetrinautSandboxRoute` branch there). This page
- * supplies its own minimal layout via `getLayout`.
+ * pathname (see the `router.pathname === petrinautSandboxPathname`
+ * branch there). This page supplies its own minimal layout via
+ * `getLayout`.
  */
 
 const PetrinautSandboxRuntime = dynamic(

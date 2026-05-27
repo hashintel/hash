@@ -9,9 +9,14 @@ import {
 import { maintenanceRoute } from "./pages/shared/maintenance";
 
 /**
- * Petrinaut iframe eval sandbox host route. Requests under this path
- * receive a different (more permissive `script-src`, but
+ * Petrinaut iframe eval sandbox host route. Requests for exactly this
+ * path receive a different (more permissive `script-src`, but
  * `connect-src 'none'`) CSP — see {@link buildSandboxCspHeader}.
+ *
+ * Matched with `===` (not `startsWith`) to stay consistent with the
+ * `_app.page.tsx` short-circuit that bypasses provider setup for the
+ * sandbox page — both predicates must agree so the sandbox page never
+ * loads with the strict app CSP nor the app's provider tree.
  */
 const petrinautSandboxPathname = "/petrinaut-sandbox";
 
@@ -44,9 +49,7 @@ export const middleware = async (request: NextRequest) => {
   // allows `'unsafe-eval'` for the JIT compile path, but blocks all
   // network egress via `connect-src 'none'`. Every other route keeps
   // the strict app-wide CSP that forbids `unsafe-eval`.
-  const isSandboxRoute = request.nextUrl.pathname.startsWith(
-    petrinautSandboxPathname,
-  );
+  const isSandboxRoute = request.nextUrl.pathname === petrinautSandboxPathname;
   const cspHeader = isSandboxRoute
     ? buildSandboxCspHeader(nonce)
     : buildCspHeader(nonce);
