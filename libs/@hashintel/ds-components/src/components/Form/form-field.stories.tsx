@@ -50,8 +50,6 @@ const kitchenSinkProps = {
   labelActions: [<ActionButton key="action" />],
   errors: ["First error", "Second error"],
   required: true,
-  disabled: true,
-  hideLabel: true,
 };
 
 export default {
@@ -137,6 +135,20 @@ export const Default: Story = () => (
       htmlFor="form-field-kitchen-sink"
       label="Kitchen sink"
       {...kitchenSinkProps}
+    >
+      <ControlledTextInput
+        name="form-field-kitchen-sink"
+        initialValue="Kitchen sink value"
+        disabled
+        invalid
+      />
+    </FormField>
+
+    <FormField
+      htmlFor="form-field-kitchen-sink"
+      label="Kitchen sink disabled"
+      {...kitchenSinkProps}
+      disabled
     >
       <ControlledTextInput
         name="form-field-kitchen-sink"

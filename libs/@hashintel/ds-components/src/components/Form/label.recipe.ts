@@ -1,41 +1,40 @@
 import { sva } from "@hashintel/ds-helpers/css";
 
+import { srOnly } from "../../util/css-mixins";
+
 export const styles = sva({
   slots: ["label", "tooltip", "required", "actions"],
   base: {
     label: {
       display: "flex",
       alignItems: "center",
-      gap: "1.5",
-      color: "fg.heading",
-      fontFamily: "body",
-      fontWeight: "medium",
+      color: "fg.body",
+      fontWeight: "semibold",
       width: "full",
       margin: "0",
       padding: "0",
     },
-    tooltip: {
-      display: "inline-flex",
-      flexShrink: "0",
-      color: "fg.subtle",
-      width: "[1em]",
-      height: "[1em]",
-      cursor: "help",
-    },
+    tooltip: {},
     required: {
-      display: "inline-flex",
+      position: "relative",
+      marginLeft: "[5px]",
+      whiteSpace: "nowrap",
       flexShrink: "0",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "blue.bg.subtle",
-      color: "blue.fg.muted",
-      borderRadius: "sm",
-      width: "[1em]",
-      height: "[1em]",
+      width: "[0.9em]",
+
       _before: {
         content: '"*"',
+        display: "inline-flex",
+        justifyContent: "center",
+        width: "[100% !important]",
+        height: "auto",
+        aspectRatio: "1",
         fontSize: "[0.85em]",
+        lineHeight: "[1.4]",
         fontWeight: "semibold",
+        backgroundColor: "blue.bg.subtle",
+        color: "blue.fg.muted",
+        borderRadius: "sm",
       },
     },
     actions: {
@@ -51,7 +50,7 @@ export const styles = sva({
       xs: { label: { textStyle: "xs" } },
       sm: { label: { textStyle: "sm" } },
       md: { label: { textStyle: "sm" } },
-      lg: { label: { textStyle: "sm" } },
+      lg: { label: { textStyle: "base" } },
     },
     direction: {
       left: { label: { textAlign: "left" } },
@@ -62,24 +61,16 @@ export const styles = sva({
         label: { color: "fg.body.disabled" },
         tooltip: { color: "fg.subtle.disabled" },
         required: {
-          backgroundColor: "neutral.bg.subtle",
-          color: "fg.subtle.disabled",
+          _before: {
+            backgroundColor: "neutral.bg.subtle",
+            color: "fg.subtle.disabled",
+          },
         },
       },
     },
     hide: {
       true: {
-        label: {
-          position: "absolute",
-          width: "[1px]",
-          height: "[1px]",
-          padding: "0",
-          margin: "[-1px]",
-          overflow: "hidden",
-          clip: "[rect(0, 0, 0, 0)]",
-          whiteSpace: "nowrap",
-          borderWidth: "0",
-        },
+        label: srOnly,
       },
     },
   },

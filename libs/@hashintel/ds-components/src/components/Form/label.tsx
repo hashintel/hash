@@ -1,7 +1,7 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { Icon } from "../Icon/icon";
-import { Tooltip } from "../Tooltip/tooltip";
+import { HelpTooltip } from "../HelpTooltip/help-tooltip";
+import { TextMark } from "../TextMark/text-mark";
 import { styles } from "./label.recipe";
 
 import type { FormInputSize } from "../../util/form-shared";
@@ -9,10 +9,10 @@ import type { FormInputSize } from "../../util/form-shared";
 export const Label = ({
   className,
   children,
-  as,
+  as = "label",
   htmlFor,
-  size,
-  direction,
+  size = "md",
+  direction = "left",
   tooltip,
   actions,
   required,
@@ -47,11 +47,13 @@ export const Label = ({
     <>
       {children}
       {tooltip && (
-        <Tooltip content={tooltip}>
-          <Icon className={classes.tooltip} name="info" />
-        </Tooltip>
+        <HelpTooltip
+          className={classes.tooltip}
+          content={tooltip}
+          position={direction === "left" ? "right" : "left"}
+        />
       )}
-      {required && <span className={classes.required} />}
+      {required && <TextMark className={classes.required} />}
       {actions && <span className={classes.actions}>{actions}</span>}
     </>
   );
