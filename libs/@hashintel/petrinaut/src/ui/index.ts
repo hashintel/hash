@@ -20,3 +20,8 @@ export { isSDCPNEqual } from "@hashintel/petrinaut-core";
 // Viewport action — shape consumers use to add custom buttons to the
 // viewport-controls panel. Lives in /ui because it carries `React.ReactNode`.
 export type { ViewportAction } from "./types/viewport-action";
+
+// Slots — named locations into which the host can inject arbitrary React
+// content (e.g. a Save button in `topBarEnd`). Lives in /ui because it
+// carries `React.ReactNode`.
+export type { PetrinautSlots } from "./types/petrinaut-slots";

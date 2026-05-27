@@ -56,17 +56,21 @@ type UseProcessSaveAndLoadParams = {
    */
   setPetriNet: (sdcpn: SDCPN) => void;
   setSelectedNetId: Dispatch<SetStateAction<EntityId | null>>;
+  setLoadedRevisionTime: Dispatch<SetStateAction<string | null>>;
   setTitle: Dispatch<SetStateAction<string>>;
   title: string;
+  refetchRevisions: () => Promise<unknown>;
 };
 
 export const useProcessSaveAndLoad = ({
   petriNet,
   selectedNetId,
   setSelectedNetId,
+  setLoadedRevisionTime,
   setPetriNet,
   setTitle,
   title,
+  refetchRevisions,
 }: UseProcessSaveAndLoadParams): {
   discardChanges: (() => void) | null;
   isDirty: boolean;
@@ -116,13 +120,26 @@ export const useProcessSaveAndLoad = ({
       setPetriNet(net.definition);
       setTitle(net.title);
       setUserEditable(net.userEditable);
+      setLoadedRevisionTime(net.lastUpdated);
     },
-    [setPetriNet, setSelectedNetId, setTitle, setUserEditable],
+    [
+      setLoadedRevisionTime,
+      setPetriNet,
+      setSelectedNetId,
+      setTitle,
+      setUserEditable,
+    ],
   );
 
   const refetchPersistedNets = useCallback(
     async ({ updatedEntityId }: { updatedEntityId: EntityId | null }) => {
-      const updatedNetsData = await refetch();
+      const [updatedNetsData] = await Promise.all([
+        refetch(),
+        // For updates `selectedNetId` is unchanged, so Apollo won't
+        // auto-refire the history query — kick it explicitly. For creates
+        // it's a benign duplicate (Apollo deduplicates by variables).
+        refetchRevisions(),
+      ]);
 
       const transformedNets = getPersistedNetsFromSubgraph(
         updatedNetsData.data,
@@ -138,7 +155,7 @@ export const useProcessSaveAndLoad = ({
         }
       }
     },
-    [loadPersistedNet, refetch],
+    [loadPersistedNet, refetch, refetchRevisions],
   );
 
   const persistToGraph = useCallback(async () => {

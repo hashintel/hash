@@ -54,6 +54,7 @@ export type PetrinautAiAssistant = {
 };
 
 import type { NetManagement } from "../react/net-management-context";
+import type { PetrinautSlots } from "./types/petrinaut-slots";
 import type { ViewportAction } from "./types/viewport-action";
 
 export type PetrinautProps = {
@@ -67,6 +68,10 @@ export type PetrinautProps = {
   loadPetriNet?: (petriNetId: string) => void;
   aiAssistant?: PetrinautAiAssistant;
   viewportActions?: ViewportAction[];
+  /**
+   * Host-supplied components to inject at specific locations in the editor.
+   */
+  slots?: PetrinautSlots;
   /**
    * Optional simulation-worker factory. Provide this when the host bundler
    * needs to own worker instantiation (e.g. when consuming the published
@@ -111,6 +116,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   loadPetriNet = noop,
   aiAssistant,
   viewportActions,
+  slots,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
@@ -146,6 +152,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
             <EditorView
               aiAssistant={aiAssistant}
               hideNetManagementControls={hideNetManagementControls}
+              slots={slots}
               viewportActions={viewportActions}
             />
           </Stack>

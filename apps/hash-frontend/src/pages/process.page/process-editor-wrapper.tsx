@@ -3,18 +3,24 @@ import { Box, Stack } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AlertModal } from "@hashintel/design-system";
+import { Button } from "@hashintel/ds-components";
 import {
   createJsonDocHandle,
   Petrinaut,
   type PetrinautDocHandle,
+  type PetrinautSlots,
   type SDCPN,
 } from "@hashintel/petrinaut";
 
-import { ProcessEditBar } from "./process-editor-wrapper/process-edit-bar";
 import {
   type PersistedNet,
   useProcessSaveAndLoad,
 } from "./process-editor-wrapper/use-process-save-and-load";
+import {
+  type EntityRevision,
+  useEntityRevisions,
+} from "./process-editor-wrapper/use-process-save-and-load/use-entity-revisions";
+import { VersionPicker } from "./process-editor-wrapper/version-picker";
 
 import type { EntityId } from "@blockprotocol/type-system";
 
@@ -62,8 +68,20 @@ export const ProcessEditorWrapper = () => {
   const [switchTargetPendingConfirmation, setSwitchTargetPendingConfirmation] =
     useState<PersistedNet | null>(null);
 
+  /**
+   * Decision-time of the server revision currently mirrored in the editor.
+   * Null when working on an unsaved net. Drives the `VersionPicker`'s
+   * "vN" label and is updated by `useProcessSaveAndLoad` after loads/saves
+   * and by `loadRevision` when the user browses history below.
+   */
+  const [loadedRevisionTime, setLoadedRevisionTime] = useState<string | null>(
+    null,
+  );
+
+  const { revisions, refetch: refetchRevisions } =
+    useEntityRevisions(selectedNetId);
+
   const {
-    discardChanges,
     isDirty,
     loadPersistedNet,
     persistedNets,
@@ -73,7 +91,9 @@ export const ProcessEditorWrapper = () => {
     setUserEditable,
   } = useProcessSaveAndLoad({
     petriNet: petriNetDefinition,
+    refetchRevisions,
     selectedNetId,
+    setLoadedRevisionTime,
     setPetriNet,
     setSelectedNetId,
     setTitle,
@@ -92,8 +112,24 @@ export const ProcessEditorWrapper = () => {
       setSelectedNetId(null);
       setUserEditable(true);
       setTitle(newTitle);
+      setLoadedRevisionTime(null);
     },
     [setPetriNet, setSelectedNetId, setUserEditable, setTitle],
+  );
+
+  /**
+   * Replace the editor state with a past revision of the active entity.
+   * Doesn't change `selectedNetId` — it's still the same entity, just
+   * pinned to an older decision time. Subsequent edits + save create a
+   * new top revision on the existing baseId (linear-edit model).
+   */
+  const loadRevision = useCallback(
+    (revision: EntityRevision) => {
+      setPetriNet(revision.definition);
+      setTitle(revision.title);
+      setLoadedRevisionTime(revision.decisionTime);
+    },
+    [setPetriNet, setTitle],
   );
 
   const loadNetFromId = useCallback(
@@ -123,6 +159,56 @@ export const ProcessEditorWrapper = () => {
       }));
   }, [persistedNets, selectedNetId]);
 
+  /**
+   * Top-bar content injected into Petrinaut via the `slots` API:
+   *  - `VersionPicker` — shows the active server revision (vN), a `Draft`
+   *    badge when local edits diverge from the latest revision, and a
+   *    dropdown to browse history. Hidden entirely when there are no
+   *    saved revisions yet (i.e. brand-new net).
+   *  - The Save/Create button — disabled until there's something to save.
+   *
+   * Hidden when the active net is not user-editable; we don't surface a
+   * "save as copy" affordance from here today.
+   */
+  const slots = useMemo<PetrinautSlots>(() => {
+    if (!userEditable) {
+      return {};
+    }
+
+    return {
+      topBarEnd: (
+        <>
+          <VersionPicker
+            revisions={revisions}
+            loadedRevisionTime={loadedRevisionTime}
+            isDirty={isDirty && !persistPending}
+            onLoadRevision={loadRevision}
+          />
+          <Button
+            size="sm"
+            onClick={persistToGraph}
+            disabled={!isDirty || persistPending}
+            loading={persistPending}
+            tooltip={
+              !isDirty && !persistPending ? "No changes to save" : undefined
+            }
+          >
+            {selectedNetId ? "Save" : "Create"}
+          </Button>
+        </>
+      ),
+    };
+  }, [
+    isDirty,
+    loadRevision,
+    loadedRevisionTime,
+    persistPending,
+    persistToGraph,
+    revisions,
+    selectedNetId,
+    userEditable,
+  ]);
+
   return (
     <Stack sx={{ height: "100%" }}>
       {switchTargetPendingConfirmation && (
@@ -142,14 +228,6 @@ export const ProcessEditorWrapper = () => {
           type="warning"
         />
       )}
-      <ProcessEditBar
-        discardChanges={discardChanges}
-        isDirty={isDirty}
-        persistToGraph={persistToGraph}
-        persistPending={persistPending}
-        userEditable={userEditable}
-        selectedNetId={selectedNetId}
-      />
 
       <Box sx={{ height: "100%" }}>
         <Petrinaut
@@ -160,6 +238,7 @@ export const ProcessEditorWrapper = () => {
           loadPetriNet={(id) => loadNetFromId(id as EntityId)}
           readonly={!userEditable}
           setTitle={setTitle}
+          slots={slots}
           title={title}
         />
       </Box>
