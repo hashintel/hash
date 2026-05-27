@@ -7,59 +7,58 @@ export const styles = sva({
     size: {
       xxs: {
         label: {
-          marginBottom: "1",
-          '&:has(+ [data-part="description"])': { marginBottom: "0.5" },
+          marginBottom: "0",
+          '&:has(+ [data-part="description"])': { marginBottom: "-0.5" },
         },
-        description: { marginBottom: "1" },
+        description: { marginBottom: "0.5" },
+        descriptionBottom: { marginTop: "1" },
+        errors: { marginTop: "1" },
+      },
+      xs: {
+        label: {
+          marginBottom: "0",
+          '&:has(+ [data-part="description"])': { marginBottom: "-1" },
+        },
+        description: { marginBottom: "0" },
         descriptionBottom: { marginTop: "1" },
         errors: {
           marginTop: "1",
           '[data-part="descriptionBottom"] + &': { marginTop: "0.5" },
         },
       },
-      xs: {
+      sm: {
         label: {
-          marginBottom: "1.5",
-          '&:has(+ [data-part="description"])': { marginBottom: "0.5" },
+          marginBottom: "1",
+          '&:has(+ [data-part="description"])': { marginBottom: "-1" },
         },
-        description: { marginBottom: "1.5" },
+        description: { marginBottom: "1" },
         descriptionBottom: { marginTop: "1.5" },
         errors: {
           marginTop: "1.5",
-          '[data-part="descriptionBottom"] + &': { marginTop: "0.5" },
+          '[data-part="descriptionBottom"] + &': { marginTop: "1" },
         },
-      },
-      sm: {
-        label: {
-          marginBottom: "1.5",
-          '&:has(+ [data-part="description"])': {
-            marginBottom: "-0.5",
-          },
-        },
-        description: { marginBottom: "1.5" },
-        descriptionBottom: { marginTop: "1.5" },
-        errors: { marginTop: "1.5" },
       },
       md: {
         label: {
           marginBottom: "1.5",
-          '&:has(+ [data-part="description"])': {
-            marginBottom: "-0.5",
-          },
+          '&:has(+ [data-part="description"])': { marginBottom: "-0.5" },
         },
         description: { marginBottom: "1.5" },
-        descriptionBottom: { marginTop: "1.5" },
-        errors: { marginTop: "1.5" },
+        descriptionBottom: { marginTop: "2" },
+        errors: {
+          marginTop: "2",
+          '[data-part="descriptionBottom"] + &': { marginTop: "1.5" },
+        },
       },
       lg: {
         label: {
-          marginBottom: "2.5",
-          '&:has(+ [data-part="description"])': { marginBottom: "1" },
+          marginBottom: "2",
+          '&:has(+ [data-part="description"])': { marginBottom: "0" },
         },
-        description: { marginBottom: "2.5" },
+        description: { marginBottom: "2" },
         descriptionBottom: { marginTop: "2.5" },
         errors: {
-          marginTop: "2.5",
+          marginTop: "2",
           '[data-part="descriptionBottom"] + &': { marginTop: "1.5" },
         },
       },

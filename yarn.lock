@@ -7654,6 +7654,7 @@ __metadata:
     "@pandacss/preset-panda": "npm:1.11.1"
     "@playwright/test": "npm:1.58.2"
     "@radix-ui/colors": "npm:3.0.0"
+    "@tanstack/react-form": "npm:1.29.0"
     "@tanstack/react-virtual": "npm:3.13.24"
     "@tsconfig/strictest": "npm:^2.0.8"
     "@types/node": "npm:22.18.13"

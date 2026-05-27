@@ -1,9 +1,11 @@
+import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { Button } from "../Button/button";
+import { NumberInput } from "../NumberInput/number-input";
 import { TextInput } from "../TextInput/text-input";
 import { FormField } from "./form-field";
 
@@ -319,3 +321,207 @@ export const LabelDirection: Story<FormFieldArgs> = (args) => (
     ))}
   </div>
 );
+
+const formStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[24px]",
+  padding: "[16px]",
+  maxWidth: "[420px]",
+});
+
+const submitRowStyle = css({
+  display: "flex",
+  justifyContent: "flex-end",
+  marginTop: "[8px]",
+});
+
+export const WithTanstackForm: Story<FormFieldArgs> = (args) => {
+  const form = useForm({
+    defaultValues: {
+      fullName: "",
+      email: "",
+      username: "",
+      age: 18,
+    },
+    onSubmit: ({ value }) => {
+      // eslint-disable-next-line no-alert
+      window.alert(`Submitted:\n${JSON.stringify(value, null, 2)}`);
+    },
+  });
+
+  return (
+    <form
+      className={formStyle}
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field
+        name="fullName"
+        validators={{
+          onChange: ({ value }) =>
+            value.trim().length === 0 ? "Full name is required" : undefined,
+        }}
+      >
+        {(field) => (
+          <FormField
+            as="label"
+            htmlFor={field.name}
+            label="Full name"
+            size={args.size}
+            required
+            invalid={field.state.meta.errors.length > 0}
+            errors={field.state.meta.errors}
+          >
+            <TextInput
+              name={field.name}
+              value={field.state.value}
+              onChange={(value) => field.handleChange(value)}
+              onBlur={field.handleBlur}
+              size={args.size}
+              invalid={field.state.meta.errors.length > 0}
+            />
+          </FormField>
+        )}
+      </form.Field>
+
+      <form.Field
+        name="email"
+        validators={{
+          onChange: ({ value }) => {
+            if (value.trim().length === 0) {
+              return "Email is required";
+            }
+            if (!/^\S+@\S+\.\S+$/.test(value)) {
+              return "Enter a valid email address";
+            }
+            return undefined;
+          },
+        }}
+      >
+        {(field) => (
+          <FormField
+            as="label"
+            htmlFor={field.name}
+            label="Email"
+            description="We'll never share your email"
+            size={args.size}
+            required
+            invalid={field.state.meta.errors.length > 0}
+            errors={field.state.meta.errors}
+          >
+            <TextInput
+              name={field.name}
+              value={field.state.value}
+              onChange={(value) => field.handleChange(value)}
+              onBlur={field.handleBlur}
+              size={args.size}
+              invalid={field.state.meta.errors.length > 0}
+            />
+          </FormField>
+        )}
+      </form.Field>
+
+      <form.Field
+        name="username"
+        validators={{
+          onChange: ({ value }) => {
+            if (value.trim().length === 0) {
+              return "Username is required";
+            }
+            if (!/^[a-z0-9_]+$/.test(value)) {
+              return "Lowercase letters, digits, and underscores only";
+            }
+            return undefined;
+          },
+        }}
+      >
+        {(field) => (
+          <FormField
+            as="label"
+            htmlFor={field.name}
+            label="Username"
+            description="Lowercase letters, digits, and underscores"
+            size={args.size}
+            required
+            invalid={field.state.meta.errors.length > 0}
+            errors={field.state.meta.errors}
+          >
+            <TextInput
+              name={field.name}
+              value={field.state.value}
+              onChange={(value) => field.handleChange(value)}
+              onBlur={field.handleBlur}
+              size={args.size}
+              invalid={field.state.meta.errors.length > 0}
+            />
+          </FormField>
+        )}
+      </form.Field>
+
+      <form.Field
+        name="age"
+        validators={{
+          onChange: ({ value }) => {
+            if (value < 18) {
+              return "Must be 18 or older";
+            }
+            if (value > 120) {
+              return "Must be 120 or younger";
+            }
+            return undefined;
+          },
+        }}
+      >
+        {(field) => (
+          <FormField
+            as="label"
+            htmlFor={field.name}
+            label="Age"
+            size={args.size}
+            required
+            invalid={field.state.meta.errors.length > 0}
+            errors={field.state.meta.errors}
+          >
+            <NumberInput
+              type="integer"
+              name={field.name}
+              value={field.state.value}
+              min={0}
+              max={120}
+              onChange={(value) => field.handleChange(value ?? 0)}
+              onBlur={field.handleBlur}
+              size={args.size}
+              invalid={field.state.meta.errors.length > 0}
+            />
+          </FormField>
+        )}
+      </form.Field>
+
+      <form.Subscribe
+        selector={(state) => ({
+          canSubmit: state.canSubmit,
+          isSubmitting: state.isSubmitting,
+        })}
+      >
+        {({ canSubmit, isSubmitting }) => (
+          <div className={submitRowStyle}>
+            <Button
+              type="submit"
+              variant="solid"
+              tone="brand"
+              size={args.size}
+              disabled={!canSubmit}
+              loading={isSubmitting}
+            >
+              Submit
+            </Button>
+          </div>
+        )}
+      </form.Subscribe>
+    </form>
+  );
+};
