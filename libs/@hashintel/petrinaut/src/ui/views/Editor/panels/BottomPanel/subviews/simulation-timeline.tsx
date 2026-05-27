@@ -246,7 +246,7 @@ const TimelineViewPicker: React.FC = () => {
       <div style={{ display: "flex" }}>
         {selectedMetric && (
           <Button
-            size="sm"
+            size="xs"
             variant="ghost"
             aria-label="Edit metric"
             tooltip="Edit Metric"
@@ -255,7 +255,7 @@ const TimelineViewPicker: React.FC = () => {
           />
         )}
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           aria-label="Create metric"
           tooltip="Create Metric"
@@ -263,7 +263,7 @@ const TimelineViewPicker: React.FC = () => {
           onClick={() => setIsCreateOpen(true)}
         />
         <Button
-          size="sm"
+          size="xs"
           variant="ghost"
           aria-label="Manage metrics"
           tooltip="Manage Metrics"
