@@ -246,7 +246,7 @@ impl Repr {
     #[inline]
     #[expect(clippy::cast_ptr_alignment)]
     unsafe fn as_runtime(self) -> *mut RuntimeRepr {
-        debug_assert!(self.tag() == Self::TAG_RUNTIME);
+        debug_assert_eq!(self.tag(), Self::TAG_RUNTIME);
 
         self.ptr
             .map_addr(|addr| {
@@ -264,7 +264,7 @@ impl Repr {
     /// - `self` must have been created via [`Repr::constant`].
     #[inline]
     unsafe fn as_constant(self) -> ConstantRepr {
-        debug_assert!(self.tag() == Self::TAG_CONSTANT);
+        debug_assert_eq!(self.tag(), Self::TAG_CONSTANT);
 
         let addr = self.ptr.addr().get();
         ConstantRepr((addr & !Self::TAG_MASK) >> Self::TAG_SHIFT)

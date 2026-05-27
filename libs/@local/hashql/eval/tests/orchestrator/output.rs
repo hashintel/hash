@@ -189,7 +189,7 @@ pub(crate) fn compare_or_bless(
 
     let expected = match fs::read_to_string(expected_path) {
         Ok(contents) => contents,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+        Err(error) if error.kind() == core::io::ErrorKind::NotFound => {
             return Err(Report::new(TestError::OutputMismatch)
                 .attach(format!(
                     "expected output file {} does not exist; run with --bless to create it",

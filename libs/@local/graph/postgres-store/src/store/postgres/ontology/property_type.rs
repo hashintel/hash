@@ -610,7 +610,7 @@ where
                 .attach_with(|| {
                     format!(
                         "could not insert references for property type: {}",
-                        &property_type.schema.id
+                        property_type.schema.id
                     )
                 })
                 .attach_opaque_with(|| property_type.schema.clone())?;
@@ -953,7 +953,7 @@ where
                 .attach_with(|| {
                     format!(
                         "could not insert references for property type: {}",
-                        &property_type.schema.id
+                        property_type.schema.id
                     )
                 })
                 .attach_opaque_with(|| property_type.schema.clone())?;

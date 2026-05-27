@@ -358,6 +358,7 @@ as_conversions                 = "allow"
 # Too many false positives when macros and/or loops are involved
 cognitive_complexity    = "allow"
 expect_used             = "allow"
+inline_modules          = "allow" # right now flags inline test modules, even if it shouldn't
 let_underscore_must_use = "allow"
 missing_assert_message  = "allow"
 multiple_inherent_impl  = "allow"

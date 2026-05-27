@@ -224,7 +224,7 @@ impl<'heap> TerminatorKind<'heap> {
     /// Note that [`GraphRead`] returns an empty slice because it injects its own target
     /// rather than using the standard target mechanism.
     #[must_use]
-    pub fn successor_targets(&self) -> &[Target<'heap>] {
+    pub const fn successor_targets(&self) -> &[Target<'heap>] {
         match self {
             Self::Goto(goto) => core::slice::from_ref(&goto.target),
             Self::SwitchInt(switch) => switch.targets.targets(),
@@ -238,7 +238,7 @@ impl<'heap> TerminatorKind<'heap> {
     /// Returns [`Some`] with a mutable slice for terminators that have modifiable targets
     /// ([`Goto`], [`SwitchInt`]), or [`None`] for terminators without modifiable targets
     /// ([`Return`], [`GraphRead`], [`Unreachable`](Self::Unreachable)).
-    pub fn successor_targets_mut(&mut self) -> Option<&mut [Target<'heap>]> {
+    pub const fn successor_targets_mut(&mut self) -> Option<&mut [Target<'heap>]> {
         match self {
             Self::Goto(goto) => Some(core::slice::from_mut(&mut goto.target)),
             Self::SwitchInt(switch) => Some(switch.targets.targets_mut()),

@@ -11,9 +11,9 @@
 //!
 //! Many utilities here are designed to improve validation during deserialization
 //! to ensure data integrity.
-
 #![expect(
     clippy::ref_option,
+    clippy::inline_modules,
     reason = "serde requires &Option<_> not Option<&_>"
 )]
 
