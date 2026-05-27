@@ -413,7 +413,7 @@ function getMetricSummaryLabel(metric: ExperimentMetricDraft): string {
 
 function getDefaultMetricLabel(
   kind: ExperimentMetricKind,
-  sdcpn: SDCPN
+  sdcpn: SDCPN,
 ): string {
   switch (kind) {
     case "placeTokenCountMean":
@@ -484,7 +484,7 @@ function createDefaultMetricDraft(sdcpn: SDCPN): ExperimentMetricDraft {
 
 function buildMetricSpecs(
   drafts: readonly ExperimentMetricDraft[],
-  sdcpn: SDCPN
+  sdcpn: SDCPN,
 ): MonteCarloMetricSpec[] {
   if (drafts.length === 0) {
     throw new Error("Define at least one metric");
@@ -527,7 +527,7 @@ function buildMetricSpecs(
       case "transitionFiringCount": {
         if (
           !sdcpn.transitions.some(
-            (transition) => transition.id === draft.transitionId
+            (transition) => transition.id === draft.transitionId,
           )
         ) {
           throw new Error(`Metric "${label}" needs a valid transition`);
@@ -754,7 +754,7 @@ const ExperimentMetricRow = ({
 
       <Collapsible.Content
         className={cx(
-          showAnimations ? metricCollapsibleContentStyle : undefined
+          showAnimations ? metricCollapsibleContentStyle : undefined,
         )}
       >
         <div className={metricExpandedContentStyle}>
@@ -917,7 +917,7 @@ export const CreateExperimentDrawer = ({
   const scenarios = petriNetDefinition.scenarios ?? [];
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState(
-    DEFAULT_SCENARIO_VALUE
+    DEFAULT_SCENARIO_VALUE,
   );
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
@@ -983,7 +983,7 @@ export const CreateExperimentDrawer = ({
 
   const handleMetricChange = (nextMetric: ExperimentMetricDraft) => {
     setMetricDrafts((prev) =>
-      prev.map((metric) => (metric.id === nextMetric.id ? nextMetric : metric))
+      prev.map((metric) => (metric.id === nextMetric.id ? nextMetric : metric)),
     );
   };
 
@@ -1019,7 +1019,9 @@ export const CreateExperimentDrawer = ({
     } catch (submitError) {
       setIsSubmitting(false);
       setError(
-        submitError instanceof Error ? submitError.message : String(submitError)
+        submitError instanceof Error
+          ? submitError.message
+          : String(submitError),
       );
     }
   };
