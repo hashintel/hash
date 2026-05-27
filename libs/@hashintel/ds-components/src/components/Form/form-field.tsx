@@ -98,6 +98,7 @@ export const FormField = ({
           errors={errors}
           size={size}
           direction={labelDirection}
+          disabled={disabled}
           className={classes.errors}
           data-part="errors"
         />

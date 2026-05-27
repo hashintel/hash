@@ -31,5 +31,12 @@ export const styles = sva({
       left: { error: { textAlign: "left" } },
       right: { error: { textAlign: "right", justifyContent: "flex-end" } },
     },
+    disabled: {
+      true: {
+        error: {
+          color: "[color-mix(in srgb, {colors.red.s110}, white 40%)]",
+        },
+      },
+    },
   },
 });

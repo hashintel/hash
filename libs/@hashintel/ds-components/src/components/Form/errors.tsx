@@ -10,6 +10,7 @@ export const Errors = ({
   errors,
   size,
   direction,
+  disabled,
   "data-part": dataPart,
 }: {
   className?: string;
@@ -17,13 +18,14 @@ export const Errors = ({
 
   size?: FormInputSize;
   direction?: "left" | "right";
+  disabled?: boolean;
 
   "data-part"?: string;
 }) => {
   if (!errors || errors.length === 0) {
     return null;
   }
-  const classes = styles({ size, direction });
+  const classes = styles({ size, direction, disabled });
 
   if (errors.length === 1) {
     return (
