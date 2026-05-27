@@ -368,6 +368,7 @@ unwrap_in_result        = "allow"
 # Consider enabling:
 default_numeric_fallback      = "allow"
 impl_trait_in_params          = "allow"
+inline_trait_bounds           = "allow"
 iter_over_hash_type           = "allow"
 multiple_unsafe_ops_per_block = "allow"
 pattern_type_mismatch         = "allow"

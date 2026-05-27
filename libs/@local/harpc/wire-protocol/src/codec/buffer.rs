@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use core::io::Cursor;
 
 use bytes::{Buf, BufMut, Bytes};
 use error_stack::Report;
