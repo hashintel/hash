@@ -8,10 +8,10 @@ import {
 } from "react";
 import ReactMarkdown from "react-markdown";
 
+import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
-import { Button } from "../../../../components/button";
 import { Input } from "../../../../components/input";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
@@ -483,7 +483,6 @@ export const AiAssistantContents = ({
             onClick={onClearMessages}
             iconName="trash"
             tooltip="Clear AI chat"
-            tooltipDisplay="inline"
           />
           <Button
             size="xs"
@@ -493,7 +492,6 @@ export const AiAssistantContents = ({
             onClick={onClose}
             iconName="close"
             tooltip="Close AI assistant"
-            tooltipDisplay="inline"
           />
         </div>
 
@@ -563,7 +561,6 @@ export const AiAssistantContents = ({
                 }}
                 iconName={isBusy ? "stopFilled" : "arrowUp"}
                 tooltip={isBusy ? "Stop AI response" : "Send message"}
-                tooltipDisplay="inline"
               />
             </div>
           </form>
