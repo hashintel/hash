@@ -23,31 +23,31 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-      HASH_HYDRA_PG_USER: "${HASH_HYDRA_PG_USER}"
-      HASH_HYDRA_PG_PASSWORD: "${HASH_HYDRA_PG_PASSWORD}"
-      HASH_HYDRA_PG_DATABASE: "${HASH_HYDRA_PG_DATABASE}"
-      HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER}"
-      HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD}"
-      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DATABASE}"
-      HASH_TEMPORAL_PG_USER: "${HASH_TEMPORAL_PG_USER}"
-      HASH_TEMPORAL_PG_PASSWORD: "${HASH_TEMPORAL_PG_PASSWORD}"
-      HASH_TEMPORAL_PG_DATABASE: "${HASH_TEMPORAL_PG_DATABASE}"
-      HASH_TEMPORAL_VISIBILITY_PG_DATABASE: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}"
-      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
+      POSTGRES_USER: "${POSTGRES_USER:-postgres}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
+      HASH_HYDRA_PG_USER: "${HASH_HYDRA_PG_USER:-hydra}"
+      HASH_HYDRA_PG_PASSWORD: "${HASH_HYDRA_PG_PASSWORD:-hydra}"
+      HASH_HYDRA_PG_DATABASE: "${HASH_HYDRA_PG_DATABASE:-hydra}"
+      HASH_KRATOS_PG_USER: "${HASH_KRATOS_PG_USER:-kratos}"
+      HASH_KRATOS_PG_PASSWORD: "${HASH_KRATOS_PG_PASSWORD:-kratos}"
+      HASH_KRATOS_PG_DATABASE: "${HASH_KRATOS_PG_DATABASE:-kratos}"
+      HASH_TEMPORAL_PG_USER: "${HASH_TEMPORAL_PG_USER:-temporal}"
+      HASH_TEMPORAL_PG_PASSWORD: "${HASH_TEMPORAL_PG_PASSWORD:-temporal}"
+      HASH_TEMPORAL_PG_DATABASE: "${HASH_TEMPORAL_PG_DATABASE:-temporal}"
+      HASH_TEMPORAL_VISIBILITY_PG_DATABASE: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE:-temporal_visibility}"
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER:-graph}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD:-graph}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE:-graph}"
     volumes:
       - hash-postgres-data:/var/lib/postgresql/data
       - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     shm_size: 1GB
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test:
-        ["CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}"]
+        ["CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER:-postgres}"]
       interval: 2s
       timeout: 2s
       retries: 5
@@ -67,7 +67,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      - DSN=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}
+      - DSN=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:${POSTGRES_PORT:-5432}/${HASH_KRATOS_PG_DATABASE:-kratos}
     command: migrate sql -e --yes
 
   kratos:
@@ -91,7 +91,7 @@ services:
     environment:
       SECRETS_COOKIE: "VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV"
       SECRETS_CIPHER: "32-LONG-SECRET-NOT-SECURE-AT-ALL"
-      DSN: "postgres://${HASH_KRATOS_PG_USER}:${HASH_KRATOS_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_KRATOS_PG_DATABASE}"
+      DSN: "postgres://${HASH_KRATOS_PG_USER:-kratos}:${HASH_KRATOS_PG_PASSWORD:-kratos}@postgres:${POSTGRES_PORT:-5432}/${HASH_KRATOS_PG_DATABASE:-kratos}"
       OAUTH2_PROVIDER_URL: "http://hydra:4445"
       TRACING_PROVIDER: "otel"
       TRACING_PROVIDERS_OTLP_INSECURE: "true"
@@ -105,7 +105,7 @@ services:
       SELFSERVICE_FLOWS_LOGIN_UI_URL: "http://localhost:3000/signin"
       SELFSERVICE_FLOWS_REGISTRATION_UI_URL: "http://localhost:3000/signup"
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: "http://host.docker.internal:5001/kratos-after-registration"
-      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: "${KRATOS_API_KEY}"
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: "${KRATOS_API_KEY:-secret}"
       # OIDC / SSO — disabled by default. To enable, set in .env.local:
       #   KRATOS_OIDC_ENABLED=true
       #   KRATOS_OIDC_GOOGLE_CLIENT_ID=<your-client-id>
@@ -115,13 +115,13 @@ services:
       #   KRATOS_OIDC_MICROSOFT_TENANT_ID=<your-tenant-id>
       SELFSERVICE_METHODS_OIDC_ENABLED: "${KRATOS_OIDC_ENABLED:-false}"
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL: "http://host.docker.internal:5001/kratos-after-registration"
-      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: "${KRATOS_API_KEY}"
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: "${KRATOS_API_KEY:-secret}"
       SELFSERVICE_METHODS_OIDC_CONFIG_BASE_REDIRECT_URI: "http://localhost:5001/auth"
-      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_ID: "${KRATOS_OIDC_GOOGLE_CLIENT_ID}"
-      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_SECRET: "${KRATOS_OIDC_GOOGLE_CLIENT_SECRET}"
-      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_CLIENT_ID: "${KRATOS_OIDC_MICROSOFT_CLIENT_ID}"
-      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_CLIENT_SECRET: "${KRATOS_OIDC_MICROSOFT_CLIENT_SECRET}"
-      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_MICROSOFT_TENANT: "${KRATOS_OIDC_MICROSOFT_TENANT_ID}"
+      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_ID: "${KRATOS_OIDC_GOOGLE_CLIENT_ID:-}"
+      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_0_CLIENT_SECRET: "${KRATOS_OIDC_GOOGLE_CLIENT_SECRET:-}"
+      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_CLIENT_ID: "${KRATOS_OIDC_MICROSOFT_CLIENT_ID:-}"
+      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_CLIENT_SECRET: "${KRATOS_OIDC_MICROSOFT_CLIENT_SECRET:-}"
+      SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS_1_MICROSOFT_TENANT: "${KRATOS_OIDC_MICROSOFT_TENANT_ID:-}"
       SELFSERVICE_FLOWS_VERIFICATION_UI_URL: "http://localhost:3000/verification"
       SELFSERVICE_FLOWS_RECOVERY_UI_URL: "http://localhost:3000/recovery"
       SELFSERVICE_FLOWS_SETTINGS_UI_URL: "http://localhost:3000/settings/security"
@@ -152,7 +152,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      DSN: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_HYDRA_PG_DATABASE}"
+      DSN: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:${POSTGRES_PORT:-5432}/${HASH_HYDRA_PG_DATABASE:-hydra}"
 
     command: migrate sql -e --yes
 
@@ -176,17 +176,17 @@ services:
       - "4444:4444" # public API
       - "4445:4445" # admin API
     environment:
-      DSN: "postgres://${HASH_HYDRA_PG_USER}:${HASH_HYDRA_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_HYDRA_PG_DATABASE}"
-      SECRETS_COOKIE: "${HASH_HYDRA_SECRETS_COOKIE}"
-      SECRETS_SYSTEM: "${HASH_HYDRA_SECRETS_SYSTEM}"
-      URLS_CONSENT: "${API_ORIGIN}/oauth2/consent"
+      DSN: "postgres://${HASH_HYDRA_PG_USER:-hydra}:${HASH_HYDRA_PG_PASSWORD:-hydra}@postgres:${POSTGRES_PORT:-5432}/${HASH_HYDRA_PG_DATABASE:-hydra}"
+      SECRETS_COOKIE: "${HASH_HYDRA_SECRETS_COOKIE:-VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV}"
+      SECRETS_SYSTEM: "${HASH_HYDRA_SECRETS_SYSTEM:-VERY-INSECURE-AND-SHOULD-ONLY-BE-USED-IN-DEV}"
+      URLS_CONSENT: "${API_ORIGIN:-http://localhost:5001}/oauth2/consent"
       URLS_IDENTITY_PROVIDER_PUBLICURL: "http://kratos:4433"
       URLS_IDENTITY_PROVIDER_URL: "http://kratos:4434"
-      URLS_LOGIN: "${FRONTEND_URL}/signin"
-      URLS_REGISTRATION: "${FRONTEND_URL}/signup"
-      URLS_POST_LOGOUT_REDIRECT: "${FRONTEND_URL}"
-      URLS_SELF_ISSUER: "${API_ORIGIN}"
-      URLS_SELF_PUBLIC: "${API_ORIGIN}"
+      URLS_LOGIN: "${FRONTEND_URL:-http://localhost:3000}/signin"
+      URLS_REGISTRATION: "${FRONTEND_URL:-http://localhost:3000}/signup"
+      URLS_POST_LOGOUT_REDIRECT: "${FRONTEND_URL:-http://localhost:3000}"
+      URLS_SELF_ISSUER: "${API_ORIGIN:-http://localhost:5001}"
+      URLS_SELF_PUBLIC: "${API_ORIGIN:-http://localhost:5001}"
       TRACING_PROVIDER: "otel"
       TRACING_PROVIDERS_OTLP_INSECURE: "true"
       TRACING_PROVIDERS_OTLP_SERVER_URL: "otel-collector:4318"
@@ -236,7 +236,7 @@ services:
       - test
       - hgres
       - hash
-    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION}"
+    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION:-1.23.1.0}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -247,16 +247,16 @@ services:
       SQL_HOST: postgres
       SQL_PORT: "5432"
       # Intentionally the POSTGRES superuser — needs DDL on the new schemas.
-      SQL_USER: "${POSTGRES_USER}"
-      SQL_PASSWORD: "${POSTGRES_PASSWORD}"
+      SQL_USER: "${POSTGRES_USER:-postgres}"
+      SQL_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
         set -eux
-        temporal-sql-tool --db "${HASH_TEMPORAL_PG_DATABASE}" setup-schema -v 0.0
-        temporal-sql-tool --db "${HASH_TEMPORAL_PG_DATABASE}" update-schema -d /etc/temporal/schema/postgresql/v12/temporal/versioned
-        temporal-sql-tool --db "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}" setup-schema -v 0.0
-        temporal-sql-tool --db "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}" update-schema -d /etc/temporal/schema/postgresql/v12/visibility/versioned
+        temporal-sql-tool --db "${HASH_TEMPORAL_PG_DATABASE:-temporal}" setup-schema -v 0.0
+        temporal-sql-tool --db "${HASH_TEMPORAL_PG_DATABASE:-temporal}" update-schema -d /etc/temporal/schema/postgresql/v12/temporal/versioned
+        temporal-sql-tool --db "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE:-temporal_visibility}" setup-schema -v 0.0
+        temporal-sql-tool --db "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE:-temporal_visibility}" update-schema -d /etc/temporal/schema/postgresql/v12/visibility/versioned
 
   temporal:
     profiles:
@@ -265,7 +265,7 @@ services:
       - hgres
       - hash
     container_name: temporal
-    image: "temporalio/server:${HASH_TEMPORAL_VERSION}"
+    image: "temporalio/server:${HASH_TEMPORAL_VERSION:-1.23.1.0}"
     deploy:
       restart_policy:
         condition: on-failure
@@ -294,11 +294,11 @@ services:
       # https://github.com/temporalio/temporal/blob/master/docker/config_template.yaml
       # posgres12 for v12+ of postgres.
       DB: "postgres12"
-      DBNAME: "${HASH_TEMPORAL_PG_DATABASE}"
-      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE}"
+      DBNAME: "${HASH_TEMPORAL_PG_DATABASE:-temporal}"
+      VISIBILITY_DBNAME: "${HASH_TEMPORAL_VISIBILITY_PG_DATABASE:-temporal_visibility}"
       DB_PORT: "5432"
-      POSTGRES_USER: "${HASH_TEMPORAL_PG_USER}"
-      POSTGRES_PWD: "${HASH_TEMPORAL_PG_PASSWORD}"
+      POSTGRES_USER: "${HASH_TEMPORAL_PG_USER:-temporal}"
+      POSTGRES_PWD: "${HASH_TEMPORAL_PG_PASSWORD:-temporal}"
       POSTGRES_SEEDS: "postgres" # the hostname of the postgres container
       # Expose Prometheus-format metrics on port 8000 so the otel-collector
       # can scrape them and forward to Mimir.
@@ -306,7 +306,7 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "${HASH_TEMPORAL_SERVER_PORT}:7233"
+      - "${HASH_TEMPORAL_SERVER_PORT:-7233}:7233"
 
   temporal-setup:
     profiles:
@@ -314,7 +314,7 @@ services:
       - test
       - hgres
       - hash
-    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION}"
+    image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION:-1.23.1.0}"
     depends_on:
       temporal:
         condition: service_started
@@ -340,7 +340,7 @@ services:
       - test
       - hgres
       - hash
-    image: temporalio/ui:${HASH_TEMPORAL_UI_VERSION}
+    image: temporalio/ui:${HASH_TEMPORAL_UI_VERSION:-2.27.2}
     deploy:
       restart_policy:
         condition: on-failure
@@ -355,7 +355,7 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "${HASH_TEMPORAL_UI_PORT}:8080"
+      - "${HASH_TEMPORAL_UI_PORT:-3100}:8080"
     healthcheck:
       test: ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 8080"]
       interval: 2s
@@ -372,9 +372,9 @@ services:
     image: quay.io/minio/minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_API_CORS_ALLOW_ORIGIN: ${FRONTEND_URL}
-      MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${FRONTEND_URL:-http://localhost:3000}
+      MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID:-dev-s3-access-key-id}
+      MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY:-dev-s3-secret-access-key}
     ports:
       - 9000:9000
       - 9001:9001
@@ -392,9 +392,9 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}
-      AWS_S3_UPLOADS_BUCKET: ${AWS_S3_UPLOADS_BUCKET}
+      MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID:-dev-s3-access-key-id}
+      MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY:-dev-s3-secret-access-key}
+      AWS_S3_UPLOADS_BUCKET: ${AWS_S3_UPLOADS_BUCKET:-dev-hash-bucket}
     entrypoint: |
       /bin/sh -c '
       mc config host add myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
@@ -408,7 +408,7 @@ services:
       - hash
     image: hashicorp/vault
     ports:
-      - "${HASH_VAULT_PORT}:8200"
+      - "${HASH_VAULT_PORT:-8200}:8200"
     volumes:
       - hash-vault-data:/vault/file:rw
     cap_add:
@@ -419,7 +419,7 @@ services:
       timeout: 2s
       retries: 10
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: "${HASH_VAULT_ROOT_TOKEN}"
+      VAULT_DEV_ROOT_TOKEN_ID: "${HASH_VAULT_ROOT_TOKEN:-dev_root_token}"
       VAULT_ADDR: "http://0.0.0.0:8200"
       VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
     security_opt:
@@ -575,15 +575,15 @@ services:
     command: migrate
     environment:
       # Intentionally use the POSTGRES user as it's the "superadmin" which has access to schema
-      HASH_GRAPH_PG_USER: "${POSTGRES_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD}"
+      HASH_GRAPH_PG_USER: "${POSTGRES_USER:-postgres}"
+      HASH_GRAPH_PG_PASSWORD: "${POSTGRES_PASSWORD:-postgres}"
       HASH_GRAPH_PG_HOST: "postgres"
       HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE:-graph}"
       HASH_GRAPH_LOG_CONSOLE_FORMAT: "${HASH_GRAPH_LOG_CONSOLE_FORMAT:-full}"
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-migrations"
       HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
-      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
+      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL:-info}"
       RUST_BACKTRACE: 1
 
   graph:
@@ -608,16 +608,16 @@ services:
       - logs:/logs
     command: server
     environment:
-      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER}"
-      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD}"
+      HASH_GRAPH_PG_USER: "${HASH_GRAPH_PG_USER:-graph}"
+      HASH_GRAPH_PG_PASSWORD: "${HASH_GRAPH_PG_PASSWORD:-graph}"
       HASH_GRAPH_PG_HOST: "postgres"
       HASH_GRAPH_PG_PORT: "5432"
-      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE}"
-      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: "${HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN}"
+      HASH_GRAPH_PG_DATABASE: "${HASH_GRAPH_PG_DATABASE:-graph}"
+      HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN: '${HASH_GRAPH_ALLOWED_URL_DOMAIN_PATTERN:-(?:http://localhost:3000|https://hash\.ai)/@(?P<shortname>[\w-]+)/types/(?P<kind>(?:data-type)|(?:property-type)|(?:entity-type))/[\w\-_%]+/}'
       HASH_GRAPH_EMBED_TYPE_FETCHER: "true"
       HASH_GRAPH_HTTP_HOST: "0.0.0.0"
       HASH_GRAPH_HTTP_PORT: "4000"
-      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL}"
+      HASH_GRAPH_LOG_LEVEL: "${HASH_GRAPH_LOG_LEVEL:-info}"
       HASH_GRAPH_LOG_CONSOLE_FORMAT: "${HASH_GRAPH_LOG_CONSOLE_FORMAT:-full}"
       HASH_GRAPH_LOG_FOLDER: "/logs/graph-service"
       HASH_GRAPH_SENTRY_DSN: "${HASH_GRAPH_SENTRY_DSN-}"
@@ -625,7 +625,7 @@ services:
       HASH_TEMPORAL_SERVER_PORT: "7233"
       RUST_BACKTRACE: 0
     ports:
-      - "${HASH_GRAPH_HTTP_PORT}:4000"
+      - "${HASH_GRAPH_HTTP_PORT:-4000}:4000"
     healthcheck:
       test:
         ["CMD", "/hash-graph", "server", "--healthcheck", "--api-port", "4000"]
@@ -670,29 +670,29 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      FRONTEND_URL: "${FRONTEND_URL}"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
 
-      API_ORIGIN: "${API_ORIGIN}"
-      HASH_SEED_USERS: "${HASH_SEED_USERS}"
+      API_ORIGIN: "${API_ORIGIN:-http://localhost:5001}"
+      HASH_SEED_USERS: "${HASH_SEED_USERS:-}"
 
       HASH_GRAPH_HTTP_HOST: "graph"
       HASH_GRAPH_HTTP_PORT: "4000"
-      LOG_LEVEL: "${LOG_LEVEL}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
 
       HASH_REDIS_HOST: "redis"
       HASH_REDIS_PORT: "6379"
 
       HASH_VAULT_HOST: "http://vault"
-      HASH_VAULT_PORT: "${HASH_VAULT_PORT}"
-      HASH_VAULT_ROOT_TOKEN: "${HASH_VAULT_ROOT_TOKEN}"
+      HASH_VAULT_PORT: "${HASH_VAULT_PORT:-8200}"
+      HASH_VAULT_ROOT_TOKEN: "${HASH_VAULT_ROOT_TOKEN:-dev_root_token}"
       HASH_VAULT_MOUNT_PATH: "secret"
 
-      HASH_INTEGRATION_QUEUE_NAME: "${HASH_INTEGRATION_QUEUE_NAME}"
+      HASH_INTEGRATION_QUEUE_NAME: "${HASH_INTEGRATION_QUEUE_NAME:-integration}"
 
       HASH_KRATOS_PUBLIC_URL: "http://kratos:4433"
       HASH_KRATOS_ADMIN_URL: "http://kratos:4434"
-      KRATOS_API_KEY: "${KRATOS_API_KEY}"
-      INTERNAL_API_KEY: "${INTERNAL_API_KEY}"
+      KRATOS_API_KEY: "${KRATOS_API_KEY:-secret}"
+      INTERNAL_API_KEY: "${INTERNAL_API_KEY:-development-api-key}"
 
       HASH_HYDRA_PUBLIC_URL: "http://hydra:4444"
       HASH_HYDRA_ADMIN_URL: "http://hydra:4445"
@@ -700,16 +700,16 @@ services:
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
       HASH_TEMPORAL_SERVER_PORT: "7233"
 
-      GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID}"
-      GOOGLE_OAUTH_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET}"
+      GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-}"
+      GOOGLE_OAUTH_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:-}"
 
-      FILE_UPLOAD_PROVIDER: "${FILE_UPLOAD_PROVIDER}"
-      AWS_REGION: "${AWS_REGION}"
-      AWS_S3_UPLOADS_BUCKET: "${AWS_S3_UPLOADS_BUCKET}"
-      AWS_S3_UPLOADS_ACCESS_KEY_ID: "${AWS_S3_UPLOADS_ACCESS_KEY_ID}"
-      AWS_S3_UPLOADS_SECRET_ACCESS_KEY: "${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}"
+      FILE_UPLOAD_PROVIDER: "${FILE_UPLOAD_PROVIDER:-AWS_S3}"
+      AWS_REGION: "${AWS_REGION:-local}"
+      AWS_S3_UPLOADS_BUCKET: "${AWS_S3_UPLOADS_BUCKET:-dev-hash-bucket}"
+      AWS_S3_UPLOADS_ACCESS_KEY_ID: "${AWS_S3_UPLOADS_ACCESS_KEY_ID:-dev-s3-access-key-id}"
+      AWS_S3_UPLOADS_SECRET_ACCESS_KEY: "${AWS_S3_UPLOADS_SECRET_ACCESS_KEY:-dev-s3-secret-access-key}"
       AWS_S3_UPLOADS_ENDPOINT: "http://minio:9000"
-      AWS_S3_UPLOADS_FORCE_PATH_STYLE: "${AWS_S3_UPLOADS_FORCE_PATH_STYLE}"
+      AWS_S3_UPLOADS_FORCE_PATH_STYLE: "${AWS_S3_UPLOADS_FORCE_PATH_STYLE:-true}"
     ports:
       - "5001:5001"
 
@@ -721,8 +721,8 @@ services:
       context: ../../
       dockerfile: apps/hash-frontend/docker/Dockerfile
       args:
-        FRONTEND_URL: "${FRONTEND_URL}"
-        API_ORIGIN: "${API_ORIGIN}"
+        FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
+        API_ORIGIN: "${API_ORIGIN:-http://localhost:5001}"
     depends_on:
       api:
         condition: service_healthy
@@ -730,7 +730,7 @@ services:
       restart_policy:
         condition: on-failure
     environment:
-      FRONTEND_URL: "${FRONTEND_URL}"
-      API_ORIGIN: "${API_ORIGIN}"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
+      API_ORIGIN: "${API_ORIGIN:-http://localhost:5001}"
     ports:
       - "3000:3000"
