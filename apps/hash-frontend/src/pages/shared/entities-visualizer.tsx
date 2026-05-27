@@ -282,12 +282,20 @@ export const EntitiesVisualizer: FunctionComponent<{
     setCursor(undefined);
   }, []);
 
-  const [sort, setSort] = useState<
+  const [sort, _setSort] = useState<
     ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }
   >({
     columnKey: "entityLabel",
     direction: "asc",
   });
+
+  const setSort = useCallback(
+    (next: ColumnSort<SortableEntitiesTableColumnKey> & { convertTo?: BaseUrl }) => {
+      _setSort(next);
+      setCursor(undefined);
+    },
+    [],
+  );
 
   const graphSort = useMemo(
     () => generateGraphSort(sort.columnKey, sort.direction, sort.convertTo),
@@ -628,7 +636,7 @@ export const EntitiesVisualizer: FunctionComponent<{
       {view === "Table" && (
         <TableActionsRibbon
           sort={{ columnKey: sort.columnKey, direction: sort.direction }}
-          setSort={(newSort) => setSort(newSort)}
+          setSort={setSort}
           sortableKeys={sortableKeys}
           propertyLabels={propertyLabels}
           toggleSearch={() => setShowTableSearch(!showTableSearch)}
