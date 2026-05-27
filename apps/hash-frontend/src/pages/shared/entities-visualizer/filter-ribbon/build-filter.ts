@@ -19,7 +19,7 @@ import type { EntitiesFilterState } from "./types";
  * explicitly unchecked every option we still need to send something parseable
  * that yields zero results.
  */
-const NIL_WEB_ID = "00000000-0000-0000-0000-000000000000" as WebId;
+export const NIL_WEB_ID = "00000000-0000-0000-0000-000000000000" as WebId;
 const NIL_ENTITY_TYPE_ID =
   "https://hash.ai/@none/types/entity-type/none/v/1" as VersionedUrl;
 
@@ -28,7 +28,7 @@ const NIL_ENTITY_TYPE_ID =
  * the `archived` metadata flag (current) or as a system property (legacy);
  * we need to handle both.
  */
-const excludeArchivedFilter: Filter[] = [
+export const excludeArchivedFilter: Filter[] = [
   {
     notEqual: [{ path: ["archived"] }, { parameter: true }],
   },
@@ -57,7 +57,7 @@ const excludeArchivedFilter: Filter[] = [
   },
 ];
 
-const buildWebFilter = ({
+export const buildWebFilter = ({
   filterState,
   internalWebIds,
 }: {
