@@ -5,9 +5,8 @@ import {
   createToaster,
 } from "@ark-ui/react/toast";
 
+import { usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { usePortalContainerRef } from "../state/portal-container-context";
 
 export const notificationsToaster = createToaster({
   gap: 8,

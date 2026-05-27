@@ -1,9 +1,7 @@
 import { createContext, use } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { Button } from "../../../../../components/button";
 
 const ArcIcon = () => <Icon name="scribble" />;
 import { parseArcId, type SDCPN } from "@hashintel/petrinaut-core";
@@ -146,7 +144,6 @@ const DeleteArcAction: React.FC = () => {
       }}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-      tooltipDisplay="inline"
     />
   );
 };

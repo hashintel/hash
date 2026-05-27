@@ -1,5 +1,6 @@
 import { use } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
@@ -7,7 +8,6 @@ import {
   type EditorState,
 } from "../../../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
-import { Button } from "../../../../components/button";
 import { Menu, type MenuItem } from "../../../../components/menu";
 import { FloatingTitle } from "./floating-title";
 import { ModeSelector } from "./mode-selector";
@@ -85,7 +85,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           }}
           aria-label={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           tooltip={isLeftSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          tooltipDisplay="inline"
           iconName="sidebar"
         />
 
@@ -96,7 +95,6 @@ export const TopBar: React.FC<TopBarProps> = ({
               size="sm"
               variant="ghost"
               tooltip="Menu"
-              tooltipDisplay="inline"
               iconName="bars"
             />
           }

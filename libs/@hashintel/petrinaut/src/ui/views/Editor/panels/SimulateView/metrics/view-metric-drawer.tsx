@@ -1,6 +1,7 @@
 import { useStore } from "@tanstack/react-form";
 import { use } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import {
   metricSchema,
   compileMetric,
@@ -10,7 +11,6 @@ import {
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
 import { DrawerErrorDisplay } from "../drawer-error-display";
 import {

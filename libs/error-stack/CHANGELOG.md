@@ -8,6 +8,12 @@ All notable changes to `error-stack` will be documented in this file.
 - Support for [`defmt`](https://defmt.ferrous-systems.com).
 - Better support for serialization and deserialization of `Report`.
 
+## [0.7.1](https://github.com/hashintel/hash/tree/error-stack%400.7.1/libs/error-stack) - 2026-05-27
+
+### Fixes
+
+- Gate `sink` imports behind `cfg(nightly)` so `error-stack` compiles on stable Rust with the `unstable` feature enabled. ([#8768](https://github.com/hashintel/hash/pull/8768))
+
 ## [0.7.0](https://github.com/hashintel/hash/tree/error-stack%400.7.0/libs/error-stack) - 2026-03-26
 
 ### Features

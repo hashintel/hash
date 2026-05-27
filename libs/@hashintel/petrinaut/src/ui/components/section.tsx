@@ -1,11 +1,11 @@
 import { Collapsible } from "@ark-ui/react/collapsible";
 import { type ReactNode, use } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
-import { Button } from "./button";
-import { InfoIconTooltip } from "./tooltip";
+import { InfoIconTooltip } from "./info-icon-tooltip";
 
 // -- SectionList (wrapper) --------------------------------------------------
 
@@ -194,7 +194,6 @@ export const Section = ({
               aria-label="Toggle section"
               iconName="chevronUp"
               tooltip="Toggle section"
-              tooltipDisplay="inline"
             />
           </Collapsible.Trigger>
         </div>

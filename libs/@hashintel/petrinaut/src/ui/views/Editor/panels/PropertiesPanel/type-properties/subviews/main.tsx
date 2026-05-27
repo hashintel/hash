@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
+import { Button, Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
-import { Button } from "../../../../../../components/button";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
-import { Tooltip } from "../../../../../../components/tooltip";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { ColorSelect } from "../color-select";
@@ -293,7 +292,10 @@ const TypeMainContent: React.FC = () => {
       </Section>
 
       <Section title="Color">
-        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
+        <Tooltip
+          content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : ""}
+          disableTooltip={!isDisabled}
+        >
           <ColorSelect
             value={type.displayColor}
             onChange={(color) => {
@@ -319,7 +321,6 @@ const TypeMainContent: React.FC = () => {
             tone="brand"
             aria-label="Add dimension"
             tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : "Add dimension"}
-            tooltipDisplay="inline"
             iconName="plus"
           />
         )}
@@ -395,7 +396,6 @@ const TypeMainContent: React.FC = () => {
                       ? UI_MESSAGES.READ_ONLY_MODE
                       : `Delete dimension ${element.name}`
                   }
-                  tooltipDisplay="inline"
                   iconName="close"
                 />
               </div>

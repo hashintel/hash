@@ -85,7 +85,7 @@ const EntityRowMenu: React.FC<{ item: EntityTreeItem }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <Icon name="trash" />,
+          icon: <Icon name="trash" size="sm" />,
           destructive: true,
           disabled: isReadOnly,
           onClick: deleteAction,

@@ -1,11 +1,10 @@
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   aiCommandActionInputSchemas,
   type AiCommandActionInput,
   type AiCommandActionName,
 } from "@hashintel/petrinaut-core";
-
-import { Button } from "../../../../../components/button";
 
 import type { AiToolOutput } from "../tool-summaries";
 import type {

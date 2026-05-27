@@ -1,6 +1,5 @@
+import { Button } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-
-import { Button } from "./button";
 
 import type { ReactNode } from "react";
 
@@ -67,7 +66,6 @@ export const Card = ({
         size="sm"
         aria-label="Close"
         tooltip="Close"
-        tooltipDisplay="inline"
         iconName="close"
       />
     )}

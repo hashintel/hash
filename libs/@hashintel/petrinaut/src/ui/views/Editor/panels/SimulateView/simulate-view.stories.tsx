@@ -1,9 +1,9 @@
 import { useRef } from "react";
 
+import { PortalContainerContext } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientProvider } from "../../../../../react/lsp/provider";
-import { PortalContainerContext } from "../../../../../react/state/portal-container-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { MonacoProvider } from "../../../../monaco/provider";
 import {

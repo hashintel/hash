@@ -1,6 +1,7 @@
+import { Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { withTooltip } from "./hoc/with-tooltip";
+import type { ComponentProps } from "react";
 
 const sliderStyle = css({
   height: "[4px]",
@@ -34,15 +35,33 @@ const sliderStyle = css({
 type SliderProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
   /** Ref to the input element */
   ref?: React.Ref<HTMLInputElement>;
+  tooltip?: string;
+  tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 };
 
-const SliderBase: React.FC<SliderProps> = ({ className, ref, ...props }) => (
-  <input
-    ref={ref}
-    type="range"
-    className={`${sliderStyle}${className ? ` ${className}` : ""}`}
-    {...props}
-  />
-);
+export const Slider: React.FC<SliderProps> = ({
+  className,
+  ref,
+  tooltip,
+  tooltipOptions,
+  ...props
+}) => {
+  const element = (
+    <input
+      ref={ref}
+      type="range"
+      className={`${sliderStyle}${className ? ` ${className}` : ""}`}
+      {...props}
+    />
+  );
 
-export const Slider = withTooltip(SliderBase, "inline");
+  if (!tooltip) {
+    return element;
+  }
+
+  return (
+    <Tooltip {...tooltipOptions} content={tooltip}>
+      {element}
+    </Tooltip>
+  );
+};

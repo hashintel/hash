@@ -1,13 +1,12 @@
 import { use, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
-import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
 import { Section, SectionList } from "../../../../../components/section";
 import { ExperimentTimeline } from "./experiment-timeline";

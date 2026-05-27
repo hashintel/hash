@@ -1,10 +1,10 @@
 import { useReactFlow } from "@xyflow/react";
 import { use, useState } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
-import { Button } from "../../../components/button";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
 
@@ -16,7 +16,7 @@ const containerStyle = css({
   position: "absolute",
   display: "flex",
   flexDirection: "column",
-  gap: "1",
+  gap: "[2px]",
   zIndex: "[900]",
 });
 
@@ -54,55 +54,57 @@ export const ViewportControls: React.FC<{
 
   return (
     <div
-      className={`${containerStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
+      className={`${containerStyle} ${animatingStyle({
+        animating: isPanelAnimating,
+      })}`}
       style={{ right: rightOffset, bottom: bottomOffset }}
     >
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Zoom in"
         tooltip="Zoom in"
-        tooltipDisplay="inline"
+        tooltipOptions={{ position: "left" }}
         iconName="plus"
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomIn()}
       />
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Zoom out"
         tooltip="Zoom out"
-        tooltipDisplay="inline"
+        tooltipOptions={{ position: "left" }}
         iconName="dash"
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         onClick={() => zoomOut()}
       />
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Fullscreen"
         tooltip="Fullscreen"
-        tooltipDisplay="inline"
+        tooltipOptions={{ position: "left" }}
         iconName="expand"
         onClick={collapseAllPanels}
       />
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Lock view"
         tooltip="Lock view"
-        tooltipDisplay="inline"
+        tooltipOptions={{ position: "left" }}
         iconName="lockOpen"
         onClick={() => {
           // Placeholder for future lock view functionality
         }}
       />
       <Button
-        size="sm"
+        size="xs"
         variant="subtle"
         aria-label="Settings"
         tooltip="Settings"
-        tooltipDisplay="inline"
+        tooltipOptions={{ position: "left" }}
         iconName="gear"
         onClick={() => setIsSettingsOpen(true)}
       />
@@ -114,11 +116,11 @@ export const ViewportControls: React.FC<{
         <Button
           key={action.key}
           ref={action.ref}
-          size="sm"
+          size="xs"
           variant="subtle"
           aria-label={action.label}
           tooltip={action.tooltip}
-          tooltipDisplay="inline"
+          tooltipOptions={{ position: "left" }}
           onClick={action.onClick}
           className={action.className}
           prefix={action.icon}

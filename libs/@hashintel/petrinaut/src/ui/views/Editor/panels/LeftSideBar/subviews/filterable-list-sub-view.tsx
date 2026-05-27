@@ -1,10 +1,9 @@
 import { Fragment, use, useEffect, useRef, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { Button } from "../../../../../components/button";
 import { Menu } from "../../../../../components/menu";
 import { clampIndex } from "../../../../../lib/clamp-index";
 
@@ -204,7 +203,6 @@ const FilterHeaderAction: React.FC<{
       <Button
         aria-label="Search list"
         tooltip="Search list"
-        tooltipDisplay="inline"
         size="xs"
         variant="ghost"
         iconName="search"
@@ -231,7 +229,6 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
         <Button
           aria-label="More options"
           tooltip="More options"
-          tooltipDisplay="inline"
           size="xxs"
           variant="ghost"
           iconName="ellipsis"

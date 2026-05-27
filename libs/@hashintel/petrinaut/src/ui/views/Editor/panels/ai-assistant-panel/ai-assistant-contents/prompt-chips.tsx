@@ -1,6 +1,5 @@
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { Button } from "../../../../../components/button";
 
 export type PromptChip = {
   id: string;
@@ -140,7 +139,6 @@ export const PromptChips = ({
         aria-label="Dismiss quick actions"
         onClick={onDismiss}
         tooltip="Dismiss quick actions"
-        tooltipDisplay="inline"
       />
     </div>
   );

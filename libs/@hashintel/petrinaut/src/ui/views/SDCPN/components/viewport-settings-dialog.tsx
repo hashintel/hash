@@ -1,9 +1,9 @@
 import { use } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { Button } from "../../../components/button";
 import { Dialog } from "../../../components/dialog";
 import { Select } from "../../../components/select";
 import { Switch } from "../../../components/switch";
