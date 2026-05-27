@@ -182,17 +182,6 @@ If you need to reset the local database, to clear out test data or because it ha
 1. Run `yarn compose down -v` (this will take the Docker services down and drop the volumes)
 2. Run `yarn compose up --wait` to start everything again
 
-##### External services test mode
-
-The external services of the system can be started in 'test mode' to prevent polluting the development database.
-This is useful for situations where the database is used for tests that modify the database without cleaning up afterwards.
-
-To make use of this test mode, the external services can be started as follows:
-
-```sh
-yarn compose:test up
-```
-
 ##### Sending emails
 
 Email-sending in HASH is handled by either Kratos (in the case of authentication-related emails) or through the HASH API Email Transport (for everything else).

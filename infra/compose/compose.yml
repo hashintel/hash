@@ -14,7 +14,6 @@ services:
   postgres:
     profiles:
       - dev
-      - test
       - hgres
       - hash
     build:
@@ -64,7 +63,6 @@ services:
   kratos-migrate:
     profiles:
       - dev
-      - test
       - hash
     build:
       context: ./kratos
@@ -81,7 +79,6 @@ services:
   kratos:
     profiles:
       - dev
-      - test
       - hash
     build:
       context: ./kratos
@@ -148,7 +145,6 @@ services:
   hydra-migrate:
     profiles:
       - dev
-      - test
       - hash
     build:
       context: ./hydra
@@ -168,7 +164,6 @@ services:
   hydra:
     profiles:
       - dev
-      - test
       - hash
     build:
       context: ./hydra
@@ -223,7 +218,6 @@ services:
   redis:
     profiles:
       - dev
-      - test
       - hash
     image: redis:8.6
     read_only: true
@@ -243,7 +237,6 @@ services:
   temporal-migrate:
     profiles:
       - dev
-      - test
       - hgres
       - hash
     image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION:-1.23.1.0}"
@@ -271,7 +264,6 @@ services:
   temporal:
     profiles:
       - dev
-      - test
       - hgres
       - hash
     container_name: temporal
@@ -321,7 +313,6 @@ services:
   temporal-setup:
     profiles:
       - dev
-      - test
       - hgres
       - hash
     image: "temporalio/admin-tools:${HASH_TEMPORAL_VERSION:-1.23.1.0}"
@@ -347,7 +338,6 @@ services:
   temporal-ui:
     profiles:
       - dev
-      - test
       - hgres
       - hash
     image: temporalio/ui:${HASH_TEMPORAL_UI_VERSION:-2.27.2}
@@ -441,7 +431,6 @@ services:
   otel-collector:
     profiles:
       - dev
-      - test
       - hgres
       - hash
     image: otel/opentelemetry-collector-contrib:0.128.0
@@ -457,7 +446,6 @@ services:
   otel-collector-healthcheck:
     profiles:
       - dev
-      - test
       - hgres
       - hash
     image: busybox
@@ -727,6 +715,8 @@ services:
       AWS_S3_UPLOADS_FORCE_PATH_STYLE: "${AWS_S3_UPLOADS_FORCE_PATH_STYLE:-true}"
     ports:
       - "5001:5001"
+      # frontend shares this netns (network_mode: service:api); its port is published here
+      - "3000:3000"
 
   frontend:
     profiles:
@@ -738,6 +728,7 @@ services:
       args:
         FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
         API_ORIGIN: "${API_ORIGIN:-http://localhost:5001}"
+    network_mode: "service:api"
     depends_on:
       api:
         condition: service_healthy
@@ -747,8 +738,6 @@ services:
     environment:
       FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
       API_ORIGIN: "${API_ORIGIN:-http://localhost:5001}"
-    ports:
-      - "3000:3000"
 
   ai-worker:
     profiles:

@@ -296,7 +296,7 @@ jobs:
 
       - name: Launch external services
         working-directory: infra/compose
-        run: docker compose --profile test up --wait
+        run: docker compose --profile dev up --wait
 
       - name: Start background tasks
         id: background-tasks
@@ -344,7 +344,7 @@ jobs:
       - name: Show container logs
         if: ${{ success() || failure() }}
         working-directory: infra/compose
-        run: docker compose --profile test logs --timestamps
+        run: docker compose --profile dev logs --timestamps
 
       - name: Show background tasks logs
         if: always() && steps.tests.outputs.has-background-tasks == 'true'
