@@ -4,6 +4,7 @@ import { useCallback } from "react";
 
 import { TableHeaderButton } from "./table-header-button";
 
+import type { SxProps, Theme } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 type CsvFile = {
@@ -15,7 +16,8 @@ export type GenerateCsvFileFunction = () => CsvFile | null;
 
 export const ExportToCsvButton: FunctionComponent<{
   generateCsvFile: GenerateCsvFileFunction;
-}> = ({ generateCsvFile }) => {
+  sx?: SxProps<Theme>;
+}> = ({ generateCsvFile, sx }) => {
   const handleExportToCsv = useCallback(() => {
     const generatedCsvFile = generateCsvFile();
 
@@ -47,7 +49,9 @@ export const ExportToCsvButton: FunctionComponent<{
 
   return (
     <Tooltip title="Export the visible rows to CSV" placement="top">
-      <TableHeaderButton onClick={handleExportToCsv}>Export</TableHeaderButton>
+      <TableHeaderButton onClick={handleExportToCsv} sx={sx}>
+        Export
+      </TableHeaderButton>
     </Tooltip>
   );
 };

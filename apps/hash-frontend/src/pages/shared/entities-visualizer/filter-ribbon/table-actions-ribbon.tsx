@@ -46,7 +46,10 @@ export const TableActionsRibbon: FunctionComponent<{
         <MagnifyingGlassRegularIcon />
       </IconButton>
     </Tooltip>
-    <ExportToCsvButton generateCsvFile={generateCsvFile} />
+    <ExportToCsvButton
+      generateCsvFile={generateCsvFile}
+      sx={{ borderRadius: 1.5 }}
+    />
     <Box sx={{ flex: 1 }} />
     <SortControl
       sort={sort}
