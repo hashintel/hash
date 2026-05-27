@@ -1,8 +1,6 @@
-[hash.ai]: https://app.hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [create an account]: https://app.hash.ai/signup?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
-[running your own instance]: https://hash.dev/docs/get-started/setup#local-hash?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [sign in]: https://app.hash.ai/signin?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [use cases]: https://hash.ai/cases?utm_medium=organic&utm_source=github_readme_hash-repo_root
 
@@ -59,130 +57,91 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
 ### Running HASH locally
 
-**Running HASH locally is not yet officially supported.** In the meantime, use [hash.ai] or try the experimental instructions below. These instructions will be replaced with a comprehensive guide to setting up and [running your own instance] in due course.
+These instructions set up HASH for **working on the codebase** — the app services run natively with hot-reload against containerised infrastructure. To run the whole stack from container images instead (no toolchain required on the host), follow [the setup guide](https://hash.dev/docs/get-started/setup#local-hash).
 
-#### Experimental instructions
+#### Prerequisites
 
-##### Running the app
+- [Git](https://git-scm.com) (≥ 2.17), [Docker](https://docs.docker.com/get-docker/) (≥ 20.10) with [Compose](https://docs.docker.com/compose/) (≥ 2.17) and [Buildx](https://docs.docker.com/build/install-buildx/) (≥ 0.10)
+- [mise](https://mise.jdx.dev/) — installs and pins Node, Rust, protoc and the other required tool versions
+- At least 8 GB RAM allocated to Docker (Preferences → Resources); ~15 GB free disk for build artefacts, images and volumes
 
-1. Make sure you have, [Git](https://git-scm.com), [Rust](https://www.rust-lang.org), [Docker](https://docs.docker.com/get-docker/), and [Protobuf](https://github.com/protocolbuffers/protobuf). Building the Docker containers requires [Docker Buildx](https://docs.docker.com/build/install-buildx/).
-   Run each of these version commands and make sure the output is expected:
+#### Setup
 
-   ```sh
-   git --version
-   ## ≥ 2.17
-
-   rustup --version
-   ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`, lower versions most likely will work as well)
-
-   rustc --version
-   ## Should match the toolchain specified in `rust-toolchain.toml`. If this is not the case, you can update the toolchain with
-   rustup toolchain install
-   ## If this still is not the correct toolchain, you may have set `RUSTUP_TOOLCHAIN` somewhere (e.g. in a global `mise` config file)
-
-   docker --version
-   ## ≥ 20.10
-
-   docker compose version
-   ## ≥ 2.17.2
-
-   docker buildx version
-   ## ≥ 0.10.4
-   ```
-
-   If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
-
-   If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
-
-2. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
-
-3. We use [mise-en-place](https://mise.jdx.dev/) to manage tool versions consistently across our codebase. We recommend using `mise` to automatically install and manage the required development tools:
+1. Clone the repository and enter it:
 
    ```sh
-   mise install
+   git clone https://github.com/hashintel/hash.git && cd hash
    ```
 
-   It's also possible to install them manually, use the correct versions for these tools as specified in `.config/mise`.
+2. Install the pinned toolchains (`mise trust` is required once per clone), then [activate `mise`](https://mise.jdx.dev/getting-started.html#activate-mise) in your shell:
 
-   After [installing mise](https://mise.jdx.dev/getting-started.html#installing-mise-cli) you will also need to set it to [automatically activate](https://mise.jdx.dev/getting-started.html#activate-mise) in your shell.
+   ```sh
+   mise trust && mise install
+   ```
 
-4. Install dependencies:
+3. Install JavaScript dependencies:
 
    ```sh
    yarn install
    ```
 
-5. Ensure Docker is running.
-   If you are on Windows or macOS, you should see app icon in the system tray or the menu bar.
-   Alternatively, you can use this command to check Docker:
+4. Create a `.env.local` in the repository root. Real keys are only needed for AI features — dummy values work otherwise:
 
    ```sh
-   docker run hello-world
+   OPENAI_API_KEY=dummy
+   ANTHROPIC_API_KEY=dummy
+   HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy
+   HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy
    ```
 
-6. You will need to create an `.env.local` file in the repository root with the following values (Note: if you are not using AI-related features, dummy values are sufficient):
+   `.env.local` is git-ignored and overrides `.env` and `.env.development`. Don't edit the other `.env` files unless you mean to change the defaults.
 
-   ```sh
-   OPENAI_API_KEY=your-open-ai-api-key                                      # required for most AI features
-   ANTHROPIC_API_KEY=your-anthropic-api-key                                 # required for most AI features
-   HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=your-aws-access-key-id         # required for most AI features
-   HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key # required for most AI features
-   E2B_API_KEY=your-e2b-api-key                                             # only required for the question-answering flow action
-   ```
-
-   **Note on environment files:** `.env.local` is not committed to the repo – **put any secrets that should remain secret here.** The default environment variables are taken from `.env`, extended by `.env.development`, and finally by `.env.local`. If you want to overwrite values specified in `.env` or `.env.development`, you can add them to `.env.local`. Do **not** change any other `.env` files unless you intend to change the defaults for development or testing.
-
-7. Launch external services (Postgres, the graph query layer, Kratos, and Redis) as Docker containers:
+5. Start the containerised infrastructure:
 
    ```sh
    yarn compose up -d
    ```
 
-   1. You can optionally force a rebuild of the Docker containers by adding the `--build` argument(**this is necessary if changes have been made to the graph query layer). It's recommended to do this whenever updating your branch from upstream**.
+   This runs the `dev` and `observability` profiles — Postgres, Redis, Kratos, Hydra, Temporal, Vault and MinIO, plus the Grafana stack ([http://localhost:3001](http://localhost:3001)) and the Temporal UI ([http://localhost:3100/namespaces/HASH](http://localhost:3100/namespaces/HASH)). The graph layer is **not** included; you run it as part of the app below.
 
-   2. You can keep external services running between app restarts by adding the `--detach` argument to run the containers in the background. It is possible to tear down the external services with `yarn compose down`.
-
-   3. You can also run the Graph API and AI Temporal worker outside of Docker – this is useful if they are changing frequently and you want to avoid rebuilding the Docker containers. To do so, _stop them_ in Docker and then run `yarn dev:graph` and `yarn workspace @apps/hash-ai-worker-ts dev` respectively in separate terminals.
-
-8. Launch app services:
+6. Start HASH. The simplest is to run everything natively (this compiles the graph from Rust, 10–20 min on a cold first build):
 
    ```sh
    yarn start
    ```
 
-   This will start backend and frontend in a single terminal. Once you see http://localhost:3000, the frontend end is ready to visit there.
-   The API is online once you see `localhost:5001` in the terminal. Both must be online for the frontend to function.
-
-   You can also launch parts of the app in separate terminals, e.g.:
+   For hot-reload on the api and frontend, run the graph and the app in separate terminals instead:
 
    ```sh
-   yarn start:graph
-   yarn start:backend
-   yarn start:frontend
+   yarn start:graph   # terminal 1 — compiles and runs the graph
+   yarn dev           # terminal 2 — api + frontend with hot-reload
    ```
 
-   See `package.json` → `scripts` for details and more options.
+   The dev-mode API seeds three users (password `password`): `alice@example.com`, `bob@example.com` (regular) and `admin@example.com` (admin). Visit [http://localhost:3000](http://localhost:3000) once the API logs `localhost:5001`.
 
-9. Log in
+#### Skipping the Rust build
 
-   When the HASH API is started, three users are automatically seeded for development purposes. Their passwords are all `password`.
-   - `alice@example.com`, `bob@example.com` – regular users
-   - `admin@example.com` – an admin
+If you're **not** working on the graph itself, run it in Docker instead of compiling Rust locally — add the `hgres` profile and start only the api + frontend natively:
 
-   Note: seeding only runs when `NODE_ENV=development`, start the Graph API separately using `yarn start:graph` then launch the app using `yarn dev` in a separate terminal to start it in development environment.
+```sh
+yarn compose --profile hgres up -d   # infrastructure + graph in Docker
+yarn dev                             # api + frontend only
+```
 
-##### Running the browser plugin
+Add `--build` when pulling changes that touch the graph. For the full application stack in Docker, see [the setup guide](https://hash.dev/docs/get-started/setup#local-hash).
+
+#### Running the browser plugin
 
 If you need to run the browser plugin locally, see [the `README.md`](https://github.com/hashintel/hash/tree/main/apps/plugin-browser#readme) in the `apps/plugin-browser` directory.
 
-##### Resetting the local database
+#### Resetting the local database
 
 If you need to reset the local database, to clear out test data or because it has become corrupted during development:
 
 1. Run `yarn compose down -v` (this will take the Docker services down and drop the volumes)
-2. Run `yarn compose up --wait` to start everything again
+2. Run `yarn compose up -d` to start everything again
 
-##### Sending emails
+#### Sending emails
 
 Email-sending in HASH is handled by either Kratos (in the case of authentication-related emails) or through the HASH API Email Transport (for everything else).
 
@@ -195,7 +154,7 @@ Transactional emails templates are located in the following locations:
     - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
   - [`verification_code`](./infra/compose/kratos/templates/verification_code) - Email verification templates for the account registration flow using a code for the UI.
     - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
-- HASH emails in [`../hash-api/src/email/index.ts`](../hash-api/src/email/index.ts)
+- HASH emails in [`apps/hash-api/src/email/index.ts`](./apps/hash-api/src/email/index.ts)
 
 </details>
 
@@ -204,7 +163,7 @@ Transactional emails templates are located in the following locations:
 
 ### Deploying HASH to the cloud
 
-**Support for running HASH in the cloud is coming soon.** We plan on publishing a comprehensive guide to deploying HASH on AWS/GCP/Azure in the near future. In the meantime, instructions contained in the root [`/infra` directory](https://github.com/hashintel/hash/tree/main/infra) might help in getting started.
+See the [self-hosting guide](https://hash.dev/docs/get-started/setup#self-hosted-hash) for running HASH on infrastructure you operate. The full Docker Compose topology — graph, API, frontend, auth, workflows, storage and observability — lives in [`infra/compose/`](https://github.com/hashintel/hash/tree/main/infra/compose) and is the starting point for a self-hosted deployment.
 
 </details>
 
@@ -318,14 +277,6 @@ The Postgres information for the graph query layer is configured through:
 
 - `HASH_REDIS_HOST` (default: `localhost`)
 - `HASH_REDIS_PORT` (default: `6379`)
-
-#### Statsd
-
-If the service should report metrics to a StatsD server, the following variables must be set.
-
-- `STATSD_ENABLED`: Set to "1" if the service should report metrics to a StatsD server.
-- `STATSD_HOST`: the hostname of the StatsD server.
-- `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
 
 #### Snowplow telemetry
 
