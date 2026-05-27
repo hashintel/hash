@@ -7,7 +7,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { Petrinaut } from "./petrinaut";
+import { Petrinaut, type PetrinautAiAssistant } from "./petrinaut";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -34,12 +34,14 @@ type HandlesByNetId = Record<string, PetrinautDocHandle>;
  * history survives switching between nets.
  */
 export const PetrinautStoryProvider = ({
+  aiAssistant,
   initialTitle = "New Process",
   initialDefinition = emptySDCPN,
   hideNetManagementControls = false,
   readonly = false,
   children,
 }: {
+  aiAssistant?: PetrinautAiAssistant;
   initialTitle?: string;
   initialDefinition?: SDCPN;
   hideNetManagementControls?: boolean;
@@ -139,6 +141,7 @@ export const PetrinautStoryProvider = ({
   return (
     <>
       <Petrinaut
+        aiAssistant={aiAssistant}
         handle={handle}
         existingNets={existingNets}
         createNewNet={createNewNet}

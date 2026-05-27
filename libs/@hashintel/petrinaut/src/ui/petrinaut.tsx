@@ -19,6 +19,20 @@ import { PetrinautProvider } from "../react/petrinaut-provider";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
 
+import type {
+  PetrinautAiMessage,
+  PetrinautAiTransport,
+} from "./views/Editor/panels/ai-assistant-panel";
+
+export type PetrinautAiChatTransport = PetrinautAiTransport;
+
+export type PetrinautAiAssistant = {
+  messages?: PetrinautAiMessage[];
+  onClearMessages?: () => void;
+  onMessages?: (messages: PetrinautAiMessage[]) => void;
+  transport: PetrinautAiTransport;
+};
+
 import type { NetManagement } from "../react/net-management-context";
 import type { ViewportAction } from "./types/viewport-action";
 
@@ -31,6 +45,7 @@ export type PetrinautProps = {
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
+  aiAssistant?: PetrinautAiAssistant;
   viewportActions?: ViewportAction[];
   /**
    * Optional simulation-worker factory. Provide this when the host bundler
@@ -74,6 +89,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   existingNets = [],
   createNewNet = noop,
   loadPetriNet = noop,
+  aiAssistant,
   viewportActions,
   simulationWorkerFactory,
   monteCarloWorkerFactory,
@@ -104,6 +120,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
     >
       <MonacoProvider>
         <EditorView
+          aiAssistant={aiAssistant}
           hideNetManagementControls={hideNetManagementControls}
           viewportActions={viewportActions}
         />

@@ -176,13 +176,13 @@ jsonptr                            = { version = "0.7.1", default-features = fal
 jsonwebtoken                       = { version = "10.3.0", default-features = false }
 lcov                               = { version = "0.8.1" }
 lexical                            = { version = "7.0.5", default-features = false }
-libp2p                             = { version = "0.56.0", default-features = false }
-libp2p-core                        = { version = "0.43.1", default-features = false }
-libp2p-identity                    = { version = "0.2.12", default-features = false }
-libp2p-ping                        = { version = "0.47.0", default-features = false }
-libp2p-stream                      = { version = "0.4.0-alpha", default-features = false }
-libp2p-swarm                       = { version = "0.47.0", default-features = false }
-libp2p-yamux                       = { version = "0.47.0", default-features = false }
+libp2p                             = { version = "0.57.0", default-features = false }
+libp2p-core                        = { version = "0.44.0", default-features = false }
+libp2p-identity                    = { version = "0.2.13", default-features = false }
+libp2p-ping                        = { version = "0.48.0", default-features = false }
+libp2p-stream                      = { version = "0.5.0-alpha", default-features = false }
+libp2p-swarm                       = { version = "0.48.0", default-features = false }
+libp2p-yamux                       = { version = "0.48.0", default-features = false }
 libtest-mimic                      = { version = "0.8.1", default-features = false }
 line-index                         = { version = "0.1.2", default-features = false }
 logos                              = { version = "0.16.0", default-features = false }
@@ -191,7 +191,7 @@ memchr                             = { version = "2.7.6", default-features = fal
 mimalloc                           = { version = "0.1.48", default-features = false }
 mime                               = { version = "0.3.17", default-features = false }
 multiaddr                          = { version = "0.18.2", default-features = false }
-multistream-select                 = { version = "0.13.0", default-features = false }
+multistream-select                 = { version = "0.14.0", default-features = false }
 napi                               = { version = "2.16.17", default-features = false }
 napi-build                         = { version = "2.2.4", default-features = false }
 napi-derive                        = { version = "2.16.13", default-features = false }
@@ -406,3 +406,26 @@ ignored = ["futures-core", "futures-io", "futures-sink"]
 [patch.crates-io]
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
 oxc    = { git = "https://github.com/hashdeps/oxc", rev = "73c781b" }
+
+libp2p                   = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-allow-block-list  = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-connection-limits = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-core              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-dns               = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-identify          = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-identity          = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-mdns              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-metrics           = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-noise             = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-ping              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-quic              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-stream            = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-swarm             = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-swarm-derive      = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-tcp               = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-tls               = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-upnp              = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+libp2p-yamux             = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+multistream-select       = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+quick-protobuf-codec     = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }
+rw-stream-sink           = { git = "https://github.com/libp2p/rust-libp2p", rev = "86b2122c8ffdd636d0c939b0344bf59a35c97499" }

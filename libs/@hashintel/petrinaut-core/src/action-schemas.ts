@@ -278,8 +278,12 @@ export const mutationActionInputSchemas = {
     .strictObject({ parameterId: idSchema })
     .meta({ description: "Remove a net-level parameter." }),
   addScenario: simulationScenarioSchema.meta({
-    description:
-      "Add a simulation scenario. Include scenarioParameters for key user-tunable assumptions, parameterOverrides keyed by existing net-level parameter IDs, and initialState with per-place content keyed by existing place IDs unless advanced code is required. Omit parameterOverrides or use {} when no net-level parameters need overriding.",
+    description: [
+      "Add a simulation scenario.",
+      "Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`).",
+      "`parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden.",
+      "`initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry).",
+    ].join(" "),
   }),
   updateScenario: z
     .strictObject({
@@ -291,7 +295,8 @@ export const mutationActionInputSchemas = {
     .strictObject({ scenarioId: idSchema })
     .meta({ description: "Remove a simulation scenario." }),
   addMetric: simulationMetricSchema.meta({
-    description: "Add a simulation metric.",
+    description:
+      "Add a simulation metric (a time-series scalar plotted in the simulate view). Note: metric `code` is a plain function body with `state` in scope — do NOT wrap it in `export default Metric(...)` or any other module syntax.",
   }),
   updateMetric: z
     .strictObject({

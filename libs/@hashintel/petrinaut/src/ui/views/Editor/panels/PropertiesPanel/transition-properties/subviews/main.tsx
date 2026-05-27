@@ -1,9 +1,7 @@
-import { use } from "react";
-
 import { css } from "@hashintel/ds-helpers/css";
 import { validateDisplayName } from "@hashintel/petrinaut-core";
 
-import { MutationContext } from "../../../../../../../react/state/mutation-context";
+import { usePetrinautMutations } from "../../../../../../../react";
 import {
   ArcItem,
   ArcList,
@@ -210,7 +208,7 @@ const TransitionMainContent: React.FC = () => {
 
 const DeleteTransitionAction: React.FC = () => {
   const { transition, isReadOnly } = useTransitionPropertiesContext();
-  const { removeTransition } = use(MutationContext);
+  const { removeTransition } = usePetrinautMutations();
 
   return (
     <Button

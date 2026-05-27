@@ -9,7 +9,7 @@ import { z } from "zod";
  */
 const LOWER_SNAKE_CASE_REGEX = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/;
 
-const variableNameSchema = z
+export const variableNameSchema = z
   .string()
   .trim()
   .check(

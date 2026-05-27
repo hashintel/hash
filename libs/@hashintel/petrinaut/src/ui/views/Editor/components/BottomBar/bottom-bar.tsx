@@ -10,6 +10,7 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
+import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
 import { ToolbarButton } from "./toolbar-button";
@@ -65,11 +66,13 @@ interface BottomBarProps {
   onEditionModeChange: (mode: EditorEditionMode) => void;
   cursorMode: CursorMode;
   onCursorModeChange: (mode: CursorMode) => void;
+  hasAiAssistant: boolean;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   mode,
   editionMode,
+  hasAiAssistant,
   onEditionModeChange,
   cursorMode,
   onCursorModeChange,
@@ -79,7 +82,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setBottomPanelOpen,
     setActiveBottomPanelTab,
     bottomPanelHeight,
+    isAiAssistantOpen,
     isPanelAnimating,
+    toggleAiAssistant,
   } = use(EditorContext);
 
   const { totalDiagnosticsCount } = use(LanguageClientContext);
@@ -134,6 +139,24 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             cursorMode={cursorMode}
             onCursorModeChange={onCursorModeChange}
           />
+          {hasAiAssistant && (
+            <>
+              <ToolbarDivider />
+              <ToolbarButton
+                tooltip={
+                  isAiAssistantOpen ? "Hide AI assistant" : "Show AI assistant"
+                }
+                onClick={toggleAiAssistant}
+                isSelected={isAiAssistantOpen}
+                ariaLabel={
+                  isAiAssistantOpen ? "Hide AI assistant" : "Show AI assistant"
+                }
+                ariaExpanded={isAiAssistantOpen}
+              >
+                <AiAssistantIcon size={18} />
+              </ToolbarButton>
+            </>
+          )}
         </div>
       </refractive.div>
 

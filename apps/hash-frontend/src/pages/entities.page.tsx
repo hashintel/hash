@@ -341,7 +341,7 @@ const EntitiesPage: NextPageWithLayout = () => {
                   }
                 />
               )}
-              <Typography variant="h1" fontWeight="bold" my={3}>
+              <Typography variant="h1" fontWeight="bold">
                 {pageTitle}
               </Typography>
             </Stack>

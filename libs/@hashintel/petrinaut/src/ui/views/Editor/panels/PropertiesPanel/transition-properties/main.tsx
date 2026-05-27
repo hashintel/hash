@@ -7,7 +7,7 @@ import { transitionMainContentSubView } from "./subviews/main";
 import { transitionFiringTimeSubView } from "./subviews/transition-firing-time/subview";
 import { transitionResultsSubView } from "./subviews/transition-results/subview";
 
-import type { MutationContextValue } from "../../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
 import type { Color, Place, Transition } from "@hashintel/petrinaut-core";
 
@@ -22,10 +22,10 @@ interface TransitionPropertiesProps {
   transition: Transition;
   places: Place[];
   types: Color[];
-  updateTransition: MutationContextValue["updateTransition"];
-  onArcWeightUpdate: MutationContextValue["updateArcWeight"];
-  updateArcPlace: MutationContextValue["updateArcPlace"];
-  removeArc: MutationContextValue["removeArc"];
+  updateTransition: PetrinautMutations["updateTransition"];
+  onArcWeightUpdate: PetrinautMutations["updateArcWeight"];
+  updateArcPlace: PetrinautMutations["updateArcPlace"];
+  removeArc: PetrinautMutations["removeArc"];
 }
 
 export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({

@@ -56,7 +56,6 @@ export default defineConfig(({ command }) => ({
   plugins: [
     esmExternalRequirePlugin({
       external: [
-        "elkjs",
         "react/compiler-runtime",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",

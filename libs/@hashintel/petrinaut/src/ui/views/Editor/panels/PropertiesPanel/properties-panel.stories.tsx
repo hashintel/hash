@@ -16,7 +16,7 @@ import { PlaceProperties } from "./place-properties/main";
 import { TransitionProperties } from "./transition-properties/main";
 import { TypeProperties } from "./type-properties/main";
 
-import type { MutationContextValue } from "../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../react";
 import type {
   Color,
   DifferentialEquation,
@@ -206,7 +206,7 @@ const PanelFrame = ({ children }: { children: ReactNode }) => (
 
 const PlacePanelStory = () => {
   const [place, setPlace] = useState<Place>(PLACES[0]!);
-  const updatePlace: MutationContextValue["updatePlace"] = (input) => {
+  const updatePlace: PetrinautMutations["updatePlace"] = (input) => {
     applyStoryUpdate(setPlace, input.update);
   };
   return (
@@ -226,7 +226,7 @@ const PlaceEmptyPanelStory = () => {
     x: 0,
     y: 0,
   });
-  const updatePlace: MutationContextValue["updatePlace"] = (input) => {
+  const updatePlace: PetrinautMutations["updatePlace"] = (input) => {
     applyStoryUpdate(setPlace, input.update);
   };
   return (
@@ -238,12 +238,10 @@ const PlaceEmptyPanelStory = () => {
 
 const TransitionPanelStory = () => {
   const [transition, setTransition] = useState<Transition>(TRANSITION);
-  const updateTransition: MutationContextValue["updateTransition"] = (
-    input,
-  ) => {
+  const updateTransition: PetrinautMutations["updateTransition"] = (input) => {
     applyStoryUpdate(setTransition, input.update);
   };
-  const updateArcWeight: MutationContextValue["updateArcWeight"] = (input) => {
+  const updateArcWeight: PetrinautMutations["updateArcWeight"] = (input) => {
     setTransition((prev) => {
       const next = clone(prev);
       const arcs =
@@ -255,7 +253,7 @@ const TransitionPanelStory = () => {
       return next;
     });
   };
-  const updateArcPlace: MutationContextValue["updateArcPlace"] = (input) => {
+  const updateArcPlace: PetrinautMutations["updateArcPlace"] = (input) => {
     setTransition((prev) => {
       const next = clone(prev);
       const arcs =
@@ -267,7 +265,7 @@ const TransitionPanelStory = () => {
       return next;
     });
   };
-  const removeArc: MutationContextValue["removeArc"] = (input) => {
+  const removeArc: PetrinautMutations["removeArc"] = (input) => {
     setTransition((prev) => {
       const next = clone(prev);
       const arcs =
@@ -306,9 +304,7 @@ const TransitionEmptyPanelStory = () => {
     x: 0,
     y: 0,
   });
-  const updateTransition: MutationContextValue["updateTransition"] = (
-    input,
-  ) => {
+  const updateTransition: PetrinautMutations["updateTransition"] = (input) => {
     applyStoryUpdate(setTransition, input.update);
   };
   return (
@@ -328,17 +324,17 @@ const TransitionEmptyPanelStory = () => {
 
 const TypePanelStory = () => {
   const [type, setType] = useState<Color>(TYPES[0]!);
-  const updateType: MutationContextValue["updateType"] = (input) => {
+  const updateType: PetrinautMutations["updateType"] = (input) => {
     applyStoryUpdate(setType, input.update);
   };
-  const addTypeElement: MutationContextValue["addTypeElement"] = (input) => {
+  const addTypeElement: PetrinautMutations["addTypeElement"] = (input) => {
     setType((prev) => {
       const next = clone(prev);
       next.elements.push(clone(input.element));
       return next;
     });
   };
-  const updateTypeElement: MutationContextValue["updateTypeElement"] = (
+  const updateTypeElement: PetrinautMutations["updateTypeElement"] = (
     input,
   ) => {
     setType((prev) => {
@@ -352,7 +348,7 @@ const TypePanelStory = () => {
       return next;
     });
   };
-  const removeTypeElement: MutationContextValue["removeTypeElement"] = (
+  const removeTypeElement: PetrinautMutations["removeTypeElement"] = (
     input,
   ) => {
     setType((prev) => ({
@@ -362,7 +358,7 @@ const TypePanelStory = () => {
       ),
     }));
   };
-  const moveTypeElement: MutationContextValue["moveTypeElement"] = (input) => {
+  const moveTypeElement: PetrinautMutations["moveTypeElement"] = (input) => {
     setType((prev) => {
       const next = clone(prev);
       const fromIndex = next.elements.findIndex(
@@ -393,7 +389,7 @@ const TypePanelStory = () => {
 
 const ParameterPanelStory = () => {
   const [parameter, setParameter] = useState<Parameter>(PARAMETER);
-  const updateParameter: MutationContextValue["updateParameter"] = (input) => {
+  const updateParameter: PetrinautMutations["updateParameter"] = (input) => {
     applyStoryUpdate(setParameter, input.update);
   };
   return (
@@ -408,7 +404,7 @@ const ParameterPanelStory = () => {
 
 const DifferentialEquationPanelStory = () => {
   const [diffEq, setDiffEq] = useState<DifferentialEquation>(DIFF_EQS[0]!);
-  const updateDiffEq: MutationContextValue["updateDifferentialEquation"] = (
+  const updateDiffEq: PetrinautMutations["updateDifferentialEquation"] = (
     input,
   ) => {
     applyStoryUpdate(setDiffEq, input.update);

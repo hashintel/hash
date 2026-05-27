@@ -1,11 +1,13 @@
 import { use, useEffect, useEffectEvent } from "react";
 
+import {
+  usePetrinautMutations,
+  usePetrinautCommands,
+} from "../../../../../react";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import { MutationContext } from "../../../../../react/state/mutation-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
-import { usePetrinautInstance } from "../../../../../react/use-petrinaut-instance";
 import {
   copySelectionToClipboard,
   pasteFromClipboard,
@@ -36,8 +38,8 @@ export function useKeyboardShortcuts(
     searchInputRef,
   } = use(EditorContext);
   const { petriNetDefinition, petriNetId } = use(SDCPNContext);
-  const { deleteItemsByIds } = use(MutationContext);
-  const instance = usePetrinautInstance();
+  const { deleteItemsByIds } = usePetrinautMutations();
+  const { applyClipboardPaste } = usePetrinautCommands();
   const isReadonly = useIsReadOnly();
 
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
@@ -111,7 +113,7 @@ export function useKeyboardShortcuts(
 
       if (key === "v" && !isReadonly) {
         event.preventDefault();
-        void pasteFromClipboard(instance.mutate).then((newItemIds) => {
+        void pasteFromClipboard(applyClipboardPaste).then((newItemIds) => {
           if (newItemIds && newItemIds.length > 0) {
             setSelection(
               new Map(

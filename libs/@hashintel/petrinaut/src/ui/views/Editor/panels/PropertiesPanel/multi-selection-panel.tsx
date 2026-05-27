@@ -11,7 +11,7 @@ import { Button } from "../../../../components/button";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical/vertical-sub-views-container";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 
-import type { MutationContextValue } from "../../../../../react/state/mutation-context";
+import type { PetrinautMutations } from "../../../../../react";
 import type { SubView } from "../../../../components/sub-view/types";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
@@ -30,7 +30,7 @@ const summaryStyle = css({
 
 interface MultiSelectionData {
   items: SelectionItem[];
-  deleteItemsByIds: MutationContextValue["deleteItemsByIds"];
+  deleteItemsByIds: PetrinautMutations["deleteItemsByIds"];
 }
 
 const MultiSelectionContext = createContext<MultiSelectionData | null>(null);
@@ -110,7 +110,7 @@ const subViews: SubView[] = [multiSelectionMainSubView];
 
 interface MultiSelectionPanelProps {
   items: SelectionItem[];
-  deleteItemsByIds: MutationContextValue["deleteItemsByIds"];
+  deleteItemsByIds: PetrinautMutations["deleteItemsByIds"];
 }
 
 export const MultiSelectionPanel: React.FC<MultiSelectionPanelProps> = ({

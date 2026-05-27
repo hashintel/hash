@@ -126,7 +126,7 @@ const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
   currentFrameIndex: 0,
   totalFrames: 0,
   playbackSpeed: 1,
-  playMode: "computeMax",
+  playMode: "computeBuffer",
   isViewOnlyAvailable: false,
   isComputeAvailable: true,
   setCurrentViewedFrame: () => {},

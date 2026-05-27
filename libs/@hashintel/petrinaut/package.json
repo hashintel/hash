@@ -51,6 +51,7 @@
     "test:unit": "vitest"
   },
   "dependencies": {
+    "@ai-sdk/react": "3.0.184",
     "@ark-ui/react": "5.26.2",
     "@babel/standalone": "7.28.5",
     "@fontsource-variable/inter": "5.2.8",
@@ -63,10 +64,11 @@
     "@monaco-editor/react": "4.8.0-rc.3",
     "@tanstack/react-form": "1.29.0",
     "@xyflow/react": "12.10.1",
-    "elkjs": "0.11.0",
+    "ai": "6.0.182",
     "fuzzysort": "3.1.0",
     "lodash-es": "4.18.1",
     "monaco-editor": "0.55.1",
+    "react-markdown": "10.1.0",
     "react-resizable-panels": "4.6.5",
     "uplot": "1.6.32",
     "use-sync-external-store": "1.6.0",
