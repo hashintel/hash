@@ -46,6 +46,7 @@ const modeOptions: SegmentOption[] = [
     icon: <Icon name="layer" size="sm" />,
     hideLabel: true,
     tooltip: "Scenarios",
+    tooltipOptions: { position: "right" },
   },
   {
     value: "metrics",
@@ -53,6 +54,7 @@ const modeOptions: SegmentOption[] = [
     icon: <Icon name="chartBarSimple" size="sm" />,
     hideLabel: true,
     tooltip: "Metrics",
+    tooltipOptions: { position: "right" },
   },
   {
     value: "experiments",
@@ -60,6 +62,7 @@ const modeOptions: SegmentOption[] = [
     icon: <Icon name="flask" size="sm" />,
     hideLabel: true,
     tooltip: "Experiments",
+    tooltipOptions: { position: "right" },
   },
 ];
 

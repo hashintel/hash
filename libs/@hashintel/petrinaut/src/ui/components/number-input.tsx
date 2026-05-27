@@ -1,6 +1,7 @@
+import { Tooltip } from "@hashintel/ds-components";
 import { cva } from "@hashintel/ds-helpers/css";
 
-import { withTooltip } from "./hoc/with-tooltip";
+import type { ComponentProps } from "react";
 
 const numberInputStyle = cva({
   base: {
@@ -98,23 +99,37 @@ type NumberInputProps = Omit<
   hasError?: boolean;
   /** Ref to the input element */
   ref?: React.Ref<HTMLInputElement>;
+  tooltip?: string;
+  tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 };
 
-const NumberInputBase: React.FC<NumberInputProps> = ({
+export const NumberInput: React.FC<NumberInputProps> = ({
   size = "sm",
   hasError = false,
   disabled,
   className,
   ref,
+  tooltip,
+  tooltipOptions,
   ...props
-}) => (
-  <input
-    ref={ref}
-    type="number"
-    disabled={disabled}
-    className={`${numberInputStyle({ size, hasError })}${className ? ` ${className}` : ""}`}
-    {...props}
-  />
-);
+}) => {
+  const element = (
+    <input
+      ref={ref}
+      type="number"
+      disabled={disabled}
+      className={`${numberInputStyle({ size, hasError })}${className ? ` ${className}` : ""}`}
+      {...props}
+    />
+  );
 
-export const NumberInput = withTooltip(NumberInputBase, "block");
+  if (!tooltip) {
+    return element;
+  }
+
+  return (
+    <Tooltip {...tooltipOptions} content={tooltip}>
+      {element}
+    </Tooltip>
+  );
+};

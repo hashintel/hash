@@ -1,12 +1,11 @@
 import { use, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 
 import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
-import { Button } from "../../../../../components/button";
 import {
   Table,
   type TableColumn,

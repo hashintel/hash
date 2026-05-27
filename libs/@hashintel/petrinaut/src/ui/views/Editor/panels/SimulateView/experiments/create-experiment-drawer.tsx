@@ -1,11 +1,10 @@
 import { use, useState } from "react";
 
-import { Icon, LoadingSpinner } from "@hashintel/ds-components";
+import { Button, Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Button } from "../../../../../components/button";
 import { Drawer } from "../../../../../components/drawer";
 import { Input } from "../../../../../components/input";
 import { NumberInput } from "../../../../../components/number-input";

@@ -1,8 +1,8 @@
 import { Suspense, use, useRef } from "react";
 
+import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { Tooltip } from "../components/tooltip";
 import { CODE_FONT_FAMILY } from "../constants/ui";
 import { MonacoContext } from "./context";
 
@@ -288,7 +288,10 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   if (tooltip) {
     return (
-      <Tooltip content={tooltip} display="block" className={css({ flex: "1" })}>
+      <Tooltip
+        content={tooltip}
+        className={css({ flex: "1", display: "block" })}
+      >
         {editorElement}
       </Tooltip>
     );

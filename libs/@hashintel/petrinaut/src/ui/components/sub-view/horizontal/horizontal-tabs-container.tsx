@@ -1,6 +1,6 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { InfoIconTooltip } from "../../tooltip";
+import { InfoIconTooltip } from "../../info-icon-tooltip";
 
 import type { SubView } from "../types";
 

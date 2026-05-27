@@ -1,13 +1,12 @@
 import { use, useEffect, useRef, useState } from "react";
 
-import { Checkbox, Icon } from "@hashintel/ds-components";
+import { Button, Checkbox, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { Button } from "../../../../../../components/button";
 import { Input } from "../../../../../../components/input";
 import { Section, SectionList } from "../../../../../../components/section";
 import { Select, type SelectOption } from "../../../../../../components/select";
@@ -362,7 +361,6 @@ const DeletePlaceAction: React.FC = () => {
       onClick={() => removePlace({ placeId: place.id })}
       disabled={isReadOnly}
       tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-      tooltipDisplay="inline"
     />
   );
 };

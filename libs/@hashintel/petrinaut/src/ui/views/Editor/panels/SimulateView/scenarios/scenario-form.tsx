@@ -1,10 +1,10 @@
 import { useForm, useStore } from "@tanstack/react-form";
 import { use, useEffect, useRef, useState } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { Button } from "../../../../../components/button";
 import { Input } from "../../../../../components/input";
 import { NumberInput } from "../../../../../components/number-input";
 import { Section, SectionList } from "../../../../../components/section";
@@ -639,7 +639,6 @@ const ScenarioFormSections = ({
             variant="ghost"
             aria-label="Add scenario parameter"
             tooltip="Add scenario parameter"
-            tooltipDisplay="inline"
             iconName="plus"
             onClick={addScenarioParam}
           />
@@ -728,7 +727,6 @@ const ScenarioFormSections = ({
                 tone="error"
                 aria-label="Remove parameter"
                 tooltip="Remove parameter"
-                tooltipDisplay="inline"
                 iconName="trash"
                 onClick={() => removeScenarioParam(param._key)}
               />

@@ -1,8 +1,8 @@
 import { useState } from "react";
 
+import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Button } from "./button";
 import { Dialog } from "./dialog";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";

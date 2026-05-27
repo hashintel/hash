@@ -1,5 +1,6 @@
 import { use, useRef, useState } from "react";
 
+import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
 import {
@@ -14,7 +15,6 @@ import {
 import { usePetrinautCommands } from "../../../react";
 import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
-import { PortalContainerContext } from "../../../react/state/portal-container-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";

@@ -5,13 +5,10 @@ import {
 } from "@ark-ui/react/select";
 import { useMemo } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Icon, Tooltip, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
-import { usePortalContainerRef } from "../../react/state/portal-container-context";
-import { withTooltip } from "./hoc/with-tooltip";
-
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 // -- Helpers ------------------------------------------------------------------
 
@@ -217,11 +214,13 @@ interface SelectBaseProps {
   positioning?: { sameWidth?: boolean };
   /** Whether to portal the dropdown. Set to false when inside a Dialog. */
   portal?: boolean;
+  tooltip?: string;
+  tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 }
 
 // -- Component ----------------------------------------------------------------
 
-const SelectBase: React.FC<SelectBaseProps> = ({
+export const Select: React.FC<SelectBaseProps> = ({
   value,
   onValueChange,
   options,
@@ -234,6 +233,8 @@ const SelectBase: React.FC<SelectBaseProps> = ({
   className,
   positioning,
   portal = false,
+  tooltip,
+  tooltipOptions,
 }) => {
   const portalContainerRef = usePortalContainerRef();
 
@@ -253,7 +254,7 @@ const SelectBase: React.FC<SelectBaseProps> = ({
 
   const iconSize = ICON_SIZE[size];
 
-  return (
+  const element = (
     <ArkSelect.Root
       collection={collection}
       value={value ? [value] : []}
@@ -319,6 +320,14 @@ const SelectBase: React.FC<SelectBaseProps> = ({
       </ConditionalPortal>
     </ArkSelect.Root>
   );
-};
 
-export const Select = withTooltip(SelectBase, "block");
+  if (!tooltip) {
+    return element;
+  }
+
+  return (
+    <Tooltip {...tooltipOptions} content={tooltip}>
+      {element}
+    </Tooltip>
+  );
+};

@@ -1,7 +1,7 @@
 import fuzzysort from "fuzzysort";
 import { use, useEffect, useRef, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import type { ComponentType, ReactNode } from "react";
@@ -10,7 +10,6 @@ const SearchIcon = () => <Icon name="search" />;
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Button } from "../../../../../components/button";
 import {
   DifferentialEquationIcon,
   ParameterIcon,
@@ -430,7 +429,6 @@ const SearchHeaderAction: React.FC = () => {
     <Button
       aria-label="Close search"
       tooltip="Close search"
-      tooltipDisplay="inline"
       variant="ghost"
       size="xxs"
       iconName="close"

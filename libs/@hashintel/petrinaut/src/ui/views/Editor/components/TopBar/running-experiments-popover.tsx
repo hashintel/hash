@@ -1,6 +1,6 @@
 import { use, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
@@ -8,7 +8,6 @@ import {
   isExperimentActive,
   type ExperimentRecord,
 } from "../../../../../react/experiments/context";
-import { Button } from "../../../../components/button";
 import { Popover } from "../../../../components/popover";
 import { TableStatusBadge } from "../../../../components/table";
 
@@ -158,7 +157,6 @@ export const RunningExperimentsPopover = ({
           variant="ghost"
           aria-label={`Show ${countLabel} Monte Carlo simulations`}
           tooltip="Active Experiments"
-          tooltipDisplay="inline"
           prefix={<Icon name="flask" size="sm" />}
         >
           <span className={triggerCountStyle}>{countLabel}</span>

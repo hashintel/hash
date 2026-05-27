@@ -1,6 +1,7 @@
+import { Tooltip } from "@hashintel/ds-components";
 import { cva } from "@hashintel/ds-helpers/css";
 
-import { withTooltip } from "./hoc/with-tooltip";
+import type { ComponentProps } from "react";
 
 const inputStyle = cva({
   base: {
@@ -101,24 +102,38 @@ type InputProps = Omit<
   hasError?: boolean;
   /** Ref to the input element */
   ref?: React.Ref<HTMLInputElement>;
+  tooltip?: string;
+  tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 };
 
-const InputBase: React.FC<InputProps> = ({
+export const Input: React.FC<InputProps> = ({
   size = "sm",
   monospace = false,
   hasError = false,
   disabled,
   className,
   ref,
+  tooltip,
+  tooltipOptions,
   ...props
-}) => (
-  <input
-    ref={ref}
-    type="text"
-    disabled={disabled}
-    className={`${inputStyle({ size, isMonospace: monospace, hasError })}${className ? ` ${className}` : ""}`}
-    {...props}
-  />
-);
+}) => {
+  const element = (
+    <input
+      ref={ref}
+      type="text"
+      disabled={disabled}
+      className={`${inputStyle({ size, isMonospace: monospace, hasError })}${className ? ` ${className}` : ""}`}
+      {...props}
+    />
+  );
 
-export const Input = withTooltip(InputBase, "block");
+  if (!tooltip) {
+    return element;
+  }
+
+  return (
+    <Tooltip {...tooltipOptions} content={tooltip}>
+      {element}
+    </Tooltip>
+  );
+};

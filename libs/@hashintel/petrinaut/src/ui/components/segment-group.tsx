@@ -1,12 +1,10 @@
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
 
+import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { token } from "@hashintel/ds-helpers/tokens";
 
-import { withTooltip } from "./hoc/with-tooltip";
-import { Tooltip } from "./tooltip";
-
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 const rootStyle = cva({
   base: {
@@ -164,6 +162,7 @@ export interface SegmentOption {
   hideLabel?: boolean;
   disabled?: boolean;
   tooltip?: string;
+  tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 }
 
 interface SegmentGroupProps {
@@ -175,17 +174,21 @@ interface SegmentGroupProps {
   /** Orientation. Defaults to "horizontal". */
   orientation?: "horizontal" | "vertical";
   disabled?: boolean;
+  tooltip?: string;
+  tooltipOptions?: Omit<ComponentProps<typeof Tooltip>, "children" | "content">;
 }
 
-const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
+export const SegmentGroup: React.FC<SegmentGroupProps> = ({
   value,
   options,
   onChange,
   size = "md",
   orientation = "horizontal",
   disabled = false,
+  tooltip,
+  tooltipOptions,
 }) => {
-  return (
+  const element = (
     <ArkSegmentGroup.Root
       value={value}
       disabled={disabled}
@@ -248,9 +251,9 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
         if (option.tooltip) {
           return (
             <Tooltip
+              {...option.tooltipOptions}
               key={option.value}
               content={option.tooltip}
-              display="inline"
             >
               <span className={tooltipWrapperStyle}>{item}</span>
             </Tooltip>
@@ -261,6 +264,14 @@ const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
       })}
     </ArkSegmentGroup.Root>
   );
-};
 
-export const SegmentGroup = withTooltip(SegmentGroupBase, "block");
+  if (!tooltip) {
+    return element;
+  }
+
+  return (
+    <Tooltip {...tooltipOptions} content={tooltip}>
+      {element}
+    </Tooltip>
+  );
+};

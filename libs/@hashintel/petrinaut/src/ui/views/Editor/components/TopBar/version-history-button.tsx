@@ -1,9 +1,8 @@
 import { use, useMemo } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 
 import { UndoRedoContext } from "../../../../../react/state/undo-redo-context";
-import { Button } from "../../../../components/button";
 import { Menu, type MenuItem } from "../../../../components/menu";
 
 function formatTime(timestamp: string): string {
@@ -49,7 +48,6 @@ export const VersionHistoryButton = () => {
           variant="ghost"
           aria-label="Version history"
           tooltip="Version history"
-          tooltipDisplay="inline"
           iconName="clockRotateLeft"
         />
       }

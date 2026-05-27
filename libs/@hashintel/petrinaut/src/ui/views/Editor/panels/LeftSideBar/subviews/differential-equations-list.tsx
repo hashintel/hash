@@ -1,14 +1,13 @@
 import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react/hooks/use-petrinaut-mutations";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
-import { Button } from "../../../../../components/button";
 import { DifferentialEquationIcon } from "../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import {
@@ -39,7 +38,6 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
       tooltip={
         isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Add differential equation"
       }
-      tooltipDisplay="inline"
       iconName="plus"
       onClick={() => {
         const name = `Equation ${differentialEquations.length + 1}`;
@@ -66,7 +64,7 @@ const DiffEqRowMenu: React.FC<{ item: { id: string } }> = ({ item }) => {
         {
           id: "delete",
           label: "Delete",
-          icon: <Icon name="trash" />,
+          icon: <Icon name="trash" size="sm" />,
           destructive: true,
           disabled: isReadOnly,
           onClick: () => removeDifferentialEquation({ equationId: item.id }),

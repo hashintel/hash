@@ -1,9 +1,8 @@
 import { use, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Button } from "../../../../../components/button";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
 import { CreateMetricDrawer } from "./create-metric-drawer";

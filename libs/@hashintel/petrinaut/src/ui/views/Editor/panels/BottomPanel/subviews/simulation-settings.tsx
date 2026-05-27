@@ -1,17 +1,16 @@
 import { use, useState } from "react";
 
-import { Icon } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
-import { Button } from "../../../../../components/button";
+import { InfoIconTooltip } from "../../../../../components/info-icon-tooltip";
 import { NumberInput } from "../../../../../components/number-input";
 import { Select } from "../../../../../components/select";
 import { Slider } from "../../../../../components/slider";
 import { Switch } from "../../../../../components/switch";
-import { InfoIconTooltip } from "../../../../../components/tooltip";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 
@@ -257,7 +256,6 @@ const SimulationSettingsContent: React.FC = () => {
               variant="ghost"
               aria-label="Edit scenario"
               tooltip="Edit Scenario"
-              tooltipDisplay="inline"
               iconName="pencil"
               onClick={() => setIsViewScenarioOpen(true)}
             />
@@ -267,7 +265,6 @@ const SimulationSettingsContent: React.FC = () => {
             variant="ghost"
             aria-label="Create scenario"
             tooltip="Create Scenario"
-            tooltipDisplay="inline"
             iconName="plus"
             onClick={() => setIsCreateScenarioOpen(true)}
           />
@@ -276,7 +273,6 @@ const SimulationSettingsContent: React.FC = () => {
             variant="ghost"
             aria-label="Manage scenarios"
             tooltip="Manage Scenarios"
-            tooltipDisplay="inline"
             iconName="list"
             onClick={() => setGlobalMode("simulate")}
           />

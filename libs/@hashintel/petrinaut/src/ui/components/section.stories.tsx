@@ -1,4 +1,5 @@
-import { Button } from "./button";
+import { Button } from "@hashintel/ds-components";
+
 import { Section, SectionList } from "./section";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";

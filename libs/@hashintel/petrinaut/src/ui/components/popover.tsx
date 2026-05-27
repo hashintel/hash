@@ -1,10 +1,8 @@
 import { Popover as ArkPopover } from "@ark-ui/react/popover";
 import { Portal } from "@ark-ui/react/portal";
 
+import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-
-import { usePortalContainerRef } from "../../react/state/portal-container-context";
-import { Button } from "./button";
 
 import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 
@@ -105,7 +103,6 @@ const Header = ({ children }: { children: ReactNode }) => (
         variant="ghost"
         iconName="close"
         tooltip="Close"
-        tooltipDisplay="inline"
       />
     </ArkPopover.CloseTrigger>
   </div>
