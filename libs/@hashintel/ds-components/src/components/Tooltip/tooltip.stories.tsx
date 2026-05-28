@@ -28,7 +28,7 @@ export const Default: Story = () => (
         <h3 style={{ marginBottom: 12 }}>
           {variant.charAt(0).toUpperCase() + variant.slice(1)} variant
         </h3>
-        <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
+        <div className={css({ "& > *": { marginX: "3" } })}>
           <Tooltip content="Button tooltip" variant={variant}>
             <Button size="sm" onClick={() => {}}>
               Hover me
@@ -87,7 +87,7 @@ export const AllPositions: Story = () => (
       ) : (
         <Tooltip key={position} content={position} position={position}>
           <Button
-            size="lg"
+            size="xxs"
             className={css({ width: "[100%]" })}
             onClick={() => {}}
           >
