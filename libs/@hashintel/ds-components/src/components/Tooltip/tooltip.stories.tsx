@@ -150,7 +150,11 @@ export const AllPositions: Story<TooltipProps> = (args) => (
           content={position}
           position={position}
         >
-          <Button size="xxs" className={css({ width: "[100%]" })} onClick={noop}>
+          <Button
+            size="xxs"
+            className={css({ width: "[100%]" })}
+            onClick={noop}
+          >
             {position}
           </Button>
         </Tooltip>
