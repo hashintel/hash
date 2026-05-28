@@ -7,12 +7,12 @@ import { formInputSizes, type FormInputSize } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { NumberInput } from "../NumberInput/number-input";
 import { TextInput } from "../TextInput/text-input";
-import { FormField } from "./form-field";
+import { Form } from "./form";
 
 import type { Story, StoryDefault } from "@ladle/react";
 
 type LabelDirection = NonNullable<
-  React.ComponentProps<typeof FormField>["labelDirection"]
+  React.ComponentProps<typeof Form.Field>["labelDirection"]
 >;
 
 const labelDirections = [
@@ -55,7 +55,7 @@ const kitchenSinkProps = {
 };
 
 export default {
-  title: "Components/FormField",
+  title: "Components/Form.Field",
   argTypes: {
     label: {
       control: { type: "text" },
@@ -99,35 +99,35 @@ export default {
   args: {
     as: "label" as const,
   },
-} satisfies StoryDefault<React.ComponentProps<typeof FormField>>;
+} satisfies StoryDefault<React.ComponentProps<typeof Form.Field>>;
 
-type FormFieldArgs = React.ComponentProps<typeof FormField>;
+type FormFieldArgs = React.ComponentProps<typeof Form.Field>;
 
 export const Default: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
-    <FormField {...args} as="label" label="Disabled" disabled>
+    <Form.Field {...args} as="label" label="Disabled" disabled>
       <ControlledTextInput
         name="form-field-disabled"
         initialValue="Disabled value"
         size={args.size}
         disabled
       />
-    </FormField>
+    </Form.Field>
 
-    <FormField {...args} as="label" label="Required" required>
+    <Form.Field {...args} as="label" label="Required" required>
       <ControlledTextInput name="form-field-required" size={args.size} />
-    </FormField>
+    </Form.Field>
 
-    <FormField
+    <Form.Field
       {...args}
       as="label"
       label="Description"
       description="A short description above the input"
     >
       <ControlledTextInput name="form-field-description" size={args.size} />
-    </FormField>
+    </Form.Field>
 
-    <FormField
+    <Form.Field
       {...args}
       as="label"
       label="Description on bottom"
@@ -137,9 +137,9 @@ export const Default: Story<FormFieldArgs> = (args) => (
         name="form-field-description-bottom"
         size={args.size}
       />
-    </FormField>
+    </Form.Field>
 
-    <FormField
+    <Form.Field
       {...args}
       as="label"
       label="One error"
@@ -150,9 +150,9 @@ export const Default: Story<FormFieldArgs> = (args) => (
         size={args.size}
         invalid
       />
-    </FormField>
+    </Form.Field>
 
-    <FormField
+    <Form.Field
       {...args}
       as="label"
       label="Multiple errors"
@@ -163,35 +163,35 @@ export const Default: Story<FormFieldArgs> = (args) => (
         size={args.size}
         invalid
       />
-    </FormField>
+    </Form.Field>
 
-    <FormField {...args} as="label" label="Label hidden (visually)" hideLabel>
+    <Form.Field {...args} as="label" label="Label hidden (visually)" hideLabel>
       <ControlledTextInput
         name="form-field-hidden-label"
         placeholder="Label hidden (visually)"
         size={args.size}
       />
-    </FormField>
+    </Form.Field>
 
-    <FormField
+    <Form.Field
       {...args}
       as="label"
       label="Tooltip"
       labelTooltip="Extra information about this field"
     >
       <ControlledTextInput name="form-field-tooltip" size={args.size} />
-    </FormField>
+    </Form.Field>
 
-    <FormField
+    <Form.Field
       {...args}
       as="label"
       label="Actions"
       labelActions={[<ActionButton key="action" />]}
     >
       <ControlledTextInput name="form-field-actions" size={args.size} />
-    </FormField>
+    </Form.Field>
 
-    <FormField {...args} as="label" label="Kitchen sink" {...kitchenSinkProps}>
+    <Form.Field {...args} as="label" label="Kitchen sink" {...kitchenSinkProps}>
       <ControlledTextInput
         name="form-field-kitchen-sink"
         initialValue="Kitchen sink value"
@@ -199,9 +199,9 @@ export const Default: Story<FormFieldArgs> = (args) => (
         disabled
         invalid
       />
-    </FormField>
+    </Form.Field>
 
-    <FormField
+    <Form.Field
       {...args}
       as="label"
       label="Kitchen sink disabled"
@@ -215,14 +215,14 @@ export const Default: Story<FormFieldArgs> = (args) => (
         disabled
         invalid
       />
-    </FormField>
+    </Form.Field>
   </div>
 );
 
 export const FormSize: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {formInputSizes.map((size: FormInputSize) => (
-      <FormField
+      <Form.Field
         {...args}
         as="label"
         key={size}
@@ -237,7 +237,7 @@ export const FormSize: Story<FormFieldArgs> = (args) => (
           disabled
           invalid
         />
-      </FormField>
+      </Form.Field>
     ))}
   </div>
 );
@@ -248,7 +248,7 @@ const { labelActions: _labelActions, ...kitchenSinkPropsNoActions } =
 export const LabelDirection: Story<FormFieldArgs> = (args) => (
   <div className={sectionStyle}>
     {labelDirections.map((direction) => (
-      <FormField
+      <Form.Field
         {...args}
         as="label"
         key={direction}
@@ -263,10 +263,10 @@ export const LabelDirection: Story<FormFieldArgs> = (args) => (
           disabled
           invalid
         />
-      </FormField>
+      </Form.Field>
     ))}
     {labelDirections.map((direction) => (
-      <FormField
+      <Form.Field
         {...args}
         as="label"
         key={`${direction}-no-actions`}
@@ -281,7 +281,7 @@ export const LabelDirection: Story<FormFieldArgs> = (args) => (
           disabled
           invalid
         />
-      </FormField>
+      </Form.Field>
     ))}
   </div>
 );
@@ -321,7 +321,7 @@ const TextField = ({
 }) => {
   const field = useFieldContext<string>();
   return (
-    <FormField
+    <Form.Field
       as="label"
       label={label}
       description={description}
@@ -337,7 +337,7 @@ const TextField = ({
         size={size}
         invalid={field.state.meta.errors.length > 0}
       />
-    </FormField>
+    </Form.Field>
   );
 };
 
@@ -358,7 +358,7 @@ const IntegerField = ({
 }) => {
   const field = useFieldContext<number>();
   return (
-    <FormField
+    <Form.Field
       as="label"
       label={label}
       description={description}
@@ -377,7 +377,7 @@ const IntegerField = ({
         size={size}
         invalid={field.state.meta.errors.length > 0}
       />
-    </FormField>
+    </Form.Field>
   );
 };
 

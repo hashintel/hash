@@ -12,7 +12,7 @@ import type { SharedInputAndFieldProps } from "../../util/form-shared";
  * A form field should only ever wrap a single input, and will automatically connect the label to that input.
  * If implementing your own input you will need to consume useFieldId for the label to automatically be connected
  */
-export const FormField = ({
+const FormField = ({
   className,
   children,
   label,
@@ -102,3 +102,9 @@ export const FormField = ({
     </fieldset>
   );
 };
+
+FormField.Label = Label;
+FormField.Description = Description;
+FormField.Errors = Errors;
+
+export { FormField };
