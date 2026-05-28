@@ -38,6 +38,7 @@ import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
+import type { PetrinautSlots } from "../../types/petrinaut-slots";
 import type { ViewportAction } from "../../types/viewport-action";
 
 const relativeTimeFormat = new Intl.RelativeTimeFormat("en", {
@@ -91,10 +92,12 @@ const isEmptySDCPN = (sdcpn: SDCPN) =>
 export const EditorView = ({
   aiAssistant,
   hideNetManagementControls,
+  slots,
   viewportActions,
 }: {
   aiAssistant?: PetrinautAiAssistant;
   hideNetManagementControls: boolean;
+  slots?: PetrinautSlots;
   viewportActions?: ViewportAction[];
 }) => {
   // Get data from sdcpn-store
@@ -384,6 +387,7 @@ export const EditorView = ({
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
         }
+        slots={slots}
       />
 
       <Stack direction="row" className={rowContainerStyle}>

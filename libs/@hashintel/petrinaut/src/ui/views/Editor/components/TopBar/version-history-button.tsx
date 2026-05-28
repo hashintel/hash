@@ -46,8 +46,8 @@ export const VersionHistoryButton = () => {
         <Button
           size="md"
           variant="ghost"
-          aria-label="Version history"
-          tooltip="Version history"
+          aria-label="Recent changes"
+          tooltip="Recent changes"
           iconName="clockRotateLeft"
         />
       }
