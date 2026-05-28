@@ -562,7 +562,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    image: hash-graph
+    image: ghcr.io/hashintel/hash/graph
     read_only: true
     security_opt:
       - no-new-privileges:true
@@ -597,7 +597,7 @@ services:
         condition: service_completed_successfully
       otel-collector-healthcheck:
         condition: service_completed_successfully
-    image: hash-graph
+    image: ghcr.io/hashintel/hash/graph
     read_only: true
     security_opt:
       - no-new-privileges:true
@@ -634,10 +634,7 @@ services:
   api-migrate:
     profiles:
       - hash
-    image: hash-api
-    build: &hash-api-build
-      context: ../../
-      dockerfile: apps/hash-api/docker/Dockerfile
+    image: ghcr.io/hashintel/hash/api
     depends_on:
       graph:
         condition: service_healthy
@@ -656,8 +653,7 @@ services:
   api:
     profiles:
       - hash
-    image: hash-api
-    build: *hash-api-build
+    image: ghcr.io/hashintel/hash/api
     depends_on:
       redis:
         condition: service_healthy
@@ -716,13 +712,7 @@ services:
   frontend:
     profiles:
       - hash
-    image: hash-frontend
-    build:
-      context: ../../
-      dockerfile: apps/hash-frontend/docker/Dockerfile
-      args:
-        FRONTEND_URL: "${FRONTEND_URL:-http://localhost:3000}"
-        API_ORIGIN: "${API_ORIGIN:-http://localhost:5001}"
+    image: ghcr.io/hashintel/hash/frontend
     network_mode: "service:api"
     depends_on:
       api:
@@ -737,10 +727,7 @@ services:
   ai-worker:
     profiles:
       - hash
-    image: hash-ai-worker-ts
-    build:
-      context: ../../
-      dockerfile: apps/hash-ai-worker-ts/docker/Dockerfile
+    image: ghcr.io/hashintel/hash/ai-worker-ts
     depends_on:
       graph:
         condition: service_healthy
@@ -773,10 +760,7 @@ services:
   integration-worker:
     profiles:
       - hash
-    image: hash-integration-worker
-    build:
-      context: ../../
-      dockerfile: apps/hash-integration-worker/docker/Dockerfile
+    image: ghcr.io/hashintel/hash/integration-worker
     depends_on:
       graph:
         condition: service_healthy
