@@ -175,6 +175,7 @@ export const BaseInput = ({
   onBlur,
   size = "md",
   testId,
+  htmlForId,
   ref,
   inputRef,
   disabled,
@@ -227,6 +228,7 @@ export const BaseInput = ({
 
   const input = (
     <input
+      id={htmlForId}
       ref={mergedInputRef}
       type={type}
       inputMode={inputMode}

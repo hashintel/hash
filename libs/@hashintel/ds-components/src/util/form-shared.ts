@@ -39,6 +39,8 @@ export type SharedInputProps<
   invalid?: boolean;
   /** An optional testId */
   testId?: string;
+  /** An id to manually link a label to this input. Since <FormField> automatically sets this id, this is usually not required. */
+  htmlForId?: string;
   /** The ref of the containing element. Use this for measurements/placement */
   ref?: React.Ref<HTMLElement>;
   /** The input ref - this could be different to the ref, which may be a containing element. Use this to access the internal input state and/or to set focus */
