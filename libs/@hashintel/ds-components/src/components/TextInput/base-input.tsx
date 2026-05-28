@@ -3,6 +3,7 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { baseInputRecipe } from "./base-input.recipe";
@@ -43,8 +44,8 @@ export type BaseInputProps = {
     onClear: () => void;
   };
   showEditIcon?: boolean;
-  /** Set to false to prevent browsers from autocompleting input fields */
-  autocomplete?: false;
+  /** Defaults to false, set to true to allow browsers to autocomplete an input */
+  autocomplete?: boolean;
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   min?: number;
@@ -166,7 +167,7 @@ export const BaseInput = ({
   maxLength,
   pattern,
   spellcheck,
-  autocomplete,
+  autocomplete = false,
   className,
   name,
   value,
@@ -175,6 +176,7 @@ export const BaseInput = ({
   onBlur,
   size = "md",
   testId,
+  htmlForId,
   ref,
   inputRef,
   disabled,
@@ -189,9 +191,11 @@ export const BaseInput = ({
     internalRef,
     ...(inputRef ? [inputRef] : []),
   ]);
+  const fieldIdFromContext = useFieldId();
+  const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
 
   const hasBrowserControls = type === "number";
-  const noAutocomplete = !!clearable || autocomplete === false;
+  const noAutocomplete = !!clearable || !autocomplete;
   const showClear = !!(clearable && !disabled);
   const hasIcons = !!loading || showClear;
 
@@ -227,6 +231,7 @@ export const BaseInput = ({
 
   const input = (
     <input
+      id={inputId}
       ref={mergedInputRef}
       type={type}
       inputMode={inputMode}
