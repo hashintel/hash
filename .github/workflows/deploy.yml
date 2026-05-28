@@ -65,7 +65,9 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
-    if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && github.event.pull_request.head.repo.full_name == github.repository
+    # Fork-only check applies to PRs — the Vault role for SENTRY_AUTH_TOKEN
+    # isn't reachable from forks.
+    if: needs.setup.outputs.sourcemaps != '{"name":[],"include":[]}' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -211,6 +213,12 @@ jobs:
           # merge_group always validate.
           should_build=true
           if $is_push_event && ! $push_ecr && ! $push_ghcr; then
+            should_build=false
+          fi
+
+          # amd64 PR builds skipped — arch-specific bugs in Rust/Node are
+          # rare and merge_group still validates amd64 before main.
+          if [[ "$ARCH" == "amd64" && "$EVENT" == "pull_request" ]]; then
             should_build=false
           fi
 
