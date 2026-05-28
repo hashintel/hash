@@ -18,7 +18,6 @@ export const FormField = ({
   label,
   hideLabel,
   size = "md",
-  layout: _layout,
   labelDirection = "left",
   description,
   descriptionBottom,
@@ -35,7 +34,6 @@ export const FormField = ({
   hideLabel?: boolean;
   as?: "label" | "legend";
 
-  layout?: "block" | "inline" | "inlineNoWrap";
   labelDirection?: "left" | "right";
 
   description?: React.ReactNode;
