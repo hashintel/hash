@@ -27,9 +27,40 @@ env:
 
 name: HASH backend deployment
 jobs:
-  build-graph:
-    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} HASH graph image
+  build:
+    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} ${{ matrix.ghcr }}
     runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ghcr: hash-graph
+            ecr: graph
+            dockerfile: apps/hash-graph/docker/Dockerfile
+            context: .
+          - ghcr: hash-api
+            ecr: api
+            dockerfile: apps/hash-api/docker/Dockerfile
+            context: .
+          - ghcr: hash-frontend
+            dockerfile: apps/hash-frontend/docker/Dockerfile
+            context: .
+          - ghcr: hash-kratos
+            ecr: kratos
+            dockerfile: infra/compose/kratos/Dockerfile
+            context: infra/compose/kratos
+          - ghcr: hash-hydra
+            ecr: hydra
+            dockerfile: infra/compose/hydra/Dockerfile
+            context: infra/compose/hydra
+          - ghcr: hash-ai-worker-ts
+            ecr: ai-worker-ts
+            dockerfile: apps/hash-ai-worker-ts/docker/Dockerfile
+            context: .
+          - ghcr: hash-integration-worker
+            ecr: integration-worker
+            dockerfile: apps/hash-integration-worker/docker/Dockerfile
+            context: .
     permissions:
       id-token: write
       contents: read
@@ -38,191 +69,20 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Configure AWS credentials (ECR push)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: matrix.ecr && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} graph image
+      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} ${{ matrix.ghcr }}
         uses: ./.github/actions/docker-build-push
         with:
-          SHORTNAME: "graph"
-          CONTEXT_PATH: ${{ github.workspace }}/
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-graph/docker/Dockerfile
-          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
-          ECR_IMAGE_NAME: ${{ github.repository }}/graph
-          GHCR_IMAGE_NAME: hash-graph
-          IMAGE_TAG: staging
-          GITHUB_TOKEN: ${{ github.token }}
-          PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-
-  build-api:
-    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} HASH api image
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      id-token: write
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Configure AWS credentials (ECR push)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
-        with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} api image
-        uses: ./.github/actions/docker-build-push
-        with:
-          SHORTNAME: "api"
-          CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-api/docker/Dockerfile
-          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
-          ECR_IMAGE_NAME: ${{ github.repository }}/api
-          GHCR_IMAGE_NAME: hash-api
-          IMAGE_TAG: staging
-          GITHUB_TOKEN: ${{ github.token }}
-          PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-
-  build-frontend:
-    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} HASH frontend image
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} frontend image
-        uses: ./.github/actions/docker-build-push
-        with:
-          SHORTNAME: "frontend"
-          CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-frontend/docker/Dockerfile
-          GHCR_IMAGE_NAME: hash-frontend
-          IMAGE_TAG: staging
-          GITHUB_TOKEN: ${{ github.token }}
-          PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-
-  build-kratos:
-    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} Kratos image
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      id-token: write
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Configure AWS credentials (ECR push)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
-        with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} kratos image
-        uses: ./.github/actions/docker-build-push
-        with:
-          SHORTNAME: "kratos"
-          CONTEXT_PATH: ${{ github.workspace }}/infra/compose/kratos
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/compose/kratos/Dockerfile
-          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
-          ECR_IMAGE_NAME: ${{ github.repository }}/kratos
-          GHCR_IMAGE_NAME: hash-kratos
-          IMAGE_TAG: staging
-          GITHUB_TOKEN: ${{ github.token }}
-          PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-
-  build-hydra:
-    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} Hydra image
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      id-token: write
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Configure AWS credentials (ECR push)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
-        with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} hydra image
-        uses: ./.github/actions/docker-build-push
-        with:
-          SHORTNAME: "hydra"
-          CONTEXT_PATH: ${{ github.workspace }}/infra/compose/hydra
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/compose/hydra/Dockerfile
-          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
-          ECR_IMAGE_NAME: ${{ github.repository }}/hydra
-          GHCR_IMAGE_NAME: hash-hydra
-          IMAGE_TAG: staging
-          GITHUB_TOKEN: ${{ github.token }}
-          PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-
-  build-ts-worker:
-    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} Temporal TS AI Worker
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      id-token: write
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Configure AWS credentials (ECR push)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
-        with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} ai-worker-ts image
-        uses: ./.github/actions/docker-build-push
-        with:
-          SHORTNAME: "temporal-worker-ai-ts"
-          CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-ai-worker-ts/docker/Dockerfile
-          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
-          ECR_IMAGE_NAME: ${{ github.repository }}/ai-worker-ts
-          GHCR_IMAGE_NAME: hash-ai-worker-ts
-          IMAGE_TAG: staging
-          GITHUB_TOKEN: ${{ github.token }}
-          PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
-
-  build-integration-worker:
-    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} Temporal integration Worker
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      id-token: write
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Configure AWS credentials (ECR push)
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
-        with:
-          role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} integration-worker image
-        uses: ./.github/actions/docker-build-push
-        with:
-          SHORTNAME: "temporal-integration-worker"
-          CONTEXT_PATH: ${{ github.workspace }}
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-integration-worker/docker/Dockerfile
-          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
-          ECR_IMAGE_NAME: ${{ github.repository }}/integration-worker
-          GHCR_IMAGE_NAME: hash-integration-worker
+          CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/${{ matrix.dockerfile }}
+          AWS_ECR_URL: ${{ matrix.ecr && env.ARTIFACTS_ECR_URL || '' }}
+          ECR_IMAGE_NAME: ${{ matrix.ecr && format('{0}/{1}', github.repository, matrix.ecr) || '' }}
+          GHCR_IMAGE_NAME: ${{ matrix.ghcr }}
           IMAGE_TAG: staging
           GITHUB_TOKEN: ${{ github.token }}
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
@@ -230,8 +90,7 @@ jobs:
   deploy-graph:
     name: Deploy HASH graph images
     runs-on: ubuntu-latest
-    needs:
-      - build-graph
+    needs: build
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       id-token: write
@@ -267,9 +126,7 @@ jobs:
     name: Deploy HASH app images
     runs-on: ubuntu-latest
     needs:
-      - build-api
-      - build-kratos
-      - build-hydra
+      - build
       # Technically not needed but it's good if the graph has been finished already
       - deploy-graph
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
@@ -307,8 +164,7 @@ jobs:
     name: Deploy HASH worker images
     runs-on: ubuntu-latest
     needs:
-      - build-ts-worker
-      - build-integration-worker
+      - build
       # Technically not needed but it's good if the graph has been finished already
       - deploy-graph
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')

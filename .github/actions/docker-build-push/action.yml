@@ -5,9 +5,6 @@ inputs:
   GITHUB_TOKEN:
     description: GitHub token (used for `--mount=type=secret,id=GITHUB_TOKEN` in the Dockerfiles and for GHCR auth).
     required: true
-  SHORTNAME:
-    description: Name of the thing that is being built. Keep path-friendly, please don't use special characters or spaces.
-    required: true
   DOCKERFILE_LOCATION:
     description: Location of the Dockerfile
     required: true
@@ -39,6 +36,18 @@ inputs:
 runs:
   using: composite
   steps:
+    # Derive a filesystem-safe image identifier for cache keys and step names.
+    # Prefers GHCR_IMAGE_NAME (already friendly); falls back to ECR_IMAGE_NAME
+    # with `/` replaced by `-`.
+    - name: Resolve image id
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.GHCR_IMAGE_NAME }}" ]; then
+          echo "IMAGE_ID=${{ inputs.GHCR_IMAGE_NAME }}" >> "$GITHUB_ENV"
+        else
+          echo "IMAGE_ID=$(printf '%s' '${{ inputs.ECR_IMAGE_NAME }}' | tr / -)" >> "$GITHUB_ENV"
+        fi
+
     - name: Login to ECR
       if: inputs.PUSH == 'true' && inputs.ECR_IMAGE_NAME != ''
       uses: ./.github/actions/docker-ecr-login
@@ -60,13 +69,13 @@ runs:
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: /tmp/.buildx-cache
-        key: docker-${{inputs.SHORTNAME}}-${{ hashFiles('yarn.lock') }}
+        key: docker-${{ env.IMAGE_ID }}-${{ hashFiles('yarn.lock') }}
         restore-keys: |
-          docker-${{inputs.SHORTNAME}}-${{ hashFiles('yarn.lock') }}
-          docker-${{inputs.SHORTNAME}}-
+          docker-${{ env.IMAGE_ID }}-${{ hashFiles('yarn.lock') }}
+          docker-${{ env.IMAGE_ID }}-
           docker-
 
-    - name: Build ${{ inputs.PUSH == 'true' && 'and push' || '(no push)' }} ${{inputs.SHORTNAME}} image
+    - name: Build ${{ inputs.PUSH == 'true' && 'and push' || '(no push)' }} ${{ env.IMAGE_ID }}
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
       env:
         GH_RUN_ID: ${{ github.run_id }}
