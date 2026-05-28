@@ -72,7 +72,6 @@ export const useProcessSaveAndLoad = ({
   title,
   refetchRevisions,
 }: UseProcessSaveAndLoadParams): {
-  discardChanges: (() => void) | null;
   isDirty: boolean;
   loadPersistedNet: (net: PersistedNet) => void;
   persistedNets: PersistedNet[];
@@ -173,82 +172,86 @@ export const useProcessSaveAndLoad = ({
 
     setPersistPending(true);
 
-    let persistedEntityId = selectedNetId;
+    try {
+      let persistedEntityId = selectedNetId;
 
-    if (selectedNetId) {
-      await updateEntity({
-        variables: {
-          entityUpdate: {
-            entityId: selectedNetId,
-            propertyPatches: [
-              {
-                op: "replace",
-                path: [
-                  systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
-                ],
-                property: {
+      if (selectedNetId) {
+        await updateEntity({
+          variables: {
+            entityUpdate: {
+              entityId: selectedNetId,
+              propertyPatches: [
+                {
+                  op: "replace",
+                  path: [
+                    systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
+                  ],
+                  property: {
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.object.dataTypeId,
+                    },
+                    value: petriNet,
+                  },
+                },
+                {
+                  op: "replace",
+                  path: [systemPropertyTypes.title.propertyTypeBaseUrl],
+                  property: {
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                    },
+                    value: title,
+                  },
+                },
+              ],
+            },
+          },
+        });
+      } else {
+        const createdEntityData = await createEntity({
+          variables: {
+            entityTypeIds: [systemEntityTypes.petriNet.entityTypeId],
+            webId: activeWorkspaceWebId,
+            properties: {
+              value: {
+                "https://hash.ai/@h/types/property-type/definition-object/": {
                   metadata: {
                     dataTypeId: blockProtocolDataTypes.object.dataTypeId,
                   },
                   value: petriNet,
                 },
-              },
-              {
-                op: "replace",
-                path: [systemPropertyTypes.title.propertyTypeBaseUrl],
-                property: {
+                "https://hash.ai/@h/types/property-type/title/": {
                   metadata: {
                     dataTypeId: blockProtocolDataTypes.text.dataTypeId,
                   },
                   value: title,
                 },
               },
-            ],
+            } satisfies PetriNetPropertiesWithMetadata as PropertyObjectWithMetadata,
           },
-        },
-      });
-    } else {
-      const createdEntityData = await createEntity({
-        variables: {
-          entityTypeIds: [systemEntityTypes.petriNet.entityTypeId],
-          webId: activeWorkspaceWebId,
-          properties: {
-            value: {
-              "https://hash.ai/@h/types/property-type/definition-object/": {
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.object.dataTypeId,
-                },
-                value: petriNet,
-              },
-              "https://hash.ai/@h/types/property-type/title/": {
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                },
-                value: title,
-              },
-            },
-          } satisfies PetriNetPropertiesWithMetadata as PropertyObjectWithMetadata,
-        },
-      });
+        });
 
-      if (!createdEntityData.data?.createEntity) {
-        throw new Error("Failed to create petri net");
+        if (!createdEntityData.data?.createEntity) {
+          throw new Error("Failed to create petri net");
+        }
+
+        const createdEntity = new HashEntity(
+          createdEntityData.data.createEntity,
+        );
+
+        persistedEntityId = createdEntity.entityId;
       }
 
-      const createdEntity = new HashEntity(createdEntityData.data.createEntity);
+      if (!persistedEntityId) {
+        throw new Error("Somehow no entityId available after persisting net");
+      }
 
-      persistedEntityId = createdEntity.entityId;
+      await refetchPersistedNets({ updatedEntityId: persistedEntityId });
+      setSelectedNetId(persistedEntityId);
+      setUserEditable(true);
+    } finally {
+      setPersistPending(false);
     }
-
-    if (!persistedEntityId) {
-      throw new Error("Somehow no entityId available after persisting net");
-    }
-
-    await refetchPersistedNets({ updatedEntityId: persistedEntityId });
-    setSelectedNetId(persistedEntityId);
-    setUserEditable(true);
-
-    setPersistPending(false);
   }, [
     activeWorkspaceWebId,
     createEntity,
@@ -260,17 +263,8 @@ export const useProcessSaveAndLoad = ({
     updateEntity,
   ]);
 
-  const discardChanges = useMemo(() => {
-    if (!persistedNet) {
-      return null;
-    }
-
-    return () => loadPersistedNet(persistedNet);
-  }, [persistedNet, loadPersistedNet]);
-
   return useMemo(
     () => ({
-      discardChanges,
       isDirty,
       loadPersistedNet,
       persistedNets,
@@ -280,7 +274,6 @@ export const useProcessSaveAndLoad = ({
       userEditable,
     }),
     [
-      discardChanges,
       isDirty,
       loadPersistedNet,
       persistPending,

@@ -20,7 +20,7 @@ import type { PetriNet } from "@local/hash-isomorphic-utils/system-types/petrine
  * One past revision of a persisted Petri net entity. Index 0 in the
  * returned array is the most recent; the last entry is the oldest.
  */
-export type EntityRevision = {
+export type PetriNetRevision = {
   /**
    * ISO timestamp at which this revision started being the truth.
    * Doubles as a stable key for React lists and the "decision-time"
@@ -34,10 +34,10 @@ export type EntityRevision = {
 /**
  * Fetches every revision of a single Petri net entity.
  */
-export const useEntityRevisions = (
+export const usePetriNetRevisions = (
   entityId: EntityId | null,
 ): {
-  revisions: EntityRevision[];
+  revisions: PetriNetRevision[];
   refetch: () => Promise<unknown>;
 } => {
   const [webId, entityUuid] = entityId
@@ -77,7 +77,7 @@ export const useEntityRevisions = (
     await rawRefetch();
   }, [entityId, rawRefetch]);
 
-  const revisions = useMemo<EntityRevision[]>(() => {
+  const revisions = useMemo<PetriNetRevision[]>(() => {
     if (!data) {
       return [];
     }
@@ -87,7 +87,7 @@ export const useEntityRevisions = (
     ).subgraph;
 
     return getRoots(subgraph)
-      .map((edition): EntityRevision => {
+      .map((edition): PetriNetRevision => {
         const title =
           edition.properties["https://hash.ai/@h/types/property-type/title/"];
 

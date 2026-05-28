@@ -17,7 +17,7 @@ import { FontAwesomeIcon } from "@hashintel/design-system";
 
 import { MenuItem } from "../../../shared/ui/menu-item";
 
-import type { EntityRevision } from "./use-process-save-and-load/use-entity-revisions";
+import type { PetriNetRevision } from "./use-process-save-and-load/use-petri-net-revisions";
 
 /**
  * Locale is left `undefined` so `Intl.DateTimeFormat` picks up the browser's preference
@@ -82,7 +82,7 @@ export type VersionPickerProps = {
    * label is derived as `revisions.length - index` (so the entry at
    * index 0 is "vN", the latest, and the last entry is "v1").
    */
-  revisions: EntityRevision[];
+  revisions: PetriNetRevision[];
   /**
    * Decision-time of the revision currently loaded in the editor, or
    * `null` if the active net is unsaved.
@@ -94,7 +94,7 @@ export type VersionPickerProps = {
    * dirty creates a new top revision (vN+1).
    */
   isDirty: boolean;
-  onLoadRevision: (revision: EntityRevision) => void;
+  onLoadRevision: (revision: PetriNetRevision) => void;
 };
 
 /**

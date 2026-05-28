@@ -17,9 +17,9 @@ import {
   useProcessSaveAndLoad,
 } from "./process-editor-wrapper/use-process-save-and-load";
 import {
-  type EntityRevision,
-  useEntityRevisions,
-} from "./process-editor-wrapper/use-process-save-and-load/use-entity-revisions";
+  type PetriNetRevision,
+  usePetriNetRevisions,
+} from "./process-editor-wrapper/use-process-save-and-load/use-petri-net-revisions";
 import { VersionPicker } from "./process-editor-wrapper/version-picker";
 
 import type { EntityId } from "@blockprotocol/type-system";
@@ -107,7 +107,7 @@ export const ProcessEditorWrapper = () => {
   );
 
   const { revisions, refetch: refetchRevisions } =
-    useEntityRevisions(selectedNetId);
+    usePetriNetRevisions(selectedNetId);
 
   const {
     isDirty,
@@ -156,7 +156,7 @@ export const ProcessEditorWrapper = () => {
    * full editor remount (Petrinaut keys worker providers on `handle.id`).
    */
   const loadRevision = useCallback(
-    (revision: EntityRevision) => {
+    (revision: PetriNetRevision) => {
       handle.change((draft) => {
         for (const key of Object.keys(SDCPN_FIELDS) as (keyof SDCPN)[]) {
           copySdcpnField(draft, revision.definition, key);
