@@ -145,7 +145,6 @@ services:
   hydra-migrate:
     profiles:
       - dev
-      - hash
     build:
       context: ./hydra
       args:
@@ -164,7 +163,6 @@ services:
   hydra:
     profiles:
       - dev
-      - hash
     build:
       context: ./hydra
       args:
@@ -694,9 +692,6 @@ services:
       HASH_KRATOS_ADMIN_URL: "http://kratos:4434"
       KRATOS_API_KEY: "${KRATOS_API_KEY:-secret}"
       INTERNAL_API_KEY: "${INTERNAL_API_KEY:-development-api-key}"
-
-      HASH_HYDRA_PUBLIC_URL: "http://hydra:4444"
-      HASH_HYDRA_ADMIN_URL: "http://hydra:4445"
 
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
       HASH_TEMPORAL_SERVER_PORT: "7233"
