@@ -1,0 +1,10 @@
+{
+  "name": "@infra/compose-kratos",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Ory Kratos Docker image. Exists as a workspace package so turbo attributes Dockerfile/context changes to a `build:docker` task.",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "build:docker": "docker buildx build --tag hash-kratos --file Dockerfile . --load"
+  }
+}

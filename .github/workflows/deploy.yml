@@ -36,6 +36,9 @@ jobs:
       id-token: write
     outputs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
+      backend-images: ${{ steps.packages.outputs.backend-images }}
+      backend-manifests: ${{ steps.packages.outputs.backend-manifests }}
+      backend-deploys: ${{ steps.packages.outputs.backend-deploys }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -49,15 +52,143 @@ jobs:
           vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
+      # Service catalog is the single source of truth for build/manifest/deploy.
+      # `package` keys turbo's affected-package detection — each service has a
+      # `build:docker` script (including the two stub packages at
+      # `infra/compose/{hydra,kratos}/` whose only purpose is to let turbo
+      # notice Dockerfile/context changes). `ecs` lists the ECS task
+      # definitions to redeploy when this image publishes; one app may drive
+      # several services (e.g. `graph` → graph + graph-admin + type-fetcher).
       - name: Determine changed packages
         id: packages
+        env:
+          IS_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+          SKIP_AMD64: ${{ github.event_name == 'pull_request' }}
         run: |
+          # Without pipefail a failing `turbo query` piped into jq is masked by
+          # jq's exit 0 on empty input — yielding an empty matrix and a green
+          # run that silently builds/deploys nothing. Fail loud instead.
+          set -euo pipefail
+
           SOURCEMAPS_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "sentry:sourcemaps"}}) { items { name path } } }'
 
           SOURCEMAPS_PACKAGES=$(turbo query "$SOURCEMAPS_QUERY" \
             | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
 
           echo "sourcemaps=$SOURCEMAPS_PACKAGES" | tee -a $GITHUB_OUTPUT
+
+          CATALOG=$(jq -nc '[
+            {
+              package:    "@apps/hash-graph",
+              service:    "graph",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-graph/docker/Dockerfile",
+              context:    ".",
+              ecs: [
+                { service: "graph",        cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph" },
+                { service: "graph-admin",  cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-graph-admin" },
+                { service: "type-fetcher", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-type-fetcher" }
+              ]
+            },
+            {
+              package:    "@apps/hash-api",
+              service:    "api",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-api/docker/Dockerfile",
+              context:    ".",
+              ecs: [{ service: "api", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-api" }]
+            },
+            {
+              package:    "@apps/hash-frontend",
+              service:    "frontend",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-frontend/docker/Dockerfile",
+              context:    ".",
+              # TODO(FE-752): drop build_args once frontend is runtime-configurable.
+              build_args: "API_ORIGIN=http://localhost:5001\nFRONTEND_URL=http://localhost:3000\n",
+              ecs:        []
+            },
+            {
+              package:    "@apps/hash-ai-worker-ts",
+              service:    "ai-worker-ts",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-ai-worker-ts/docker/Dockerfile",
+              context:    ".",
+              ecs: [{ service: "ai-ts-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-ai-ts" }]
+            },
+            {
+              package:    "@apps/hash-integration-worker",
+              service:    "integration-worker",
+              push:       ["ecr", "ghcr"],
+              dockerfile: "apps/hash-integration-worker/docker/Dockerfile",
+              context:    ".",
+              ecs: [{ service: "integration-worker", cluster: "h-stage-euc1-worker", service_name: "h-stage-euc1-worker-integration" }]
+            },
+            {
+              package:    "@infra/compose-kratos",
+              service:    "kratos",
+              push:       ["ecr"],
+              dockerfile: "infra/compose/kratos/Dockerfile",
+              context:    "infra/compose/kratos",
+              ecs: [{ service: "kratos", cluster: "h-stage-euc1-auth", service_name: "h-stage-euc1-auth-kratos" }]
+            },
+            {
+              package:    "@infra/compose-hydra",
+              service:    "hydra",
+              push:       ["ecr"],
+              dockerfile: "infra/compose/hydra/Dockerfile",
+              context:    "infra/compose/hydra",
+              ecs: [{ service: "hydra", cluster: "h-stage-euc1-auth", service_name: "h-stage-euc1-auth-hydra" }]
+            }
+          ]')
+
+          # workflow_dispatch always rebuilds everything (manual re-trigger);
+          # PR/push/merge_group filter by turbo's affected-package detection.
+          if [[ "$IS_DISPATCH" == "true" ]]; then
+            AFFECTED=$(jq -c '[.[].package]' <<<"$CATALOG")
+          else
+            IMAGES_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "build:docker"}}) { items { name } } }'
+            AFFECTED=$(turbo query "$IMAGES_QUERY" | jq -c '[.data.affectedPackages.items[].name]')
+          fi
+
+          # Fail loudly when turbo flags a `build:docker` package the catalog
+          # doesn't know about — without this the matrix would silently drop
+          # it and the image would never publish.
+          MISSING=$(jq -nc --argjson affected "$AFFECTED" --argjson catalog "$CATALOG" \
+            '[$affected[] | select(. as $p | $catalog | map(.package) | index($p) | not)]')
+          if [[ "$(jq length <<<"$MISSING")" -gt 0 ]]; then
+            echo "::error ::affected build:docker packages missing from deploy catalog: $MISSING"
+            exit 1
+          fi
+
+          AFFECTED_CATALOG=$(jq -c --argjson affected "$AFFECTED" '[.[] | select(.package as $p | $affected | index($p))]' <<<"$CATALOG")
+
+          # Build matrix: expand each affected entry to its arches. Skip amd64
+          # for services that don't publish to GHCR (ECR is arm64-only) and
+          # also on PR events (arch divergence in Rust/Node is rare;
+          # merge_group still validates amd64 before main).
+          BUILD_MATRIX=$(jq -c --argjson skip_amd64 "$SKIP_AMD64" '
+            [.[] as $e
+              | ({arch: "arm64"}, {arch: "amd64"})
+              | $e + .
+              | select(($e.push | index("ghcr")) or .arch == "arm64")
+              | select($skip_amd64 != true or .arch != "amd64")
+              | del(.package, .ecs)
+            ] | { include: . }' <<<"$AFFECTED_CATALOG")
+
+          # Manifest matrix: services that publish multi-arch to GHCR.
+          MANIFEST_MATRIX=$(jq -c '
+            map(select(.push | index("ghcr"))) | { service: [.[].service] }
+          ' <<<"$AFFECTED_CATALOG")
+
+          # Deploy matrix: flatten the per-service `ecs` arrays.
+          DEPLOY_MATRIX=$(jq -c '
+            [.[] | .ecs[]] | { include: . }
+          ' <<<"$AFFECTED_CATALOG")
+
+          echo "backend-images=$BUILD_MATRIX" | tee -a $GITHUB_OUTPUT
+          echo "backend-manifests=$MANIFEST_MATRIX" | tee -a $GITHUB_OUTPUT
+          echo "backend-deploys=$DEPLOY_MATRIX" | tee -a $GITHUB_OUTPUT
 
   sourcemaps:
     name: Sourcemaps
@@ -111,58 +242,11 @@ jobs:
   build:
     name: Build${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    needs: [setup]
+    if: fromJSON(needs.setup.outputs.backend-images).include[0] != null
     strategy:
       fail-fast: false
-      matrix:
-        service:
-          - graph
-          - api
-          - frontend
-          - kratos
-          - hydra
-          - ai-worker-ts
-          - integration-worker
-        arch: [arm64, amd64]
-        # Services that only publish to ECR don't need an amd64 build — ECR is
-        # arm64-only (staging ECS runs on Graviton).
-        exclude:
-          - { service: kratos, arch: amd64 }
-          - { service: hydra, arch: amd64 }
-        # Per-service config: paths plus the registries to publish to. Joined
-        # with every remaining (service, arch) combination via `include` merge.
-        include:
-          - service: graph
-            push: [ecr, ghcr]
-            dockerfile: apps/hash-graph/docker/Dockerfile
-            context: .
-          - service: api
-            push: [ecr, ghcr]
-            dockerfile: apps/hash-api/docker/Dockerfile
-            context: .
-          - service: frontend
-            push: [ecr, ghcr]
-            dockerfile: apps/hash-frontend/docker/Dockerfile
-            context: .
-            # TODO(FE-752): Remove once frontend is runtime-configurable
-            build_args: |
-              API_ORIGIN=http://localhost:5001
-              FRONTEND_URL=http://localhost:3000
-          - service: kratos
-            push: [ecr]
-            dockerfile: infra/compose/kratos/Dockerfile
-            context: infra/compose/kratos
-          - service: hydra
-            push: [ecr]
-            dockerfile: infra/compose/hydra/Dockerfile
-            context: infra/compose/hydra
-          - service: ai-worker-ts
-            push: [ecr, ghcr]
-            dockerfile: apps/hash-ai-worker-ts/docker/Dockerfile
-            context: .
-          - service: integration-worker
-            push: [ecr, ghcr]
-            dockerfile: apps/hash-integration-worker/docker/Dockerfile
-            context: .
+      matrix: ${{ fromJSON(needs.setup.outputs.backend-images) }}
     permissions:
       id-token: write
       contents: read
@@ -170,10 +254,9 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      # All push policy lives here. `should_build` short-circuits the rest
-      # of the job when no registry target is reachable on push/dispatch
-      # (e.g. kratos/hydra on a feature-branch dispatch). PR/merge_group
-      # always set should_build=true for build-only validation.
+      # Tag-list assembly. The dynamic matrix already filtered the (service,
+      # arch) entries to what should build, so this step only decides whether
+      # to push and which tags to apply.
       - name: Compute targets
         id: targets
         shell: bash
@@ -209,23 +292,9 @@ jobs:
             push=true
           fi
 
-          # On push/dispatch only build when we can actually publish. PR /
-          # merge_group always validate.
-          should_build=true
-          if $is_push_event && ! $push_ecr && ! $push_ghcr; then
-            should_build=false
-          fi
-
-          # amd64 PR builds skipped — arch-specific bugs in Rust/Node are
-          # rare and merge_group still validates amd64 before main.
-          if [[ "$ARCH" == "amd64" && "$EVENT" == "pull_request" ]]; then
-            should_build=false
-          fi
-
           ecr_host="$ECR_ACCOUNT.dkr.ecr.$ECR_REGION.amazonaws.com"
 
           {
-            echo "should_build=$should_build"
             echo "push_ecr=$push_ecr"
             echo "push_ghcr=$push_ghcr"
             echo "push=$push"
@@ -254,7 +323,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Build${{ steps.targets.outputs.push == 'true' && ' and push' || '' }} ${{ matrix.service }} (${{ matrix.arch }})
-        if: steps.targets.outputs.should_build == 'true'
         uses: ./.github/actions/docker-build-push
         with:
           CONTEXT_PATH: ${{ github.workspace }}/${{ matrix.context }}
@@ -270,17 +338,11 @@ jobs:
   manifest:
     name: Publish multi-arch manifest (${{ matrix.service }})
     runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [setup, build]
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-manifests).service[0] != null
     strategy:
       fail-fast: false
-      matrix:
-        service:
-          - graph
-          - api
-          - frontend
-          - ai-worker-ts
-          - integration-worker
+      matrix: ${{ fromJSON(needs.setup.outputs.backend-manifests) }}
     permissions:
       contents: read
       packages: write
@@ -312,36 +374,11 @@ jobs:
   deploy:
     name: Redeploy ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [setup, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && fromJSON(needs.setup.outputs.backend-deploys).include[0] != null
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - service: graph
-            cluster: h-stage-euc1-app
-            service_name: h-stage-euc1-app-graph
-          - service: graph-admin
-            cluster: h-stage-euc1-app
-            service_name: h-stage-euc1-app-graph-admin
-          - service: type-fetcher
-            cluster: h-stage-euc1-app
-            service_name: h-stage-euc1-app-type-fetcher
-          - service: api
-            cluster: h-stage-euc1-app
-            service_name: h-stage-euc1-app-api
-          - service: kratos
-            cluster: h-stage-euc1-auth
-            service_name: h-stage-euc1-auth-kratos
-          - service: hydra
-            cluster: h-stage-euc1-auth
-            service_name: h-stage-euc1-auth-hydra
-          - service: ai-ts-worker
-            cluster: h-stage-euc1-worker
-            service_name: h-stage-euc1-worker-ai-ts
-          - service: integration-worker
-            cluster: h-stage-euc1-worker
-            service_name: h-stage-euc1-worker-integration
+      matrix: ${{ fromJSON(needs.setup.outputs.backend-deploys) }}
     permissions:
       id-token: write
       contents: read
@@ -392,7 +429,7 @@ jobs:
           [[ ${{ needs.sourcemaps.result }} =~ success|skipped ]]
       - name: Check build
         run: |
-          [[ ${{ needs.build.result }} = success ]]
+          [[ ${{ needs.build.result }} =~ success|skipped ]]
       - name: Check manifest
         run: |
           [[ ${{ needs.manifest.result }} =~ success|skipped ]]
