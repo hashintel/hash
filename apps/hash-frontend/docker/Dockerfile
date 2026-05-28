@@ -100,11 +100,12 @@ WORKDIR /usr/local/src/apps/hash-frontend
 ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
 RUN groupadd --system --gid 60000 hash && \
     useradd --system frontend -G hash && \
-    install -d -m 0775 -o frontend -g hash /log /home/frontend $COREPACK_HOME /usr/local/src/apps/hash-frontend/.next && \
+    install -d -m 0775 -o frontend -g hash /log /home/frontend $COREPACK_HOME && \
+    chown -R frontend:hash /usr/local/src/apps/hash-frontend/.next && \
     corepack prepare --activate
 
 USER frontend:hash
 ENV NODE_ENV=production
 
-ENTRYPOINT [ "yarn", "--cache-folder", "/tmp/yarn-cache", "--global-folder", "/tmp/yarn-global" ]
+ENTRYPOINT ["/usr/local/src/node_modules/.bin/next"]
 CMD ["start"]
