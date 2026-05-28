@@ -107,6 +107,8 @@ RUN groupadd --system --gid 60000 hash && \
 
 USER frontend:hash
 ENV NODE_ENV=production
+ENV YARN_CACHE_FOLDER=/tmp/yarn-cache
+ENV YARN_GLOBAL_FOLDER=/tmp/yarn-global
 
-ENTRYPOINT ["/usr/local/src/node_modules/.bin/next"]
+ENTRYPOINT ["yarn"]
 CMD ["start"]
