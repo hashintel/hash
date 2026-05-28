@@ -1,10 +1,10 @@
 import {
   Box,
   Checkbox,
-  chipClasses,
   Divider,
   ListItemText,
   Menu,
+  Typography,
 } from "@mui/material";
 import {
   bindMenu,
@@ -18,6 +18,8 @@ import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
 import { MenuItem } from "../../../../shared/ui";
+
+import { activePillSx, defaultPillSx } from "./pill-styles";
 
 import type { EntitiesFilterState } from "../data/types";
 import type { WebId } from "@blockprotocol/type-system";
@@ -48,7 +50,7 @@ const buildLabel = ({
 
   if (includeOtherWebs) {
     if (allSelected) {
-      return "All webs";
+      return "Any web";
     }
     if (selectedCount === 0) {
       return "Other webs";
@@ -57,7 +59,7 @@ const buildLabel = ({
   }
 
   if (allSelected) {
-    return totalCount === 1 ? "Your web" : "All your webs";
+    return totalCount === 1 ? "Your web" : "Your webs";
   }
   if (selectedCount === 0) {
     return "No webs";
@@ -117,12 +119,21 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
     includeOtherWebs: webState.includeOtherWebs,
   });
 
+  const allInternalSelected =
+    webState.selectedInternalWebIds.size === internalWebIds.length &&
+    internalWebIds.every((id) => webState.selectedInternalWebIds.has(id));
+
+  const isActive = !allInternalSelected || webState.includeOtherWebs;
+
   return (
     <Box>
       <Chip
         icon={
           <HouseRegularIcon
-            sx={{ fill: ({ palette }) => palette.primary.main }}
+            sx={{
+              fill: ({ palette }) =>
+                isActive ? palette.blue[70] : palette.primary.main,
+            }}
           />
         }
         label={
@@ -132,7 +143,28 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
             alignItems="center"
             gap={0.6}
           >
-            {label}
+            <Typography
+              component="span"
+              sx={{
+                fontSize: 13,
+                fontWeight: 400,
+                color: ({ palette }) =>
+                  isActive ? palette.blue[70] : palette.gray[60],
+              }}
+            >
+              Web is
+            </Typography>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: ({ palette }) =>
+                  isActive ? palette.blue[90] : palette.gray[80],
+              }}
+            >
+              {label}
+            </Typography>
             <CaretDownSolidIcon
               sx={{
                 fontSize: 12,
@@ -141,17 +173,7 @@ export const WebFilterPill: FunctionComponent<WebFilterPillProps> = ({
             />
           </Box>
         }
-        sx={{
-          height: 24,
-          border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-          background: ({ palette }) => palette.gray[5],
-          cursor: "pointer",
-          [`.${chipClasses.label}`]: {
-            color: ({ palette }) => palette.gray[70],
-            fontSize: 13,
-            fontWeight: 500,
-          },
-        }}
+        sx={isActive ? activePillSx : defaultPillSx}
         {...bindTrigger(popupState)}
       />
       <Menu

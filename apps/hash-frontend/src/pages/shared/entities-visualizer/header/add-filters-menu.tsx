@@ -1,14 +1,15 @@
-import { Box, chipClasses, ListItemText, Menu } from "@mui/material";
+import { Box, ListItemText, Menu } from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
 
-import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
+import { Chip } from "@hashintel/design-system";
 
 import { PlusRegularIcon } from "../../../../shared/icons/plus-regular";
 import { MenuItem } from "../../../../shared/ui";
+import { dashedPillSx } from "./pill-styles";
 
 import type { FunctionComponent } from "react";
 
@@ -39,33 +40,8 @@ export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
             sx={{ fill: ({ palette }) => palette.primary.main }}
           />
         }
-        label={
-          <Box
-            component="span"
-            display="inline-flex"
-            alignItems="center"
-            gap={0.6}
-          >
-            Add filters
-            <CaretDownSolidIcon
-              sx={{
-                fontSize: 12,
-                transform: `rotate(${popupState.isOpen ? 180 : 0}deg)`,
-              }}
-            />
-          </Box>
-        }
-        sx={{
-          height: 24,
-          border: ({ palette }) => `1px dashed ${palette.gray[30]}`,
-          background: ({ palette }) => palette.gray[5],
-          cursor: "pointer",
-          [`.${chipClasses.label}`]: {
-            color: ({ palette }) => palette.gray[70],
-            fontSize: 13,
-            fontWeight: 500,
-          },
-        }}
+        label="Add filter"
+        sx={dashedPillSx}
         {...bindTrigger(popupState)}
       />
       <Menu

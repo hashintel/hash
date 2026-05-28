@@ -109,6 +109,7 @@ export const SortControl: FunctionComponent<SortControlProps> = ({
               }}
             />
           }
+          sx={{ borderRadius: "4px", px: 1.25 }}
         >
           Sort: {activeLabel}
         </TableHeaderButton>
@@ -134,7 +135,7 @@ export const SortControl: FunctionComponent<SortControlProps> = ({
                   display="inline-flex"
                   alignItems="center"
                   ml={1}
-                  sx={{ color: ({ palette }) => palette.gray[60] }}
+                  sx={{ color: ({ palette }) => palette.common.white }}
                 >
                   <DirectionIcon sx={{ fontSize: 14 }} />
                 </Box>

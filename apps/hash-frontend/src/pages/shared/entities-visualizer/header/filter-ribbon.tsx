@@ -1,6 +1,7 @@
 import { Box } from "@mui/material";
 
 import { AddFiltersMenu } from "./add-filters-menu";
+import { ClearFiltersButton } from "./clear-filters-button";
 import { IncludeArchivedPill } from "./include-archived-pill";
 import { TypeFilterPill } from "./type-filter-pill";
 import { WebFilterPill } from "./web-filter-pill";
@@ -21,6 +22,48 @@ type FilterRibbonProps = {
   ) => void;
 };
 
+const buildDefaultFilterState = (
+  internalWebIds: WebId[],
+): EntitiesFilterState => ({
+  web: {
+    selectedInternalWebIds: new Set<WebId>(internalWebIds),
+    includeOtherWebs: false,
+  },
+  type: { selectedTypeIds: null },
+  includeArchived: false,
+});
+
+const isWebFilterDefault = (
+  web: EntitiesFilterState["web"],
+  internalWebIds: WebId[],
+) => {
+  if (web.includeOtherWebs) {
+    return false;
+  }
+  if (web.selectedInternalWebIds.size !== internalWebIds.length) {
+    return false;
+  }
+  return internalWebIds.every((id) => web.selectedInternalWebIds.has(id));
+};
+
+const isTypeFilterDefault = (
+  type: EntitiesFilterState["type"],
+  availableTypes: AvailableType[],
+) => {
+  if (type.selectedTypeIds === null) {
+    return true;
+  }
+  if (availableTypes.length === 0) {
+    return type.selectedTypeIds.size === 0;
+  }
+  if (type.selectedTypeIds.size !== availableTypes.length) {
+    return false;
+  }
+  return availableTypes.every(({ entityTypeId }) =>
+    type.selectedTypeIds!.has(entityTypeId),
+  );
+};
+
 export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   availableTypes,
   availableTypesLoading,
@@ -31,6 +74,19 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
 }) => {
   const setIncludeArchived = (includeArchived: boolean) =>
     setFilterState((prev) => ({ ...prev, includeArchived }));
+
+  const webIsDefault = isWebFilterDefault(filterState.web, internalWebIds);
+  const typeIsDefault =
+    isTypePinned || isTypeFilterDefault(filterState.type, availableTypes);
+  const archivedIsDefault = !filterState.includeArchived;
+
+  const filtersAreDefault = webIsDefault && typeIsDefault && archivedIsDefault;
+
+  const handleClear = () => {
+    setFilterState(() => buildDefaultFilterState(internalWebIds));
+  };
+
+  const allExtraFiltersEnabled = filterState.includeArchived;
 
   return (
     <Box display="flex" alignItems="center" gap={1}>
@@ -54,10 +110,13 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
       {filterState.includeArchived ? (
         <IncludeArchivedPill onRemove={() => setIncludeArchived(false)} />
       ) : null}
-      <AddFiltersMenu
-        includeArchived={filterState.includeArchived}
-        onAddIncludeArchived={() => setIncludeArchived(true)}
-      />
+      {!allExtraFiltersEnabled && (
+        <AddFiltersMenu
+          includeArchived={filterState.includeArchived}
+          onAddIncludeArchived={() => setIncludeArchived(true)}
+        />
+      )}
+      {filtersAreDefault ? null : <ClearFiltersButton onClear={handleClear} />}
     </Box>
   );
 };

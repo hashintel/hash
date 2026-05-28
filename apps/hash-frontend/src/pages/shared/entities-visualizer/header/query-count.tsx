@@ -20,18 +20,21 @@ export const QueryCount: FunctionComponent<QueryCountProps> = ({
     <Box
       display="flex"
       alignItems="center"
+      gap={0.75}
       sx={{
         color: ({ palette }) => palette.gray[70],
         fontSize: 13,
         fontWeight: 500,
-        minWidth: 24,
         justifyContent: "flex-end",
       }}
     >
       {loading ? (
-        <LoadingSpinner size={14} color={theme.palette.blue[70]} />
+        <>
+          <LoadingSpinner size={14} color={theme.palette.blue[70]} />
+          <span>Loading</span>
+        </>
       ) : count != null ? (
-        formatNumber(count)
+        `${formatNumber(count)} ${count === 1 ? "entity" : "entities"}`
       ) : (
         "–"
       )}

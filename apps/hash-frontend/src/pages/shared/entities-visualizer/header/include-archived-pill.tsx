@@ -1,8 +1,9 @@
-import { Box, chipClasses } from "@mui/material";
+import { Box } from "@mui/material";
 
 import { Chip, IconButton, XMarkRegularIcon } from "@hashintel/design-system";
 
 import { BoxArchiveIcon } from "../../../../shared/icons/box-archive-icon";
+import { activePillSx } from "./pill-styles";
 
 import type { FunctionComponent } from "react";
 
@@ -17,9 +18,7 @@ export const IncludeArchivedPill: FunctionComponent<
     <Box>
       <Chip
         icon={
-          <BoxArchiveIcon
-            sx={{ fill: ({ palette }) => palette.primary.main }}
-          />
+          <BoxArchiveIcon sx={{ fill: ({ palette }) => palette.blue[70] }} />
         }
         label={
           <Box
@@ -36,9 +35,9 @@ export const IncludeArchivedPill: FunctionComponent<
               sx={{
                 p: 0,
                 ml: 0.2,
-                color: ({ palette }) => palette.gray[60],
+                color: ({ palette }) => palette.blue[70],
                 "&:hover": {
-                  color: ({ palette }) => palette.gray[90],
+                  color: ({ palette }) => palette.blue[90],
                   background: "transparent",
                 },
               }}
@@ -47,16 +46,7 @@ export const IncludeArchivedPill: FunctionComponent<
             </IconButton>
           </Box>
         }
-        sx={{
-          height: 24,
-          border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-          background: ({ palette }) => palette.gray[5],
-          [`.${chipClasses.label}`]: {
-            color: ({ palette }) => palette.gray[70],
-            fontSize: 13,
-            fontWeight: 500,
-          },
-        }}
+        sx={activePillSx}
       />
     </Box>
   );

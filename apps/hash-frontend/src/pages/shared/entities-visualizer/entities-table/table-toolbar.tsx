@@ -92,15 +92,18 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
       }}
     >
       <Box display="flex" alignItems="center" columnGap={1}>
-        <Tooltip title="Export the visible rows to CSV" placement="top">
-          <TableHeaderButton onClick={handleExportToCsv}>
-            Export
-          </TableHeaderButton>
-        </Tooltip>
         <Tooltip title="Search for text in visible rows" placement="top">
           <IconButton onClick={() => setShowSearch(!showSearch)}>
             <MagnifyingGlassRegularIcon />
           </IconButton>
+        </Tooltip>
+        <Tooltip title="Export the visible rows to CSV" placement="top">
+          <TableHeaderButton
+            onClick={handleExportToCsv}
+            sx={{ borderRadius: "4px", px: 1.25 }}
+          >
+            Export
+          </TableHeaderButton>
         </Tooltip>
       </Box>
       <Box display="flex" alignItems="center" columnGap={1}>
