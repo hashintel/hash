@@ -14,12 +14,10 @@ import { dashedPillSx } from "./pill-styles";
 import type { FunctionComponent } from "react";
 
 type AddFiltersMenuProps = {
-  includeArchived: boolean;
   onAddIncludeArchived: () => void;
 };
 
 export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
-  includeArchived,
   onAddIncludeArchived,
 }) => {
   const popupState = usePopupState({
@@ -49,11 +47,7 @@ export const AddFiltersMenu: FunctionComponent<AddFiltersMenuProps> = ({
         anchorOrigin={{ vertical: 30, horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
-        <MenuItem
-          onClick={handleSelectIncludeArchived}
-          disabled={includeArchived}
-          sx={{ minWidth: 200 }}
-        >
+        <MenuItem onClick={handleSelectIncludeArchived} sx={{ minWidth: 200 }}>
           <ListItemText primary="Include archived" />
         </MenuItem>
       </Menu>

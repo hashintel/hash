@@ -18,7 +18,6 @@ import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import { HouseRegularIcon } from "../../../../shared/icons/house-regular-icon";
 import { MenuItem } from "../../../../shared/ui";
-
 import { activePillSx, defaultPillSx } from "./pill-styles";
 
 import type { EntitiesFilterState } from "../data/types";

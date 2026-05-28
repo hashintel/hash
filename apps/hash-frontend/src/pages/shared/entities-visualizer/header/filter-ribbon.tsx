@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
 
+import { createDefaultFilterState } from "../data/types";
 import { AddFiltersMenu } from "./add-filters-menu";
 import { ClearFiltersButton } from "./clear-filters-button";
 import { IncludeArchivedPill } from "./include-archived-pill";
@@ -21,17 +22,6 @@ type FilterRibbonProps = {
     updater: (prev: EntitiesFilterState) => EntitiesFilterState,
   ) => void;
 };
-
-const buildDefaultFilterState = (
-  internalWebIds: WebId[],
-): EntitiesFilterState => ({
-  web: {
-    selectedInternalWebIds: new Set<WebId>(internalWebIds),
-    includeOtherWebs: false,
-  },
-  type: { selectedTypeIds: null },
-  includeArchived: false,
-});
 
 const isWebFilterDefault = (
   web: EntitiesFilterState["web"],
@@ -83,7 +73,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
   const filtersAreDefault = webIsDefault && typeIsDefault && archivedIsDefault;
 
   const handleClear = () => {
-    setFilterState(() => buildDefaultFilterState(internalWebIds));
+    setFilterState(() => createDefaultFilterState(internalWebIds));
   };
 
   const allExtraFiltersEnabled = filterState.includeArchived;
@@ -111,10 +101,7 @@ export const FilterRibbon: FunctionComponent<FilterRibbonProps> = ({
         <IncludeArchivedPill onRemove={() => setIncludeArchived(false)} />
       ) : null}
       {!allExtraFiltersEnabled && (
-        <AddFiltersMenu
-          includeArchived={filterState.includeArchived}
-          onAddIncludeArchived={() => setIncludeArchived(true)}
-        />
+        <AddFiltersMenu onAddIncludeArchived={() => setIncludeArchived(true)} />
       )}
       {filtersAreDefault ? null : <ClearFiltersButton onClear={handleClear} />}
     </Box>

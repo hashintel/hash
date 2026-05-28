@@ -651,7 +651,6 @@ export const EntitiesTable: FunctionComponent<
       "created",
       "entityLabel",
       "entityTypes",
-      "entityLabel",
       "lastEdited",
       ...columns.map((column) => column.id).filter((key) => isBaseUrl(key)),
     ];

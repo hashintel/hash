@@ -14,3 +14,14 @@ export type EntitiesFilterState = {
   };
   includeArchived: boolean;
 };
+
+export const createDefaultFilterState = (
+  internalWebIds: WebId[],
+): EntitiesFilterState => ({
+  web: {
+    selectedInternalWebIds: new Set<WebId>(internalWebIds),
+    includeOtherWebs: false,
+  },
+  type: { selectedTypeIds: null },
+  includeArchived: false,
+});

@@ -1,10 +1,4 @@
-import {
-  Box,
-  Checkbox,
-  ListItemText,
-  Menu,
-  Typography,
-} from "@mui/material";
+import { Box, Checkbox, ListItemText, Menu, Typography } from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
@@ -12,16 +6,11 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  CaretDownSolidIcon,
-  Chip,
-  TextField,
-} from "@hashintel/design-system";
+import { CaretDownSolidIcon, Chip, TextField } from "@hashintel/design-system";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
 
 import { AsteriskLightIcon } from "../../../../shared/icons/asterisk-light-icon";
 import { MenuItem } from "../../../../shared/ui";
-
 import { activePillSx, defaultPillSx } from "./pill-styles";
 
 import type { EntitiesFilterState } from "../data/types";
@@ -84,6 +73,85 @@ const buildLabel = ({
 
   return `${count} types`;
 };
+
+type TypeFilterMenuItemProps = {
+  entityTypeId: VersionedUrl;
+  title: string;
+  count: number;
+  checked: boolean;
+  onToggle: (entityTypeId: VersionedUrl) => void;
+  onSelectOnly: (entityTypeId: VersionedUrl) => void;
+};
+
+const TypeFilterMenuItem: FunctionComponent<TypeFilterMenuItemProps> = ({
+  entityTypeId,
+  title,
+  count,
+  checked,
+  onToggle,
+  onSelectOnly,
+}) => (
+  <MenuItem
+    onClick={() => onToggle(entityTypeId)}
+    sx={{
+      minWidth: 260,
+      "&:hover .type-filter-only-button": {
+        visibility: "visible",
+      },
+      "&:hover .type-filter-count": {
+        visibility: "hidden",
+      },
+    }}
+  >
+    <Checkbox
+      checked={checked}
+      sx={{ p: 0, mr: 1, svg: { width: 14, height: 14 } }}
+    />
+    <ListItemText
+      primary={title}
+      primaryTypographyProps={{
+        sx: {
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        },
+      }}
+    />
+    <Box sx={{ ml: 1, position: "relative", display: "inline-flex" }}>
+      <Typography
+        className="type-filter-count"
+        sx={{
+          color: ({ palette }) => palette.gray[50],
+          fontSize: 12,
+        }}
+      >
+        {formatNumber(count)}
+      </Typography>
+      <Box
+        className="type-filter-only-button"
+        component="span"
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelectOnly(entityTypeId);
+        }}
+        sx={{
+          visibility: "hidden",
+          position: "absolute",
+          right: 0,
+          top: "50%",
+          transform: "translateY(-50%)",
+          color: ({ palette }) => palette.blue[70],
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: "pointer",
+          "&:hover": { textDecoration: "underline" },
+        }}
+      >
+        Only
+      </Box>
+    </Box>
+  </MenuItem>
+);
 
 export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
   availableTypes,
@@ -354,74 +422,17 @@ export const TypeFilterPill: FunctionComponent<TypeFilterPillProps> = ({
               </MenuItem>
             ))
           : null}
-        {filteredTypes.map(({ entityTypeId, title, count }) => {
-          const checked = isChecked(entityTypeId);
-          return (
-            <MenuItem
-              key={entityTypeId}
-              onClick={() => toggle(entityTypeId)}
-              sx={{
-                minWidth: 260,
-                "&:hover .type-filter-only-button": {
-                  visibility: "visible",
-                },
-                "&:hover .type-filter-count": {
-                  visibility: "hidden",
-                },
-              }}
-            >
-              <Checkbox
-                checked={checked}
-                sx={{ p: 0, mr: 1, svg: { width: 14, height: 14 } }}
-              />
-              <ListItemText
-                primary={title}
-                primaryTypographyProps={{
-                  sx: {
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  },
-                }}
-              />
-              <Box
-                sx={{ ml: 1, position: "relative", display: "inline-flex" }}
-              >
-                <Typography
-                  className="type-filter-count"
-                  sx={{
-                    color: ({ palette }) => palette.gray[50],
-                    fontSize: 12,
-                  }}
-                >
-                  {formatNumber(count)}
-                </Typography>
-                <Box
-                  className="type-filter-only-button"
-                  component="span"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    selectOnly(entityTypeId);
-                  }}
-                  sx={{
-                    visibility: "hidden",
-                    position: "absolute",
-                    right: 0,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: ({ palette }) => palette.blue[70],
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    "&:hover": { textDecoration: "underline" },
-                  }}
-                >
-                  Only
-                </Box>
-              </Box>
-            </MenuItem>
-          );
-        })}
+        {filteredTypes.map(({ entityTypeId, title, count }) => (
+          <TypeFilterMenuItem
+            key={entityTypeId}
+            entityTypeId={entityTypeId}
+            title={title}
+            count={count}
+            checked={isChecked(entityTypeId)}
+            onToggle={toggle}
+            onSelectOnly={selectOnly}
+          />
+        ))}
       </Menu>
     </Box>
   );

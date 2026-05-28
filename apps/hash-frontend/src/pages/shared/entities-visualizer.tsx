@@ -16,6 +16,7 @@ import { tableContentSx } from "../../shared/table-content";
 import { BulkActionsDropdown } from "../../shared/table-header/bulk-actions-dropdown";
 import { useMemoCompare } from "../../shared/use-memo-compare";
 import { useAuthenticatedUser } from "./auth-info-context";
+import { createDefaultFilterState } from "./entities-visualizer/data/types";
 import { useAvailableTypes } from "./entities-visualizer/data/use-available-types";
 import { EntitiesTable } from "./entities-visualizer/entities-table";
 import { GridView } from "./entities-visualizer/entities-table/grid-view";
@@ -161,14 +162,9 @@ export const EntitiesVisualizer: FunctionComponent<{
     },
   );
 
-  const [filterState, _setFilterState] = useState<EntitiesFilterState>(() => ({
-    web: {
-      selectedInternalWebIds: new Set<WebId>(internalWebIds),
-      includeOtherWebs: false,
-    },
-    type: { selectedTypeIds: null },
-    includeArchived: false,
-  }));
+  const [filterState, _setFilterState] = useState<EntitiesFilterState>(() =>
+    createDefaultFilterState(internalWebIds),
+  );
 
   const [cursor, setCursor] = useState<EntityQueryCursor>();
   const [activeConversionsWithoutTitle, _setActiveConversions] = useState<{
@@ -428,7 +424,9 @@ export const EntitiesVisualizer: FunctionComponent<{
   const tableHeight = `min(600px, calc(100vh - ${
     contentTop != null
       ? `${contentTop}px - ${theme.spacing(5)}`
-      : `(${HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + visualizerHeaderHeight}px + ${theme.spacing(5)} + ${theme.spacing(5)})`
+      : `(${
+          HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 230 + visualizerHeaderHeight
+        }px + ${theme.spacing(5)} + ${theme.spacing(5)})`
   }))`;
 
   const isPrimaryEntity = useCallback(
@@ -492,17 +490,19 @@ export const EntitiesVisualizer: FunctionComponent<{
     />
   );
 
-  const selectedEntities = useMemo(
-    () =>
-      view === "Table" && selectedTableRows.length > 0 && entities
-        ? entities.filter((entity) =>
-            selectedTableRows.some(
-              ({ entityId }) => entity.metadata.recordId.entityId === entityId,
-            ),
-          )
-        : [],
-    [entities, selectedTableRows, view],
-  );
+  const selectedEntities = useMemo(() => {
+    if (view !== "Table" || selectedTableRows.length === 0 || !entities) {
+      return [];
+    }
+
+    const selectedEntityIds = new Set(
+      selectedTableRows.map(({ entityId }) => entityId),
+    );
+
+    return entities.filter((entity) =>
+      selectedEntityIds.has(entity.metadata.recordId.entityId),
+    );
+  }, [entities, selectedTableRows, view]);
 
   const handleBulkActionCompleted = useCallback(() => {
     void entitiesData.refetch();
