@@ -14,9 +14,9 @@ export const styles = sva({
     },
     icon: {
       flexShrink: "0",
-      width: "[1em]",
-      minWidth: "[1em]",
-      height: "[1em]",
+      width: "[1em !important]",
+      minWidth: "[1em !important]",
+      height: "[1em !important]",
     },
   },
   variants: {

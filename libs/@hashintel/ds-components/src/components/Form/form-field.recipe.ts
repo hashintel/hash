@@ -8,7 +8,7 @@ export const styles = sva({
       xxs: {
         label: {
           marginBottom: "0",
-          '&:has(+ [data-part="description"])': { marginBottom: "-0.5" },
+          '&:has(+ [data-part="description"])': { marginBottom: "-1" },
         },
         description: { marginBottom: "0.5" },
         descriptionBottom: { marginTop: "1" },
@@ -29,10 +29,10 @@ export const styles = sva({
       sm: {
         label: {
           marginBottom: "1",
-          '&:has(+ [data-part="description"])': { marginBottom: "-1" },
+          '&:has(+ [data-part="description"])': { marginBottom: "-0.5" },
         },
         description: { marginBottom: "1" },
-        descriptionBottom: { marginTop: "1.5" },
+        descriptionBottom: { marginTop: "1" },
         errors: {
           marginTop: "1.5",
           '[data-part="descriptionBottom"] + &': { marginTop: "1" },
@@ -44,10 +44,10 @@ export const styles = sva({
           '&:has(+ [data-part="description"])': { marginBottom: "-0.5" },
         },
         description: { marginBottom: "1.5" },
-        descriptionBottom: { marginTop: "2" },
+        descriptionBottom: { marginTop: "1.5" },
         errors: {
-          marginTop: "2",
-          '[data-part="descriptionBottom"] + &': { marginTop: "1.5" },
+          marginTop: "1.5",
+          '[data-part="descriptionBottom"] + &': { marginTop: "1" },
         },
       },
       lg: {
@@ -56,7 +56,7 @@ export const styles = sva({
           '&:has(+ [data-part="description"])': { marginBottom: "0" },
         },
         description: { marginBottom: "2" },
-        descriptionBottom: { marginTop: "2.5" },
+        descriptionBottom: { marginTop: "2" },
         errors: {
           marginTop: "2",
           '[data-part="descriptionBottom"] + &': { marginTop: "1.5" },
