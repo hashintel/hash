@@ -28,7 +28,7 @@ env:
 name: HASH backend deployment
 jobs:
   build-graph:
-    name: Build and push HASH graph image
+    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} HASH graph image
     runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
@@ -44,7 +44,7 @@ jobs:
           role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push graph image
+      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} graph image
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "graph"
@@ -58,7 +58,7 @@ jobs:
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
   build-api:
-    name: Build and push HASH api image
+    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} HASH api image
     runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
@@ -74,7 +74,7 @@ jobs:
           role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push api image
+      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} api image
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "api"
@@ -88,7 +88,7 @@ jobs:
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
   build-frontend:
-    name: Build and push HASH frontend image
+    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} HASH frontend image
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
@@ -96,7 +96,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Build and push frontend image
+      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} frontend image
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "frontend"
@@ -108,7 +108,7 @@ jobs:
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
   build-kratos:
-    name: Build and push Kratos image
+    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} Kratos image
     runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
@@ -124,7 +124,7 @@ jobs:
           role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push kratos image
+      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} kratos image
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "kratos"
@@ -138,7 +138,7 @@ jobs:
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
   build-hydra:
-    name: Build and push Hydra image
+    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} Hydra image
     runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
@@ -154,7 +154,7 @@ jobs:
           role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push hydra image
+      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} hydra image
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "hydra"
@@ -168,7 +168,7 @@ jobs:
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
   build-ts-worker:
-    name: Build and push Temporal TS AI Worker
+    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} Temporal TS AI Worker
     runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
@@ -184,7 +184,7 @@ jobs:
           role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push ai-worker-ts image
+      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} ai-worker-ts image
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "temporal-worker-ai-ts"
@@ -198,7 +198,7 @@ jobs:
           PUSH: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
 
   build-integration-worker:
-    name: Build and push Temporal integration Worker
+    name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} Temporal integration Worker
     runs-on: ubuntu-24.04-arm
     permissions:
       id-token: write
@@ -214,7 +214,7 @@ jobs:
           role-to-assume: ${{ env.OIDC_HASH_CD_PUSH_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push integration-worker image
+      - name: Build${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && '' || ' and push' }} integration-worker image
         uses: ./.github/actions/docker-build-push
         with:
           SHORTNAME: "temporal-integration-worker"
