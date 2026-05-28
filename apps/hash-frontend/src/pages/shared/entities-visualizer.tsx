@@ -451,24 +451,6 @@ export const EntitiesVisualizer: FunctionComponent<{
     setCursor(nextCursor ?? undefined);
   }, [nextCursor]);
 
-  const viewToggle = (
-    <TableHeaderToggle
-      value={view}
-      setValue={setView}
-      options={(
-        [
-          "Table",
-          ...(supportGridView ? (["Grid"] as const) : []),
-          "Graph",
-        ] as const satisfies VisualizerView[]
-      ).map((optionValue) => ({
-        icon: visualizerViewIcons[optionValue],
-        label: `${optionValue} view`,
-        value: optionValue,
-      }))}
-    />
-  );
-
   const isTypePinned = !!entityTypeBaseUrl || !!entityTypeId;
 
   const { types: availableTypes, loading: availableTypesLoading } =
@@ -478,17 +460,6 @@ export const EntitiesVisualizer: FunctionComponent<{
       entityTypeBaseUrl,
       entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
     });
-
-  const filterRibbon = (
-    <FilterRibbon
-      availableTypes={availableTypes}
-      availableTypesLoading={availableTypesLoading}
-      filterState={filterState}
-      internalWebIds={internalWebIds}
-      isTypePinned={isTypePinned}
-      setFilterState={(updater) => setFilterState(updater)}
-    />
-  );
 
   const selectedEntities = useMemo(() => {
     if (view !== "Table" || selectedTableRows.length === 0 || !entities) {
@@ -509,29 +480,51 @@ export const EntitiesVisualizer: FunctionComponent<{
     setSelectedTableRows([]);
   }, [entitiesData]);
 
-  const headerLeft =
-    selectedEntities.length > 0 ? (
-      <BulkActionsDropdown
-        selectedItems={selectedEntities}
-        onBulkActionCompleted={handleBulkActionCompleted}
-      />
-    ) : (
-      filterRibbon
-    );
+  const showLoading = !subgraph || !closedMultiEntityTypesRootMap;
 
   return (
     <Box>
       <VisualizerHeader
-        left={headerLeft}
+        left={
+          selectedEntities.length > 0 ? (
+            <BulkActionsDropdown
+              selectedItems={selectedEntities}
+              onBulkActionCompleted={handleBulkActionCompleted}
+            />
+          ) : (
+            <FilterRibbon
+              availableTypes={availableTypes}
+              availableTypesLoading={availableTypesLoading}
+              filterState={filterState}
+              internalWebIds={internalWebIds}
+              isTypePinned={isTypePinned}
+              setFilterState={(updater) => setFilterState(updater)}
+            />
+          )
+        }
         right={
           <>
             <QueryCount count={totalResultCount} loading={dataLoading} />
-            {viewToggle}
+            <TableHeaderToggle
+              value={view}
+              setValue={setView}
+              options={(
+                [
+                  "Table",
+                  ...(supportGridView ? (["Grid"] as const) : []),
+                  "Graph",
+                ] as const satisfies VisualizerView[]
+              ).map((optionValue) => ({
+                icon: visualizerViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
+            />
           </>
         }
       />
       <Box ref={contentTopRef} />
-      {!subgraph || !closedMultiEntityTypesRootMap ? (
+      {showLoading ? (
         <Stack
           alignItems="center"
           justifyContent="center"
