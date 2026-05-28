@@ -1,6 +1,5 @@
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
-import type { MinimalUser } from "../../../../lib/user-and-org";
 import type { EntitiesTableRow } from "../types";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 
@@ -32,9 +31,6 @@ export const generateEntitiesCsvFile = ({
 
         if (typeof value === "string") {
           return value;
-        } else if (key === "lastEditedBy" || key === "createdBy") {
-          const user = value as MinimalUser | undefined;
-          return user?.displayName ?? "";
         } else if (key === "archived") {
           return row.archived ? "Yes" : "No";
         } else if (key === "sourceEntity" || key === "targetEntity") {
