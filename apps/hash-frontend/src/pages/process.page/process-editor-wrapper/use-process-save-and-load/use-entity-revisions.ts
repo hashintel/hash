@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { splitEntityId } from "@blockprotocol/type-system";
@@ -44,7 +44,7 @@ export const useEntityRevisions = (
     ? splitEntityId(entityId)
     : [undefined, undefined];
 
-  const { data, refetch } = useQuery<
+  const { data, refetch: rawRefetch } = useQuery<
     QueryEntitySubgraphQuery,
     QueryEntitySubgraphQueryVariables
   >(queryEntitySubgraphQuery, {
@@ -64,6 +64,18 @@ export const useEntityRevisions = (
       },
     },
   });
+
+  const refetch = useCallback(async () => {
+    if (!entityId) {
+      /**
+       * Apollo's `refetch()` bypasses `skip` and reuses whatever variables
+       * the query was set up with — for an unsaved net those are empty
+       * strings, which the graph rejects with "could not convert '' to UUID".
+       */
+      return;
+    }
+    await rawRefetch();
+  }, [entityId, rawRefetch]);
 
   const revisions = useMemo<EntityRevision[]>(() => {
     if (!data) {

@@ -151,11 +151,19 @@ export const useProcessSaveAndLoad = ({
         );
 
         if (updatedNet) {
-          loadPersistedNet(updatedNet);
+          setSelectedNetId(updatedNet.entityId);
+          setUserEditable(updatedNet.userEditable);
+          setLoadedRevisionTime(updatedNet.lastUpdated);
         }
       }
     },
-    [loadPersistedNet, refetch, refetchRevisions],
+    [
+      refetch,
+      refetchRevisions,
+      setLoadedRevisionTime,
+      setSelectedNetId,
+      setUserEditable,
+    ],
   );
 
   const persistToGraph = useCallback(async () => {

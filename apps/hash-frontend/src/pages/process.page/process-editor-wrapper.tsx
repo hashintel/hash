@@ -70,9 +70,6 @@ export const ProcessEditorWrapper = () => {
 
   /**
    * Decision-time of the server revision currently mirrored in the editor.
-   * Null when working on an unsaved net. Drives the `VersionPicker`'s
-   * "vN" label and is updated by `useProcessSaveAndLoad` after loads/saves
-   * and by `loadRevision` when the user browses history below.
    */
   const [loadedRevisionTime, setLoadedRevisionTime] = useState<string | null>(
     null,
@@ -193,7 +190,7 @@ export const ProcessEditorWrapper = () => {
               !isDirty && !persistPending ? "No changes to save" : undefined
             }
           >
-            {selectedNetId ? "Save" : "Create"}
+            {selectedNetId ? (isDirty ? "Save" : "Saved") : "Create"}
           </Button>
         </>
       ),
