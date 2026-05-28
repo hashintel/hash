@@ -6,6 +6,16 @@ on:
   pull_request: {}
   merge_group: {}
 
+# PR and merge_group runs cancel their previous attempt — the next push or
+# queue reshuffle obsoletes the in-flight build-only validation. Push and
+# workflow_dispatch share a single `publish` group so all publishing runs
+# serialize against each other regardless of ref, avoiding races on the
+# moving `:latest-<arch>` GHCR tags between e.g. a main push and a
+# feature-branch dispatch.
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'publish' || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+
 env:
   AWS_REGION: eu-central-1
   AWS_ECR_ACCOUNT_ID: 469596578827
